@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -46,11 +47,19 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
-        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<PowerPlanChangedEvent>(HandlePowerPlanChangedAsync);
+        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<SettingAppliedEvent>(HandleSettingAppliedAsync);
     }
 
-    private async Task HandlePowerPlanChangedAsync(PowerPlanChangedEvent evt)
+    // Phase 6.7 Slice 8b-2b (D2): power-plan apply now flows through the apply funnel, which publishes the generic
+    // SettingAppliedEvent (the old PowerService special handler's PowerPlanChangedEvent is retired at 8c teardown).
+    // React only to the power-plan setting, so an unrelated setting apply does not trigger a power refresh. The base
+    // BaseSettingsFeatureViewModel also subscribes to SettingAppliedEvent, but only to update the applied setting's own
+    // VM state - this handler adds the power-plan-specific dropdown + dependent-state refresh.
+    private async Task HandleSettingAppliedAsync(SettingAppliedEvent evt)
     {
+        if (evt.SettingId != SettingIds.PowerPlanSelection)
+            return;
+
         try
         {
             await Task.Delay(200).ConfigureAwait(false);

@@ -1466,4 +1466,14 @@ public static class PowerPlanDefinitions
         new("Ultimate Performance", "Maximum performance with no power saving measures", "PowerPlan_UltimatePerformance_Name", "e9a42b02-d5df-448d-aa00-03f14749eb61"),
         new("Winhance Power Plan", "Optimized power plan for gaming and performance", "PowerPlan_WinhancePowerPlan_Name", "57696e68-616e-6365-506f-776572000000")
     };
+
+    /// <summary>The fixed GUID of the Winhance Power Plan (the duplicate-from-Ultimate-Performance plan Winhance creates).</summary>
+    public const string WinhancePowerPlanGuid = "57696e68-616e-6365-506f-776572000000";
+
+    /// <summary>True when the GUID or friendly name identifies the Winhance Power Plan. Same check as PowerService's
+    /// private IsWinhancePowerPlan; lifted to a shared helper so the apply funnel can gate the recommended-power
+    /// re-apply after a power-plan activation (Phase 6.7 Slice 8b-2b) without duplicating the magic GUID.</summary>
+    public static bool IsWinhancePowerPlan(string? guid, string? name = null) =>
+        string.Equals(guid, WinhancePowerPlanGuid, System.StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name?.Trim(), "Winhance Power Plan", System.StringComparison.OrdinalIgnoreCase);
 }

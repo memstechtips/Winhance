@@ -33,10 +33,15 @@ public static class SettingServicesExtensions
             .AddSoftwareAppServices();
 
         // Id-keyed dispatcher registries — settingId → handler mapping.
+        // Phase 6.7 Slice 8b-2b (THE FLIP): power-plan-selection is NO LONGER registered as an apply handler, so the
+        // apply funnel falls through to the new catalog engine (ApplyRequestResolver -> PowerPlanActivateOp ->
+        // WindowsStateWriter.ActivatePowerPlan -> IPowerPlanActivationService.EnsureActivatedAsync). PowerService stays
+        // registered in the DISCOVERY registry below (detection still uses it). The recommended-power cascade the old
+        // handler ran moved to the funnel (D1); the dropdown-refresh moved to SettingAppliedEvent (D2). The now-unreached
+        // PowerService.TryApplySpecialSettingAsync + shells are retired at 8c teardown.
         services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
             {
-                [SettingIds.PowerPlanSelection] = sp.GetRequiredService<PowerService>(),
                 [SettingIds.UpdatesPolicyMode]  = sp.GetRequiredService<UpdateService>(),
                 [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
             }));

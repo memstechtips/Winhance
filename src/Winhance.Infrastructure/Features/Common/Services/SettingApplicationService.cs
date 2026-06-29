@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
 
@@ -31,7 +33,8 @@ public class SettingApplicationService(
     IHardwareDetectionService hardwareDetectionService,
     IStateWriter stateWriter,
     IWindowsVersionService windowsVersionService,
-    ICatalogDetectionService catalogDetection) : ISettingApplicationService
+    ICatalogDetectionService catalogDetection,
+    IConfigImportState configImportState) : ISettingApplicationService
 {
     // Battery presence doesn't change mid-session, so resolve it once and cache. The async
     // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
@@ -290,6 +293,22 @@ public class SettingApplicationService(
         // have succeeded and listeners need to re-read actual system state.
         eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
 
+        // Phase 6.7 Slice 8b-2b (D1): re-home the Winhance-plan recommended-power cascade the PowerService special
+        // handler used to run in its tail. With the special-handler registration removed, power-plan apply now flows
+        // through the new engine (resolver -> PowerPlanActivateOp -> writer); after a SUCCESSFUL switch TO the Winhance
+        // plan, re-apply the recommended power settings for the feature - the same machinery the Action-recommended
+        // branch uses. ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot loop on power-plan.
+        // Skipped during a config import that supplies its own individual power values (the import is the source of
+        // truth), mirroring the old PowerService gate.
+        if (settingId == SettingIds.PowerPlanSelection
+            && operationResult.Success
+            && IsWinhancePowerPlanValue(value)
+            && !(configImportState.IsActive && configImportState.ImportSuppliesPowerValues))
+        {
+            await recommendedSettingsApplier
+                .ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection, this).ConfigureAwait(false);
+        }
+
         if (!operationResult.Success)
         {
             logService.Log(LogLevel.Warning, $"[SettingApplicationService] Setting '{settingId}' partially failed: {operationResult.ErrorMessage}");
@@ -303,6 +322,19 @@ public class SettingApplicationService(
 
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
+
+    /// <summary>Phase 6.7 Slice 8b-2b (D1): true when a power-plan apply value identifies the Winhance Power Plan.
+    /// The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary
+    /// (ConfigurationApplicationBridgeService). Both forms route through the shared
+    /// <see cref="PowerPlanDefinitions.IsWinhancePowerPlan"/> check.</summary>
+    private static bool IsWinhancePowerPlanValue(object? value) => value switch
+    {
+        string guid => PowerPlanDefinitions.IsWinhancePowerPlan(guid),
+        Dictionary<string, object> dict => PowerPlanDefinitions.IsWinhancePowerPlan(
+            dict.TryGetValue("Guid", out var g) ? g?.ToString() : null,
+            dict.TryGetValue("Name", out var n) ? n?.ToString() : null),
+        _ => false,
+    };
 
     /// <summary>
     /// Phase 6.6 Slice 2: the state label the catalog setting was just moved into, derived the same way

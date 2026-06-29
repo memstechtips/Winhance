@@ -2,11 +2,13 @@ using System.Linq;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -31,6 +33,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly Mock<IWindowsVersionService> _mockVersion = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
+    private readonly Mock<IConfigImportState> _mockConfigImportState = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -73,7 +76,7 @@ public class SettingApplicationServiceTests
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
             _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
-            _mockCatalogDetection.Object);
+            _mockCatalogDetection.Object, _mockConfigImportState.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()
@@ -1129,5 +1132,70 @@ public class SettingApplicationServiceTests
         result.Success.Should().BeTrue();
         _mockChangeHistory.Verify(h => h.LogSettingChange(
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    // --- Phase 6.7 Slice 8b-2b (D1): the funnel re-applies Winhance-recommended power settings after a successful
+    //     switch TO the Winhance power plan (re-homed from the retired PowerService special-handler tail). The mocked
+    //     handler registry returns null, so the funnel always exercises the NEW engine path here, as it will in
+    //     production once the special-handler registration is removed. ---
+
+    [Fact]
+    public async Task ApplySettingAsync_WinhancePowerPlanApplied_ReappliesRecommendedPowerSettings()
+    {
+        // power-plan-selection is paired in the live catalog (OptionSource), so the engine builds a
+        // PowerPlanActivateOp from the GUID value; make the writer's activate succeed so operationResult.Success.
+        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+        _mockRecommended
+            .Setup(r => r.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>(), It.IsAny<ISettingApplicationService>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = SettingIds.PowerPlanSelection,
+            Enable = true,
+            Value = PowerPlanDefinitions.WinhancePowerPlanGuid,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            SettingIds.PowerPlanSelection, _service), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_WinhancePowerPlanDuringConfigImportWithPowerValues_SkipsRecommendedReapply()
+    {
+        // An active config import that supplies its own individual power values is the source of truth -> skip.
+        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+        _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
+        _mockConfigImportState.Setup(c => c.ImportSuppliesPowerValues).Returns(true);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = SettingIds.PowerPlanSelection,
+            Enable = true,
+            Value = PowerPlanDefinitions.WinhancePowerPlanGuid,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NonWinhancePowerPlanApplied_DoesNotReapplyRecommended()
+    {
+        // Switching to Balanced (not the Winhance plan) must NOT trigger the recommended re-apply.
+        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = SettingIds.PowerPlanSelection,
+            Enable = true,
+            Value = "381b4222-f694-41f0-9685-ff5bb260df2e",
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 }
