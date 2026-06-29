@@ -4,6 +4,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -1224,16 +1226,12 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
-    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_AllBadgesDim()
+    public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_OnlyDefaultLit()
     {
-        // privacy-tailored-experiences shape: a base registry with DefaultValue = 1
-        // (Windows default is ON) plus group-policy enforcer regs carrying
-        // DefaultValue = null and DisabledValue = [null].
-        // Under the current semantics in EvaluateRegistrySetting, a group-policy reg
-        // with null DefaultValue derives its default-state vote via ToggleTargetState
-        // from the null sentinel: DisabledValue = [null] resolves to "default = disabled".
-        // Toggle ON therefore disagrees with the policy reg's default vote, so the
-        // aggregate matchesDefault is false even though the base reg agrees with ON.
+        // privacy-tailored-experiences shape: a base registry with DefaultValue = 1 (Windows default ON)
+        // plus a group-policy enforcer reg. Under the role-collapsed model the converter derives the
+        // WindowsDefault role from the PRIMARY reg's DefaultValue = 1 (= ON), so toggle ON (IsSelected = true)
+        // matches Default and the Default badge lights. The old per-reg AND that dimmed it (Slice 5b/5c) is gone.
         var def = BuildBaseWithPolicyEnforcerToggleDefinition(
             id: "tailored-experiences-like",
             recommendedToggleState: false);
@@ -1244,7 +1242,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
         {
             (SettingBadgeKind.Recommended, false),
-            (SettingBadgeKind.Default,     false),
+            (SettingBadgeKind.Default,     true),
             (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
@@ -1397,33 +1395,10 @@ public class SettingItemViewModelTests : IDisposable
         }, opts => opts.WithStrictOrdering());
     }
 
-    [Fact]
-    public void BadgeRow_NumericRange_AtRecommended_OnlyRecommendedLit()
-    {
-        var def = BuildNumericSettingDefinition(
-            id: "numeric-rec",
-            recommendedValue: 50,
-            defaultValue: 10);
-        var config = new SettingItemViewModelConfig
-        {
-            SettingDefinition = def,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            InputType = InputType.NumericRange,
-            IsSelected = false,
-        };
-        var sut = CreateSut(config);
-        sut.NumericValue = 50;
-        sut.ComputeBadgeState();
-
-        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
-        {
-            (SettingBadgeKind.Recommended, true),
-            (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
-        }, opts => opts.WithStrictOrdering());
-    }
+    // removed in P3b: BadgeRow_NumericRange_AtRecommended_OnlyRecommendedLit covered a registry single-spinner
+    // NumericRange -- a verified-nonexistent production shape (every NumericRange setting is powercfg; zero registry
+    // numerics). The new role-collapsed model no longer badges that dead single-spinner path, and PairFor returns
+    // null for it so ComputeBadgeState early-returns. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
 
     [Fact]
     public void BadgeRow_Definition_HasNoRecommendedAtAll_RecommendedPillAbsent()
@@ -1565,6 +1540,7 @@ public class SettingItemViewModelTests : IDisposable
         new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1666,10 +1642,25 @@ public class SettingItemViewModelTests : IDisposable
         };
     }
 
+    // Phase 6.7 P3b: pair the new-model Setting exactly as production does. The factory pairs def.Id -> SettingCatalog.All;
+    // for a catalog-authored setting that IS the real catalog Setting. For a SYNTHETIC test def (id not in the catalog) we
+    // simulate the peer the factory would pair via the converter (catalog == converter output, proven by
+    // CatalogAuthoringEquivalenceTests). A registry-only NumericRange has NO production peer (zero exist) -> no pairing (null).
+    private static Setting? PairFor(SettingDefinition def)
+    {
+        var catalogPeer = SettingCatalog.All.FirstOrDefault(s => s.Id == def.Id);
+        if (catalogPeer is not null) return catalogPeer;
+        if (def.InputType == InputType.NumericRange && (def.PowerCfgSettings?.Count ?? 0) == 0) return null;
+        if (def.PowerCfgSettings is { Count: > 0 }) return SettingDefinitionConverter.ConvertPowerCfg(def);
+        if (def.InputType == InputType.Selection) return SettingDefinitionConverter.ConvertSelection(def);
+        return SettingDefinitionConverter.ConvertToggle(def);
+    }
+
     private SettingItemViewModelConfig BuildToggleConfig(SettingDefinition def) =>
         new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1710,6 +1701,7 @@ public class SettingItemViewModelTests : IDisposable
         new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1843,6 +1835,7 @@ public class SettingItemViewModelTests : IDisposable
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1866,6 +1859,7 @@ public class SettingItemViewModelTests : IDisposable
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1889,6 +1883,7 @@ public class SettingItemViewModelTests : IDisposable
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1912,6 +1907,7 @@ public class SettingItemViewModelTests : IDisposable
         var config = new SettingItemViewModelConfig
         {
             SettingDefinition = def,
+            Setting = PairFor(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
