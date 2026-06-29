@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -15,8 +14,30 @@ using Winhance.UI.Features.Common.Utilities;
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
 /// <summary>
-/// Manages the technical details panel: tooltip event subscription,
-/// row population (registry, scheduled tasks, power config), and regedit launching.
+/// Immutable snapshot of a setting's current live state, passed by the view-model when it asks the
+/// technical-details panel to rebuild. Phase 6.7 Slice 9: the panel is fed from the new <see cref="Setting"/>
+/// model + this snapshot (the VM's already-resolved current state) instead of the old SettingTooltipData /
+/// live registry reads. No live reads happen here.
+/// </summary>
+internal sealed record TechnicalDetailsSnapshot(
+    InputType InputType,
+    bool IsSelected,
+    int? SelectedIndex,
+    int NumericValue,
+    int AcValue,
+    int DcValue,
+    int AcNumericValue,
+    int DcNumericValue,
+    bool SupportsSeparateACDC,
+    bool HasBattery,
+    IReadOnlyList<ComboBoxDisplayOption> Options);
+
+/// <summary>
+/// Builds the technical-details panel ("docs inside the app") from the new <see cref="Setting"/> model:
+/// an option->value table (which choice writes which value, with role + current markers), the registry
+/// target locations, the power (AC/DC, display units) section, scheduled tasks, and per-state script /
+/// reg-content effects. Driven directly by the view-model via <see cref="Update"/> (Phase 6.7 Slice 9 -
+/// replaces the old TooltipUpdatedEvent subscription). Owns the regedit-launch command.
 /// </summary>
 internal sealed class TechnicalDetailsManager : IDisposable
 {
@@ -25,9 +46,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
-    private readonly ILocalizationService _localizationService;
     private readonly TechnicalDetailLabels _labels;
-    private ISubscriptionToken? _subscription;
 
     public IRelayCommand<string> OpenRegeditCommand { get; }
 
@@ -46,117 +65,148 @@ internal sealed class TechnicalDetailsManager : IDisposable
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
-        _localizationService = localizationService;
         _labels = labels ?? new TechnicalDetailLabels();
+        // localizationService is unused today (the panel's strings come via _labels); kept on the ctor
+        // for call-site stability and for the Slice 9b Relationships section, which localizes related ids.
+        _ = localizationService;
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
-
-        if (eventBus != null)
-            _subscription = eventBus.Subscribe<TooltipUpdatedEvent>(OnTooltipUpdated);
+        // eventBus is no longer used: the panel is driven directly by the view-model via Update(), not by a
+        // TooltipUpdatedEvent subscription (Phase 6.7 Slice 9). The param stays to avoid a ctor-call change.
+        _ = eventBus;
     }
 
-    private void OnTooltipUpdated(TooltipUpdatedEvent evt)
+    /// <summary>Rebuilds the panel from the setting model + current-state snapshot, on the UI thread.</summary>
+    public void Update(Setting? setting, TechnicalDetailsSnapshot snapshot)
     {
-        if (evt.SettingId != _getSettingId()) return;
         _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low,
-            () => UpdateTechnicalDetails(evt.TooltipData));
+            () => BuildSections(setting, snapshot));
     }
 
-    private void UpdateTechnicalDetails(SettingTooltipData tooltipData)
+    private void BuildSections(Setting? setting, TechnicalDetailsSnapshot snap)
     {
         try
         {
-            var registryRows  = BuildRegistryRows(tooltipData);
-            var taskRows      = BuildScheduledTaskRows(tooltipData);
-            var powerRows     = BuildPowerCfgRows(tooltipData);
-            var scriptRows    = BuildPowerShellScriptRows(tooltipData);
-            var regContentRows = BuildRegContentRows(tooltipData);
-            var dependencyRows = BuildDependencyRows(tooltipData);
+            if (setting is null)
+            {
+                // Unpaired setting (no catalog peer yet): nothing to document from the new model.
+                _setSections(Array.Empty<TechnicalDetailSection>());
+                return;
+            }
 
             var sections = new List<TechnicalDetailSection>();
+
+            var optionRows = BuildOptionRows(setting, snap);
+            if (optionRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Option, _labels.SectionOptions, true, optionRows));
+
+            var registryRows = BuildRegistryRows(setting, snap);
             if (registryRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.Registry,         _labels.SectionRegistry,       true,  registryRows));
-            if (taskRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.ScheduledTask,    _labels.SectionScheduledTasks, false, taskRows));
+                sections.Add(new TechnicalDetailSection(DetailRowType.Registry, _labels.SectionRegistry, false, registryRows));
+
+            var powerRows = BuildPowerRows(setting, snap);
             if (powerRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.PowerConfig,      _labels.SectionPowerSettings,  false, powerRows));
+                sections.Add(new TechnicalDetailSection(DetailRowType.PowerConfig, _labels.SectionPowerSettings, false, powerRows));
+
+            var taskRows = BuildTaskRows(setting, snap);
+            if (taskRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.ScheduledTask, _labels.SectionScheduledTasks, false, taskRows));
+
+            var scriptRows = BuildScriptRows(setting);
             if (scriptRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.PowerShellScript, _labels.SectionScripts,        false, scriptRows));
+                sections.Add(new TechnicalDetailSection(DetailRowType.PowerShellScript, _labels.SectionScripts, false, scriptRows));
+
+            var regContentRows = BuildRegContentRows(setting);
             if (regContentRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.RegContent,       _labels.SectionRegContent,     false, regContentRows));
-            if (dependencyRows.Count > 0)
-                sections.Add(new TechnicalDetailSection(DetailRowType.Dependency,       _labels.SectionDependencies,   false, dependencyRows));
+                sections.Add(new TechnicalDetailSection(DetailRowType.RegContent, _labels.SectionRegContent, false, regContentRows));
 
             _setSections(sections);
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error,
-                $"[TechnicalDetails] UpdateTechnicalDetails failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                $"[TechnicalDetails] BuildSections failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
-    private List<TechnicalDetailRow> BuildRegistryRows(SettingTooltipData tooltipData)
+    // --- Options table (the headline): one row per authored state, for state-based Selection / Toggle.
+    // Power (AC/DC) settings are documented in the Power section instead, so they're excluded here.
+    private List<TechnicalDetailRow> BuildOptionRows(Setting setting, TechnicalDetailsSnapshot snap)
     {
         var rows = new List<TechnicalDetailRow>();
-        var setting = tooltipData.SettingDefinition;
-        var isSelection = setting?.InputType == InputType.Selection;
-        var isAction = setting?.InputType == InputType.Action;
-        foreach (var kvp in tooltipData.IndividualRegistryValues)
+        if (setting.States.Count == 0) return rows;                       // Action / dynamic-option / numeric
+        if (setting.Targets.OfType<PowerCfgTarget>().Any()) return rows;   // powercfg -> Power section
+
+        bool isToggle = snap.InputType == InputType.Toggle || snap.InputType == InputType.CheckBox;
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
         {
-            var reg = kvp.Key;
-            var keyExists = false;
+            var state = states[i];
+            string label;
+            bool isCurrent;
+            if (isToggle)
+            {
+                // Toggle states carry the literal labels "Enabled"/"Disabled"; present them as On/Off.
+                bool enabledState = string.Equals(state.Label, "Enabled", StringComparison.Ordinal);
+                label = enabledState ? _labels.On : _labels.Off;
+                isCurrent = enabledState == snap.IsSelected;
+            }
+            else
+            {
+                // Selection: reuse the localized ComboBox option label (1:1 with States, same order).
+                label = i < snap.Options.Count ? snap.Options[i].DisplayText : state.Label;
+                isCurrent = snap.SelectedIndex is int sel && sel == i;
+            }
+
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.Option,
+                OptionLabel = label,
+                OptionValue = FormatStateValues(state),
+                OptionRole = FormatRole(state, PowerContext.Always),
+                IsCurrentOption = isCurrent,
+                CurrentLabelText = _labels.Current
+            });
+        }
+        return rows;
+    }
+
+    // --- Registry target locations + per-key Current/Recommended/Default sourced from the state roles.
+    private List<TechnicalDetailRow> BuildRegistryRows(Setting setting, TechnicalDetailsSnapshot snap)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        var current = CurrentState(setting, snap);
+        var recommended = RoleState(setting, RoleKind.Recommended, PowerContext.Always);
+        var windowsDefault = RoleState(setting, RoleKind.WindowsDefault, PowerContext.Always);
+
+        foreach (var reg in setting.Targets.OfType<RegTarget>())
+        {
+            var path = reg.Paths.Count > 0 ? reg.Paths[0] : string.Empty;
+            bool keyExists = false;
             try
             {
-                keyExists = _regeditLauncher?.KeyExists(reg.KeyPath) ?? false;
+                keyExists = !string.IsNullOrEmpty(path) && (_regeditLauncher?.KeyExists(path) ?? false);
             }
             catch (Exception kex)
             {
                 _logService.Log(LogLevel.Warning,
-                    $"[TechnicalDetails] KeyExists failed for '{reg.KeyPath}': {kex.GetType().Name}: {kex.Message}");
-            }
-
-            // For Selection settings the per-entry RecommendedValue / DefaultValue are null;
-            // the state lives on the ComboBoxOption whose IsRecommended / IsDefault flag is set.
-            string recommendedColumn = string.Empty;
-            string defaultColumn = string.Empty;
-            string currentColumn;
-            if (isAction && setting is not null)
-            {
-                // One-shot Action: Recommended/Default are meaningless. Show the current value
-                // and (via OnApplyValue below) what clicking the button writes.
-                currentColumn = FormatValueColumn(kvp.Value, reg, setting);
-            }
-            else if (isSelection && setting is not null)
-            {
-                recommendedColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: true, _labels);
-                defaultColumn = ResolveSelectionColumnValue(setting, reg, wantRecommended: false, _labels);
-                currentColumn = kvp.Value is null ? FormatNotExist(reg) : FormatConcreteValueText(kvp.Value);
-            }
-            else
-            {
-                recommendedColumn = ResolveRecommendedColumn(setting, reg);
-                defaultColumn = FormatValueColumn(reg.DefaultValue, reg, setting);
-                currentColumn = FormatValueColumn(kvp.Value, reg, setting);
+                    $"[TechnicalDetails] KeyExists failed for '{path}': {kex.GetType().Name}: {kex.Message}");
             }
 
             rows.Add(new TechnicalDetailRow
             {
                 RowType = DetailRowType.Registry,
-                RegistryPath = reg.KeyPath,
+                RegistryPath = path,
                 ValueName = reg.ValueName ?? "(Default)",
-                ValueType = reg.ValueType.ToString(),
-                CurrentValue = currentColumn,
-                RecommendedValue = recommendedColumn,
-                DefaultValue = defaultColumn,
+                ValueType = reg.Type.ToString(),
+                CurrentValue = ValueForKey(current, reg.Key),
+                RecommendedValue = ValueForKey(recommended, reg.Key),
+                DefaultValue = ValueForKey(windowsDefault, reg.Key),
                 PathLabel = _labels.Path,
                 ValueLabel = _labels.Value,
                 CurrentLabel = _labels.Current,
                 RecommendedLabel = _labels.Recommended,
                 DefaultLabel = _labels.Default,
-                IsActionRow = isAction,
-                OnApplyLabel = _labels.ScriptOnApply,
-                OnApplyValue = isAction ? FormatOnApplyValue(reg) : string.Empty,
                 OpenRegeditCommand = OpenRegeditCommand,
                 RegeditIconSource = RegeditIconProvider.CachedIcon,
                 CanOpenRegedit = keyExists
@@ -165,10 +215,78 @@ internal sealed class TechnicalDetailsManager : IDisposable
         return rows;
     }
 
-    private List<TechnicalDetailRow> BuildScheduledTaskRows(SettingTooltipData tooltipData)
+    // --- Power (powercfg) section: GUIDs + units + Current/Recommended/Default per AC/DC, in DISPLAY units
+    // for a numeric (slider) power setting, or the raw option value for a selection power setting.
+    // NOTE: the new PowerCfgTarget carries no friendly GUID aliases (the old PowerCfgSetting did) -> the
+    // alias columns are left blank; the raw subgroup/setting GUIDs are still shown.
+    private List<TechnicalDetailRow> BuildPowerRows(Setting setting, TechnicalDetailsSnapshot snap)
     {
         var rows = new List<TechnicalDetailRow>();
-        foreach (var task in tooltipData.ScheduledTaskSettings)
+        bool isNumeric = setting.Numeric is not null;
+
+        foreach (var pcfg in setting.Targets.OfType<PowerCfgTarget>())
+        {
+            string currentAc, currentDc, recAc, recDc, defAc, defDc;
+            string units = setting.Numeric?.Units ?? pcfg.Units ?? string.Empty;
+
+            if (isNumeric)
+            {
+                var num = setting.Numeric!;
+                currentAc = snap.SupportsSeparateACDC
+                    ? snap.AcNumericValue.ToString()
+                    : snap.NumericValue.ToString();
+                currentDc = snap.SupportsSeparateACDC && snap.HasBattery
+                    ? snap.DcNumericValue.ToString()
+                    : string.Empty;
+                recAc = ContextValueText(num.Recommended, snap.SupportsSeparateACDC ? PowerContext.AC : PowerContext.Always);
+                recDc = snap.SupportsSeparateACDC && snap.HasBattery ? ContextValueText(num.Recommended, PowerContext.DC) : string.Empty;
+                defAc = ContextValueText(num.WindowsDefault, snap.SupportsSeparateACDC ? PowerContext.AC : PowerContext.Always);
+                defDc = snap.SupportsSeparateACDC && snap.HasBattery ? ContextValueText(num.WindowsDefault, PowerContext.DC) : string.Empty;
+            }
+            else
+            {
+                // Selection power setting: the value is the raw option int each state writes for this target.
+                currentAc = StateValueText(StateAtIndex(setting, snap.AcValue), pcfg.Key);
+                currentDc = snap.HasBattery ? StateValueText(StateAtIndex(setting, snap.DcValue), pcfg.Key) : string.Empty;
+                recAc = StateValueText(RoleState(setting, RoleKind.Recommended, PowerContext.AC), pcfg.Key);
+                recDc = snap.HasBattery ? StateValueText(RoleState(setting, RoleKind.Recommended, PowerContext.DC), pcfg.Key) : string.Empty;
+                defAc = StateValueText(RoleState(setting, RoleKind.WindowsDefault, PowerContext.AC), pcfg.Key);
+                defDc = snap.HasBattery ? StateValueText(RoleState(setting, RoleKind.WindowsDefault, PowerContext.DC), pcfg.Key) : string.Empty;
+            }
+
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.PowerConfig,
+                CurrentLabel = _labels.Current,
+                RecommendedLabel = _labels.Recommended,
+                DefaultLabel = _labels.Default,
+                SubgroupLabel = _labels.PowerCfgSubgroup,
+                SettingLabel = _labels.PowerCfgSetting,
+                SubgroupGuid = pcfg.SubgroupGuid,
+                SettingGuid = pcfg.SettingGuid,
+                SubgroupAlias = string.Empty,
+                SettingAlias = string.Empty,
+                PowerUnits = units,
+                CurrentAC = currentAc,
+                CurrentDC = currentDc,
+                RecommendedAC = recAc,
+                RecommendedDC = recDc,
+                DefaultAC = defAc,
+                DefaultDC = defDc
+            });
+        }
+        return rows;
+    }
+
+    // --- Scheduled tasks: the task locations + the toggle's current/recommended/default enabled-ness.
+    private List<TechnicalDetailRow> BuildTaskRows(Setting setting, TechnicalDetailsSnapshot snap)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        var current = CurrentState(setting, snap);
+        var recommended = RoleState(setting, RoleKind.Recommended, PowerContext.Always);
+        var windowsDefault = RoleState(setting, RoleKind.WindowsDefault, PowerContext.Always);
+
+        foreach (var task in setting.Targets.OfType<TaskTarget>())
         {
             rows.Add(new TechnicalDetailRow
             {
@@ -178,263 +296,154 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 CurrentLabel = _labels.Current,
                 RecommendedLabel = _labels.Recommended,
                 DefaultLabel = _labels.Default,
-                CurrentState = tooltipData.CurrentSettingState switch
-                {
-                    true  => _labels.On,
-                    false => _labels.Off,
-                    _     => string.Empty
-                },
-                RecommendedState = task.RecommendedState switch
-                {
-                    true  => _labels.On,
-                    false => _labels.Off,
-                    _     => string.Empty
-                },
-                DefaultState = task.DefaultState switch
-                {
-                    true  => _labels.On,
-                    false => _labels.Off,
-                    _     => string.Empty
-                }
+                CurrentState = TaskStateText(current, task.Key),
+                RecommendedState = TaskStateText(recommended, task.Key),
+                DefaultState = TaskStateText(windowsDefault, task.Key)
             });
         }
         return rows;
     }
 
-    private List<TechnicalDetailRow> BuildPowerCfgRows(SettingTooltipData tooltipData)
+    // --- PowerShell script effects (per-state + setting-level), on-apply only.
+    private List<TechnicalDetailRow> BuildScriptRows(Setting setting)
     {
         var rows = new List<TechnicalDetailRow>();
-        foreach (var pcfg in tooltipData.PowerCfgSettings)
+        foreach (var (state, effect) in EnumerateEffects(setting).Where(e => e.effect is ScriptEffect))
         {
-            tooltipData.CurrentPowerValues.TryGetValue(pcfg, out var current);
+            var script = (ScriptEffect)effect;
+            if (string.IsNullOrWhiteSpace(script.Script)) continue;
             rows.Add(new TechnicalDetailRow
             {
-                RowType       = DetailRowType.PowerConfig,
-                CurrentLabel = _labels.Current,
-                RecommendedLabel = _labels.Recommended,
-                DefaultLabel = _labels.Default,
-                SubgroupLabel = _labels.PowerCfgSubgroup,
-                SettingLabel  = _labels.PowerCfgSetting,
-                SubgroupGuid  = pcfg.SubgroupGuid,
-                SettingGuid   = pcfg.SettingGuid,
-                SubgroupAlias = pcfg.SubgroupGUIDAlias ?? "",
-                SettingAlias  = pcfg.SettingGUIDAlias,
-                PowerUnits    = pcfg.Units ?? "",
-                CurrentAC     = current.AC?.ToString() ?? "",
-                CurrentDC     = current.DC?.ToString() ?? "",
-                RecommendedAC = pcfg.RecommendedValueAC?.ToString() ?? "",
-                RecommendedDC = pcfg.RecommendedValueDC?.ToString() ?? "",
-                DefaultAC     = pcfg.DefaultValueAC?.ToString() ?? "",
-                DefaultDC     = pcfg.DefaultValueDC?.ToString() ?? "",
+                RowType = DetailRowType.PowerShellScript,
+                ScriptLabel = ScriptLabelFor(state),
+                ScriptBody = script.Script
             });
         }
         return rows;
     }
 
-    private List<TechnicalDetailRow> BuildPowerShellScriptRows(SettingTooltipData tooltipData)
+    // --- .reg content effects (per-state + setting-level), on-apply only.
+    private List<TechnicalDetailRow> BuildRegContentRows(Setting setting)
     {
         var rows = new List<TechnicalDetailRow>();
-        // Action settings are one-shot — label the script "On Apply" rather than "On Enable",
-        // and skip the disabled-direction row (Action settings have no reverse).
-        var isAction = tooltipData.SettingDefinition?.InputType == InputType.Action;
-        var enabledLabel = isAction ? _labels.ScriptOnApply : _labels.ScriptOnEnable;
-        foreach (var s in tooltipData.PowerShellScripts)
+        foreach (var (state, effect) in EnumerateEffects(setting).Where(e => e.effect is RegContentEffect))
         {
-            if (!string.IsNullOrWhiteSpace(s.EnabledScript))
-                rows.Add(new TechnicalDetailRow
-                {
-                    RowType     = DetailRowType.PowerShellScript,
-                    ScriptLabel = enabledLabel,
-                    ScriptBody  = s.EnabledScript
-                });
-            if (!isAction && !string.IsNullOrWhiteSpace(s.DisabledScript))
-                rows.Add(new TechnicalDetailRow
-                {
-                    RowType     = DetailRowType.PowerShellScript,
-                    ScriptLabel = _labels.ScriptOnDisable,
-                    ScriptBody  = s.DisabledScript
-                });
-        }
-        return rows;
-    }
-
-    private List<TechnicalDetailRow> BuildRegContentRows(SettingTooltipData tooltipData)
-    {
-        var rows = new List<TechnicalDetailRow>();
-        foreach (var r in tooltipData.RegContents)
-        {
-            if (!string.IsNullOrWhiteSpace(r.EnabledContent))
-                rows.Add(new TechnicalDetailRow
-                {
-                    RowType      = DetailRowType.RegContent,
-                    ContentLabel = _labels.RegContentOnEnable,
-                    ContentBody  = r.EnabledContent
-                });
-            if (!string.IsNullOrWhiteSpace(r.DisabledContent))
-                rows.Add(new TechnicalDetailRow
-                {
-                    RowType      = DetailRowType.RegContent,
-                    ContentLabel = _labels.RegContentOnDisable,
-                    ContentBody  = r.DisabledContent
-                });
-        }
-        return rows;
-    }
-
-    private List<TechnicalDetailRow> BuildDependencyRows(SettingTooltipData tooltipData)
-    {
-        var rows = new List<TechnicalDetailRow>();
-        foreach (var dep in tooltipData.Dependencies)
-        {
-            var name = _localizationService.GetString($"Setting_{dep.RequiredSettingId}_Name");
-            if (string.IsNullOrEmpty(name) || name == $"Setting_{dep.RequiredSettingId}_Name")
-                name = dep.RequiredSettingId;  // fall back to id when no translation
-            var relation = dep.DependencyType switch
-            {
-                SettingDependencyType.RequiresEnabled              => $"{_labels.DependencyEquals} {_labels.On}",
-                SettingDependencyType.RequiresDisabled             => $"{_labels.DependencyEquals} {_labels.Off}",
-                SettingDependencyType.RequiresSpecificValue        => $"{_labels.DependencyEquals} {dep.RequiredValue ?? string.Empty}",
-                SettingDependencyType.RequiresValueBeforeAnyChange => $"{_labels.DependencyEquals} {dep.RequiredValue ?? string.Empty}",
-                _ => string.Empty
-            };
+            var reg = (RegContentEffect)effect;
+            if (string.IsNullOrWhiteSpace(reg.Content)) continue;
             rows.Add(new TechnicalDetailRow
             {
-                RowType            = DetailRowType.Dependency,
-                DependencyLabel    = name,
-                DependencyRelation = relation
+                RowType = DetailRowType.RegContent,
+                ContentLabel = ContentLabelFor(state),
+                ContentBody = reg.Content
             });
         }
         return rows;
     }
 
-    /// <summary>
-    /// Resolves the per-registry-entry Recommended or Default column value for a Selection setting,
-    /// sourced from the ComboBoxOption whose IsRecommended / IsDefault flag is set. The value itself
-    /// lives in that option's ValueMappings keyed by the registry value name.
-    /// </summary>
-    /// <remarks>
-    /// Returns <c>labels.ValueNotExist</c> in three distinct "absent" cases (the current
-    /// TechnicalDetailLabels set doesn't have separate strings for each — this is intentional
-    /// per Task A9's note about TODO label additions):
-    /// <list type="bullet">
-    ///   <item>ComboBox.Options is null or empty (malformed Selection setting).</item>
-    ///   <item>No option has the requested flag set (e.g. no IsRecommended option).</item>
-    ///   <item>The target option's ValueMappings doesn't contain the registry value name,
-    ///     or maps it to an explicit null (meaning the key is deleted under that option).</item>
-    /// </list>
-    /// </remarks>
-    private static string ResolveSelectionColumnValue(
-        SettingDefinition setting,
-        RegistrySetting reg,
-        bool wantRecommended,
-        TechnicalDetailLabels labels)
+    // ---------------------------------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------------------------------
+
+    /// <summary>The state the system is currently in, or null (Custom / no state matched).</summary>
+    private static SettingState? CurrentState(Setting setting, TechnicalDetailsSnapshot snap)
     {
-        var options = setting.ComboBox?.Options;
-        if (options is null || options.Count == 0) return labels.ValueNotExist;
-
-        var target = options.FirstOrDefault(o => wantRecommended ? o.IsRecommended : o.IsDefault);
-        if (target is null) return labels.ValueNotExist;
-
-        var valueName = reg.ValueName ?? "KeyExists";
-        if (target.ValueMappings is null || !target.ValueMappings.ContainsKey(valueName))
+        if (snap.InputType == InputType.Toggle || snap.InputType == InputType.CheckBox)
         {
-            // Key absent from the target option's mapping: this entry is "unchanged" under that
-            // option. Distinct label not yet added to TechnicalDetailLabels — use ValueNotExist.
-            return labels.ValueNotExist;
+            var wanted = snap.IsSelected ? "Enabled" : "Disabled";
+            return setting.States.FirstOrDefault(s => string.Equals(s.Label, wanted, StringComparison.Ordinal));
         }
-
-        var v = target.ValueMappings[valueName];
-        if (v is null)
-        {
-            // Mapping is explicitly null: key would be deleted under this option.
-            return labels.ValueNotExist;
-        }
-        return FormatConcreteValueText(v);
+        if (snap.SelectedIndex is int idx && idx >= 0 && idx < setting.States.Count)
+            return setting.States[idx];
+        return null;
     }
 
-    private string ResolveRecommendedColumn(SettingDefinition? setting, RegistrySetting reg)
+    private static SettingState? StateAtIndex(Setting setting, int index) =>
+        index >= 0 && index < setting.States.Count ? setting.States[index] : null;
+
+    private static SettingState? RoleState(Setting setting, RoleKind kind, PowerContext context) =>
+        setting.States.FirstOrDefault(s => s.HasRole(kind, context));
+
+    /// <summary>The localized role marker for a state in a given context ("Recommended"/"Default"/both/"").</summary>
+    private string FormatRole(SettingState state, PowerContext context)
     {
-        // Toggle-like settings with an explicit RecommendedToggleState render through
-        // this branch regardless of reg.RecommendedValue, so the user always sees the
-        // human-readable "(On)" / "(Off)" suffix. Maps the target state to the concrete
-        // value via EnabledValue / DisabledValue, falling back to the null-sentinel
-        // "doesn't exist" form when the target array carries the null sentinel.
-        if (setting is not null
-            && (setting.InputType == InputType.Toggle || setting.InputType == InputType.CheckBox)
-            && setting.RecommendedToggleState.HasValue)
-        {
-            bool targetState = setting.RecommendedToggleState.Value;
-            var targetArray = targetState ? reg.EnabledValue : reg.DisabledValue;
-            var concreteValue = targetArray?.FirstOrDefault(v => v is not null);
-            string stateLabel = targetState ? _labels.On : _labels.Off;
-            if (concreteValue is not null)
-                return $"{FormatConcreteValueText(concreteValue)} ({stateLabel})";
-            return $"{_labels.ValueNotExist} ({stateLabel})";
-        }
-        return FormatValueColumn(reg.RecommendedValue, reg, setting);
+        var parts = new List<string>(2);
+        if (state.HasRole(RoleKind.Recommended, context)) parts.Add(_labels.Recommended);
+        if (state.HasRole(RoleKind.WindowsDefault, context)) parts.Add(_labels.Default);
+        return string.Join(", ", parts);
     }
 
-    // Formats a registry value for a Current/Recommended/Default column.
-    // Null values → FormatNotExist (already appends On/Off when the null sentinel lives
-    // in EnabledValue or DisabledValue). Concrete values are passed through
-    // FormatConcreteValueText so empty strings render as "". For Toggle/CheckBox
-    // settings, appends "(On)" / "(Off)" when the value matches EnabledValue /
-    // DisabledValue — matching the convention the Recommended column already used
-    // for settings with an explicit RecommendedToggleState.
-    //
-    // Array-membership comparison is done on stringified forms because the Current
-    // column's value arrives from RegistryValueFormatter (always a string), while
-    // EnabledValue/DisabledValue entries are typed objects (int, string). Without
-    // string coercion, "1".Equals(1) is false and the suffix is never emitted.
-    private string FormatValueColumn(object? value, RegistrySetting reg, SettingDefinition? setting)
+    /// <summary>All the values a state writes, joined (one entry per target in its Set).</summary>
+    private string FormatStateValues(SettingState state)
     {
-        if (value is null) return FormatNotExist(reg);
-
-        string displayText = FormatConcreteValueText(value);
-
-        if (setting is not null
-            && (setting.InputType == InputType.Toggle || setting.InputType == InputType.CheckBox))
-        {
-            string valueStr = value.ToString() ?? string.Empty;
-
-            if (reg.EnabledValue?.Any(ev => ev != null && string.Equals(ev.ToString(), valueStr, StringComparison.Ordinal)) == true)
-                return $"{displayText} ({_labels.On})";
-            if (reg.DisabledValue?.Any(dv => dv != null && string.Equals(dv.ToString(), valueStr, StringComparison.Ordinal)) == true)
-                return $"{displayText} ({_labels.Off})";
-        }
-        return displayText;
+        if (state.Set.Count == 0) return string.Empty;
+        // Skip targets with no concrete value (StateValue.Exists / presence-only) so the join
+        // doesn't leave a dangling ", " around an empty cell.
+        return string.Join(", ", state.Set.Values.Select(FormatStateValue).Where(s => s.Length > 0));
     }
 
-    // Turns a non-null registry value into its display form. Empty strings get
-    // rendered as the literal "" so they're visible; otherwise ToString() wins.
+    /// <summary>One target's write value, with the "or not set" / "deletes key" suffixes.</summary>
+    private string FormatStateValue(StateValue value)
+    {
+        if (value.WritePayload is not null)
+        {
+            var text = FormatConcreteValueText(value.WritePayload);
+            return value.AcceptsAbsent ? $"{text} ({_labels.OrNotSet})" : text;
+        }
+        if (value.DeleteOnWrite) return _labels.DeletesKey;   // StateValue.Absent
+        return string.Empty;                                  // StateValue.Exists (rare) -> no concrete value
+    }
+
+    /// <summary>The value a specific state writes for one target key, or "" when it doesn't touch it.</summary>
+    private string ValueForKey(SettingState? state, string key) =>
+        state is not null && state.Set.TryGetValue(key, out var v) ? FormatStateValue(v) : string.Empty;
+
+    /// <summary>The raw (no-unit) written value for a selection power setting's target key.</summary>
+    private string StateValueText(SettingState? state, string key) =>
+        state is not null && state.Set.TryGetValue(key, out var v) && v.WritePayload is not null
+            ? FormatConcreteValueText(v.WritePayload)
+            : string.Empty;
+
+    /// <summary>On/Off text for a task target a state writes (present-and-deletes => Off, present => On).</summary>
+    private string TaskStateText(SettingState? state, string key)
+    {
+        if (state is null || !state.Set.TryGetValue(key, out var v)) return string.Empty;
+        return v.DeleteOnWrite ? _labels.Off : _labels.On;
+    }
+
+    private static string ContextValueText(IReadOnlyList<ContextValue> values, PowerContext context)
+    {
+        var match = values.FirstOrDefault(v => v.Context == context)
+                    ?? values.FirstOrDefault(v => v.Context == PowerContext.Always);
+        return match is not null ? match.Value.ToString() : string.Empty;
+    }
+
     private static string FormatConcreteValueText(object value)
     {
+        if (value is byte[] bytes)
+            return bytes.Length == 0 ? "(empty)" : string.Join(" ", bytes.Select(b => b.ToString("X2")));
         var text = value.ToString() ?? string.Empty;
         return text.Length == 0 ? "\"\"" : text;
     }
 
-    private string FormatNotExist(RegistrySetting reg)
+    /// <summary>Setting-level effects (state == null) followed by each state's effects.</summary>
+    private static IEnumerable<(SettingState? state, Effect effect)> EnumerateEffects(Setting setting)
     {
-        if (reg.EnabledValue?.Contains(null) == true)
-            return $"{_labels.ValueNotExist} ({_labels.On})";
-        if (reg.DisabledValue?.Contains(null) == true)
-            return $"{_labels.ValueNotExist} ({_labels.Off})";
-        return _labels.ValueNotExist;
+        foreach (var e in setting.Effects)
+            yield return (null, e);
+        foreach (var state in setting.States)
+            foreach (var e in state.Effects)
+                yield return (state, e);
     }
 
-    // For a one-shot Action setting, the "On Apply" column shows what clicking the button
-    // writes — the first concrete EnabledValue. Empty binary renders as "(empty)"; a null
-    // sentinel means the value is removed (ValueNotExist). Note: byte[] doesn't have a useful
-    // ToString(), so it's formatted to space-separated hex here rather than via FormatConcreteValueText.
-    private string FormatOnApplyValue(RegistrySetting reg)
-    {
-        var write = reg.EnabledValue?.FirstOrDefault(v => v != null);
-        if (write is null)
-            return _labels.ValueNotExist;
-        if (write is byte[] bytes)
-            return bytes.Length == 0 ? "(empty)" : string.Join(" ", bytes.Select(b => b.ToString("X2")));
-        return FormatConcreteValueText(write);
-    }
+    private string ScriptLabelFor(SettingState? state) =>
+        state is null ? _labels.ScriptOnApply
+        : string.Equals(state.Label, "Disabled", StringComparison.Ordinal) ? _labels.ScriptOnDisable
+        : _labels.ScriptOnEnable;
+
+    private string ContentLabelFor(SettingState? state) =>
+        state is not null && string.Equals(state.Label, "Disabled", StringComparison.Ordinal)
+            ? _labels.RegContentOnDisable
+            : _labels.RegContentOnEnable;
 
     private void OpenRegeditAtPath(string? path)
     {
@@ -444,7 +453,6 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     public void Dispose()
     {
-        _subscription?.Dispose();
-        _subscription = null;
+        // No subscriptions to release (the panel is VM-driven as of Phase 6.7 Slice 9).
     }
 }

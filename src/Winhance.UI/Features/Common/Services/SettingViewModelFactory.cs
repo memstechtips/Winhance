@@ -262,6 +262,10 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // Compute initial badge state after all values are populated
         viewModel.ComputeBadgeState();
 
+        // Build the technical-details panel from the new Setting model + the now-populated current state
+        // (Phase 6.7 Slice 9 - the panel is VM-driven, not TooltipUpdatedEvent-driven).
+        viewModel.RefreshTechnicalDetails();
+
         return viewModel;
     }
 

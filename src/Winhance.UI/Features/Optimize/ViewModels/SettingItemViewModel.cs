@@ -1155,6 +1155,28 @@ public partial class SettingItemViewModel : BaseViewModel
         ComputeBadgeState();
     }
 
+    /// <summary>
+    /// Rebuilds the technical-details panel from the new <see cref="Setting"/> model + the VM's resolved
+    /// current state (no live registry reads). Called after the factory finishes populating state and after
+    /// every system-state / event refresh. Phase 6.7 Slice 9 - replaces the old TooltipUpdatedEvent feed.
+    /// </summary>
+    public void RefreshTechnicalDetails()
+    {
+        var snapshot = new TechnicalDetailsSnapshot(
+            InputType,
+            IsSelected,
+            SelectedValue as int?,
+            NumericValue,
+            AcValue,
+            DcValue,
+            AcNumericValue,
+            DcNumericValue,
+            SupportsSeparateACDC,
+            HasBattery,
+            new List<ComboBoxDisplayOption>(ComboBoxOptions));
+        _technicalDetailsManager.Update(Setting, snapshot);
+    }
+
     public void UpdateVisibility(string searchText)
     {
         if (string.IsNullOrWhiteSpace(searchText))
@@ -1217,6 +1239,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
+            RefreshTechnicalDetails();
         }
     }
 
@@ -1285,6 +1308,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
+            RefreshTechnicalDetails();
         }
     }
 
