@@ -6,7 +6,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Events;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 
@@ -152,8 +151,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
 
         // Tooltip Services
+        // ITooltipDataService stays registered (still builds SettingStateResult.TooltipData) until the
+        // result-shape swap in Slice 10; the TooltipRefreshEventHandler that consumed it was retired in
+        // Slice 9c (the panel is VM-driven now, the TooltipUpdatedEvent had no subscriber).
         services.AddSingleton<ITooltipDataService, TooltipDataService>();
-        services.AddSingleton<TooltipRefreshEventHandler>();
 
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();

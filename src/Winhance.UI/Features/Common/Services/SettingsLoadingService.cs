@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
@@ -14,7 +13,6 @@ namespace Winhance.UI.Features.Common.Services;
 public class SettingsLoadingService : ISettingsLoadingService
 {
     private readonly ISystemSettingsDiscoveryService _discoveryService;
-    private readonly IEventBus _eventBus;
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
     private readonly IComboBoxResolver _comboBoxResolver;
@@ -26,7 +24,6 @@ public class SettingsLoadingService : ISettingsLoadingService
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
-        IEventBus eventBus,
         ILogService logService,
         IInitializationService initializationService,
         IComboBoxResolver comboBoxResolver,
@@ -37,7 +34,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         ICatalogDetectionService catalogDetectionService)
     {
         _discoveryService = discoveryService;
-        _eventBus = eventBus;
         _logService = logService;
         _initializationService = initializationService;
         _comboBoxResolver = comboBoxResolver;
@@ -95,14 +91,6 @@ public class SettingsLoadingService : ISettingsLoadingService
                 settingViewModels.Add(viewModel);
             }
 
-            // Publish tooltip updates from the already-read state data (no second registry read)
-            foreach (var kvp in batchStates)
-            {
-                if (kvp.Value.TooltipData != null)
-                {
-                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
-                }
-            }
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
             _initializationService.CompleteFeatureInitialization(featureModuleId);
 

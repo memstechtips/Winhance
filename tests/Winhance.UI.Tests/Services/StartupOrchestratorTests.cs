@@ -3,7 +3,6 @@ using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -28,12 +27,11 @@ public class StartupOrchestratorTests
             .Returns(true);
     }
 
-    private StartupOrchestrator CreateSut(TooltipRefreshEventHandler? tooltipHandler = null)
+    private StartupOrchestrator CreateSut()
     {
         return new StartupOrchestrator(
             _settingsRegistry.Object,
             _settingsPreloader.Object,
-            tooltipHandler!,
             _preferencesService.Object,
             _configurationService.Object,
             _migrationService.Object,

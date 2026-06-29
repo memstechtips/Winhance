@@ -4,7 +4,6 @@ using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -18,7 +17,6 @@ namespace Winhance.UI.Tests.Services;
 public class SettingsLoadingServiceTests
 {
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInitializationService> _mockInitializationService = new();
     private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
@@ -38,7 +36,6 @@ public class SettingsLoadingServiceTests
 
         _sut = new SettingsLoadingService(
             _mockDiscoveryService.Object,
-            _mockEventBus.Object,
             _mockLogService.Object,
             _mockInitializationService.Object,
             _mockComboBoxResolver.Object,
@@ -153,46 +150,6 @@ public class SettingsLoadingServiceTests
 
         _mockInitializationService.Verify(i => i.StartFeatureInitialization("TestFeature"), Times.Once);
         _mockInitializationService.Verify(i => i.CompleteFeatureInitialization("TestFeature"), Times.Once);
-    }
-
-    [Fact]
-    public async Task LoadConfiguredSettingsAsync_PublishesTooltipUpdatedEvents()
-    {
-        var tooltipData = new SettingTooltipData { SettingId = "Setting1", DisplayValue = "test" };
-        var settings = new List<SettingDefinition>
-        {
-            new() { Id = "Setting1", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle }
-        };
-
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
-            .Returns(settings);
-
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, SettingStateResult>
-            {
-                { "Setting1", new SettingStateResult { Success = true, TooltipData = tooltipData } }
-            });
-
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
-
-        var mockVm = CreateMockSettingItemViewModel("Setting1");
-        _mockViewModelFactory
-            .Setup(f => f.CreateAsync(
-                It.IsAny<SettingDefinition>(),
-                It.IsAny<SettingStateResult>(),
-                It.IsAny<ISettingsFeatureViewModel?>()))
-            .ReturnsAsync(mockVm);
-
-        await _sut.LoadConfiguredSettingsAsync(
-            "TestFeature", "Loading...", null);
-
-        _mockEventBus.Verify(
-            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "Setting1")),
-            Times.Once);
     }
 
     [Fact]

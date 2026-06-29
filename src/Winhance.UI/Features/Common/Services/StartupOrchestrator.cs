@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -20,7 +19,6 @@ public class StartupOrchestrator : IStartupOrchestrator
 {
     private readonly ICompatibleSettingsRegistry _settingsRegistry;
     private readonly IGlobalSettingsPreloader _settingsPreloader;
-    private readonly TooltipRefreshEventHandler _tooltipEventHandler;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
     private readonly IScriptMigrationService _migrationService;
@@ -31,7 +29,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     public StartupOrchestrator(
         ICompatibleSettingsRegistry settingsRegistry,
         IGlobalSettingsPreloader settingsPreloader,
-        TooltipRefreshEventHandler tooltipEventHandler,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
         IScriptMigrationService migrationService,
@@ -41,7 +38,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         _settingsRegistry = settingsRegistry;
         _settingsPreloader = settingsPreloader;
-        _tooltipEventHandler = tooltipEventHandler;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
         _migrationService = migrationService;
@@ -78,10 +74,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         {
             _logService.LogWarning($"New badge service init failed: {ex.Message}");
         }
-
-            // Initialize tooltip event handler (constructor subscribes to EventBus)
-            // Accessing the injected instance ensures it's constructed and subscribed.
-            _ = _tooltipEventHandler;
 
             // Pre-cache regedit icon for Technical Details panel
             RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
