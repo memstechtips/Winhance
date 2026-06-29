@@ -21,6 +21,9 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISettingViewModelFactory _viewModelFactory;
     private readonly IDetectionShadowRunner _shadowRunner;
     private readonly ICatalogDetectionService _catalogDetectionService;
+    private readonly ISettingLocalizationService _settingLocalizationService;
+    private readonly IComboBoxSetupService _comboBoxSetupService;
+    private readonly IApplicationModeService _applicationModeService;
 
     public SettingsLoadingService(
         ISystemSettingsDiscoveryService discoveryService,
@@ -31,7 +34,10 @@ public class SettingsLoadingService : ISettingsLoadingService
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
         IDetectionShadowRunner shadowRunner,
-        ICatalogDetectionService catalogDetectionService)
+        ICatalogDetectionService catalogDetectionService,
+        ISettingLocalizationService settingLocalizationService,
+        IComboBoxSetupService comboBoxSetupService,
+        IApplicationModeService applicationModeService)
     {
         _discoveryService = discoveryService;
         _logService = logService;
@@ -42,6 +48,9 @@ public class SettingsLoadingService : ISettingsLoadingService
         _viewModelFactory = viewModelFactory;
         _shadowRunner = shadowRunner;
         _catalogDetectionService = catalogDetectionService;
+        _settingLocalizationService = settingLocalizationService;
+        _comboBoxSetupService = comboBoxSetupService;
+        _applicationModeService = applicationModeService;
     }
 
     public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
@@ -86,7 +95,29 @@ public class SettingsLoadingService : ISettingsLoadingService
                 }
 
                 var currentState = batchStates.TryGetValue(setting.Id, out var s) ? s : new SettingStateResult();
-                var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel);
+
+                // Bridge to the new model: pair the old SettingDefinition to its catalog Setting (by id, after
+                // normalizing the 6 "-win10" ThisPC aliases) and build the VM from that. The catalog is complete,
+                // so a missing peer is a real gap - skip the VM rather than crash the page.
+                var paired = SettingCatalog.All.FirstOrDefault(c => c.Id == SettingIdAliases.Normalize(setting.Id));
+                if (paired is null)
+                {
+                    _logService.Log(LogLevel.Warning, $"No catalog Setting for '{setting.Id}'; skipping VM.");
+                    continue;
+                }
+
+                var optionWarnings = setting.ComboBox?.Options?.Select(o => o.Warning).ToList();
+                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+
+                // Builder mode keeps the old index-valued power-plan dropdown (config export's index-based BuilderEdit,
+                // 6.8 scope). Precompute its options here in the bridge - we still hold the SettingDefinition the old
+                // IComboBoxSetupService needs - and hand the result to the factory.
+                ComboBoxSetupResult? builderComboBoxOptions =
+                    (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.Recommendation?.LoadDynamicOptions == true)
+                        ? await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue)
+                        : null;
+
+                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, optionWarnings, crossGroupInfoMessage, builderComboBoxOptions, setting.VersionCompatibilityMessage);
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
@@ -108,9 +139,19 @@ public class SettingsLoadingService : ISettingsLoadingService
         IEnumerable<SettingItemViewModel> settings)
     {
         var settingsList = settings.ToList();
+
+        // The VM no longer carries its SettingDefinition (Phase 6.7 Slice 11). Re-source the definitions for this
+        // refresh from the preparation pipeline, keyed by each VM's owning feature module and filtered to the VMs
+        // on screen - the same pipeline + filter as the initial load, so the definitions are identical.
+        var wantedIds = new HashSet<string>(settingsList.Select(s => s.SettingId));
         var definitions = settingsList
-            .Where(s => s.SettingDefinition != null)
-            .Select(s => s.SettingDefinition!)
+            .Select(s => s.ParentFeatureViewModel?.ModuleId)
+            .Where(m => !string.IsNullOrEmpty(m))
+            .Distinct()
+            .SelectMany(m => _preparationPipeline.PrepareSettings(m!))
+            .Where(d => wantedIds.Contains(d.Id))
+            .GroupBy(d => d.Id)
+            .Select(g => g.First())
             .ToList();
 
         if (definitions.Count == 0)

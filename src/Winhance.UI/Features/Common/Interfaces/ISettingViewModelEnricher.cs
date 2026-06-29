@@ -16,11 +16,6 @@ public interface ISettingViewModelEnricher
     Task DetectBatteryAsync(SettingItemViewModel viewModel);
 
     /// <summary>
-    /// Builds and sets the cross-group info message for selection settings.
-    /// </summary>
-    void SetCrossGroupInfoMessage(SettingItemViewModel viewModel, SettingDefinition setting);
-
-    /// <summary>
     /// Applies review mode diff state to the ViewModel.
     /// </summary>
     void ApplyReviewDiff(SettingItemViewModel viewModel, SettingStateResult currentState);

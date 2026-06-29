@@ -40,9 +40,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
-    public SettingDefinition? SettingDefinition { get; set; }
-
     public Setting? Setting { get; set; }
+
+    /// <summary>Per-selection-option warning text from the config, index-aligned with the options
+    /// (null entries = no warning). Fed to the status banner.</summary>
+    public IReadOnlyList<string?>? OptionWarnings { get; }
 
     [ObservableProperty]
     public partial string SettingId { get; set; }
@@ -179,6 +181,10 @@ public partial class SettingItemViewModel : BaseViewModel
     // Pre-built message for cross-group child settings (built during initialization)
     public string? CrossGroupInfoMessage { get; set; }
 
+    // Windows-version compatibility warning text (set by the loading bridge from the old definition when the
+    // version filter is off). Surfaced as a Warning banner.
+    public string? CompatibilityMessage { get; set; }
+
     // New setting badge
     [ObservableProperty]
     public partial bool IsNew { get; set; }
@@ -234,82 +240,48 @@ public partial class SettingItemViewModel : BaseViewModel
 
     /// <summary>
     /// Recommended value for the single NumericRange spinner, or null if not available.
-    /// Prefers PowerCfgSetting.RecommendedValueAC (non-separate) and falls back to the
-    /// primary RegistrySetting.RecommendedValue.
+    /// Reads the Always-context Numeric recommended target (system units). Real numerics are all
+    /// powercfg-separate AC/DC, so there is no Always-context value -> this returns null, as before.
     /// </summary>
-    public int? NumericRecommendedValue
-    {
-        get
-        {
-            if (SettingDefinition == null) return null;
-            // Non-separate PowerCfg uses AC value as the single value
-            var pcfg = SettingDefinition.PowerCfgSettings?
-                .FirstOrDefault(p => p.PowerModeSupport != PowerModeSupport.Separate);
-            if (pcfg?.RecommendedValueAC is int rac) return rac;
-
-            var reg = SettingDefinition.RegistrySettings?
-                .FirstOrDefault(r => r.IsPrimary) ?? SettingDefinition.RegistrySettings?.FirstOrDefault();
-            return TryConvertToInt(reg?.RecommendedValue);
-        }
-    }
+    public int? NumericRecommendedValue =>
+        Setting?.Numeric?.Recommended.FirstOrDefault(cv => cv.Context == PowerContext.Always) is { } cv
+            ? ConvertToSystemUnits(cv.Value) : null;
 
     /// <summary>
     /// Default value for the single NumericRange spinner, or null if not available.
+    /// Reads the Always-context Numeric default target (system units); null for powercfg-separate settings.
     /// </summary>
-    public int? NumericDefaultValue
-    {
-        get
-        {
-            if (SettingDefinition == null) return null;
-            var pcfg = SettingDefinition.PowerCfgSettings?
-                .FirstOrDefault(p => p.PowerModeSupport != PowerModeSupport.Separate);
-            if (pcfg?.DefaultValueAC is int dac) return dac;
-
-            var reg = SettingDefinition.RegistrySettings?
-                .FirstOrDefault(r => r.IsPrimary) ?? SettingDefinition.RegistrySettings?.FirstOrDefault();
-            return TryConvertToInt(reg?.DefaultValue);
-        }
-    }
+    public int? NumericDefaultValue =>
+        Setting?.Numeric?.WindowsDefault.FirstOrDefault(cv => cv.Context == PowerContext.Always) is { } cv
+            ? ConvertToSystemUnits(cv.Value) : null;
 
     /// <summary>
     /// AC-side recommended value for Separate PowerCfg NumericRange settings, in SYSTEM units.
-    /// Paired (6d): reconstructed from the new model's per-context Numeric target (display units ->
-    /// system units), so the unchanged call sites' ConvertFromSystemUnits re-derives the same display
-    /// value. Unpaired: the old raw PowerCfgSetting value. Null when that mode has no value (== old null).
+    /// Reconstructed from the new model's per-context Numeric target (display units -> system units),
+    /// so the unchanged call sites' ConvertFromSystemUnits re-derives the same display value. Null when
+    /// that mode carries no ContextValue (== old null).
     /// </summary>
     public int? AcRecommendedValue =>
-        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.AC,
-            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
+        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.AC);
 
     public int? AcDefaultValue =>
-        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.AC,
-            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
+        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.AC);
 
     public int? DcRecommendedValue =>
-        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.DC,
-            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
+        PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.DC);
 
     public int? DcDefaultValue =>
-        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.DC,
-            SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
+        PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.DC);
 
-    // Returns the new model's per-context numeric target reconstructed to SYSTEM units, or the old raw
-    // PowerCfgSetting value when unpaired (Setting/Numeric null). When the setting is paired but the mode
-    // carries no ContextValue, returns null - the converter adds a ContextValue only when the matching
-    // PowerCfgSetting.*Value* was set, so this equals the old behaviour (RecommendedValueAC etc. were null).
-    private int? PairedNumericValue(IReadOnlyList<ContextValue>? values, PowerContext context, int? old)
+    // Returns the new model's per-context numeric target reconstructed to SYSTEM units. Returns null when the
+    // setting is not numeric or the mode carries no matching ContextValue - the converter adds a ContextValue only
+    // when the matching per-mode value was set, so this preserves the old null for an absent AC/DC value.
+    private int? PairedNumericValue(IReadOnlyList<ContextValue>? values, PowerContext context)
     {
-        if (Setting?.Numeric is null || values is null) return old;
+        if (Setting?.Numeric is null || values is null) return null;
         foreach (var cv in values)
             if (cv.Context == context) return ConvertToSystemUnits(cv.Value);
         return null;
-    }
-
-    private static int? TryConvertToInt(object? value)
-    {
-        if (value == null) return null;
-        try { return Convert.ToInt32(value); }
-        catch { return null; }
     }
 
     private string FormatValueTooltip(string key, object value)
@@ -479,38 +451,24 @@ public partial class SettingItemViewModel : BaseViewModel
     private RelayCommand? _setDcNumericToDefaultCommand;
 
     // ───────── Toggle quick-set buttons ─────────
-    private RegistrySetting? PrimaryRegistrySetting =>
-        SettingDefinition?.RegistrySettings?.FirstOrDefault(r => r.IsPrimary)
-        ?? SettingDefinition?.RegistrySettings?.FirstOrDefault();
-
     /// <summary>
     /// True if Recommended maps to the enabled state, false if disabled, null if no
-    /// recommendation is set. Resolution order:
-    ///   1. <see cref="SettingDefinition.RecommendedToggleState"/> (explicit toggle-level flag)
-    ///   2. Per-RegistrySetting RecommendedValue mapped strictly via EnabledValue/DisabledValue
-    ///   3. null (no Recommended badge / button)
-    /// The strict step never derives state from the EnabledValue/DisabledValue null sentinel —
-    /// recommendations against the key-absent state must be expressed via RecommendedToggleState.
+    /// recommendation is set. Derived from the recommended role on the new model's matching state.
     /// </summary>
     public bool? ToggleRecommendedState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended)
-            : (SettingDefinition is { } sd ? SettingDefinitionToggleState.GetRecommendedToggleState(sd) : null);
+        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
-    /// When DefaultValue is null, the state is derived from which of EnabledValue /
-    /// DisabledValue contains the null sentinel (key-absent convention).
+    /// Derived from the WindowsDefault role on the new model's matching state.
     /// </summary>
     public bool? ToggleDefaultState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault)
-            : (SettingDefinition is { } sd ? SettingDefinitionToggleState.GetDefaultToggleState(sd) : null);
+        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault) : null;
 
-    // Paired Setting: a toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role.
-    // The converter pairs each role with its enabled-ness via RolesFor(isEnabled, GetRecommendedToggleState,
-    // GetDefaultToggleState), so the role-bearing state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null)
-    // reproduces the old SettingDefinitionToggleState output exactly (proven by CatalogAuthoringEquivalenceTests).
-    // HasRole defaults to PowerContext.Always so PowerCfg AC/DC roles never match (preserving the old null there);
-    // a non-Enabled/Disabled role label (e.g. a Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
+    // A toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role: the role-bearing
+    // state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null). HasRole defaults to PowerContext.Always so
+    // PowerCfg AC/DC roles never match (preserving the old null there); a non-Enabled/Disabled role label (e.g. a
+    // Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
     private static bool? RoleToggleState(Setting setting, RoleKind kind)
     {
         foreach (var st in setting.States)
@@ -518,14 +476,6 @@ public partial class SettingItemViewModel : BaseViewModel
                 return st.Label switch { "Enabled" => true, "Disabled" => false, _ => (bool?)null };
         return null;
     }
-
-    /// <summary>
-    /// Resolves a target value into the toggle state it represents. Thin delegate to
-    /// <see cref="SettingDefinitionToggleState.ToggleTargetState"/> — kept here because
-    /// other call sites (badge state computation) reference it locally.
-    /// </summary>
-    internal static bool? ToggleTargetState(object? targetValue, object?[]? enabledValue, object?[]? disabledValue) =>
-        SettingDefinitionToggleState.ToggleTargetState(targetValue, enabledValue, disabledValue);
 
     private string ToggleStateText(bool state) => state ? OnText : OffText;
 
@@ -566,14 +516,6 @@ public partial class SettingItemViewModel : BaseViewModel
     private RelayCommand? _setToggleToDefaultCommand;
 
     // ───────── Selection quick-set buttons (single ComboBox) ─────────
-    private int? FindOptionIndex(Func<Winhance.Core.Features.Common.Models.ComboBoxOption, bool> predicate)
-    {
-        var opts = SettingDefinition?.ComboBox?.Options;
-        if (opts == null) return null;
-        for (int i = 0; i < opts.Count; i++)
-            if (predicate(opts[i])) return i;
-        return null;
-    }
 
     // Paired Setting: per-state roles drive recommended/default. States order == old option order (converter 1:1,
     // proven by CatalogAuthoringEquivalenceTests), so the index matches. HasRole defaults to PowerContext.Always -
@@ -600,9 +542,9 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public int? SelectionRecommendedIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : FindOptionIndex(o => o.IsRecommended);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : null;
     public int? SelectionDefaultIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault) : FindOptionIndex(o => o.IsDefault);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault) : null;
 
     private string? OptionDisplayText(int? index)
     {
@@ -650,37 +592,18 @@ public partial class SettingItemViewModel : BaseViewModel
     private RelayCommand? _setSelectionToDefaultCommand;
 
     // ───────── AC/DC Selection quick-set buttons (PowerCfg Separate + Single AC) ─────────
-    private int? FindPowerCfgOptionIndex(int? targetValue)
-    {
-        if (targetValue is not int target) return null;
-        var opts = SettingDefinition?.ComboBox?.Options;
-        if (opts == null) return null;
-        for (int i = 0; i < opts.Count; i++)
-        {
-            if (opts[i].ValueMappings is { } m && m.TryGetValue("PowerCfgValue", out var v) && v != null)
-            {
-                try { if (Convert.ToInt32(v) == target) return i; }
-                catch { }
-            }
-        }
-        return null;
-    }
 
     public int? AcSelectionRecommendedIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.AC)
-            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueAC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.AC) : null;
 
     public int? AcSelectionDefaultIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.AC)
-            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueAC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.AC) : null;
 
     public int? DcSelectionRecommendedIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.DC)
-            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.RecommendedValueDC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.DC) : null;
 
     public int? DcSelectionDefaultIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.DC)
-            : FindPowerCfgOptionIndex(SettingDefinition?.PowerCfgSettings?.FirstOrDefault()?.DefaultValueDC);
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, PowerContext.DC) : null;
 
     public string AcSelectionRecommendedTooltip =>
         OptionDisplayText(AcSelectionRecommendedIndex) is { } label
@@ -708,7 +631,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (!IsInfoBadgeGloballyVisible) return false;
             if (InputType != InputType.Selection) return false;
-            if (SettingDefinition?.PowerCfgSettings?.Any() != true) return false;
+            if (!IsPowerCfgSetting) return false;
             return AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue;
         }
     }
@@ -786,7 +709,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         InputType.Toggle or InputType.CheckBox =>
             (recommended ? ToggleRecommendedState : ToggleDefaultState).HasValue,
-        InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true =>
+        InputType.Selection when IsPowerCfgSetting =>
             (recommended ? AcSelectionRecommendedIndex : AcSelectionDefaultIndex).HasValue
             || (SupportsSeparateACDC && (recommended ? DcSelectionRecommendedIndex : DcSelectionDefaultIndex).HasValue),
         InputType.Selection when !IsPowerPlanSetting =>
@@ -824,7 +747,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 (recommended ? SetToggleToRecommendedCommand : SetToggleToDefaultCommand).Execute(null);
                 return true;
 
-            case InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true:
+            case InputType.Selection when IsPowerCfgSetting:
                 (recommended ? SetAcSelectionToRecommendedCommand : SetAcSelectionToDefaultCommand).Execute(null);
                 if (SupportsSeparateACDC)
                     (recommended ? SetDcSelectionToRecommendedCommand : SetDcSelectionToDefaultCommand).Execute(null);
@@ -854,7 +777,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial bool IsLocked { get; set; }
 
     public bool RequiresAdvancedUnlock =>
-        Setting?.Availability.RequiresAdvancedUnlock ?? (SettingDefinition?.RequiresAdvancedUnlock ?? false);
+        Setting?.Availability.RequiresAdvancedUnlock ?? false;
     public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
     public IAsyncRelayCommand UnlockCommand { get; }
 
@@ -1009,10 +932,9 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsNumericType => InputType == InputType.NumericRange;
     public bool IsActionType => InputType == InputType.Action;
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
-    /// <summary>The UI parent this setting nests under: the new catalog peer's UiParentId when paired,
-    /// else the old SettingDefinition.ParentSettingId. Null = top-level. Single source for IsSubSetting
-    /// and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
-    public string? EffectiveUiParentId => Setting?.UiParentId ?? SettingDefinition?.ParentSettingId;
+    /// <summary>The UI parent this setting nests under: the new model's UiParentId. Null = top-level.
+    /// Single source for IsSubSetting and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
+    public string? EffectiveUiParentId => Setting?.UiParentId;
 
     public bool IsSubSetting => !string.IsNullOrEmpty(EffectiveUiParentId);
 
@@ -1034,20 +956,15 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public void ToggleExpander(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => IsExpanderExpanded = !IsExpanderExpanded;
 
-    public bool IsPowerPlanSetting => InputType == InputType.Selection &&
-        SettingDefinition?.Recommendation?.LoadDynamicOptions == true;
+    public bool IsPowerPlanSetting => Setting?.OptionSource is not null;
 
-    // Paired Setting: a powercfg setting carries exactly one PowerCfgTarget (converter) whose Mode is the old
-    // PowerModeSupport. Non-powercfg paired settings have no PowerCfgTarget -> false (== old null PowerCfgSettings).
+    // A powercfg setting carries exactly one PowerCfgTarget whose Mode is the old PowerModeSupport. Non-powercfg
+    // settings have no PowerCfgTarget -> false.
     public bool SupportsSeparateACDC =>
-        Setting is { } s
-            ? s.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate
-            : (SettingDefinition?.PowerCfgSettings?.Any(p =>
-                p.PowerModeSupport == PowerModeSupport.Separate) == true);
+        Setting?.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
 
     private bool IsPowerCfgSetting =>
-        Setting is { } s ? s.Targets.OfType<PowerCfgTarget>().Any()
-            : (SettingDefinition?.PowerCfgSettings?.Any() == true);
+        Setting?.Targets.OfType<PowerCfgTarget>().Any() == true;
 
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
@@ -1081,8 +998,8 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService.LanguageChanged += OnLanguageChanged;
 
         // Unpack config data
-        SettingDefinition = config.SettingDefinition;
         Setting = config.Setting;
+        OptionWarnings = config.OptionWarnings;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
         SettingId = config.SettingId;
         Name = config.Name;
@@ -1110,7 +1027,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Check if this setting is new in the current release
         IsNew = _newBadgeService?.IsSettingNew(
-            config.Setting?.Display.AddedInVersion ?? config.SettingDefinition?.AddedInVersion, config.SettingId) == true;
+            config.Setting.Display.AddedInVersion, config.SettingId) == true;
 
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
         _technicalDetailsManager = new TechnicalDetailsManager(
@@ -1283,13 +1200,13 @@ public partial class SettingItemViewModel : BaseViewModel
                     IsSelected = state.IsEnabled;
                     break;
                 case InputType.Selection:
-                    if (SupportsSeparateACDC && state.RawValues != null &&
-                        SettingDefinition?.ComboBox?.Options is { } selectionOptions)
+                    if (SupportsSeparateACDC && Setting is { States.Count: > 0 } sel
+                        && sel.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
                     {
-                        if (state.RawValues.TryGetValue("ACValue", out var acRaw) && acRaw != null)
-                            AcValue = FindIndexForPowerCfgValue(selectionOptions, Convert.ToInt32(acRaw));
-                        if (state.RawValues.TryGetValue("DCValue", out var dcRaw) && dcRaw != null)
-                            DcValue = FindIndexForPowerCfgValue(selectionOptions, Convert.ToInt32(dcRaw));
+                        if (state.AcValue is int acRaw)
+                            AcValue = FindStateIndexForPowerCfgValue(sel, powerTarget.Key, acRaw) ?? ComboBoxConstants.CustomStateIndex;
+                        if (state.DcValue is int dcRaw)
+                            DcValue = FindStateIndexForPowerCfgValue(sel, powerTarget.Key, dcRaw) ?? ComboBoxConstants.CustomStateIndex;
                     }
                     else if (state.CurrentValue != null)
                     {
@@ -1297,11 +1214,11 @@ public partial class SettingItemViewModel : BaseViewModel
                     }
                     break;
                 case InputType.NumericRange:
-                    if (SupportsSeparateACDC && state.RawValues != null)
+                    if (SupportsSeparateACDC)
                     {
-                        if (state.RawValues.TryGetValue("ACValue", out var acNum) && acNum is int acInt)
+                        if (state.AcValue is int acInt)
                             AcNumericValue = ConvertFromSystemUnits(acInt);
-                        if (state.RawValues.TryGetValue("DCValue", out var dcNum) && dcNum is int dcInt)
+                        if (state.DcValue is int dcInt)
                             DcNumericValue = ConvertFromSystemUnits(dcInt);
                     }
                     else if (state.CurrentValue is int intValue)
@@ -1319,25 +1236,23 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private static int FindIndexForPowerCfgValue(IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> options, int targetValue)
+    // Maps a raw powercfg value (the AC or DC reading) to the new-model State index whose Set[powerKey] accepts it
+    // (the new-model equivalent of the old ComboBoxOption ValueMappings match). Returns null when no option matches.
+    private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
     {
-        for (int i = 0; i < options.Count; i++)
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
         {
-            var mapping = options[i].ValueMappings;
-            if (mapping != null
-                && mapping.TryGetValue("PowerCfgValue", out var val)
-                && val != null
-                && Convert.ToInt32(val) == targetValue)
-            {
+            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
+                && stateValue.Matches(rawValue, present: true))
                 return i;
-            }
         }
-        return 0;
+        return null;
     }
 
     private int ConvertFromSystemUnits(int systemValue)
     {
-        var displayUnits = SettingDefinition?.NumericRange?.Units;
+        var displayUnits = Setting?.Numeric?.Units;
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
@@ -1803,7 +1718,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationIfNeededAsync(object? value)
     {
         bool requiresConfirmation =
-            Setting?.Apply.RequiresConfirmation ?? (SettingDefinition?.RequiresConfirmation ?? false);
+            Setting?.Apply.RequiresConfirmation ?? false;
         if (!requiresConfirmation)
             return (true, false);
 
@@ -1887,22 +1802,27 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #region Status Banner
 
-    public void InitializeCompatibilityBanner()
+    public void UpdateStatusBanner(object? value)
     {
-        var banner = _statusBannerManager.GetCompatibilityBanner(SettingDefinition);
+        var banner = _statusBannerManager.ComputeBannerForValue(value, OptionWarnings, CrossGroupInfoMessage, ComboBoxOptions.Count, CompatibilityMessage);
         if (banner.HasValue) ApplyBanner(banner.Value);
     }
 
-    public void UpdateStatusBanner(object? value)
+    /// <summary>
+    /// Surfaces the Windows-version compatibility message as a Warning banner. Called by the factory for
+    /// non-Selection settings (Selection settings get it through UpdateStatusBanner's compat fallback);
+    /// mirrors the old InitializeCompatibilityBanner.
+    /// </summary>
+    public void ShowCompatibilityBanner()
     {
-        var banner = _statusBannerManager.ComputeBannerForValue(SettingDefinition, value, CrossGroupInfoMessage);
-        if (banner.HasValue) ApplyBanner(banner.Value);
+        if (!string.IsNullOrEmpty(CompatibilityMessage))
+            ApplyBanner(new SettingStatusBannerManager.BannerState(CompatibilityMessage, InfoBarSeverity.Warning));
     }
 
     private void ShowRestartBannerIfNeeded()
     {
         bool requiresRestart =
-            Setting?.Apply.RequiresReboot ?? (SettingDefinition?.RequiresRestart ?? false);
+            Setting?.Apply.RequiresReboot ?? false;
         var banner = _statusBannerManager.GetRestartBanner(requiresRestart, _hasChangedThisSession);
         if (!banner.HasValue) return;
 

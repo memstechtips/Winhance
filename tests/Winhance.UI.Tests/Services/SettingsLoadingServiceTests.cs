@@ -25,6 +25,9 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
     private readonly Mock<IDetectionShadowRunner> _mockShadowRunner = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
+    private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
+    private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
     private readonly SettingsLoadingService _sut;
 
@@ -43,7 +46,10 @@ public class SettingsLoadingServiceTests
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
             _mockShadowRunner.Object,
-            _mockCatalogDetectionService.Object);
+            _mockCatalogDetectionService.Object,
+            _mockSettingLocalizationService.Object,
+            _mockComboBoxSetupService.Object,
+            _mockApplicationModeService.Object);
     }
 
     // ── LoadConfiguredSettingsAsync ──
@@ -53,8 +59,8 @@ public class SettingsLoadingServiceTests
     {
         var settings = new List<SettingDefinition>
         {
-            new() { Id = "Setting1", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle },
-            new() { Id = "Setting2", Name = "Setting 2", Description = "Desc 2", InputType = InputType.Toggle }
+            new() { Id = "security-workplace-join-messages", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle },
+            new() { Id = "start-disable-bing-search-results", Name = "Setting 2", Description = "Desc 2", InputType = InputType.Toggle }
         };
 
         _mockPreparationPipeline
@@ -65,22 +71,27 @@ public class SettingsLoadingServiceTests
             .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "Setting1", new SettingStateResult { Success = true, IsEnabled = true } },
-                { "Setting2", new SettingStateResult { Success = true, IsEnabled = false } }
+                { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
+                { "start-disable-bing-search-results", new SettingStateResult { Success = true, IsEnabled = false } }
             });
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
             .ReturnsAsync(false);
 
-        var mockVm1 = CreateMockSettingItemViewModel("Setting1");
-        var mockVm2 = CreateMockSettingItemViewModel("Setting2");
+        var mockVm1 = CreateMockSettingItemViewModel("security-workplace-join-messages");
+        var mockVm2 = CreateMockSettingItemViewModel("start-disable-bing-search-results");
 
         _mockViewModelFactory
             .SetupSequence(f => f.CreateAsync(
-                It.IsAny<SettingDefinition>(),
+                It.IsAny<Setting>(),
+                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
-                It.IsAny<ISettingsFeatureViewModel?>()))
+                It.IsAny<ISettingsFeatureViewModel?>(),
+                It.IsAny<IReadOnlyList<string?>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ComboBoxSetupResult?>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(mockVm1)
             .ReturnsAsync(mockVm2);
 
@@ -95,7 +106,7 @@ public class SettingsLoadingServiceTests
     {
         var settings = new List<SettingDefinition>
         {
-            new() { Id = "GoodSetting", Name = "Good", Description = "Good desc", InputType = InputType.Toggle },
+            new() { Id = "security-workplace-join-messages", Name = "Good", Description = "Good desc", InputType = InputType.Toggle },
             new() { Id = "BadSetting", Name = "Bad", Description = "Bad desc", InputType = InputType.Toggle }
         };
 
@@ -107,7 +118,7 @@ public class SettingsLoadingServiceTests
             .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "GoodSetting", new SettingStateResult { Success = true, IsEnabled = true } },
+                { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
                 { "BadSetting", new SettingStateResult { Success = false, ErrorMessage = "Not found" } }
             });
 
@@ -115,12 +126,17 @@ public class SettingsLoadingServiceTests
             .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
             .ReturnsAsync(false);
 
-        var mockVm = CreateMockSettingItemViewModel("GoodSetting");
+        var mockVm = CreateMockSettingItemViewModel("security-workplace-join-messages");
         _mockViewModelFactory
             .Setup(f => f.CreateAsync(
-                It.Is<SettingDefinition>(s => s.Id == "GoodSetting"),
+                It.IsAny<Setting>(),
+                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
-                It.IsAny<ISettingsFeatureViewModel?>()))
+                It.IsAny<ISettingsFeatureViewModel?>(),
+                It.IsAny<IReadOnlyList<string?>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ComboBoxSetupResult?>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(mockVm);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
@@ -219,7 +235,7 @@ public class SettingsLoadingServiceTests
     {
         var selectionSetting = new SettingDefinition
         {
-            Id = "SelectSetting",
+            Id = "explorer-customization-measurement-system",
             Name = "Select",
             Description = "Select desc",
             InputType = InputType.Selection
@@ -234,7 +250,7 @@ public class SettingsLoadingServiceTests
             .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "SelectSetting", new SettingStateResult
+                { "explorer-customization-measurement-system", new SettingStateResult
                     { Success = true, CurrentValue = 1, RawValues = rawValues } }
             });
 
@@ -248,12 +264,17 @@ public class SettingsLoadingServiceTests
             .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
             .ReturnsAsync(false);
 
-        var mockVm = CreateMockSettingItemViewModel("SelectSetting");
+        var mockVm = CreateMockSettingItemViewModel("explorer-customization-measurement-system");
         _mockViewModelFactory
             .Setup(f => f.CreateAsync(
-                It.IsAny<SettingDefinition>(),
+                It.IsAny<Setting>(),
+                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
-                It.IsAny<ISettingsFeatureViewModel?>()))
+                It.IsAny<ISettingsFeatureViewModel?>(),
+                It.IsAny<IReadOnlyList<string?>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ComboBoxSetupResult?>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(
@@ -276,7 +297,13 @@ public class SettingsLoadingServiceTests
             InputType = InputType.Selection
         };
 
-        var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef);
+        var parent = new Mock<ISettingsFeatureViewModel>();
+        parent.Setup(p => p.ModuleId).Returns("TestModule");
+        _mockPreparationPipeline
+            .Setup(p => p.PrepareSettings("TestModule"))
+            .Returns(new List<SettingDefinition> { selectionDef });
+
+        var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef, parent.Object);
         var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
 
         _mockDiscoveryService
@@ -315,11 +342,17 @@ public class SettingsLoadingServiceTests
             Id = "Numeric1", Name = "Numeric", Description = "Numeric desc", InputType = InputType.NumericRange
         };
 
+        var parent = new Mock<ISettingsFeatureViewModel>();
+        parent.Setup(p => p.ModuleId).Returns("TestModule");
+        _mockPreparationPipeline
+            .Setup(p => p.PrepareSettings("TestModule"))
+            .Returns(new List<SettingDefinition> { toggleDef, selectionDef, numericDef });
+
         var vms = new[]
         {
-            CreateMockSettingItemViewModel("Toggle1", toggleDef),
-            CreateMockSettingItemViewModel("Select1", selectionDef),
-            CreateMockSettingItemViewModel("Numeric1", numericDef)
+            CreateMockSettingItemViewModel("Toggle1", toggleDef, parent.Object),
+            CreateMockSettingItemViewModel("Select1", selectionDef, parent.Object),
+            CreateMockSettingItemViewModel("Numeric1", numericDef, parent.Object)
         };
 
         _mockDiscoveryService
@@ -355,11 +388,17 @@ public class SettingsLoadingServiceTests
             Id = "S3", Name = "S3", Description = "Desc", InputType = InputType.NumericRange
         };
 
+        var parent = new Mock<ISettingsFeatureViewModel>();
+        parent.Setup(p => p.ModuleId).Returns("TestModule");
+        _mockPreparationPipeline
+            .Setup(p => p.PrepareSettings("TestModule"))
+            .Returns(new List<SettingDefinition> { def1, def2, def3 });
+
         var vms = new[]
         {
-            CreateMockSettingItemViewModel("S1", def1),
-            CreateMockSettingItemViewModel("S2", def2),
-            CreateMockSettingItemViewModel("S3", def3)
+            CreateMockSettingItemViewModel("S1", def1, parent.Object),
+            CreateMockSettingItemViewModel("S2", def2, parent.Object),
+            CreateMockSettingItemViewModel("S3", def3, parent.Object)
         };
 
         _mockDiscoveryService
@@ -381,7 +420,7 @@ public class SettingsLoadingServiceTests
 
     // ── Helper ──
 
-    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId)
+    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null)
     {
         return CreateMockSettingItemViewModel(settingId, new SettingDefinition
         {
@@ -389,14 +428,15 @@ public class SettingsLoadingServiceTests
             Name = settingId,
             Description = "Test",
             InputType = InputType.Toggle
-        });
+        }, parent);
     }
 
-    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, SettingDefinition settingDefinition)
+    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, SettingDefinition settingDefinition, ISettingsFeatureViewModel? parent = null)
     {
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDefinition,
+            Setting = new Setting { Id = settingId, Display = new() { Name = settingDefinition.Name, Description = settingDefinition.Description } },
+            ParentFeatureViewModel = parent,
             SettingId = settingId,
             Name = settingDefinition.Name,
             Description = settingDefinition.Description,

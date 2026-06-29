@@ -81,7 +81,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         try
         {
             var powerPlanSetting = Settings.FirstOrDefault(s =>
-                s.SettingDefinition?.Recommendation?.LoadDynamicOptions == true);
+                s.Setting?.OptionSource is not null);
 
             if (powerPlanSetting == null) return;
 

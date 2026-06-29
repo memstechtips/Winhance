@@ -26,89 +26,14 @@ public class SettingStatusBannerManagerTests
     }
 
     // ──────────────────────────────────────────────────
-    // GetCompatibilityBanner
-    // ──────────────────────────────────────────────────
-
-    [Fact]
-    public void GetCompatibilityBanner_NullDefinition_ReturnsNull()
-    {
-        // Act
-        var result = _manager.GetCompatibilityBanner(null);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void GetCompatibilityBanner_NoCompatibilityInfo_ReturnsNull()
-    {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting"
-        };
-
-        // Act
-        var result = _manager.GetCompatibilityBanner(definition);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void GetCompatibilityBanner_WithCompatibilityMessage_ReturnsWarningBanner()
-    {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            VersionCompatibilityMessage = "Windows 11 only"
-        };
-
-        // Act
-        var result = _manager.GetCompatibilityBanner(definition);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Value.Message.Should().Be("Windows 11 only");
-        result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
-    }
-
-    [Fact]
-    public void GetCompatibilityBanner_WithEmptyCompatibilityMessage_ReturnsWarningBanner()
-    {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            VersionCompatibilityMessage = ""
-        };
-
-        // Act
-        var result = _manager.GetCompatibilityBanner(definition);
-
-        // Assert
-        // VersionCompatibilityMessage is a non-null string, so the pattern match succeeds
-        result.Should().NotBeNull();
-    }
-
-    // ──────────────────────────────────────────────────
     // ComputeBannerForValue
     // ──────────────────────────────────────────────────
 
     [Fact]
-    public void ComputeBannerForValue_NullDefinition_ReturnsClear()
+    public void ComputeBannerForValue_IntValue_NoWarningsNoCrossGroupNoCompat_ReturnsClear()
     {
-        // Act
-        var result = _manager.ComputeBannerForValue(null, 0, null);
+        var result = _manager.ComputeBannerForValue(0, null, null, 0, null);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().BeNull();
         result.Value.Severity.Should().Be(InfoBarSeverity.Informational);
@@ -117,18 +42,8 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_NonIntValue_WithNoCompatibility_ReturnsClear()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting"
-        };
+        var result = _manager.ComputeBannerForValue("not-an-int", null, null, 0, null);
 
-        // Act
-        var result = _manager.ComputeBannerForValue(definition, "not-an-int", null);
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().BeNull();
     }
@@ -136,45 +51,19 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_NonIntValue_WithCompatibility_ReturnsNull()
     {
-        // Arrange - when there's a compatibility message, null means "keep existing banner"
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            VersionCompatibilityMessage = "Win11 only"
-        };
+        // A non-int value with a compatibility message keeps the existing banner (returns null).
+        var result = _manager.ComputeBannerForValue("not-an-int", null, null, 0, "Win11 only");
 
-        // Act
-        var result = _manager.ComputeBannerForValue(definition, "not-an-int", null);
-
-        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public void ComputeBannerForValue_WithMatchingOptionWarning_ReturnsErrorBanner()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Security risk!" }
-                }
-            }
-        };
+        var optionWarnings = new string?[] { null, "Security risk!" };
 
-        // Act
-        var result = _manager.ComputeBannerForValue(definition, 1, null);
+        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().Be("Security risk!");
         result.Value.Severity.Should().Be(InfoBarSeverity.Error);
@@ -183,168 +72,51 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_WithNonMatchingOptionWarning_ReturnsClear()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Security risk!" }
-                }
-            }
-        };
+        var optionWarnings = new string?[] { null, "Security risk!" };
 
-        // Act - index 0 has no warning
-        var result = _manager.ComputeBannerForValue(definition, 0, null);
+        // index 0 has no warning
+        var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 2, null);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().BeNull();
     }
 
     [Fact]
-    public void ComputeBannerForValue_WithCrossGroupChildSettings_CustomIndex_ShowsCrossGroupMessage()
+    public void ComputeBannerForValue_WithCrossGroupMessage_CustomIndex_ShowsCrossGroupMessage()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
-                }
-            }
-        };
+        // last index (2) is the Custom option of a 3-option setting
+        var result = _manager.ComputeBannerForValue(2, null, "Cross-group info message", 3, null);
 
-        // Act - select last index (Custom)
-        var result = _manager.ComputeBannerForValue(definition, 2, "Cross-group info message");
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().Be("Cross-group info message");
         result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
     }
 
     [Fact]
-    public void ComputeBannerForValue_WithCrossGroupChildSettings_NonCustomIndex_ReturnsClear()
+    public void ComputeBannerForValue_WithCrossGroupMessage_NonCustomIndex_ReturnsClear()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
-                }
-            }
-        };
+        // index 0 is not the Custom option
+        var result = _manager.ComputeBannerForValue(0, null, "Cross-group info message", 3, null);
 
-        // Act - select first index (not Custom)
-        var result = _manager.ComputeBannerForValue(definition, 0, "Cross-group info message");
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().BeNull();
     }
 
     [Fact]
-    public void ComputeBannerForValue_WithCrossGroupChildSettings_CustomStateIndex_ShowsCrossGroupMessage()
+    public void ComputeBannerForValue_WithCrossGroupMessage_CustomStateIndex_ShowsCrossGroupMessage()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
-                }
-            }
-        };
+        var result = _manager.ComputeBannerForValue(ComboBoxConstants.CustomStateIndex, null, "Custom state message", 3, null);
 
-        // Act - use ComboBoxConstants.CustomStateIndex (-1)
-        var result = _manager.ComputeBannerForValue(definition, ComboBoxConstants.CustomStateIndex, "Custom state message");
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().Be("Custom state message");
         result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
     }
 
     [Fact]
-    public void ComputeBannerForValue_WithCrossGroupChildSettings_CustomIndex_NoCrossGroupMessage_ShowsFallbackHeader()
-    {
-        // Arrange
-        _mockLocalizationService
-            .Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
-            .Returns("Warning: Cross-group settings");
-
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            CrossGroupChildSettings = new Dictionary<string, string> { ["child1"] = "child1" },
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Custom" }
-                }
-            }
-        };
-
-        // Act - custom index with null crossGroupInfoMessage
-        var result = _manager.ComputeBannerForValue(definition, 1, null);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Value.Message.Should().Be("Warning: Cross-group settings");
-        result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
-    }
-
-    [Fact]
     public void ComputeBannerForValue_WithCompatibilityMessage_NoWarning_ReturnsCompatibilityBanner()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting",
-            VersionCompatibilityMessage = "Requires Windows 11 22H2+"
-        };
+        var result = _manager.ComputeBannerForValue(0, null, null, 0, "Requires Windows 11 22H2+");
 
-        // Act
-        var result = _manager.ComputeBannerForValue(definition, 0, null);
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().Be("Requires Windows 11 22H2+");
         result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
@@ -353,18 +125,8 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_NoWarningsNoCompat_ReturnsClear()
     {
-        // Arrange
-        var definition = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test",
-            Description = "Test setting"
-        };
+        var result = _manager.ComputeBannerForValue(0, null, null, 0, null);
 
-        // Act
-        var result = _manager.ComputeBannerForValue(definition, 0, null);
-
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().BeNull();
     }

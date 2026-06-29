@@ -8,6 +8,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
@@ -285,7 +286,7 @@ public class BulkSettingsActionServiceTests
 
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = definition,
+            Setting = SettingDefinitionConverter.ConvertSelection(definition),
             SettingId = definition.Id,
             Name = definition.Name,
             Description = definition.Description,

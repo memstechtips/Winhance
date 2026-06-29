@@ -31,12 +31,6 @@ public class SettingViewModelEnricher : ISettingViewModelEnricher
     }
 
     /// <inheritdoc />
-    public void SetCrossGroupInfoMessage(SettingItemViewModel viewModel, SettingDefinition setting)
-    {
-        viewModel.CrossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
-    }
-
-    /// <inheritdoc />
     public void ApplyReviewDiff(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
         _reviewDiffApplier.ApplyReviewDiffToViewModel(viewModel, currentState);

@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -51,16 +52,9 @@ public class SettingViewModelEnricherTests
         string settingId = "test-setting",
         string name = "Test Setting")
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = settingId,
-            Name = name,
-            Description = "Test Description"
-        };
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDef,
+            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = "Test Description" } },
             SettingId = settingId,
             Name = name,
             Description = "Test Description",
@@ -144,111 +138,6 @@ public class SettingViewModelEnricherTests
 
         vm1.HasBattery.Should().BeTrue();
         vm2.HasBattery.Should().BeFalse();
-    }
-
-    // -------------------------------------------------------
-    // SetCrossGroupInfoMessage
-    // -------------------------------------------------------
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_SetsMessageOnViewModel()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "cross-group-setting",
-            Name = "Cross Group",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting))
-            .Returns("This setting also affects: Gaming > Performance");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        vm.CrossGroupInfoMessage.Should().Be("This setting also affects: Gaming > Performance");
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_WhenNullMessage_SetsNullOnViewModel()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "no-cross-group",
-            Name = "No Cross Group",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting))
-            .Returns((string?)null);
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        vm.CrossGroupInfoMessage.Should().BeNull();
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_CallsLocalizationServiceWithCorrectSetting()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "my-setting",
-            Name = "My Setting",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(It.IsAny<SettingDefinition>()))
-            .Returns("msg");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        _mockSettingLocalizationService.Verify(
-            l => l.BuildCrossGroupInfoMessage(setting),
-            Times.Once);
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_OverwritesPreviousMessage()
-    {
-        var setting1 = new SettingDefinition
-        {
-            Id = "setting-1",
-            Name = "Setting 1",
-            Description = "Desc"
-        };
-        var setting2 = new SettingDefinition
-        {
-            Id = "setting-2",
-            Name = "Setting 2",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting1))
-            .Returns("First message");
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting2))
-            .Returns("Second message");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting1);
-        vm.CrossGroupInfoMessage.Should().Be("First message");
-
-        service.SetCrossGroupInfoMessage(vm, setting2);
-        vm.CrossGroupInfoMessage.Should().Be("Second message");
     }
 
     // -------------------------------------------------------

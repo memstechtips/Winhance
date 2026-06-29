@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -64,17 +65,9 @@ public class SettingReviewDiffApplierTests
         bool isSelected = false,
         object? selectedValue = null)
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = settingId,
-            Name = name,
-            Description = "Test",
-            InputType = inputType
-        };
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDef,
+            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = "Test" } },
             SettingId = settingId,
             Name = name,
             Description = "Test",

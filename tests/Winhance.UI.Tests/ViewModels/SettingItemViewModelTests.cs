@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Catalog.Migration;
@@ -26,7 +27,7 @@ public class SettingItemViewModelTests : IDisposable
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
 
-    private readonly SettingDefinition _defaultSettingDefinition;
+    private readonly Setting _defaultSetting;
     private readonly SettingItemViewModelConfig _defaultConfig;
 
     public SettingItemViewModelTests()
@@ -44,17 +45,15 @@ public class SettingItemViewModelTests : IDisposable
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => null!);
 
-        _defaultSettingDefinition = new SettingDefinition
+        _defaultSetting = new Setting
         {
             Id = "test-setting",
-            Name = "Test Setting",
-            Description = "A test setting description",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Test Setting", Description = "A test setting description" },
         };
 
         _defaultConfig = new SettingItemViewModelConfig
         {
-            SettingDefinition = _defaultSettingDefinition,
+            Setting = _defaultSetting,
             SettingId = "test-setting",
             Name = "Test Setting",
             Description = "A test setting description",
@@ -100,7 +99,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.IconPack.Should().Be("Material");
         sut.InputType.Should().Be(InputType.Toggle);
         sut.IsSelected.Should().BeFalse();
-        sut.SettingDefinition.Should().BeSameAs(_defaultSettingDefinition);
+        sut.Setting.Should().BeSameAs(_defaultSetting);
     }
 
     [Fact]
@@ -207,7 +206,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = def,
+            Setting = PairFor(def)!,
             SettingId = "act-badge",
             InputType = InputType.Action,
         };
@@ -293,9 +292,10 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = settingDef.Id,
-            InputType = InputType.Selection
+            InputType = InputType.Selection,
+            OptionWarnings = new string?[] { "WARNING: Disabling WSearch breaks Outlook search.", null },
         };
         var sut = CreateSut(config);
 
@@ -326,7 +326,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "child-setting"
         };
         var sut = CreateSut(config);
@@ -525,7 +525,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "power-timeout",
             InputType = InputType.NumericRange
         };
@@ -549,7 +549,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "disk-timeout",
             InputType = InputType.NumericRange
         };
@@ -573,7 +573,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "raw-setting",
             InputType = InputType.NumericRange
         };
@@ -597,7 +597,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "zero-setting",
             InputType = InputType.NumericRange
         };
@@ -627,14 +627,13 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "acdc-numeric",
             InputType = InputType.NumericRange
         };
         var sut = CreateSut(config);
 
-        var rawValues = new Dictionary<string, object?> { { "ACValue", 1200 }, { "DCValue", 600 } };
-        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 1200, DcValue = 600 });
 
         sut.AcNumericValue.Should().Be(20); // 1200 / 60
         sut.DcNumericValue.Should().Be(10); // 600 / 60
@@ -657,47 +656,17 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "acdc-ac-only",
             InputType = InputType.NumericRange
         };
         var sut = CreateSut(config);
         sut.DcNumericValue = 99; // pre-set DC value
 
-        var rawValues = new Dictionary<string, object?> { { "ACValue", 1200 } };
-        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 1200 });
 
         sut.AcNumericValue.Should().Be(20); // 1200 / 60
         sut.DcNumericValue.Should().Be(99); // unchanged
-    }
-
-    [Fact]
-    public void UpdateStateFromSystemState_NumericRange_SeparateACDC_NullRawValues_FallsBackToCurrentValue()
-    {
-        var settingDef = new SettingDefinition
-        {
-            Id = "acdc-fallback",
-            Name = "ACDC Fallback",
-            Description = "Null RawValues falls back",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
-        var config = _defaultConfig with
-        {
-            SettingDefinition = settingDef,
-            SettingId = "acdc-fallback",
-            InputType = InputType.NumericRange
-        };
-        var sut = CreateSut(config);
-
-        // RawValues is null but CurrentValue is set — falls through to the else branch
-        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 600, RawValues = null });
-
-        sut.NumericValue.Should().Be(10); // 600 / 60 via fallback path
     }
 
     // ── UpdateStateFromSystemState: AC/DC separate value handling for Selection ──
@@ -727,14 +696,13 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "acdc-selection",
             InputType = InputType.Selection
         };
         var sut = CreateSut(config);
 
-        var rawValues = new Dictionary<string, object?> { { "ACValue", 30 }, { "DCValue", 10 } };
-        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 30, DcValue = 10 });
 
         sut.AcValue.Should().Be(2); // PowerCfgValue 30 maps to index 2
         sut.DcValue.Should().Be(0); // PowerCfgValue 10 maps to index 0
@@ -764,16 +732,15 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "acdc-unknown",
             InputType = InputType.Selection
         };
         var sut = CreateSut(config);
 
-        var rawValues = new Dictionary<string, object?> { { "ACValue", 99 }, { "DCValue", 10 } };
-        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, RawValues = rawValues });
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 99, DcValue = 10 });
 
-        sut.AcValue.Should().Be(0); // 99 not in mappings, defaults to 0
+        sut.AcValue.Should().Be(ComboBoxConstants.CustomStateIndex); // 99 not in mappings -> Custom (new model)
         sut.DcValue.Should().Be(0); // 10 maps to index 0
     }
 
@@ -789,7 +756,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = new Setting { Id = "standard-selection", Display = new() { Name = "Standard Selection", Description = "Non-separate selection" } },
             SettingId = "standard-selection",
             InputType = InputType.Selection
         };
@@ -815,7 +782,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "fail-numeric",
             InputType = InputType.NumericRange
         };
@@ -840,7 +807,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = SyntheticAlwaysNumericSetting(settingDef),
             SettingId = "null-current",
             InputType = InputType.NumericRange
         };
@@ -1024,7 +991,7 @@ public class SettingItemViewModelTests : IDisposable
         };
         var config = _defaultConfig with
         {
-            SettingDefinition = settingDef,
+            Setting = PairFor(settingDef)!,
             SettingId = "advanced-setting"
         };
         var sut = CreateSut(config);
@@ -1539,8 +1506,7 @@ public class SettingItemViewModelTests : IDisposable
     private SettingItemViewModelConfig BuildSelectionConfig(SettingDefinition def) =>
         new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1656,11 +1622,37 @@ public class SettingItemViewModelTests : IDisposable
         return SettingDefinitionConverter.ConvertToggle(def);
     }
 
+    // Registry single-spinner NumericRange has no production peer (PairFor -> null). The single-spinner numeric
+    // accessors now read the Always-context Numeric, so synthesize a Setting carrying that from the def's
+    // NumericRange (+ the primary registry Recommended/Default when present; units null -> 1:1).
+    private static Setting SyntheticAlwaysNumericSetting(SettingDefinition def)
+    {
+        var reg = def.RegistrySettings is { Count: > 0 } rs ? rs[0] : null;
+        var recommended = reg?.RecommendedValue is { } rv
+            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(rv)) }
+            : System.Array.Empty<ContextValue>();
+        var windowsDefault = reg?.DefaultValue is { } dv
+            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(dv)) }
+            : System.Array.Empty<ContextValue>();
+        return new Setting
+        {
+            Id = def.Id,
+            Display = new() { Name = def.Name, Description = def.Description },
+            Numeric = new()
+            {
+                Min = def.NumericRange?.MinValue ?? 0,
+                Max = def.NumericRange?.MaxValue ?? 100,
+                Units = def.NumericRange?.Units,
+                Recommended = recommended,
+                WindowsDefault = windowsDefault,
+            },
+        };
+    }
+
     private SettingItemViewModelConfig BuildToggleConfig(SettingDefinition def) =>
         new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1700,8 +1692,7 @@ public class SettingItemViewModelTests : IDisposable
     private SettingItemViewModelConfig BuildNumericConfig(SettingDefinition def) =>
         new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def) ?? SyntheticAlwaysNumericSetting(def),
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1834,8 +1825,7 @@ public class SettingItemViewModelTests : IDisposable
 
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1858,8 +1848,7 @@ public class SettingItemViewModelTests : IDisposable
 
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1882,8 +1871,7 @@ public class SettingItemViewModelTests : IDisposable
 
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,
@@ -1906,8 +1894,7 @@ public class SettingItemViewModelTests : IDisposable
 
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = def,
-            Setting = PairFor(def),
+            Setting = PairFor(def)!,
             SettingId = def.Id,
             Name = def.Name,
             Description = def.Description,

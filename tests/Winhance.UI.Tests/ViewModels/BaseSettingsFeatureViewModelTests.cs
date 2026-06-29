@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -118,16 +119,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = new SettingDefinition
-            {
-                Id = settingId,
-                Name = name,
-                Description = description,
-                InputType = inputType,
-                NumericRange = numericRange,
-                ComboBox = comboBox,
-                PowerCfgSettings = powerCfgSettings,
-            },
+            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = description } },
             SettingId = settingId,
             Name = name,
             Description = description,

@@ -24,8 +24,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly INewBadgeService _newBadgeService;
-    private readonly IComboBoxSetupService _comboBoxSetupService;
-    private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ISettingViewModelEnricher _enricher;
 
     public SettingViewModelFactory(
@@ -34,8 +32,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ILocalizationService localizationService,
         IUserPreferencesService userPreferencesService,
         INewBadgeService newBadgeService,
-        IComboBoxSetupService comboBoxSetupService,
-        IComboBoxResolver comboBoxResolver,
         ISettingViewModelEnricher enricher)
     {
         _viewModelDeps = viewModelDeps;
@@ -43,8 +39,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
-        _comboBoxSetupService = comboBoxSetupService;
-        _comboBoxResolver = comboBoxResolver;
         _enricher = enricher;
     }
 
@@ -52,28 +46,31 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     /// Creates a fully-configured SettingItemViewModel for the given setting definition and current state.
     /// </summary>
     public async Task<SettingItemViewModel> CreateAsync(
-        SettingDefinition setting,
+        Setting setting,
+        InputType inputType,
         SettingStateResult currentState,
-        ISettingsFeatureViewModel? parentViewModel)
+        ISettingsFeatureViewModel? parentViewModel,
+        IReadOnlyList<string?>? optionWarnings,
+        string? crossGroupInfoMessage,
+        ComboBoxSetupResult? builderComboBoxOptions,
+        string? compatibilityMessage)
     {
-        var catalogPeer = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = setting,
-            Setting = catalogPeer,
+            Setting = setting,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = catalogPeer?.Display.Name ?? setting.Name,
-            Description = catalogPeer?.Display.Description ?? setting.Description,
-            GroupName = catalogPeer?.Display.GroupName ?? setting.GroupName ?? string.Empty,
-            Icon = setting.Icon ?? string.Empty,
-            IconPack = setting.IconPack ?? "Material",
-            InputType = setting.InputType,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
+            GroupName = setting.Display.GroupName ?? string.Empty,
+            Icon = setting.Display.Icon?.Glyph ?? string.Empty,
+            IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
+            InputType = inputType,
             IsSelected = currentState.IsEnabled,
             OnText = _localizationService.GetString("Common_On") ?? "On",
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
-            ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply"
+            ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
+            OptionWarnings = optionWarnings
         };
 
         var viewModel = new SettingItemViewModel(
@@ -89,8 +86,13 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _newBadgeService,
             _viewModelDeps.ApplicationModeService);
 
+        // Cross-group promo banner text is precomputed by the loading bridge (which holds the old
+        // definition) and passed in, so the factory/VM stay off the old model.
+        viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
+        viewModel.CompatibilityMessage = compatibilityMessage;
+
         // Set lock state for advanced settings
-        if (setting.RequiresAdvancedUnlock)
+        if (setting.Availability.RequiresAdvancedUnlock)
         {
             var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
             viewModel.IsLocked = !unlocked;
@@ -101,27 +103,27 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         {
             await _enricher.DetectBatteryAsync(viewModel);
 
-            if (setting.InputType == InputType.NumericRange && currentState.RawValues != null)
+            if (inputType == InputType.NumericRange)
             {
-                if (currentState.RawValues.TryGetValue("ACValue", out var acVal) && acVal is int acInt)
+                if (currentState.AcValue is int acInt)
                     viewModel.AcNumericValue = ConvertFromSystemUnits(acInt, setting);
-                if (currentState.RawValues.TryGetValue("DCValue", out var dcVal) && dcVal is int dcInt)
+                if (currentState.DcValue is int dcInt)
                     viewModel.DcNumericValue = ConvertFromSystemUnits(dcInt, setting);
             }
             // Note: AC/DC Selection values are set AFTER ComboBox options are populated (below)
         }
 
-        if (setting.InputType != InputType.Selection)
+        if (inputType != InputType.Selection)
         {
             viewModel.SelectedValue = currentState.CurrentValue;
         }
 
         // Set up numeric range settings
-        if (setting.InputType == InputType.NumericRange && setting.NumericRange != null)
+        if (inputType == InputType.NumericRange && setting.Numeric != null)
         {
-            viewModel.MaxValue = setting.NumericRange.MaxValue;
-            viewModel.MinValue = setting.NumericRange.MinValue;
-            viewModel.Units = setting.NumericRange.Units ?? "";
+            viewModel.MaxValue = setting.Numeric.Max;
+            viewModel.MinValue = setting.Numeric.Min;
+            viewModel.Units = setting.Numeric.Units ?? "";
 
             if (currentState.CurrentValue is int intValue)
             {
@@ -137,8 +139,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // synthesize that Tag from the new-model option. Builder mode stays on the OLD index path below so config
         // export's index-based BuilderEdit serialization (ConfigExportService, 6.8 scope) is unchanged.
         var powerPlanHandled = false;
-        if (setting.InputType == InputType.Selection
-            && setting.Recommendation?.LoadDynamicOptions == true
+        if (inputType == InputType.Selection
+            && setting.OptionSource is not null
             && _viewModelDeps.ApplicationModeService?.CurrentMode != WinhanceMode.Builder
             && currentState.DynamicOptions is { } dynamicOptions)
         {
@@ -177,47 +179,49 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             // The stored selection is the active scheme GUID (default to the first option when the active plan is
             // unreadable, mirroring the old index-0 fallback).
             viewModel.SelectedValue = currentState.DynamicSelection ?? dynamicOptions.FirstOrDefault()?.Value;
-            _enricher.SetCrossGroupInfoMessage(viewModel, setting);
+            viewModel.UpdateStatusBanner(viewModel.SelectedValue);
+            powerPlanHandled = true;
+        }
+
+        // Builder mode keeps the OLD index-valued power-plan dropdown (config export's index-based BuilderEdit,
+        // 6.8 scope). The loading bridge precomputes the options via the old IComboBoxSetupService (it still holds the
+        // old definition) and passes the result here; mirror the old unpaired else branch - translate the
+        // PowerPlan_ loc keys, then select + banner off the result.
+        if (inputType == InputType.Selection
+            && setting.OptionSource is not null
+            && _viewModelDeps.ApplicationModeService?.CurrentMode == WinhanceMode.Builder
+            && builderComboBoxOptions is { } cbr)
+        {
+            viewModel.ComboBoxOptions.Clear();
+            foreach (var option in cbr.Options)
+            {
+                if (option.DisplayText.StartsWith("PowerPlan_"))
+                    option.DisplayText = _localizationService.GetString(option.DisplayText);
+                viewModel.ComboBoxOptions.Add(option);
+            }
+            viewModel.SelectedValue = cbr.SelectedValue ?? currentState.CurrentValue;
             viewModel.UpdateStatusBanner(viewModel.SelectedValue);
             powerPlanHandled = true;
         }
 
         // Set up combo box options for selection settings
-        if (setting.InputType == InputType.Selection && !powerPlanHandled)
+        if (inputType == InputType.Selection && !powerPlanHandled)
         {
             try
             {
                 viewModel.ComboBoxOptions.Clear();
-                object? resolvedSelection;
+                object? resolvedSelection = null;
 
-                if (catalogPeer is { States.Count: > 0 } pairedSelection)
+                if (setting is { States.Count: > 0 })
                 {
-                    // Phase 6.7 P1 - new-model-native option build: the options come from Setting.States,
-                    // localized via the Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the
-                    // fallback). The current index is the detection-resolved CurrentValue (1:1 with States,
-                    // -1 == Custom). Retires the old IComboBoxSetupService for paired selections; the old
-                    // service stays only as the unpaired fallback below.
+                    // New-model-native option build: the options come from Setting.States, localized via the
+                    // Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the fallback). The current index is
+                    // the detection-resolved CurrentValue (1:1 with States, -1 == Custom). Every selection is paired
+                    // now, so this is the only path (the old unpaired IComboBoxSetupService fallback is retired).
                     int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
-                    BuildCatalogSelectionOptions(pairedSelection, currentIndex, viewModel.ComboBoxOptions);
+                    BuildCatalogSelectionOptions(setting, currentIndex, viewModel.ComboBoxOptions);
                     resolvedSelection = currentState.CurrentValue ?? currentIndex;
                 }
-                else
-                {
-                    // Unpaired (no catalog peer yet): fall back to the old combobox setup service.
-                    var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
-                    var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
-                    foreach (var option in comboBoxResult.Options)
-                    {
-                        // Translate PowerPlan localization keys
-                        if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
-                            option.DisplayText = _localizationService.GetString(option.DisplayText);
-                        viewModel.ComboBoxOptions.Add(option);
-                    }
-                    resolvedSelection = comboBoxResult.SelectedValue ?? currentState.CurrentValue;
-                }
-
-                // Build cross-group info message if this setting has CrossGroupChildSettings
-                _enricher.SetCrossGroupInfoMessage(viewModel, setting);
 
                 // Set the selected value from the resolved option build or current state
                 if (resolvedSelection != null)
@@ -239,39 +243,19 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 }
 
                 // Resolve AC/DC Selection values AFTER ComboBox options are populated
-                // (ComboBox needs items before SelectedValue can match)
-                if (viewModel.SupportsSeparateACDC && currentState.RawValues != null)
+                // (ComboBox needs items before SelectedValue can match). New-model-native AC/DC index: match the
+                // typed AC/DC powercfg reading against each option's per-context State value (Set[powerKey]).
+                // -1 (Custom) on no match is unreachable (0 orphan / 0 duplicate powercfg option values).
+                if (viewModel.SupportsSeparateACDC
+                    && setting is { States.Count: > 0 }
+                    && setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
                 {
-                    var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
-                    var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
-
-                    if (catalogPeer is { States.Count: > 0 } pairedPower
-                        && pairedPower.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
-                    {
-                        // Phase 6.7 P2 - new-model-native AC/DC index: match the raw powercfg value against
-                        // each option's per-context State value (Set[powerKey]), retiring the old
-                        // IComboBoxResolver for paired separate-AC/DC selections. -1 (Custom) on no match is
-                        // unreachable (Slice 6 proved 0 orphan / 0 duplicate powercfg option values). The raw
-                        // ACValue/DCValue still come from RawValues (threaded there from the new engine by the
-                        // overlay); that last RawValues read is retired with the result-shape swap in Slice 10.
-                        viewModel.AcValue = rawAcVal is int acInt
-                            ? FindStateIndexForPowerCfgValue(pairedPower, powerTarget.Key, acInt) ?? ComboBoxConstants.CustomStateIndex
-                            : 0;
-                        viewModel.DcValue = rawDcVal is int dcInt
-                            ? FindStateIndexForPowerCfgValue(pairedPower, powerTarget.Key, dcInt) ?? ComboBoxConstants.CustomStateIndex
-                            : 0;
-                    }
-                    else
-                    {
-                        // Unpaired (no catalog peer): the old resolver matches against ComboBox.Options ValueMappings.
-                        var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
-                        var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
-                        var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
-                        var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
-
-                        viewModel.AcValue = acIndex is int ai ? ai : 0;
-                        viewModel.DcValue = dcIndex is int di ? di : 0;
-                    }
+                    viewModel.AcValue = currentState.AcValue is int acInt
+                        ? FindStateIndexForPowerCfgValue(setting, powerTarget.Key, acInt) ?? ComboBoxConstants.CustomStateIndex
+                        : 0;
+                    viewModel.DcValue = currentState.DcValue is int dcInt
+                        ? FindStateIndexForPowerCfgValue(setting, powerTarget.Key, dcInt) ?? ComboBoxConstants.CustomStateIndex
+                        : 0;
                 }
             }
             catch (Exception ex)
@@ -279,10 +263,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
             }
         }
-        else if (setting.InputType != InputType.Selection)
+        else if (inputType != InputType.Selection)
         {
-            // For non-Selection types, initialize compatibility banner (Selection types handle this in UpdateStatusBanner)
-            viewModel.InitializeCompatibilityBanner();
+            // For non-Selection types, surface the Windows-version compatibility banner here (Selection types get
+            // it via UpdateStatusBanner's compat fallback). Mirrors the old InitializeCompatibilityBanner call site.
+            viewModel.ShowCompatibilityBanner();
         }
 
         // If in review mode, apply review diff to the newly created ViewModel
@@ -298,9 +283,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return viewModel;
     }
 
-    private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
+    private static int ConvertFromSystemUnits(int systemValue, Setting setting)
     {
-        var displayUnits = setting.NumericRange?.Units;
+        var displayUnits = setting.Numeric?.Units;
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 

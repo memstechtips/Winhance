@@ -25,53 +25,35 @@ internal sealed class SettingStatusBannerManager
     }
 
     /// <summary>
-    /// Gets the compatibility banner from the setting definition, if present.
-    /// </summary>
-    public BannerState? GetCompatibilityBanner(SettingDefinition? definition)
-    {
-        if (definition?.VersionCompatibilityMessage is { } messageText)
-        {
-            return new BannerState(messageText, InfoBarSeverity.Warning);
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Computes the appropriate banner for a value change.
-    /// Returns null when the banner should not be changed (keep existing state).
+    /// Computes the appropriate banner for a value change. Returns BannerState.Clear when there is no banner to
+    /// show, or null to leave an existing compatibility banner untouched (value is not an int index).
     /// </summary>
     public BannerState? ComputeBannerForValue(
-        SettingDefinition? definition, object? value, string? crossGroupInfoMessage)
+        object? value, IReadOnlyList<string?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage)
     {
-        if (definition == null || value is not int selectedIndex)
+        if (value is not int selectedIndex)
         {
-            // Keep existing compatibility banner if present, otherwise clear
-            if (definition?.VersionCompatibilityMessage == null)
-            {
+            // Keep an existing compatibility banner (return null = don't change) when one applies; otherwise clear.
+            if (string.IsNullOrEmpty(compatibilityMessage))
                 return BannerState.Clear;
-            }
-            return null; // Don't change (keep existing compatibility banner)
+            return null;
         }
 
-        // Check for option-specific warnings (e.g., update policy security warnings)
-        if (definition.ComboBox?.Options is { } warningOptions
-            && selectedIndex >= 0 && selectedIndex < warningOptions.Count
-            && warningOptions[selectedIndex].Warning is { } warning)
+        // Per-option warning text (e.g., update policy security warnings), index-aligned with the options.
+        if (optionWarnings is { } w
+            && selectedIndex >= 0 && selectedIndex < w.Count
+            && w[selectedIndex] is { } warning)
         {
             return new BannerState(warning, InfoBarSeverity.Error);
         }
 
-        // Check for cross-group child settings info (promotional banner)
-        if (definition.CrossGroupChildSettings != null)
-        {
-            return ComputeCrossGroupBanner(definition, selectedIndex, crossGroupInfoMessage);
-        }
+        // Cross-group child settings info (promotional banner). The precomputed message already includes the header.
+        if (!string.IsNullOrEmpty(crossGroupInfoMessage))
+            return ComputeCrossGroupBanner(selectedIndex, crossGroupInfoMessage, optionCount);
 
-        // No option-specific warning - check for compatibility message
-        if (definition.VersionCompatibilityMessage is { } compatText)
-        {
-            return new BannerState(compatText, InfoBarSeverity.Warning);
-        }
+        // Windows-version compatibility message (shown when the version filter is off).
+        if (!string.IsNullOrEmpty(compatibilityMessage))
+            return new BannerState(compatibilityMessage, InfoBarSeverity.Warning);
 
         return BannerState.Clear;
     }
@@ -90,31 +72,19 @@ internal sealed class SettingStatusBannerManager
             InfoBarSeverity.Warning);
     }
 
-    private BannerState ComputeCrossGroupBanner(
-        SettingDefinition definition, int selectedIndex, string? crossGroupInfoMessage)
+    private BannerState ComputeCrossGroupBanner(int selectedIndex, string crossGroupInfoMessage, int optionCount)
     {
-        var options = definition.ComboBox?.Options;
-
-        if (options == null || options.Count == 0)
+        if (optionCount == 0)
             return BannerState.Clear;
 
         // Check if "Custom" option is selected (last index or special custom state index)
-        var customOptionIndex = options.Count - 1;
+        var customOptionIndex = optionCount - 1;
         bool isCustomState = selectedIndex == customOptionIndex ||
             selectedIndex == ComboBoxConstants.CustomStateIndex;
 
         if (!isCustomState)
             return BannerState.Clear;
 
-        // Use the pre-built message if available (built during initialization with full grouping)
-        if (!string.IsNullOrEmpty(crossGroupInfoMessage))
-            return new BannerState(crossGroupInfoMessage, InfoBarSeverity.Warning);
-
-        // Fallback: just show the header if pre-built message not available
-        var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
-        if (!string.IsNullOrEmpty(header))
-            return new BannerState(header, InfoBarSeverity.Warning);
-
-        return BannerState.Clear;
+        return new BannerState(crossGroupInfoMessage, InfoBarSeverity.Warning);
     }
 }
