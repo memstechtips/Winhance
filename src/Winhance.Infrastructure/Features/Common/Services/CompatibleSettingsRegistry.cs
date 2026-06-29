@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -218,7 +219,7 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
                     filteredSettings = await _powerValidation.FilterSettingsByExistenceAsync(filteredSettings).ConfigureAwait(false);
                 }
 
-                _preFilteredSettings[featureId] = filteredSettings;
+                _preFilteredSettings[featureId] = NormalizeMergedIds(filteredSettings);
 
                 IEnumerable<SettingDefinition> bypassedSettings = rawSettings;
                 if (featureId == FeatureIds.Power)
@@ -241,6 +242,30 @@ public class CompatibleSettingsRegistry : ICompatibleSettingsRegistry
         }
 
         _logService.Log(LogLevel.Info, "Pre-filtering completed");
+    }
+
+    /// <summary>
+    /// Presents OS-split merged settings under their canonical catalog id in the live (filtered) load path, so
+    /// detection, apply, and view-model pairing all converge on the one build-gated <see cref="Setting"/> (config
+    /// import already does this via <see cref="SettingIdAliases"/> in ConfigMigrationService). The Windows-version
+    /// filter leaves exactly one OS variant per merged setting, so normalizing is collision-free in production; the
+    /// dedupe guards the degenerate case where both variants survive (a pass-through test, or the show-incompatible
+    /// mode) by keeping the first - either variant pairs to the same canonical catalog Setting, which the new
+    /// build-aware engine reads. The bypassed (unfiltered) set is intentionally NOT normalized: it keeps both
+    /// variants under their original ids for the config-import GetByIdBypassed lookup and the show-incompatible mode.
+    /// </summary>
+    private static List<SettingDefinition> NormalizeMergedIds(IEnumerable<SettingDefinition> settings)
+    {
+        var result = new List<SettingDefinition>();
+        var seen = new HashSet<string>();
+        foreach (var def in settings)
+        {
+            var canonical = SettingIdAliases.Normalize(def.Id);
+            var normalized = canonical == def.Id ? def : def with { Id = canonical };
+            if (seen.Add(normalized.Id))
+                result.Add(normalized);
+        }
+        return result;
     }
 
     /// <summary>

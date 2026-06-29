@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -339,6 +340,38 @@ public class CompatibleSettingsRegistryTests
 
         Action act = () => _sut.GetFeatureIdForSetting(null!);
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task InitializeAsync_OnWindows10_MergedThisPcSettings_ExposedUnderCanonicalId()
+    {
+        // Simulate the Windows-10 compatibility filter: drop IsWindows11Only defs, keep the rest (including the
+        // IsWindows10Only "-win10" merged This PC variants). The live UI must then expose those variants under
+        // their CANONICAL catalog id so detection/apply/view-model pairing converge on the merged build-gated Setting.
+        _windowsFilter
+            .Setup(f => f.FilterSettingsByWindowsVersion(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .Returns((IEnumerable<SettingDefinition> s) => s.Where(d => !d.IsWindows11Only).ToList());
+        _windowsFilter
+            .Setup(f => f.FilterSettingsByWindowsVersion(It.IsAny<IEnumerable<SettingDefinition>>(), It.IsAny<bool>()))
+            .Returns((IEnumerable<SettingDefinition> s, bool applyFilter) =>
+                applyFilter ? s.Where(d => !d.IsWindows11Only).ToList() : s.ToList());
+
+        await _sut.InitializeAsync();
+
+        var explorer = _sut.GetFilteredSettings(FeatureIds.ExplorerCustomization).ToList();
+
+        const string canonical = "explorer-customization-thispc-folder-desktop";
+        const string win10 = "explorer-customization-thispc-folder-desktop-win10";
+
+        // The -win10 variant is exposed under its canonical id, exactly once (normalize + dedupe), not the retired id.
+        explorer.Count(d => d.Id == canonical).Should().Be(1);
+        explorer.Should().NotContain(d => d.Id == win10);
+        explorer.Should().NotContain(d => d.Id.EndsWith("-win10"), "no retired -win10 id leaks into the filtered registry");
+
+        // ...and the canonical id pairs to the merged catalog Setting (so the new build-aware engine drives it).
+        SettingCatalog.All.Should().Contain(s => s.Id == canonical);
+        _sut.GetById(canonical).Should().NotBeNull();
+        _sut.GetFeatureIdForSetting(canonical).Should().Be(FeatureIds.ExplorerCustomization);
     }
 
     private static SettingDefinition CreateSetting(string id, string name)
