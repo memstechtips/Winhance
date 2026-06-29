@@ -1464,7 +1464,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false)
     {
-        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
+        if (IsApplying || _isUpdatingFromEvent) return;
 
         if (newValue == IsSelected) return;
 
@@ -1524,11 +1524,11 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
     {
-        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, SelectedValue={SelectedValue}");
+        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SelectedValue={SelectedValue}");
 
-        if (_isUpdatingFromEvent || SettingDefinition == null || value == null)
+        if (_isUpdatingFromEvent || value == null)
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, SettingDefinition={(SettingDefinition == null ? "null" : "not null")}, value={(value == null ? "null" : "not null")}");
+            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, value={(value == null ? "null" : "not null")}");
             return;
         }
 
@@ -1662,7 +1662,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleACDCSelectionChangedAsync(bool resetToDefault = false)
     {
-        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
+        if (IsApplying || _isUpdatingFromEvent) return;
 
         if (IsBuilderMode)
         {
@@ -1703,7 +1703,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task HandleACDCNumericChangedAsync(bool resetToDefault = false)
     {
-        if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
+        if (IsApplying || _isUpdatingFromEvent) return;
 
         if (IsBuilderMode)
         {
@@ -1744,7 +1744,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     private async Task RunActionAsync()
     {
-        if (IsApplying || SettingDefinition == null) return;
+        if (IsApplying) return;
 
         if (IsBuilderMode)
         {
