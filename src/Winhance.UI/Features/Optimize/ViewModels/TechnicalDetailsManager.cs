@@ -46,6 +46,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
+    private readonly ILocalizationService _localizationService;
     private readonly TechnicalDetailLabels _labels;
 
     public IRelayCommand<string> OpenRegeditCommand { get; }
@@ -65,10 +66,8 @@ internal sealed class TechnicalDetailsManager : IDisposable
         _logService = logService;
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
+        _localizationService = localizationService;
         _labels = labels ?? new TechnicalDetailLabels();
-        // localizationService is unused today (the panel's strings come via _labels); kept on the ctor
-        // for call-site stability and for the Slice 9b Relationships section, which localizes related ids.
-        _ = localizationService;
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
         // eventBus is no longer used: the panel is driven directly by the view-model via Update(), not by a
@@ -119,6 +118,18 @@ internal sealed class TechnicalDetailsManager : IDisposable
             var regContentRows = BuildRegContentRows(setting);
             if (regContentRows.Count > 0)
                 sections.Add(new TechnicalDetailSection(DetailRowType.RegContent, _labels.SectionRegContent, false, regContentRows));
+
+            var targetRows = BuildTargetRows(setting);
+            if (targetRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionTargets, false, targetRows));
+
+            var effectRows = BuildEffectRows(setting);
+            if (effectRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionEffects, false, effectRows));
+
+            var relationshipRows = BuildRelationshipRows(setting);
+            if (relationshipRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionRelationships, false, relationshipRows));
 
             _setSections(sections);
         }
@@ -338,6 +349,117 @@ internal sealed class TechnicalDetailsManager : IDisposable
             });
         }
         return rows;
+    }
+
+    // --- Targets: every read/write location the setting touches, with its full technical metadata.
+    private List<TechnicalDetailRow> BuildTargetRows(Setting setting)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var target in setting.Targets)
+        {
+            string primary;
+            var meta = new List<string>();
+            switch (target)
+            {
+                case RegTarget reg:
+                    primary = $"{_labels.TargetRegistry}: {(reg.Paths.Count > 0 ? reg.Paths[0] : string.Empty)}";
+                    if (reg.Paths.Count > 1) meta.Add($"+{reg.Paths.Count - 1} mirror");
+                    meta.Add($"{reg.ValueName ?? "(Default)"} ({reg.Type})");
+                    if (reg.IsGroupPolicy) meta.Add(_labels.MetaGroupPolicy);
+                    if (reg.ByteIndex is int bi)
+                        meta.Add($"byte {bi}" + (reg.BitMask is byte bm ? $" bit 0x{bm:X2}" : string.Empty));
+                    if (!string.IsNullOrEmpty(reg.CompositeStringKey)) meta.Add($"sub-key {reg.CompositeStringKey}");
+                    if (reg.PerNetworkInterface) meta.Add("per-NIC");
+                    if (reg.PerMonitor) meta.Add("per-monitor");
+                    if (reg.ApplyOnly) meta.Add("apply-only");
+                    break;
+                case PowerCfgTarget pcfg:
+                    primary = $"{_labels.TargetPower}: {pcfg.SubgroupGuid} / {pcfg.SettingGuid}";
+                    if (!string.IsNullOrEmpty(pcfg.Units)) meta.Add(pcfg.Units!);
+                    meta.Add(pcfg.Mode.ToString());
+                    if (pcfg.EnablementKey is not null) meta.Add("enablement key");
+                    if (pcfg.CheckForHardwareControl) meta.Add("hardware-controlled");
+                    break;
+                case TaskTarget task:
+                    primary = $"{_labels.TargetTask}: {task.TaskPath}";
+                    break;
+                default:
+                    primary = target.Key;
+                    break;
+            }
+            if (target.AppliesTo.Count > 0) meta.Add("OS-specific");
+
+            rows.Add(new TechnicalDetailRow
+            {
+                RowType = DetailRowType.Info,
+                InfoPrimary = primary,
+                InfoSecondary = string.Join(" | ", meta)
+            });
+        }
+        return rows;
+    }
+
+    // --- Effects: the apply-only side-effects beyond the script / reg-content already shown above
+    // (a registry write performed on apply, or a native power-API write).
+    private List<TechnicalDetailRow> BuildEffectRows(Setting setting)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        foreach (var (_, effect) in EnumerateEffects(setting))
+        {
+            switch (effect)
+            {
+                case RegistryWriteEffect rw:
+                    var name = string.IsNullOrEmpty(rw.ValueName) ? "(Default)" : rw.ValueName;
+                    rows.Add(InfoRow(_labels.EffectRegistryWrite,
+                        $"{rw.Path}\\{name} = {FormatConcreteValueText(rw.Value)}"
+                        + (rw.IsGroupPolicy ? $" ({_labels.MetaGroupPolicy})" : string.Empty)));
+                    break;
+                case NativePowerEffect np:
+                    rows.Add(InfoRow(_labels.EffectNativePower, $"level {np.InformationLevel} = {np.Value}"));
+                    break;
+            }
+        }
+        return rows;
+    }
+
+    // --- Relationships: nested-under parent + the requires/enables links + the child settings a state drives.
+    private List<TechnicalDetailRow> BuildRelationshipRows(Setting setting)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        var seen = new HashSet<string>();
+
+        if (!string.IsNullOrEmpty(setting.UiParentId))
+            rows.Add(InfoRow(LocalizeSettingName(setting.UiParentId!), _labels.RelNestedUnder));
+
+        foreach (var link in setting.States.SelectMany(s => s.Links))
+        {
+            if (!seen.Add($"link:{link.Kind}:{link.OtherId}:{link.RequiredState}")) continue;
+            var verb = link.Kind == LinkKind.Requires ? _labels.RelRequires : _labels.RelEnables;
+            rows.Add(InfoRow(LocalizeSettingName(link.OtherId), $"{verb}: {link.RequiredState}"));
+        }
+
+        foreach (var state in setting.States)
+        {
+            if (state.Controls is null) continue;
+            foreach (var kv in state.Controls)
+            {
+                if (!seen.Add($"controls:{kv.Key}:{kv.Value}")) continue;
+                rows.Add(InfoRow(LocalizeSettingName(kv.Key), $"{_labels.RelControls}: {kv.Value}"));
+            }
+        }
+        return rows;
+    }
+
+    private static TechnicalDetailRow InfoRow(string primary, string secondary) =>
+        new() { RowType = DetailRowType.Info, InfoPrimary = primary, InfoSecondary = secondary };
+
+    /// <summary>Localizes a related setting's display name (Setting_{id}_Name); falls back to the raw id
+    /// when there's no translation (GetString returns "[key]" on a miss).</summary>
+    private string LocalizeSettingName(string settingId)
+    {
+        var key = $"Setting_{settingId}_Name";
+        var name = _localizationService.GetString(key);
+        return string.IsNullOrEmpty(name) || name == key || name == $"[{key}]" ? settingId : name;
     }
 
     // ---------------------------------------------------------------------------------------------------

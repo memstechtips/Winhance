@@ -412,6 +412,13 @@
                                                         <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                                     </TextBlock>
                                                 </Grid>
+                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                </StackPanel>
                                             </Grid>
                                             </ContentControl>
                                         </DataTemplate>
@@ -833,6 +840,13 @@
                                                         <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                                     </TextBlock>
                                                 </Grid>
+                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                </StackPanel>
                                             </Grid>
                                             </ContentControl>
                                         </DataTemplate>
@@ -1189,6 +1203,13 @@
                                                                         <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                                                     </TextBlock>
                                                                 </Grid>
+                                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                                </StackPanel>
                                                             </Grid>
                                                             </ContentControl>
                                                         </DataTemplate>

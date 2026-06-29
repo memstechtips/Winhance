@@ -13,7 +13,10 @@ public enum DetailRowType
     Dependency,
     // One option of a Selection/Toggle setting: which choice writes which value (the "docs inside the app"
     // option->value table). Phase 6.7 Slice 9. Sourced from Setting.States, not the old SettingTooltipData.
-    Option
+    Option,
+    // A generic two-part docs line (primary + secondary text). Phase 6.7 Slice 9b - used by the Targets,
+    // Effects, and Relationships sections so they share one DataTemplate.
+    Info
 }
 
 public class TechnicalDetailRow
@@ -77,6 +80,10 @@ public class TechnicalDetailRow
     public bool IsCurrentOption { get; set; }
     public string CurrentLabelText { get; set; } = string.Empty;
 
+    // Info (Targets / Effects / Relationships): a primary label + a secondary detail string.
+    public string InfoPrimary { get; set; } = string.Empty;
+    public string InfoSecondary { get; set; } = string.Empty;
+
     // Localized labels for XAML binding
     public string PathLabel { get; set; } = "Path";
     public string ValueLabel { get; set; } = "Value";
@@ -94,6 +101,7 @@ public class TechnicalDetailRow
     public bool IsRegContent       => RowType == DetailRowType.RegContent;
     public bool IsDependency       => RowType == DetailRowType.Dependency;
     public bool IsOption           => RowType == DetailRowType.Option;
+    public bool IsInfo             => RowType == DetailRowType.Info;
 
     // Command and icon set from parent ViewModel
     public IRelayCommand<string>? OpenRegeditCommand { get; set; }
@@ -123,6 +131,9 @@ public class TechnicalDetailRow
         DetailRowType.Option           => string.IsNullOrEmpty(OptionRole)
             ? $"{OptionLabel}: {OptionValue}{(IsCurrentOption ? $", {CurrentLabelText}" : string.Empty)}"
             : $"{OptionLabel}: {OptionValue} ({OptionRole}){(IsCurrentOption ? $", {CurrentLabelText}" : string.Empty)}",
+        DetailRowType.Info             => string.IsNullOrEmpty(InfoSecondary)
+            ? InfoPrimary
+            : $"{InfoPrimary}: {InfoSecondary}",
         _ => string.Empty
     };
 }

@@ -22,10 +22,29 @@ public record TechnicalDetailLabels
     public string SectionRegContent     { get; init; } = "Registry Content";
     public string SectionDependencies   { get; init; } = "Depends On";
     public string SectionOptions        { get; init; } = "Options";
+    public string SectionTargets        { get; init; } = "Targets";
+    public string SectionEffects        { get; init; } = "Effects";
+    public string SectionRelationships  { get; init; } = "Relationships";
 
     // Option->value table suffixes: a choice that also accepts the key being absent, or that deletes the key.
     public string OrNotSet              { get; init; } = "or not set";
     public string DeletesKey           { get; init; } = "deletes key";
+
+    // Targets section
+    public string TargetRegistry        { get; init; } = "Registry";
+    public string TargetPower           { get; init; } = "Power";
+    public string TargetTask            { get; init; } = "Scheduled Task";
+    public string MetaGroupPolicy       { get; init; } = "Group Policy";
+
+    // Effects section
+    public string EffectRegistryWrite   { get; init; } = "Writes registry value";
+    public string EffectNativePower     { get; init; } = "Native power write";
+
+    // Relationships section
+    public string RelRequires           { get; init; } = "Requires";
+    public string RelEnables            { get; init; } = "Enables";
+    public string RelControls           { get; init; } = "Sets";
+    public string RelNestedUnder        { get; init; } = "Nested under";
 
     // Script / RegContent labels
     public string ScriptOnEnable        { get; init; } = "On Enable";
