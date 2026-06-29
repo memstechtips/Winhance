@@ -245,13 +245,33 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                     var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
                     var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
 
-                    var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
-                    var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
-                    var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
-                    var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
+                    if (catalogPeer is { States.Count: > 0 } pairedPower
+                        && pairedPower.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
+                    {
+                        // Phase 6.7 P2 - new-model-native AC/DC index: match the raw powercfg value against
+                        // each option's per-context State value (Set[powerKey]), retiring the old
+                        // IComboBoxResolver for paired separate-AC/DC selections. -1 (Custom) on no match is
+                        // unreachable (Slice 6 proved 0 orphan / 0 duplicate powercfg option values). The raw
+                        // ACValue/DCValue still come from RawValues (threaded there from the new engine by the
+                        // overlay); that last RawValues read is retired with the result-shape swap in Slice 10.
+                        viewModel.AcValue = rawAcVal is int acInt
+                            ? FindStateIndexForPowerCfgValue(pairedPower, powerTarget.Key, acInt) ?? ComboBoxConstants.CustomStateIndex
+                            : 0;
+                        viewModel.DcValue = rawDcVal is int dcInt
+                            ? FindStateIndexForPowerCfgValue(pairedPower, powerTarget.Key, dcInt) ?? ComboBoxConstants.CustomStateIndex
+                            : 0;
+                    }
+                    else
+                    {
+                        // Unpaired (no catalog peer): the old resolver matches against ComboBox.Options ValueMappings.
+                        var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
+                        var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
+                        var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
+                        var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
 
-                    viewModel.AcValue = acIndex is int ai ? ai : 0;
-                    viewModel.DcValue = dcIndex is int di ? di : 0;
+                        viewModel.AcValue = acIndex is int ai ? ai : 0;
+                        viewModel.DcValue = dcIndex is int di ? di : 0;
+                    }
                 }
             }
             catch (Exception ex)
@@ -328,5 +348,20 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     {
         var s = _localizationService.GetString(key);
         return (s.Length >= 2 && s[0] == '[' && s[^1] == ']') ? fallback : s;
+    }
+
+    // Maps a raw powercfg value (the AC or DC reading) to the new-model State index whose Set[powerKey]
+    // accepts it - the new-model equivalent of the old IComboBoxResolver's ValueMappings match for a
+    // separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).
+    private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
+    {
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
+        {
+            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
+                && stateValue.Matches(rawValue, present: true))
+                return i;
+        }
+        return null;
     }
 }
