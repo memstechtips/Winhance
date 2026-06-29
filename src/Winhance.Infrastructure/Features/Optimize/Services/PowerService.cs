@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
@@ -23,67 +22,18 @@ namespace Winhance.Infrastructure.Features.Optimize.Services;
 public class PowerService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IEventBus eventBus,
-    IPowerPlanComboBoxService powerPlanComboBoxService,
-    IPowerSchemeOperations powerSchemeOperations,
-    IConfigImportState configImportState,
-    IPowerPlanActivationService activation) : IPowerService, ISpecialSettingHandler
+    IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler
 {
 
     /// <summary>
-    /// Attempts to apply a special (non-registry) setting. For power-plan-selection,
-    /// delegates to plan import/activation logic.
+    /// Phase 6.7 Slice 8c: power-plan apply now runs through the catalog engine (the funnel routes it via
+    /// ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan), so PowerService is no
+    /// longer registered as an apply handler (Slice 8b-2b removed the registration). PowerService remains an
+    /// <see cref="ISpecialSettingHandler"/> only for <see cref="DiscoverSpecialSettingsAsync"/> (the discovery
+    /// registry), so this apply entry point is never reached and handles nothing.
     /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if the setting was handled and applied successfully;
-    /// <see langword="false"/> if the setting is not a special setting, the value type
-    /// is unsupported, or the operation failed.
-    /// Never throws for expected business failures; errors are logged internally.
-    /// </returns>
-    public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
-    {
-        if (setting.Id == SettingIds.PowerPlanSelection)
-        {
-            logService.Log(LogLevel.Info, "[PowerService] Applying power-plan-selection");
-
-            if (value is Dictionary<string, object> planDict)
-            {
-                var guid = planDict["Guid"].ToString()!;
-                var name = planDict["Name"].ToString()!;
-
-                logService.Log(LogLevel.Info, $"[PowerService] Config import: applying power plan {name} ({guid})");
-                return await ApplyPowerPlanByGuidAsync(setting, guid, name, settingApplicationService).ConfigureAwait(false);
-            }
-
-            // New-model UI selection (Phase 6.7 Slice 7b): the stored value is the scheme GUID directly (no index
-            // round-trip). ApplyPowerPlanByGuidAsync drives everything off the GUID - applying it, or importing the
-            // predefined plan when not installed (matched by GUID against BuiltInPowerPlans); the name is logging-only.
-            if (value is string planGuid)
-            {
-                logService.Log(LogLevel.Info, $"[PowerService] UI selection: applying power plan by GUID {planGuid}");
-                return await ApplyPowerPlanByGuidAsync(setting, planGuid, planGuid, settingApplicationService).ConfigureAwait(false);
-            }
-
-            if (value is int index)
-            {
-                logService.Log(LogLevel.Info, $"[PowerService] UI selection: applying power plan at index {index}");
-
-                var resolution = await powerPlanComboBoxService.ResolvePowerPlanByIndexAsync(index).ConfigureAwait(false);
-                if (!resolution.Success)
-                {
-                    logService.Log(LogLevel.Error, $"[PowerService] Failed to resolve power plan index: {resolution.ErrorMessage}");
-                    return false;
-                }
-
-                return await ApplyPowerPlanSelectionAsync(setting, resolution.Guid, index, resolution.DisplayName, settingApplicationService).ConfigureAwait(false);
-            }
-
-            logService.Log(LogLevel.Error, $"[PowerService] Invalid power plan value type: {value?.GetType().Name}");
-            return false;
-        }
-
-        return false;
-    }
+    public Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
+        => Task.FromResult(false);
 
     public async Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
     {
@@ -237,211 +187,6 @@ public class PowerService(
         {
             logService.Log(LogLevel.Error, $"Error deleting power plan: {ex.Message}");
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Applies a power plan selected via the UI combo box.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if the plan was activated successfully;
-    /// <see langword="false"/> if the plan could not be imported, found, or activated.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
-    /// </exception>
-    private async Task<bool> ApplyPowerPlanSelectionAsync(SettingDefinition setting, string powerPlanGuid, int planIndex, string planName, ISettingApplicationService? settingApplicationService)
-    {
-        logService.Log(LogLevel.Info, $"[PowerService] Applying power plan: {planName} ({powerPlanGuid})");
-
-        if (string.IsNullOrEmpty(powerPlanGuid))
-        {
-            throw new ArgumentException("Power plan GUID cannot be null or empty");
-        }
-
-        var previousPlan = await GetActivePowerPlanAsync().ConfigureAwait(false);
-
-        var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-        var existingSystemPlan = systemPlans.FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
-        var planExists = existingSystemPlan != null;
-
-        // Detect corrupt/ghost Winhance plan: GUID matches but name is wrong (e.g., "Unknown Power Plan")
-        if (planExists && IsWinhancePowerPlan(powerPlanGuid) &&
-            !string.Equals(existingSystemPlan!.Name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase))
-        {
-            logService.Log(LogLevel.Warning, $"[PowerService] Found corrupt Winhance plan (name: '{existingSystemPlan.Name}'), deleting and recreating");
-            var corruptGuid = Guid.Parse(powerPlanGuid);
-            powerSchemeOperations.DeleteScheme(corruptGuid);
-            powerSettingsQueryService.InvalidateCache();
-            planExists = false;
-        }
-
-        bool success = false;
-
-        if (!planExists)
-        {
-            var predefinedPlan = PowerPlanDefinitions.BuiltInPowerPlans
-                .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
-
-            if (predefinedPlan != null)
-            {
-                logService.Log(LogLevel.Info, $"[PowerService] Plan '{predefinedPlan.Name}' not found, attempting import");
-                var importResult = await activation.ImportPowerPlanAsync(predefinedPlan).ConfigureAwait(false);
-
-                if (importResult.Success)
-                {
-                    logService.Log(LogLevel.Info, $"[PowerService] Successfully imported '{predefinedPlan.Name}', activating");
-                    await Task.Delay(200).ConfigureAwait(false);
-
-                    var importedSchemeGuid = Guid.Parse(importResult.ImportedGuid);
-                    var activateResult = powerSchemeOperations.SetActiveScheme(importedSchemeGuid);
-                    success = activateResult == PowerProf.ERROR_SUCCESS;
-
-                    if (success)
-                    {
-                        powerSettingsQueryService.InvalidateCache();
-                        activation.InvalidateSettingsCache();
-                        logService.Log(LogLevel.Info, $"[PowerService] Successfully activated imported plan");
-                    }
-                    else
-                    {
-                        logService.Log(LogLevel.Warning, $"[PowerService] First activation failed, retrying...");
-                        await Task.Delay(500).ConfigureAwait(false);
-                        activateResult = powerSchemeOperations.SetActiveScheme(importedSchemeGuid);
-                        success = activateResult == PowerProf.ERROR_SUCCESS;
-
-                        if (success)
-                        {
-                            powerSettingsQueryService.InvalidateCache();
-                            activation.InvalidateSettingsCache();
-                            logService.Log(LogLevel.Info, $"[PowerService] Successfully activated on retry");
-                        }
-                        else
-                        {
-                            logService.Log(LogLevel.Error, $"[PowerService] Failed to activate after import. Error code: {activateResult}");
-                        }
-                    }
-
-                    powerPlanGuid = importResult.ImportedGuid;
-                }
-                else
-                {
-                    logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
-                    return false;
-                }
-            }
-            else
-            {
-                logService.Log(LogLevel.Error, $"[PowerService] Unknown power plan GUID: {powerPlanGuid}");
-                return false;
-            }
-        }
-        else
-        {
-            success = await activation.SetActivePowerPlanAsync(powerPlanGuid).ConfigureAwait(false);
-        }
-
-        if (success)
-        {
-            logService.Log(LogLevel.Info, $"[PowerService] Publishing PowerPlanChangedEvent");
-
-            eventBus.Publish(new PowerPlanChangedEvent
-            {
-                PreviousPlanGuid = previousPlan?.Guid ?? string.Empty,
-                NewPlanGuid = powerPlanGuid,
-                NewPlanName = planName,
-                NewPlanIndex = planIndex
-            });
-
-            if (IsWinhancePowerPlan(powerPlanGuid))
-            {
-                if (configImportState.IsActive && configImportState.ImportSuppliesPowerValues)
-                {
-                    logService.Log(LogLevel.Info,
-                        "[PowerService] Skipping recommended power re-apply: active config import supplies individual power values");
-                }
-                else
-                {
-                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
-                }
-            }
-
-            logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
-        }
-
-        return success;
-    }
-
-    /// <summary>
-    /// Applies a power plan identified by its GUID (used during config import).
-    /// Creates the plan by duplicating Balanced if not found as a predefined or existing plan.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if the plan was activated successfully;
-    /// <see langword="false"/> if the plan could not be imported, created, or activated.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="powerPlanGuid"/> is null or empty (programmer error).
-    /// </exception>
-    private async Task<bool> ApplyPowerPlanByGuidAsync(SettingDefinition setting, string powerPlanGuid, string planName, ISettingApplicationService? settingApplicationService)
-    {
-        var previousPlan = await GetActivePowerPlanAsync().ConfigureAwait(false);
-
-        var (success, activatedGuid) = await activation.EnsureActivatedAsync(powerPlanGuid, planName).ConfigureAwait(false);
-
-        if (success)
-        {
-            var options = await powerPlanComboBoxService.GetPowerPlanOptionsAsync().ConfigureAwait(false);
-            var planIndex = options.FindIndex(o =>
-                string.Equals(o.SystemPlan?.Guid, activatedGuid, StringComparison.OrdinalIgnoreCase));
-
-            eventBus.Publish(new PowerPlanChangedEvent
-            {
-                PreviousPlanGuid = previousPlan?.Guid ?? string.Empty,
-                NewPlanGuid = activatedGuid,
-                NewPlanName = planName,
-                NewPlanIndex = planIndex >= 0 ? planIndex : 0
-            });
-
-            if (IsWinhancePowerPlan(activatedGuid))
-            {
-                if (configImportState.IsActive && configImportState.ImportSuppliesPowerValues)
-                {
-                    logService.Log(LogLevel.Info,
-                        "[PowerService] Skipping recommended power re-apply: active config import supplies individual power values");
-                }
-                else
-                {
-                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
-                }
-            }
-
-            logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");
-        }
-
-        return success;
-    }
-
-    private static bool IsWinhancePowerPlan(string guid) =>
-        IsWinhancePowerPlan(guid, null);
-
-    private static bool IsWinhancePowerPlan(string guid, string? name) =>
-        string.Equals(guid, "57696e68-616e-6365-506f-776572000000", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase);
-
-    private async Task ApplyWinhanceRecommendedSettingsAsync(ISettingApplicationService? settingApplicationService)
-    {
-        try
-        {
-            if (settingApplicationService == null)
-                throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            logService.Log(LogLevel.Info, "[PowerService] Applying recommended settings for Winhance Power Plan");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection).ConfigureAwait(false);
-            logService.Log(LogLevel.Info, "[PowerService] Successfully applied recommended settings for Winhance Power Plan");
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"[PowerService] Failed to apply recommended settings: {ex.Message}");
         }
     }
 

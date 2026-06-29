@@ -80,15 +80,13 @@ public static class SettingServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
     {
-        // Register PowerService (keeps factory — IPowerService forwards to the concrete)
+        // Register PowerService (keeps factory - IPowerService forwards to the concrete). Phase 6.7 Slice 8c: after the
+        // power-plan apply teardown, PowerService only does detection + GetActive/GetAvailable/Delete, so it now takes
+        // just its three live dependencies.
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
-            sp.GetRequiredService<IEventBus>(),
-            sp.GetRequiredService<IPowerPlanComboBoxService>(),
-            sp.GetRequiredService<IPowerSchemeOperations>(),
-            sp.GetRequiredService<IConfigImportState>(),
-            sp.GetRequiredService<IPowerPlanActivationService>()
+            sp.GetRequiredService<IPowerSchemeOperations>()
         ));
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 

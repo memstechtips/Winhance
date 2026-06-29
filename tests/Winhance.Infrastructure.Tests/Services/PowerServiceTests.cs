@@ -3,61 +3,37 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
-using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
+/// <summary>
+/// Phase 6.7 Slice 8c: power-plan APPLY was removed from PowerService (it runs through the catalog engine now), so
+/// PowerService's live surface is detection (DiscoverSpecialSettingsAsync + the corrupt-plan cleanup) plus the
+/// GetActive/GetAvailable/Delete plan queries. TryApplySpecialSettingAsync is a dead stub that always returns false.
+/// </summary>
 public class PowerServiceTests
 {
     private readonly Mock<ILogService> _logService;
     private readonly Mock<IPowerSettingsQueryService> _powerSettingsQueryService;
-    private readonly Mock<ICompatibleSettingsRegistry> _compatibleSettingsRegistry;
-    private readonly Mock<IEventBus> _eventBus;
-    private readonly Mock<IPowerPlanComboBoxService> _powerPlanComboBoxService;
-    private readonly Mock<IProcessExecutor> _processExecutor;
-    private readonly Mock<IFileSystemService> _fileSystemService;
     private readonly Mock<IPowerSchemeOperations> _powerSchemeOperations;
-    private readonly ConfigImportState _configImportState;
     private readonly PowerService _sut;
 
     public PowerServiceTests()
     {
         _logService = new Mock<ILogService>();
         _powerSettingsQueryService = new Mock<IPowerSettingsQueryService>();
-        _compatibleSettingsRegistry = new Mock<ICompatibleSettingsRegistry>();
-        _eventBus = new Mock<IEventBus>();
-        _powerPlanComboBoxService = new Mock<IPowerPlanComboBoxService>();
-        _processExecutor = new Mock<IProcessExecutor>();
-        _fileSystemService = new Mock<IFileSystemService>();
         _powerSchemeOperations = new Mock<IPowerSchemeOperations>();
-        _configImportState = new ConfigImportState();
-
-        // Slice 8b-1: the activation orchestration was extracted into PowerPlanActivationService. Build a REAL
-        // instance from the SAME mocks so the existing PowerService behaviour (and its deep import/activate
-        // verifies on these mocks) is preserved exactly through the delegation.
-        var activation = new PowerPlanActivationService(
-            _logService.Object,
-            _powerSettingsQueryService.Object,
-            _powerSchemeOperations.Object,
-            _processExecutor.Object,
-            _fileSystemService.Object,
-            _compatibleSettingsRegistry.Object);
 
         _sut = new PowerService(
             _logService.Object,
             _powerSettingsQueryService.Object,
-            _eventBus.Object,
-            _powerPlanComboBoxService.Object,
-            _powerSchemeOperations.Object,
-            _configImportState,
-            activation);
+            _powerSchemeOperations.Object);
     }
 
     private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>
@@ -149,45 +125,15 @@ public class PowerServiceTests
     }
 
     [Fact]
-    public async Task TryApplySpecialSettingAsync_NonPowerPlanSetting_ReturnsFalse()
+    public async Task TryApplySpecialSettingAsync_IsADeadStub_AlwaysReturnsFalse()
     {
-        // Arrange
-        var setting = MakeSetting("some-other-setting");
+        // Slice 8c: PowerService is no longer an apply handler (power-plan apply runs through the catalog engine);
+        // the interface method remains only because PowerService is still a discovery handler, and it handles nothing.
+        var setting = MakeSetting(SettingIds.PowerPlanSelection);
 
-        // Act
         var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
 
-        // Assert
         result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task TryApplySpecialSettingAsync_StringGuid_AppliesByGuidWithoutIndexResolution()
-    {
-        // Arrange - the new-model UI stores the scheme GUID directly (no index round-trip).
-        var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-        var setting = MakeSetting(SettingIds.PowerPlanSelection);
-        _powerSettingsQueryService
-            .Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Name = "High performance", Guid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", IsActive = true });
-        _powerSettingsQueryService
-            .Setup(s => s.GetAvailablePowerPlansAsync())
-            .ReturnsAsync(new List<PowerPlan> { new() { Name = "Balanced", Guid = balancedGuid } });
-        _powerSchemeOperations
-            .Setup(s => s.SetActiveScheme(Guid.Parse(balancedGuid)))
-            .Returns(PowerProf.ERROR_SUCCESS);
-        _powerPlanComboBoxService
-            .Setup(s => s.GetPowerPlanOptionsAsync())
-            .ReturnsAsync(new List<PowerPlanComboBoxOption>());
-
-        // Act
-        var result = await _sut.TryApplySpecialSettingAsync(setting, balancedGuid);
-
-        // Assert
-        result.Should().BeTrue();
-        _powerSchemeOperations.Verify(s => s.SetActiveScheme(Guid.Parse(balancedGuid)), Times.Once);
-        // The GUID path must NOT fall through to the legacy index resolver.
-        _powerPlanComboBoxService.Verify(s => s.ResolvePowerPlanByIndexAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -232,129 +178,6 @@ public class PowerServiceTests
 
         // Assert
         result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task TryApplySpecialSettingAsync_CorruptWinhancePlan_DeletesGhostAndAttemptsImport()
-    {
-        // Arrange — ghost plan exists with Winhance GUID but wrong name
-        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
-        var setting = MakeSetting(SettingIds.PowerPlanSelection);
-
-        var ghostPlan = new PowerPlan
-        {
-            Name = "Unknown Power Plan",
-            Guid = winhanceGuid,
-            IsActive = false
-        };
-
-        _powerPlanComboBoxService
-            .Setup(s => s.ResolvePowerPlanByIndexAsync(4))
-            .ReturnsAsync(new PowerPlanResolutionResult
-            {
-                Success = true,
-                Guid = winhanceGuid,
-                DisplayName = "Winhance Power Plan"
-            });
-
-        _powerSettingsQueryService
-            .Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
-
-        _powerSettingsQueryService
-            .Setup(s => s.GetAvailablePowerPlansAsync())
-            .ReturnsAsync(new List<PowerPlan> { ghostPlan });
-
-        _powerSchemeOperations
-            .Setup(s => s.DeleteScheme(It.IsAny<Guid>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        // powercfg /duplicatescheme — return output with the actual GUID assigned
-        var assignedGuid = "159d8424-9c94-4b24-ada1-b427b29e9b2e";
-        _processExecutor
-            .Setup(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), default))
-            .ReturnsAsync(new ProcessExecutionResult
-            {
-                ExitCode = 0,
-                StandardOutput = $"Power Scheme GUID: {assignedGuid}  (Ultimate Performance)"
-            });
-
-        _powerSchemeOperations
-            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        _powerSchemeOperations
-            .Setup(s => s.WriteFriendlyName(It.IsAny<Guid>(), It.IsAny<string>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        _powerSchemeOperations
-            .Setup(s => s.WriteDescription(It.IsAny<Guid>(), It.IsAny<string>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        // Act
-        var result = await _sut.TryApplySpecialSettingAsync(setting, 4);
-
-        // Assert — ghost plan should be deleted
-        _powerSchemeOperations.Verify(
-            s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
-            Times.AtLeastOnce);
-
-        // Should log about the corrupt plan
-        _logService.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("corrupt Winhance plan"))),
-            Times.Once);
-
-        // Name should be set on the actual GUID powercfg assigned, not the requested one
-        _powerSchemeOperations.Verify(
-            s => s.WriteFriendlyName(Guid.Parse(assignedGuid), "Winhance Power Plan"),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task TryApplySpecialSettingAsync_ValidWinhancePlan_DoesNotDelete()
-    {
-        // Arrange — valid Winhance plan exists with correct name
-        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
-        var setting = MakeSetting(SettingIds.PowerPlanSelection);
-
-        var validPlan = new PowerPlan
-        {
-            Name = "Winhance Power Plan",
-            Guid = winhanceGuid,
-            IsActive = false
-        };
-
-        _powerPlanComboBoxService
-            .Setup(s => s.ResolvePowerPlanByIndexAsync(4))
-            .ReturnsAsync(new PowerPlanResolutionResult
-            {
-                Success = true,
-                Guid = winhanceGuid,
-                DisplayName = "Winhance Power Plan"
-            });
-
-        _powerSettingsQueryService
-            .Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
-
-        _powerSettingsQueryService
-            .Setup(s => s.GetAvailablePowerPlansAsync())
-            .ReturnsAsync(new List<PowerPlan> { validPlan });
-
-        _powerSchemeOperations
-            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        // Act
-        var result = await _sut.TryApplySpecialSettingAsync(setting, 4);
-
-        // Assert — should NOT delete the valid plan
-        _powerSchemeOperations.Verify(
-            s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
-            Times.Never);
-
-        // Should succeed by just activating the existing plan
-        result.Should().BeTrue();
     }
 
     [Fact]
@@ -452,86 +275,5 @@ public class PowerServiceTests
         // Should report Winhance as active
         result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Winhance Power Plan");
         result[SettingIds.PowerPlanSelection]["ActivePowerPlanGuid"].Should().Be(winhanceGuid);
-    }
-
-    // Sets up an existing-on-system Winhance plan so a config-import dictionary apply reaches
-    // the IsWinhancePowerPlan branch (which decides whether to re-apply recommended settings).
-    private (SettingDefinition setting, object value, Mock<ISettingApplicationService> apply) ArrangeWinhancePlanImport()
-    {
-        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
-        var setting = MakeSetting(SettingIds.PowerPlanSelection);
-
-        var value = new Dictionary<string, object>
-        {
-            ["Guid"] = winhanceGuid,
-            ["Name"] = "Winhance Power Plan",
-        };
-
-        // Active plan differs from the target so SetActivePowerPlanAsync actually activates it.
-        _powerSettingsQueryService
-            .Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
-
-        // Plan already exists on the system -> simple activation path.
-        _powerSettingsQueryService
-            .Setup(s => s.GetAvailablePowerPlansAsync())
-            .ReturnsAsync(new List<PowerPlan>
-            {
-                new() { Name = "Winhance Power Plan", Guid = winhanceGuid, IsActive = false }
-            });
-
-        _powerSchemeOperations
-            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
-            .Returns(PowerProf.ERROR_SUCCESS);
-
-        _powerPlanComboBoxService
-            .Setup(s => s.GetPowerPlanOptionsAsync())
-            .ReturnsAsync(new List<PowerPlanComboBoxOption>());
-
-        var apply = new Mock<ISettingApplicationService>();
-        apply
-            .Setup(a => a.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
-
-        return (setting, value, apply);
-    }
-
-    [Fact]
-    public async Task TryApplySpecialSettingAsync_ConfigImportSuppliesPowerValues_SkipsRecommendedReapply()
-    {
-        // Arrange — active config import that carries individual power values
-        _configImportState.IsActive = true;
-        _configImportState.ImportSuppliesPowerValues = true;
-        var (setting, value, apply) = ArrangeWinhancePlanImport();
-
-        // Act
-        var result = await _sut.TryApplySpecialSettingAsync(setting, value, settingApplicationService: apply.Object);
-
-        // Assert — the recommended re-apply must NOT fire (import is the source of truth)
-        result.Should().BeTrue();
-        apply.Verify(
-            a => a.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>()),
-            Times.Never);
-        _logService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Skipping recommended power re-apply"))),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task TryApplySpecialSettingAsync_NoActiveImport_AppliesRecommendedSettings()
-    {
-        // Arrange — manual UI / no active import: existing behavior must be preserved
-        _configImportState.IsActive = false;
-        _configImportState.ImportSuppliesPowerValues = false;
-        var (setting, value, apply) = ArrangeWinhancePlanImport();
-
-        // Act
-        var result = await _sut.TryApplySpecialSettingAsync(setting, value, settingApplicationService: apply.Object);
-
-        // Assert — recommended settings ARE re-applied
-        result.Should().BeTrue();
-        apply.Verify(
-            a => a.ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection),
-            Times.Once);
     }
 }
