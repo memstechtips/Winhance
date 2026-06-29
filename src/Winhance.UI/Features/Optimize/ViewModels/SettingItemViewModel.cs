@@ -1045,6 +1045,10 @@ public partial class SettingItemViewModel : BaseViewModel
             : (SettingDefinition?.PowerCfgSettings?.Any(p =>
                 p.PowerModeSupport == PowerModeSupport.Separate) == true);
 
+    private bool IsPowerCfgSetting =>
+        Setting is { } s ? s.Targets.OfType<PowerCfgTarget>().Any()
+            : (SettingDefinition?.PowerCfgSettings?.Any() == true);
+
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
     public string OnBatteryText =>
@@ -1928,143 +1932,84 @@ public partial class SettingItemViewModel : BaseViewModel
 
     /// <summary>
     /// Computes the badge state by comparing the current UI state against
-    /// recommended and default values from the SettingDefinition.
+    /// recommended and default values from the Setting model's state roles and AC/DC accessors.
     /// </summary>
     public void ComputeBadgeState()
     {
-        if (!HasBadgeData || SettingDefinition == null)
+        if (!HasBadgeData || Setting == null)
             return;
 
         bool matchesRecommended = true;
         bool matchesDefault = true;
 
-        // Toggle-level explicit override — parallel to HasAnyRecommendedData/HasAnyDefaultData,
-        // which check these fields first. Required for settings whose state lives outside
-        // RegistrySettings / ScheduledTaskSettings / PowerCfgSettings (e.g. natively-detected
-        // toggles like DetectionType.SystemRestore) — otherwise the loops below find no
-        // evidence and both flags stay at their initial true, lighting badges regardless of
-        // actual state.
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike && Setting is not null)
+        if (isToggleLike)
         {
-            // Paired toggle/task: the new model's single recommended/default state (role-collapsed via the Slice 5a
-            // ToggleRecommendedState/ToggleDefaultState). Supersedes the old per-RegistrySetting AND-of-votes: for the
-            // few multi-reg toggles whose secondary key voted independently this lights the Default badge the old per-reg
-            // logic left permanently dim. Behaviour change on 5 settings (home-folder/gallery/speech-recognition/
-            // tailored-experiences/location-services) - flagged for the dual-OS smoke.
             if (ToggleRecommendedState is bool r && r != IsSelected) matchesRecommended = false;
             if (ToggleDefaultState is bool d && d != IsSelected) matchesDefault = false;
         }
-        else
+        else if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
         {
-            if (isToggleLike)
+            // Paired registry selection verdict: recommended/default come from the SELECTED state's Roles
+            // (States order 1:1 with options; equals the old per-state selection compare).
+            if (SelectedValue is int selIdx && selIdx >= 0 && selIdx < Setting.States.Count)
             {
-                if (SettingDefinition.RecommendedToggleState.HasValue
-                    && IsSelected != SettingDefinition.RecommendedToggleState.Value)
-                    matchesRecommended = false;
-                if (SettingDefinition.DefaultToggleState.HasValue
-                    && IsSelected != SettingDefinition.DefaultToggleState.Value)
-                    matchesDefault = false;
+                matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended))
+                    && Setting.States[selIdx].HasRole(RoleKind.Recommended);
+                matchesDefault = Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault))
+                    && Setting.States[selIdx].HasRole(RoleKind.WindowsDefault);
             }
-
-            // Check RegistrySettings
-            foreach (var reg in SettingDefinition.RegistrySettings)
-            {
-                var (currentMatchesRecommended, currentMatchesDefault) = EvaluateRegistrySetting(reg);
-                if (!currentMatchesRecommended) matchesRecommended = false;
-                if (!currentMatchesDefault) matchesDefault = false;
-            }
-
-            // Check ScheduledTaskSettings
-            foreach (var task in SettingDefinition.ScheduledTaskSettings)
-            {
-                // Toggle ON = task enabled (IsSelected maps directly to task.Enabled via
-                // EnableTaskAsync/DisableTaskAsync in SettingOperationExecutor). RecommendedState
-                // and DefaultState both represent the task-enabled state, so compare directly.
-                if (task.RecommendedState.HasValue)
-                {
-                    if (IsSelected != task.RecommendedState.Value)
-                        matchesRecommended = false;
-                }
-
-                if (task.DefaultState.HasValue)
-                {
-                    if (IsSelected != task.DefaultState.Value)
-                        matchesDefault = false;
-                }
-            }
+            else { matchesRecommended = false; matchesDefault = false; }
         }
 
-        // Check PowerCfgSettings
-        if (SettingDefinition.PowerCfgSettings != null)
+        // PowerCfg verdict - all powercfg settings are Separate mode (proven invariant), so the old
+        // PowerCfgSettings foreach and the non-separate else are dead and dropped. SupportsSeparateACDC
+        // encodes a Separate PowerCfgTarget off the new model.
+        if (SupportsSeparateACDC)
         {
-            foreach (var pcfg in SettingDefinition.PowerCfgSettings)
-            {
-                if (pcfg.PowerModeSupport == PowerModeSupport.Separate)
-                {
-                    // On systems without a battery (desktops), DC values aren't writable by
-                    // PowerCfgApplier and aren't user-visible in the UI. Treat the setting as
-                    // AC-only for badge purposes — comparing DC against recommended/default
-                    // would otherwise produce spurious mismatches after a system-state refresh.
-                    bool considerDc = HasBattery;
+            // On systems without a battery (desktops), DC values aren't writable by
+            // PowerCfgApplier and aren't user-visible in the UI. Treat the setting as
+            // AC-only for badge purposes - comparing DC against recommended/default
+            // would otherwise produce spurious mismatches after a system-state refresh.
+            bool considerDc = HasBattery;
 
-                    if (InputType == InputType.Selection)
-                    {
-                        // AC/DC selection - compare the live AC/DC option index against the recommended/
-                        // default index derived from the new model's context-scoped state roles (6c). For a
-                        // paired setting these indices equal the old PowerCfgIndexMatchesValue verdict (state
-                        // order == option order, 1:1; the role tags the option whose PowerCfgValue matched the
-                        // per-mode value); the accessors fall back to the old PowerCfg value lookup when unpaired.
-                        // On battery-less systems DC isn't writable by PowerCfgApplier and the DC control isn't
-                        // shown - skip DC comparisons or a system-state refresh would visibly flip the badge.
-                        if (AcSelectionRecommendedIndex is int rai && AcValue != rai)
-                            matchesRecommended = false;
-                        if (considerDc && DcSelectionRecommendedIndex is int rdi && DcValue != rdi)
-                            matchesRecommended = false;
-                        if (AcSelectionDefaultIndex is int dai && AcValue != dai)
-                            matchesDefault = false;
-                        if (considerDc && DcSelectionDefaultIndex is int ddi && DcValue != ddi)
-                            matchesDefault = false;
-                    }
-                    else if (InputType == InputType.NumericRange)
-                    {
-                        // AcNumericValue/DcNumericValue are in display units (e.g. Minutes). The accessors
-                        // (6d) return SYSTEM units reconstructed from the new model, so the existing
-                        // ConvertFromSystemUnits at the call site is unchanged and the compare is identical.
-                        if (AcRecommendedValue is int rac && AcNumericValue != ConvertFromSystemUnits(rac))
-                            matchesRecommended = false;
-                        if (considerDc && DcRecommendedValue is int rdc && DcNumericValue != ConvertFromSystemUnits(rdc))
-                            matchesRecommended = false;
-                        if (AcDefaultValue is int dac && AcNumericValue != ConvertFromSystemUnits(dac))
-                            matchesDefault = false;
-                        if (considerDc && DcDefaultValue is int ddc && DcNumericValue != ConvertFromSystemUnits(ddc))
-                            matchesDefault = false;
-                    }
-                }
-                else
-                {
-                    // Non-separate AC/DC: use the AC value as the single value
-                    if (InputType == InputType.NumericRange)
-                    {
-                        if (pcfg.RecommendedValueAC.HasValue && NumericValue != ConvertFromSystemUnits(pcfg.RecommendedValueAC.Value))
-                            matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && NumericValue != ConvertFromSystemUnits(pcfg.DefaultValueAC.Value))
-                            matchesDefault = false;
-                    }
-                    else if (InputType == InputType.Selection)
-                    {
-                        if (pcfg.RecommendedValueAC.HasValue && SelectedValue is int selVal && selVal != pcfg.RecommendedValueAC.Value)
-                            matchesRecommended = false;
-                        if (pcfg.DefaultValueAC.HasValue && SelectedValue is int selVal2 && selVal2 != pcfg.DefaultValueAC.Value)
-                            matchesDefault = false;
-                    }
-                }
+            if (InputType == InputType.Selection)
+            {
+                // AC/DC selection - compare the live AC/DC option index against the recommended/
+                // default index derived from the new model's context-scoped state roles (6c). For a
+                // paired setting these indices equal the old PowerCfgIndexMatchesValue verdict (state
+                // order == option order, 1:1; the role tags the option whose PowerCfgValue matched the
+                // per-mode value); the accessors fall back to the old PowerCfg value lookup when unpaired.
+                // On battery-less systems DC isn't writable by PowerCfgApplier and the DC control isn't
+                // shown - skip DC comparisons or a system-state refresh would visibly flip the badge.
+                if (AcSelectionRecommendedIndex is int rai && AcValue != rai)
+                    matchesRecommended = false;
+                if (considerDc && DcSelectionRecommendedIndex is int rdi && DcValue != rdi)
+                    matchesRecommended = false;
+                if (AcSelectionDefaultIndex is int dai && AcValue != dai)
+                    matchesDefault = false;
+                if (considerDc && DcSelectionDefaultIndex is int ddi && DcValue != ddi)
+                    matchesDefault = false;
+            }
+            else if (InputType == InputType.NumericRange)
+            {
+                // AcNumericValue/DcNumericValue are in display units (e.g. Minutes). The accessors
+                // (6d) return SYSTEM units reconstructed from the new model, so the existing
+                // ConvertFromSystemUnits at the call site is unchanged and the compare is identical.
+                if (AcRecommendedValue is int rac && AcNumericValue != ConvertFromSystemUnits(rac))
+                    matchesRecommended = false;
+                if (considerDc && DcRecommendedValue is int rdc && DcNumericValue != ConvertFromSystemUnits(rdc))
+                    matchesRecommended = false;
+                if (AcDefaultValue is int dac && AcNumericValue != ConvertFromSystemUnits(dac))
+                    matchesDefault = false;
+                if (considerDc && DcDefaultValue is int ddc && DcNumericValue != ConvertFromSystemUnits(ddc))
+                    matchesDefault = false;
             }
         }
 
         var row = new List<BadgePillState>(capacity: 8);
 
-        if (Setting?.Display.IsSubjectivePreference ?? SettingDefinition.IsSubjectivePreference)
+        if (Setting.Display.IsSubjectivePreference)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Preference);
             row.Add(new BadgePillState(SettingBadgeKind.Preference, IsHighlighted: true, label, tooltip));
@@ -2177,10 +2122,8 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (InputType == InputType.Selection)
         {
-            // Paired state count == option count (1:1); fall back to the old combobox count when unpaired.
-            int optionCount = Setting is { States.Count: > 0 } s
-                ? s.States.Count
-                : SettingDefinition?.ComboBox?.Options?.Count ?? 0;
+            // Paired state count == option count (1:1).
+            int optionCount = Setting.States.Count;
             bool hasOptions = optionCount > 0;
             if (acHasData)
             {
@@ -2225,222 +2168,35 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private (bool matchesRecommended, bool matchesDefault) EvaluateRegistrySetting(RegistrySetting reg)
-    {
-        bool matchesRecommended = true;
-        bool matchesDefault = true;
-
-        if (InputType == InputType.Toggle || InputType == InputType.CheckBox)
-        {
-            // Resolution order for Recommended:
-            //   1. SettingDefinition.RecommendedToggleState (explicit toggle-level flag)
-            //   2. Per-RegistrySetting RecommendedValue mapped strictly (no null-sentinel derivation)
-            //   3. null → no badge match
-            // Default still derives from the null sentinel via ToggleTargetState — settings
-            // that ship with the registry key absent (e.g. EnabledValue = [1, null],
-            // DefaultValue = null) produce a Default badge matching the key-absent state.
-            bool? recommendedState = SettingDefinition?.RecommendedToggleState
-                ?? (reg.RecommendedValue == null
-                    ? (bool?)null
-                    : ToggleTargetState(reg.RecommendedValue, reg.EnabledValue, reg.DisabledValue));
-            matchesRecommended = recommendedState == IsSelected;
-
-            // A group-policy reg with no declared DefaultValue usually has no opinion
-            // on the Windows default. However, for toggle settings the null-sentinel
-            // convention (e.g. EnabledValue = [null]) CAN express a meaningful default
-            // state: "key absent = policy not applied = Windows default behaviour".
-            // When ToggleTargetState yields a result, use it; otherwise abstain.
-            if (reg.IsGroupPolicy && reg.DefaultValue == null)
-            {
-                var gpDefaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
-                if (gpDefaultState.HasValue)
-                    matchesDefault = gpDefaultState == IsSelected;
-                // else: no opinion → abstain (matchesDefault stays true)
-            }
-            else if (IsKeyExistenceToggle(reg))
-            {
-                // Key-existence toggles: Windows default is key-present (enabled = true).
-                matchesDefault = IsSelected == true;
-            }
-            else
-            {
-                var defaultState = ToggleTargetState(reg.DefaultValue, reg.EnabledValue, reg.DisabledValue);
-                matchesDefault = defaultState == IsSelected;
-            }
-        }
-        else if (InputType == InputType.Selection)
-        {
-            // Paired registry selection: recommended/default come from the SELECTED state's Roles (== old option flags,
-            // States order 1:1 with options, proven by CatalogAuthoringEquivalenceTests). Scan per-state (not a single
-            // first-match index) to stay correct if a multi-flag selection is ever authored. PowerCfg/PowerPlan
-            // selections (AC/DC-scoped or no static States) stay on the old option-flag path (Slice 6 / dynamic options).
-            if (Setting is { States.Count: > 0 } selSetting
-                && SettingDefinition?.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
-            {
-                if (SelectedValue is int selIdx && selIdx >= 0 && selIdx < selSetting.States.Count)
-                {
-                    matchesRecommended = selSetting.States.Any(st => st.HasRole(RoleKind.Recommended))
-                        && selSetting.States[selIdx].HasRole(RoleKind.Recommended);
-                    matchesDefault = selSetting.States.Any(st => st.HasRole(RoleKind.WindowsDefault))
-                        && selSetting.States[selIdx].HasRole(RoleKind.WindowsDefault);
-                }
-                else { matchesRecommended = false; matchesDefault = false; }
-            }
-            else
-            {
-                // Recommended/Default live on ComboBoxOption flags. Multiple options may carry
-                // either flag (e.g. measurement-system marks both Metric and Imperial IsDefault
-                // because the factory default depends on locale). We light the pill whenever
-                // the currently-selected option has the flag — no special-casing for subjective
-                // settings; the Preference pill is added separately at row-build time.
-                var options = SettingDefinition?.ComboBox?.Options;
-                if (options != null && SelectedValue is int currentIndex
-                    && currentIndex >= 0 && currentIndex < options.Count)
-                {
-                    matchesRecommended = options.Any(o => o.IsRecommended) && options[currentIndex].IsRecommended;
-                    matchesDefault    = options.Any(o => o.IsDefault)     && options[currentIndex].IsDefault;
-                }
-                else
-                {
-                    // Unmapped value or missing options — no match. Custom pill handles the
-                    // "unmapped" signal at row-build level.
-                    matchesRecommended = false;
-                    matchesDefault = false;
-                }
-            }
-        }
-        else if (InputType == InputType.NumericRange)
-        {
-            if (reg.RecommendedValue != null)
-                matchesRecommended = ValuesEqual(NumericValue, reg.RecommendedValue);
-            else
-                matchesRecommended = false;
-
-            if (reg.DefaultValue != null)
-                matchesDefault = ValuesEqual(NumericValue, reg.DefaultValue);
-            else
-                matchesDefault = false;
-        }
-
-        return (matchesRecommended, matchesDefault);
-    }
-
-    private static bool IsValueInArray(object value, object?[]? array)
-    {
-        if (array == null) return false;
-        return array.Any(v => ValuesEqual(value, v));
-    }
-
-    private static bool ValuesEqual(object? a, object? b)
-    {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        if (Equals(a, b)) return true;
-
-        // Handle numeric type mismatches (int vs long, etc.)
-        try
-        {
-            var aVal = Convert.ToInt64(a);
-            var bVal = Convert.ToInt64(b);
-            return aVal == bVal;
-        }
-        catch
-        {
-            return string.Equals(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
     private bool HasAnyRecommendedData()
     {
-        if (SettingDefinition is null) return false;
+        if (Setting == null) return false;
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike && Setting is not null)
-            return ToggleRecommendedState.HasValue;   // paired toggle: role-collapsed data
-        // (unpaired toggle / non-toggle keep the old probes below)
-        // Toggle-level explicit flag wins.
-        if (isToggleLike && SettingDefinition.RecommendedToggleState.HasValue)
-            return true;
-        // Recommended is strict otherwise — explicit non-null per-RegistrySetting value.
-        if (SettingDefinition.RegistrySettings.Any(r => r.RecommendedValue != null))
-            return true;
-        if (InputType == InputType.Selection)
-        {
-            // Paired registry selection: recommended-data lives on the new model's state roles.
-            if (Setting is { States.Count: > 0 } s2 && SettingDefinition.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
-            { if (s2.States.Any(st => st.HasRole(RoleKind.Recommended))) return true; }
-            else if (SettingDefinition.ComboBox?.Options?.Any(o => o.IsRecommended) == true) return true;
-        }
-        if (SettingDefinition.ScheduledTaskSettings.Any(t => t.RecommendedState.HasValue))
-            return true;
-        // 6c/6d: paired powercfg recommended-data lives on the new model (numeric ContextValues /
-        // selection state roles); the accessors fall back to the old PowerCfg reads when unpaired.
-        if (AcRecommendedValue.HasValue || DcRecommendedValue.HasValue
-            || AcSelectionRecommendedIndex.HasValue || DcSelectionRecommendedIndex.HasValue)
-            return true;
-        return false;
+        if (isToggleLike) return ToggleRecommendedState.HasValue;
+        if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
+            return Setting.States.Any(st => st.HasRole(RoleKind.Recommended));
+        return AcRecommendedValue.HasValue || AcSelectionRecommendedIndex.HasValue
+            || DcRecommendedValue.HasValue || DcSelectionRecommendedIndex.HasValue;
     }
-
-    /// <summary>
-    /// Detects registry key-existence toggles: ValueName is null, no Enabled/Disabled
-    /// value arrays, and ValueType is None.  These settings toggle by creating or
-    /// deleting the registry key itself.  The Windows default is key-present (true).
-    /// </summary>
-    private static bool IsKeyExistenceToggle(RegistrySetting r) =>
-        r.ValueName == null
-        && r.EnabledValue == null
-        && r.DisabledValue == null
-        && r.ValueType == Microsoft.Win32.RegistryValueKind.None;
 
     private bool HasAnyDefaultData()
     {
-        if (SettingDefinition is null) return false;
+        if (Setting == null) return false;
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike && Setting is not null)
-            return ToggleDefaultState.HasValue;   // paired toggle: role-collapsed data
-        // (unpaired toggle / non-toggle keep the old probes below)
-        // Toggle-level explicit flag wins — parallel to HasAnyRecommendedData's first check.
-        if (isToggleLike && SettingDefinition.DefaultToggleState.HasValue)
-            return true;
-        // Group-policy regs with null DefaultValue are usually write-only enforcers,
-        // but for toggle settings the null-sentinel convention (e.g. EnabledValue = [null])
-        // CAN express a meaningful default ("key absent = Windows default"). Include
-        // such entries when ToggleTargetState produces a result.
-        if (SettingDefinition.RegistrySettings.Any(r =>
-                (!(r.IsGroupPolicy && r.DefaultValue == null)
-                 || (isToggleLike && ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue))
-                && (isToggleLike
-                    ? IsKeyExistenceToggle(r)
-                      || ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
-                    : r.DefaultValue != null)))
-            return true;
-        if (InputType == InputType.Selection)
-        {
-            // Paired registry selection: default-data lives on the new model's state roles.
-            if (Setting is { States.Count: > 0 } s2 && SettingDefinition.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
-            { if (s2.States.Any(st => st.HasRole(RoleKind.WindowsDefault))) return true; }
-            else if (SettingDefinition.ComboBox?.Options?.Any(o => o.IsDefault) == true) return true;
-        }
-        if (SettingDefinition.ScheduledTaskSettings.Any(t => t.DefaultState.HasValue))
-            return true;
-        // 6c/6d: paired powercfg default-data lives on the new model; accessors fall back when unpaired.
-        if (AcDefaultValue.HasValue || DcDefaultValue.HasValue
-            || AcSelectionDefaultIndex.HasValue || DcSelectionDefaultIndex.HasValue)
-            return true;
-        return false;
+        if (isToggleLike) return ToggleDefaultState.HasValue;
+        if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
+            return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault));
+        return AcDefaultValue.HasValue || AcSelectionDefaultIndex.HasValue
+            || DcDefaultValue.HasValue || DcSelectionDefaultIndex.HasValue;
     }
 
     private bool IsKnownSelectionValue()
     {
         if (InputType != InputType.Selection) return true;
-        // Paired non-PowerCfg selection: the new model's States are the option set (States order 1:1 with options).
-        if (Setting is { States.Count: > 0 } s3 && SettingDefinition?.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
-            return SelectedValue is int idxK && idxK >= 0 && idxK < s3.States.Count;
-        // PowerCfg AC/DC selections reach here (the paired non-PowerCfg branch returned above). Validate
-        // against the new model's state count (== option count, 1:1); fall back to the old combobox count
-        // when unpaired. Separate AC/DC settings drive the UI via AcValue/DcValue rather than SelectedValue.
-        int optionCount = Setting is { States.Count: > 0 } s4
-            ? s4.States.Count
-            : SettingDefinition?.ComboBox?.Options?.Count ?? 0;
+        if (Setting == null) return true;
+        if (!IsPowerCfgSetting && !IsPowerPlanSetting)
+            return SelectedValue is int idxK && idxK >= 0 && idxK < Setting.States.Count;
+        int optionCount = Setting.States.Count;
         if (optionCount == 0) return true;
         if (SupportsSeparateACDC)
             return AcValue >= 0 && AcValue < optionCount
@@ -2479,80 +2235,30 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Initializes HasBadgeData based on whether the definition has comparable
-    /// recommended/default data in RegistrySettings, ScheduledTaskSettings, or PowerCfgSettings.
+    /// Initializes HasBadgeData from the new Setting model: whether the paired setting has comparable
+    /// recommended/default data (toggle/task state roles, selection state roles, or per-context powercfg values).
     /// </summary>
     private void InitializeHasBadgeData()
     {
-        if (SettingDefinition == null)
+        if (Setting == null)
         {
             HasBadgeData = false;
             return;
         }
 
-        // One-shot Action settings have no recommended/default/custom STATE — even when their
-        // RegistrySettings carry a RecommendedValue (e.g. Win11 Clean Start Menu's ConfigureStartPins),
-        // a lit-up state badge is meaningless for a button you just click. So: no state badges for
-        // actions, matching Win10 Clean Start Menu and Clean Taskbar.
-        if (SettingDefinition.InputType == InputType.Action)
+        if (InputType == InputType.Action)
         {
             HasBadgeData = false;
             return;
         }
 
-        // Check RegistrySettings for RecommendedValue or DefaultValue.
-        // For Toggle/CheckBox the Default check uses the key-absent convention via
-        // ToggleTargetState — a Default badge is "data" when EnabledValue or DisabledValue
-        // contains the null sentinel even if DefaultValue itself is null. Recommended is
-        // strict per-RegistrySetting; the toggle-level RecommendedToggleState flag is
-        // checked separately below.
-        bool isToggleLike = SettingDefinition.InputType == InputType.Toggle
-            || SettingDefinition.InputType == InputType.CheckBox;
-        bool hasRegistryData;
-        if (isToggleLike && Setting is not null)
-        {
-            // Paired toggle: badge-data is fully expressed by the role-collapsed accessors.
-            hasRegistryData = ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue;
-        }
-        else
-        {
-            hasRegistryData = SettingDefinition.RegistrySettings.Any(r =>
-                r.RecommendedValue != null
-                || (isToggleLike
-                    ? ToggleTargetState(r.DefaultValue, r.EnabledValue, r.DisabledValue).HasValue
-                    : r.DefaultValue != null));
-
-            // Toggle-level explicit recommendation also counts as badge-worthy data.
-            if (isToggleLike && SettingDefinition.RecommendedToggleState.HasValue)
-                hasRegistryData = true;
-        }
-
-        // Selection settings carry Recommended/Default on ComboBoxMetadata.Options[i] rather than on
-        // RegistrySetting, so consider ComboBox options as badge-worthy data too.
-        // Paired registry selection reads the new model's state roles instead.
-        bool hasSelectionOptionData;
-        if (SettingDefinition.InputType == InputType.Selection
-            && Setting is { States.Count: > 0 } selSetting
-            && SettingDefinition.PowerCfgSettings?.Any() != true && !IsPowerPlanSetting)
-        {
-            hasSelectionOptionData =
-                selSetting.States.Any(st => st.HasRole(RoleKind.Recommended) || st.HasRole(RoleKind.WindowsDefault));
-        }
-        else
-        {
-            hasSelectionOptionData = SettingDefinition.InputType == InputType.Selection
-                && SettingDefinition.ComboBox?.Options?.Any(o => o.IsRecommended || o.IsDefault) == true;
-        }
-
-        // Check ScheduledTaskSettings for RecommendedState or DefaultState
-        bool hasTaskData = SettingDefinition.ScheduledTaskSettings.Any(t =>
-            t.RecommendedState.HasValue || t.DefaultState.HasValue);
-
-        // Check PowerCfgSettings for RecommendedValueAC or DefaultValueAC
-        bool hasPowerCfgData = SettingDefinition.PowerCfgSettings?.Any(p =>
-            p.RecommendedValueAC.HasValue || p.DefaultValueAC.HasValue) == true;
-
-        HasBadgeData = hasRegistryData || hasSelectionOptionData || hasTaskData || hasPowerCfgData;
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        bool hasToggleData = isToggleLike && (ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue);
+        bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting
+            && Setting.States.Any(st => st.HasRole(RoleKind.Recommended) || st.HasRole(RoleKind.WindowsDefault));
+        bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
+            || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue;
+        HasBadgeData = hasToggleData || hasSelectionData || hasPowerCfgData;
     }
 
     #endregion
