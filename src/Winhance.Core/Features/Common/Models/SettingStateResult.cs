@@ -23,6 +23,11 @@ public sealed record SettingStateResult
     public IReadOnlyList<DynamicOption>? DynamicOptions { get; init; }
     public string? DynamicSelection { get; init; }
 
+    /// <summary>The active dynamic selection's RAW display NAME (the power plan's OS name) - the new-engine source for
+    /// what the old discovery stored as RawValues["ActivePowerPlan"]. Threaded by the detection overlay; null for a
+    /// non-dynamic setting. Transitional - retired with this type.</summary>
+    public string? DynamicSelectionName { get; init; }
+
     /// <summary>The new engine's live per-registry-target readings, keyed by <c>ValueName ?? "KeyExists"</c> exactly
     /// as the legacy detection RawValues were, so the config-export custom-state path reads the unrecognized
     /// "-1"/Custom registry values from the new engine instead of RawValues. Threaded by the detection overlay from

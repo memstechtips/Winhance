@@ -23,6 +23,11 @@ public interface IDynamicOptionSource
     /// <summary>The currently-selected option's <see cref="DynamicOption.Value"/> (e.g. the active scheme GUID), or
     /// null when nothing is selected / readable.</summary>
     string? CurrentSelection(IDetectionContext context);
+
+    /// <summary>The currently-selected option's RAW display NAME (e.g. the active power plan's OS name), or null. The
+    /// option <see cref="DynamicOption.Label"/> is a localization key for a predefined plan, so the raw name is read
+    /// separately here. Default null for sources with no separate raw name.</summary>
+    string? CurrentSelectionName(IDetectionContext context) => null;
 }
 
 /// <summary>Runtime-sources the machine's installed power plans as the power-plan selection's options; the active
@@ -33,4 +38,6 @@ public sealed class PowerPlanOptionSource : IDynamicOptionSource
     public IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context) => context.InstalledPowerPlans();
 
     public string? CurrentSelection(IDetectionContext context) => context.ActivePowerPlanGuid();
+
+    public string? CurrentSelectionName(IDetectionContext context) => context.ActivePowerPlanName();
 }

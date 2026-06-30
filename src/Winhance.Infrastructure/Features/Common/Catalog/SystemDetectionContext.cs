@@ -26,6 +26,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
     private bool _powerPrefetched;
     private string? _activePlanGuid;
+    private string? _activePlanName;
     private bool _planPrefetched;
     private IReadOnlyList<DynamicOption> _installedPlans = System.Array.Empty<DynamicOption>();
 
@@ -118,6 +119,14 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
         return _activePlanGuid;
     }
 
+    public string? ActivePowerPlanName()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "[SystemDetectionContext] Active power plan name read before a pre-fetch; returning null.");
+        return _activePlanName;
+    }
+
     public IReadOnlyList<DynamicOption> InstalledPowerPlans()
     {
         if (!_planPrefetched)
@@ -167,6 +176,9 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             // Faithful port of the old PowerPlanComboBoxService dropdown list (predefined plans incl. not-installed,
             // localized labels, custom plans, sorted) in the new GUID-valued shape.
             _installedPlans = PowerPlanOptions.Build(plans);
+            // The active plan's RAW OS name - same source + selection as the old discovery's RawValues["ActivePowerPlan"]
+            // (SystemSettingsDiscoveryService: availablePlans.FirstOrDefault(IsActive).Name).
+            _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
 
             _planPrefetched = true;
         }

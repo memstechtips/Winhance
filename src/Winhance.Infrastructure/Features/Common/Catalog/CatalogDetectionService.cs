@@ -42,11 +42,13 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
                     // StateLabel carries that Value so the UI resolves the chosen option by value (no index round-trip).
                     var options = optionSource.EnumerateOptions(context);
                     string? current = optionSource.CurrentSelection(context);
+                    string? currentName = optionSource.CurrentSelectionName(context);
                     results[setting.Id] = new CatalogDetectionResult
                     {
                         StateLabel = current,
                         Detected = current is not null,
                         Options = options,
+                        DynamicSelectionName = currentName,
                     };
                     continue;
                 }

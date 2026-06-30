@@ -27,6 +27,11 @@ public sealed record CatalogDetectionResult
     /// no index round-trip.</summary>
     public IReadOnlyList<DynamicOption>? Options { get; init; }
 
+    /// <summary>For a dynamic-option setting (the power plan): the current selection's RAW display NAME (the active
+    /// plan's OS name), read from the same source as the old discovery's RawValues["ActivePowerPlan"]. Null for a
+    /// static-state setting or when no selection. The UI shows it as-is; <see cref="StateLabel"/> carries the GUID.</summary>
+    public string? DynamicSelectionName { get; init; }
+
     /// <summary>The live per-registry-target readings for a setting's <see cref="RegTarget"/>s, keyed by
     /// <c>ValueName ?? "KeyExists"</c> exactly as the old discovery's <c>RawValues</c> were - the same grouping,
     /// HKLM-first first-non-null mirror fold, REG_BINARY bit/byte reduction, and key-existence-as-bool. This is the

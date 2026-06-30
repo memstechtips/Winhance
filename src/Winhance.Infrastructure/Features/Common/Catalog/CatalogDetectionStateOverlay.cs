@@ -43,7 +43,12 @@ public static class CatalogDetectionStateOverlay
         // dynamic-option setting (power plan) so the UI factory can bind the dropdown to the new model. Additive -
         // no consumer until 7b-ui-3, and the old discovery's RawValues/CurrentValue stay intact for the live path.
         if (newResult.Options is { } dynOptions)
-            old = old with { DynamicOptions = dynOptions, DynamicSelection = newResult.StateLabel };
+            old = old with
+            {
+                DynamicOptions = dynOptions,
+                DynamicSelection = newResult.StateLabel,
+                DynamicSelectionName = newResult.DynamicSelectionName,
+            };
 
         // D4: thread the new engine's live per-registry-target readings so the config-export custom-state path
         // (the "-1"/Custom registry values) reads them off the new engine instead of the legacy detection RawValues.

@@ -39,6 +39,12 @@ public interface IDetectionContext
     /// by the power-plan detector; unrelated to the per-setting powercfg value reads.</summary>
     string? ActivePowerPlanGuid();
 
+    /// <summary>The active power scheme's RAW OS name (e.g. "Balanced", or a custom plan's actual name) - the same
+    /// value the old discovery stored as RawValues["ActivePowerPlan"], read from the same source
+    /// (GetAvailablePowerPlansAsync's active plan). Null when there is no active scheme. Default null: only the live
+    /// context reads it; the throwaway migration contexts and test fakes have no plan.</summary>
+    string? ActivePowerPlanName() => null;
+
     /// <summary>The machine's installed power plans as dynamic options (Label = plan name, Value = scheme GUID),
     /// pre-fetched per batch like the active plan. Consumed by <see cref="PowerPlanOptionSource"/>. Default empty:
     /// only the live context enumerates them; the throwaway migration contexts and test fakes have no plans to read.</summary>
