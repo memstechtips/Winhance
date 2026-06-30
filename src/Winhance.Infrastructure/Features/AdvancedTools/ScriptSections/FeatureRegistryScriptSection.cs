@@ -33,7 +33,8 @@ internal class FeatureRegistryScriptSection
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings,
         string groupName,
         bool isHkcu,
-        string indent)
+        string indent,
+        WinBuild? build = null)
     {
         foreach (var featureKvp in featureGroup.Features)
         {
@@ -129,10 +130,17 @@ internal class FeatureRegistryScriptSection
                     // pick the per-OS target). The new method emits ONLY registry targets, so the RegContents tail is
                     // emitted explicitly here via AppendRegContentCommandsFromCatalog (F2c, off the active state's
                     // RegContentEffects) - a no-op for toggles without RegContent effects, so no guard is needed.
+                    // Phase 6.8 tail: build-gated (OS-merged "This PC folder") toggles now route through the new
+                    // catalog emitter too, with the live build threaded so AppendToggleCommandsFromCatalog picks the
+                    // OS-appropriate target (Win11 HiddenByDefault vs Win10 KeyExists). They go to the new path ONLY
+                    // when a build is available; without one (a unit test feeding no build) they fall back to the old
+                    // OS-filtered-def emitter, preserving prior behaviour. Non-build-gated paired toggles always use
+                    // the new path (no AppliesTo to filter). Proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests.
                     var catalogToggle = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
-                    if (catalogToggle != null && !catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0))
+                    bool isBuildGated = catalogToggle != null && catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0);
+                    if (catalogToggle != null && (!isBuildGated || build is not null))
                     {
-                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, settingDef, configItem, isHkcu, indent);
+                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, settingDef, configItem, isHkcu, indent, build);
                         _registryEmitter.AppendRegContentCommandsFromCatalog(sb, catalogToggle, configItem.IsSelected, isHkcu, indent);
                     }
                     else

@@ -44,7 +44,8 @@ public class ScriptBuilderTests
             _powerSettingsQuery.Object,
             _hardwareDetection.Object,
             _logService.Object,
-            _powerShellRunner.Object);
+            _powerShellRunner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     [Fact]

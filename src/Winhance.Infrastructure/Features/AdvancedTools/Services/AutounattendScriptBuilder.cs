@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,6 +13,7 @@ public class AutounattendScriptBuilder
 {
     private readonly ILogService _logService;
     private readonly IPowerShellRunner _powerShellRunner;
+    private readonly IWindowsVersionService _windowsVersionService;
     private readonly FeatureRegistryScriptSection _featureRegistrySection;
     private readonly PowerSettingsScriptSection _powerSettingsSection;
     private readonly AppRemovalScriptSection _appRemovalSection;
@@ -20,10 +22,12 @@ public class AutounattendScriptBuilder
         IPowerSettingsQueryService powerSettingsQueryService,
         IHardwareDetectionService hardwareDetectionService,
         ILogService logService,
-        IPowerShellRunner powerShellRunner)
+        IPowerShellRunner powerShellRunner,
+        IWindowsVersionService windowsVersionService)
     {
         _logService = logService;
         _powerShellRunner = powerShellRunner;
+        _windowsVersionService = windowsVersionService;
 
         var registryEmitter = new RegistryCommandEmitter(logService);
         _featureRegistrySection = new FeatureRegistryScriptSection(registryEmitter, logService);
@@ -36,6 +40,13 @@ public class AutounattendScriptBuilder
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {
         WarnOnUnreachableNativePowerApiSettings(config, allSettings);
+
+        // The live build this autounattend is generated on. allSettings arrives OS-filtered (CompatibleSettingsRegistry
+        // leaves one variant of each OS-merged setting per machine), so threading the same build lets the new catalog
+        // emitter pick the OS-appropriate per-target mechanism for the build-gated "This PC folder" toggles.
+        var currentBuild = new WinBuild(
+            _windowsVersionService.GetWindowsBuildNumber(),
+            _windowsVersionService.GetWindowsBuildRevision());
 
         var sb = new StringBuilder();
 
@@ -64,13 +75,13 @@ public class AutounattendScriptBuilder
         // 2c. HKLM registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2d. HKLM registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2e. Clean Start Menu Layout (always included)
@@ -93,13 +104,13 @@ public class AutounattendScriptBuilder
         // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3c. User-specific custom script placeholder

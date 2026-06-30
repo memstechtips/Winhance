@@ -47,7 +47,8 @@ public class AutounattendScriptBuilderRoutingTests
             powerQuery.Object,
             new Mock<IHardwareDetectionService>().Object,
             log.Object,
-            runner.Object);
+            runner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     private static UnifiedConfigurationFile ConfigWithOptimize(string featureId, params ConfigurationItem[] items)

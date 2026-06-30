@@ -38,7 +38,8 @@ public class AutounattendScriptBuilderTests
             _powerSettingsQueryService.Object,
             _hardwareDetectionService.Object,
             _logService.Object,
-            _powerShellRunner.Object);
+            _powerShellRunner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     // ---------------------------------------------------------------

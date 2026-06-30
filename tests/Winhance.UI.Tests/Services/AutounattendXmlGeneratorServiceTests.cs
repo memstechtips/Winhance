@@ -26,7 +26,8 @@ public class AutounattendXmlGeneratorServiceTests
             _mockPowerSettingsQueryService.Object,
             _mockHardwareDetectionService.Object,
             _mockLogService.Object,
-            _mockPowerShellRunner.Object);
+            _mockPowerShellRunner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     private AutounattendXmlGeneratorService CreateService(
