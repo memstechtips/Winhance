@@ -115,6 +115,10 @@ internal class FeatureRegistryScriptSection
                 if (settingDef.PowerCfgSettings?.Any() == true && settingDef.RegistrySettings?.Any() != true)
                     continue;
 
+                // Set when a paired Action setting was emitted (registry + scripts) through the new catalog Effects
+                // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
+                bool actionHandledByCatalog = false;
+
                 // Apply the setting, but only output registry entries that match the current hive
                 if (configItem.InputType == InputType.Toggle)
                 {
@@ -145,11 +149,20 @@ internal class FeatureRegistryScriptSection
                     // Action settings are one-shot "apply" — only emit when the user actually
                     // selected them. Unlike Toggle, an unselected Action has no "disabled"
                     // semantic; we must not emit a DisabledValue write (which would delete
-                    // the key the action would have set). Skip the registry emit when
-                    // IsSelected is false/null and let the PS-script block below also see
-                    // useEnabled=false (it already does the right thing by selecting the
-                    // null DisabledScript and emitting nothing).
-                    if (configItem.IsSelected == true)
+                    // the key the action would have set).
+                    // Phase 6.8 tail: route paired Action settings (registry writes AND scripts) through the new
+                    // catalog Effects emitter. AppendActionCommandsFromCatalog guards IsSelected internally and emits
+                    // both passes byte-equivalently to the old AppendToggleCommandsFiltered + AppendPowerShellScripts
+                    // (ScriptGenActionEquivalenceTests). The shared script block below is skipped for this item so its
+                    // scripts are not double-emitted. All three Action settings are catalog-paired; an unpaired Action
+                    // falls back to the old registry emit (when selected) + the shared script block.
+                    var catalogAction = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                    if (catalogAction != null)
+                    {
+                        AppendActionCommandsFromCatalog(sb, catalogAction, configItem, isHkcu, indent);
+                        actionHandledByCatalog = true;
+                    }
+                    else if (configItem.IsSelected == true)
                     {
                         _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                     }
@@ -163,12 +176,16 @@ internal class FeatureRegistryScriptSection
                 // NO SelectedIndex (a "Custom" value matching no preset option) has no catalog state to resolve - the old
                 // emitter's hasCustomState path emits the un-baked EnabledScript, which the new state-mirror cannot
                 // reproduce - so route that case to the old emitter too (byte-faithful via AppendPowerShellScripts).
-                var catalogForScripts = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
-                bool selectionWithoutIndex = configItem.InputType == InputType.Selection && !configItem.SelectedIndex.HasValue;
-                if (catalogForScripts != null && catalogForScripts.States.Count > 0 && !selectionWithoutIndex)
-                    AppendPowerShellScriptsFromCatalog(sb, catalogForScripts, settingDef, configItem, isHkcu, indent);
-                else
-                    AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
+                // A paired Action already emitted its scripts via AppendActionCommandsFromCatalog above; don't re-emit.
+                if (!actionHandledByCatalog)
+                {
+                    var catalogForScripts = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                    bool selectionWithoutIndex = configItem.InputType == InputType.Selection && !configItem.SelectedIndex.HasValue;
+                    if (catalogForScripts != null && catalogForScripts.States.Count > 0 && !selectionWithoutIndex)
+                        AppendPowerShellScriptsFromCatalog(sb, catalogForScripts, settingDef, configItem, isHkcu, indent);
+                    else
+                        AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
+                }
 
             }
 
