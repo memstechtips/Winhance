@@ -20,7 +20,6 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IDetectionShadowRunner _shadowRunner;
     private readonly ICatalogDetectionService _catalogDetectionService;
     private readonly ISettingLocalizationService _settingLocalizationService;
-    private readonly IComboBoxSetupService _comboBoxSetupService;
     private readonly IApplicationModeService _applicationModeService;
 
     public SettingsLoadingService(
@@ -33,7 +32,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         IDetectionShadowRunner shadowRunner,
         ICatalogDetectionService catalogDetectionService,
         ISettingLocalizationService settingLocalizationService,
-        IComboBoxSetupService comboBoxSetupService,
         IApplicationModeService applicationModeService)
     {
         _discoveryService = discoveryService;
@@ -45,7 +43,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         _shadowRunner = shadowRunner;
         _catalogDetectionService = catalogDetectionService;
         _settingLocalizationService = settingLocalizationService;
-        _comboBoxSetupService = comboBoxSetupService;
         _applicationModeService = applicationModeService;
     }
 
@@ -103,12 +100,14 @@ public class SettingsLoadingService : ISettingsLoadingService
                 var optionWarnings = setting.ComboBox?.Options?.Select(o => o.Warning).ToList();
                 var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
-                // Builder mode keeps the old index-valued power-plan dropdown (config export's index-based BuilderEdit,
-                // 6.8 scope). Precompute its options here in the bridge - we still hold the SettingDefinition the old
-                // IComboBoxSetupService needs - and hand the result to the factory.
+                // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
+                // G1b: build it here from the new engine's DynamicOptions (the same runtime options the live GUID-valued
+                // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads -
+                // retiring the old IComboBoxSetupService precompute. The factory's builder block localizes the
+                // PowerPlan_ DisplayText, so the bridge passes the raw loc key.
                 ComboBoxSetupResult? builderComboBoxOptions =
                     (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.Recommendation?.LoadDynamicOptions == true)
-                        ? await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue)
+                        ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 
                 var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, optionWarnings, crossGroupInfoMessage, builderComboBoxOptions, setting.VersionCompatibilityMessage);
@@ -174,5 +173,60 @@ public class SettingsLoadingService : ISettingsLoadingService
         Dictionary<string, SettingStateResult> batchStates)
     {
         await CatalogDetectionOverlayHelper.OverlayAsync(definitions, batchStates, _catalogDetectionService, _logService);
+    }
+
+    /// <summary>
+    /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from the
+    /// new engine's runtime options, retiring the old IComboBoxSetupService precompute. Faithful to
+    /// PowerPlanComboBoxService.SetupPowerPlanComboBoxAsync: PowerPlanOptions.Build (which produces these DynamicOptions)
+    /// reproduces the old GetPowerPlanOptionsAsync option set + OrderBy(label) sort, so each option's list index equals
+    /// the old option Index. The rich PowerPlanComboBoxOption Tag mirrors
+    /// SettingItemViewModel.TryApplyDynamicPowerPlanOptions (the live dropdown the bespoke PowerPlanComboBox control
+    /// already reads): ExistsOnSystem/IsActive drive the control visuals, SystemPlan.Guid is the delete target, and the
+    /// option's DisplayName (the raw PowerPlan_ loc key) is re-localized by the delete dialog; SystemPlan.Name is not
+    /// consumed. DisplayText stays the raw loc key - the factory's builder block localizes it. Returns an empty (but
+    /// non-null) result when there are no runtime options, matching the old service's empty-result contract.
+    /// </summary>
+    private static ComboBoxSetupResult BuildBuilderPowerPlanOptions(SettingStateResult state)
+    {
+        var result = new ComboBoxSetupResult { Success = true };
+        if (state.DynamicOptions is not { } dynamicOptions)
+            return result;
+
+        int activeIndex = 0;
+        bool foundActive = false;
+        for (int i = 0; i < dynamicOptions.Count; i++)
+        {
+            var opt = dynamicOptions[i];
+            var isActive = state.DynamicSelection != null
+                && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
+            // FIRST match wins, matching the old GetCurrentPowerPlanIndexAsync's `return i` (each option's Tag still
+            // carries its own per-option isActive below).
+            if (isActive && !foundActive)
+            {
+                activeIndex = i;
+                foundActive = true;
+            }
+
+            var tag = new PowerPlanComboBoxOption
+            {
+                DisplayName = opt.Label,
+                ExistsOnSystem = opt.ExistsOnSystem,
+                IsActive = isActive,
+                SystemPlan = opt.ExistsOnSystem
+                    ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = opt.Label, IsActive = isActive }
+                    : null,
+            };
+
+            // Value = the option index (BuilderEdit serializes the int index); DisplayText = the raw PowerPlan_ loc key.
+            result.Options.Add(new ComboBoxDisplayOption(
+                opt.Label,
+                i,
+                opt.ExistsOnSystem ? "Installed on system" : "Not installed",
+                tag));
+        }
+
+        result.SelectedValue = activeIndex;
+        return result;
     }
 }

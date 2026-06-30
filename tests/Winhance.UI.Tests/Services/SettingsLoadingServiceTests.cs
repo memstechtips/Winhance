@@ -25,7 +25,6 @@ public class SettingsLoadingServiceTests
     private readonly Mock<IDetectionShadowRunner> _mockShadowRunner = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
     private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
-    private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
     private readonly SettingsLoadingService _sut;
@@ -46,7 +45,6 @@ public class SettingsLoadingServiceTests
             _mockShadowRunner.Object,
             _mockCatalogDetectionService.Object,
             _mockSettingLocalizationService.Object,
-            _mockComboBoxSetupService.Object,
             _mockApplicationModeService.Object);
     }
 
