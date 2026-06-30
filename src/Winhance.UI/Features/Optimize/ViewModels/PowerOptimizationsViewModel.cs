@@ -13,7 +13,6 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
 {
     private readonly IDialogService _dialogService;
-    private readonly IPowerPlanComboBoxService _powerPlanComboBoxService;
     private readonly IPowerService _powerService;
     private ISubscriptionToken? _powerPlanChangedSubscription;
 
@@ -30,13 +29,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         IEventBus eventBus,
-        IPowerPlanComboBoxService powerPlanComboBoxService,
         IPowerService powerService,
         IApplicationModeService applicationModeService)
         : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _dialogService = dialogService;
-        _powerPlanComboBoxService = powerPlanComboBoxService;
         _powerService = powerService;
 
         DeletePowerPlanCommand = new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlanAsync(plan));
@@ -62,112 +59,17 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
         try
         {
-            await Task.Delay(200).ConfigureAwait(false);
-            await RefreshPowerPlanComboBoxAsync();
-
-            // Refresh all setting states to pick up the new plan's PowerCfg values
-            // (display timeout, sleep timeout, etc. differ between plans)
-            await Task.Delay(500).ConfigureAwait(false);
+            // Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each setting's
+            // UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
+            // DynamicOptions/DynamicSelection (TryApplyDynamicPowerPlanOptions) AND refreshes the dependent power
+            // states (display/sleep timeouts differ per plan) - one pass replacing the old RefreshPowerPlanComboBoxAsync
+            // + a second state refresh. The delay lets the OS report the newly-active scheme + its powercfg values.
+            await Task.Delay(700).ConfigureAwait(false);
             await RefreshSettingStatesAsync();
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error handling power plan change: {ex.Message}");
-        }
-    }
-
-    public async Task RefreshPowerPlanComboBoxAsync()
-    {
-        try
-        {
-            var powerPlanSetting = Settings.FirstOrDefault(s =>
-                s.Setting?.OptionSource is not null);
-
-            if (powerPlanSetting == null) return;
-
-            // Invalidate the cache to ensure we get fresh data from the OS
-            _powerPlanComboBoxService.InvalidateCache();
-
-            var options = await _powerPlanComboBoxService.GetPowerPlanOptionsAsync();
-            var activePlan = await _powerService.GetActivePowerPlanAsync();
-
-            // Phase 6.7 Slice 7b-ui-3b: runtime uses the new scheme-GUID model (Value = GUID, no index round-trip;
-            // mirrors the SettingViewModelFactory gate + the GUID apply path). Builder mode stays on the OLD int-index
-            // model so config-export's index-based BuilderEdit serialization (ConfigExportService, 6.8) is unchanged -
-            // keep this gate in lockstep with the factory's. This refresh is reachable in builder mode (delete + an
-            // external PowerPlanChangedEvent), so it MUST honour the mode too, not just the factory. The rich
-            // PowerPlanComboBoxOption stays the Tag (status dot / [Active] badge / delete-by-GUID), unchanged in both.
-            var isBuilderMode = _applicationModeService.CurrentMode == WinhanceMode.Builder;
-
-            int matchedIndex = -1;
-            if (activePlan != null)
-            {
-                for (int i = 0; i < options.Count; i++)
-                {
-                    if (options[i].ExistsOnSystem && options[i].SystemPlan != null &&
-                        string.Equals(options[i].SystemPlan!.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
-                    {
-                        matchedIndex = i;
-                        break;
-                    }
-                }
-            }
-            // Default to the first option when the active plan is unreadable (mirrors the old index-0 default).
-            if (matchedIndex < 0 && options.Count > 0)
-                matchedIndex = 0;
-
-            object? currentSelection;
-            if (isBuilderMode)
-                currentSelection = matchedIndex >= 0 ? matchedIndex : 0;
-            else
-                currentSelection = matchedIndex >= 0
-                    ? (options[matchedIndex].SystemPlan?.Guid ?? options[matchedIndex].PredefinedPlan?.Guid)
-                    : null;
-
-            // Build the new ComboBoxDisplayOption list before touching the UI
-            var newItems = new List<ComboBoxDisplayOption>(options.Count);
-            for (int i = 0; i < options.Count; i++)
-            {
-                var displayName = options[i].DisplayName;
-                if (displayName.StartsWith("PowerPlan_"))
-                {
-                    displayName = _localizationService.GetString(displayName);
-                }
-
-                object optionValue;
-                if (isBuilderMode)
-                    optionValue = options[i].Index;
-                else
-                    optionValue = options[i].SystemPlan?.Guid ?? options[i].PredefinedPlan?.Guid ?? string.Empty;
-
-                newItems.Add(new ComboBoxDisplayOption(
-                    displayName,
-                    optionValue,
-                    options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
-                    options[i]));
-            }
-
-            // Await the UI update to ensure it completes before returning
-            await _dispatcherService.RunOnUIThreadAsync(() =>
-            {
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentSelection={currentSelection}, current SelectedValue={powerPlanSetting.SelectedValue}");
-
-                powerPlanSetting.ComboBoxOptions.Clear();
-
-                foreach (var item in newItems)
-                {
-                    powerPlanSetting.ComboBoxOptions.Add(item);
-                }
-
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate ({newItems.Count} items), setting SelectedValue to {currentSelection}");
-                powerPlanSetting.SelectedValue = currentSelection;
-
-                return Task.CompletedTask;
-            });
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Failed to refresh power plan combo box: {ex.Message}");
         }
     }
 
@@ -215,7 +117,10 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
             if (success)
             {
-                await RefreshPowerPlanComboBoxAsync();
+                // Re-detect so the dropdown rebuilds from the fresh plan list (DeletePowerPlanAsync already invalidated
+                // the power-plan cache, so the re-read excludes the deleted plan). No-op in Builder mode, which keeps
+                // authored values until Builder exit reloads from live state - consistent with RefreshSettingStatesAsync.
+                await RefreshSettingStatesAsync();
                 _logService.Log(LogLevel.Info, $"Successfully deleted power plan: {displayName}");
             }
             else
