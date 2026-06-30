@@ -120,6 +120,50 @@ internal class RegistryCommandEmitter
         }
     }
 
+    /// <summary>Phase 6.8 F2a: byte-equivalent new-catalog mirror of EmitRegistryValue, reading the RegTarget's
+    /// Type/ByteIndex/BitMask/ByteOnly instead of the RegistrySetting's ValueType/BinaryByteIndex/BitMask/ModifyByteOnly.
+    /// Same Set-BinaryBit/Set-BinaryByte/Set-RegistryValue output. Proven by ScriptGenApplyResolvedEquivalenceTests.</summary>
+    public void EmitRegistryValueFromTarget(
+        StringBuilder sb,
+        RegTarget rt,
+        object value,
+        string escapedDescription,
+        string pathExpr,
+        string escapedValueName,
+        string indent)
+    {
+        var valueType = ConvertToRegistryType(rt.Type);
+
+        if (rt.Type == RegistryValueKind.Binary && rt.ByteIndex.HasValue)
+        {
+            if (rt.BitMask.HasValue)
+            {
+                var setBit = Convert.ToBoolean(value);
+                sb.AppendLine($"{indent}Set-BinaryBit -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {rt.ByteIndex.Value} -BitMask 0x{rt.BitMask.Value:X2} -SetBit ${setBit} -Description '{escapedDescription}'");
+            }
+            else if (rt.ByteOnly)
+            {
+                var byteValue = value switch
+                {
+                    byte b => $"0x{b:X2}",
+                    int i => $"0x{(byte)i:X2}",
+                    _ => "0x00"
+                };
+                sb.AppendLine($"{indent}Set-BinaryByte -Path {pathExpr} -Name '{escapedValueName}' -ByteIndex {rt.ByteIndex.Value} -ByteValue {byteValue} -Description '{escapedDescription}'");
+            }
+            else
+            {
+                var formattedValue = FormatValueForPowerShell(value, rt.Type);
+                sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+            }
+        }
+        else
+        {
+            var formattedValue = FormatValueForPowerShell(value, rt.Type);
+            sb.AppendLine($"{indent}Set-RegistryValue -Path {pathExpr} -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+        }
+    }
+
     public void AppendToggleCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(setting.Description);
@@ -309,7 +353,16 @@ internal class RegistryCommandEmitter
             return;
         }
 
-        ApplyResolvedValues(sb, setting, valuesToApply, isHkcu, indent);
+        // Phase 6.8 F2a: route the emission through the new catalog model (Targets) for paired settings.
+        // ApplyResolvedValuesFromCatalog is byte-equivalent to ApplyResolvedValues - proven by
+        // ScriptGenApplyResolvedEquivalenceTests (750 setting/index/hive tuples, 0 mismatches). Unpaired settings
+        // (none exist among selections-with-ValueMappings - ScriptGenSelectionResolveEquivalenceTests enforces that)
+        // fall back to the old emitter.
+        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
+        if (catalogSetting != null)
+            ApplyResolvedValuesFromCatalog(sb, catalogSetting, valuesToApply, isHkcu, indent);
+        else
+            ApplyResolvedValues(sb, setting, valuesToApply, isHkcu, indent);
     }
 
     /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the
@@ -410,6 +463,77 @@ internal class RegistryCommandEmitter
                 }
 
                 if (isPerSubkey) sb.AppendLine($"{indent}}}");
+            }
+        }
+    }
+
+    /// <summary>Phase 6.8 F2a: byte-equivalent new-catalog mirror of ApplyResolvedValues, reading the catalog Setting's
+    /// Display.Description + Targets (PowerCfgTarget/RegTarget) instead of the old setting's Description +
+    /// PowerCfgSettings/RegistrySettings. A mirror RegTarget with N Paths reproduces N old single-KeyPath
+    /// RegistrySettings, so each path emits one command in order. Proven by ScriptGenApplyResolvedEquivalenceTests.</summary>
+    public void ApplyResolvedValuesFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, Dictionary<string, object> valuesToApply, bool isHkcu, string indent)
+    {
+        var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+
+        foreach (var kvp in valuesToApply)
+        {
+            var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
+            if (kvp.Key == "PowerCfgValue" && powerCfgTargets.Any())
+            {
+                foreach (var powerCfgTarget in powerCfgTargets)
+                {
+                    var value = Convert.ToInt32(kvp.Value);
+
+                    if (powerCfgTarget.Mode == PowerModeSupport.Separate)
+                    {
+                        sb.AppendLine($"{indent}powercfg /setacvalueindex SCHEME_CURRENT {powerCfgTarget.SubgroupGuid} {powerCfgTarget.SettingGuid} {value}");
+                        sb.AppendLine($"{indent}powercfg /setdcvalueindex SCHEME_CURRENT {powerCfgTarget.SubgroupGuid} {powerCfgTarget.SettingGuid} {value}");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"{indent}powercfg /setacvalueindex SCHEME_CURRENT {powerCfgTarget.SubgroupGuid} {powerCfgTarget.SettingGuid} {value}");
+                    }
+                }
+                sb.AppendLine($"{indent}Write-Log 'Applied: {escapedDescription}' 'SUCCESS'");
+                continue;
+            }
+
+            var matchingRegTargets = catalogSetting.Targets.OfType<RegTarget>()
+                .Where(rt => rt.ValueName == kvp.Key || kvp.Key == "KeyExists")
+                .ToList();
+
+            foreach (var rt in matchingRegTargets)
+            {
+                foreach (var keyPath in rt.Paths)
+                {
+                    bool isHkcuEntry = keyPath.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
+                    if (isHkcuEntry != isHkcu)
+                        continue;
+
+                    var regPath = EscapePowerShellString(ConvertRegistryPath(keyPath));
+                    var escapedValueName = EscapePowerShellString(rt.ValueName);
+
+                    bool isPerSubkey = rt.PerNetworkInterface || rt.PerMonitor;
+                    var effectivePath = isPerSubkey ? "$_.PSPath" : $"'{regPath}'";
+                    var innerIndent = isPerSubkey ? indent + "    " : indent;
+
+                    if (isPerSubkey)
+                    {
+                        sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
+                    }
+
+                    if (kvp.Value == null)
+                    {
+                        if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                        continue;
+                    }
+                    else
+                    {
+                        EmitRegistryValueFromTarget(sb, rt, kvp.Value, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
+                    }
+
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                }
             }
         }
     }
