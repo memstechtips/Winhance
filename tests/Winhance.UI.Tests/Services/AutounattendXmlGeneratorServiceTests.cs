@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -19,6 +20,7 @@ public class AutounattendXmlGeneratorServiceTests
     private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
+    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
 
     private AutounattendScriptBuilder CreateScriptBuilder()
     {
@@ -33,13 +35,18 @@ public class AutounattendXmlGeneratorServiceTests
     private AutounattendXmlGeneratorService CreateService(
         AutounattendScriptBuilder? scriptBuilder = null)
     {
+        _mockCatalogDetectionService
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+
         return new AutounattendXmlGeneratorService(
             _mockCompatibleSettingsRegistry.Object,
             _mockDiscoveryService.Object,
             _mockLogService.Object,
             scriptBuilder ?? CreateScriptBuilder(),
             _mockPowerShellRunner.Object,
-            _mockSelectedAppsProvider.Object);
+            _mockSelectedAppsProvider.Object,
+            _mockCatalogDetectionService.Object);
     }
 
     private void SetupEmptySettings()

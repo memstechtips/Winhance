@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -25,6 +26,7 @@ public class ConfigExportService : IConfigExportService
     private readonly IMainWindowProvider _mainWindowProvider;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IAutounattendXmlGeneratorService _autounattendGenerator;
+    private readonly ICatalogDetectionService _catalogDetectionService;
 
     public ConfigExportService(
         ILogService logService,
@@ -39,7 +41,8 @@ public class ConfigExportService : IConfigExportService
         IFileSystemService fileSystemService,
         IMainWindowProvider mainWindowProvider,
         IApplicationModeService applicationModeService,
-        IAutounattendXmlGeneratorService autounattendGenerator)
+        IAutounattendXmlGeneratorService autounattendGenerator,
+        ICatalogDetectionService catalogDetectionService)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -54,6 +57,7 @@ public class ConfigExportService : IConfigExportService
         _mainWindowProvider = mainWindowProvider;
         _applicationModeService = applicationModeService;
         _autounattendGenerator = autounattendGenerator;
+        _catalogDetectionService = catalogDetectionService;
     }
 
     private Task EnsureRegistryInitializedAsync()
@@ -363,6 +367,7 @@ public class ConfigExportService : IConfigExportService
             }
 
             var states = await _discoveryService.GetSettingStatesAsync(settings);
+            await CatalogDetectionOverlayHelper.OverlayAsync(settings, states, _catalogDetectionService, _logService);
 
             var items = settings.Select(setting =>
             {
@@ -396,8 +401,8 @@ public class ConfigExportService : IConfigExportService
                             setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
                             state?.RawValues != null)
                         {
-                            var acValue = state.RawValues.TryGetValue("ACValue", out var acVal) ? acVal : null;
-                            var dcValue = state.RawValues.TryGetValue("DCValue", out var dcVal) ? dcVal : null;
+                            object? acValue = state.AcValue;
+                            object? dcValue = state.DcValue;
 
                             if (acValue != null || dcValue != null)
                             {
@@ -429,8 +434,8 @@ public class ConfigExportService : IConfigExportService
                             setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
                             state.RawValues != null)
                         {
-                            var acValue = state.RawValues.TryGetValue("ACValue", out var acVal) ? acVal : null;
-                            var dcValue = state.RawValues.TryGetValue("DCValue", out var dcVal) ? dcVal : null;
+                            int? acValue = state.AcValue;
+                            int? dcValue = state.DcValue;
 
                             if (acValue != null || dcValue != null)
                             {

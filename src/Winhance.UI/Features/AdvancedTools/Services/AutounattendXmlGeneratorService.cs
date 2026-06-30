@@ -4,11 +4,13 @@ using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
+using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
 
@@ -20,6 +22,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly AutounattendScriptBuilder _scriptBuilder;
     private readonly IPowerShellRunner _powerShellRunner;
     private readonly ISelectedAppsProvider _selectedAppsProvider;
+    private readonly ICatalogDetectionService _catalogDetectionService;
 
     public AutounattendXmlGeneratorService(
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
@@ -27,7 +30,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         ILogService logService,
         AutounattendScriptBuilder scriptBuilder,
         IPowerShellRunner powerShellRunner,
-        ISelectedAppsProvider selectedAppsProvider)
+        ISelectedAppsProvider selectedAppsProvider,
+        ICatalogDetectionService catalogDetectionService)
     {
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _discoveryService = discoveryService;
@@ -35,6 +39,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         _scriptBuilder = scriptBuilder;
         _powerShellRunner = powerShellRunner;
         _selectedAppsProvider = selectedAppsProvider;
+        _catalogDetectionService = catalogDetectionService;
     }
 
     public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath,
@@ -144,6 +149,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             }
 
             var states = await _discoveryService.GetSettingStatesAsync(settings);
+            await CatalogDetectionOverlayHelper.OverlayAsync(settings, states, _catalogDetectionService, _logService);
 
             var items = settings.Select(setting =>
             {

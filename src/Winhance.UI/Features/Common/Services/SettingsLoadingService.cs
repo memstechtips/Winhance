@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -181,28 +180,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         IReadOnlyList<SettingDefinition> definitions,
         Dictionary<string, SettingStateResult> batchStates)
     {
-        try
-        {
-            var ids = new HashSet<string>(definitions.Select(d => d.Id));
-            var pairedSettings = SettingCatalog.All.Where(s => ids.Contains(s.Id)).ToList();
-            if (pairedSettings.Count == 0)
-                return;
-
-            var newResults = await _catalogDetectionService.DetectAsync(pairedSettings);
-
-            foreach (var def in definitions)
-            {
-                if (!batchStates.TryGetValue(def.Id, out var oldState))
-                    continue;
-                newResults.TryGetValue(def.Id, out var newResult);
-                batchStates[def.Id] = CatalogDetectionStateOverlay.Apply(def, oldState, newResult);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning,
-                $"[SettingsLoadingService] Catalog detection overlay failed (keeping old states): {ex.Message}");
-        }
+        await CatalogDetectionOverlayHelper.OverlayAsync(definitions, batchStates, _catalogDetectionService, _logService);
     }
 
     /// <summary>

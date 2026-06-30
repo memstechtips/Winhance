@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -31,12 +32,17 @@ public class ConfigExportServiceTests
     private readonly Mock<IThemeService> _mockThemeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IAutounattendXmlGeneratorService> _mockAutounattendGenerator = new();
+    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
 
     public ConfigExportServiceTests()
     {
         _mockDispatcher
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
+
+        _mockCatalogDetectionService
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
@@ -66,7 +72,8 @@ public class ConfigExportServiceTests
             _mockFileSystemService.Object,
             _mockMainWindowProvider.Object,
             _mockApplicationModeService.Object,
-            _mockAutounattendGenerator.Object);
+            _mockAutounattendGenerator.Object,
+            _mockCatalogDetectionService.Object);
     }
 
     // -------------------------------------------------------
