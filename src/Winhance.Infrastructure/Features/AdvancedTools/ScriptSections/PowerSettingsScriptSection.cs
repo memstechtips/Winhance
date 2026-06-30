@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -228,31 +229,71 @@ internal class PowerSettingsScriptSection
 
         foreach (var settingDef in settingDefinitions)
         {
-            if (settingDef.Id == SettingIds.PowerPlanSelection || settingDef.PowerCfgSettings?.Any() != true)
+            if (settingDef.Id == SettingIds.PowerPlanSelection)
                 continue;
 
-            if (settingDef.RequiresBattery && !hasBattery)
-                continue;
-
-            if (settingDef.RequiresBrightnessSupport)
-                continue;
-
-            foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
+            // Read metadata from the new catalog Setting when this def has a catalog peer; the live AC/DC
+            // values still come from bulkQueryResults keyed by the (unchanged) powercfg SettingGuid.
+            var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+            if (catalogSetting != null)
             {
-                if (!bulkQueryResults.TryGetValue(powerCfgSetting.SettingGuid, out var values))
+                var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
+                if (powerCfgTargets.Count == 0)
                     continue;
 
-                if (!values.acValue.HasValue || !values.dcValue.HasValue)
+                if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.Battery) && !hasBattery)
                     continue;
 
-                powerSettings.Add(new PowerSettingData
+                if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.BrightnessSupport))
+                    continue;
+
+                foreach (var powerCfgTarget in powerCfgTargets)
                 {
-                    SubgroupGuid = powerCfgSetting.SubgroupGuid,
-                    SettingGuid = powerCfgSetting.SettingGuid,
-                    AcValue = values.acValue.Value,
-                    DcValue = values.dcValue.Value,
-                    Description = settingDef.Description
-                });
+                    if (!bulkQueryResults.TryGetValue(powerCfgTarget.SettingGuid, out var values))
+                        continue;
+
+                    if (!values.acValue.HasValue || !values.dcValue.HasValue)
+                        continue;
+
+                    powerSettings.Add(new PowerSettingData
+                    {
+                        SubgroupGuid = powerCfgTarget.SubgroupGuid,
+                        SettingGuid = powerCfgTarget.SettingGuid,
+                        AcValue = values.acValue.Value,
+                        DcValue = values.dcValue.Value,
+                        Description = catalogSetting.Display.Description
+                    });
+                }
+            }
+            else
+            {
+                // Unpaired setting: fall back to the old SettingDefinition fields so nothing regresses.
+                if (settingDef.PowerCfgSettings?.Any() != true)
+                    continue;
+
+                if (settingDef.RequiresBattery && !hasBattery)
+                    continue;
+
+                if (settingDef.RequiresBrightnessSupport)
+                    continue;
+
+                foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
+                {
+                    if (!bulkQueryResults.TryGetValue(powerCfgSetting.SettingGuid, out var values))
+                        continue;
+
+                    if (!values.acValue.HasValue || !values.dcValue.HasValue)
+                        continue;
+
+                    powerSettings.Add(new PowerSettingData
+                    {
+                        SubgroupGuid = powerCfgSetting.SubgroupGuid,
+                        SettingGuid = powerCfgSetting.SettingGuid,
+                        AcValue = values.acValue.Value,
+                        DcValue = values.dcValue.Value,
+                        Description = settingDef.Description
+                    });
+                }
             }
         }
 
