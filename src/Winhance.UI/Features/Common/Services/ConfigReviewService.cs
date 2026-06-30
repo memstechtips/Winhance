@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -23,8 +24,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly ISystemSettingsDiscoveryService _discoveryService;
-    private readonly IComboBoxSetupService _comboBoxSetupService;
-    private readonly IComboBoxResolver _comboBoxResolver;
+    private readonly ICatalogDetectionService _catalogDetectionService;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
@@ -46,16 +46,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         ISystemSettingsDiscoveryService discoveryService,
-        IComboBoxSetupService comboBoxSetupService,
-        IComboBoxResolver comboBoxResolver,
+        ICatalogDetectionService catalogDetectionService,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService)
     {
         _logService = logService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _discoveryService = discoveryService;
-        _comboBoxSetupService = comboBoxSetupService;
-        _comboBoxResolver = comboBoxResolver;
+        _catalogDetectionService = catalogDetectionService;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
 
@@ -448,25 +446,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             var settingDefMap = settingDefinitions.ToDictionary(s => s.Id);
 
             // Batch-load current system states
-            var batchStates = await _discoveryService.GetSettingStatesAsync(settingDefinitions.ToList());
+            var defList = settingDefinitions.ToList();
+            var batchStates = await _discoveryService.GetSettingStatesAsync(defList);
 
-            // Resolve combo box values for Selection-type settings
-            foreach (var setting in settingDefinitions.Where(s => s.InputType == InputType.Selection))
-            {
-                if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
-                {
-                    try
-                    {
-                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
-                        batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning,
-                            $"[ConfigReviewService] Failed to resolve combo box for '{setting.Id}': {ex.Message}");
-                    }
-                }
-            }
+            // D-consistent cutover: overlay the new catalog detection engine's authoritative state onto the
+            // discovery results (same pattern the export services use). For paired Selections this sets CurrentValue
+            // to the resolved option index - the same value the retired IComboBoxResolver loop produced - and threads
+            // DynamicSelection/AcValue/DcValue/Readings.
+            await CatalogDetectionOverlayHelper.OverlayAsync(defList, batchStates, _catalogDetectionService, _logService);
 
             foreach (var configItem in configItems)
             {
@@ -582,16 +569,16 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             case InputType.Selection:
             {
                 // Resolve the current index via combo box setup for accurate display
-                var comboResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
+                var comboResult = BuildComboBoxOptions(settingDef, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
                 // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
                 if (configItem.PowerPlanGuid != null)
                 {
-                    // Get current active plan GUID directly from raw discovery values
-                    string? currentGuid = null;
-                    if (currentState.RawValues?.TryGetValue("ActivePowerPlanGuid", out var rawGuid) == true)
-                        currentGuid = rawGuid?.ToString();
+                    // D3-consistent: read the active scheme GUID from the new engine's DynamicSelection (the active
+                    // plan GUID, lowercased, threaded by the catalog detection overlay) instead of the old discovery
+                    // RawValues["ActivePowerPlanGuid"]. NormalizeGuid lowercases both sides, so the case swap is harmless.
+                    string? currentGuid = currentState.DynamicSelection;
 
                     string? currentPlanName = currentState.RawValues?.TryGetValue("ActivePowerPlan", out var rawName) == true
                         ? rawName?.ToString() : null;
@@ -694,6 +681,44 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     }
 
     /// <summary>
+    /// Builds the combo box display options for a non-power-plan Selection from its definition, reproducing
+    /// ComboBoxSetupService.SetupFromComboBoxDisplayNames. The current index is read straight off
+    /// <paramref name="currentValue"/> (already the catalog-overlay-resolved option index); power-plan settings
+    /// are handled separately via the PowerPlanGuid branch and never reach this method.
+    /// </summary>
+    private static ComboBoxSetupResult BuildComboBoxOptions(SettingDefinition setting, object? currentValue)
+    {
+        var result = new ComboBoxSetupResult();
+        var comboBox = setting.ComboBox;
+        if (comboBox?.Options == null || comboBox.Options.Count == 0)
+            return result; // Success stays false
+
+        int currentIndex = currentValue is int idx ? idx : 0;
+        var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
+        var options = comboBox.Options;
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            result.Options.Add(new ComboBoxDisplayOption(options[i].DisplayName, i, options[i].Tooltip)
+            {
+                IsRecommended = options[i].IsRecommended,
+                IsDefault = options[i].IsDefault,
+                IsSubjectivePreference = setting.IsSubjectivePreference,
+            });
+        }
+
+        if (isCustomState)
+        {
+            var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom";
+            result.Options.Add(new ComboBoxDisplayOption(customDisplayName, ComboBoxConstants.CustomStateIndex, null));
+        }
+
+        result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
+        result.Success = true;
+        return result;
+    }
+
+    /// <summary>
     /// Gets a display name for a combo box index using the setting definition's combo box setup.
     /// </summary>
     private async Task<string> GetComboBoxDisplayNameFromDefAsync(
@@ -703,7 +728,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         try
         {
-            var result = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
+            var result = BuildComboBoxOptions(settingDef, currentState.CurrentValue);
             if (index >= 0 && index < result.Options.Count)
             {
                 return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());

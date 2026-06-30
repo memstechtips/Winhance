@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -15,7 +16,7 @@ public class ConfigReviewServiceTests : IDisposable
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
     private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
-    private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
+    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
 
@@ -42,8 +43,7 @@ public class ConfigReviewServiceTests : IDisposable
             _mockLogService.Object,
             _mockCompatibleSettingsRegistry.Object,
             _mockDiscoveryService.Object,
-            _mockComboBoxSetupService.Object,
-            _mockComboBoxResolver.Object,
+            _mockCatalogDetectionService.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object);
         return _service;
