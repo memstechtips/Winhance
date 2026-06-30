@@ -291,12 +291,16 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         {
             var customValues = new Dictionary<string, object>();
 
-            if (state.RawValues != null)
+            // D4c: read the live custom-state registry values from the new engine's Readings (keyed identically by
+            // ValueName ?? "KeyExists") instead of the legacy detection RawValues. Proven value-identical for every
+            // registry key by Migration/CustomStateReadingsEquivalenceTests (423/423). (This GetSelectionStateFromState
+            // custom-state result is discarded by the autounattend; the read is migrated to retire RawValues.)
+            if (state.Readings != null)
             {
                 foreach (var registrySetting in setting.RegistrySettings)
                 {
                     var key = registrySetting.ValueName ?? "KeyExists";
-                    if (state.RawValues.TryGetValue(key, out var value) && value != null)
+                    if (state.Readings.TryGetValue(key, out var value) && value != null)
                     {
                         customValues[key] = value;
                     }
