@@ -580,8 +580,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     // RawValues["ActivePowerPlanGuid"]. NormalizeGuid lowercases both sides, so the case swap is harmless.
                     string? currentGuid = currentState.DynamicSelection;
 
-                    string? currentPlanName = currentState.RawValues?.TryGetValue("ActivePowerPlan", out var rawName) == true
-                        ? rawName?.ToString() : null;
+                    // The current plan NAME now reads the new engine's typed DynamicSelectionName (the active plan's raw
+                    // OS name, proven == old RawValues["ActivePowerPlan"]) instead of the old discovery RawValues.
+                    string? currentPlanName = currentState.DynamicSelectionName;
                     string? configPlanName = configItem.PowerPlanName;
 
                     _logService.Log(LogLevel.Debug,
