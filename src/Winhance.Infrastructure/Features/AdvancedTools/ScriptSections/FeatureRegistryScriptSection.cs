@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -117,7 +118,23 @@ internal class FeatureRegistryScriptSection
                 // Apply the setting, but only output registry entries that match the current hive
                 if (configItem.InputType == InputType.Toggle)
                 {
-                    _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    // Phase 6.8 F2b: route paired, NON-build-gated toggles through the new catalog emitter
+                    // (AppendToggleCommandsFromCatalog - proven command-multiset-equivalent to the old emitter by
+                    // ScriptGenToggleEquivalenceTests). Build-gated (OS-merged "This PC") toggles and unpaired settings
+                    // fall back to the old emitter, which has the OS-filtered def (the new method has no build context to
+                    // pick the per-OS target). The new method emits ONLY registry targets, so the RegContents tail
+                    // (still old-model, F2c) is emitted explicitly here to match the old method's inline tail.
+                    var catalogToggle = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                    if (catalogToggle != null && !catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0))
+                    {
+                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, settingDef, configItem, isHkcu, indent);
+                        if (settingDef.RegContents?.Count > 0)
+                            _registryEmitter.AppendRegContentCommands(sb, settingDef, configItem.IsSelected, isHkcu, indent);
+                    }
+                    else
+                    {
+                        _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    }
                 }
                 else if (configItem.InputType == InputType.Selection)
                 {

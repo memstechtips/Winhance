@@ -261,6 +261,122 @@ internal class RegistryCommandEmitter
         }
     }
 
+    /// <summary>Phase 6.8 F2b: byte-equivalent new-catalog mirror of AppendToggleCommandsFiltered's REGISTRY
+    /// emission. Sources the write decision from the catalog Setting's active SettingState (the "Enabled" state
+    /// when configItem.IsSelected is true, else the "Disabled" state) and its RegTargets instead of the old
+    /// SettingDefinition.RegistrySettings' EnabledValue/DisabledValue. A mirror RegTarget with N Paths reproduces
+    /// N old single-KeyPath RegistrySettings, so each path emits one command in order. The per-target write value
+    /// is the active state's StateValue.WritePayload, or null when that StateValue deletes (Absent/DeleteOnWrite)
+    /// or the state carries no entry for the target - matching the old GetWriteValue(EnabledValue/DisabledValue)
+    /// returning the first non-null entry or null. This method emits ONLY registry targets; the RegContents tail
+    /// is left to the call site. Proven by ScriptGenToggleEquivalenceTests.</summary>
+    public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
+    {
+        var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+        var isEnabled = configItem.IsSelected;
+
+        // A toggle Setting has exactly two states, Label "Enabled" and "Disabled" (catalog authoring convention,
+        // asserted across the toggle population by ScriptGenToggleEquivalenceTests).
+        var state = catalogSetting.States.FirstOrDefault(s => s.Label == (isEnabled == true ? "Enabled" : "Disabled"));
+        if (state == null)
+            return;
+
+        foreach (var rt in catalogSetting.Targets.OfType<RegTarget>())
+        {
+            foreach (var path in rt.Paths)
+            {
+                // Filter by hive
+                bool isHkcuEntry = path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
+                if (isHkcuEntry != isHkcu)
+                    continue;
+
+                var regPath = EscapePowerShellString(ConvertRegistryPath(path));
+                var escapedValueName = EscapePowerShellString(rt.ValueName);
+
+                // Per-subkey enumeration: wrap commands in a ForEach-Object loop
+                // so the script enumerates subkeys at install time, not build time
+                bool isPerSubkey = rt.PerNetworkInterface || rt.PerMonitor;
+                var effectivePath = isPerSubkey ? "$_.PSPath" : $"'{regPath}'";
+                var innerIndent = isPerSubkey ? indent + "    " : indent;
+
+                if (isPerSubkey)
+                {
+                    sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
+                }
+
+                // The write value for this target from the active state: WritePayload unless the state deletes
+                // (Absent/DeleteOnWrite) or carries no entry for this target - both map to null, matching the old
+                // GetWriteValue(EnabledValue/DisabledValue) returning null.
+                state.Set.TryGetValue(rt.Key, out var sv);
+                object? writeValue = (sv != null && !sv.DeleteOnWrite) ? sv.WritePayload : null;
+
+                // Check if we have a raw value from the registry to use instead of definitions
+                var key = rt.ValueName ?? "KeyExists";
+                object? customValue = null;
+                bool hasCustomValue = configItem.CustomStateValues?.TryGetValue(key, out customValue) == true;
+
+                // Pattern 1: Key-Based Settings (CLSID folders, etc.)
+                // Detection: ValueName is null or empty - these control registry KEY existence, not values
+                if (string.IsNullOrEmpty(rt.ValueName))
+                {
+                    var keyValue = writeValue;
+
+                    if (keyValue == null)
+                    {
+                        sb.AppendLine($"{innerIndent}Remove-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
+                    }
+                    else if (keyValue is string keyStrValue && keyStrValue == "")
+                    {
+                        sb.AppendLine($"{innerIndent}New-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
+                        sb.AppendLine($"{innerIndent}Set-RegistryValue -Path {effectivePath} -Name '(Default)' -Type 'String' -Value '' -Description '{escapedDescription}'");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"{innerIndent}New-RegistryKey -Path {effectivePath} -Description '{escapedDescription}'");
+                    }
+
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                    continue;
+                }
+
+                if (hasCustomValue)
+                {
+                    if (customValue == null)
+                    {
+                        if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                        continue;
+                    }
+
+                    EmitRegistryValueFromTarget(sb, rt, customValue, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                    continue;
+                }
+
+                // Fallback for when custom value is not available (should happen rarely if discovery worked)
+                var value = writeValue;
+
+                if (value is string strValue && strValue == "")
+                {
+                    sb.AppendLine($"{innerIndent}Set-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Type 'String' -Value '' -Description '{escapedDescription}'");
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                    continue;
+                }
+
+                // Pattern 3: Null Value Deletion
+                if (value == null)
+                {
+                    sb.AppendLine($"{innerIndent}Remove-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Description '{escapedDescription}'");
+                    if (isPerSubkey) sb.AppendLine($"{indent}}}");
+                    continue;
+                }
+
+                // Pattern 4: Regular Value Setting
+                EmitRegistryValueFromTarget(sb, rt, value, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
+                if (isPerSubkey) sb.AppendLine($"{indent}}}");
+            }
+        }
+    }
+
     // Matches .reg section headers like `[HKEY_CURRENT_USER\Software\...]` at the start of a line.
     // Headers are the only syntactic indicator of target hive in a .reg file — comments and REG_SZ
     // values can contain "HKCU" as plain text without affecting import behavior.
