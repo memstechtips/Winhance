@@ -45,6 +45,12 @@ public static class CatalogDetectionStateOverlay
         if (newResult.Options is { } dynOptions)
             old = old with { DynamicOptions = dynOptions, DynamicSelection = newResult.StateLabel };
 
+        // D4: thread the new engine's live per-registry-target readings so the config-export custom-state path
+        // (the "-1"/Custom registry values) reads them off the new engine instead of the legacy detection RawValues.
+        // Null for a setting with no registry targets -> Readings stays null. Additive: no consumer until D4c.
+        if (newResult.Readings is { } readings)
+            old = old with { Readings = readings };
+
         switch (def.InputType)
         {
             case InputType.Toggle:
