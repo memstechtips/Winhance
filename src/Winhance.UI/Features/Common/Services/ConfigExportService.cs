@@ -555,10 +555,16 @@ public class ConfigExportService : IConfigExportService
         if (state?.CurrentValue is not int index)
             return (0, null, null, null);
 
-        if (setting.Id == SettingIds.PowerPlanSelection && state.RawValues != null)
+        if (setting.Id == SettingIds.PowerPlanSelection)
         {
-            var guid = state.RawValues.TryGetValue("ActivePowerPlanGuid", out var g) ? g?.ToString() : null;
-            var name = state.RawValues.TryGetValue("ActivePowerPlan", out var n) ? n?.ToString() : null;
+            // D3: source the active-plan GUID from the new engine's DynamicSelection (the active scheme GUID,
+            // lowercased) instead of the old discovery's RawValues["ActivePowerPlanGuid"] (which carried the
+            // OS-native case). powercfg GUIDs are case-insensitive, so this is a cosmetic case change on import.
+            // The display NAME stays on RawValues["ActivePowerPlan"] (Marco: show the raw OS name as today).
+            var guid = state.DynamicSelection;
+            var name = state.RawValues != null && state.RawValues.TryGetValue("ActivePowerPlan", out var n)
+                ? n?.ToString()
+                : null;
 
             _logService.Log(LogLevel.Info, $"[ConfigExportService] Exporting power plan: {name} ({guid})");
             return (index, null, guid, name);
