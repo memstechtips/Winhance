@@ -131,57 +131,14 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             }
         }
 
-        // Phase 6.7 Slice 7b-ui-3b: bind the power-plan dropdown to the new GUID model (runtime only). The detection
-        // overlay threads the runtime-sourced options + active scheme GUID into the result; build the dropdown directly
-        // off them (Value = scheme GUID, no index round-trip - applied via the GUID branch in
-        // PowerService.TryApplySpecialSettingAsync, Slice 7b-ui-3a). The custom PowerPlanComboBox drives its per-item
-        // visuals (status dot / [Active] badge / delete) off ComboBoxDisplayOption.Tag as PowerPlanComboBoxOption, so
-        // synthesize that Tag from the new-model option. Builder mode stays on the OLD index path below so config
-        // export's index-based BuilderEdit serialization (ConfigExportService, 6.8 scope) is unchanged.
-        var powerPlanHandled = false;
-        if (inputType == InputType.Selection
-            && setting.OptionSource is not null
-            && _viewModelDeps.ApplicationModeService?.CurrentMode != WinhanceMode.Builder
-            && currentState.DynamicOptions is { } dynamicOptions)
-        {
-            viewModel.ComboBoxOptions.Clear();
-
-            foreach (var opt in dynamicOptions)
-            {
-                var label = opt.Label.StartsWith("PowerPlan_")
-                    ? _localizationService.GetString(opt.Label)
-                    : opt.Label;
-
-                var isActive = currentState.DynamicSelection != null
-                    && string.Equals(opt.Value, currentState.DynamicSelection, StringComparison.OrdinalIgnoreCase);
-
-                // The PowerPlanComboBox control + the VM delete path read these off the Tag. ExistsOnSystem/IsActive
-                // drive the visuals; SystemPlan.Guid is the delete target (null for a not-installed predefined plan,
-                // so its delete button stays hidden). DisplayName carries the raw loc key (the delete dialog
-                // re-localizes it), matching the old PowerPlanComboBoxOption Tag.
-                var tag = new PowerPlanComboBoxOption
-                {
-                    DisplayName = opt.Label,
-                    ExistsOnSystem = opt.ExistsOnSystem,
-                    IsActive = isActive,
-                    SystemPlan = opt.ExistsOnSystem
-                        ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = label, IsActive = isActive }
-                        : null
-                };
-
-                viewModel.ComboBoxOptions.Add(new ComboBoxDisplayOption(
-                    label,
-                    opt.Value,
-                    opt.ExistsOnSystem ? "Installed on system" : "Not installed",
-                    tag));
-            }
-
-            // The stored selection is the active scheme GUID (default to the first option when the active plan is
-            // unreadable, mirroring the old index-0 fallback).
-            viewModel.SelectedValue = currentState.DynamicSelection ?? dynamicOptions.FirstOrDefault()?.Value;
-            viewModel.UpdateStatusBanner(viewModel.SelectedValue);
-            powerPlanHandled = true;
-        }
+        // Phase 6.7 Slice 7b-ui-3b / Phase 6.8 Cluster C: bind the runtime power-plan dropdown to the new GUID model.
+        // The detection overlay threads the runtime-sourced options + active scheme GUID into the result; the VM builds
+        // the dropdown directly off them (Value = scheme GUID; the custom PowerPlanComboBox reads the per-item Tag).
+        // This build now lives on the VM (TryApplyDynamicPowerPlanOptions) so the SAME code runs on initial load (here)
+        // and on refresh (UpdateStateFromSystemState) - the detection-driven path that retires the old
+        // RefreshPowerPlanComboBoxAsync / IPowerPlanComboBoxService. Returns false in Builder mode, which keeps the OLD
+        // index-valued dropdown below (config-export's index-based BuilderEdit serialization is unchanged).
+        var powerPlanHandled = viewModel.TryApplyDynamicPowerPlanOptions(currentState);
 
         // Builder mode keeps the OLD index-valued power-plan dropdown (config export's index-based BuilderEdit,
         // 6.8 scope). The loading bridge precomputes the options via the old IComboBoxSetupService (it still holds the

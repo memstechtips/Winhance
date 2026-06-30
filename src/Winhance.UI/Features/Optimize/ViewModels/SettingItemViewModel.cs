@@ -1187,6 +1187,61 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     // Updates setting state from a fresh system state read (used during navigation refresh)
+    /// <summary>Phase 6.8 Cluster C: rebuilds the runtime (non-Builder) power-plan dropdown from the detection
+    /// result's DynamicOptions/DynamicSelection, reconstructing the rich PowerPlanComboBoxOption Tag the bespoke
+    /// PowerPlanComboBox control reads (status dot / [Active] badge / delete-by-GUID). Shared by SettingViewModelFactory
+    /// (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is rebuilt identically from detection on
+    /// BOTH paths - this is what lets PowerOptimizationsViewModel.RefreshPowerPlanComboBoxAsync + its
+    /// IPowerPlanComboBoxService dependency retire (the dropdown is detection-driven, not combobox-service-driven).
+    /// Returns true when it handled the dropdown (a power-plan Selection with DynamicOptions, not Builder mode); false so
+    /// the caller falls through to normal Selection handling. Builder mode keeps the factory's OLD index-valued dropdown
+    /// (config-export BuilderEdit serialization), so this returns false there.</summary>
+    public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
+    {
+        if (InputType != InputType.Selection
+            || !IsPowerPlanSetting
+            || IsBuilderMode
+            || state.DynamicOptions is not { } dynamicOptions)
+            return false;
+
+        ComboBoxOptions.Clear();
+
+        foreach (var opt in dynamicOptions)
+        {
+            var label = opt.Label.StartsWith("PowerPlan_")
+                ? _localizationService.GetString(opt.Label)
+                : opt.Label;
+
+            var isActive = state.DynamicSelection != null
+                && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
+
+            // The PowerPlanComboBox control + the delete path read these off the Tag: ExistsOnSystem/IsActive drive the
+            // visuals, SystemPlan.Guid is the delete target (null for a not-installed predefined plan so its delete
+            // button stays hidden), DisplayName carries the raw loc key (the delete dialog re-localizes it).
+            var tag = new PowerPlanComboBoxOption
+            {
+                DisplayName = opt.Label,
+                ExistsOnSystem = opt.ExistsOnSystem,
+                IsActive = isActive,
+                SystemPlan = opt.ExistsOnSystem
+                    ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = label, IsActive = isActive }
+                    : null,
+            };
+
+            ComboBoxOptions.Add(new ComboBoxDisplayOption(
+                label,
+                opt.Value,
+                opt.ExistsOnSystem ? "Installed on system" : "Not installed",
+                tag));
+        }
+
+        // The stored selection is the active scheme GUID (default to the first option when the active plan is
+        // unreadable, mirroring the factory's load-time fallback).
+        SelectedValue = state.DynamicSelection ?? dynamicOptions.FirstOrDefault()?.Value;
+        UpdateStatusBanner(SelectedValue);
+        return true;
+    }
+
     public void UpdateStateFromSystemState(SettingStateResult state)
     {
         if (!state.Success) return;
@@ -1200,6 +1255,14 @@ public partial class SettingItemViewModel : BaseViewModel
                     IsSelected = state.IsEnabled;
                     break;
                 case InputType.Selection:
+                    // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
+                    // the same way the factory builds it on load (Phase 6.8 Cluster C). This replaces the old
+                    // PowerOptimizationsViewModel.RefreshPowerPlanComboBoxAsync and fixes the latent clobber where the
+                    // generic `SelectedValue = state.CurrentValue` below set the wrong value for a power plan (its
+                    // CurrentValue is not the active scheme GUID).
+                    if (TryApplyDynamicPowerPlanOptions(state))
+                        break;
+
                     if (SupportsSeparateACDC && Setting is { States.Count: > 0 } sel
                         && sel.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
                     {
