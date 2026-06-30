@@ -35,7 +35,6 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IPowerSettingsQueryService))]
     [InlineData(typeof(IPowerSettingsValidationService))]
     [InlineData(typeof(IComboBoxResolver))]
-    [InlineData(typeof(IComboBoxSetupService))]
     [InlineData(typeof(ISystemSettingsDiscoveryService))]
     [InlineData(typeof(ISettingApplicationService))]
     [InlineData(typeof(IConfigImportState))]

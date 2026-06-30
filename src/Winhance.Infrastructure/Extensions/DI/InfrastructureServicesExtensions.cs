@@ -119,8 +119,9 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IRegImportService, RegImportService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
 
-        // ComboBox Services
-        services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
+        // ComboBox Services (IComboBoxSetupService/ComboBoxSetupService retired - Phase 6.8 teardown; every consumer
+        // now builds the combobox options directly off the new catalog model. Resolver/PowerPlan stay - still consumed
+        // by the teardown-scope old apply layer.)
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
         services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 

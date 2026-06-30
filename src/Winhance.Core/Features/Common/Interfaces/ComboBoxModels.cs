@@ -1,15 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-public interface IComboBoxSetupService
-{
-    Task<ComboBoxSetupResult> SetupComboBoxOptionsAsync(SettingDefinition setting, object? currentValue);
-    Task<int> ResolveIndexFromRawValuesAsync(SettingDefinition setting, Dictionary<string, object?> rawValues);
-}
-
+// View-model DTOs for combobox option display. Relocated from the now-deleted IComboBoxSetupService.cs (the
+// IComboBoxSetupService/ComboBoxSetupService were retired once every consumer built these directly off the new
+// catalog model - Phase 6.8 E/G1b). Kept in this namespace so the ~11 consumers (the factory, the loading bridge,
+// the bespoke PowerPlanComboBox control, ConfigReviewService, PowerPlanComboBoxService) need no using change.
 public class ComboBoxSetupResult
 {
     public ObservableCollection<ComboBoxDisplayOption> Options { get; set; } = new();

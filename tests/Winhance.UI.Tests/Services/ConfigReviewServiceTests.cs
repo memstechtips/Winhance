@@ -15,7 +15,6 @@ public class ConfigReviewServiceTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
-    private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
@@ -473,19 +472,6 @@ public class ConfigReviewServiceTests : IDisposable
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
-            });
-
-        _mockComboBoxSetupService
-            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
-            .ReturnsAsync(new ComboBoxSetupResult
-            {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
-                {
-                    new ComboBoxDisplayOption("Light", 0),
-                    new ComboBoxDisplayOption("Dark", 1)
-                },
-                SelectedValue = selectedIndex == 0 ? 1 : 0,
-                Success = true
             });
 
         _mockLocalizationService
@@ -1360,19 +1346,6 @@ public class ConfigReviewServiceTests : IDisposable
                 ["selection-setting"] = new SettingStateResult { CurrentValue = 0 }
             });
 
-        _mockComboBoxSetupService
-            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
-            .ReturnsAsync(new ComboBoxSetupResult
-            {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
-                {
-                    new ComboBoxDisplayOption("Option A", 0),
-                    new ComboBoxDisplayOption("Option B", 1)
-                },
-                SelectedValue = 0,
-                Success = true
-            });
-
         var config = new UnifiedConfigurationFile
         {
             Optimize = new FeatureGroupSection
@@ -1816,18 +1789,6 @@ public class ConfigReviewServiceTests : IDisposable
                 ["sel-null"] = new SettingStateResult { CurrentValue = 0 }
             });
 
-        _mockComboBoxSetupService
-            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
-            .ReturnsAsync(new ComboBoxSetupResult
-            {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
-                {
-                    new ComboBoxDisplayOption("Option A", 0)
-                },
-                SelectedValue = 0,
-                Success = true
-            });
-
         var config = new UnifiedConfigurationFile
         {
             Optimize = new FeatureGroupSection
@@ -1887,19 +1848,6 @@ public class ConfigReviewServiceTests : IDisposable
                         ["ActivePowerPlan"] = "Balanced"
                     }
                 }
-            });
-
-        _mockComboBoxSetupService
-            .Setup(c => c.SetupComboBoxOptionsAsync(settingDef, It.IsAny<object?>()))
-            .ReturnsAsync(new ComboBoxSetupResult
-            {
-                Options = new System.Collections.ObjectModel.ObservableCollection<ComboBoxDisplayOption>
-                {
-                    new ComboBoxDisplayOption("Balanced", 0),
-                    new ComboBoxDisplayOption("High Performance", 1)
-                },
-                SelectedValue = 0,
-                Success = true
             });
 
         var config = new UnifiedConfigurationFile
