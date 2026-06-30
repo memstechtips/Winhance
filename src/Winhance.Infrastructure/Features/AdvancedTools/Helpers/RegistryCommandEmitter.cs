@@ -447,6 +447,67 @@ internal class RegistryCommandEmitter
         }
     }
 
+    /// <summary>Phase 6.8 F2c: byte-equivalent new-catalog mirror of AppendRegContentCommands. Sources the .reg
+    /// content from the active SettingState's RegContentEffects (the "Enabled" state when isEnabled is true, else the
+    /// "Disabled" state) instead of SettingDefinition.RegContents' EnabledContent/DisabledContent. The converter's
+    /// BuildToggleEffects maps each non-empty RegContents[i].EnabledContent to the Enabled state's RegContentEffect
+    /// (DisabledContent to the Disabled state's) in order, so the Enabled state's RegContentEffects are exactly the old
+    /// method's non-empty EnabledContents in order (likewise Disabled). Each content is hive-routed, mixed-hive-rejected,
+    /// and emitted identically to the old block. Proven by ScriptGenRegContentEquivalenceTests.</summary>
+    public void AppendRegContentCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool? isEnabled, bool isHkcuPass, string indent = "")
+    {
+        var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+        var varName = SanitizeVariableName(catalogSetting.Id);
+
+        // A toggle Setting has exactly two states, Label "Enabled" and "Disabled". Pick the one this pass applies.
+        var state = catalogSetting.States.FirstOrDefault(s => s.Label == (isEnabled == true ? "Enabled" : "Disabled"));
+        if (state == null)
+            return;
+
+        foreach (var regContentEffect in state.Effects.OfType<RegContentEffect>())
+        {
+            var content = regContentEffect.Content;
+
+            if (string.IsNullOrEmpty(content)) continue;
+
+            // Reject mixed-hive blocks: the emitter routes to a single pass per block, so a block
+            // containing both HKCU and HKLM/HKCR/HKU/HKCC headers would silently lose half its
+            // content under the hive filter below. Authors must split such content into separate
+            // RegContentSetting entries.
+            if (RegContentMixesHives(content))
+            {
+                throw new InvalidOperationException(
+                    $"RegContentSetting for '{catalogSetting.Id}' mixes HKEY_CURRENT_USER and system-hive " +
+                    $"section headers in a single block. Split it into one RegContentSetting per hive " +
+                    $"so each can be routed to the correct autounattend pass.");
+            }
+
+            // Determine pass by inspecting .reg section headers only (lines like
+            // `[HKEY_CURRENT_USER\...]`). Scanning raw text caught false positives when
+            // "HKCU" appeared in a comment or REG_SZ value.
+            if (RegContentTargetsHkcu(content) != isHkcuPass)
+                continue;
+
+            sb.AppendLine($"{indent}try {{");
+            sb.AppendLine($"{indent}    $regContent_{varName} = @'");
+            sb.AppendLine(content);
+            sb.AppendLine("'@");
+            sb.AppendLine($"{indent}    $tempRegFile = Join-Path $env:TEMP \"winhance_{catalogSetting.Id}_$((Get-Date).Ticks).reg\"");
+            sb.AppendLine($"{indent}    $regContent_{varName} | Out-File -FilePath $tempRegFile -Encoding Unicode -Force");
+            sb.AppendLine($"{indent}    reg import \"$tempRegFile\" 2>&1 | Out-Null");
+            sb.AppendLine($"{indent}    if ($LASTEXITCODE -eq 0) {{");
+            sb.AppendLine($"{indent}        Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+            sb.AppendLine($"{indent}    }} else {{");
+            sb.AppendLine($"{indent}        Write-Log \"Failed to import registry content for {escapedDescription}\" \"ERROR\"");
+            sb.AppendLine($"{indent}    }}");
+            sb.AppendLine($"{indent}    Remove-Item $tempRegFile -Force -ErrorAction SilentlyContinue");
+            sb.AppendLine($"{indent}}} catch {{");
+            sb.AppendLine($"{indent}    Write-Log \"Error processing registry content for {escapedDescription}: $($_.Exception.Message)\" \"ERROR\"");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
+        }
+    }
+
     public void AppendSelectionCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         if (setting.Id == SettingIds.PowerPlanSelection)

@@ -122,14 +122,14 @@ internal class FeatureRegistryScriptSection
                     // (AppendToggleCommandsFromCatalog - proven command-multiset-equivalent to the old emitter by
                     // ScriptGenToggleEquivalenceTests). Build-gated (OS-merged "This PC") toggles and unpaired settings
                     // fall back to the old emitter, which has the OS-filtered def (the new method has no build context to
-                    // pick the per-OS target). The new method emits ONLY registry targets, so the RegContents tail
-                    // (still old-model, F2c) is emitted explicitly here to match the old method's inline tail.
+                    // pick the per-OS target). The new method emits ONLY registry targets, so the RegContents tail is
+                    // emitted explicitly here via AppendRegContentCommandsFromCatalog (F2c, off the active state's
+                    // RegContentEffects) - a no-op for toggles without RegContent effects, so no guard is needed.
                     var catalogToggle = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
                     if (catalogToggle != null && !catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0))
                     {
                         _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, settingDef, configItem, isHkcu, indent);
-                        if (settingDef.RegContents?.Count > 0)
-                            _registryEmitter.AppendRegContentCommands(sb, settingDef, configItem.IsSelected, isHkcu, indent);
+                        _registryEmitter.AppendRegContentCommandsFromCatalog(sb, catalogToggle, configItem.IsSelected, isHkcu, indent);
                     }
                     else
                     {
