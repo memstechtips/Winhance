@@ -186,7 +186,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
                         if (setting.PowerCfgSettings?.Any() == true &&
                             setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                            state?.RawValues != null)
+                            state != null)
                         {
                             object? acValue = state.AcValue;
                             object? dcValue = state.DcValue;

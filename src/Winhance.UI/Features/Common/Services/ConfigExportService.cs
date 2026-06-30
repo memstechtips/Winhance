@@ -399,7 +399,7 @@ public class ConfigExportService : IConfigExportService
 
                         if (setting.PowerCfgSettings?.Any() == true &&
                             setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                            state?.RawValues != null)
+                            state != null)
                         {
                             object? acValue = state.AcValue;
                             object? dcValue = state.DcValue;
@@ -431,8 +431,7 @@ public class ConfigExportService : IConfigExportService
                     if (state?.CurrentValue != null)
                     {
                         if (setting.PowerCfgSettings?.Any() == true &&
-                            setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                            state.RawValues != null)
+                            setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate)
                         {
                             int? acValue = state.AcValue;
                             int? dcValue = state.DcValue;
