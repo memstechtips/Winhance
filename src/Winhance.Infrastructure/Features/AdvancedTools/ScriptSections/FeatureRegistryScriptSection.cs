@@ -418,6 +418,89 @@ internal class FeatureRegistryScriptSection
         }
     }
 
+    /// <summary>Phase 6.8 script-gen tail: new-catalog mirror of the OLD Action emission. An Action setting routes
+    /// through AppendToggleCommandsFiltered (registry, only when IsSelected) + AppendPowerShellScripts (scripts) in
+    /// the old loop; the catalog models it as SETTING-level Effects (no States/Targets). This emits the same bytes,
+    /// sourcing the registry writes from RegistryWriteEffects and the scripts from ScriptEffects. ORDER matches the
+    /// old loop: the registry pass (AppendToggleCommandsFiltered, which for these settings hits only the plain
+    /// Set-RegistryValue branch) runs before the script pass (AppendPowerShellScripts). Emits nothing unless the
+    /// Action is selected (matching the old Action branch's IsSelected guard). The Action population is
+    /// RegistryWriteEffect/ScriptEffect-only (asserted by ScriptGenActionEquivalenceTests). Proven byte-equivalent by
+    /// ScriptGenActionEquivalenceTests.</summary>
+    internal void AppendActionCommandsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Action one-shot: emit only when the user selected it (matches the old Action branch's IsSelected == true guard).
+        if (configItem.IsSelected != true)
+            return;
+
+        // Registry pass first (mirrors the old loop: AppendToggleCommandsFiltered runs before AppendPowerShellScripts).
+        _registryEmitter.AppendActionRegistryCommandsFromCatalog(sb, catalogSetting, isHkcu, indent);
+
+        // Script pass (mirrors AppendPowerShellScripts for an enabled Action). Setting-level ScriptEffects.
+        AppendActionScriptsFromCatalog(sb, catalogSetting, configItem, isHkcu, indent);
+    }
+
+    /// <summary>Emits the PowerShell-script blocks for an Action setting's setting-level ScriptEffects whose RunContext
+    /// matches the current hive pass. Byte-identical to <see cref="AppendPowerShellScripts"/> for an enabled Action:
+    /// the converter copies each old PowerShellScript.EnabledScript verbatim into a ScriptEffect, and an Action has no
+    /// ComboBox options, so the only placeholder pass that applies is the runtime CustomStateValues substitution
+    /// (mirroring the old code's CustomStateValues merge; an Action's ScriptVariables source does not exist).</summary>
+    internal void AppendActionScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        foreach (var scriptEffect in catalogSetting.Effects.OfType<ScriptEffect>())
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+                continue;
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution only (the old code's placeholder pass; an Action has no
+            // ComboBox-option ScriptVariables, so that source is absent).
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString() ?? string.Empty);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
+    }
+
     private void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
     {
         sb.AppendLine();

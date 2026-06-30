@@ -508,6 +508,34 @@ internal class RegistryCommandEmitter
         }
     }
 
+    /// <summary>Phase 6.8 script-gen tail: byte-equivalent new-catalog mirror of the OLD Action REGISTRY emission
+    /// (AppendToggleCommandsFiltered's Pattern-4 plain Set-RegistryValue path, run when an Action is IsSelected).
+    /// Action settings carry SETTING-level Effects (no States/Targets); SettingDefinitionConverter.ConvertAction maps
+    /// each old RegistrySetting's single EnabledValue to a plain RegistryWriteEffect and REJECTS any non-plain write
+    /// (bit/byte/composite/per-subkey/key-existence) at convert time, so only the plain Set-RegistryValue path is
+    /// reachable here - matching the old emitter's Pattern-4 branch for these settings (the per-subkey/key-existence/
+    /// binary-byte branches never apply). Each write is hive-filtered by its Path. The caller guards IsSelected; this
+    /// method assumes the Action is selected. The Action population is RegistryWriteEffect/ScriptEffect-only (asserted
+    /// by ScriptGenActionEquivalenceTests), so RegContent/NativePower effects are not emitted here. Proven by
+    /// ScriptGenActionEquivalenceTests.</summary>
+    public void AppendActionRegistryCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool isHkcu, string indent = "")
+    {
+        var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+
+        foreach (var rw in catalogSetting.Effects.OfType<RegistryWriteEffect>())
+        {
+            bool isHkcuEntry = rw.Path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
+            if (isHkcuEntry != isHkcu)
+                continue;
+
+            var regPath = EscapePowerShellString(ConvertRegistryPath(rw.Path));
+            var escapedValueName = EscapePowerShellString(rw.ValueName);
+            var valueType = ConvertToRegistryType(rw.Kind);
+            var formattedValue = FormatValueForPowerShell(rw.Value, rw.Kind);
+            sb.AppendLine($"{indent}Set-RegistryValue -Path '{regPath}' -Name '{escapedValueName}' -Type '{valueType}' -Value {formattedValue} -Description '{escapedDescription}'");
+        }
+    }
+
     public void AppendSelectionCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
