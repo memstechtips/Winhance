@@ -14,7 +14,6 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISystemSettingsDiscoveryService _discoveryService;
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
-    private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ISettingPreparationPipeline _preparationPipeline;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
@@ -28,7 +27,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         ISystemSettingsDiscoveryService discoveryService,
         ILogService logService,
         IInitializationService initializationService,
-        IComboBoxResolver comboBoxResolver,
         ISettingPreparationPipeline preparationPipeline,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
@@ -41,7 +39,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         _discoveryService = discoveryService;
         _logService = logService;
         _initializationService = initializationService;
-        _comboBoxResolver = comboBoxResolver;
         _preparationPipeline = preparationPipeline;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
@@ -73,11 +70,9 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
             var batchStates = await _discoveryService.GetSettingStatesAsync(settingsList);
 
-            // Resolve combo box values for Selection type settings
-            await ResolveComboBoxStatesAsync(settingsList, batchStates);
-
-            // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Runs
-            // after combo-box resolution so the selection baseline is the same value the UI consumes.
+            // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). The
+            // selection baseline is GetSettingStatesAsync's resolved option index (its ResolveRawValuesToIndex),
+            // the same value the UI consumes - the redundant IComboBoxResolver re-resolution was retired (G1a).
             await _shadowRunner.RunAsync(settingsList, batchStates);
 
             // Detection cutover: the new catalog engine decides each setting's primary state (toggle on/off,
@@ -158,10 +153,8 @@ public class SettingsLoadingService : ISettingsLoadingService
 
         var batchStates = await _discoveryService.GetSettingStatesAsync(definitions);
 
-        // Resolve combo box values for Selection type settings
-        await ResolveComboBoxStatesAsync(definitions, batchStates);
-
-        // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled).
+        // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Selection
+        // indices come from GetSettingStatesAsync (the redundant IComboBoxResolver re-resolution was retired - G1a).
         await _shadowRunner.RunAsync(definitions, batchStates);
 
         // Detection cutover: the new catalog engine decides each setting's primary state.
@@ -181,29 +174,5 @@ public class SettingsLoadingService : ISettingsLoadingService
         Dictionary<string, SettingStateResult> batchStates)
     {
         await CatalogDetectionOverlayHelper.OverlayAsync(definitions, batchStates, _catalogDetectionService, _logService);
-    }
-
-    /// <summary>
-    /// Resolves combo box values for all Selection-type settings in the batch.
-    /// </summary>
-    private async Task ResolveComboBoxStatesAsync(
-        IEnumerable<SettingDefinition> settings,
-        Dictionary<string, SettingStateResult> batchStates)
-    {
-        foreach (var setting in settings.Where(s => s.InputType == InputType.Selection))
-        {
-            if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
-            {
-                try
-                {
-                    var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
-                    batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Warning, $"Failed to resolve combo box value for '{setting.Id}': {ex.Message}");
-                }
-            }
-        }
     }
 }

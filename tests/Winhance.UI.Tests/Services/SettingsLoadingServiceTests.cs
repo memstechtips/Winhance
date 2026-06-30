@@ -19,7 +19,6 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInitializationService> _mockInitializationService = new();
-    private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
     private readonly Mock<ISettingPreparationPipeline> _mockPreparationPipeline = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
@@ -41,7 +40,6 @@ public class SettingsLoadingServiceTests
             _mockDiscoveryService.Object,
             _mockLogService.Object,
             _mockInitializationService.Object,
-            _mockComboBoxResolver.Object,
             _mockPreparationPipeline.Object,
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
@@ -254,12 +252,6 @@ public class SettingsLoadingServiceTests
                     { Success = true, CurrentValue = 1, RawValues = rawValues } }
             });
 
-        _mockComboBoxResolver
-            .Setup(r => r.ResolveCurrentValueAsync(
-                selectionSetting,
-                It.IsAny<Dictionary<string, object?>>()))
-            .ReturnsAsync(2);
-
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
             .ReturnsAsync(false);
@@ -280,8 +272,11 @@ public class SettingsLoadingServiceTests
         await _sut.LoadConfiguredSettingsAsync(
             "TestFeature", "Loading...", null);
 
-        _mockComboBoxResolver.Verify(r => r.ResolveCurrentValueAsync(
-            selectionSetting, It.IsAny<Dictionary<string, object?>>()), Times.Once);
+        // G1a: combo-box resolution is no longer a separate IComboBoxResolver pass - a Selection's CurrentValue comes
+        // from GetSettingStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
+        // detection path ran for the selection (pairing-independent; the VM list itself depends on catalog pairing).
+        _mockDiscoveryService.Verify(
+            d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()), Times.Once);
     }
 
     // ── RefreshSettingStatesAsync: combo box resolution + batch verification ──
@@ -313,17 +308,12 @@ public class SettingsLoadingServiceTests
                 { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1, RawValues = rawValues } }
             });
 
-        _mockComboBoxResolver
-            .Setup(r => r.ResolveCurrentValueAsync(
-                selectionDef,
-                It.IsAny<Dictionary<string, object?>>()))
-            .ReturnsAsync(2);
-
         var result = await _sut.RefreshSettingStatesAsync(new[] { vm });
 
-        result["SelectSetting"].CurrentValue.Should().Be(2);
-        _mockComboBoxResolver.Verify(r => r.ResolveCurrentValueAsync(
-            selectionDef, It.IsAny<Dictionary<string, object?>>()), Times.Once);
+        // G1a: the IComboBoxResolver re-resolution was retired; CurrentValue now comes straight from
+        // GetSettingStatesAsync (1 here), with the catalog overlay (a no-op in this test) refining paired settings.
+        // There is no separate resolver pass to overwrite it to 2.
+        result["SelectSetting"].CurrentValue.Should().Be(1);
     }
 
     [Fact]
