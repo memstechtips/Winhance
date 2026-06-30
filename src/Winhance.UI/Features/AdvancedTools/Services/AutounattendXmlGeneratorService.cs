@@ -177,16 +177,39 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     }
                     else
                     {
-                        item.SelectedIndex = selectedIndex;
-                    }
-                }
+                        // D-S2: a Separate-mode powercfg Selection exports AC and DC indices distinctly (mirror
+                        // ConfigExportService's Selection AC/DC branch) instead of the dead CurrentValue-is-Dictionary
+                        // branch that dropped the AC/DC split and left only a single SelectedIndex. AcValue/DcValue are
+                        // the typed fields the catalog detection overlay populates (D1); this changes the generated
+                        // unattend to set AC and DC separately on install for these settings.
+                        bool hasAcDcPowerSettings = false;
 
-                if (setting.InputType == InputType.Selection &&
-                    setting.PowerCfgSettings?.Any() == true &&
-                    setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                    state?.CurrentValue is Dictionary<string, object> powerDict)
-                {
-                    item.PowerSettings = powerDict;
+                        if (setting.PowerCfgSettings?.Any() == true &&
+                            setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
+                            state?.RawValues != null)
+                        {
+                            object? acValue = state.AcValue;
+                            object? dcValue = state.DcValue;
+
+                            if (acValue != null || dcValue != null)
+                            {
+                                var acIndex = ResolveValueToIndex(setting, acValue);
+                                var dcIndex = ResolveValueToIndex(setting, dcValue);
+
+                                item.PowerSettings = new Dictionary<string, object>
+                                {
+                                    ["ACIndex"] = acIndex,
+                                    ["DCIndex"] = dcIndex
+                                };
+                                hasAcDcPowerSettings = true;
+                            }
+                        }
+
+                        if (!hasAcDcPowerSettings)
+                        {
+                            item.SelectedIndex = selectedIndex;
+                        }
+                    }
                 }
 
                 if (setting.InputType == InputType.Selection &&
@@ -285,6 +308,34 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         }
 
         return (index, null, null, null);
+    }
+
+    // D-S2: index resolver for a Separate-mode powercfg Selection's AC/DC values - verbatim mirror of
+    // ConfigExportService.ResolveValueToIndex so both exporters resolve a raw powercfg value to its option
+    // index identically (via the option ValueMappings["PowerCfgValue"]).
+    private static int ResolveValueToIndex(SettingDefinition setting, object? value)
+    {
+        if (value == null) return 0;
+
+        var intValue = Convert.ToInt32(value);
+
+        var options = setting.ComboBox?.Options;
+        if (options == null)
+            return 0;
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            var mapping = options[i].ValueMappings;
+            if (mapping == null) continue;
+
+            if (mapping.TryGetValue("PowerCfgValue", out var expectedValue) &&
+                expectedValue != null && Convert.ToInt32(expectedValue) == intValue)
+            {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     private string LoadEmbeddedTemplate()
