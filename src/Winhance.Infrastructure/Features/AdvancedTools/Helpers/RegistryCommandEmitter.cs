@@ -270,7 +270,7 @@ internal class RegistryCommandEmitter
     /// or the state carries no entry for the target - matching the old GetWriteValue(EnabledValue/DisabledValue)
     /// returning the first non-null entry or null. This method emits ONLY registry targets; the RegContents tail
     /// is left to the call site. Proven by ScriptGenToggleEquivalenceTests.</summary>
-    public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
+    public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "", Winhance.Core.Features.Common.Catalog.WinBuild? build = null)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
         var isEnabled = configItem.IsSelected;
@@ -283,6 +283,13 @@ internal class RegistryCommandEmitter
 
         foreach (var rt in catalogSetting.Targets.OfType<RegTarget>())
         {
+            // Phase 6.8 script-gen tail: when a live build is threaded, drop targets not active on it (the OS-merged
+            // "This PC" toggles carry per-target AppliesTo Win10/Win11 ranges - emitting both would write both OS
+            // variants). Mirrors ApplyPlanBuilder's per-target gate. When build is null (e.g. a non-build-gated
+            // caller / a unit test feeding no build), no target is dropped - the prior emit-all behaviour.
+            if (build is { } b && rt.AppliesTo.Count > 0 && !rt.AppliesTo.Any(r => r.Contains(b)))
+                continue;
+
             foreach (var path in rt.Paths)
             {
                 // Filter by hive
