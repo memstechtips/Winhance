@@ -156,98 +156,19 @@ internal class FeatureRegistryScriptSection
                 }
 
                 // Emit PowerShell scripts whose RunContext matches the current pass.
-                if (settingDef.PowerShellScripts?.Count > 0)
-                {
-                    foreach (var scriptSetting in settingDef.PowerShellScripts)
-                    {
-                        bool scriptIsUser = scriptSetting.RunContext == RunContext.User;
-                        if (scriptIsUser != isHkcu)
-                        {
-                            continue;
-                        }
-
-                        // Custom state (user-entered values) always counts as "enabled" — the user
-                        // picking Custom DNS is expressing intent to configure, not to reset.
-                        bool hasCustomState = configItem.CustomStateValues?.Any() == true;
-                        var useEnabled = hasCustomState || configItem.IsSelected == true;
-
-                        if (!hasCustomState
-                            && settingDef.InputType == InputType.Selection
-                            && settingDef.ComboBox?.Options is { } selScriptOptions
-                            && configItem.SelectedIndex.HasValue
-                            && configItem.SelectedIndex.Value >= 0
-                            && configItem.SelectedIndex.Value < selScriptOptions.Count
-                            && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
-                        {
-                            // A "None" option applies no script — emit nothing into the
-                            // autounattend for this selection (e.g. Custom / leave-alone).
-                            if (scriptOption == ScriptOption.None)
-                            {
-                                continue;
-                            }
-
-                            useEnabled = scriptOption == ScriptOption.Enabled;
-                        }
-
-                        var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
-
-                        // Placeholder substitution. Merge sources with CustomStateValues winning
-                        // so a user-entered "Custom" selection overrides any preset option.
-                        if (!string.IsNullOrEmpty(script))
-                        {
-                            var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                            if (settingDef.ComboBox?.Options is { } selVarOptions
-                                && configItem.SelectedIndex.HasValue
-                                && configItem.SelectedIndex.Value >= 0
-                                && configItem.SelectedIndex.Value < selVarOptions.Count
-                                && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
-                            {
-                                foreach (var kvp in variables)
-                                {
-                                    placeholders[kvp.Key] = kvp.Value;
-                                }
-                            }
-
-                            if (configItem.CustomStateValues is { } customValues)
-                            {
-                                foreach (var kvp in customValues)
-                                {
-                                    if (kvp.Value != null)
-                                    {
-                                        placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
-                                    }
-                                }
-                            }
-
-                            foreach (var kvp in placeholders)
-                            {
-                                script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(script))
-                        {
-                            var escapedDescription = EscapePowerShellString(settingDef.Description);
-                            sb.AppendLine();
-                            sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
-                            sb.AppendLine($"{indent}try {{");
-                            foreach (var line in script.Split('\n'))
-                            {
-                                var trimmedLine = line.Trim();
-                                if (!string.IsNullOrEmpty(trimmedLine))
-                                {
-                                    sb.AppendLine($"{indent}    {trimmedLine}");
-                                }
-                            }
-                            sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
-                            sb.AppendLine($"{indent}}} catch {{");
-                            sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
-                            sb.AppendLine($"{indent}}}");
-                            sb.AppendLine();
-                        }
-                    }
-                }
+                // Phase 6.8 F3: route paired settings WITH states (toggle/selection) through the new catalog script
+                // emitter (AppendPowerShellScriptsFromCatalog - proven byte-equivalent by
+                // ScriptGenPowerShellEquivalenceTests). Action settings (Effects-modeled, no States) and unpaired
+                // settings stay on the old emitter, which reads settingDef.PowerShellScripts. EXCEPTION: a Selection with
+                // NO SelectedIndex (a "Custom" value matching no preset option) has no catalog state to resolve - the old
+                // emitter's hasCustomState path emits the un-baked EnabledScript, which the new state-mirror cannot
+                // reproduce - so route that case to the old emitter too (byte-faithful via AppendPowerShellScripts).
+                var catalogForScripts = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                bool selectionWithoutIndex = configItem.InputType == InputType.Selection && !configItem.SelectedIndex.HasValue;
+                if (catalogForScripts != null && catalogForScripts.States.Count > 0 && !selectionWithoutIndex)
+                    AppendPowerShellScriptsFromCatalog(sb, catalogForScripts, settingDef, configItem, isHkcu, indent);
+                else
+                    AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
 
             }
 
@@ -303,6 +224,198 @@ internal class FeatureRegistryScriptSection
     {
         var definition = FeatureDefinitions.Get(featureId);
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
+    }
+
+    /// <summary>Emits the PowerShell-script blocks for a setting whose RunContext matches the current hive pass.
+    /// Behaviour-preserving extraction of the old in-loop block (Phase 6.8 F3): scripts are sourced from
+    /// <see cref="SettingDefinition.PowerShellScripts"/> and the old ComboBox options. The new-catalog mirror is
+    /// <see cref="AppendPowerShellScriptsFromCatalog"/>, which is proven byte-equivalent by
+    /// ScriptGenPowerShellEquivalenceTests.</summary>
+    internal void AppendPowerShellScripts(
+        StringBuilder sb,
+        SettingDefinition settingDef,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        if (settingDef.PowerShellScripts?.Count > 0)
+        {
+            foreach (var scriptSetting in settingDef.PowerShellScripts)
+            {
+                bool scriptIsUser = scriptSetting.RunContext == RunContext.User;
+                if (scriptIsUser != isHkcu)
+                {
+                    continue;
+                }
+
+                // Custom state (user-entered values) always counts as "enabled" - the user
+                // picking Custom DNS is expressing intent to configure, not to reset.
+                bool hasCustomState = configItem.CustomStateValues?.Any() == true;
+                var useEnabled = hasCustomState || configItem.IsSelected == true;
+
+                if (!hasCustomState
+                    && settingDef.InputType == InputType.Selection
+                    && settingDef.ComboBox?.Options is { } selScriptOptions
+                    && configItem.SelectedIndex.HasValue
+                    && configItem.SelectedIndex.Value >= 0
+                    && configItem.SelectedIndex.Value < selScriptOptions.Count
+                    && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
+                {
+                    // A "None" option applies no script - emit nothing into the
+                    // autounattend for this selection (e.g. Custom / leave-alone).
+                    if (scriptOption == ScriptOption.None)
+                    {
+                        continue;
+                    }
+
+                    useEnabled = scriptOption == ScriptOption.Enabled;
+                }
+
+                var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
+
+                // Placeholder substitution. Merge sources with CustomStateValues winning
+                // so a user-entered "Custom" selection overrides any preset option.
+                if (!string.IsNullOrEmpty(script))
+                {
+                    var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                    if (settingDef.ComboBox?.Options is { } selVarOptions
+                        && configItem.SelectedIndex.HasValue
+                        && configItem.SelectedIndex.Value >= 0
+                        && configItem.SelectedIndex.Value < selVarOptions.Count
+                        && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
+                    {
+                        foreach (var kvp in variables)
+                        {
+                            placeholders[kvp.Key] = kvp.Value;
+                        }
+                    }
+
+                    if (configItem.CustomStateValues is { } customValues)
+                    {
+                        foreach (var kvp in customValues)
+                        {
+                            if (kvp.Value != null)
+                            {
+                                placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
+                            }
+                        }
+                    }
+
+                    foreach (var kvp in placeholders)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(script))
+                {
+                    var escapedDescription = EscapePowerShellString(settingDef.Description);
+                    sb.AppendLine();
+                    sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
+                    sb.AppendLine($"{indent}try {{");
+                    foreach (var line in script.Split('\n'))
+                    {
+                        var trimmedLine = line.Trim();
+                        if (!string.IsNullOrEmpty(trimmedLine))
+                        {
+                            sb.AppendLine($"{indent}    {trimmedLine}");
+                        }
+                    }
+                    sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                    sb.AppendLine($"{indent}}} catch {{");
+                    sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                    sb.AppendLine($"{indent}}}");
+                    sb.AppendLine();
+                }
+            }
+        }
+    }
+
+    /// <summary>New-catalog mirror of <see cref="AppendPowerShellScripts"/> (Phase 6.8 F3). Emits byte-identical
+    /// output, sourcing the script bodies from the catalog Setting's active <see cref="SettingState"/> ScriptEffects
+    /// instead of <see cref="SettingDefinition.PowerShellScripts"/> / the old ComboBox. The converter has already
+    /// baked each option's preset ScriptVariables into <see cref="ScriptEffect.Script"/> and placed the correct
+    /// Enabled/Disabled/None script on the right state, so only the runtime CustomStateValues pass is re-applied here.
+    /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option) has no
+    /// catalog state to resolve, so this emits nothing - whereas the old emitter's hasCustomState path emits the
+    /// un-baked EnabledScript. The production loop therefore routes Selection-without-index back to
+    /// <see cref="AppendPowerShellScripts"/> rather than here. Equivalence (for the routed-here cases) is pinned by
+    /// ScriptGenPowerShellEquivalenceTests.</summary>
+    internal void AppendPowerShellScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        SettingDefinition settingDef,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Resolve the state whose ScriptEffects this pass should emit. A Selection keys off SelectedIndex; a
+        // toggle/action keys off the Enabled/Disabled state (Custom values count as "enabled", as in the old loop).
+        SettingState? activeState;
+        if (settingDef.InputType == InputType.Selection
+            && configItem.SelectedIndex.HasValue
+            && configItem.SelectedIndex.Value >= 0
+            && configItem.SelectedIndex.Value < catalogSetting.States.Count)
+        {
+            activeState = catalogSetting.States[configItem.SelectedIndex.Value];
+        }
+        else
+        {
+            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Any() == true;
+            var targetLabel = useEnabled ? "Enabled" : "Disabled";
+            activeState = catalogSetting.States.FirstOrDefault(s => s.Label == targetLabel);
+        }
+
+        if (activeState is null)
+        {
+            return;
+        }
+
+        foreach (var scriptEffect in activeState.Effects.OfType<ScriptEffect>())
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+            {
+                continue;
+            }
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution only (the old code's SECOND placeholder pass). The option's
+            // preset ScriptVariables are already baked into ScriptEffect.Script by the converter.
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString() ?? string.Empty);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
     }
 
     private void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
