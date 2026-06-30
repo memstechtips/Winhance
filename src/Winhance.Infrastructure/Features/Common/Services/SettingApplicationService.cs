@@ -160,7 +160,22 @@ public class SettingApplicationService(
             {
                 var states = await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (states.TryGetValue(settingId, out var state) && state.Success)
+                {
+                    // Slice B: thread the new engine's typed AC/DC onto the before-state so FormatBeforeDisplay reads
+                    // them instead of the legacy detection RawValues["ACValue"/"DCValue"]. Value-identical for every
+                    // powercfg setting (ChangeHistoryBeforeAcDcEquivalenceTests: 41/41 old-per-target == new-batched).
+                    // Only for a paired POWERCFG setting (the only consumer of the typed AC/DC - threading it for a
+                    // non-powercfg setting would no-op); an unpaired one keeps the RawValues fallback in FormatBeforeDisplay.
+                    if (paired && setting.PowerCfgSettings?.Any() == true)
+                    {
+                        var beforeResults = await catalogDetection
+                            .DetectAsync(new[] { SettingCatalog.All.First(s => s.Id == settingId) }).ConfigureAwait(false);
+                        if (beforeResults.TryGetValue(settingId, out var br) && (br.AcValue is not null || br.DcValue is not null))
+                            state = state with { AcValue = br.AcValue, DcValue = br.DcValue };
+                    }
+
                     beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);
+                }
             }
             catch (Exception ex)
             {
@@ -610,21 +625,20 @@ public class SettingApplicationService(
     /// </summary>
     private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state, bool hasBattery)
     {
+        // Slice B: read AC/DC from the new engine's typed fields (threaded onto the before-state for a paired
+        // setting at the :161 read), falling back to the legacy detection RawValues["ACValue"/"DCValue"] for an
+        // unpaired setting. These are SYSTEM PowerCfg values (an enum/code), not option indices.
+        int? acInt = state.AcValue ?? TryRawInt(state, "ACValue");
+        int? dcInt = state.DcValue ?? TryRawInt(state, "DCValue");
+
         if (setting.InputType == InputType.NumericRange
             && setting.PowerCfgSettings?.Any() == true
-            && state.RawValues is { } raw
-            && raw.TryGetValue("ACValue", out var acRaw)
-            && raw.TryGetValue("DCValue", out var dcRaw))
+            && acInt.HasValue && dcInt.HasValue)
         {
-            var acInt = TryToInt(acRaw);
-            var dcInt = TryToInt(dcRaw);
-            if (acInt.HasValue && dcInt.HasValue)
-            {
-                var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
-                var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
-                var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
-                return FormatPowerNumeric(units, ac, dc, hasBattery);
-            }
+            var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
+            var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
+            var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
+            return FormatPowerNumeric(units, ac, dc, hasBattery);
         }
 
         // PowerCfg Separate SELECTION settings: state.CurrentValue is a single (AC-only) option index,
@@ -634,25 +648,21 @@ public class SettingApplicationService(
         // map each to its option index via the ValueMappings["PowerCfgValue"] lookup.
         if (setting.InputType == InputType.Selection
             && setting.PowerCfgSettings?.Any() == true
-            && state.RawValues is { } selRaw
-            && selRaw.TryGetValue("ACValue", out var acSel)
-            && selRaw.TryGetValue("DCValue", out var dcSel))
+            && acInt.HasValue && dcInt.HasValue)
         {
-            var acVal = TryToInt(acSel);
-            var dcVal = TryToInt(dcSel);
-            if (acVal.HasValue && dcVal.HasValue)
-            {
-                // No match for a raw PowerCfg value must render as the localized "Custom" label
-                // (-1 → GetOptionLabel out-of-range → Custom). NEVER use the raw value as an option
-                // index — raw 1 must not silently become Options[1].
-                var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acVal.Value) ?? -1;
-                var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcVal.Value) ?? -1;
-                return ComposeAcDc(GetOptionLabel(setting, acIdx), GetOptionLabel(setting, dcIdx), hasBattery);
-            }
+            // No match for a raw PowerCfg value must render as the localized "Custom" label
+            // (-1 -> GetOptionLabel out-of-range -> Custom). NEVER use the raw value as an option
+            // index - raw 1 must not silently become Options[1].
+            var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acInt.Value) ?? -1;
+            var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcInt.Value) ?? -1;
+            return ComposeAcDc(GetOptionLabel(setting, acIdx), GetOptionLabel(setting, dcIdx), hasBattery);
         }
 
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
+
+    private static int? TryRawInt(SettingStateResult state, string key)
+        => state.RawValues is { } raw && raw.TryGetValue(key, out var v) ? TryToInt(v) : null;
 
     /// <summary>
     /// Composes an AC/DC receipt fragment. On battery-less machines (<paramref name="hasBattery"/> is
