@@ -2105,8 +2105,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (InputType == InputType.Selection)
         {
-            // Paired state count == option count (1:1).
-            int optionCount = Setting.States.Count;
+            // Paired state count == option count (1:1). In production Setting is non-null (the VM is built from the
+            // paired catalog Setting; SettingsLoadingService skips VM creation when unpaired), so this is a no-op
+            // there - but this line is NOT data-gated, so null-guard it defensively rather than NRE (CS8602) on an
+            // unpaired Setting: no Setting -> zero options -> no out-of-range verdict (the AC/DC accessors below are
+            // already null-safe, so the pill logic stays sane).
+            int optionCount = Setting?.States.Count ?? 0;
             bool hasOptions = optionCount > 0;
             if (acHasData)
             {

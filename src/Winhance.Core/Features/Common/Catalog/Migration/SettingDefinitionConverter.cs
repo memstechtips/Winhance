@@ -337,7 +337,9 @@ public static class SettingDefinitionConverter
     /// per-context recommended/default values. Both declare the AC and DC contexts and a single PowerCfgTarget.</summary>
     public static Setting ConvertPowerCfg(SettingDefinition def)
     {
-        var pcs = def.PowerCfgSettings[0];
+        // ConvertPowerCfg is dispatched only for a powercfg def (PowerCfgSettings non-empty); assert that contract so
+        // the indexer does not warn (CS8602). A non-powercfg def reaching here would NRE with or without the `!`.
+        var pcs = def.PowerCfgSettings![0];
         var target = BuildPowerCfgTarget(pcs);
 
         if (def.InputType == InputType.NumericRange)
