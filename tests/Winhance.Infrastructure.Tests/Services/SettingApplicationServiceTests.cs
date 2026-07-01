@@ -33,6 +33,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly Mock<IWindowsVersionService> _mockVersion = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<IConfigImportState> _mockConfigImportState = new();
     private readonly SettingApplicationService _service;
 
@@ -69,6 +70,12 @@ public class SettingApplicationServiceTests
             .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
             .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
 
+        // Default: the full-state provider (paired before-state read at the change-history receipt) finds nothing,
+        // mirroring the old discovery default above so existing tests keep their "no before-state" expectations.
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
@@ -76,7 +83,7 @@ public class SettingApplicationServiceTests
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
             _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
-            _mockCatalogDetection.Object, _mockConfigImportState.Object);
+            _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
     }
 
     private static SettingDefinition CreateSetting(string id) => new()

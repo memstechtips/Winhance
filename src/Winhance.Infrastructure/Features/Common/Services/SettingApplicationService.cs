@@ -34,6 +34,7 @@ public class SettingApplicationService(
     IStateWriter stateWriter,
     IWindowsVersionService windowsVersionService,
     ICatalogDetectionService catalogDetection,
+    ICatalogSettingStateProvider settingStateProvider,
     IConfigImportState configImportState) : ISettingApplicationService
 {
     // Battery presence doesn't change mid-session, so resolve it once and cache. The async
@@ -158,22 +159,17 @@ public class SettingApplicationService(
             var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
             try
             {
-                var states = await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
+                // Slice 6: a paired setting reads its full before-state (incl. the typed AC/DC) from the new-engine
+                // provider - the drop-in for old discovery + overlay, consistent with the after-state and the live UI.
+                // This replaces the Slice B workaround that threaded AC/DC via a separate DetectAsync call (the provider's
+                // AcValue/DcValue come from the same DetectAsync, so it is value-identical - the 41/41 equivalence still
+                // holds). An unpaired setting keeps old discovery, whose RawValues["ACValue"/"DCValue"] FormatBeforeDisplay
+                // falls back to.
+                var states = paired
+                    ? await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false)
+                    : await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (states.TryGetValue(settingId, out var state) && state.Success)
                 {
-                    // Slice B: thread the new engine's typed AC/DC onto the before-state so FormatBeforeDisplay reads
-                    // them instead of the legacy detection RawValues["ACValue"/"DCValue"]. Value-identical for every
-                    // powercfg setting (ChangeHistoryBeforeAcDcEquivalenceTests: 41/41 old-per-target == new-batched).
-                    // Only for a paired POWERCFG setting (the only consumer of the typed AC/DC - threading it for a
-                    // non-powercfg setting would no-op); an unpaired one keeps the RawValues fallback in FormatBeforeDisplay.
-                    if (paired && setting.PowerCfgSettings?.Any() == true)
-                    {
-                        var beforeResults = await catalogDetection
-                            .DetectAsync(new[] { SettingCatalog.All.First(s => s.Id == settingId) }).ConfigureAwait(false);
-                        if (beforeResults.TryGetValue(settingId, out var br) && (br.AcValue is not null || br.DcValue is not null))
-                            state = state with { AcValue = br.AcValue, DcValue = br.DcValue };
-                    }
-
                     beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);
                 }
             }
