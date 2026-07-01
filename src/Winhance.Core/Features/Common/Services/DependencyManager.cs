@@ -19,7 +19,7 @@ public class DependencyManager : IDependencyManager
         _globalSettingsRegistry = globalSettingsRegistry;
     }
 
-    public async Task<bool> HandleSettingEnabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
+    public async Task<bool> HandleSettingEnabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ICatalogSettingStateProvider stateProvider)
     {
         var setting = FindSetting(settingId, allSettings);
         if (setting?.Dependencies == null || !setting.Dependencies.Any())
@@ -36,7 +36,7 @@ public class DependencyManager : IDependencyManager
                 continue;
             }
 
-            if (!await IsDependencySatisfiedAsync(dependency, discoveryService).ConfigureAwait(false))
+            if (!await IsDependencySatisfiedAsync(dependency, stateProvider).ConfigureAwait(false))
             {
                 await ApplyDependencyAsync(dependency, requiredSetting, settingApplicationService).ConfigureAwait(false);
             }
@@ -45,7 +45,7 @@ public class DependencyManager : IDependencyManager
         return allSucceeded;
     }
 
-    public async Task HandleSettingDisabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
+    public async Task HandleSettingDisabledAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ICatalogSettingStateProvider stateProvider)
     {
         var dependentSettings = allSettings.Where(s =>
             s.Dependencies?.Any(d =>
@@ -55,7 +55,7 @@ public class DependencyManager : IDependencyManager
 
         foreach (var dependentSetting in dependentSettings)
         {
-            var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService).ConfigureAwait(false);
+            var currentState = await GetSettingStateAsync(dependentSetting.Id, stateProvider).ConfigureAwait(false);
             if (currentState.Success && currentState.IsEnabled)
             {
                 try
@@ -63,7 +63,7 @@ public class DependencyManager : IDependencyManager
                     _logService.Log(LogLevel.Info,
                         $"[DependencyManager] Resetting dependent '{dependentSetting.Id}' to default values (parent '{settingId}' was disabled)");
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false, ResetToDefault = true }).ConfigureAwait(false);
-                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
+                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, stateProvider).ConfigureAwait(false);
                 }
                 catch (ArgumentException ex) when (ex.Message.Contains("not found"))
                 {
@@ -74,7 +74,7 @@ public class DependencyManager : IDependencyManager
         }
     }
 
-    public async Task HandleSettingValueChangedAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ISystemSettingsDiscoveryService discoveryService)
+    public async Task HandleSettingValueChangedAsync(string settingId, IEnumerable<ISettingItem> allSettings, ISettingApplicationService settingApplicationService, ICatalogSettingStateProvider stateProvider)
     {
         var dependentSettings = allSettings.Where(s =>
             s.Dependencies?.Any(d =>
@@ -83,7 +83,7 @@ public class DependencyManager : IDependencyManager
 
         foreach (var dependentSetting in dependentSettings)
         {
-            var currentState = await GetSettingStateAsync(dependentSetting.Id, discoveryService).ConfigureAwait(false);
+            var currentState = await GetSettingStateAsync(dependentSetting.Id, stateProvider).ConfigureAwait(false);
             if (!currentState.Success || !currentState.IsEnabled)
                 continue;
 
@@ -91,14 +91,14 @@ public class DependencyManager : IDependencyManager
                 d.RequiredSettingId == settingId &&
                 d.DependencyType == SettingDependencyType.RequiresSpecificValue);
 
-            if (!await IsDependencySatisfiedAsync(dependency, discoveryService).ConfigureAwait(false))
+            if (!await IsDependencySatisfiedAsync(dependency, stateProvider).ConfigureAwait(false))
             {
                 try
                 {
                     _logService.Log(LogLevel.Info,
                         $"[DependencyManager] Resetting dependent '{dependentSetting.Id}' to default values (required value for '{settingId}' no longer satisfied)");
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = dependentSetting.Id, Enable = false, ResetToDefault = true }).ConfigureAwait(false);
-                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
+                    await HandleSettingDisabledAsync(dependentSetting.Id, allSettings, settingApplicationService, stateProvider).ConfigureAwait(false);
                 }
                 catch (ArgumentException ex) when (ex.Message.Contains("not found"))
                 {
@@ -115,7 +115,7 @@ public class DependencyManager : IDependencyManager
                _globalSettingsRegistry.GetSetting(settingId);
     }
 
-    private async Task<SettingStateResult> GetSettingStateAsync(string settingId, ISystemSettingsDiscoveryService discoveryService)
+    private async Task<SettingStateResult> GetSettingStateAsync(string settingId, ICatalogSettingStateProvider stateProvider)
     {
         var setting = _globalSettingsRegistry.GetSetting(settingId);
         if (setting == null)
@@ -124,13 +124,13 @@ public class DependencyManager : IDependencyManager
         if (setting is not SettingDefinition settingDefinition)
             return new SettingStateResult { Success = false, ErrorMessage = $"Setting '{settingId}' is not a SettingDefinition" };
 
-        var results = await discoveryService.GetSettingStatesAsync(new[] { settingDefinition }).ConfigureAwait(false);
+        var results = await stateProvider.GetStatesAsync(new[] { settingDefinition }).ConfigureAwait(false);
         return results.TryGetValue(settingId, out var result) ? result : new SettingStateResult { Success = false };
     }
 
-    private async Task<bool> IsDependencySatisfiedAsync(SettingDependency dependency, ISystemSettingsDiscoveryService discoveryService)
+    private async Task<bool> IsDependencySatisfiedAsync(SettingDependency dependency, ICatalogSettingStateProvider stateProvider)
     {
-        var currentState = await GetSettingStateAsync(dependency.RequiredSettingId, discoveryService).ConfigureAwait(false);
+        var currentState = await GetSettingStateAsync(dependency.RequiredSettingId, stateProvider).ConfigureAwait(false);
         if (!currentState.Success)
             return false;
 

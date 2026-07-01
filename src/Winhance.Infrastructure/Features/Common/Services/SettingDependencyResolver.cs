@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class SettingDependencyResolver(
     IDependencyManager dependencyManager,
     IGlobalSettingsRegistry globalSettingsRegistry,
-    ISystemSettingsDiscoveryService discoveryService,
+    ICatalogSettingStateProvider stateProvider,
     IWindowsCompatibilityFilter compatibilityFilter,
     IProcessRestartManager processRestartManager,
     ILogService logService) : ISettingDependencyResolver
@@ -34,7 +34,7 @@ public class SettingDependencyResolver(
             if (directionalDependencies?.Any() == true)
             {
                 logService.Log(LogLevel.Info, $"[SettingDependencyResolver] Handling dependencies for '{settingId}'");
-                var dependencyResult = await dependencyManager.HandleSettingEnabledAsync(settingId, allSettings.Cast<ISettingItem>(), settingApplicationService, discoveryService).ConfigureAwait(false);
+                var dependencyResult = await dependencyManager.HandleSettingEnabledAsync(settingId, allSettings.Cast<ISettingItem>(), settingApplicationService, stateProvider).ConfigureAwait(false);
                 if (!dependencyResult)
                     throw new InvalidOperationException($"Cannot enable '{settingId}' due to unsatisfied dependencies");
             }
@@ -86,14 +86,14 @@ public class SettingDependencyResolver(
             if (hasDependentSettings)
             {
                 logService.Log(LogLevel.Info, $"[SettingDependencyResolver] Handling dependent settings for disabled '{settingId}'");
-                await dependencyManager.HandleSettingDisabledAsync(settingId, allRegisteredSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
+                await dependencyManager.HandleSettingDisabledAsync(settingId, allRegisteredSettings, settingApplicationService, stateProvider).ConfigureAwait(false);
             }
         }
 
         if (enable && value != null)
         {
             var allRegisteredSettings = globalSettingsRegistry.GetAllSettings();
-            await dependencyManager.HandleSettingValueChangedAsync(settingId, allRegisteredSettings, settingApplicationService, discoveryService).ConfigureAwait(false);
+            await dependencyManager.HandleSettingValueChangedAsync(settingId, allRegisteredSettings, settingApplicationService, stateProvider).ConfigureAwait(false);
         }
     }
 
@@ -136,7 +136,7 @@ public class SettingDependencyResolver(
                 continue;
             }
 
-            var states = await discoveryService.GetSettingStatesAsync(new[] { requiredSetting }).ConfigureAwait(false);
+            var states = await stateProvider.GetStatesAsync(new[] { requiredSetting }).ConfigureAwait(false);
             if (!states.TryGetValue(dependency.RequiredSettingId, out var currentState) || !currentState.Success)
             {
                 logService.Log(LogLevel.Warning,
@@ -284,7 +284,7 @@ public class SettingDependencyResolver(
             }
         }
 
-        var states = await discoveryService.GetSettingStatesAsync(childSettingDefinitions).ConfigureAwait(false);
+        var states = await stateProvider.GetStatesAsync(childSettingDefinitions).ConfigureAwait(false);
 
         foreach (var (childId, expectedValue) in compatiblePresetEntries)
         {

@@ -12,7 +12,7 @@ public class SettingDependencyResolverTests
 {
     private readonly Mock<IDependencyManager> _mockDependencyManager = new();
     private readonly Mock<IGlobalSettingsRegistry> _mockGlobalRegistry = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockDiscoveryService = new();
     private readonly Mock<IWindowsCompatibilityFilter> _mockCompatibilityFilter = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ISettingApplicationService> _mockSettingAppService = new();
@@ -86,7 +86,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingEnabledAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -103,7 +103,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingDisabledAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -166,7 +166,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingEnabledAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -334,7 +334,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingDisabledAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -373,7 +373,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingValueChangedAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -390,7 +390,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingValueChangedAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -436,7 +436,7 @@ public class SettingDependencyResolverTests
         _mockDependencyManager.Verify(
             d => d.HandleSettingEnabledAsync(
                 It.IsAny<string>(), It.IsAny<IEnumerable<ISettingItem>>(),
-                It.IsAny<ISettingApplicationService>(), It.IsAny<ISystemSettingsDiscoveryService>()),
+                It.IsAny<ISettingApplicationService>(), It.IsAny<ICatalogSettingStateProvider>()),
             Times.Never);
     }
 
@@ -457,7 +457,7 @@ public class SettingDependencyResolverTests
             setting, "setting1", new[] { setting }, _mockSettingAppService.Object);
 
         _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
             Times.Never);
     }
 
@@ -471,7 +471,7 @@ public class SettingDependencyResolverTests
             setting, "setting1", new[] { setting }, _mockSettingAppService.Object);
 
         _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
             Times.Never);
     }
 
@@ -493,7 +493,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -524,7 +524,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.HandleValuePrerequisitesAsync(
@@ -559,7 +559,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = true, CurrentValue = 0 }, // "Low"
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -599,7 +599,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = true, CurrentValue = 2 }, // Already "High"
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.HandleValuePrerequisitesAsync(
@@ -627,7 +627,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -678,7 +678,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = false, ErrorMessage = "Read error" },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.HandleValuePrerequisitesAsync(
@@ -707,7 +707,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.HandleValuePrerequisitesAsync(
@@ -731,7 +731,7 @@ public class SettingDependencyResolverTests
         var req2 = CreateSetting("required2", inputType: InputType.Toggle);
         var allSettings = new[] { setting, req1, req2 };
 
-        _mockDiscoveryService.SetupSequence(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.SetupSequence(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["required1"] = new() { Success = true, IsEnabled = false },
@@ -774,7 +774,7 @@ public class SettingDependencyResolverTests
         {
             ["required1"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -859,7 +859,7 @@ public class SettingDependencyResolverTests
             ["child1"] = new() { Success = true, IsEnabled = true },
             ["child2"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -906,7 +906,7 @@ public class SettingDependencyResolverTests
             ["child1"] = new() { Success = true, IsEnabled = false },
             ["child2"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.SyncParentToMatchingPresetAsync(
@@ -947,7 +947,7 @@ public class SettingDependencyResolverTests
             ["child1"] = new() { Success = true, IsEnabled = true },
             ["child2"] = new() { Success = true, IsEnabled = false },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -997,7 +997,7 @@ public class SettingDependencyResolverTests
         {
             ["child1"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -1039,7 +1039,7 @@ public class SettingDependencyResolverTests
         {
             ["child1"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -1086,7 +1086,7 @@ public class SettingDependencyResolverTests
             ["child1"] = new() { Success = true, IsEnabled = true },
             ["child2"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -1149,7 +1149,7 @@ public class SettingDependencyResolverTests
             ["child1"] = new() { Success = true, IsEnabled = true },
             ["child2"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
         _mockSettingAppService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -1206,7 +1206,7 @@ public class SettingDependencyResolverTests
         {
             ["child1"] = new() { Success = true, IsEnabled = true },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.SyncParentToMatchingPresetAsync(
@@ -1245,7 +1245,7 @@ public class SettingDependencyResolverTests
         {
             ["child1"] = new() { Success = false, ErrorMessage = "Error" },
         };
-        _mockDiscoveryService.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscoveryService.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(states);
 
         await _resolver.SyncParentToMatchingPresetAsync(

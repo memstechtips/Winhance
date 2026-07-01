@@ -13,7 +13,7 @@ public class DependencyManagerTests
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IGlobalSettingsRegistry> _mockRegistry = new();
     private readonly Mock<ISettingApplicationService> _mockSettingApp = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockDiscovery = new();
     private readonly DependencyManager _manager;
 
     public DependencyManagerTests()
@@ -102,7 +102,7 @@ public class DependencyManagerTests
 
         // GetSettingStateAsync for "child": looks up in registry, then calls discovery
         _mockRegistry.Setup(r => r.GetSetting("child", null)).Returns(child);
-        _mockDiscovery.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscovery.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["child"] = new SettingStateResult { Success = true, IsEnabled = true },
@@ -135,7 +135,7 @@ public class DependencyManagerTests
         };
 
         _mockRegistry.Setup(r => r.GetSetting("child", null)).Returns(child);
-        _mockDiscovery.Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockDiscovery.Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["child"] = new SettingStateResult { Success = true, IsEnabled = false },
