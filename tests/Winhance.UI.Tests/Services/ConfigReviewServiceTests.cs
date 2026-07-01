@@ -14,8 +14,7 @@ public class ConfigReviewServiceTests : IDisposable
 {
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
-    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
 
@@ -41,8 +40,7 @@ public class ConfigReviewServiceTests : IDisposable
         _service = new ConfigReviewService(
             _mockLogService.Object,
             _mockCompatibleSettingsRegistry.Object,
-            _mockDiscoveryService.Object,
-            _mockCatalogDetectionService.Object,
+            _mockSettingStateProvider.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object);
         return _service;
@@ -295,8 +293,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["privacy-setting"] = new SettingStateResult { IsEnabled = false }
@@ -352,8 +350,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["privacy-setting"] = new SettingStateResult { IsEnabled = true }
@@ -406,8 +404,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Taskbar"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 // Current state matches config (no value diff) but it's an action setting
@@ -467,8 +465,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("WindowsTheme"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
@@ -989,8 +987,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1052,8 +1050,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1112,8 +1110,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1196,8 +1194,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1276,8 +1274,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["numeric-setting"] = new SettingStateResult { CurrentValue = 30 }
@@ -1339,8 +1337,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["selection-setting"] = new SettingStateResult { CurrentValue = 0 }
@@ -1399,8 +1397,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("StartMenu"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["start-menu-clean-10"] = new SettingStateResult { IsEnabled = false }
@@ -1454,8 +1452,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("StartMenu"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["start-menu-clean-11"] = new SettingStateResult { IsEnabled = false }
@@ -1511,8 +1509,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-same"] = new SettingStateResult { CurrentValue = 30 }
@@ -1567,8 +1565,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-nopower"] = new SettingStateResult { CurrentValue = 50 }
@@ -1620,8 +1618,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-dconly"] = new SettingStateResult { CurrentValue = 30 }
@@ -1693,16 +1691,16 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { powerDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
                 l => l.Any(s => s.Id == "priv1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["priv1"] = new SettingStateResult { IsEnabled = false }
             });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
                 l => l.Any(s => s.Id == "pow1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
@@ -1782,8 +1780,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Privacy"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-null"] = new SettingStateResult { CurrentValue = 0 }
@@ -1835,8 +1833,8 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetFilteredSettings("Power"))
             .Returns(new[] { settingDef });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["power-plan"] = new SettingStateResult

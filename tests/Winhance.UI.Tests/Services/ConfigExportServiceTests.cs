@@ -22,7 +22,7 @@ public class ConfigExportServiceTests
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<IGlobalSettingsPreloader> _mockSettingsPreloader = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsAppsItemsProvider> _mockWindowsAppsVM = new();
     private readonly Mock<IExternalAppsItemsProvider> _mockExternalAppsVM = new();
@@ -32,17 +32,12 @@ public class ConfigExportServiceTests
     private readonly Mock<IThemeService> _mockThemeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IAutounattendXmlGeneratorService> _mockAutounattendGenerator = new();
-    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
 
     public ConfigExportServiceTests()
     {
         _mockDispatcher
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
-
-        _mockCatalogDetectionService
-            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
-            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
@@ -65,15 +60,14 @@ public class ConfigExportServiceTests
             _mockLocalizationService.Object,
             _mockCompatibleSettingsRegistry.Object,
             _mockSettingsPreloader.Object,
-            _mockDiscoveryService.Object,
+            _mockSettingStateProvider.Object,
             _mockInteractiveUserService.Object,
             _mockWindowsAppsVM.Object,
             _mockExternalAppsVM.Object,
             _mockFileSystemService.Object,
             _mockMainWindowProvider.Object,
             _mockApplicationModeService.Object,
-            _mockAutounattendGenerator.Object,
-            _mockCatalogDetectionService.Object);
+            _mockAutounattendGenerator.Object);
     }
 
     // -------------------------------------------------------

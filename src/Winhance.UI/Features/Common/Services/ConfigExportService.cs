@@ -18,7 +18,7 @@ public class ConfigExportService : IConfigExportService
     private readonly ILocalizationService _localizationService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IGlobalSettingsPreloader _settingsPreloader;
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWindowsAppsItemsProvider _windowsAppsVM;
     private readonly IExternalAppsItemsProvider _externalAppsVM;
@@ -26,7 +26,6 @@ public class ConfigExportService : IConfigExportService
     private readonly IMainWindowProvider _mainWindowProvider;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IAutounattendXmlGeneratorService _autounattendGenerator;
-    private readonly ICatalogDetectionService _catalogDetectionService;
 
     public ConfigExportService(
         ILogService logService,
@@ -34,22 +33,21 @@ public class ConfigExportService : IConfigExportService
         ILocalizationService localizationService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IGlobalSettingsPreloader settingsPreloader,
-        ISystemSettingsDiscoveryService discoveryService,
+        ICatalogSettingStateProvider settingStateProvider,
         IInteractiveUserService interactiveUserService,
         IWindowsAppsItemsProvider windowsAppsVM,
         IExternalAppsItemsProvider externalAppsVM,
         IFileSystemService fileSystemService,
         IMainWindowProvider mainWindowProvider,
         IApplicationModeService applicationModeService,
-        IAutounattendXmlGeneratorService autounattendGenerator,
-        ICatalogDetectionService catalogDetectionService)
+        IAutounattendXmlGeneratorService autounattendGenerator)
     {
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _settingsPreloader = settingsPreloader;
-        _discoveryService = discoveryService;
+        _settingStateProvider = settingStateProvider;
         _interactiveUserService = interactiveUserService;
         _windowsAppsVM = windowsAppsVM;
         _externalAppsVM = externalAppsVM;
@@ -57,7 +55,6 @@ public class ConfigExportService : IConfigExportService
         _mainWindowProvider = mainWindowProvider;
         _applicationModeService = applicationModeService;
         _autounattendGenerator = autounattendGenerator;
-        _catalogDetectionService = catalogDetectionService;
     }
 
     private Task EnsureRegistryInitializedAsync()
@@ -366,8 +363,10 @@ public class ConfigExportService : IConfigExportService
                 continue;
             }
 
-            var states = await _discoveryService.GetSettingStatesAsync(settings);
-            await CatalogDetectionOverlayHelper.OverlayAsync(settings, states, _catalogDetectionService, _logService);
+            // Slice 6: read state from the new-engine full-state provider (the drop-in for old discovery + overlay).
+            // Every setting here is catalog-paired (completeness-proven: 0 unpaired) and this service reads no
+            // RawValues (custom-state goes through Readings), so the provider is a faithful replacement.
+            var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
             {

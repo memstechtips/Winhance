@@ -23,8 +23,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private bool _disposed;
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
-    private readonly ICatalogDetectionService _catalogDetectionService;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
@@ -45,15 +44,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public ConfigReviewService(
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ISystemSettingsDiscoveryService discoveryService,
-        ICatalogDetectionService catalogDetectionService,
+        ICatalogSettingStateProvider settingStateProvider,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService)
     {
         _logService = logService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _discoveryService = discoveryService;
-        _catalogDetectionService = catalogDetectionService;
+        _settingStateProvider = settingStateProvider;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
 
@@ -447,13 +444,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
             // Batch-load current system states
             var defList = settingDefinitions.ToList();
-            var batchStates = await _discoveryService.GetSettingStatesAsync(defList);
-
-            // D-consistent cutover: overlay the new catalog detection engine's authoritative state onto the
-            // discovery results (same pattern the export services use). For paired Selections this sets CurrentValue
-            // to the resolved option index - the same value the retired IComboBoxResolver loop produced - and threads
-            // DynamicSelection/AcValue/DcValue/Readings.
-            await CatalogDetectionOverlayHelper.OverlayAsync(defList, batchStates, _catalogDetectionService, _logService);
+            // Slice 6: read state from the new-engine full-state provider (the drop-in for old discovery + overlay).
+            // Every setting here is catalog-paired (completeness-proven: 0 unpaired InputType settings) and this service
+            // reads no RawValues, so the provider is a faithful replacement - it resolves the same CurrentValue/
+            // IsEnabled/DynamicSelection/AcValue/DcValue/Readings the overlay used to thread onto discovery.
+            var batchStates = await _settingStateProvider.GetStatesAsync(defList);
 
             foreach (var configItem in configItems)
             {
