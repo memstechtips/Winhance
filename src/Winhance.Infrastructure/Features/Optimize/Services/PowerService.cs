@@ -28,41 +28,21 @@ public class PowerService(
     /// <summary>
     /// Phase 6.7 Slice 8c: power-plan apply now runs through the catalog engine (the funnel routes it via
     /// ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan), so PowerService is no
-    /// longer registered as an apply handler (Slice 8b-2b removed the registration). PowerService remains an
-    /// <see cref="ISpecialSettingHandler"/> only for <see cref="DiscoverSpecialSettingsAsync"/> (the discovery
-    /// registry), so this apply entry point is never reached and handles nothing.
+    /// longer registered as an apply handler. This <see cref="ISpecialSettingHandler"/> entry point is a dead stub
+    /// that always returns false; PowerService's live surface is now the corrupt-plan cleanup + the plan queries.
     /// </summary>
     public Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
 
-    public async Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
-    {
-        var results = new Dictionary<string, Dictionary<string, object?>>();
-
-        var powerPlanSetting = settings.FirstOrDefault(s => s.Id == SettingIds.PowerPlanSelection);
-        if (powerPlanSetting != null)
-        {
-            // Check for ghost/corrupt Winhance plan and clean up before ComboBox setup
-            await CleanupCorruptWinhancePlanAsync().ConfigureAwait(false);
-
-            var activePlan = await GetActivePowerPlanAsync().ConfigureAwait(false);
-            var rawValues = new Dictionary<string, object?>
-            {
-                ["ActivePowerPlan"] = activePlan?.Name,
-                ["ActivePowerPlanGuid"] = activePlan?.Guid
-            };
-            results[SettingIds.PowerPlanSelection] = rawValues;
-        }
-
-        return results;
-    }
-
     /// <summary>
     /// Detects and removes ghost/corrupt Winhance power plan entries that have the
     /// correct GUID but wrong name (e.g., "Unknown Power Plan"). These entries are
-    /// visible to PowerEnumerate but are not functional plans.
+    /// visible to PowerEnumerate but are not functional plans. Called by the new-engine
+    /// detection (SystemDetectionContext.PrefetchAsync) before the power-plan dropdown is
+    /// populated, so a corrupt plan is never shown - the analog of the old discovery's
+    /// "clean up before ComboBox setup". Never throws.
     /// </summary>
-    private async Task CleanupCorruptWinhancePlanAsync()
+    public async Task CleanupCorruptWinhancePlanAsync()
     {
         try
         {

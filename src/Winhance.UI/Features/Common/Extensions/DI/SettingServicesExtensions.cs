@@ -46,17 +46,6 @@ public static class SettingServicesExtensions
                 [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
             }));
 
-        // Only handlers that override DiscoverSpecialSettingsAsync (i.e. self-filter
-        // and return raw values) belong in the discovery registry. The handler list is resolved LAZILY
-        // (() => ...) so building this registry does not eagerly construct UpdateService's apply-writer graph,
-        // which cycles back to ISystemSettingsDiscoveryService and would deadlock DI singleton resolution.
-        services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
-            new SpecialDiscoveryRegistry(() => new List<ISpecialSettingHandler>
-            {
-                sp.GetRequiredService<PowerService>(),
-                sp.GetRequiredService<UpdateService>(),
-            }));
-
         return services;
     }
 

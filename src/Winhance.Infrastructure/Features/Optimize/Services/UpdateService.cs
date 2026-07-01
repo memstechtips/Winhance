@@ -27,20 +27,6 @@ public class UpdateService(
         return false;
     }
 
-    public async Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
-    {
-        var results = new Dictionary<string, Dictionary<string, object?>>();
-
-        var updatesSetting = settings.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
-        if (updatesSetting != null)
-        {
-            var currentIndex = await GetCurrentUpdatePolicyIndexAsync().ConfigureAwait(false);
-            results[SettingIds.UpdatesPolicyMode] = new Dictionary<string, object?> { ["CurrentPolicyIndex"] = currentIndex };
-        }
-
-        return results;
-    }
-
     public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)

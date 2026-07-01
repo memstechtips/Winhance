@@ -14,8 +14,8 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 /// <summary>
 /// Phase 6.7 Slice 8c: power-plan APPLY was removed from PowerService (it runs through the catalog engine now), so
-/// PowerService's live surface is detection (DiscoverSpecialSettingsAsync + the corrupt-plan cleanup) plus the
-/// GetActive/GetAvailable/Delete plan queries. TryApplySpecialSettingAsync is a dead stub that always returns false.
+/// PowerService's live surface is the corrupt-plan cleanup (CleanupCorruptWinhancePlanAsync, run by the new-engine
+/// detection) plus the GetActive/GetAvailable/Delete plan queries. TryApplySpecialSettingAsync is a dead stub.
 /// </summary>
 public class PowerServiceTests
 {
@@ -137,56 +137,11 @@ public class PowerServiceTests
     }
 
     [Fact]
-    public async Task DiscoverSpecialSettingsAsync_WithPowerPlanSetting_ReturnsActivePlanInfo()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            MakeSetting("power-plan-selection"),
-        };
-
-        var activePlan = new Winhance.Core.Features.Optimize.Models.PowerPlan
-        {
-            Name = "Balanced",
-            Guid = "381b4222-f694-41f0-9685-ff5bb260df2e"
-        };
-
-        _powerSettingsQueryService
-            .Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(activePlan);
-
-        // Act
-        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().ContainKey("power-plan-selection");
-        result["power-plan-selection"]["ActivePowerPlan"].Should().Be("Balanced");
-        result["power-plan-selection"]["ActivePowerPlanGuid"].Should().Be("381b4222-f694-41f0-9685-ff5bb260df2e");
-    }
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_WithoutPowerPlanSetting_ReturnsEmptyDictionary()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            MakeSetting("some-other-setting"),
-        };
-
-        // Act
-        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_CorruptWinhancePlanActive_DeletesGhostAndSwitchesToBalanced()
+    public async Task CleanupCorruptWinhancePlanAsync_CorruptWinhancePlanActive_DeletesGhostAndSwitchesToBalanced()
     {
         // Arrange — ghost Winhance plan is active with wrong name
         var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
         var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-        var settings = new List<SettingDefinition> { MakeSetting(SettingIds.PowerPlanSelection) };
 
         var ghostPlan = new PowerPlan
         {
@@ -220,7 +175,7 @@ public class PowerServiceTests
             .Returns(PowerProf.ERROR_SUCCESS);
 
         // Act
-        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
+        await _sut.CleanupCorruptWinhancePlanAsync();
 
         // Assert — should switch to Balanced before deleting
         _powerSchemeOperations.Verify(
@@ -236,18 +191,13 @@ public class PowerServiceTests
         _powerSettingsQueryService.Verify(
             s => s.InvalidateCache(),
             Times.AtLeastOnce);
-
-        // Result should reflect Balanced as active
-        result.Should().ContainKey(SettingIds.PowerPlanSelection);
-        result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Balanced");
     }
 
     [Fact]
-    public async Task DiscoverSpecialSettingsAsync_ValidWinhancePlanActive_DoesNotDelete()
+    public async Task CleanupCorruptWinhancePlanAsync_ValidWinhancePlanActive_DoesNotDelete()
     {
         // Arrange — valid Winhance plan is active
         var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
-        var settings = new List<SettingDefinition> { MakeSetting(SettingIds.PowerPlanSelection) };
 
         var validPlan = new PowerPlan
         {
@@ -265,15 +215,11 @@ public class PowerServiceTests
             .ReturnsAsync(validPlan);
 
         // Act
-        var result = await _sut.DiscoverSpecialSettingsAsync(settings);
+        await _sut.CleanupCorruptWinhancePlanAsync();
 
         // Assert — should NOT delete valid plan
         _powerSchemeOperations.Verify(
             s => s.DeleteScheme(It.IsAny<Guid>()),
             Times.Never);
-
-        // Should report Winhance as active
-        result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Winhance Power Plan");
-        result[SettingIds.PowerPlanSelection]["ActivePowerPlanGuid"].Should().Be(winhanceGuid);
     }
 }

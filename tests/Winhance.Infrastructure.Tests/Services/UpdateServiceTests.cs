@@ -267,61 +267,6 @@ public class UpdateServiceTests
 
     #endregion
 
-    #region DiscoverSpecialSettingsAsync
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_NoMatchingSetting_ReturnsEmptyDictionary()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "unrelated-setting",
-                Name = "Unrelated",
-                Description = "Not updates policy"
-            }
-        };
-
-        // Act
-        var result = await _service.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_WithUpdatesPolicyMode_ReturnsPolicyIndex()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "updates-policy-mode",
-                Name = "Policy Mode",
-                Description = "Updates policy"
-            }
-        };
-
-        // Set up for normal mode (index 0)
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
-            .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-        _mockRegistryService.Setup(r => r.GetValue(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((object?)null);
-
-        // Act
-        var result = await _service.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().ContainKey("updates-policy-mode");
-        result["updates-policy-mode"].Should().ContainKey("CurrentPolicyIndex");
-        result["updates-policy-mode"]["CurrentPolicyIndex"].Should().Be(0);
-    }
-
-    #endregion
-
     #region Helpers
 
     private void SetupProcessExecutor()

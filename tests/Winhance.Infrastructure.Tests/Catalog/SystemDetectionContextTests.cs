@@ -25,8 +25,9 @@ public class SystemDetectionContextTests
         var restore = new Mock<ISystemRestoreService>();
         var tasks = new Mock<IScheduledTaskService>();
         var power = new Mock<IPowerSettingsQueryService>();
+        var powerService = new Mock<Winhance.Core.Features.Optimize.Interfaces.IPowerService>();
         var log = new Mock<ILogService>();
-        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, log.Object);
+        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, powerService.Object, log.Object);
         return (ctx, reg, restore, tasks, power);
     }
 

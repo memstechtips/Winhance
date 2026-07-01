@@ -86,11 +86,6 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
 
         // Settings Application
-        // ISpecialDiscoveryRegistry is vestigial after old-discovery retirement (Phase 6.9): its only consumer, the
-        // retired SystemSettingsDiscoveryService, is gone. The UI composition root still re-registers it, and the
-        // empty TryAdd default keeps the infrastructure container self-contained for integration smoke tests.
-        services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
-            new SpecialDiscoveryRegistry(() => System.Array.Empty<ISpecialSettingHandler>()));
         // SettingApplicationService depends on the ISpecialSettingHandlerRegistry dispatcher registry, re-registered
         // by the UI composition root with the real handler set. Same TryAdd-default rationale as above.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
@@ -132,6 +127,11 @@ public static class InfrastructureServicesExtensions
         // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
+        // IPowerService self-contained default so SystemDetectionContext (which calls the corrupt-plan cleanup) resolves
+        // in the Infrastructure-only container (integration smoke). The UI composition root re-registers it with the
+        // richer PowerService graph; because that runs after AddInfrastructureServices, the UI registration wins in-app.
+        services.TryAddSingleton<Winhance.Core.Features.Optimize.Interfaces.IPowerService,
+            Winhance.Infrastructure.Features.Optimize.Services.PowerService>();
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();

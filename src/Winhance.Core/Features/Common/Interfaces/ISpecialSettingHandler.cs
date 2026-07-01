@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 
@@ -11,10 +10,4 @@ public interface ISpecialSettingHandler
         object value,
         bool additionalContext = false,
         ISettingApplicationService? settingApplicationService = null);
-
-    Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(
-        IEnumerable<SettingDefinition> settings)
-    {
-        return Task.FromResult(new Dictionary<string, Dictionary<string, object?>>());
-    }
 }
