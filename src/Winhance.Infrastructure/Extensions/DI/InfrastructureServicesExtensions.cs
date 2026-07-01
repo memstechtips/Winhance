@@ -114,6 +114,9 @@ public static class InfrastructureServicesExtensions
         // Catalog detection batch driver + the observe-only parallel-run shadow (logs old-vs-new divergences).
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
         services.AddSingleton<IDetectionShadowRunner, DetectionShadowRunner>();
+        // Phase 6.9 full-state provider (new-engine drop-in for GetSettingStatesAsync + overlay); Slice 6 repoints
+        // the old-discovery callers onto it one at a time.
+        services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
         // Catalog apply: the live IStateWriter that executes apply plans against the real system (Phase 6.4),
         // plus the OTS-aware .reg-import effect runner it delegates to.
         services.AddSingleton<IRegImportService, RegImportService>();

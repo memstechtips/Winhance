@@ -30,7 +30,7 @@ public class WindowsAppsService(
     ITaskProgressService taskProgressService,
     ILocalizationService localizationService,
     ISettingApplicationService settingApplicationService,
-    ISystemSettingsDiscoveryService systemSettingsDiscoveryService) : IWindowsAppsService
+    ICatalogSettingStateProvider settingStateProvider) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
     private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
@@ -260,7 +260,10 @@ public class WindowsAppsService(
             if (policySetting == null)
                 return false;
 
-            var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting }).ConfigureAwait(false);
+            // Phase 6.9 Slice 6: read the update-policy state from the new-engine full-state provider. UpdatePolicyDetector
+            // reproduces the old UpdateService precedence (renamed DLLs -> Disabled = index 3), so this recovery check is
+            // faithful - the DLL-rename signal is preserved, unlike a registry-only read.
+            var states = await settingStateProvider.GetStatesAsync(new[] { policySetting }).ConfigureAwait(false);
             if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
             {
                 // Always record what was discovered, so support transcripts show why

@@ -21,7 +21,7 @@ public class WindowsAppsServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _systemSettingsDiscoveryService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _settingStateProvider = new();
 
     private WindowsAppsService CreateSut() => new(
         _logService.Object,
@@ -34,7 +34,7 @@ public class WindowsAppsServiceTests
         _taskProgressService.Object,
         _localizationService.Object,
         _settingApplicationService.Object,
-        _systemSettingsDiscoveryService.Object);
+        _settingStateProvider.Object);
 
     // --- DomainName ---
 
@@ -152,8 +152,8 @@ public class WindowsAppsServiceTests
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
         // Update policy is not disabled (no blocking)
-        _systemSettingsDiscoveryService
-            .Setup(x => x.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _settingStateProvider
+            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         // User has NOT opted to skip confirmation
@@ -189,8 +189,8 @@ public class WindowsAppsServiceTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
-        _systemSettingsDiscoveryService
-            .Setup(x => x.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _settingStateProvider
+            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         // User has previously opted to skip confirmation
