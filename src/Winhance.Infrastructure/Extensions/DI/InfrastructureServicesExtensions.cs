@@ -127,11 +127,6 @@ public static class InfrastructureServicesExtensions
         // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
-        // IPowerService self-contained default so SystemDetectionContext (which calls the corrupt-plan cleanup) resolves
-        // in the Infrastructure-only container (integration smoke). The UI composition root re-registers it with the
-        // richer PowerService graph; because that runs after AddInfrastructureServices, the UI registration wins in-app.
-        services.TryAddSingleton<Winhance.Core.Features.Optimize.Interfaces.IPowerService,
-            Winhance.Infrastructure.Features.Optimize.Services.PowerService>();
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();

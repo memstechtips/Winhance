@@ -175,7 +175,6 @@ public class CatalogSettingStateProviderConformanceTests
             new Mock<ISystemRestoreService>().Object,
             new Mock<IScheduledTaskService>().Object,
             powerQuery,
-            new Mock<Winhance.Core.Features.Optimize.Interfaces.IPowerService>().Object,
             log.Object);
         var detection = new CatalogDetectionService(factory, log.Object);
         // ResolveRawValuesToIndex (the selection value-match base) is pure, so the resolver needs no dependencies.

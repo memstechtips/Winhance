@@ -1,6 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Optimize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -12,7 +11,6 @@ public sealed class SystemDetectionContextFactory : ISystemDetectionContextFacto
     private readonly ISystemRestoreService _restore;
     private readonly IScheduledTaskService _tasks;
     private readonly IPowerSettingsQueryService _power;
-    private readonly IPowerService _powerService;
     private readonly ILogService _log;
 
     public SystemDetectionContextFactory(
@@ -20,17 +18,15 @@ public sealed class SystemDetectionContextFactory : ISystemDetectionContextFacto
         ISystemRestoreService restore,
         IScheduledTaskService tasks,
         IPowerSettingsQueryService power,
-        IPowerService powerService,
         ILogService log)
     {
         _reg = reg;
         _restore = restore;
         _tasks = tasks;
         _power = power;
-        _powerService = powerService;
         _log = log;
     }
 
     public IPrefetchableDetectionContext Create() =>
-        new SystemDetectionContext(_reg, _restore, _tasks, _power, _powerService, _log);
+        new SystemDetectionContext(_reg, _restore, _tasks, _power, _log);
 }

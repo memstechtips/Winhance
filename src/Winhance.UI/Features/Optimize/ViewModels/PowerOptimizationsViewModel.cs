@@ -41,6 +41,12 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
     public override async Task LoadSettingsAsync()
     {
+        // Self-heal a corrupt/ghost "Winhance Power Plan" (a scheme with the Winhance GUID but a wrong name) BEFORE the
+        // base load runs detection and builds the dropdown, so a corrupt plan is never shown. Scoped to the power page's
+        // interactive load - a no-op unless a corrupt plan exists - so the mutation never runs during config
+        // review/export/autounattend or apply-relationship detection (which share the state provider but not this VM).
+        await _powerService.CleanupCorruptWinhancePlanAsync();
+
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
