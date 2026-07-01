@@ -177,6 +177,7 @@ public class CatalogAuthoringEquivalenceTests
         if (def.DetectionType == DetectionType.SystemTrayIcons) return SettingDefinitionConverter.ConvertSystemTray(def);
         if (def.DetectionType == DetectionType.SystemRestore) return SettingDefinitionConverter.ConvertSystemRestore(def);
         if (def.DetectionType == DetectionType.DnsServer) return SettingDefinitionConverter.ConvertDnsServer(def);
+        if (def.DetectionType == DetectionType.UpdatePolicy) return SettingDefinitionConverter.ConvertUpdatePolicy(def);
         if (def.ScheduledTaskSettings.Count > 0) return SettingDefinitionConverter.ConvertScheduledTaskToggle(def);
         // Powercfg routing MUST precede the registry selection/toggle split: a power Selection has the same
         // InputType.Selection but converts via ConvertPowerCfg, and a power NumericRange would otherwise fall to

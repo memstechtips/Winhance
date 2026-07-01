@@ -24,6 +24,10 @@ public static class UpdateOptimizations
                     GroupName = "Update Policy",
                     Icon = "BookSync",
                     InputType = InputType.Selection,
+                    // Detection is not registry-expressible (Disabled/Paused share NoAutoUpdate=1/AUOptions=1, and
+                    // Disabled is a filesystem DLL rename): the new engine reads it via UpdatePolicyDetector, declared
+                    // here so the converter emits that detector and the registry-equivalence harnesses skip it.
+                    DetectionType = DetectionType.UpdatePolicy,
                     RegistrySettings = new List<RegistrySetting>
                     {
                         new RegistrySetting

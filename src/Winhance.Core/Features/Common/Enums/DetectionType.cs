@@ -9,4 +9,5 @@ public enum DetectionType
     DnsServer,
     SystemRestore,
     SystemTrayIcons,
+    UpdatePolicy,
 }

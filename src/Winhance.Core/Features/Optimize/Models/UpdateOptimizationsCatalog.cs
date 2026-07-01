@@ -16,6 +16,14 @@ public static class UpdateOptimizationsCatalog
         new()
         {
             Id = "updates-policy-mode",
+            // Detection is not registry-expressible (Disabled and Paused both write NoAutoUpdate=1/AUOptions=1, and
+            // Disabled is enforced by a filesystem DLL rename), so a custom detector reproduces the old UpdateService
+            // special-handler precedence. Labels must equal the States below.
+            Detector = new UpdatePolicyDetector(
+                "Normal (Windows Default)",
+                "Security Updates Only (Recommended)",
+                "Paused for a long time (Unpause in Settings)",
+                "Disabled (NOT Recommended, Security Risk)"),
             Display = new()
             {
                 Name = "Windows Update Policy",

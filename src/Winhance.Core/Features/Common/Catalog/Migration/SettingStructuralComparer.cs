@@ -55,6 +55,11 @@ public static class SettingStructuralComparer
                 break;
             case PowerPlanDetector when b is PowerPlanDetector:
                 break;
+            case UpdatePolicyDetector ua when b is UpdatePolicyDetector ub:
+                if (ua.DefaultLabel != ub.DefaultLabel || ua.DeferLabel != ub.DeferLabel
+                    || ua.PausedLabel != ub.PausedLabel || ua.DisabledLabel != ub.DisabledLabel)
+                    d.Add("Detector(UpdatePolicy) labels differ");
+                break;
             default:
                 d.Add("Detector type not structurally compared (unknown detector)");
                 break;

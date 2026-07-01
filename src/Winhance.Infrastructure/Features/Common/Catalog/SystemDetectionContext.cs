@@ -84,6 +84,22 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 
+    /// <summary>Mirrors UpdateService.AreCriticalDllsRenamed: the update-policy Disabled state is enforced by renaming
+    /// the two critical DLLs to "_BAK" backups, so it reads as "a _BAK backup exists AND the live DLL is gone". A thin
+    /// direct filesystem read (like the network/registry reads above) - the throwaway/test contexts inherit the false
+    /// default from IDetectionContext, so only this live context touches disk.</summary>
+    public bool CriticalUpdateDllsRenamed()
+    {
+        foreach (var dll in new[] { "WaaSMedicSvc.dll", "wuaueng.dll" })
+        {
+            var dllPath = $@"C:\Windows\System32\{dll}";
+            var backupPath = $@"C:\Windows\System32\{System.IO.Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+            if (System.IO.File.Exists(backupPath) && !System.IO.File.Exists(dllPath))
+                return true;
+        }
+        return false;
+    }
+
     public bool? ScheduledTaskEnabled(string taskPath)
     {
         if (_taskCache.TryGetValue(taskPath, out var enabled))

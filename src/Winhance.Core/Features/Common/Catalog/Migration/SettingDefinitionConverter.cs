@@ -278,6 +278,24 @@ public static class SettingDefinitionConverter
         };
     }
 
+    /// <summary>Translates the update-policy selection (DetectionType.UpdatePolicy) into a registry Setting whose
+    /// APPLY is the normal selection registry apply (via <see cref="ConvertSelection"/>), but whose DETECTION routes
+    /// through <see cref="UpdatePolicyDetector"/> - Disabled and Paused both write NoAutoUpdate=1/AUOptions=1 and the
+    /// Disabled enforcement is a filesystem DLL rename, so target-value matching cannot read it. The four option
+    /// DisplayNames become the detector's state labels in index order (0 default, 1 defer, 2 paused, 3 disabled).</summary>
+    public static Setting ConvertUpdatePolicy(SettingDefinition def)
+    {
+        var options = def.ComboBox!.Options;
+        return ConvertSelection(def) with
+        {
+            Detector = new UpdatePolicyDetector(
+                options[0].DisplayName,
+                options[1].DisplayName,
+                options[2].DisplayName,
+                options[3].DisplayName),
+        };
+    }
+
     /// <summary>Translates an old InputType.Action one-shot into the new Setting model: zero States/Targets,
     /// with setting-level Effects that run on click. Maps the ENABLED branch only (the old apply hardcodes
     /// enable=true): each RegistrySetting's EnabledValue -> a RegistryWriteEffect (unfolded, source order, so a

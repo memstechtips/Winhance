@@ -49,4 +49,10 @@ public interface IDetectionContext
     /// pre-fetched per batch like the active plan. Consumed by <see cref="PowerPlanOptionSource"/>. Default empty:
     /// only the live context enumerates them; the throwaway migration contexts and test fakes have no plans to read.</summary>
     IReadOnlyList<DynamicOption> InstalledPowerPlans() => System.Array.Empty<DynamicOption>();
+
+    /// <summary>Whether Windows Update's critical DLLs have been renamed to their "_BAK" backups (the enforcement the
+    /// old UpdateService special handler used to detect the Disabled update-policy state - a filesystem check the
+    /// registry cannot express). Consumed by <see cref="UpdatePolicyDetector"/>. Default false: only the live context
+    /// touches the filesystem; the throwaway migration contexts and test fakes report "not renamed".</summary>
+    bool CriticalUpdateDllsRenamed() => false;
 }
