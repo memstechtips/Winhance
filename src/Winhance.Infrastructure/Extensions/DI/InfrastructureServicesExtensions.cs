@@ -85,21 +85,16 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
             Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
 
-        // Settings Discovery and Application
-        // SystemSettingsDiscoveryService depends on ISpecialDiscoveryRegistry.
-        // The UI composition root re-registers that registry (in AddSettingServices)
-        // with the real handler set (PowerService, UpdateService); because that runs
-        // after AddInfrastructureServices, the richer registration wins in the app.
-        // TryAdd here provides an empty default so the infrastructure container is
-        // self-contained when composed on its own (e.g. integration smoke tests).
+        // Settings Application
+        // ISpecialDiscoveryRegistry is vestigial after old-discovery retirement (Phase 6.9): its only consumer, the
+        // retired SystemSettingsDiscoveryService, is gone. The UI composition root still re-registers it, and the
+        // empty TryAdd default keeps the infrastructure container self-contained for integration smoke tests.
         services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
             new SpecialDiscoveryRegistry(() => System.Array.Empty<ISpecialSettingHandler>()));
-        // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
-        // dispatcher registry, re-registered by the UI composition root with the real
-        // handler set. Same TryAdd-default rationale as ISpecialDiscoveryRegistry above.
+        // SettingApplicationService depends on the ISpecialSettingHandlerRegistry dispatcher registry, re-registered
+        // by the UI composition root with the real handler set. Same TryAdd-default rationale as above.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
-        services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();

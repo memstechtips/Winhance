@@ -12,44 +12,23 @@ using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Winhance.Infrastructure.Tests.Migration;
 
-/// <summary>Phase 6.8 full-state-provider equivalence gate, run on Windows against the live machine. Proves the NEW
-/// additive <see cref="CatalogSettingStateProvider"/> - which builds a complete <see cref="SettingStateResult"/> per
-/// setting from the new catalog detection engine ALONE - matches the CURRENT live hybrid (the old discovery's
-/// <see cref="SystemSettingsDiscoveryService.GetSettingStatesAsync"/> with <see cref="CatalogDetectionStateOverlay"/>
-/// layered on, exactly as <c>CatalogDetectionOverlayHelper</c> applies it in the running app) for the catalog-paired
-/// settings. Both tracks read the SAME live registry + power scheme via the SAME real service instances, so this is a
-/// behavioural equivalence check, not a reimplementation.
+/// <summary>Machine-INDEPENDENT conformance for the new-engine <see cref="CatalogSettingStateProvider"/> - the permanent
+/// guard left behind after old discovery + the equivalence oracle were retired (Phase 6.9 teardown). These construct
+/// readings/detection results directly and assert against what Windows ships and the catalog model, never a live
+/// old-vs-new comparison. Covers: the Windows-grounded IsEnabled rule (the <c>IsEnabled_*</c> facts + the
+/// <c>Every_gate_*</c> structural invariants that keep the rule well-defined), the win10-alias pairing, and the
+/// selection value-match fallback (the Phase 6.9 Custom-regression guard).
 ///
-/// Population: catalog-paired pure-registry toggles/selections + pure-powercfg selections/numerics (the
-/// <c>RegistryToggleEquivalenceHarness.IsPure*</c> predicates), so only well-isolated detection mechanisms are
-/// exercised. OS-merged settings (any catalog RegTarget carries an AppliesTo build gate) are excluded - their single-OS
-/// old def legitimately differs from the multi-OS catalog setting, mirroring <c>CustomStateReadingsEquivalenceTests</c>.
-///
-/// RawValues is intentionally EXCLUDED from the comparison (option B): the provider deliberately does not resurrect it
-/// (registry readings live on Readings, AC/DC on the typed fields). TooltipData, if present, is likewise out of scope.
-///
-/// IsEnabled is ALSO excluded from the live-hybrid comparison (decided done-right, Marco 2026-07-01): for a
-/// selection/numeric the hybrid derives IsEnabled from old discovery's <c>.Any</c>/<c>!= 0</c> heuristic - the buggy
-/// multi-target model this migration retires - so the hybrid is the WRONG oracle for it. The provider's IsEnabled
-/// (the Windows-grounded "not in the Windows-default state" rule) is instead gated by the machine-INDEPENDENT
-/// model-conformance facts in this class (the <c>IsEnabled_*</c> and <c>Every_gate_*</c> [Fact]s), which construct
-/// readings and assert against what Windows ships - never the live hybrid.
-///
-/// Run: dotnet test --filter FullStateProviderEquivalence</summary>
-public class FullStateProviderEquivalenceTests
+/// Run: dotnet test --filter CatalogSettingStateProviderConformance</summary>
+public class CatalogSettingStateProviderConformanceTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public FullStateProviderEquivalenceTests(ITestOutputHelper output) => _output = output;
-
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
     /// <summary>Every SettingDefinition the app ships, straight from the static feature providers (no DI, no
-    /// Windows-version filtering) - the same population the other migration equivalence tests use.</summary>
+    /// Windows-version filtering) - the same population the migration equivalence tests used.</summary>
     private static IEnumerable<SettingDefinition> AllDefinitions()
     {
         return new[]
@@ -67,126 +46,9 @@ public class FullStateProviderEquivalenceTests
         }.SelectMany(group => group);
     }
 
-    [Fact]
-    public async Task Provider_matches_GetSettingStatesAsync_plus_overlay_for_paired_settings()
-    {
-        // Real registry service reading the live machine; its two ctor deps are not exercised by the read path.
-        var log = new Mock<ILogService>();
-        var interactiveUser = new Mock<IInteractiveUserService>();
-        interactiveUser.Setup(x => x.IsOtsElevation).Returns(false);
-        var reg = new WindowsRegistryService(log.Object, interactiveUser.Object);
-
-        // Real power query reading the live power scheme - shared by the old discovery AND the new context factory so
-        // both tracks resolve powercfg AC/DC from the same source (must NOT be mocked, or powercfg settings diverge).
-        var powerQuery = new PowerSettingsQueryService(log.Object);
-
-        // OLD: the app's real hybrid base. Powercfg goes through the real power query; the other non-registry sources
-        // (special-discovery, scheduled-task, system-restore) are no-op mocks - the population avoids those branches.
-        var discovery = new SystemSettingsDiscoveryService(
-            reg,
-            log.Object,
-            powerQuery,
-            new Mock<ISpecialDiscoveryRegistry>().Object,
-            new Mock<IScheduledTaskService>().Object,
-            new Mock<ISystemRestoreService>().Object);
-
-        // NEW: the real catalog detection engine over the live system context (same registry + same power query).
-        var factory = new SystemDetectionContextFactory(
-            reg,
-            new Mock<ISystemRestoreService>().Object,
-            new Mock<IScheduledTaskService>().Object,
-            powerQuery,
-            log.Object);
-        var detection = new CatalogDetectionService(factory, log.Object);
-
-        // The system under test: the full-state provider (new engine alone). ComboBoxResolver supplies the pure
-        // ResolveRawValuesToIndex value-match the provider uses as the selection base (it never touches discovery).
-        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver(discovery));
-
-        var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
-
-        // Population: catalog-paired, well-isolated detection mechanisms (registry toggle/selection, powercfg
-        // selection/numeric), excluding OS-merged build-gated catalog settings (their old single-OS def legitimately
-        // differs). Power-plan-selection is included via IsPurePowerCfgSelection? No - it has no ComboBox, so it falls
-        // outside every Pure* predicate; it is added explicitly below.
-        var pairedDefs = AllDefinitions()
-            .Where(d =>
-                RegistryToggleEquivalenceHarness.IsPureRegistryToggle(d) ||
-                RegistryToggleEquivalenceHarness.IsPureRegistrySelection(d) ||
-                RegistryToggleEquivalenceHarness.IsPurePowerCfgSelection(d) ||
-                RegistryToggleEquivalenceHarness.IsPurePowerCfgNumeric(d))
-            .Where(d => catalogById.ContainsKey(d.Id))
-            // Exclude OS-merged settings (any catalog RegTarget gated by build) - single-OS old def vs multi-OS catalog.
-            .Where(d => catalogById[d.Id].Targets.OfType<RegTarget>().All(rt => rt.AppliesTo.Count == 0))
-            .ToList();
-
-        // Add the power-plan selection explicitly (an OptionSource setting; no ComboBox, so no Pure* predicate matches)
-        // when it is catalog-paired, to exercise the dynamic-option branch.
-        var powerPlanDef = AllDefinitions().FirstOrDefault(d => d.Id == Winhance.Core.Features.Common.Constants.SettingIds.PowerPlanSelection);
-        if (powerPlanDef is not null && catalogById.ContainsKey(powerPlanDef.Id) && !pairedDefs.Any(d => d.Id == powerPlanDef.Id))
-            pairedDefs.Add(powerPlanDef);
-
-        // ORACLE: reproduce the live hybrid exactly as CatalogDetectionOverlayHelper does - old discovery base, then
-        // the catalog overlay applied per setting.
-        var oldStates = await discovery.GetSettingStatesAsync(pairedDefs);
-        var pairedCatalogSettings = pairedDefs.Select(d => catalogById[d.Id]).ToList();
-        var newResults = await detection.DetectAsync(pairedCatalogSettings);
-
-        var hybrid = new Dictionary<string, SettingStateResult>();
-        foreach (var def in pairedDefs)
-        {
-            if (!oldStates.TryGetValue(def.Id, out var oldState))
-                continue;
-            newResults.TryGetValue(def.Id, out var newResult);
-            hybrid[def.Id] = CatalogDetectionStateOverlay.Apply(def, oldState, newResult);
-        }
-
-        // PROVIDER: the new engine alone.
-        var provided = await provider.GetStatesAsync(pairedDefs);
-
-        int compared = 0;
-        var mismatches = new List<string>();
-
-        foreach (var def in pairedDefs)
-        {
-            if (!hybrid.TryGetValue(def.Id, out var h) || !provided.TryGetValue(def.Id, out var p))
-                continue;
-
-            compared++;
-
-            // IsEnabled is intentionally NOT compared against the hybrid: for a selection/numeric the hybrid's
-            // IsEnabled is old discovery's `.Any`/`!= 0` heuristic - the buggy multi-target model this migration
-            // retires - so the hybrid is the WRONG oracle for it. The provider's IsEnabled ("not in the Windows-
-            // default state") is gated instead by the machine-independent model-conformance facts below (IsEnabled_*).
-            CompareField(mismatches, def.Id, "CurrentValue", h.CurrentValue, p.CurrentValue);
-            CompareField(mismatches, def.Id, "Success", h.Success, p.Success);
-            CompareField(mismatches, def.Id, "ErrorMessage", h.ErrorMessage, p.ErrorMessage);
-            CompareField(mismatches, def.Id, "AcValue", h.AcValue, p.AcValue);
-            CompareField(mismatches, def.Id, "DcValue", h.DcValue, p.DcValue);
-            CompareField(mismatches, def.Id, "DynamicSelection", h.DynamicSelection, p.DynamicSelection);
-            CompareField(mismatches, def.Id, "DynamicSelectionName", h.DynamicSelectionName, p.DynamicSelectionName);
-            CompareDynamicOptions(mismatches, def.Id, h.DynamicOptions, p.DynamicOptions);
-            CompareReadings(mismatches, def.Id, h.Readings, p.Readings);
-            // RawValues intentionally excluded (option B).
-        }
-
-        _output.WriteLine($"{compared - DistinctMismatchedSettings(mismatches)}/{compared} settings fully match ({pairedDefs.Count} paired)");
-        if (mismatches.Count > 0)
-        {
-            _output.WriteLine("Mismatches:");
-            foreach (var m in mismatches)
-                _output.WriteLine($"  {m}");
-        }
-
-        Assert.True(compared > 0, "no paired settings were compared - the test is vacuous");
-        Assert.True(mismatches.Count == 0, $"{mismatches.Count} field(s) differ between hybrid and provider - see output");
-    }
-
     // ============================================================================================================
     //  Machine-INDEPENDENT model-conformance for IsEnabled (the done-right, Windows-grounded "not in the Windows-
-    //  default state" rule). These construct readings and assert against what Windows ships - NOT the live hybrid,
-    //  whose selection/numeric IsEnabled is old discovery's `.Any`/`!= 0` bug. They replace the IsEnabled half of the
-    //  live-equivalence comparison (removed above).
+    //  default state" rule). These construct readings and assert against what Windows ships - NOT a live hybrid.
     // ============================================================================================================
 
     private static bool Derive(Setting s, InputType inputType, string? stateLabel)
@@ -315,9 +177,8 @@ public class FullStateProviderEquivalenceTests
             powerQuery,
             log.Object);
         var detection = new CatalogDetectionService(factory, log.Object);
-        // ResolveRawValuesToIndex (the selection value-match base) is pure and never touches discovery, so a mock is
-        // sufficient here - this proof only exercises alias pairing / field-identity, not discovery.
-        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver(new Mock<ISystemSettingsDiscoveryService>().Object));
+        // ResolveRawValuesToIndex (the selection value-match base) is pure, so the resolver needs no dependencies.
+        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver());
 
         var allDefs = AllDefinitions().ToList();
         var aliasIds = new[]
@@ -367,64 +228,6 @@ public class FullStateProviderEquivalenceTests
         Assert.True(mismatches.Count == 0, "win10 alias pairing diverged from the canonical peer:\n" + string.Join("\n", mismatches));
     }
 
-    private static int DistinctMismatchedSettings(IEnumerable<string> mismatches)
-        => mismatches.Select(m => m.Split('.')[0]).Distinct().Count();
-
-    private static void CompareField(List<string> mismatches, string id, string field, object? hybrid, object? provider)
-    {
-        if (!ScalarEquals(hybrid, provider))
-            mismatches.Add($"{id}.{field}: old={Fmt(hybrid)} new={Fmt(provider)}");
-    }
-
-    private static void CompareDynamicOptions(
-        List<string> mismatches,
-        string id,
-        IReadOnlyList<DynamicOption>? hybrid,
-        IReadOnlyList<DynamicOption>? provider)
-    {
-        if (hybrid is null && provider is null)
-            return;
-        if (hybrid is null || provider is null)
-        {
-            mismatches.Add($"{id}.DynamicOptions: old={(hybrid is null ? "<null>" : $"[{hybrid.Count}]")} new={(provider is null ? "<null>" : $"[{provider.Count}]")}");
-            return;
-        }
-        if (hybrid.Count != provider.Count)
-        {
-            mismatches.Add($"{id}.DynamicOptions: old=[{hybrid.Count}] new=[{provider.Count}]");
-            return;
-        }
-        for (int i = 0; i < hybrid.Count; i++)
-        {
-            // DynamicOption is a record - value equality over Label/Value/ExistsOnSystem.
-            if (!Equals(hybrid[i], provider[i]))
-                mismatches.Add($"{id}.DynamicOptions[{i}]: old={hybrid[i]} new={provider[i]}");
-        }
-    }
-
-    private static void CompareReadings(
-        List<string> mismatches,
-        string id,
-        IReadOnlyDictionary<string, object?>? hybrid,
-        IReadOnlyDictionary<string, object?>? provider)
-    {
-        if (hybrid is null && provider is null)
-            return;
-        if (hybrid is null || provider is null)
-        {
-            mismatches.Add($"{id}.Readings: old={(hybrid is null ? "<null>" : $"{{{hybrid.Count}}}")} new={(provider is null ? "<null>" : $"{{{provider.Count}}}")}");
-            return;
-        }
-        var keys = hybrid.Keys.Union(provider.Keys);
-        foreach (var key in keys)
-        {
-            object? a = hybrid.TryGetValue(key, out var av) ? av : null;
-            object? b = provider.TryGetValue(key, out var bv) ? bv : null;
-            if (!ScalarEquals(a, b))
-                mismatches.Add($"{id}.Readings[{key}]: old={Fmt(a)} new={Fmt(b)}");
-        }
-    }
-
     /// <summary>Regression (Phase 6.9): a selection for which the new engine yields NO resolved state label (null -
     /// StateDetectionEngine found no match, or the label isn't a verbatim option DisplayName) must fall back to the
     /// value-match the live UI consumed (ResolveRawValuesToIndex over the reads), NOT collapse to the Custom index.
@@ -452,14 +255,42 @@ public class FullStateProviderEquivalenceTests
                 },
             });
 
-        var provider = new CatalogSettingStateProvider(
-            detection.Object, new ComboBoxResolver(new Mock<ISystemSettingsDiscoveryService>().Object));
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver());
 
         var states = await provider.GetStatesAsync(new[] { sysmain });
 
         Assert.True(states.TryGetValue("gaming-sysmain-service", out var s));
         Assert.True(s!.Success);
         Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
+    }
+
+    private static void CompareField(List<string> mismatches, string id, string field, object? left, object? right)
+    {
+        if (!ScalarEquals(left, right))
+            mismatches.Add($"{id}.{field}: canonical={Fmt(left)} alias={Fmt(right)}");
+    }
+
+    private static void CompareReadings(
+        List<string> mismatches,
+        string id,
+        IReadOnlyDictionary<string, object?>? left,
+        IReadOnlyDictionary<string, object?>? right)
+    {
+        if (left is null && right is null)
+            return;
+        if (left is null || right is null)
+        {
+            mismatches.Add($"{id}.Readings: canonical={(left is null ? "<null>" : $"{{{left.Count}}}")} alias={(right is null ? "<null>" : $"{{{right.Count}}}")}");
+            return;
+        }
+        var keys = left.Keys.Union(right.Keys);
+        foreach (var key in keys)
+        {
+            object? a = left.TryGetValue(key, out var av) ? av : null;
+            object? b = right.TryGetValue(key, out var bv) ? bv : null;
+            if (!ScalarEquals(a, b))
+                mismatches.Add($"{id}.Readings[{key}]: canonical={Fmt(a)} alias={Fmt(b)}");
+        }
     }
 
     private static bool ScalarEquals(object? a, object? b)

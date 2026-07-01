@@ -51,9 +51,8 @@ public class ScriptGenSelectionResolveEquivalenceTests
     public void ScriptGenSelectionResolveEquivalence_NewCatalogReproducesOldResolveIndexToRawValues()
     {
         // The REAL resolver for the OLD side. ResolveIndexToRawValues only reads
-        // setting.ComboBox.Options[idx].ValueMappings, so the discovery dependency is never invoked -
-        // a bare mock is enough.
-        var resolver = new ComboBoxResolver(new Mock<ISystemSettingsDiscoveryService>().Object);
+        // setting.ComboBox.Options[idx].ValueMappings - a plain resolver (no dependencies) is enough.
+        var resolver = new ComboBoxResolver();
 
         // Selections the script emitter resolves via ValueMappings, minus power-plan-selection,
         // on which AppendSelectionCommandsFiltered early-returns.

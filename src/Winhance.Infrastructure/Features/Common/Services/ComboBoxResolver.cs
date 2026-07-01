@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -9,8 +8,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ComboBoxResolver(
-    ISystemSettingsDiscoveryService discoveryService) : IComboBoxResolver
+public class ComboBoxResolver : IComboBoxResolver
 {
     private static Dictionary<int, Dictionary<string, object?>>? ValueMappingsView(ComboBoxMetadata? meta)
     {
@@ -26,37 +24,6 @@ public class ComboBoxResolver(
 
     private static string[]? DisplayNamesView(ComboBoxMetadata? meta)
         => meta?.Options?.Select(o => o.DisplayName).ToArray();
-
-    public async Task<object?> ResolveCurrentValueAsync(SettingDefinition setting, Dictionary<string, object?>? existingRawValues = null)
-    {
-        var rawValues = await GetRawValues(setting, existingRawValues).ConfigureAwait(false);
-        
-        if (setting.InputType == InputType.Selection && setting.ComboBox?.Options != null)
-        {
-            return ResolveRawValuesToIndex(setting, rawValues);
-        }
-        else if (setting.RegistrySettings?.Count > 0)
-        {
-            return rawValues.Values.FirstOrDefault();
-        }
-        else if (setting.ScheduledTaskSettings?.Count > 0)
-        {
-            return rawValues.TryGetValue("ScheduledTaskEnabled", out var taskEnabled) ? taskEnabled : null;
-        }
-
-        return null;
-    }
-
-    private async Task<Dictionary<string, object?>> GetRawValues(SettingDefinition setting, Dictionary<string, object?>? existingRawValues)
-    {
-        if (existingRawValues != null)
-        {
-            return existingRawValues;
-        }
-
-        var rawValues = await discoveryService.GetRawSettingsValuesAsync(new[] { setting }).ConfigureAwait(false);
-        return rawValues.TryGetValue(setting.Id, out var values) ? values : new Dictionary<string, object?>();
-    }
 
     public int GetValueFromIndex(SettingDefinition setting, int index)
     {

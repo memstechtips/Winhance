@@ -12,13 +12,11 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class ComboBoxResolverTests
 {
-    private readonly Mock<ISystemSettingsDiscoveryService> _discoveryService;
     private readonly ComboBoxResolver _sut;
 
     public ComboBoxResolverTests()
     {
-        _discoveryService = new Mock<ISystemSettingsDiscoveryService>();
-        _sut = new ComboBoxResolver(_discoveryService.Object);
+        _sut = new ComboBoxResolver();
     }
 
     #region GetValueFromIndex
@@ -561,135 +559,6 @@ public class ComboBoxResolverTests
         var result = _sut.GetIndexFromDisplayName(setting, "Off");
 
         result.Should().Be(0);
-    }
-
-    #endregion
-
-    #region ResolveCurrentValueAsync
-
-    [Fact]
-    public async Task ResolveCurrentValueAsync_WithSelectionAndValueMappings_ReturnsResolvedIndex()
-    {
-        var mappings = new Dictionary<int, Dictionary<string, object?>>
-        {
-            { 0, new Dictionary<string, object?> { { "TestValue", 0 } } },
-            { 1, new Dictionary<string, object?> { { "TestValue", 1 } } },
-        };
-        var setting = CreateSelectionSettingWithRegistry("test", mappings, "TestValue");
-
-        var existingRawValues = new Dictionary<string, object?> { { "TestValue", 1 } };
-
-        var result = await _sut.ResolveCurrentValueAsync(setting, existingRawValues);
-
-        result.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task ResolveCurrentValueAsync_WithRegistrySettingsOnly_ReturnsFirstRawValue()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test Setting",
-            Description = "Test",
-            InputType = InputType.Toggle,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\Test",
-                    ValueName = "TestValue",
-                    ValueType = RegistryValueKind.DWord,
-                    RecommendedValue = null,
-                    DefaultValue = null
-                },
-            },
-        };
-
-        var existingRawValues = new Dictionary<string, object?> { { "TestValue", 42 } };
-
-        var result = await _sut.ResolveCurrentValueAsync(setting, existingRawValues);
-
-        result.Should().Be(42);
-    }
-
-    [Fact]
-    public async Task ResolveCurrentValueAsync_WithNoExistingValues_QueriesDiscoveryService()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test Setting",
-            Description = "Test",
-            InputType = InputType.Toggle,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\Test",
-                    ValueName = "TestValue",
-                    ValueType = RegistryValueKind.DWord,
-                    RecommendedValue = null,
-                    DefaultValue = null
-                },
-            },
-        };
-
-        var discoveredValues = new Dictionary<string, Dictionary<string, object?>>
-        {
-            {
-                "test", new Dictionary<string, object?> { { "TestValue", 7 } }
-            },
-        };
-
-        _discoveryService
-            .Setup(d => d.GetRawSettingsValuesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(discoveredValues);
-
-        var result = await _sut.ResolveCurrentValueAsync(setting);
-
-        result.Should().Be(7);
-        _discoveryService.Verify(
-            d => d.GetRawSettingsValuesAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ResolveCurrentValueAsync_WithScheduledTaskSettings_ReturnsTaskEnabled()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "test",
-            Name = "Test Setting",
-            Description = "Test",
-            InputType = InputType.Toggle,
-            ScheduledTaskSettings = new[]
-            {
-                new ScheduledTaskSetting
-                {
-                    TaskPath = @"\Microsoft\Windows\Test",
-                    RecommendedState = null,
-                    DefaultState = null
-                },
-            },
-        };
-
-        var existingRawValues = new Dictionary<string, object?> { { "ScheduledTaskEnabled", true } };
-
-        var result = await _sut.ResolveCurrentValueAsync(setting, existingRawValues);
-
-        result.Should().Be(true);
-    }
-
-    [Fact]
-    public async Task ResolveCurrentValueAsync_WithNoSettings_ReturnsNull()
-    {
-        var setting = CreateBasicSetting("test");
-        var existingRawValues = new Dictionary<string, object?>();
-
-        var result = await _sut.ResolveCurrentValueAsync(setting, existingRawValues);
-
-        result.Should().BeNull();
     }
 
     #endregion
