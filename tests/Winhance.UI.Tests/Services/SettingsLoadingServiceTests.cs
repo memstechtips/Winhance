@@ -16,14 +16,12 @@ namespace Winhance.UI.Tests.Services;
 
 public class SettingsLoadingServiceTests
 {
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInitializationService> _mockInitializationService = new();
     private readonly Mock<ISettingPreparationPipeline> _mockPreparationPipeline = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
-    private readonly Mock<IDetectionShadowRunner> _mockShadowRunner = new();
-    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
     private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
@@ -31,19 +29,17 @@ public class SettingsLoadingServiceTests
 
     public SettingsLoadingServiceTests()
     {
-        _mockCatalogDetectionService
-            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
-            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _sut = new SettingsLoadingService(
-            _mockDiscoveryService.Object,
+            _mockSettingStateProvider.Object,
             _mockLogService.Object,
             _mockInitializationService.Object,
             _mockPreparationPipeline.Object,
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
-            _mockShadowRunner.Object,
-            _mockCatalogDetectionService.Object,
             _mockSettingLocalizationService.Object,
             _mockApplicationModeService.Object);
     }
@@ -63,8 +59,8 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.PrepareSettings("TestFeature"))
             .Returns(settings);
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -110,8 +106,8 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.PrepareSettings("TestFeature"))
             .Returns(settings);
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -149,8 +145,8 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.PrepareSettings("TestFeature"))
             .Returns(new List<SettingDefinition>());
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
@@ -187,8 +183,8 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.PrepareSettings("EmptyFeature"))
             .Returns(new List<SettingDefinition>());
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
@@ -242,8 +238,8 @@ public class SettingsLoadingServiceTests
             .Returns(new List<SettingDefinition> { selectionSetting });
 
         var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "explorer-customization-measurement-system", new SettingStateResult
@@ -271,10 +267,10 @@ public class SettingsLoadingServiceTests
             "TestFeature", "Loading...", null);
 
         // G1a: combo-box resolution is no longer a separate IComboBoxResolver pass - a Selection's CurrentValue comes
-        // from GetSettingStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
+        // from GetStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
         // detection path ran for the selection (pairing-independent; the VM list itself depends on catalog pairing).
-        _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()), Times.Once);
+        _mockSettingStateProvider.Verify(
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()), Times.Once);
     }
 
     // ── RefreshSettingStatesAsync: combo box resolution + batch verification ──
@@ -299,8 +295,8 @@ public class SettingsLoadingServiceTests
         var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef, parent.Object);
         var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1, RawValues = rawValues } }
@@ -309,7 +305,7 @@ public class SettingsLoadingServiceTests
         var result = await _sut.RefreshSettingStatesAsync(new[] { vm });
 
         // G1a: the IComboBoxResolver re-resolution was retired; CurrentValue now comes straight from
-        // GetSettingStatesAsync (1 here), with the catalog overlay (a no-op in this test) refining paired settings.
+        // GetStatesAsync (1 here), with the catalog overlay (a no-op in this test) refining paired settings.
         // There is no separate resolver pass to overwrite it to 2.
         result["SelectSetting"].CurrentValue.Should().Be(1);
     }
@@ -343,8 +339,8 @@ public class SettingsLoadingServiceTests
             CreateMockSettingItemViewModel("Numeric1", numericDef, parent.Object)
         };
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "Toggle1", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -361,7 +357,7 @@ public class SettingsLoadingServiceTests
     }
 
     [Fact]
-    public async Task RefreshSettingStatesAsync_CallsDiscoveryServiceExactlyOnce()
+    public async Task RefreshSettingStatesAsync_CallsStateProviderExactlyOnce()
     {
         var def1 = new SettingDefinition
         {
@@ -389,8 +385,8 @@ public class SettingsLoadingServiceTests
             CreateMockSettingItemViewModel("S3", def3, parent.Object)
         };
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "S1", new SettingStateResult { Success = true } },
@@ -401,8 +397,8 @@ public class SettingsLoadingServiceTests
         await _sut.RefreshSettingStatesAsync(vms);
 
         // Batch call: exactly one call with all 3 definitions, not 3 individual calls
-        _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(l => l.Count == 3)),
+        _mockSettingStateProvider.Verify(
+            d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(l => l.Count == 3)),
             Times.Once);
     }
 

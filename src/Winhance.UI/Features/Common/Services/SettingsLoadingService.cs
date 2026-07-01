@@ -11,37 +11,31 @@ namespace Winhance.UI.Features.Common.Services;
 
 public class SettingsLoadingService : ISettingsLoadingService
 {
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
     private readonly ISettingPreparationPipeline _preparationPipeline;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
-    private readonly IDetectionShadowRunner _shadowRunner;
-    private readonly ICatalogDetectionService _catalogDetectionService;
     private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly IApplicationModeService _applicationModeService;
 
     public SettingsLoadingService(
-        ISystemSettingsDiscoveryService discoveryService,
+        ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
         IInitializationService initializationService,
         ISettingPreparationPipeline preparationPipeline,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
-        IDetectionShadowRunner shadowRunner,
-        ICatalogDetectionService catalogDetectionService,
         ISettingLocalizationService settingLocalizationService,
         IApplicationModeService applicationModeService)
     {
-        _discoveryService = discoveryService;
+        _settingStateProvider = settingStateProvider;
         _logService = logService;
         _initializationService = initializationService;
         _preparationPipeline = preparationPipeline;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
-        _shadowRunner = shadowRunner;
-        _catalogDetectionService = catalogDetectionService;
         _settingLocalizationService = settingLocalizationService;
         _applicationModeService = applicationModeService;
     }
@@ -65,16 +59,10 @@ public class SettingsLoadingService : ISettingsLoadingService
                 Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            var batchStates = await _discoveryService.GetSettingStatesAsync(settingsList);
-
-            // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). The
-            // selection baseline is GetSettingStatesAsync's resolved option index (its ResolveRawValuesToIndex),
-            // the same value the UI consumes - the redundant IComboBoxResolver re-resolution was retired (G1a).
-            await _shadowRunner.RunAsync(settingsList, batchStates);
-
-            // Detection cutover: the new catalog engine decides each setting's primary state (toggle on/off,
-            // selection option). Auxiliary data (RawValues, TooltipData, AC/DC) stays as the old discovery read it.
-            await OverlayCatalogStatesAsync(settingsList, batchStates);
+            // Slice 6: the new-engine full-state provider IS the old-discovery+overlay result (completeness-proven:
+            // every setting pairs), so it replaces both and retires the observe-only shadow. Custom-state now comes
+            // from the typed fields (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
+            var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
 
             // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
@@ -150,29 +138,10 @@ public class SettingsLoadingService : ISettingsLoadingService
         if (definitions.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
-        var batchStates = await _discoveryService.GetSettingStatesAsync(definitions);
-
-        // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Selection
-        // indices come from GetSettingStatesAsync (the redundant IComboBoxResolver re-resolution was retired - G1a).
-        await _shadowRunner.RunAsync(definitions, batchStates);
-
-        // Detection cutover: the new catalog engine decides each setting's primary state.
-        await OverlayCatalogStatesAsync(definitions, batchStates);
+        // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
+        var batchStates = await _settingStateProvider.GetStatesAsync(definitions);
 
         return batchStates;
-    }
-
-    /// <summary>
-    /// Overlays the new catalog detection engine's authoritative primary state (a toggle's on/off, a selection's
-    /// chosen option index) onto the batch states the UI consumes, for every setting that has a catalog peer. The
-    /// old result's auxiliary data (RawValues, TooltipData, the AC/DC split) is preserved, and unpaired settings keep
-    /// their old state. Any failure is logged and leaves the old states in place, so detection never hard-fails a page.
-    /// </summary>
-    private async Task OverlayCatalogStatesAsync(
-        IReadOnlyList<SettingDefinition> definitions,
-        Dictionary<string, SettingStateResult> batchStates)
-    {
-        await CatalogDetectionOverlayHelper.OverlayAsync(definitions, batchStates, _catalogDetectionService, _logService);
     }
 
     /// <summary>

@@ -14,13 +14,12 @@ namespace Winhance.UI.Tests.Services;
 public class AutounattendXmlGeneratorServiceTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscoveryService = new();
+    private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
-    private readonly Mock<ICatalogDetectionService> _mockCatalogDetectionService = new();
 
     private AutounattendScriptBuilder CreateScriptBuilder()
     {
@@ -35,18 +34,17 @@ public class AutounattendXmlGeneratorServiceTests
     private AutounattendXmlGeneratorService CreateService(
         AutounattendScriptBuilder? scriptBuilder = null)
     {
-        _mockCatalogDetectionService
-            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
-            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         return new AutounattendXmlGeneratorService(
             _mockCompatibleSettingsRegistry.Object,
-            _mockDiscoveryService.Object,
+            _mockSettingStateProvider.Object,
             _mockLogService.Object,
             scriptBuilder ?? CreateScriptBuilder(),
             _mockPowerShellRunner.Object,
-            _mockSelectedAppsProvider.Object,
-            _mockCatalogDetectionService.Object);
+            _mockSelectedAppsProvider.Object);
     }
 
     private void SetupEmptySettings()
@@ -55,8 +53,8 @@ public class AutounattendXmlGeneratorServiceTests
             .Setup(r => r.GetAllFilteredSettings())
             .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
     }
 
@@ -409,8 +407,8 @@ public class AutounattendXmlGeneratorServiceTests
                 { "Privacy", privacySettings }
             });
 
-        _mockDiscoveryService
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 {
@@ -436,8 +434,8 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+        _mockSettingStateProvider.Verify(
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
             Times.AtLeastOnce);
     }
 
@@ -546,8 +544,8 @@ public class AutounattendXmlGeneratorServiceTests
         }
 
         // Discovery service should not be called for empty feature settings
-        _mockDiscoveryService.Verify(
-            d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+        _mockSettingStateProvider.Verify(
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
             Times.Never);
     }
 }

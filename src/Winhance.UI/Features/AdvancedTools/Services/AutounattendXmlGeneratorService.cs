@@ -17,29 +17,26 @@ namespace Winhance.UI.Features.AdvancedTools.Services;
 public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 {
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
     private readonly AutounattendScriptBuilder _scriptBuilder;
     private readonly IPowerShellRunner _powerShellRunner;
     private readonly ISelectedAppsProvider _selectedAppsProvider;
-    private readonly ICatalogDetectionService _catalogDetectionService;
 
     public AutounattendXmlGeneratorService(
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ISystemSettingsDiscoveryService discoveryService,
+        ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
         AutounattendScriptBuilder scriptBuilder,
         IPowerShellRunner powerShellRunner,
-        ISelectedAppsProvider selectedAppsProvider,
-        ICatalogDetectionService catalogDetectionService)
+        ISelectedAppsProvider selectedAppsProvider)
     {
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _discoveryService = discoveryService;
+        _settingStateProvider = settingStateProvider;
         _logService = logService;
         _scriptBuilder = scriptBuilder;
         _powerShellRunner = powerShellRunner;
         _selectedAppsProvider = selectedAppsProvider;
-        _catalogDetectionService = catalogDetectionService;
     }
 
     public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath,
@@ -148,8 +145,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 continue;
             }
 
-            var states = await _discoveryService.GetSettingStatesAsync(settings);
-            await CatalogDetectionOverlayHelper.OverlayAsync(settings, states, _catalogDetectionService, _logService);
+            // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
+            var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
             {
@@ -216,11 +213,18 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     item.SelectedIndex == null &&
                     item.PowerSettings == null &&
                     setting.Id != SettingIds.PowerPlanSelection &&
-                    state?.RawValues != null && state.RawValues.Count > 0)
+                    state != null)
                 {
-                    item.CustomStateValues = state.RawValues
-                        .Where(v => v.Value != null)
-                        .ToDictionary(k => k.Key, v => v.Value!);
+                    // Slice 6: rebuild the custom-state bag from the new engine's typed fields instead of the retired
+                    // RawValues (CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
+                    var catalogSetting = SettingCatalog.All.FirstOrDefault(c => c.Id == SettingIdAliases.Normalize(setting.Id));
+                    var custom = catalogSetting is null
+                        ? new Dictionary<string, object>()
+                        : CustomStateValueReconstructor.Build(catalogSetting, state)
+                            .Where(v => v.Value != null)
+                            .ToDictionary(k => k.Key, v => v.Value!);
+                    if (custom.Count > 0)
+                        item.CustomStateValues = custom;
                 }
 
                 return item;

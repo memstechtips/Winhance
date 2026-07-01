@@ -191,12 +191,15 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 // (no predefined option matched), retain the raw values so Builder Save can
                 // serialize the custom value without re-reading the system.
                 if (viewModel.SelectedValue is int customSelIdx
-                    && customSelIdx == ComboBoxConstants.CustomStateIndex
-                    && currentState.RawValues != null)
+                    && customSelIdx == ComboBoxConstants.CustomStateIndex)
                 {
-                    viewModel.CapturedCustomStateValues = currentState.RawValues
+                    // Slice 6: rebuild the captured custom-state from the new engine's typed fields instead of the
+                    // retired RawValues (CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
+                    var captured = CustomStateValueReconstructor.Build(setting, currentState)
                         .Where(kv => kv.Value != null)
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
+                    if (captured.Count > 0)
+                        viewModel.CapturedCustomStateValues = captured;
                 }
 
                 // Resolve AC/DC Selection values AFTER ComboBox options are populated
