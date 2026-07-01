@@ -99,8 +99,9 @@ public class FullStateProviderEquivalenceTests
             log.Object);
         var detection = new CatalogDetectionService(factory, log.Object);
 
-        // The system under test: the full-state provider (new engine alone).
-        var provider = new CatalogSettingStateProvider(detection);
+        // The system under test: the full-state provider (new engine alone). ComboBoxResolver supplies the pure
+        // ResolveRawValuesToIndex value-match the provider uses as the selection base (it never touches discovery).
+        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver(discovery));
 
         var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
 
@@ -314,7 +315,9 @@ public class FullStateProviderEquivalenceTests
             powerQuery,
             log.Object);
         var detection = new CatalogDetectionService(factory, log.Object);
-        var provider = new CatalogSettingStateProvider(detection);
+        // ResolveRawValuesToIndex (the selection value-match base) is pure and never touches discovery, so a mock is
+        // sufficient here - this proof only exercises alias pairing / field-identity, not discovery.
+        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver(new Mock<ISystemSettingsDiscoveryService>().Object));
 
         var allDefs = AllDefinitions().ToList();
         var aliasIds = new[]
@@ -420,6 +423,43 @@ public class FullStateProviderEquivalenceTests
             if (!ScalarEquals(a, b))
                 mismatches.Add($"{id}.Readings[{key}]: old={Fmt(a)} new={Fmt(b)}");
         }
+    }
+
+    /// <summary>Regression (Phase 6.9): a selection for which the new engine yields NO resolved state label (null -
+    /// StateDetectionEngine found no match, or the label isn't a verbatim option DisplayName) must fall back to the
+    /// value-match the live UI consumed (ResolveRawValuesToIndex over the reads), NOT collapse to the Custom index.
+    /// The old pipeline resolved these via discovery's value-match and the overlay's Selection branch preserved it via
+    /// `return old`; the provider first kept only the label override, so the service dropdowns + delivery optimization
+    /// regressed to Custom in the live UI. Machine-independent: the detection result is mocked, so it fails
+    /// deterministically off-Windows if the value-match base is ever dropped again.</summary>
+    [Fact]
+    public async Task Selection_with_no_resolved_label_falls_back_to_value_match_not_Custom()
+    {
+        // gaming-sysmain-service: option index 1 is Start=3 ("Manual"). The engine reports NO label (the regression
+        // trigger) but the live reads say Start=3, so the value-match must land on index 1, never Custom (-1).
+        var sysmain = AllDefinitions().First(d => d.Id == "gaming-sysmain-service");
+
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                ["gaming-sysmain-service"] = new CatalogDetectionResult
+                {
+                    StateLabel = null,
+                    Detected = false,
+                    Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+                },
+            });
+
+        var provider = new CatalogSettingStateProvider(
+            detection.Object, new ComboBoxResolver(new Mock<ISystemSettingsDiscoveryService>().Object));
+
+        var states = await provider.GetStatesAsync(new[] { sysmain });
+
+        Assert.True(states.TryGetValue("gaming-sysmain-service", out var s));
+        Assert.True(s!.Success);
+        Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
     }
 
     private static bool ScalarEquals(object? a, object? b)

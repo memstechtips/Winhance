@@ -27,10 +27,12 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 {
     private readonly ICatalogDetectionService _detection;
+    private readonly IComboBoxResolver _comboBoxResolver;
 
-    public CatalogSettingStateProvider(ICatalogDetectionService detection)
+    public CatalogSettingStateProvider(ICatalogDetectionService detection, IComboBoxResolver comboBoxResolver)
     {
         _detection = detection;
+        _comboBoxResolver = comboBoxResolver;
     }
 
     public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<SettingDefinition> settings)
@@ -78,7 +80,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     /// <summary>Maps one new-engine <see cref="CatalogDetectionResult"/> (+ the def for InputType and the catalog
     /// setting for the dynamic-option source) onto a complete <see cref="SettingStateResult"/>, reproducing
     /// <c>CatalogDetectionStateOverlay.Apply</c>'s field semantics but built from the detection result alone.</summary>
-    private static SettingStateResult Map(SettingDefinition def, Setting catalogSetting, CatalogDetectionResult? r)
+    private SettingStateResult Map(SettingDefinition def, Setting catalogSetting, CatalogDetectionResult? r)
     {
         if (r is null)
         {
@@ -126,10 +128,23 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 return result;
 
             case InputType.Selection:
-                // Resolve the new label back to the option index the view-model consumes, exactly as the overlay's
-                // Selection branch does: first DisplayName match by Ordinal. No match / null label / no options ->
-                // the Custom index (-1), matching ResolveRawValuesToIndex's unmatched fallback.
-                return result with { CurrentValue = ResolveSelectionIndex(def, r.StateLabel) };
+                // Reproduce the OLD live pipeline's selection index EXACTLY. That value was old discovery's value-match
+                // (ComboBoxResolver.ResolveRawValuesToIndex over the reads), which the overlay's Selection branch
+                // OVERRODE only when the new engine's StateLabel was a verbatim option DisplayName and otherwise
+                // PRESERVED via `return old`. Resolving from the StateLabel ALONE (as this provider first did) maps a
+                // null / unmatched label to Custom - so any selection for which the new engine yields no resolved state
+                // label (StateDetectionEngine returns null) regressed to Custom, even though old discovery's value-match
+                // resolved it from the reads and the overlay kept that. This hit the service dropdowns and delivery
+                // optimization live. Restore the value-match BASE: the label override when it resolves, else the
+                // value-match the UI actually consumed. The reconstructed reads are proven == old discovery's RawValues
+                // (CustomStateReconstructionEquivalenceTests), so this equals the old CurrentValue for every
+                // catalog-paired selection.
+                var labelIndex = ResolveSelectionIndex(def, r.StateLabel);
+                if (labelIndex != ComboBoxConstants.CustomStateIndex)
+                    return result with { CurrentValue = labelIndex };
+                var reads = CustomStateValueReconstructor.Build(catalogSetting, result)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+                return result with { CurrentValue = _comboBoxResolver.ResolveRawValuesToIndex(def, reads) };
 
             case InputType.NumericRange:
                 // The slider's value IS the raw AC powercfg value index (r.Value), the same int the hybrid stored as
@@ -208,7 +223,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     /// option whose <c>DisplayName</c> equals the label (Ordinal), else <see cref="ComboBoxConstants.CustomStateIndex"/>
     /// (-1) for a Custom / null / option-less selection - mirroring the Selection branch of
     /// <c>CatalogDetectionStateOverlay.Apply</c> and the unmatched fallback of <c>ResolveRawValuesToIndex</c>.</summary>
-    private static object ResolveSelectionIndex(SettingDefinition def, string? label)
+    private static int ResolveSelectionIndex(SettingDefinition def, string? label)
     {
         var options = def.ComboBox?.Options;
         if (label is not null && options is not null)

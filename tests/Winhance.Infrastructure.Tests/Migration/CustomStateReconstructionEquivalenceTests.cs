@@ -73,7 +73,7 @@ public class CustomStateReconstructionEquivalenceTests
             powerQuery,
             log.Object);
         var detection = new CatalogDetectionService(factory, log.Object);
-        var provider = new CatalogSettingStateProvider(detection);
+        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver(discovery));
 
         var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
 
