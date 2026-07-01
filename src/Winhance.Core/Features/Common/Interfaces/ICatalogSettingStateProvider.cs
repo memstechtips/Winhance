@@ -11,9 +11,10 @@ namespace Winhance.Core.Features.Common.Interfaces;
 /// old-discovery + <c>CatalogDetectionStateOverlay</c> hybrid: where the overlay layers the new engine onto an
 /// old-discovery base, this builds the whole result from the new engine's <c>CatalogDetectionResult</c>.
 ///
-/// Increment 1 maps the catalog-paired settings only (a def whose Id is present in <c>SettingCatalog.All</c>); an
-/// unpaired def is returned as an unsuccessful result rather than throwing. Wired to no consumer yet - its correctness
-/// is gated by <c>FullStateProviderEquivalenceTests</c>, which proves it matches the live hybrid for paired settings.
+/// Pairs a def to its catalog Setting by normalized Id (via <c>SettingIdAliases</c>, so the retired OS-merged
+/// "-win10" variants resolve to their canonical merged Setting); a def with no catalog peer even after normalizing is
+/// returned as an unsuccessful result rather than throwing. Wired to no consumer yet - its correctness is gated by
+/// <c>FullStateProviderEquivalenceTests</c>, which proves it matches the live hybrid for paired settings.
 /// </summary>
 public interface ICatalogSettingStateProvider
 {

@@ -294,6 +294,76 @@ public class FullStateProviderEquivalenceTests
             "Every gate-population numeric must carry a WindowsDefault(AC) value. Offenders: " + string.Join(", ", offenders));
     }
 
+    [Fact]
+    public async Task Provider_pairs_the_win10_aliases_to_their_canonical_setting()
+    {
+        // Slice 5: the 6 OS-merged "-win10" ThisPC-folder defs are absent from SettingCatalog.All; the provider must
+        // normalize them to their canonical merged Setting (like SettingsLoadingService) instead of reporting them
+        // unpaired. Because a "-win10" def and its canonical peer pair to the SAME Setting and read the SAME live
+        // detection, the provider must produce FIELD-IDENTICAL results for both - a machine-independent proof that the
+        // alias pairing works (it holds on Win10 or Win11: both sides read whatever target is live on this build).
+        var log = new Mock<ILogService>();
+        var interactiveUser = new Mock<IInteractiveUserService>();
+        interactiveUser.Setup(x => x.IsOtsElevation).Returns(false);
+        var reg = new WindowsRegistryService(log.Object, interactiveUser.Object);
+        var powerQuery = new PowerSettingsQueryService(log.Object);
+        var factory = new SystemDetectionContextFactory(
+            reg,
+            new Mock<ISystemRestoreService>().Object,
+            new Mock<IScheduledTaskService>().Object,
+            powerQuery,
+            log.Object);
+        var detection = new CatalogDetectionService(factory, log.Object);
+        var provider = new CatalogSettingStateProvider(detection);
+
+        var allDefs = AllDefinitions().ToList();
+        var aliasIds = new[]
+        {
+            "explorer-customization-thispc-folder-desktop-win10",
+            "explorer-customization-thispc-folder-documents-win10",
+            "explorer-customization-thispc-folder-downloads-win10",
+            "explorer-customization-thispc-folder-music-win10",
+            "explorer-customization-thispc-folder-pictures-win10",
+            "explorer-customization-thispc-folder-videos-win10",
+        };
+
+        var mismatches = new List<string>();
+        int checkedPairs = 0;
+
+        foreach (var aliasId in aliasIds)
+        {
+            var canonicalId = SettingIdAliases.Normalize(aliasId);
+            Assert.NotEqual(aliasId, canonicalId); // sanity: it really is a retired alias
+
+            var win10Def = allDefs.FirstOrDefault(d => d.Id == aliasId);
+            var canonicalDef = allDefs.FirstOrDefault(d => d.Id == canonicalId);
+            if (win10Def is null || canonicalDef is null)
+            {
+                mismatches.Add($"{aliasId}: def missing (win10={win10Def is not null}, canonical={canonicalDef is not null})");
+                continue;
+            }
+
+            var states = await provider.GetStatesAsync(new[] { win10Def, canonicalDef });
+            var win10 = states[aliasId];
+            var canonical = states[canonicalId];
+
+            // Paired now, not "unpaired".
+            Assert.True(win10.Success, $"{aliasId} should pair to its canonical Setting, got unpaired ({win10.ErrorMessage})");
+            checkedPairs++;
+
+            // Field-identical to the canonical peer (both pair to the same Setting + read the same detection).
+            CompareField(mismatches, aliasId, "IsEnabled", canonical.IsEnabled, win10.IsEnabled);
+            CompareField(mismatches, aliasId, "CurrentValue", canonical.CurrentValue, win10.CurrentValue);
+            CompareField(mismatches, aliasId, "Success", canonical.Success, win10.Success);
+            CompareField(mismatches, aliasId, "AcValue", canonical.AcValue, win10.AcValue);
+            CompareField(mismatches, aliasId, "DcValue", canonical.DcValue, win10.DcValue);
+            CompareReadings(mismatches, aliasId, canonical.Readings, win10.Readings);
+        }
+
+        Assert.True(checkedPairs == aliasIds.Length, $"expected {aliasIds.Length} alias pairs, paired {checkedPairs}");
+        Assert.True(mismatches.Count == 0, "win10 alias pairing diverged from the canonical peer:\n" + string.Join("\n", mismatches));
+    }
+
     private static int DistinctMismatchedSettings(IEnumerable<string> mismatches)
         => mismatches.Select(m => m.Split('.')[0]).Distinct().Count();
 

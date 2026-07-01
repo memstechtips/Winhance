@@ -17,7 +17,8 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 /// <c>CatalogDetectionStateOverlay.Apply</c>, except it produces the WHOLE result (the overlay layers onto an
 /// old-discovery base; this one builds from the <c>CatalogDetectionResult</c> alone).
 ///
-/// Increment 1 maps the catalog-paired settings only; an unpaired def returns an unsuccessful result rather than
+/// Pairs a def to its catalog Setting by normalized Id (SettingIdAliases, so the retired OS-merged "-win10" variants
+/// resolve to their canonical merged Setting); a def with no catalog peer returns an unsuccessful result rather than
 /// throwing. RawValues is intentionally NOT produced (option B): the registry readings live on
 /// <see cref="SettingStateResult.Readings"/> and AC/DC on the typed <see cref="SettingStateResult.AcValue"/>/
 /// <see cref="SettingStateResult.DcValue"/> fields; the remaining auxiliary RawValues entries become typed in a later
@@ -36,23 +37,38 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     {
         var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
 
-        // Pair every def whose Id has a catalog peer; the unpaired ones get a non-success result below (no throw).
-        var pairedDefs = settings.Where(d => catalogById.ContainsKey(d.Id)).ToList();
-        var pairedCatalogSettings = pairedDefs.Select(d => catalogById[d.Id]).ToList();
+        // Pair each def to its catalog Setting by NORMALIZED id: a retired OS-merged "-win10" variant (absent from
+        // SettingCatalog.All - the 6 "This PC" folder toggles merged into one build-gated Setting) resolves to its
+        // canonical merged Setting via SettingIdAliases, mirroring the live UI pairing (SettingsLoadingService). A def
+        // with no catalog peer even after normalizing gets a non-success result below (no throw). Each result stays
+        // keyed by the ORIGINAL def id.
+        Setting? Pair(SettingDefinition d) =>
+            catalogById.TryGetValue(SettingIdAliases.Normalize(d.Id), out var s) ? s : null;
 
-        var detected = await _detection.DetectAsync(pairedCatalogSettings).ConfigureAwait(false);
+        // Detect over the DISTINCT canonical settings. Two OS variants can normalize to one canonical (only one loads
+        // per OS in production), so dedupe by Id defensively rather than hand DetectAsync the same Setting twice.
+        var detectionInput = settings
+            .Select(Pair)
+            .Where(s => s is not null)
+            .Select(s => s!)
+            .GroupBy(s => s.Id)
+            .Select(g => g.First())
+            .ToList();
+
+        var detected = await _detection.DetectAsync(detectionInput).ConfigureAwait(false);
 
         var results = new Dictionary<string, SettingStateResult>();
         foreach (var def in settings)
         {
-            if (!catalogById.TryGetValue(def.Id, out var catalogSetting))
+            if (Pair(def) is not { } catalogSetting)
             {
-                // Increment 1 maps paired settings only; unpaired is a later slice - surface it, don't throw.
+                // No catalog peer even after alias-normalizing - surface it, don't throw.
                 results[def.Id] = new SettingStateResult { Success = false, ErrorMessage = "unpaired" };
                 continue;
             }
 
-            var r = detected.TryGetValue(def.Id, out var dr) ? dr : null;
+            // Detection is keyed by the CANONICAL Setting.Id, which differs from def.Id for a normalized alias.
+            var r = detected.TryGetValue(catalogSetting.Id, out var dr) ? dr : null;
             results[def.Id] = Map(def, catalogSetting, r);
         }
 
