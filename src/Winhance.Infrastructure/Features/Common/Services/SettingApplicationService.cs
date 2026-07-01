@@ -28,7 +28,6 @@ public class SettingApplicationService(
     IWindowsCompatibilityFilter compatibilityFilter,
     ISettingOperationExecutor operationExecutor,
     IChangeHistoryService changeHistory,
-    ISystemSettingsDiscoveryService discoveryService,
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
     IStateWriter stateWriter,
@@ -159,15 +158,12 @@ public class SettingApplicationService(
             var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
             try
             {
-                // Slice 6: a paired setting reads its full before-state (incl. the typed AC/DC) from the new-engine
-                // provider - the drop-in for old discovery + overlay, consistent with the after-state and the live UI.
-                // This replaces the Slice B workaround that threaded AC/DC via a separate DetectAsync call (the provider's
-                // AcValue/DcValue come from the same DetectAsync, so it is value-identical - the 41/41 equivalence still
-                // holds). An unpaired setting keeps old discovery, whose RawValues["ACValue"/"DCValue"] FormatBeforeDisplay
-                // falls back to.
-                var states = paired
-                    ? await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false)
-                    : await discoveryService.GetSettingStatesAsync(new[] { setting }).ConfigureAwait(false);
+                // The full-state provider (new engine) reads the complete before-state incl. the typed AC/DC,
+                // consistent with the after-state and the live UI. Old discovery has been retired: the provider covers
+                // every setting (completeness-proven, 0 unpaired), so the old paired?provider:discovery fallback is gone.
+                // A genuinely unpaired setting returns Success=false here, leaving beforeDisplay null - a cosmetic
+                // change-history gap that cannot arise for a real setting.
+                var states = await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (states.TryGetValue(settingId, out var state) && state.Success)
                 {
                     beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);

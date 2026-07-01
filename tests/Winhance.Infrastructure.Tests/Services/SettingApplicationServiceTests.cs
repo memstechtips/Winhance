@@ -27,7 +27,6 @@ public class SettingApplicationServiceTests
     private readonly Mock<IWindowsCompatibilityFilter> _mockCompatFilter = new();
     private readonly Mock<ISettingOperationExecutor> _mockExecutor = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
-    private readonly Mock<ISystemSettingsDiscoveryService> _mockDiscovery = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly Mock<IStateWriter> _mockStateWriter = new();
@@ -48,12 +47,9 @@ public class SettingApplicationServiceTests
                 It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Default: discovery finds nothing (no before-state), and GetString echoes the key back.
-        // A key-echo is NOT the "[{key}]" miss-marker, so by default ResolveLocalized treats every
-        // key as a HIT returning the key text; tests that assert on display strings set explicit returns.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+        // Default: GetString echoes the key back. A key-echo is NOT the "[{key}]" miss-marker, so by default
+        // ResolveLocalized treats every key as a HIT returning the key text; tests that assert on display strings
+        // set explicit returns.
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -81,7 +77,7 @@ public class SettingApplicationServiceTests
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
-            _mockChangeHistory.Object, _mockDiscovery.Object, _mockLocalization.Object,
+            _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
     }
@@ -484,8 +480,8 @@ public class SettingApplicationServiceTests
         SetupSettingInRegistry("toggle-setting");
 
         // Before-state: discovery reports the toggle currently disabled.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["toggle-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
@@ -510,8 +506,8 @@ public class SettingApplicationServiceTests
         SetupSettingInRegistry("noop-setting");
 
         // Before-state already matches the requested state (enabled → enable=true).
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["noop-setting"] = new SettingStateResult { Success = true, IsEnabled = true },
@@ -535,8 +531,8 @@ public class SettingApplicationServiceTests
     {
         SetupSettingInRegistry("throwing-setting");
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["throwing-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
@@ -569,8 +565,8 @@ public class SettingApplicationServiceTests
                 It.IsAny<bool>(), It.IsAny<object?>()))
             .ReturnsAsync(OperationResult.Failed("denied"));
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["fail-no-history"] = new SettingStateResult { Success = true, IsEnabled = false },
@@ -740,8 +736,8 @@ public class SettingApplicationServiceTests
 
         _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["num-power"] = new SettingStateResult
@@ -801,8 +797,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
 
         // Before-state: 0s AC (= 0 min), 600s DC (= 10 min) — same values as the after.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["num-power-noop"] = new SettingStateResult
@@ -858,8 +854,8 @@ public class SettingApplicationServiceTests
 
         // "%" has no Common_Unit_* key — ResolveLocalized returns null for a miss-marker; leave
         // mock at default (key echo). The switch default returns the raw "%" directly.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["num-power-pct"] = new SettingStateResult
@@ -901,8 +897,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_1")).Returns("4 minutes");
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-pcfg-noop"] = new SettingStateResult
@@ -939,8 +935,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_1")).Returns("4 minutes");
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-pcfg-change"] = new SettingStateResult
@@ -985,8 +981,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_2")).Returns("9 minutes");
 
         // Before-state raw AC = 100 → option 0 "Never". DC raw is garbage on a battery-less machine.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-nobat"] = new SettingStateResult
@@ -1028,8 +1024,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_1")).Returns("4 minutes");
 
         // AC raw 100 → option 0 "Never". DC raw is garbage and DIFFERENT from the applied DC index.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-nobat-noop"] = new SettingStateResult
@@ -1076,8 +1072,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Common_CustomState")).Returns("Custom");
 
         // AC raw 0 → option 0 "Never". DC raw 1 matches NO option's PowerCfgValue.
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-fallback"] = new SettingStateResult
@@ -1117,8 +1113,8 @@ public class SettingApplicationServiceTests
         _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_1")).Returns("4 minutes");
 
-        _mockDiscovery
-            .Setup(d => d.GetSettingStatesAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-throw"] = new SettingStateResult
