@@ -9,10 +9,9 @@ public sealed record SettingStateResult
     public object? CurrentValue { get; init; }
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
-    public IReadOnlyDictionary<string, object?>? RawValues { get; init; }
 
     /// <summary>Raw AC/DC powercfg values for a separate-mode power setting (the new engine's reading), so the UI
-    /// reads AC/DC from a typed field instead of RawValues["ACValue"/"DCValue"]. Null for non-powercfg settings.</summary>
+    /// reads AC/DC from a typed field. Null for non-powercfg settings.</summary>
     public int? AcValue { get; init; }
     public int? DcValue { get; init; }
 

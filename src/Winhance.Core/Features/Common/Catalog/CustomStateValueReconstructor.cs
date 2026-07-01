@@ -4,8 +4,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Rebuilds the per-setting "custom-state value bag" the OLD discovery exposed as
-/// <see cref="SettingStateResult.RawValues"/>, from the NEW engine's typed fields - so the Builder/config-export and
+/// <summary>Rebuilds the per-setting "custom-state value bag" the OLD discovery exposed as its untyped
+/// <c>RawValues</c> dictionary, from the NEW engine's typed fields - so the Builder/config-export and
 /// autounattend custom-state consumers keep working after old discovery + RawValues are retired. Reproduces the
 /// non-null RawValues the two consumers captured (for a Selection resolved to Custom) EXACTLY, per mechanism:
 /// <list type="bullet">

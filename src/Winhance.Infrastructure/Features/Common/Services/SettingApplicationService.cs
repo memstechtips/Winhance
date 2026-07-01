@@ -606,7 +606,7 @@ public class SettingApplicationService(
     /// <summary>
     /// Formats the pre-apply state for the change-history receipt. For PowerCfg Separate
     /// NumericRange settings, <see cref="SettingStateResult.CurrentValue"/> isn't a usable AC/DC
-    /// pair and the raw <c>ACValue</c>/<c>DCValue</c> in <see cref="SettingStateResult.RawValues"/>
+    /// pair and the typed <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>
     /// are SYSTEM units (e.g. seconds) — convert them to display units so the "before" matches the
     /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
     /// PowerCfg Separate Selection settings get the same treatment: <c>CurrentValue</c> is a single
@@ -617,11 +617,10 @@ public class SettingApplicationService(
     /// </summary>
     private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state, bool hasBattery)
     {
-        // Slice B: read AC/DC from the new engine's typed fields (threaded onto the before-state for a paired
-        // setting at the :161 read), falling back to the legacy detection RawValues["ACValue"/"DCValue"] for an
-        // unpaired setting. These are SYSTEM PowerCfg values (an enum/code), not option indices.
-        int? acInt = state.AcValue ?? TryRawInt(state, "ACValue");
-        int? dcInt = state.DcValue ?? TryRawInt(state, "DCValue");
+        // Read AC/DC from the new engine's typed fields (threaded onto the before-state at the provider read).
+        // These are SYSTEM PowerCfg values (an enum/code), not option indices.
+        int? acInt = state.AcValue;
+        int? dcInt = state.DcValue;
 
         if (setting.InputType == InputType.NumericRange
             && setting.PowerCfgSettings?.Any() == true
@@ -652,9 +651,6 @@ public class SettingApplicationService(
 
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
-
-    private static int? TryRawInt(SettingStateResult state, string key)
-        => state.RawValues is { } raw && raw.TryGetValue(key, out var v) ? TryToInt(v) : null;
 
     /// <summary>
     /// Composes an AC/DC receipt fragment. On battery-less machines (<paramref name="hasBattery"/> is

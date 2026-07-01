@@ -19,10 +19,9 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 ///
 /// Pairs a def to its catalog Setting by normalized Id (SettingIdAliases, so the retired OS-merged "-win10" variants
 /// resolve to their canonical merged Setting); a def with no catalog peer returns an unsuccessful result rather than
-/// throwing. RawValues is intentionally NOT produced (option B): the registry readings live on
-/// <see cref="SettingStateResult.Readings"/> and AC/DC on the typed <see cref="SettingStateResult.AcValue"/>/
-/// <see cref="SettingStateResult.DcValue"/> fields; the remaining auxiliary RawValues entries become typed in a later
-/// increment. Wired to no consumer yet - gated by <c>FullStateProviderEquivalenceTests</c>.
+/// throwing. There is no untyped RawValues bag (option B): the registry readings live on
+/// <see cref="SettingStateResult.Readings"/> and the powercfg AC/DC on the typed <see cref="SettingStateResult.AcValue"/>/
+/// <see cref="SettingStateResult.DcValue"/> fields. Gated by <c>CatalogSettingStateProviderConformanceTests</c>.
 /// </summary>
 public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 {
@@ -89,15 +88,14 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             return new SettingStateResult { Success = false, ErrorMessage = "no detection result" };
         }
 
-        // Common fields for every input type. RawValues is deliberately dropped (option B): the registry readings
-        // are on Readings and the powercfg AC/DC on the typed AcValue/DcValue fields. A paired setting is Success
-        // by default - a legitimate Custom state has Detected=false but the hybrid still reports Success=true, so
-        // Success must NOT track r.Detected. IsEnabled is derived from the NEW model alone (see DeriveIsEnabled).
+        // Common fields for every input type (option B: no untyped RawValues - the registry readings are on Readings
+        // and the powercfg AC/DC on the typed AcValue/DcValue fields). A paired setting is Success by default - a
+        // legitimate Custom state has Detected=false but still reports Success=true, so Success must NOT track
+        // r.Detected. IsEnabled is derived from the NEW model alone (see DeriveIsEnabled).
         var result = new SettingStateResult
         {
             Success = true,
             ErrorMessage = null,
-            RawValues = null,
             IsEnabled = DeriveIsEnabled(catalogSetting, def.InputType, r),
             AcValue = r.AcValue,
             DcValue = r.DcValue,

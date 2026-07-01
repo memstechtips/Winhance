@@ -705,7 +705,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_NumericRangePowerCfg_ConvertsBeforeStateToDisplayUnitsWithSuffix()
     {
-        // Before-state RawValues are SYSTEM units (seconds). For a Minutes-unit PowerCfg setting,
+        // Before-state AC/DC are SYSTEM units (seconds). For a Minutes-unit PowerCfg setting,
         // 600s → 10 min. The before must render in display units so it matches the after format.
         // Both before and after must carry the unit suffix (per-value) so no-op detection works.
         var powerCfg = new[]
@@ -744,7 +744,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                    AcValue = 0, DcValue = 600,
                 },
             });
 
@@ -805,7 +805,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 600 },
+                    AcValue = 0, DcValue = 600,
                 },
             });
 
@@ -863,7 +863,7 @@ public class SettingApplicationServiceTests
                     Success = true,
                     IsEnabled = true,
                     // % unit is 1:1 — system value == display value.
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 80, ["DCValue"] = 100 },
+                    AcValue = 80, DcValue = 100,
                 },
             });
 
@@ -883,7 +883,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SelectionPowerCfgNoChange_DoesNotLog()
     {
-        // PowerCfg Separate Selection setting. Before-state RawValues hold raw system PowerCfg values
+        // PowerCfg Separate Selection setting. Before-state AC/DC hold raw system PowerCfg values
         // (100 → option 0, 200 → option 1). A config import re-applying the SAME state arrives as a
         // (0, 0) ValueTuple. Before "AC: Never, DC: Never" must equal after "AC: Never, DC: Never"
         // byte-for-byte so no phantom receipt entry is logged.
@@ -905,7 +905,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                    AcValue = 100, DcValue = 100,
                 },
             });
 
@@ -943,7 +943,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                    AcValue = 100, DcValue = 100,
                 },
             });
 
@@ -989,7 +989,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 999999 },
+                    AcValue = 100, DcValue = 999999,
                 },
             });
 
@@ -1032,7 +1032,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 12345 },
+                    AcValue = 100, DcValue = 12345,
                 },
             });
 
@@ -1080,7 +1080,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
+                    AcValue = 0, DcValue = 1,
                 },
             });
 
@@ -1121,7 +1121,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    RawValues = new Dictionary<string, object?> { ["ACValue"] = 100, ["DCValue"] = 100 },
+                    AcValue = 100, DcValue = 100,
                 },
             });
 

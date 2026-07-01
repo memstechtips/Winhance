@@ -237,13 +237,12 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.PrepareSettings("TestFeature"))
             .Returns(new List<SettingDefinition> { selectionSetting });
 
-        var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "explorer-customization-measurement-system", new SettingStateResult
-                    { Success = true, CurrentValue = 1, RawValues = rawValues } }
+                    { Success = true, CurrentValue = 1 } }
             });
 
         _mockUserPreferencesService
@@ -293,13 +292,11 @@ public class SettingsLoadingServiceTests
             .Returns(new List<SettingDefinition> { selectionDef });
 
         var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef, parent.Object);
-        var rawValues = new Dictionary<string, object?> { { "PowerCfgValue", 1 } };
-
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1, RawValues = rawValues } }
+                { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1 } }
             });
 
         var result = await _sut.RefreshSettingStatesAsync(new[] { vm });

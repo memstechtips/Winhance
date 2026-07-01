@@ -1840,11 +1840,10 @@ public class ConfigReviewServiceTests : IDisposable
                 ["power-plan"] = new SettingStateResult
                 {
                     CurrentValue = 0,
-                    RawValues = new Dictionary<string, object?>
-                    {
-                        ["ActivePowerPlanGuid"] = "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
-                        ["ActivePowerPlan"] = "Balanced"
-                    }
+                    // The service reads the active plan from the typed DynamicSelection (scheme GUID) +
+                    // DynamicSelectionName (raw OS name), so drive those - not the retired RawValues bag.
+                    DynamicSelection = "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
+                    DynamicSelectionName = "Balanced"
                 }
             });
 
