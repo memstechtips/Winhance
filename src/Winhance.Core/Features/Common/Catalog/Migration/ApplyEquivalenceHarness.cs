@@ -553,6 +553,55 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (registry selection, option) modelling the config-import
+    /// CUSTOM-state re-apply. OLD is the live executor's custom-state branch (per RegistrySetting whose ValueName is in
+    /// the dict: ApplySetting(rs, specificValue != null, specificValue); ValueNames absent from the dict are skipped),
+    /// NEW is BuildRegistryCustomState over the SAME dict. The dict is the option's ValueMappings - a representative
+    /// per-ValueName custom dict (real CustomStateValues are the same shape: raw values keyed by ValueName). Scoped to
+    /// PLAIN registry selections with NO per-option scripts (the resolver's routed population - a script selection also
+    /// runs a script the registry-only builder does not, so it stays on the old apply).</summary>
+    public static IReadOnlyList<EquivalenceRow> RunRegistryCustomStateApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainRegistrySelectionForApply(def) || def.PowerShellScripts.Count > 0)
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertSelection(def);
+            var options = def.ComboBox!.Options;
+
+            foreach (var opt in options)
+            {
+                var customValues = new Dictionary<string, object>();
+                foreach (var kv in opt.ValueMappings ?? EmptyValues)
+                    customValues[kv.Key] = kv.Value!;   // a null captured value is a DELETE (Absent), preserved here
+
+                var oldWrites = def.RegistrySettings
+                    .Where(rs => customValues.ContainsKey(rs.ValueName ?? "KeyExists"))
+                    .SelectMany(rs =>
+                    {
+                        object? specificValue = customValues[rs.ValueName ?? "KeyExists"];
+                        return OldApplyWrite(rs, isEnabled: specificValue != null, specificValue);
+                    })
+                    .OrderBy(x => x).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues))
+                    .OrderBy(x => x).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [custom:{opt.DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring

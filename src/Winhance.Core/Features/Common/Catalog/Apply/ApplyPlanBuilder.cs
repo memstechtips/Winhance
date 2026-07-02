@@ -15,7 +15,14 @@ public static class ApplyPlanBuilder
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
             ?? throw new ArgumentException($"No state labelled '{stateLabel}' on setting '{setting.Id}'.", nameof(stateLabel));
+        return Build(setting, state, build, reset);
+    }
 
+    /// <summary>Build the apply plan for an EXPLICIT state (not looked up by label). The label overload above resolves
+    /// the state then delegates here; the custom-state path (<see cref="BuildRegistryCustomState"/>) synthesizes a
+    /// transient state and calls this directly.</summary>
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, SettingState state, WinBuild? build = null, bool reset = false)
+    {
         var ops = new List<ApplyOp>();
 
         // A setting that applies via a .reg import does NOT write its registry targets - those are detect-only;
@@ -117,6 +124,25 @@ public static class ApplyPlanBuilder
             ops.Add(new EffectOp(effect));
 
         return ops;
+    }
+
+    /// <summary>Apply plan for a registry-selection CUSTOM state (config-import CustomStateValues: a "Custom" /
+    /// no-option state re-applied as raw per-ValueName registry values). Synthesizes a transient state whose Set maps
+    /// each RegTarget (whose ValueName is present in the dict) to a WRITE (Of) or a DELETE (Absent, for a null captured
+    /// value), then runs the normal per-target apply via <see cref="Build(Setting, SettingState, WinBuild?, bool)"/> -
+    /// mirroring the old executor's custom-state branch (per RegistrySetting: ApplySetting(rs, specificValue != null,
+    /// specificValue), skipping ValueNames absent from the dict). Only registry targets are written; the resolver gates
+    /// this to pure registry selections (no effects/tasks/powercfg), so the transient state carries no Effects.</summary>
+    public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues)
+    {
+        var set = new Dictionary<string, StateValue>();
+        foreach (var reg in setting.Targets.OfType<RegTarget>())
+        {
+            var valueName = reg.ValueName ?? "KeyExists";
+            if (customValues.TryGetValue(valueName, out var v))
+                set[reg.Key] = v is null ? StateValue.Absent : StateValue.Of(v);
+        }
+        return Build(setting, new SettingState { Label = "__custom__", Set = set });
     }
 
     /// <summary>Turns "apply this Action" into write ops. An Action has no state - its setting-level Effects

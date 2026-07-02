@@ -476,10 +476,63 @@ public class ApplyRequestResolverTests
     public void Non_powercfg_selection_acdc_dict_returns_null()
     {
         // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path - it stays on the old
-        // apply (registry CustomStateValues handling is a separate, later concern).
+        // apply: an AC/DC dict is Dictionary<string,object?>, distinct from a CustomStateValues Dictionary<string,object>.
         var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
             resetToDefault: false, new[] { SelectionSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Registry_selection_custom_state_dict_routes_to_new_engine()
+    {
+        // Config-import CustomStateValues (Dictionary<string,object> of raw per-ValueName values for a Custom /
+        // no-option state): a PLAIN registry selection routes to BuildRegistryCustomState, which writes each
+        // RegTarget whose ValueName is in the dict.
+        var setting = SelectionSetting(); // RegTarget Key="k", ValueName="V"
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
+    }
+
+    [Fact]
+    public void Registry_selection_custom_state_with_effects_returns_null()
+    {
+        // A registry selection whose states carry effects (a per-option script) is NOT routed: the old executor
+        // ALSO runs the script, which the registry-only builder does not, so it stays on the old apply.
+        var setting = SelectionSetting() with
+        {
+            States = new[]
+            {
+                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) }, Effects = new Effect[] { new ScriptEffect("s", RunContext.User) } },
+                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) } },
+            },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Registry_selection_custom_state_per_nic_returns_null()
+    {
+        // A per-network-interface registry selection is outside the proven plain-registry custom-state population,
+        // so it stays on the old apply.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new Target[]
+            {
+                new RegTarget("k", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test" }, "V", RegistryValueKind.DWord) { PerNetworkInterface = true },
+            },
+            States = new[] { State("OptA", 0), State("OptB", 1) },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
         Assert.Null(plan);
     }
 }

@@ -110,7 +110,26 @@ public static class ApplyRequestResolver
                     return ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, acdc.Ac, acdc.Dc);
                 }
 
-                return null; // non-index / non-AC-DC selection value (registry CustomStateValues, string) -> old apply
+                // Registry-selection CUSTOM state (config-import CustomStateValues, a Dictionary<string,object> of raw
+                // per-ValueName values for a "Custom"/no-option state). Route to BuildRegistryCustomState ONLY for a
+                // PLAIN registry selection - every target a plain-value RegTarget (no per-NIC/monitor/composite, with a
+                // ValueName) and NO effects - matching the RunRegistryCustomStateApply proven population. The old
+                // executor's custom-state branch is that registry block; a setting with effects/tasks/powercfg would
+                // ALSO apply those (dropped by this registry-only builder), so it stays on the old apply.
+                if (value is Dictionary<string, object> customValues
+                    && setting.Targets.Count > 0
+                    && setting.Targets.All(t => t is RegTarget
+                        { PerNetworkInterface: false, PerMonitor: false, CompositeStringKey: null, ValueName: not null })
+                    && !setting.States.Any(st => st.Effects.Count > 0)
+                    // A Dictionary<string,object?> AC/DC dict is the SAME runtime type as Dictionary<string,object>
+                    // (nullable annotations are erased), so require the dict to actually carry one of this
+                    // setting's RegTarget ValueNames - an AC/DC dict (ACValue/DCValue keys) does not, and falls back.
+                    && setting.Targets.OfType<RegTarget>().Any(r => customValues.ContainsKey(r.ValueName ?? "KeyExists")))
+                {
+                    return ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues);
+                }
+
+                return null; // remaining non-index selection value (string display-name) -> old apply
 
             case ControlKind.Slider:
                 // Powercfg slider (Phase 6.4b). The funnel always passes display-units AC/DC in a dictionary
