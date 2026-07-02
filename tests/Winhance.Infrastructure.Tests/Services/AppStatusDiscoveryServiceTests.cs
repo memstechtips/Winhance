@@ -390,12 +390,16 @@ public class AppStatusDiscoveryServiceTests
     [InlineData("Microsoft EdgeWebView2 Runtime", "Microsoft EdgeWebView{version}", true)]
     [InlineData("Trillian Machine-Wide Installer", "Trillian Machine-Wide Installer", true)]
     [InlineData("Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161", "Microsoft Visual C++ 2008 Redistributable - x64 {version}", true)]
-    [InlineData("Microsoft .NET Runtime - 3.1.32 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})", true)]
+    [InlineData("Microsoft .NET Core Runtime - 3.1.32 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})|Microsoft .NET Core Runtime - 3.1.{version} ({arch})", true)]
+    [InlineData("Microsoft .NET Runtime - 3.1.32 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})|Microsoft .NET Core Runtime - 3.1.{version} ({arch})", true)]
+    [InlineData("Microsoft Visual C++ v14 Redistributable (x64) - 14.51.36247", "Microsoft Visual C++ 2015-2022 Redistributable (x64) - {version}|Microsoft Visual C++ v14 Redistributable (x64) - {version}", true)]
+    [InlineData("Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.38.33135", "Microsoft Visual C++ 2015-2022 Redistributable (x64) - {version}|Microsoft Visual C++ v14 Redistributable (x64) - {version}", true)]
     [InlineData("VLC media player", "VLC media player", true)]
     // Negative cases
     [InlineData("MediaMonkey 5", "VLC media player", false)]
     [InlineData("GIMP 3.0.8-2", "Audacity {version}", false)]
-    [InlineData("Microsoft .NET Runtime - 5.0.17 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})", false)]
+    [InlineData("Microsoft .NET Runtime - 5.0.17 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})|Microsoft .NET Core Runtime - 3.1.{version} ({arch})", false)]
+    [InlineData("Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501", "Microsoft Visual C++ 2015-2022 Redistributable (x64) - {version}|Microsoft Visual C++ v14 Redistributable (x64) - {version}", false)]
     [InlineData("", "Foo {version}", false)]
     public void MatchesPattern_ReturnsExpected(string input, string pattern, bool expected)
     {
