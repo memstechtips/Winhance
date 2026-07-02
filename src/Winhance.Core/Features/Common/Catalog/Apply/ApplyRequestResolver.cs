@@ -90,7 +90,27 @@ public static class ApplyRequestResolver
                 {
                     return BuildForLabel(setting, setting.States[index].Label, build);
                 }
-                return null; // non-index selection value (AC/DC dict, string, tuple) -> old apply
+                // Separate AC/DC powercfg selection (config-import (acIndex,dcIndex) tuple / UI {ACValue,DCValue} index
+                // dict): the old PowerCfgApplier wrote GetValueFromIndex(acIndex) -> AC and GetValueFromIndex(dcIndex)
+                // -> DC (asymmetric), which Build(stateLabel) cannot express (it writes one option to BOTH contexts).
+                // Route to the dedicated AC/DC builder ONLY when every target is a SEPARATE (AC/DC) PowerCfgTarget and
+                // both indices are in range. A powercfg selection's enablement registry is nested INSIDE the
+                // PowerCfgTarget (EnablementKey) and applied out-of-band by the existence phase, NOT by this AC/DC
+                // write - so a normal enablement-bearing powercfg selection (power-button-action etc.) IS pure here and
+                // routes correctly (proven by the AC/DC equivalence harness). The All(is PowerCfgTarget { Separate })
+                // guard keeps a hypothetical future sibling-registry or non-Separate powercfg selection on the old apply
+                // (BuildPowerCfgSelectionAcDc writes only the powercfg target, and the old applier's AC/DC path is
+                // itself gated on Separate); every other shape (registry CustomStateValues dict, string) falls back too.
+                if (setting.Targets.Count > 0
+                    && setting.Targets.All(t => t is PowerCfgTarget { Mode: PowerModeSupport.Separate })
+                    && TryReadAcDcIndices(value) is { } acdc
+                    && acdc.Ac >= 0 && acdc.Ac < setting.States.Count
+                    && acdc.Dc >= 0 && acdc.Dc < setting.States.Count)
+                {
+                    return ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, acdc.Ac, acdc.Dc);
+                }
+
+                return null; // non-index / non-AC-DC selection value (registry CustomStateValues, string) -> old apply
 
             case ControlKind.Slider:
                 // Powercfg slider (Phase 6.4b). The funnel always passes display-units AC/DC in a dictionary
@@ -115,6 +135,24 @@ public static class ApplyRequestResolver
                 return null;
 
             default: // anything else -> old apply
+                return null;
+        }
+    }
+
+    /// <summary>Reads a separate-AC/DC selection value into (acIndex, dcIndex): a config-import (int,int) tuple or a
+    /// {ACValue, DCValue} index dictionary (the UI AC/DC quick-set). Returns null for any other shape (a registry
+    /// CustomStateValues dict has no ACValue/DCValue keys, a display-name string, etc.) so the caller falls back.</summary>
+    private static (int Ac, int Dc)? TryReadAcDcIndices(object? value)
+    {
+        switch (value)
+        {
+            case ValueTuple<int, int> tuple:
+                return (tuple.Item1, tuple.Item2);
+            case Dictionary<string, object?> dict
+                when dict.TryGetValue("ACValue", out var ac) && dict.TryGetValue("DCValue", out var dc)
+                    && TryToInt(ac) is { } acIndex && TryToInt(dc) is { } dcIndex:
+                return (acIndex, dcIndex);
+            default:
                 return null;
         }
     }

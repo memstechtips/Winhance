@@ -508,6 +508,51 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (powercfg selection, acIndex, dcIndex) pair - the
+    /// ASYMMETRIC AC/DC apply the symmetric <see cref="RunPowerCfgSelectionApply"/> does not cover. OLD mirrors the
+    /// live PowerCfgApplier AC/DC path: GetValueFromIndex(acIndex) (the option's PowerCfgValue) -> AC value index,
+    /// GetValueFromIndex(dcIndex) -> DC value index. NEW is the BuildPowerCfgSelectionAcDc plan. Both normalised.
+    /// Callers pre-filter with <see cref="IsPlainPowerCfgSelectionForApply"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunPowerCfgSelectionAcDcApply(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            if (!IsPlainPowerCfgSelectionForApply(def))
+                continue;
+
+            var setting = SettingDefinitionConverter.ConvertPowerCfg(def);
+            var pcs = def.PowerCfgSettings![0];
+            var options = def.ComboBox!.Options;
+
+            for (int ac = 0; ac < options.Count; ac++)
+            for (int dc = 0; dc < options.Count; dc++)
+            {
+                int acVal = System.Convert.ToInt32(options[ac].ValueMappings!["PowerCfgValue"]);
+                int dcVal = System.Convert.ToInt32(options[dc].ValueMappings!["PowerCfgValue"]);
+
+                var oldWrites = new[]
+                {
+                    $"POWERWRITEAC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {acVal}",
+                    $"POWERWRITEDC sub={pcs.SubgroupGuid} setting={pcs.SettingGuid} = {dcVal}",
+                }.OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, ac, dc))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [AC={options[ac].DisplayName}, DC={options[dc].DisplayName}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring

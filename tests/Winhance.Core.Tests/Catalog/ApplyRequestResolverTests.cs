@@ -50,6 +50,23 @@ public class ApplyRequestResolverTests
         Numeric = new Numeric { Min = 0, Max = 100, Units = "Minutes" },
     };
 
+    private static Setting PowerCfgSelectionSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = "n", Description = "d" },
+        Targets = new Target[]
+        {
+            new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+        },
+        States = new[]
+        {
+            new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+            new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+            new SettingState { Label = "OptC", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+        },
+    };
+
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(Setting setting, IDetectionContext context) => null;
@@ -338,5 +355,131 @@ public class ApplyRequestResolverTests
             new ContextValue(PowerContext.DC, 5),
         });
         Assert.Equal(expected, plan);
+    }
+
+    [Fact]
+    public void Powercfg_selection_acdc_tuple_builds_asymmetric_plan()
+    {
+        // Config-import shape: a (acIndex, dcIndex) ValueTuple. The resolver routes it to BuildPowerCfgSelectionAcDc,
+        // which writes the AC option's value to AC and the DC option's value to DC (asymmetric).
+        var setting = PowerCfgSelectionSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 2),
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 0, 2), plan);
+    }
+
+    [Fact]
+    public void Powercfg_selection_acdc_dict_builds_asymmetric_plan()
+    {
+        // UI AC/DC quick-set shape: { ACValue = acIndex, DCValue = dcIndex }.
+        var setting = PowerCfgSelectionSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 1, ["DCValue"] = 0 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 1, 0), plan);
+    }
+
+    [Fact]
+    public void Powercfg_selection_acdc_out_of_range_index_returns_null()
+    {
+        // An out-of-range AC/DC index is not representable -> falls back to the old apply.
+        var setting = PowerCfgSelectionSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 9),
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Mixed_powercfg_and_registry_selection_acdc_returns_null()
+    {
+        // DEFENSIVE guard: a powercfg selection with a SIBLING RegTarget is not pure - BuildPowerCfgSelectionAcDc
+        // writes only the powercfg target and would DROP the registry writes, so it stays on the old apply. (Real
+        // powercfg selections never take this shape: their enablement registry is nested in PowerCfgTarget.EnablementKey,
+        // out-of-band, so they DO route - see Powercfg_selection_with_enablement_key_routes.)
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+                Reg(),
+            },
+            States = new[]
+            {
+                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10), ["k"] = StateValue.Of(0) } },
+                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20), ["k"] = StateValue.Of(1) } },
+            },
+        };
+        var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Powercfg_selection_with_enablement_key_routes()
+    {
+        // A powercfg selection whose PowerCfgTarget carries a nested EnablementKey (the real power-button-action
+        // shape) is still PURE (its only target is a PowerCfgTarget) - the enablement registry is applied out-of-band
+        // by the existence phase, not the AC/DC write - so its AC/DC apply routes to the new engine.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate) { EnablementKey = Reg() },
+            },
+            States = new[]
+            {
+                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+                new SettingState { Label = "OptC", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+            },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 2),
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 0, 2), plan);
+    }
+
+    [Fact]
+    public void Non_separate_powercfg_selection_acdc_returns_null()
+    {
+        // The old PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
+        // given an AC/DC value throws NotSupportedException there). The new routing mirrors that gate: a non-Separate
+        // powercfg selection falls back to the old apply rather than writing both contexts. (No such setting exists
+        // today - all catalog powercfg settings are Separate - this guards the invariant if one is ever added.)
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Both),
+            },
+            States = new[]
+            {
+                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+            },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 1),
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Non_powercfg_selection_acdc_dict_returns_null()
+    {
+        // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path - it stays on the old
+        // apply (registry CustomStateValues handling is a separate, later concern).
+        var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { SelectionSetting() });
+        Assert.Null(plan);
     }
 }

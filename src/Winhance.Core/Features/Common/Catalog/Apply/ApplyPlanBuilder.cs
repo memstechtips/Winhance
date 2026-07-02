@@ -156,6 +156,29 @@ public static class ApplyPlanBuilder
         return ops;
     }
 
+    /// <summary>Apply plan for a separate-AC/DC powercfg SELECTION: writes the AC option's value to the AC context and
+    /// the DC option's value to the DC context (asymmetric), mirroring the old PowerCfgApplier's
+    /// GetValueFromIndex(acIndex) -> AC / GetValueFromIndex(dcIndex) -> DC. Each option's value is that state's
+    /// per-target Set payload - the same value Build(stateLabel) writes to BOTH contexts for the symmetric single-index
+    /// path. An index whose state has no value for the target emits no op for that context (defensive; valid config/UI
+    /// indices always resolve).</summary>
+    public static IReadOnlyList<ApplyOp> BuildPowerCfgSelectionAcDc(Setting setting, int acIndex, int dcIndex)
+    {
+        var ops = new List<ApplyOp>();
+        var pc = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pc is null) return ops;
+
+        int? OptionValue(int idx) =>
+            idx >= 0 && idx < setting.States.Count
+                && setting.States[idx].Set.TryGetValue(pc.Key, out var sv) && sv.WritePayload is { } payload
+                ? Convert.ToInt32(payload)
+                : (int?)null;
+
+        if (OptionValue(acIndex) is { } acValue) ops.Add(new PowerCfgSetOp(pc, PowerContext.AC, acValue));
+        if (OptionValue(dcIndex) is { } dcValue) ops.Add(new PowerCfgSetOp(pc, PowerContext.DC, dcValue));
+        return ops;
+    }
+
     private static int ConvertToSystem(int displayValue, string? units) => units?.ToLowerInvariant() switch
     {
         "minutes" => displayValue * 60,
