@@ -297,11 +297,15 @@ public class AppStatusDiscoveryService(
         if (string.IsNullOrEmpty(input))
             return false;
 
-        var regexPattern = Regex.Escape(pattern)
-            .Replace(@"\{version}", ".+?")
-            .Replace(@"\{arch}", ".+?")
-            .Replace(@"\{locale}", ".+?");
-        return Regex.IsMatch(input, $"^{regexPattern}$", RegexOptions.IgnoreCase);
+        var patterns = pattern.Split('|');
+        return patterns.Any(p =>
+        {
+            var regexPattern = Regex.Escape(p)
+                .Replace(@"\{version}", ".+?")
+                .Replace(@"\{arch}", ".+?")
+                .Replace(@"\{locale}", ".+?");
+            return Regex.IsMatch(input, $"^{regexPattern}$", RegexOptions.IgnoreCase);
+        });
     }
 
     #region External Apps Detection
