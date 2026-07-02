@@ -126,6 +126,7 @@ public static class InfrastructureServicesExtensions
         // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
+        services.AddSingleton<ICatalogPowerExistenceFilter, CatalogPowerExistenceFilter>();
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
