@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
@@ -38,4 +39,16 @@ public sealed record Setting
     /// <summary>Presentation only: nest this setting under the parent in the UI and disable its control when
     /// the parent is off. No apply behaviour. Null = top-level.</summary>
     public string? UiParentId { get; init; }
+
+    /// <summary>The render-kind, DERIVED from the setting shape - the single source of truth, so it can never
+    /// drift from what the engine detects. Presentation reads this to pick a control; the engine resolves state
+    /// from the same shape directly (so "explicit render-kind" and "shape-driven engine" are one thing). Toggle ==
+    /// exactly two states both labelled "Enabled"/"Disabled" (the converter invariant the live detection already
+    /// relies on); everything else follows from OptionSource / Numeric / States presence.</summary>
+    public ControlKind Control =>
+        OptionSource is not null ? ControlKind.PowerPlan
+        : Numeric is not null ? ControlKind.Slider
+        : States.Count == 0 ? ControlKind.Action
+        : States.Count == 2 && States.All(s => s.Label is "Enabled" or "Disabled") ? ControlKind.Toggle
+        : ControlKind.Selection;
 }
