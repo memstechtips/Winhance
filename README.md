@@ -36,8 +36,7 @@ The `Winhance.Installer.exe` includes both Installable and Portable versions dur
 ## Support the developer
 
 It really does make a big difference, and is very much appreciated. Thanks<br>
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/memstechtips)
-[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/memstech)
+[![Support Winhance](https://img.shields.io/badge/Support-Winhance-FFD700?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://store.memstechtips.com/winhance/)
 
 ## Current Features 🛠️
 

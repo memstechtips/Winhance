@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -22,6 +23,8 @@ public class ConfigExportService : IConfigExportService
     private readonly IExternalAppsItemsProvider _externalAppsVM;
     private readonly IFileSystemService _fileSystemService;
     private readonly IMainWindowProvider _mainWindowProvider;
+    private readonly IApplicationModeService _applicationModeService;
+    private readonly IAutounattendXmlGeneratorService _autounattendGenerator;
 
     public ConfigExportService(
         ILogService logService,
@@ -34,7 +37,9 @@ public class ConfigExportService : IConfigExportService
         IWindowsAppsItemsProvider windowsAppsVM,
         IExternalAppsItemsProvider externalAppsVM,
         IFileSystemService fileSystemService,
-        IMainWindowProvider mainWindowProvider)
+        IMainWindowProvider mainWindowProvider,
+        IApplicationModeService applicationModeService,
+        IAutounattendXmlGeneratorService autounattendGenerator)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -47,6 +52,8 @@ public class ConfigExportService : IConfigExportService
         _externalAppsVM = externalAppsVM;
         _fileSystemService = fileSystemService;
         _mainWindowProvider = mainWindowProvider;
+        _applicationModeService = applicationModeService;
+        _autounattendGenerator = autounattendGenerator;
     }
 
     private Task EnsureRegistryInitializedAsync()
@@ -66,9 +73,11 @@ public class ConfigExportService : IConfigExportService
 
             if (config.WindowsApps.Items.Count == 0)
             {
-                var continueAnyway = await _dialogService.ShowConfirmationAsync(
-                    _localizationService.GetString("Dialog_NoAppsSelected_Config_Message"),
-                    _localizationService.GetString("Dialog_NoAppsSelected_Title"));
+                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = _localizationService.GetString("Dialog_NoAppsSelected_Config_Message"),
+                    Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                })).Confirmed;
                 if (!continueAnyway)
                     return;
             }
@@ -158,6 +167,173 @@ public class ConfigExportService : IConfigExportService
         await PopulateAppsSections(config, isBackup);
 
         return config;
+    }
+
+    public async Task<UnifiedConfigurationFile> CreateConfigurationFromUiStateAsync(bool isBackup = false)
+    {
+        // Seed from current system state (Builder reflects the machine), then overlay
+        // the user's authored Builder edits so the saved file captures their intent.
+        var config = await CreateConfigurationFromSystemAsync(isBackup);
+        ApplyBuilderEdits(config);
+        return config;
+    }
+
+    private void ApplyBuilderEdits(UnifiedConfigurationFile config)
+    {
+        var edits = _applicationModeService.GetBuilderEdits();
+        if (edits.Count == 0)
+        {
+            return;
+        }
+
+        var editsById = edits.ToDictionary(e => e.SettingId, e => e);
+
+        var sections = config.Optimize.Features.Values
+            .Concat(config.Customize.Features.Values);
+
+        foreach (var section in sections)
+        {
+            foreach (var item in section.Items)
+            {
+                if (!editsById.TryGetValue(item.Id, out var edit))
+                {
+                    continue;
+                }
+
+                switch (edit.InputType)
+                {
+                    case InputType.Toggle:
+                    case InputType.CheckBox:
+                    case InputType.Action:
+                        item.IsSelected = edit.IsSelected;
+                        break;
+
+                    case InputType.Selection:
+                        if (edit.CustomStateValues != null)
+                        {
+                            item.CustomStateValues = edit.CustomStateValues;
+                            item.SelectedIndex = null;
+                        }
+                        else
+                        {
+                            item.SelectedIndex = edit.SelectedIndex;
+                            item.CustomStateValues = null;
+                        }
+                        break;
+
+                    // NumericRange / AC-DC power edits are not yet recorded; they retain
+                    // their seeded value. See BuilderEdit scope note.
+                }
+            }
+        }
+
+        _logService.Log(LogLevel.Info,
+            $"[ConfigExportService] Applied {edits.Count} Builder edit(s) onto the seeded configuration");
+    }
+
+    public async Task ExportBuilderConfigAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Starting Builder configuration export");
+
+            await EnsureRegistryInitializedAsync();
+
+            var config = await CreateConfigurationFromUiStateAsync();
+
+            var window = GetMainWindow();
+            if (window == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
+                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                return;
+            }
+
+            var defaultFileName = $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}";
+            var filePath = Win32FileDialogHelper.ShowSaveFilePicker(
+                window,
+                "Save Configuration",
+                ConfigFileConstants.FileFilter,
+                ConfigFileConstants.FilePattern,
+                defaultFileName,
+                "winhance");
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logService.Log(LogLevel.Info, "Builder export canceled by user");
+                return;
+            }
+
+            var json = JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions);
+            await _fileSystemService.WriteAllTextAsync(filePath, json);
+
+            _logService.Log(LogLevel.Info, $"Builder configuration exported to {filePath}");
+
+            await _dialogService.ShowInformationAsync(
+                _localizationService.GetString("Config_Export_Success_Message", filePath)
+                    ?? $"Configuration saved to {filePath}",
+                _localizationService.GetString("Config_Export_Success_Title") ?? "Save Successful");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error exporting Builder configuration: {ex.Message}");
+            await _dialogService.ShowErrorAsync(
+                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
+                    ?? $"Error saving configuration: {ex.Message}",
+                _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
+        }
+    }
+
+    public async Task ExportBuilderAutounattendAsync()
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Starting Builder autounattend.xml export");
+
+            await EnsureRegistryInitializedAsync();
+
+            var config = await CreateConfigurationFromUiStateAsync();
+
+            var window = GetMainWindow();
+            if (window == null)
+            {
+                _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
+                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                return;
+            }
+
+            var defaultFileName = "autounattend.xml";
+            var filePath = Win32FileDialogHelper.ShowSaveFilePicker(
+                window,
+                "Save autounattend.xml",
+                "Autounattend XML File",
+                "*.xml",
+                defaultFileName,
+                "xml");
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logService.Log(LogLevel.Info, "Builder autounattend export canceled by user");
+                return;
+            }
+
+            await _autounattendGenerator.GenerateFromConfigAsync(config, filePath);
+
+            _logService.Log(LogLevel.Info, $"Builder autounattend.xml exported to {filePath}");
+
+            await _dialogService.ShowInformationAsync(
+                _localizationService.GetString("Config_Export_Success_Message", filePath)
+                    ?? $"autounattend.xml saved to {filePath}",
+                _localizationService.GetString("Config_Export_Success_Title") ?? "Save Successful");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error exporting Builder autounattend.xml: {ex.Message}");
+            await _dialogService.ShowErrorAsync(
+                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
+                    ?? $"Error saving autounattend.xml: {ex.Message}",
+                _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
+        }
     }
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)

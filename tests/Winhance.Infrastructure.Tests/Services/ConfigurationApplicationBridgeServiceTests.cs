@@ -13,6 +13,7 @@ public class ConfigurationApplicationBridgeServiceTests
     private readonly Mock<ISettingApplicationService> _mockSettingApp = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
+    private readonly ConfigImportState _importState = new();
     private readonly ConfigurationApplicationBridgeService _service;
 
     public ConfigurationApplicationBridgeServiceTests()
@@ -20,7 +21,8 @@ public class ConfigurationApplicationBridgeServiceTests
         _service = new ConfigurationApplicationBridgeService(
             _mockSettingApp.Object,
             _mockRegistry.Object,
-            _mockLog.Object);
+            _mockLog.Object,
+            _importState);
     }
 
     private static SettingDefinition CreateSetting(string id, InputType inputType = InputType.Toggle, bool requiresConfirmation = false) => new()
@@ -30,6 +32,28 @@ public class ConfigurationApplicationBridgeServiceTests
         Description = $"Description for {id}",
         InputType = inputType,
         RequiresConfirmation = requiresConfirmation,
+    };
+
+    private static SettingDefinition CreatePowerCfgNumericRangeSetting(string id, string units) => new()
+    {
+        Id = id,
+        Name = $"Setting {id}",
+        Description = $"Description for {id}",
+        InputType = InputType.NumericRange,
+        PowerCfgSettings = new List<PowerCfgSetting>
+        {
+            new()
+            {
+                SubgroupGuid = "00000000-0000-0000-0000-000000000000",
+                SettingGuid = "00000000-0000-0000-0000-000000000000",
+                PowerModeSupport = PowerModeSupport.Separate,
+                Units = units,
+                RecommendedValueAC = null,
+                RecommendedValueDC = null,
+                DefaultValueAC = null,
+                DefaultValueDC = null,
+            }
+        },
     };
 
     private static ConfigurationItem CreateItem(string id, bool? isSelected = true) => new()
@@ -314,20 +338,17 @@ public class ConfigurationApplicationBridgeServiceTests
     }
 
     [Fact]
-    public async Task ApplyConfigurationSectionAsync_ActionSetting_AppliesWithCommandString()
+    public async Task ApplyConfigurationSectionAsync_SelectedActionSetting_AppliesViaCatalogPath()
     {
         // Arrange
-        var setting = CreateSetting("action-setting", inputType: InputType.Action) with
-        {
-            ActionCommand = "run-action"
-        };
+        var setting = CreateSetting("act-sel", inputType: InputType.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>
             {
-                CreateItem("action-setting", isSelected: true),
+                CreateItem("act-sel", isSelected: true),
             }
         };
 
@@ -338,39 +359,33 @@ public class ConfigurationApplicationBridgeServiceTests
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
+        // Assert — selected Action setting routes through catalog path with Enable = true
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-                r.SettingId == "action-setting" &&
-                r.CommandString == "run-action" &&
-                r.Enable == false &&
-                r.SkipValuePrerequisites == true)),
+                r.SettingId == "act-sel" && r.Enable == true)),
             Times.Once);
     }
 
     [Fact]
-    public async Task ApplyConfigurationSectionAsync_ActionSettingNotSelected_SkipsExecution()
+    public async Task ApplyConfigurationSectionAsync_UnselectedActionSetting_IsSkipped()
     {
         // Arrange
-        var setting = CreateSetting("action-setting", inputType: InputType.Action) with
-        {
-            ActionCommand = "run-action"
-        };
+        var setting = CreateSetting("act-sel", inputType: InputType.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>
             {
-                CreateItem("action-setting", isSelected: false),
+                CreateItem("act-sel", isSelected: false),
             }
         };
 
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - Action settings with IsSelected=false skip the action branch entirely
+        // Assert — unselected Action setting is skipped entirely (no reverse semantic)
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
@@ -519,5 +534,162 @@ public class ConfigurationApplicationBridgeServiceTests
         _mockLog.Verify(
             x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("parallel wave(s)")), null),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_PowerCfgNumericRange_ConvertsSystemUnitsToDisplay()
+    {
+        // Arrange - config stores AC/DC values in SYSTEM units (seconds). The PowerCfgApplier
+        // converts display->system itself, so the bridge must hand it DISPLAY units.
+        // 600 seconds with "Minutes" display units => 10 minutes.
+        var setting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
+        SetupRegistryWithSettings(setting);
+
+        var item = new ConfigurationItem
+        {
+            Id = "power-harddisk-timeout",
+            Name = "Hard disk timeout",
+            IsSelected = true,
+            InputType = InputType.NumericRange,
+            PowerSettings = new Dictionary<string, object>
+            {
+                ["ACValue"] = 300,
+                ["DCValue"] = 600,
+            },
+        };
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem> { item }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        // Act
+        var result = await _service.ApplyConfigurationSectionAsync(section, "Power");
+
+        // Assert - 300s -> 5 min (AC), 600s -> 10 min (DC)
+        result.Should().BeTrue();
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "power-harddisk-timeout" &&
+                r.Value is Dictionary<string, object?> &&
+                Convert.ToInt32(((Dictionary<string, object?>)r.Value!)["ACValue"]) == 5 &&
+                Convert.ToInt32(((Dictionary<string, object?>)r.Value!)["DCValue"]) == 10)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_NonPowerNumericRange_PassesValueUnchanged()
+    {
+        // Arrange - a NumericRange setting with NO PowerCfgSettings must not be unit-converted.
+        var setting = CreateSetting("plain-numeric", inputType: InputType.NumericRange);
+        SetupRegistryWithSettings(setting);
+
+        var item = new ConfigurationItem
+        {
+            Id = "plain-numeric",
+            Name = "Plain numeric",
+            IsSelected = true,
+            InputType = InputType.NumericRange,
+            PowerSettings = new Dictionary<string, object>
+            {
+                ["Value"] = 600,
+            },
+        };
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem> { item }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        // Act
+        var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
+
+        // Assert - value passes through unchanged (no PowerCfg conversion)
+        result.Should().BeTrue();
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "plain-numeric" &&
+                r.Value != null &&
+                Convert.ToInt32(r.Value) == 600)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_SectionWithPowerItems_SetsImportSuppliesPowerValues()
+    {
+        // Arrange - a section carrying an individual PowerCfg item alongside the plan selection
+        var powerItemSetting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
+        var planSetting = CreateSetting("power-plan-selection", inputType: InputType.Selection);
+        SetupRegistryWithSettings(powerItemSetting, planSetting);
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = "power-harddisk-timeout",
+                    Name = "Hard disk timeout",
+                    IsSelected = true,
+                    InputType = InputType.NumericRange,
+                    PowerSettings = new Dictionary<string, object> { ["ACValue"] = 300, ["DCValue"] = 600 },
+                },
+                new()
+                {
+                    Id = "power-plan-selection",
+                    Name = "Power plan",
+                    IsSelected = true,
+                    InputType = InputType.Selection,
+                    PowerPlanGuid = "57696e68-616e-6365-506f-776572000000",
+                    PowerPlanName = "Winhance Power Plan",
+                },
+            }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        // Act
+        await _service.ApplyConfigurationSectionAsync(section, "Power");
+
+        // Assert
+        _importState.ImportSuppliesPowerValues.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_SectionWithoutPowerItems_LeavesImportSuppliesPowerValuesFalse()
+    {
+        // Arrange - a non-power section: no item carries PowerSettings
+        var setting1 = CreateSetting("setting-1");
+        var setting2 = CreateSetting("setting-2");
+        SetupRegistryWithSettings(setting1, setting2);
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                CreateItem("setting-1"),
+                CreateItem("setting-2"),
+            }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        // Act
+        await _service.ApplyConfigurationSectionAsync(section, "TestSection");
+
+        // Assert
+        _importState.ImportSuppliesPowerValues.Should().BeFalse();
     }
 }

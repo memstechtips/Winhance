@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
@@ -19,6 +20,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IMainWindowProvider _mainWindowProvider;
+    private readonly IConfigImportState _configImportState;
 
     public ConfigLoadService(
         ILogService logService,
@@ -29,7 +31,8 @@ public class ConfigLoadService : IConfigLoadService
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IFileSystemService fileSystemService,
-        IMainWindowProvider mainWindowProvider)
+        IMainWindowProvider mainWindowProvider,
+        IConfigImportState configImportState)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -40,6 +43,7 @@ public class ConfigLoadService : IConfigLoadService
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
         _mainWindowProvider = mainWindowProvider;
+        _configImportState = configImportState;
     }
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
@@ -64,6 +68,8 @@ public class ConfigLoadService : IConfigLoadService
 
             if (string.IsNullOrEmpty(filePath))
                 return null;
+
+            _configImportState.SourceName = Path.GetFileName(filePath);
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
             var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
@@ -119,6 +125,8 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
             }
 
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Recommended_Title");
+
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
             var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
@@ -156,6 +164,8 @@ public class ConfigLoadService : IConfigLoadService
                     "Resource Error");
                 return null;
             }
+
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Defaults_Title");
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
@@ -230,6 +240,7 @@ public class ConfigLoadService : IConfigLoadService
                 filePath = selectedPath;
             }
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
             var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
@@ -259,6 +270,7 @@ public class ConfigLoadService : IConfigLoadService
         var incompatible = new List<string>();
         var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
+        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
         var allSections = new Dictionary<string, FeatureGroupSection>
         {
@@ -289,14 +301,6 @@ public class ConfigLoadService : IConfigLoadService
                         {
                             isIncompatible = true;
                         }
-                        else if (settingDef.MinimumBuildNumber.HasValue && buildNumber < settingDef.MinimumBuildNumber.Value)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
-                        {
-                            isIncompatible = true;
-                        }
                         else if (settingDef.SupportedBuildRanges?.Count > 0)
                         {
                             bool inRange = settingDef.SupportedBuildRanges.Any(range =>
@@ -305,6 +309,16 @@ public class ConfigLoadService : IConfigLoadService
                             {
                                 isIncompatible = true;
                             }
+                        }
+                        else if (!BuildVersionGate.IsCompatible(
+                            buildNumber,
+                            buildRevision,
+                            settingDef.MinimumBuildNumber,
+                            settingDef.MinimumBuildRevision,
+                            settingDef.MaximumBuildNumber,
+                            settingDef.MaximumBuildRevision))
+                        {
+                            isIncompatible = true;
                         }
 
                         if (isIncompatible)
@@ -323,9 +337,10 @@ public class ConfigLoadService : IConfigLoadService
     {
         var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
+        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
-        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber);
-        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber);
+        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber, buildRevision);
+        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber, buildRevision);
 
         return new UnifiedConfigurationFile
         {
@@ -340,7 +355,8 @@ public class ConfigLoadService : IConfigLoadService
     private FeatureGroupSection FilterFeatureGroup(
         FeatureGroupSection section,
         bool isWindows11,
-        int buildNumber)
+        int buildNumber,
+        int buildRevision)
     {
         if (section?.Features == null) return section!;
 
@@ -366,14 +382,6 @@ public class ConfigLoadService : IConfigLoadService
                     {
                         isCompatible = false;
                     }
-                    else if (settingDef.MinimumBuildNumber.HasValue && buildNumber < settingDef.MinimumBuildNumber.Value)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.MaximumBuildNumber.HasValue && buildNumber > settingDef.MaximumBuildNumber.Value)
-                    {
-                        isCompatible = false;
-                    }
                     else if (settingDef.SupportedBuildRanges?.Count > 0)
                     {
                         bool inRange = settingDef.SupportedBuildRanges.Any(range =>
@@ -382,6 +390,16 @@ public class ConfigLoadService : IConfigLoadService
                         {
                             isCompatible = false;
                         }
+                    }
+                    else if (!BuildVersionGate.IsCompatible(
+                        buildNumber,
+                        buildRevision,
+                        settingDef.MinimumBuildNumber,
+                        settingDef.MinimumBuildRevision,
+                        settingDef.MaximumBuildNumber,
+                        settingDef.MaximumBuildRevision))
+                    {
+                        isCompatible = false;
                     }
 
                     if (isCompatible)

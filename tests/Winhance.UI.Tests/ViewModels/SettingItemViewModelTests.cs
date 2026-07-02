@@ -180,6 +180,43 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Action_WithRecommendedRegistryValue_ShowsNoStateBadges()
+    {
+        // Regression: a one-shot Action must not light up Recommended/Default/Custom state badges,
+        // even when its RegistrySettings carry a RecommendedValue (Win11 Clean Start Menu's
+        // ConfigureStartPins did, which wrongly lit Recommended + Custom). Matches Win10 clean / taskbar clean.
+        var def = new SettingDefinition
+        {
+            Id = "act-badge",
+            Name = "Action",
+            Description = "d",
+            InputType = InputType.Action,
+            RegistrySettings = new List<RegistrySetting>
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Test",
+                    ValueName = "V",
+                    RecommendedValue = "x",
+                    DefaultValue = null,
+                    ValueType = Microsoft.Win32.RegistryValueKind.String,
+                },
+            },
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = def,
+            SettingId = "act-badge",
+            InputType = InputType.Action,
+        };
+
+        var sut = CreateSut(config);
+
+        sut.HasBadgeData.Should().BeFalse();
+        sut.BadgeRow.Should().BeEmpty();
+    }
+
+    [Fact]
     public void IsCheckBoxType_ReturnsTrueForCheckBoxInputType()
     {
         var config = _defaultConfig with { InputType = InputType.CheckBox };

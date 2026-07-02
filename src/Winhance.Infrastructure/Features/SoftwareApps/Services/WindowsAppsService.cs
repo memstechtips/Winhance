@@ -111,12 +111,13 @@ public class WindowsAppsService(
                     var yesButton = localizationService.GetString("Button_Yes") ?? "Yes";
                     var noButton = localizationService.GetString("Button_No") ?? "No";
 
-                    var userAccepted = await dialogService.ShowConfirmationAsync(
-                        message: updateMessage,
-                        title: updateTitle,
-                        okButtonText: yesButton,
-                        cancelButtonText: noButton
-                    ).ConfigureAwait(false);
+                    var userAccepted = (await dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                    {
+                        Message = updateMessage,
+                        Title = updateTitle,
+                        ConfirmButtonText = yesButton,
+                        CancelButtonText = noButton,
+                    }).ConfigureAwait(false)).Confirmed;
 
                     if (userAccepted)
                     {
@@ -177,13 +178,16 @@ public class WindowsAppsService(
                         var downloadButton = localizationService.GetString("Button_Download") ?? "Download";
                         var cancelButton = localizationService.GetString("Button_Cancel") ?? "Cancel";
 
-                        var (confirmed, dontShowAgain) = await dialogService.ShowConfirmationWithCheckboxAsync(
-                            message: message,
-                            checkboxText: checkboxText,
-                            title: title,
-                            continueButtonText: downloadButton,
-                            cancelButtonText: cancelButton
-                        ).ConfigureAwait(false);
+                        var r = await dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                        {
+                            Message = message,
+                            CheckboxText = checkboxText,
+                            Title = title,
+                            ConfirmButtonText = downloadButton,
+                            CancelButtonText = cancelButton,
+                        }).ConfigureAwait(false);
+                        bool confirmed = r.Confirmed;
+                        bool dontShowAgain = r.CheckboxChecked;
 
                         userConsent = confirmed;
 
@@ -259,8 +263,14 @@ public class WindowsAppsService(
             var states = await systemSettingsDiscoveryService.GetSettingStatesAsync(new[] { policySetting }).ConfigureAwait(false);
             if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
             {
+                // Always record what was discovered, so support transcripts show why
+                // the "updates disabled" dialog did or didn't appear after a failed install.
+                logService?.LogInformation(
+                    $"Update policy state at install-failure check: index={state.CurrentValue ?? "(null)"} (dialog fires only on index 3 = Disabled)");
                 return state.CurrentValue is int index && index == 3;
             }
+
+            logService?.LogWarning("Update policy state could not be determined at install-failure check");
         }
         catch (Exception ex)
         {

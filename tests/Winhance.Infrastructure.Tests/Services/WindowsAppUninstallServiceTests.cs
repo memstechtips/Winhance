@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
@@ -17,13 +18,15 @@ public class WindowsAppUninstallServiceTests
     private readonly Mock<IBloatRemovalService> _bloatRemovalService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IMultiScriptProgressService> _multiScriptProgressService = new();
+    private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
 
     private WindowsAppUninstallService CreateSut() => new(
         _logService.Object,
         _windowsAppsService.Object,
         _bloatRemovalService.Object,
         _taskProgressService.Object,
-        _multiScriptProgressService.Object);
+        _multiScriptProgressService.Object,
+        _changeHistoryService.Object);
 
     // --- UninstallAppAsync ---
 
@@ -105,6 +108,35 @@ public class WindowsAppUninstallServiceTests
                 It.IsAny<IProgress<TaskProgressDetail>?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppAsync_Success_LogsAppRemoved()
+    {
+        var sut = CreateSut();
+        var app = new ItemDefinition
+        {
+            Id = "windows-app-calc",
+            Name = "Calculator",
+            Description = "Windows calculator",
+            AppxPackageName = ["Microsoft.WindowsCalculator"]
+        };
+
+        _windowsAppsService
+            .Setup(x => x.GetAppByIdAsync("windows-app-calc"))
+            .ReturnsAsync(app);
+
+        _bloatRemovalService
+            .Setup(x => x.ExecuteBloatRemovalAsync(
+                It.IsAny<List<ItemDefinition>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RemovalOutcome.Success);
+
+        await sut.UninstallAppAsync("windows-app-calc");
+
+        _changeHistoryService.Verify(
+            x => x.LogAppChange("Calculator", AppChangeKind.Removed), Times.Once);
     }
 
     [Fact]

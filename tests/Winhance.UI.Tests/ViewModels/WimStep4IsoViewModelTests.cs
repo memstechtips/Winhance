@@ -258,8 +258,8 @@ public class WimStep4IsoViewModelTests : IDisposable
 
         // User clicks "Close" when asked to open folder
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.CreateIsoCommand.ExecuteAsync(null);
 
@@ -322,8 +322,8 @@ public class WimStep4IsoViewModelTests : IDisposable
             .ReturnsAsync(true);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.CreateIsoCommand.ExecuteAsync(null);
 
@@ -361,8 +361,8 @@ public class WimStep4IsoViewModelTests : IDisposable
             });
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.CreateIsoCommand.ExecuteAsync(null);
 

@@ -31,7 +31,6 @@ public class SettingDefinitionTests
 
         setting.InputType.Should().Be(InputType.Toggle);
         setting.RequiresConfirmation.Should().BeFalse();
-        setting.ActionCommand.Should().BeNull();
         setting.SupportedBuildRanges.Should().BeEmpty();
         setting.ScheduledTaskSettings.Should().BeEmpty();
         setting.PowerShellScripts.Should().BeEmpty();

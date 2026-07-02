@@ -21,13 +21,53 @@ public static class StartMenuCustomizations
                 {
                     Id = SettingIds.StartMenuCleanWin10,
                     Name = "Clean Start Menu",
-                    Description = "Removes all pinned items and applies clean layout",
+                    Description = "Removes all pinned items and applies a clean layout for the current user and any newly created profiles. To clean other existing users, run this again while signed in as each of them.",
                     GroupName = "Layout",
                     InputType = InputType.Action,
                     Icon = "Broom",
                     IsWindows10Only = true,
                     RequiresConfirmation = true,
-                    ActionCommand = "CleanWindows10StartMenuAsync",
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+$layoutPath = 'C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml'
+$layoutXml = @'
+<?xml version=""1.0"" encoding=""utf-8""?>
+<LayoutModificationTemplate xmlns:defaultlayout=""http://schemas.microsoft.com/Start/2014/FullDefaultLayout"" xmlns:start=""http://schemas.microsoft.com/Start/2014/StartLayout"" Version=""1"" xmlns:taskbar=""http://schemas.microsoft.com/Start/2014/TaskbarLayout"" xmlns=""http://schemas.microsoft.com/Start/2014/LayoutModification"">
+    <LayoutOptions StartTileGroupCellWidth=""6"" />
+    <DefaultLayoutOverride>
+        <StartLayoutCollection>
+            <defaultlayout:StartLayout GroupCellWidth=""6"" />
+        </StartLayoutCollection>
+    </DefaultLayoutOverride>
+</LayoutModificationTemplate>
+'@
+
+# Future users: drop the clean template into the Default profile (force-create dir, overwrite if present).
+New-Item -ItemType Directory -Path (Split-Path $layoutPath) -Force | Out-Null
+[System.IO.File]::WriteAllText($layoutPath, $layoutXml)
+
+# Current user only: apply now via their SID (HKU, not HKCU - correct under OTS), then unlock so they can still customize.
+# Other existing users are intentionally not touched - Win10 has no supported way to apply a
+# customizable layout to a signed-out profile, so users re-run this per account (see description).
+$me = ((Get-CimInstance Win32_ComputerSystem).UserName -split '\\')[-1]
+if ($me) {
+    $sid = (New-Object System.Security.Principal.NTAccount($me)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+    $key = ""HKU\$sid\SOFTWARE\Policies\Microsoft\Windows\Explorer""
+    reg add $key /v StartLayoutFile /t REG_SZ /d $layoutPath /f | Out-Null
+    reg add $key /v LockedStartLayout /t REG_DWORD /d 1 /f | Out-Null
+    Stop-Process -Name StartMenuExperienceHost -Force -EA SilentlyContinue; Start-Sleep 3
+    reg add $key /v LockedStartLayout /t REG_DWORD /d 0 /f | Out-Null
+    Stop-Process -Name StartMenuExperienceHost -Force -EA SilentlyContinue
+}
+",
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {
@@ -39,7 +79,62 @@ public static class StartMenuCustomizations
                     Icon = "Broom",
                     IsWindows11Only = true,
                     RequiresConfirmation = true,
-                    ActionCommand = "CleanWindows11StartMenuAsync",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            // MDM/CSP path — original target for ConfigureStartPins.
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\Start",
+                            ValueName = "ConfigureStartPins",
+                            EnabledValue = [@"{""pinnedList"":[]}"],
+                            DisabledValue = [null],
+                            RecommendedValue = @"{""pinnedList"":[]}",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                        new RegistrySetting
+                        {
+                            // GPO path — added by KB5062660 (Jul 2025). On Win11 build 26200.8521+
+                            // this is the only key that fully clears the default Edge / Settings /
+                            // File Explorer pins. Writing both keeps older builds happy and adds
+                            // the workaround for newer ones. See issue #660.
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                            ValueName = "ConfigureStartPins",
+                            EnabledValue = [@"{""pinnedList"":[]}"],
+                            DisabledValue = [null],
+                            RecommendedValue = @"{""pinnedList"":[]}",
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                            IsGroupPolicy = true,
+                        },
+                    },
+                    PowerShellScripts = new List<PowerShellScriptSetting>
+                    {
+                        new PowerShellScriptSetting
+                        {
+                            EnabledScript = @"
+# Clear cached pinned-list data (start.bin / start2.bin) for every real user profile.
+# Iterating HKLM\ProfileList is OTS-safe and admin can delete in any profile, so the
+# current user and every other user are handled in one loop. ProfileImagePath gives
+# the correct path even for non-default profile locations (e.g. D:\Users\...).
+$systemAccounts = @('Public','Default','All Users','Default User')
+Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' |
+    Where-Object { $_.PSChildName -like 'S-1-5-21-*' } |
+    ForEach-Object {
+        $profilePath = (Get-ItemProperty $_.PSPath -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
+        if ($profilePath -and ((Split-Path $profilePath -Leaf) -notin $systemAccounts)) {
+            Remove-Item ""$profilePath\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start*.bin"" -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+# Restart the Start Menu host so the cleared layout takes effect immediately.
+Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinue
+",
+                            DisabledScript = null,
+                            RequiresElevation = true,
+                            RunContext = RunContext.System,
+                        },
+                    },
                 },
                 new SettingDefinition
                 {
@@ -85,6 +180,56 @@ public static class StartMenuCustomizations
                             {
                                 DisplayName = "More recommendations",
                                 ValueMappings = new Dictionary<string, object?> { ["Start_Layout"] = 2 },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "start-all-apps-view",
+                    IsSubjectivePreference = true,
+                    Name = "All apps view",
+                    Description = "Choose how the All apps section in Start is displayed: by category, in a grid, or as a list",
+                    GroupName = "Layout",
+                    InputType = InputType.Selection,
+                    IsWindows11Only = true,
+                    IconPack = "Fluent",
+                    Icon = "WindowApps",
+                    MinimumBuildNumber = 26100, // Redesigned Start menu shipped in KB5068861 (Nov 11, 2025)
+                    MinimumBuildRevision = 7171, // 26100.7171 / 26200.7171
+                    AddedInVersion = "26.05.26",
+                    RestartProcess = "StartMenuExperienceHost",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start",
+                            ValueName = "AllAppsViewMode",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Category",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 0 },
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Grid",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 1 },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "List",
+                                ValueMappings = new Dictionary<string, object?> { ["AllAppsViewMode"] = 2 },
+                                IsRecommended = true,
                             },
                         },
                     },

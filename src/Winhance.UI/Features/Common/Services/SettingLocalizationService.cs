@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
@@ -83,20 +84,20 @@ public class SettingLocalizationService : ISettingLocalizationService
 
     private string GetLocalizedName(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_Name";
+        var key = SettingLocalizationKeys.Name(setting);
         return GetStringOrFallback(key, setting.Name);
     }
 
     private string GetLocalizedDescription(SettingDefinition setting)
     {
-        var key = $"Setting_{setting.Id}_Description";
+        var key = SettingLocalizationKeys.Description(setting);
         return GetStringOrFallback(key, setting.Description);
     }
 
     private string GetLocalizedGroupName(string groupName)
     {
         // Try the compacted format first (e.g. "PrivacySecurity")
-        var key = $"SettingGroup_{groupName.Replace(" ", "").Replace("&", "")}";
+        var key = SettingLocalizationKeys.GroupCompact(groupName);
         var localized = _localization.GetString(key);
 
         if (!localized.StartsWith("[") || !localized.EndsWith("]"))
@@ -105,32 +106,21 @@ public class SettingLocalizationService : ISettingLocalizationService
         }
 
         // Try the snake case format (e.g. "Content_Delivery_Advertising")
-        var snakeCaseName = groupName
-            .Replace(" & ", "_")
-            .Replace(" ", "_")
-            .Replace("&", "_");
-
-        // Remove double underscores
-        while (snakeCaseName.Contains("__"))
-        {
-            snakeCaseName = snakeCaseName.Replace("__", "_");
-        }
-
-        var keySnake = $"SettingGroup_{snakeCaseName}";
+        var keySnake = SettingLocalizationKeys.GroupSnake(groupName);
         return GetStringOrFallback(keySnake, groupName);
     }
 
     private string GetLocalizedCustomState(SettingDefinition setting)
     {
         // Per-setting override key takes precedence (e.g. "Custom (User Defined)" on UAC slider).
-        var perSettingKey = $"Setting_{setting.Id}_Option_Custom";
+        var perSettingKey = SettingLocalizationKeys.OptionCustom(setting);
         var perSetting = _localization.GetString(perSettingKey);
         if (!perSetting.StartsWith("[") || !perSetting.EndsWith("]"))
         {
             return perSetting;
         }
         // Generic localized fallback used by every Selection setting on state mismatch.
-        return GetStringOrFallback("Common_CustomState", setting.ComboBox?.CustomStateDisplayName ?? "Custom");
+        return GetStringOrFallback(SettingLocalizationKeys.CommonCustomState, setting.ComboBox?.CustomStateDisplayName ?? "Custom");
     }
 
     private IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> LocalizeComboBoxOptions(SettingDefinition setting)
@@ -144,22 +134,22 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             var original = originalOptions[i];
 
-            var displayKey = IsLocalizationKey(original.DisplayName)
+            var displayKey = SettingLocalizationKeys.IsLocalizationKey(original.DisplayName)
                 ? original.DisplayName
-                : $"Setting_{setting.Id}_Option_{i}";
+                : SettingLocalizationKeys.OptionDisplay(setting, i);
             var localizedDisplay = GetStringOrFallback(displayKey, original.DisplayName);
 
             string? localizedTooltip = original.Tooltip;
             if (!string.IsNullOrEmpty(original.Tooltip))
             {
-                var tooltipKey = $"Setting_{setting.Id}_OptionTooltip_{i}";
+                var tooltipKey = SettingLocalizationKeys.OptionTooltip(setting, i);
                 localizedTooltip = GetStringOrFallback(tooltipKey, original.Tooltip);
             }
 
             string? localizedWarning = original.Warning;
             if (!string.IsNullOrEmpty(original.Warning))
             {
-                var warningKey = $"Setting_{setting.Id}_OptionWarning_{i}";
+                var warningKey = SettingLocalizationKeys.OptionWarning(setting, i);
                 localizedWarning = GetStringOrFallback(warningKey, original.Warning);
             }
 
@@ -181,14 +171,6 @@ public class SettingLocalizationService : ISettingLocalizationService
         }
 
         return localized;
-    }
-
-    private bool IsLocalizationKey(string value)
-    {
-        return value.StartsWith("Template_") ||
-               value.StartsWith("Setting_") ||
-               value.StartsWith("PowerPlan_") ||
-               value.StartsWith("ServiceOption_");
     }
 
     private string LocalizeUnits(string units)

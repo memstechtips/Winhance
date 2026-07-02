@@ -38,6 +38,7 @@ public class SoftwareAppsViewModelTests
     private readonly Mock<IConfigReviewBadgeService> _configReviewBadgeService = new();
     private readonly Mock<IScheduledTaskService> _scheduledTaskService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
+    private readonly Mock<IApplicationModeService> _applicationModeService = new();
 
     public SoftwareAppsViewModelTests()
     {
@@ -108,7 +109,8 @@ public class SoftwareAppsViewModelTests
             _configReviewModeService.Object,
             _configReviewBadgeService.Object,
             _scheduledTaskService.Object,
-            _fileSystemService.Object);
+            _fileSystemService.Object,
+            _applicationModeService.Object);
     }
 
     // --- Constructor / defaults ---
@@ -137,7 +139,8 @@ public class SoftwareAppsViewModelTests
             _configReviewModeService.Object,
             _configReviewBadgeService.Object,
             _scheduledTaskService.Object,
-            _fileSystemService.Object);
+            _fileSystemService.Object,
+            _applicationModeService.Object);
 
         sut.WindowsAppsViewModel.Should().BeSameAs(winVm);
         sut.ExternalAppsViewModel.Should().BeSameAs(extVm);

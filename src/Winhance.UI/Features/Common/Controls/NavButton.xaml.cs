@@ -33,16 +33,9 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     #region Dependency Properties
 
-    public static readonly DependencyProperty IconGlyphProperty =
+    public static readonly DependencyProperty IconSymbolProperty =
         DependencyProperty.Register(
-            nameof(IconGlyph),
-            typeof(string),
-            typeof(NavButton),
-            new PropertyMetadata(null, OnIconPropertyChanged));
-
-    public static readonly DependencyProperty IconPathProperty =
-        DependencyProperty.Register(
-            nameof(IconPath),
+            nameof(IconSymbol),
             typeof(string),
             typeof(NavButton),
             new PropertyMetadata(null, OnIconPropertyChanged));
@@ -115,23 +108,13 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     #region Properties
 
     /// <summary>
-    /// The FontIcon glyph to display (e.g., "\uE71D").
-    /// Use this for Segoe MDL2/Fluent font icons.
+    /// The Fluent System Icon name to display (e.g., "Apps", "Settings").
+    /// Rendered as a colored Fluent icon (IconVariant.Color).
     /// </summary>
-    public string IconGlyph
+    public string? IconSymbol
     {
-        get => (string)GetValue(IconGlyphProperty);
-        set => SetValue(IconGlyphProperty, value);
-    }
-
-    /// <summary>
-    /// The PathIcon geometry data to display (SVG path data string).
-    /// Use this for Material Design icons or custom vector icons.
-    /// </summary>
-    public string? IconPath
-    {
-        get => (string?)GetValue(IconPathProperty);
-        set => SetValue(IconPathProperty, value);
+        get => (string?)GetValue(IconSymbolProperty);
+        set => SetValue(IconSymbolProperty, value);
     }
 
     /// <summary>
@@ -231,9 +214,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
     public double ContentOpacity => IsLocked ? 0.4 : 1.0;
 
-    // Icon type visibility - show FontIcon if IconGlyph is set, PathIcon if IconPath is set
-    public Visibility FontIconVisibility => !string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility PathIconVisibility => !string.IsNullOrEmpty(IconPath) && string.IsNullOrEmpty(IconGlyph) ? Visibility.Visible : Visibility.Collapsed;
+    // Icon visibility - show the Fluent icon when a symbol name is set
+    public Visibility FluentIconVisibility => !string.IsNullOrEmpty(IconSymbol) ? Visibility.Visible : Visibility.Collapsed;
 
     // Badge visibility
     public Visibility BadgeVisibility => BadgeValue >= 0 || BadgeStatus == "SuccessIcon" ? Visibility.Visible : Visibility.Collapsed;
@@ -375,22 +357,14 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     {
         if (d is NavButton button)
         {
-            button.NotifyPropertyChanged(nameof(FontIconVisibility));
-            button.NotifyPropertyChanged(nameof(PathIconVisibility));
+            button.NotifyPropertyChanged(nameof(FluentIconVisibility));
 
-            // Convert IconPath string to Geometry and apply to PathIcon
-            if (e.Property == IconPathProperty && !string.IsNullOrEmpty(button.IconPath))
+            // Parse the Fluent icon name and apply it to the FluentIcon element.
+            // Icon is an enum, so it can't be x:Bind'd directly from the string DP.
+            if (!string.IsNullOrEmpty(button.IconSymbol) && button.ButtonFluentIcon is not null
+                && Enum.TryParse<FluentIcons.Common.Icon>(button.IconSymbol, ignoreCase: true, out var fluentIcon))
             {
-                try
-                {
-                    var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                        typeof(Geometry), button.IconPath);
-                    button.ButtonPathIcon.Data = geometry;
-                }
-                catch (Exception ex)
-                {
-                    button._logService?.LogDebug($"Failed to convert IconPath to Geometry: {ex.Message}");
-                }
+                button.ButtonFluentIcon.Icon = fluentIcon;
             }
         }
     }
@@ -482,7 +456,7 @@ public class NavButtonClickedEventArgs : EventArgs
 /// Automation peer that exposes NavButton as a Button to UI Automation clients
 /// (Narrator etc.) and routes the Invoke pattern through NavButton.InvokeFromAutomation.
 /// </summary>
-public sealed class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
+public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
 {
     public NavButtonAutomationPeer(NavButton owner) : base(owner) { }
 

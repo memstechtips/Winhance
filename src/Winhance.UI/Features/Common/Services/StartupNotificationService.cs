@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -51,11 +52,13 @@ public class StartupNotificationService : IStartupNotificationService
                 + _localizationService.GetString("Startup_Backup_RestoreOffer") + "\n\n"
                 + _localizationService.GetString("Startup_Backup_SkipWarning");
 
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                message,
-                title: _localizationService.GetString("Startup_Backup_Title"),
-                okButtonText: _localizationService.GetString("Startup_Backup_Button_Create"),
-                cancelButtonText: _localizationService.GetString("Startup_Backup_Button_Skip"));
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = message,
+                Title = _localizationService.GetString("Startup_Backup_Title"),
+                ConfirmButtonText = _localizationService.GetString("Startup_Backup_Button_Create"),
+                CancelButtonText = _localizationService.GetString("Startup_Backup_Button_Skip"),
+            })).Confirmed;
 
             if (confirmed)
             {

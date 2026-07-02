@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -21,9 +22,15 @@ public sealed partial class SoftwareAppsPage : Page
     public SoftwareAppsPage()
     {
         this.InitializeComponent();
+        ApplyTextScaling();
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
+
+        // DataGrid column headers can't use {x:Bind}/{Binding} (CommunityToolkit
+        // columns live outside the page's binding tree), so set them from the
+        // localized ViewModel strings here and re-apply on language change below.
+        LocalizeColumnHeaders();
 
         // WinUI 3 InfoBar on a cached page does not re-evaluate its internal
         // ThemeResource bindings when the app theme changes.  Work around this
@@ -46,6 +53,51 @@ public sealed partial class SoftwareAppsPage : Page
         };
     }
 
+    /// <summary>
+    /// Scales the compact-row cell width to match the user's Windows text-scale
+    /// setting (Ease of Access → Make text bigger).
+    ///
+    /// WinUI 3 auto-scales <see cref="TextBlock"/> font sizes via
+    /// <c>IsTextScaleFactorEnabled</c>, but fixed cell widths baked into
+    /// Page.Resources are doubles and stay put. The compact-row layout uses a
+    /// 320dp cell that needs to grow at higher text scale so that fewer
+    /// columns fit horizontally and rows wrap to a longer list — Marco's
+    /// "make it show less columns and a longer list, like it does already
+    /// when the window is sized smaller" behaviour for issue #668.
+    ///
+    /// Page.Resources mutation right after <c>InitializeComponent()</c> works
+    /// because WinUI 3 resolves <c>{StaticResource}</c> inside an
+    /// <see cref="ItemsPanelTemplate"/> at template-instantiation time, and
+    /// the compact UniformWrapPanels haven't materialised yet at this point.
+    /// The existing reflow logic in <see cref="UpdateCompactContentMaxWidth"/>
+    /// also reads <c>CompactItemWidth</c> from Resources at SizeChanged time,
+    /// so it picks up the scaled value automatically.
+    ///
+    /// Card-view tile geometry (CardItemWidth / CardCellHeight /
+    /// CardContentHeight) is intentionally NOT scaled here. The card grid
+    /// keeps its default 420×108 cells at every text scale; instead, the
+    /// AppCardTemplate's inner Grid uses MinHeight (so content can push the
+    /// grid taller when needed) and the UniformWrapPanel treats ItemHeight
+    /// as a floor not a cap (so the row grows to fit the tallest card).
+    /// That way the default scale renders identically to before, and the
+    /// column count doesn't drop at higher scale.
+    /// </summary>
+    private void ApplyTextScaling()
+    {
+        if (!TextScaleHelper.IsScaled) return;
+        var f = TextScaleHelper.Factor;
+        ScaleResource("CompactItemWidth", f);
+        // CompactNameMaxWidth scales with the cell so larger text gets
+        // proportionally more horizontal room before CharacterEllipsis fires.
+        ScaleResource("CompactNameMaxWidth", f);
+    }
+
+    private void ScaleResource(string key, double factor)
+    {
+        if (Resources.TryGetValue(key, out var value) && value is double d)
+            Resources[key] = d * factor;
+    }
+
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SoftwareAppsViewModel.WindowsAppsSelectedCount) ||
@@ -53,6 +105,46 @@ public sealed partial class SoftwareAppsPage : Page
             e.PropertyName == nameof(SoftwareAppsViewModel.IsInReviewMode))
         {
             DispatcherQueue.TryEnqueue(UpdateTabBadges);
+        }
+        else if (e.PropertyName == nameof(SoftwareAppsViewModel.ColumnHeaderName))
+        {
+            // OnLanguageChanged raises all ColumnHeader* together; one is enough to re-apply.
+            DispatcherQueue.TryEnqueue(LocalizeColumnHeaders);
+        }
+    }
+
+    /// <summary>
+    /// Pushes the localized column-header strings from the ViewModel onto both DataGrids,
+    /// matching each column by its <c>Tag</c> (the same value the sort handler uses). The
+    /// untagged selection/spacer columns are left untouched. Called once at construction and
+    /// again whenever the app language changes.
+    /// </summary>
+    private void LocalizeColumnHeaders()
+    {
+        ApplyColumnHeaders(WindowsAppsDataGrid);
+        ApplyColumnHeaders(ExternalAppsDataGrid);
+    }
+
+    private void ApplyColumnHeaders(DataGrid? grid)
+    {
+        if (grid is null)
+            return;
+
+        foreach (var column in grid.Columns)
+        {
+            string? header = (column.Tag as string) switch
+            {
+                "Name" => ViewModel.ColumnHeaderName,
+                "Description" => ViewModel.ColumnHeaderDescription,
+                "ItemTypeDescription" => ViewModel.ColumnHeaderType,
+                "IsInstalled" => ViewModel.ColumnHeaderStatus,
+                "CanBeReinstalled" => ViewModel.ColumnHeaderInstallable,
+                "CategoryDisplayName" => ViewModel.ColumnHeaderGroup,
+                _ => null
+            };
+
+            if (header is not null)
+                column.Header = header;
         }
     }
 
@@ -151,6 +243,15 @@ public sealed partial class SoftwareAppsPage : Page
         ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
     }
 
+    private void SortInstalledFirst_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameAscInstalledFirst;
+
+    private void SortNameAsc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameAsc;
+
+    private void SortNameDesc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SortMode = AppSortMode.NameDesc;
+
     /// <summary>
     /// Centres the card-view content column horizontally by clamping the inner
     /// StackPanel's MaxWidth to exactly cols × CardItemWidth + (cols-1) × ColumnSpacing.
@@ -221,21 +322,6 @@ public sealed partial class SoftwareAppsPage : Page
             (int)System.Math.Floor((available + spacing) / (itemWidth + spacing)));
         double contentWidth = cols * itemWidth + System.Math.Max(0, cols - 1) * spacing + expanderChrome;
         contentStack.MaxWidth = contentWidth;
-    }
-
-    private async void WebsiteButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string url && !string.IsNullOrWhiteSpace(url))
-        {
-            try
-            {
-                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to launch {url}: {ex.Message}");
-            }
-        }
     }
 
     private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)

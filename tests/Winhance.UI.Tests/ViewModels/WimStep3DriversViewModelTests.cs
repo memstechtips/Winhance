@@ -122,8 +122,8 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
@@ -138,8 +138,8 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -158,8 +158,8 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -178,8 +178,8 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -202,8 +202,8 @@ public class WimStep3DriversViewModelTests : IDisposable
         bool wasDisabled = false;
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(

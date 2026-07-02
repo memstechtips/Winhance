@@ -23,7 +23,8 @@ public class AppInstallationService(
     IBloatRemovalService bloatRemovalService,
     IScheduledTaskService scheduledTaskService,
     ITaskProgressService taskProgressService,
-    IFileSystemService fileSystemService) : IAppInstallationService
+    IFileSystemService fileSystemService,
+    IChangeHistoryService changeHistory) : IAppInstallationService
 {
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
@@ -87,6 +88,14 @@ public class AppInstallationService(
     }
 
     private async Task<OperationResult<bool>> InstallSingleAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
+    {
+        var result = await InstallSingleAppCoreAsync(app, progress).ConfigureAwait(false);
+        if (result.Success)
+            changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
+        return result;
+    }
+
+    private async Task<OperationResult<bool>> InstallSingleAppCoreAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
     {
         var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 

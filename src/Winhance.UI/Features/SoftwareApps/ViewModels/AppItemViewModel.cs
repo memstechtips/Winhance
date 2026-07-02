@@ -51,7 +51,9 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         OnPropertyChanged(nameof(ReinstallableStatusText));
         OnPropertyChanged(nameof(InstabilityWarningLabel));
         OnPropertyChanged(nameof(InstabilityWarningTooltip));
-        OnPropertyChanged(nameof(OpenWebsiteAutomationName));
+        OnPropertyChanged(nameof(InstalledStatusTooltip));
+        OnPropertyChanged(nameof(ReinstallableStatusTooltip));
+        OnPropertyChanged(nameof(CategoryDisplayName));
     }
 
     private void OnThemeChanged(object? sender, WinhanceTheme theme)
@@ -82,6 +84,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
                 {
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(InstalledStatusText));
+                    OnPropertyChanged(nameof(InstalledStatusTooltip));
                 });
             }
         }
@@ -225,12 +228,6 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     /// <summary>True when the app has a non-empty Description; drives Card-view visibility.</summary>
     public bool HasDescription => !string.IsNullOrEmpty(Definition.Description);
 
-    /// <summary>True when the app has a WebsiteUrl; drives the website button's visibility (External Apps only in practice).</summary>
-    public bool HasWebsiteUrl => !string.IsNullOrEmpty(Definition.WebsiteUrl);
-
-    /// <summary>Localized screen-reader label for the per-app website button (its visual tooltip remains the raw URL).</summary>
-    public string OpenWebsiteAutomationName => _localizationService.GetString("Tooltip_OpenWebsite");
-
     /// <summary>True when the item is marked as carrying an uninstall risk; drives the Card-view "Warning" pill.</summary>
     public bool HasInstabilityWarning => Definition.HasInstabilityWarning;
 
@@ -242,4 +239,45 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     /// <summary>True when the item cannot be reinstalled; drives the "Cannot reinstall" chip in Card view.</summary>
     public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;
+
+    /// <summary>
+    /// Description surfaced as a hover tooltip on the Compact-view icon/name. Null (not empty)
+    /// when there is no description, so no empty tooltip popup appears.
+    /// </summary>
+    public string? DescriptionTooltip => HasDescription ? Description : null;
+
+    /// <summary>
+    /// Localized, state-aware tooltip for the install-status badge/icon (installed checkmark or
+    /// not-installed cross). Shown on every install-status indicator across Card, Table and
+    /// Compact views. Re-raised by the <see cref="IsInstalled"/> setter.
+    /// </summary>
+    public string InstalledStatusTooltip => _localizationService.GetString(
+        IsInstalled ? "Card_Pill_Installed_Tooltip" : "Card_Pill_NotInstalled_Tooltip");
+
+    /// <summary>
+    /// Localized, state-aware tooltip for the reinstallability badge/icon. When the item can be
+    /// reinstalled it explains that removal is reversible; when it can't, it warns that removal is
+    /// permanent. Shown on the reinstallable icon, the "Permanent" flag/badge, across all views.
+    /// </summary>
+    public string ReinstallableStatusTooltip => _localizationService.GetString(
+        CanBeReinstalled ? "Card_Pill_Reinstallable_Tooltip" : "Card_Pill_NonReinstallable_Tooltip");
+
+    /// <summary>
+    /// Localized category/group display name for External Apps, used by the Group column in the
+    /// table view. Mirrors the lookup in <c>ExternalAppsViewModel.RebuildCategories</c>: the raw
+    /// <see cref="GroupName"/> maps to an <c>ExternalApps_Category_*</c> key (spaces and the
+    /// characters &amp; , ( ) stripped). Falls back to the raw GroupName when no key resolves.
+    /// </summary>
+    public string CategoryDisplayName
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(GroupName))
+                return string.Empty;
+            var locKey = "ExternalApps_Category_" + GroupName
+                .Replace(" ", "").Replace("&", "").Replace(",", "").Replace("(", "").Replace(")", "");
+            var displayName = _localizationService.GetString(locKey);
+            return string.IsNullOrEmpty(displayName) ? GroupName : displayName;
+        }
+    }
 }

@@ -108,6 +108,16 @@ public class PowerShellScriptUtilitiesTests
     }
 
     [Fact]
+    public void FormatValueForPowerShell_BinaryEmptyByteArray_ReturnsTypedEmptyArray()
+    {
+        // Empty REG_BINARY (e.g. taskbar-clean's Favorites) must emit a typed empty
+        // array so Set-ItemProperty -Type Binary writes a zero-length value, not "@()".
+        var result = PowerShellScriptUtilities.FormatValueForPowerShell(new byte[0], RegistryValueKind.Binary);
+
+        result.Should().Be("([byte[]]@())");
+    }
+
+    [Fact]
     public void FormatValueForPowerShell_BinarySingleByte_ReturnsHexSingleElement()
     {
         byte value = 0xAB;

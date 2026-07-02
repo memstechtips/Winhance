@@ -7,15 +7,6 @@ public static partial class ExternalAppDefinitions
 {
     public static class RuntimesAndDependencies
     {
-        // Generic runtime/redistributable icon — Windows Installer's msiexec.exe
-        // ships the recognizable white-and-blue .msi installer icon as its default
-        // resource (Windows points the .msi file-association DefaultIcon at
-        // msiexec.exe,0). msiexec is core OS, present on every Windows install,
-        // and the resolver's .exe/.dll IconSources branch extracts index 0 — so
-        // every runtime/redist entry that doesn't have a brand of its own gets
-        // a uniform installer-package look.
-        private const string GenericRuntimeIcon = @"%SystemRoot%\System32\msiexec.exe";
-
         public static ItemGroup GetRuntimesAndDependencies()
         {
             return new ItemGroup
@@ -34,7 +25,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Runtime.3_1"],
                         ChocoPackageId = "dotnetcore-3.1-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -46,7 +36,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Runtime.5"],
                         ChocoPackageId = "dotnet-5.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -58,7 +47,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Runtime.6"],
                         ChocoPackageId = "dotnet-6.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -70,7 +58,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Runtime.7"],
                         ChocoPackageId = "dotnet-7.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -82,7 +69,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Runtime.8"],
                         ChocoPackageId = "dotnet-8.0-runtime",
                         WebsiteUrl = "https://dotnet.microsoft.com/",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -94,7 +80,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DotNet.Framework.DeveloperPack_4"],
                         ChocoPackageId = "netfx-4.8.1-devpack",
                         WebsiteUrl = "https://dotnet.microsoft.com/download/dotnet-framework",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -106,9 +91,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.DirectX"],
                         ChocoPackageId = "directx",
                         WebsiteUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=35",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Microsoft-DirectX-Logo-wordmark.svg/250px-Microsoft-DirectX-Logo-wordmark.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -120,9 +102,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Oracle.JavaRuntimeEnvironment"],
                         ChocoPackageId = "jre8",
                         WebsiteUrl = "https://www.oracle.com/java/technologies/downloads/",
-                        IconSources = [
-                            "https://upload.wikimedia.org/wikipedia/fr/thumb/2/2e/Java_Logo.svg/250px-Java_Logo.svg.png",
-                        ],
                     },
                     new ItemDefinition
                     {
@@ -134,7 +113,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2005.x86"],
                         ChocoPackageId = "vcredist2005",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -146,7 +124,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2005.x64"],
                         ChocoPackageId = "vcredist2005",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -158,7 +135,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2008.x86"],
                         ChocoPackageId = "vcredist2008",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -170,7 +146,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2008.x64"],
                         ChocoPackageId = "vcredist2008",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -182,7 +157,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2010.x86"],
                         ChocoPackageId = "vcredist2010",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -194,7 +168,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2010.x64"],
                         ChocoPackageId = "vcredist2010",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -206,7 +179,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2012.x86"],
                         ChocoPackageId = "vcredist2012",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -218,7 +190,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2012.x64"],
                         ChocoPackageId = "vcredist2012",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -230,7 +201,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2013.x86"],
                         ChocoPackageId = "vcredist2013",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -242,7 +212,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2013.x64"],
                         ChocoPackageId = "vcredist2013",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -254,7 +223,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2015+.x86"],
                         ChocoPackageId = "vcredist140",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -266,7 +234,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2015+.x64"],
                         ChocoPackageId = "vcredist140",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     },
                     new ItemDefinition
                     {
@@ -278,7 +245,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Microsoft.VCRedist.2015+.arm64"],
                         ChocoPackageId = "vcredist140",
                         WebsiteUrl = "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist",
-                        IconSources = [GenericRuntimeIcon],
                     }
                 }
             };

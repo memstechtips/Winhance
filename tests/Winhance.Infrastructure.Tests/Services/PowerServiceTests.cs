@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
@@ -23,6 +24,7 @@ public class PowerServiceTests
     private readonly Mock<IProcessExecutor> _processExecutor;
     private readonly Mock<IFileSystemService> _fileSystemService;
     private readonly Mock<IPowerSchemeOperations> _powerSchemeOperations;
+    private readonly ConfigImportState _configImportState;
     private readonly PowerService _sut;
 
     public PowerServiceTests()
@@ -35,6 +37,7 @@ public class PowerServiceTests
         _processExecutor = new Mock<IProcessExecutor>();
         _fileSystemService = new Mock<IFileSystemService>();
         _powerSchemeOperations = new Mock<IPowerSchemeOperations>();
+        _configImportState = new ConfigImportState();
 
         _sut = new PowerService(
             _logService.Object,
@@ -44,7 +47,8 @@ public class PowerServiceTests
             _powerPlanComboBoxService.Object,
             _processExecutor.Object,
             _fileSystemService.Object,
-            _powerSchemeOperations.Object);
+            _powerSchemeOperations.Object,
+            _configImportState);
     }
 
     private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>
@@ -410,5 +414,86 @@ public class PowerServiceTests
         // Should report Winhance as active
         result[SettingIds.PowerPlanSelection]["ActivePowerPlan"].Should().Be("Winhance Power Plan");
         result[SettingIds.PowerPlanSelection]["ActivePowerPlanGuid"].Should().Be(winhanceGuid);
+    }
+
+    // Sets up an existing-on-system Winhance plan so a config-import dictionary apply reaches
+    // the IsWinhancePowerPlan branch (which decides whether to re-apply recommended settings).
+    private (SettingDefinition setting, object value, Mock<ISettingApplicationService> apply) ArrangeWinhancePlanImport()
+    {
+        var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
+        var setting = MakeSetting(SettingIds.PowerPlanSelection);
+
+        var value = new Dictionary<string, object>
+        {
+            ["Guid"] = winhanceGuid,
+            ["Name"] = "Winhance Power Plan",
+        };
+
+        // Active plan differs from the target so SetActivePowerPlanAsync actually activates it.
+        _powerSettingsQueryService
+            .Setup(s => s.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" });
+
+        // Plan already exists on the system -> simple activation path.
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan>
+            {
+                new() { Name = "Winhance Power Plan", Guid = winhanceGuid, IsActive = false }
+            });
+
+        _powerSchemeOperations
+            .Setup(s => s.SetActiveScheme(It.IsAny<Guid>()))
+            .Returns(PowerProf.ERROR_SUCCESS);
+
+        _powerPlanComboBoxService
+            .Setup(s => s.GetPowerPlanOptionsAsync())
+            .ReturnsAsync(new List<PowerPlanComboBoxOption>());
+
+        var apply = new Mock<ISettingApplicationService>();
+        apply
+            .Setup(a => a.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        return (setting, value, apply);
+    }
+
+    [Fact]
+    public async Task TryApplySpecialSettingAsync_ConfigImportSuppliesPowerValues_SkipsRecommendedReapply()
+    {
+        // Arrange — active config import that carries individual power values
+        _configImportState.IsActive = true;
+        _configImportState.ImportSuppliesPowerValues = true;
+        var (setting, value, apply) = ArrangeWinhancePlanImport();
+
+        // Act
+        var result = await _sut.TryApplySpecialSettingAsync(setting, value, settingApplicationService: apply.Object);
+
+        // Assert — the recommended re-apply must NOT fire (import is the source of truth)
+        result.Should().BeTrue();
+        apply.Verify(
+            a => a.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>()),
+            Times.Never);
+        _logService.Verify(
+            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Skipping recommended power re-apply"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task TryApplySpecialSettingAsync_NoActiveImport_AppliesRecommendedSettings()
+    {
+        // Arrange — manual UI / no active import: existing behavior must be preserved
+        _configImportState.IsActive = false;
+        _configImportState.ImportSuppliesPowerValues = false;
+        var (setting, value, apply) = ArrangeWinhancePlanImport();
+
+        // Act
+        var result = await _sut.TryApplySpecialSettingAsync(setting, value, settingApplicationService: apply.Object);
+
+        // Assert — recommended settings ARE re-applied
+        result.Should().BeTrue();
+        apply.Verify(
+            a => a.ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection),
+            Times.Once);
     }
 }

@@ -2,11 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
@@ -19,6 +21,7 @@ using Winhance.UI.ViewModels;
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
+using Windows.Foundation;
 
 namespace Winhance.UI;
 
@@ -30,6 +33,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 {
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
+    private UiZoomManager? _uiZoomManager;
     private IConfigReviewService? _configReviewService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
@@ -80,6 +84,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         // Initialize window size manager for position/size persistence
         InitializeWindowSizeManager();
+
+        // Initialize app-local UI zoom (Ctrl +/-/0, Ctrl+MouseWheel)
+        InitializeUiZoom();
 
         // Apply Mica backdrop (Windows 11) with fallback to DesktopAcrylic (Windows 10)
         TrySetMicaBackdrop();
@@ -137,7 +144,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// Initializes the WindowSizeManager for window position/size persistence
-    /// and wires up ApplicationCloseService for proper shutdown with donation dialog.
+    /// and wires up ApplicationCloseService for proper shutdown with the sponsors dialog.
     /// </summary>
     private void InitializeWindowSizeManager()
     {
@@ -166,6 +173,45 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
             _logService?.LogDebug($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Wires up app-local UI zoom: the UiZoomManager, the OemPlus/OemMinus accelerators
+    /// that XAML can't express, and Ctrl+MouseWheel.
+    /// </summary>
+    private void InitializeUiZoom()
+    {
+        try
+        {
+            var prefs = App.Services.GetRequiredService<IUserPreferencesService>();
+            _logService ??= App.Services.GetRequiredService<ILogService>();
+            _uiZoomManager = new UiZoomManager(ZoomViewport, ZoomHost, prefs, _logService);
+
+            // Main-row +/- keys (OemPlus=187, OemMinus=189) — not expressible in XAML.
+            RootGrid.KeyboardAccelerators.Add(MakeZoomAccelerator((VirtualKey)187, ZoomInAccelerator_Invoked));
+            RootGrid.KeyboardAccelerators.Add(MakeZoomAccelerator((VirtualKey)189, ZoomOutAccelerator_Invoked));
+
+            // Ctrl+MouseWheel, caught even if an inner ScrollViewer already handled the wheel.
+            ZoomViewport.AddHandler(
+                UIElement.PointerWheelChangedEvent,
+                new PointerEventHandler(ZoomViewport_PointerWheelChanged),
+                handledEventsToo: true);
+
+            _uiZoomManager.Initialize();
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogDebug($"Failed to initialize UI zoom: {ex.Message}");
+        }
+    }
+
+    private KeyboardAccelerator MakeZoomAccelerator(
+        VirtualKey key,
+        TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = VirtualKeyModifiers.Control };
+        accelerator.Invoked += handler;
+        return accelerator;
     }
 
     /// <summary>
@@ -289,12 +335,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         // Defer passthrough region setup to ensure all elements are laid out
         DispatcherQueue.TryEnqueue(() =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons));
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher));
 
         AppTitleBar.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
         TitleBarButtons.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
 
         // Initialize ViewModel and wire up bindings
         InitializeViewModel();
@@ -312,8 +358,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             if (ViewModel != null)
             {
                 // Wire up button commands
-                SaveConfigButton.Command = ViewModel.SaveConfigCommand;
-                ImportConfigButton.Command = ViewModel.ImportConfigCommand;
                 WindowsFilterButton.Command = ViewModel.ToggleWindowsFilterCommand;
                 DonateButton.Command = ViewModel.DonateCommand;
                 BugReportButton.Command = ViewModel.BugReportCommand;
@@ -327,6 +371,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 ViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ViewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
                 ViewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
+                ViewModel.BuilderModeBar.PropertyChanged += BuilderModeBar_PropertyChanged;
 
                 // Deferred initialization: subscribes to events and sets initial state
                 ViewModel.Initialize();
@@ -675,6 +720,64 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             ViewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
     }
 
+    // ---- Mode switcher + Builder bar ----
+
+    private void ModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null || sender is not ToggleButton tb || tb.Tag is not string tag)
+            return;
+
+        WinhanceMode? target = tag switch
+        {
+            "Normal" => WinhanceMode.Normal,
+            "Builder" => WinhanceMode.Builder,
+            "ConfigReview" => WinhanceMode.ConfigReview,
+            _ => null
+        };
+
+        if (target == null)
+            return;
+
+        ViewModel.RequestSwitchModeAsync(target.Value).FireAndForget(_logService!);
+    }
+
+    private void BuilderModeBar_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        if (e.PropertyName == nameof(BuilderModeBarViewModel.IsBuilderActive))
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                BuilderModeBarGrid.Visibility = ViewModel.BuilderModeBar.IsBuilderActive
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            });
+        }
+    }
+
+    private void BuilderSaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.BuilderModeBar.SaveCommand.CanExecute(null) == true)
+            ViewModel.BuilderModeBar.SaveCommand.Execute(null);
+    }
+
+    private void BuilderCancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.BuilderModeBar.CancelCommand.CanExecute(null) == true)
+            ViewModel.BuilderModeBar.CancelCommand.Execute(null);
+    }
+
+    private void BuilderConfigRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.BuilderModeBar.SelectConfigTarget();
+    }
+
+    private void BuilderAutounattendRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.BuilderModeBar.SelectAutounattendTarget();
+    }
+
     #endregion
 
     #region Keyboard Accelerators
@@ -704,13 +807,36 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void SaveConfigAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (ViewModel?.SaveConfigCommand.CanExecute(null) == true)
-        {
-            ViewModel.SaveConfigCommand.Execute(null);
-        }
+        _uiZoomManager?.StepUp();
         args.Handled = true;
+    }
+
+    private void ZoomOutAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        _uiZoomManager?.StepDown();
+        args.Handled = true;
+    }
+
+    private void ZoomResetAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        _uiZoomManager?.Reset();
+        args.Handled = true;
+    }
+
+    private void ZoomViewport_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control))
+            return;
+
+        var delta = e.GetCurrentPoint((UIElement)sender).Properties.MouseWheelDelta;
+        if (delta > 0)
+            _uiZoomManager?.StepUp();
+        else if (delta < 0)
+            _uiZoomManager?.StepDown();
+
+        e.Handled = true;
     }
 
     private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -723,12 +849,10 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         var button = sender.Key switch
         {
-            VirtualKey.Number1 => SaveConfigButton,
-            VirtualKey.Number2 => ImportConfigButton,
-            VirtualKey.Number3 => WindowsFilterButton,
-            VirtualKey.Number4 => DonateButton,
-            VirtualKey.Number5 => BugReportButton,
-            VirtualKey.Number6 => DocsButton,
+            VirtualKey.Number1 => WindowsFilterButton,
+            VirtualKey.Number2 => DonateButton,
+            VirtualKey.Number3 => BugReportButton,
+            VirtualKey.Number4 => DocsButton,
             _ => (Button?)null
         };
 

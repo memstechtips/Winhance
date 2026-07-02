@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -17,6 +18,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     private readonly IApplicationCloseService _applicationCloseService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IExplorerWindowManager _explorerWindowManager;
+    private readonly IChangeHistoryService _changeHistoryService;
+    private readonly IProcessExecutor _processExecutor;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     public partial string VersionInfo { get; set; }
@@ -27,7 +31,10 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         ILogService logService,
         IApplicationCloseService applicationCloseService,
         IFileSystemService fileSystemService,
-        IExplorerWindowManager explorerWindowManager)
+        IExplorerWindowManager explorerWindowManager,
+        IChangeHistoryService changeHistoryService,
+        IProcessExecutor processExecutor,
+        IDialogService dialogService)
     {
         _localizationService = localizationService;
         _versionService = versionService;
@@ -35,6 +42,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _applicationCloseService = applicationCloseService;
         _fileSystemService = fileSystemService;
         _explorerWindowManager = explorerWindowManager;
+        _changeHistoryService = changeHistoryService;
+        _processExecutor = processExecutor;
+        _dialogService = dialogService;
         VersionInfo = "Winhance";
 
         // Subscribe to language changes
@@ -59,7 +69,9 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MenuReportBug));
         OnPropertyChanged(nameof(MenuCheckForUpdates));
         OnPropertyChanged(nameof(MenuWinhanceLogs));
+        OnPropertyChanged(nameof(MenuChangeHistory));
         OnPropertyChanged(nameof(MenuWinhanceScripts));
+        OnPropertyChanged(nameof(MenuSupportWinhance));
         OnPropertyChanged(nameof(MenuCloseWinhance));
     }
 
@@ -91,8 +103,14 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     public string MenuWinhanceLogs =>
         _localizationService.GetString("Menu_WinhanceLogs") ?? "Winhance Logs";
 
+    public string MenuChangeHistory =>
+        _localizationService.GetString("Menu_ChangeHistory") ?? "Change History";
+
     public string MenuWinhanceScripts =>
         _localizationService.GetString("Menu_WinhanceScripts") ?? "Winhance Scripts";
+
+    public string MenuSupportWinhance =>
+        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
 
     public string MenuCloseWinhance =>
         _localizationService.GetString("Menu_CloseWinhance") ?? "Close Winhance";
@@ -153,6 +171,20 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private async Task OpenChangeHistoryAsync()
+    {
+        try
+        {
+            var path = _changeHistoryService.GetFilePath();
+            await _processExecutor.ShellExecuteAsync(path);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open change history file: {ex.Message}", ex);
+        }
+    }
+
+    [RelayCommand]
     private async Task OpenScriptsAsync()
     {
         try
@@ -169,6 +201,19 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SupportWinhanceAsync()
+    {
+        try
+        {
+            await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to open sponsors dialog: {ex.Message}", ex);
         }
     }
 

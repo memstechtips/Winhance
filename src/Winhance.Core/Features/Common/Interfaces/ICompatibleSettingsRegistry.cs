@@ -22,7 +22,7 @@ public interface ICompatibleSettingsRegistry
     /// <summary>
     /// Returns the feature id (e.g. "update", "power") that owns the given setting,
     /// or null if not registered. Used by SettingLocalizationService and
-    /// RecommendedSettingsService for cross-cutting lookups.
+    /// RecommendedSettingsApplier for cross-cutting lookups.
     /// </summary>
     string? GetFeatureIdForSetting(string settingId);
 }

@@ -163,9 +163,21 @@ begin
     end;
   end;
 
-  // Sync the custom dir page value to the actual install directory
-  // Append \Winhance if the path doesn't already end with it
-  if CurPageID = CustomDirPage.ID then
+  // Sync the custom dir page value to the actual install directory.
+  // Append \Winhance if the path doesn't already end with it.
+  //
+  // Silent-install handling (issue #649):
+  //   - In-app updater (silent + /DIR=<current install path>): skip the sync,
+  //     because the simulated Next-click would otherwise overwrite
+  //     WizardForm.DirEdit.Text (and therefore {app}) with CustomDirPage.Values[0]
+  //     ({autopf}\Winhance for regular, {userdesktop}\Winhance for portable),
+  //     silently relocating the update.
+  //   - Winhance.ps1 first-time install (silent, no /DIR=): keep the sync. The
+  //     PS1 relies on it to redirect a portable install from DefaultDirName
+  //     ({autopf}\Winhance) to {userdesktop}\Winhance.
+  //   - Interactive install: keep the sync; the user may have edited the path
+  //     on the custom dir page and it needs to flow back to {app}.
+  if (CurPageID = CustomDirPage.ID) and ((not WizardSilent()) or (ExpandConstant('{param:DIR|}') = '')) then
   begin
     if CompareText(ExtractFileName(RemoveBackslashUnlessRoot(CustomDirPage.Values[0])), '{#MyAppName}') <> 0 then
       CustomDirPage.Values[0] := CustomDirPage.Values[0] + '\{#MyAppName}';

@@ -7,6 +7,7 @@
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Enabled">
 
@@ -17,25 +18,57 @@
             <RowDefinition Height="*"/>     <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Page Header with Icon -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <Viewbox Width="64" Height="64" Stretch="Uniform">
-                <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-            </Viewbox>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageTitle}"
-                    Style="{StaticResource TitleTextBlockStyle}"
-                    FontWeight="Bold"
-                    FontSize="30"
-                    AutomationProperties.HeadingLevel="Level1"/>
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageDescription}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    Margin="0,2,0,0"/>
+        <!-- Row 0: Page Header with Icon (title left, search right) -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                <Viewbox Width="64" Height="64" Stretch="Uniform">
+                    <fluentIcons:FluentIcon Icon="DesignIdeas" IconVariant="Color" />
+                </Viewbox>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageTitle}"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        FontWeight="Bold"
+                        FontSize="30"
+                        AutomationProperties.HeadingLevel="Level1"/>
+                    <TextBlock
+                        Text="{x:Bind ViewModel.PageDescription}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Margin="0,2,0,0"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+            <Grid Grid.Column="1" Width="220" VerticalAlignment="Bottom">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                    helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
+                    QueryIcon="Find"
+                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
+                    SuggestionChosen="SearchBox_SuggestionChosen"
+                    QuerySubmitted="SearchBox_QuerySubmitted">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SearchSuggestionItem">
+                            <Grid Padding="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+            </Grid>
+        </Grid>
 
         <!-- Row 1: Navigation Bar -->
         <Grid Grid.Row="1" Margin="0,12,0,16">
@@ -43,7 +76,6 @@
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
                 <ColumnDefinition Width="Auto"/>  <!-- Quick Actions -->
                 <ColumnDefinition Width="Auto"/>  <!-- View -->
-                <ColumnDefinition Width="Auto"/>  <!-- Search -->
             </Grid.ColumnDefinitions>
 
             <!-- Breadcrumb navigation -->
@@ -56,7 +88,7 @@
                     Padding="8,4">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
-                            <PathIcon Data="{StaticResource CustomizeIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            <fluentIcons:FluentIcon Icon="DesignIdeas" IconVariant="Color" />
                         </Viewbox>
                         <TextBlock Text="{x:Bind ViewModel.BreadcrumbRootText}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -146,7 +178,7 @@
             </StackPanel>
 
             <!-- Quick Actions dropdown -->
-            <DropDownButton Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
+            <DropDownButton x:Name="QuickActionsButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE945;" FontSize="14"/>
@@ -170,7 +202,7 @@
             </DropDownButton>
 
             <!-- View dropdown -->
-            <DropDownButton Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
+            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
@@ -204,32 +236,6 @@
                 </DropDownButton.Flyout>
             </DropDownButton>
 
-            <!-- Search box with suggestions -->
-            <Grid Grid.Column="3" Width="220">
-                <AutoSuggestBox
-                    x:Name="SearchBox"
-                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
-                    QueryIcon="Find"
-                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}"
-                    SuggestionChosen="SearchBox_SuggestionChosen"
-                    QuerySubmitted="SearchBox_QuerySubmitted">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:SearchSuggestionItem">
-                            <Grid Padding="4,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
-                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
-            </Grid>
         </Grid>
 
         <!-- Row 2: Content Container with rounded corners and lighter background -->
@@ -259,6 +265,7 @@
                             <!-- Windows Theme Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.WindowsThemeViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.WindowsThemeViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="WindowsThemeCard_Click">
                                 <controls:SettingsCard.Header>
@@ -305,6 +312,7 @@
                             <!-- Taskbar Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.TaskbarViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.TaskbarViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="TaskbarCard_Click">
                                 <controls:SettingsCard.Header>
@@ -351,6 +359,7 @@
                             <!-- Start Menu Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.StartMenuViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.StartMenuViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="StartMenuCard_Click">
                                 <controls:SettingsCard.Header>
@@ -397,6 +406,7 @@
                             <!-- Explorer Card -->
                             <controls:SettingsCard
                                 Description="{x:Bind ViewModel.ExplorerViewModel.GroupDescriptionText}"
+                                AutomationProperties.Name="{x:Bind ViewModel.ExplorerViewModel.DisplayName}"
                                 IsClickEnabled="True"
                                 Click="ExplorerCard_Click">
                                 <controls:SettingsCard.Header>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -93,7 +94,7 @@ public class LocalizationService : ILocalizationService
 
     private string ResolveLanguageCode(CultureInfo culture)
     {
-        var availableLanguages = GetAvailableLanguages().ToList();
+        var availableLanguages = GetAvailableLanguageCodes().ToList();
 
         if (availableLanguages.Contains(culture.Name))
             return culture.Name;
@@ -107,7 +108,7 @@ public class LocalizationService : ILocalizationService
         return "en";
     }
 
-    private IEnumerable<string> GetAvailableLanguages()
+    private IEnumerable<string> GetAvailableLanguageCodes()
     {
         try
         {
@@ -133,6 +134,59 @@ public class LocalizationService : ILocalizationService
         catch
         {
             return new[] { "en" };
+        }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<LanguageOption> GetAvailableLanguages()
+    {
+        try
+        {
+            var codes = GetAvailableLanguageCodes().ToList();
+
+            var options = new List<LanguageOption>();
+            foreach (var code in codes)
+            {
+                var strings = LoadLanguageFile(code);
+                string displayName;
+
+                if (strings.TryGetValue("_Meta_LanguageDisplayName", out var metaName) &&
+                    !string.IsNullOrWhiteSpace(metaName))
+                {
+                    displayName = metaName;
+                }
+                else
+                {
+                    try
+                    {
+                        displayName = CultureInfo.GetCultureInfo(code).NativeName;
+                    }
+                    catch
+                    {
+                        displayName = code;
+                    }
+                }
+
+                options.Add(new LanguageOption(code, displayName));
+            }
+
+            // English first, then the rest alphabetically by DisplayName
+            var enOption = options.FirstOrDefault(o => o.Code == "en");
+            var rest = options
+                .Where(o => o.Code != "en")
+                .OrderBy(o => o.DisplayName, StringComparer.InvariantCulture)
+                .ToList();
+
+            var result = new List<LanguageOption>();
+            if (enOption != null)
+                result.Add(enOption);
+            result.AddRange(rest);
+
+            return result.AsReadOnly();
+        }
+        catch
+        {
+            return new List<LanguageOption> { new LanguageOption("en", "English") }.AsReadOnly();
         }
     }
 

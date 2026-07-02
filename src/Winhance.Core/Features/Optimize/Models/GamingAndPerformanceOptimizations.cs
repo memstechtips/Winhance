@@ -1473,12 +1473,14 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "ServiceOption_Disabled",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                             },
                             new ComboBoxOption
                             {
                                 DisplayName = "ServiceOption_ManualRecommended",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 3 },
                                 IsRecommended = true,
+                                Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                             },
                             new ComboBoxOption
                             {

@@ -116,10 +116,13 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             var currentSize = CurrentImageFormat.FileSizeBytes / (1024.0 * 1024 * 1024);
             var estimatedTargetSize = CurrentImageFormat.Format == ImageFormat.Wim ? currentSize * 0.65 : currentSize * 1.50;
             var diff = Math.Abs(estimatedTargetSize - currentSize);
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                string.Format(_localizationService.GetString(confirmKey), diff.ToString("F2")),
-                string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormatName),
-                "Yes", "No");
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = string.Format(_localizationService.GetString(confirmKey), diff.ToString("F2")),
+                Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormatName),
+                ConfirmButtonText = "Yes",
+                CancelButtonText = "No",
+            })).Confirmed;
             if (!confirmed) return;
 
             IsConverting = true;
@@ -223,11 +226,13 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 
         try
         {
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_DeleteWimConfirm"),
-                _localizationService.GetString("WIMUtil_Button_DeleteWim"),
-                _localizationService.GetString("Button_Delete"),
-                _localizationService.GetString("Button_Cancel"));
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = _localizationService.GetString("WIMUtil_Msg_DeleteWimConfirm"),
+                Title = _localizationService.GetString("WIMUtil_Button_DeleteWim"),
+                ConfirmButtonText = _localizationService.GetString("Button_Delete"),
+                CancelButtonText = _localizationService.GetString("Button_Cancel"),
+            })).Confirmed;
             if (!confirmed) return;
 
             _cancellationTokenSource?.Dispose();
@@ -276,11 +281,13 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 
         try
         {
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_DeleteEsdConfirm"),
-                _localizationService.GetString("WIMUtil_Button_DeleteEsd"),
-                _localizationService.GetString("Button_Delete"),
-                _localizationService.GetString("Button_Cancel"));
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = _localizationService.GetString("WIMUtil_Msg_DeleteEsdConfirm"),
+                Title = _localizationService.GetString("WIMUtil_Button_DeleteEsd"),
+                ConfirmButtonText = _localizationService.GetString("Button_Delete"),
+                CancelButtonText = _localizationService.GetString("Button_Cancel"),
+            })).Confirmed;
             if (!confirmed) return;
 
             _cancellationTokenSource?.Dispose();

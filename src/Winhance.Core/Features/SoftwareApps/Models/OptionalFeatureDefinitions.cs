@@ -20,6 +20,7 @@ public static class OptionalFeatureDefinitions
                     Description = "Allows running Linux binary executables natively on Windows",
                     GroupName = "Development",
                     OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux",
+                    // No system binary carries the (Linux-branded) logo, so this is URL-only.
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -40,6 +41,7 @@ public static class OptionalFeatureDefinitions
                     Description = "Virtualization platform for running multiple operating systems",
                     GroupName = "Virtualization",
                     OptionalFeatureName = "Microsoft-Hyper-V-All",
+                    // Installed -> vmms.exe (carries the Hyper-V product icon).
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -70,6 +72,7 @@ public static class OptionalFeatureDefinitions
                     Description = "Throwaway isolated desktop for running suspicious or untrusted apps",
                     GroupName = "Security",
                     OptionalFeatureName = "Containers-DisposableClientVM",
+                    // Installed -> WindowsSandbox.exe.
                     RequiresReboot = true,
                     CanBeReinstalled = true
                 },
@@ -80,6 +83,7 @@ public static class OptionalFeatureDefinitions
                     Description = "Windows 11 AI feature that takes periodic screenshots of activity to make them searchable",
                     GroupName = "System",
                     OptionalFeatureName = "Recall",
+                    // Microsoft's own host serving Microsoft's own asset (tested OK).
                     RequiresReboot = false,
                     CanBeReinstalled = true
                 }

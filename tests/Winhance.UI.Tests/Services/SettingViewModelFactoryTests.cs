@@ -27,6 +27,7 @@ public class SettingViewModelFactoryTests
     private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
     private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
     private readonly SettingViewModelDependencies _deps;
     private readonly SettingViewModelFactory _sut;
@@ -52,7 +53,8 @@ public class SettingViewModelFactoryTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockRegeditLauncher.Object);
+            _mockRegeditLauncher.Object,
+            _mockApplicationModeService.Object);
 
         _sut = new SettingViewModelFactory(
             _deps,

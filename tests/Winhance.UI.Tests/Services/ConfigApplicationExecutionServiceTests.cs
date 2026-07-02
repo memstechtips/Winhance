@@ -23,6 +23,7 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
+    private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
 
     public ConfigApplicationExecutionServiceTests()
     {
@@ -33,6 +34,10 @@ public class ConfigApplicationExecutionServiceTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
+
+        _mockChangeHistoryService
+            .Setup(h => h.BeginBatch(It.IsAny<string>()))
+            .Returns(Mock.Of<IDisposable>());
     }
 
     private ConfigApplicationExecutionService CreateService()
@@ -50,7 +55,8 @@ public class ConfigApplicationExecutionServiceTests
             _mockConfigAppSelectionService.Object,
             _mockConfigLoadService.Object,
             _mockVmCoordinator.Object,
-            _mockPolicyCleanupService.Object);
+            _mockPolicyCleanupService.Object,
+            _mockChangeHistoryService.Object);
     }
 
     // -------------------------------------------------------

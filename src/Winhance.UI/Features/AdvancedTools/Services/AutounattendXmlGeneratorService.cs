@@ -49,38 +49,57 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
             var config = await CreateConfigurationFromSystemAsync(apps);
 
-            var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
-
-            var scriptContent = await _scriptBuilder.BuildWinhancementsScriptAsync(config, allSettings);
-
-            var xmlTemplate = LoadEmbeddedTemplate();
-
-            var finalXml = InjectScriptIntoTemplate(xmlTemplate, scriptContent);
-
-            // Validate the final XML is well-formed
-            try
-            {
-                await _powerShellRunner.ValidateXmlSyntaxAsync(finalXml);
-                _logService.Log(LogLevel.Info, "autounattend.xml passed XML well-formedness validation");
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"autounattend.xml failed XML well-formedness validation: {ex.Message}");
-                throw;
-            }
-
-            // Write without BOM (Byte Order Mark) - Windows Setup requires UTF-8 without BOM
-            var utf8WithoutBom = new UTF8Encoding(false);
-            await File.WriteAllTextAsync(outputPath, finalXml, utf8WithoutBom);
-
-            _logService.Log(LogLevel.Info, $"Autounattend.xml generated successfully: {outputPath}");
-            return outputPath;
+            return await RenderConfigToXmlAsync(config, outputPath);
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error generating autounattend.xml: {ex.Message}");
             throw;
         }
+    }
+
+    public async Task<string> GenerateFromConfigAsync(UnifiedConfigurationFile config, string outputPath)
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Starting autounattend.xml generation from Builder config");
+            return await RenderConfigToXmlAsync(config, outputPath);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error generating autounattend.xml from config: {ex.Message}");
+            throw;
+        }
+    }
+
+    private async Task<string> RenderConfigToXmlAsync(UnifiedConfigurationFile config, string outputPath)
+    {
+        var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
+
+        var scriptContent = await _scriptBuilder.BuildWinhancementsScriptAsync(config, allSettings);
+
+        var xmlTemplate = LoadEmbeddedTemplate();
+
+        var finalXml = InjectScriptIntoTemplate(xmlTemplate, scriptContent);
+
+        // Validate the final XML is well-formed
+        try
+        {
+            await _powerShellRunner.ValidateXmlSyntaxAsync(finalXml);
+            _logService.Log(LogLevel.Info, "autounattend.xml passed XML well-formedness validation");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"autounattend.xml failed XML well-formedness validation: {ex.Message}");
+            throw;
+        }
+
+        // Write without BOM (Byte Order Mark) - Windows Setup requires UTF-8 without BOM
+        var utf8WithoutBom = new UTF8Encoding(false);
+        await File.WriteAllTextAsync(outputPath, finalXml, utf8WithoutBom);
+
+        _logService.Log(LogLevel.Info, $"Autounattend.xml generated successfully: {outputPath}");
+        return outputPath;
     }
 
     private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync(

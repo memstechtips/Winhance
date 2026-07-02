@@ -526,19 +526,19 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void HasWebsiteUrl_IsTrue_WhenWebsiteSet()
+    public void WebsiteUrl_IsExposed_WhenWebsiteSet()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "", WebsiteUrl = "https://example.com" };
         var vm = CreateViewModel(def);
-        vm.HasWebsiteUrl.Should().BeTrue();
+        vm.WebsiteUrl.Should().Be("https://example.com");
     }
 
     [Fact]
-    public void HasWebsiteUrl_IsFalse_WhenWebsiteNull()
+    public void WebsiteUrl_IsNullOrEmpty_WhenWebsiteNull()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "" };
         var vm = CreateViewModel(def);
-        vm.HasWebsiteUrl.Should().BeFalse();
+        vm.WebsiteUrl.Should().BeNullOrEmpty();
     }
 
     [Fact]

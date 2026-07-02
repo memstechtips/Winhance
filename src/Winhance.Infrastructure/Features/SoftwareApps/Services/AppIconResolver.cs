@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,65 +19,16 @@ public class AppIconResolver : IAppIconResolver
     private const string CacheSubDir = @"Winhance\IconCache";
 
     // Cache filenames are <def.Id>.<short-hash>.png. The id makes them readable
-    // when poking around %ProgramData%\Winhance\IconCache, the 8-char hash of
-    // the layer-specific source key (AppX full-name, binary path, MsStoreId,
-    // or IconSources entry) flips when the source changes so old files get
-    // bypassed and PruneOldVersions can clean them up.
+    // when poking around %ProgramData%\Winhance\IconCache; the 8-char hash of
+    // the layer-specific source key (AppX full-name, expanded local path, or
+    // "repo:" + sha256) flips when the source changes so old files get bypassed
+    // and PruneOldVersions can clean them up.
     private const string CacheFileExtension = ".png";
 
-    // Per-call timeout for an IconSources URL fetch. Caps per-entry cost so one
-    // slow vendor CDN can't stall the resolver for everyone else.
-    private static readonly TimeSpan IconSourceFetchTimeout = TimeSpan.FromSeconds(8);
-
-    // User-Agent for icon fetches. Wikimedia's UA policy rejects empty / generic
-    // UAs with HTTP 403 — see https://meta.wikimedia.org/wiki/User-Agent_policy —
-    // and several vendor sites behind Cloudflare do the same. Identifying the
-    // app + a contact URL satisfies both. Set per-request rather than on the
-    // shared HttpClient so other services (download, WIM tooling, etc.) keep
-    // their existing behavior.
-    private const string IconFetchUserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";
-    // Concurrency limit for the parallel network batches (IconSources fetches and
-    // Store CDN lookups). Each entry costs at least one HTTP round-trip; running
-    // them parallel keeps cold-cache load times bounded. Hosts known to rate-limit
-    // aggressive callers get an additional per-host cap below.
-    private const int NetworkBatchConcurrency = 5;
-
-    // Per-host concurrency caps for hosts that throttle aggressive callers below
-    // the global limit. Wikimedia's upload CDN returns HTTP 429 on cold-start
-    // bursts when all slots of the global limit pile onto a single host (Layer 1
-    // piles its slots onto upload.wikimedia.org because that's where most icons
-    // live). Capping in-flight Wikimedia fetches at 2 stays comfortably below
-    // their documented soft limit (~5 RPS for an identified UA) while keeping
-    // cold start fast; any transient stragglers are picked up by the
-    // batch-level retry loop in ResolveBatchAsync. Static so the gate state is
-    // shared across all batches in the process. Never disposed — lifetime is
-    // the resolver class, not the batch call.
-    private static readonly IReadOnlyDictionary<string, SemaphoreSlim> PerHostGates =
-        new Dictionary<string, SemaphoreSlim>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["upload.wikimedia.org"] = new SemaphoreSlim(2, 2),
-        };
-
-    // 429 retry schedule for the batch-level Layer 1 retry loop. After the first
-    // pass through IconSources, any entry that 429'd at least once is retried in
-    // a follow-up pass with this delay in front of it. Schedule is escalating
-    // because Wikimedia's burst limiter usually clears in 1-3 s but a sustained
-    // throttle can stick for tens of seconds. The array length caps total
-    // attempts — after the last delay the loop gives up so the loading spinner
-    // eventually drops on a Wikimedia outage. Total worst case ~3 minutes.
-    private static readonly TimeSpan[] Layer1RetryDelays = new[]
-    {
-        TimeSpan.FromMilliseconds(1500),
-        TimeSpan.FromSeconds(3),
-        TimeSpan.FromSeconds(6),
-        TimeSpan.FromSeconds(10),
-        TimeSpan.FromSeconds(15),
-        TimeSpan.FromSeconds(20),
-        TimeSpan.FromSeconds(30),
-        TimeSpan.FromSeconds(30),
-        TimeSpan.FromSeconds(30),
-        TimeSpan.FromSeconds(30),
-    };
+    // Bounded concurrency for repo (jsDelivr) icon fetches. These are network
+    // round-trips on the (blocking) Windows Apps startup path, so they MUST run
+    // in parallel — a serial loop over ~50 icons freezes the load window.
+    private const int RepoFetchConcurrency = 8;
 
     // Logo extraction size, in pixels. Microsoft's GetLogo picks the closest
     // available asset/scale to this hint; 96 reliably returns the high-DPI
@@ -93,22 +42,19 @@ public class AppIconResolver : IAppIconResolver
     // by DisplayInfo.GetLogo for installed AppX packages typically have
     // antialiased soft-edge halos around the visible art (alpha ~5-30) which
     // a low threshold preserves, expanding the bbox and making the cached
-    // icon appear smaller than equivalent Store-CDN icons (which are
-    // hard-edge cropped). Higher threshold → tighter bbox → larger visible
-    // icon at fixed display size, at the cost of clipping legitimately
-    // translucent icon parts. 32 is a reasonable middle ground; 64 if you
-    // want maximum tightening; 8 (original) for maximum softness preservation.
-    // If this changes meaningfully, manually wipe %ProgramData%\Winhance\IconCache
-    // so cached files re-extract.
+    // icon appear smaller than equivalent repo icons (which are hard-edge
+    // cropped). Higher threshold → tighter bbox → larger visible icon at fixed
+    // display size, at the cost of clipping legitimately translucent icon parts.
+    // 32 is a reasonable middle ground; 64 if you want maximum tightening; 8
+    // (original) for maximum softness preservation. If this changes meaningfully,
+    // manually wipe %ProgramData%\Winhance\IconCache so cached files re-extract.
     private const byte AlphaTrimThreshold = 32;
 
     // ====== BACKPLATE DETECTION KNOBS ======
     // Two unrelated icon sources ship art on a uniform opaque background:
     //   - Sticky Notes (and similar UWP icons) come back from AppX GetLogo
     //     as a small shape on a fully-opaque colored card.
-    //   - Microsoft Store CDN icons (the Layer 4 fallback) often arrive as a
-    //     logo on a flat WHITE background — e.g. Teams / To Do when the
-    //     curated IconSources URL is unreachable and the resolver falls back.
+    //   - Some repo / vendor icons arrive as a logo on a flat WHITE background.
     // The plain alpha trim can't touch either because there's no transparency.
     //
     // The backplate pass looks at the 4 corners — if they're all near-opaque
@@ -129,36 +75,41 @@ public class AppIconResolver : IAppIconResolver
     private const int BackplateMatchColorTolerance = 8;
 
     private readonly IAppxIconSource _appxSource;
-    private readonly IStoreIconSource? _storeSource;
-    private readonly IBinaryIconSource? _binarySource;
-    private readonly HttpClient? _httpClient;
+    private readonly IRepoIconSource? _repoSource;
+    private readonly IIconManifestService? _manifest;
     private readonly ILogService _logService;
+    private readonly IconCacheMigration _migration;
     private readonly string _cacheRoot;
+
+    // The one-time cache-schema migration must run at most once per process,
+    // not once per batch (a wipe mid-session would clear icons resolved earlier
+    // in the same run). Guarded by a static flag + lock so concurrent first
+    // batches don't both wipe.
+    private static bool _schemaEnsured;
+    private static readonly object _schemaLock = new();
 
     /// <summary>Production constructor — uses %ProgramData%\Winhance\IconCache.</summary>
     public AppIconResolver(
         IAppxIconSource appxSource,
         ILogService logService,
-        IStoreIconSource storeSource,
-        IBinaryIconSource binarySource,
-        HttpClient httpClient)
-        : this(appxSource, logService, DefaultCacheRoot(), storeSource, binarySource, httpClient) { }
+        IRepoIconSource repoSource,
+        IIconManifestService manifest)
+        : this(appxSource, logService, DefaultCacheRoot(), repoSource, manifest) { }
 
     /// <summary>Test constructor — accepts a custom cache root and optional sources.</summary>
     internal AppIconResolver(
         IAppxIconSource appxSource,
         ILogService logService,
         string cacheRoot,
-        IStoreIconSource? storeSource = null,
-        IBinaryIconSource? binarySource = null,
-        HttpClient? httpClient = null)
+        IRepoIconSource? repoSource = null,
+        IIconManifestService? manifest = null)
     {
         _appxSource = appxSource;
         _logService = logService;
         _cacheRoot = cacheRoot;
-        _storeSource = storeSource;
-        _binarySource = binarySource;
-        _httpClient = httpClient;
+        _repoSource = repoSource;
+        _manifest = manifest;
+        _migration = new IconCacheMigration(logService);
     }
 
     // Icons aren't per-user state — they're app-wide reference data that any
@@ -176,73 +127,48 @@ public class AppIconResolver : IAppIconResolver
     {
         try
         {
-            // Any entry with a routable identity gets a try. IconSources entries
-            // go through Layer 1 (URLs / data: URIs / local file paths) — the
-            // canonical source when set. Without (or after) IconSources, AppX-
-            // named entries fall back to Layer 2 (local AppX enumeration),
-            // InstalledBinaryHint to Layer 3 (binary extraction), and MsStoreId
-            // to Layer 4 (Store CDN).
+            // Any entry with a routable identity gets a try:
+            //   - AppX names → installed-package extraction (Layer 1).
+            //   - external-app-* / windows-app-* / capability-* / feature-* ids whose
+            //     RepoIconKey resolves → package-icons repo (Layer 2).
+            // MsStoreId is no longer an icon identity (the live Store API was
+            // removed); it remains on the definition for the installer.
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
-                         || !string.IsNullOrEmpty(d.MsStoreId)
-                         || !string.IsNullOrEmpty(d.InstalledBinaryHint)
-                         || (d.IconSources?.Length > 0))
+                         || RepoIconKey.For(d) is not null
+                         || RepoIconKey.WindowsCandidates(d).Any())
                 .ToList();
             if (candidates.Count == 0)
                 return;
 
+            EnsureSchemaOnce();
+
             if (!EnsureCacheDir())
                 return;
 
-            // Layer 1: IconSources — the canonical source when set. Runs first
-            // and in parallel because URL fetches benefit from concurrency. Other
-            // layers fall back only for entries where IconSources is unset or
-            // every entry in the array missed.
-            //
-            // 429 handling: rate-limit responses are tracked per-entry in
-            // 'rateLimited'. After the first pass, any entry that 429'd and is
-            // still unresolved gets re-attempted in a follow-up pass with
-            // backoff (Layer1RetryDelays). Other failure modes (404/403/timeout)
-            // are NOT retried — they fall through to the lower layers as today.
-            int sourcesAttempted = 0, sourcesResolved = 0;
-            var sourceCandidates = candidates.Where(d => d.IconSources?.Length > 0).ToList();
-
-            if (sourceCandidates.Count > 0)
+            // Best-effort manifest load (sha256 lookups). When it succeeds the
+            // manifest is the authoritative list of hosted icons, so the repo
+            // layer can skip guaranteed-404 fetches for paths it doesn't list.
+            // A failed load (offline) leaves manifestLoaded false → repo fetches
+            // still run unconditionally as a best-effort, exactly as before, and
+            // RepoIconSource still validates whatever bytes come back.
+            bool manifestLoaded = false;
+            if (_manifest is not null)
             {
-                var rateLimited = new ConcurrentDictionary<string, byte>();
-                sourcesAttempted = sourceCandidates.Count;
-                sourcesResolved += await RunLayer1PassAsync(sourceCandidates, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false);
-
-                for (int attempt = 0; attempt < Layer1RetryDelays.Length; attempt++)
-                {
-                    if (ct.IsCancellationRequested) break;
-
-                    var retryCandidates = sourceCandidates
-                        .Where(d => d.IconPath is null && rateLimited.ContainsKey(d.Id))
-                        .ToList();
-                    if (retryCandidates.Count == 0) break;
-
-                    _logService.LogInformation(
-                        $"AppIconResolver: Layer 1 retry pass {attempt + 1}/{Layer1RetryDelays.Length} — " +
-                        $"{retryCandidates.Count} entries still rate-limited, waiting {Layer1RetryDelays[attempt].TotalSeconds:0.0}s");
-
-                    try { await Task.Delay(Layer1RetryDelays[attempt], ct).ConfigureAwait(false); }
-                    catch (OperationCanceledException) { break; }
-
-                    rateLimited.Clear();
-                    sourcesResolved += await RunLayer1PassAsync(retryCandidates, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false);
-                }
+                try { manifestLoaded = await _manifest.LoadAsync(ct).ConfigureAwait(false); }
+                catch (Exception ex) { _logService.LogWarning($"Icon manifest load failed: {ex.Message}"); }
             }
 
-            // Layer 2: AppX (current user / all users / provisioned) — fallback for
-            // entries without IconSources, or where IconSources came up empty.
+            // Layer 1: AppX (current user / all users / provisioned). The
+            // canonical source for windows-app-* entries that are actually
+            // present on this machine — theme-synthesized light/dark variants.
             var installedMap = await _appxSource.GetInstalledPackageMapAsync(ct).ConfigureAwait(false);
 
             int appxResolved = 0;
             foreach (var def in candidates)
             {
                 if (ct.IsCancellationRequested) return;
-                if (def.IconPath is not null) continue;            // Already resolved by Layer 1.
+                if (def.IconPath is not null) continue;
                 try
                 {
                     if (await TryResolveFromAppxAsync(def, installedMap, applyThemeAdaptation, ct).ConfigureAwait(false))
@@ -254,61 +180,42 @@ public class AppIconResolver : IAppIconResolver
                 }
             }
 
-            // Layer 3: Win32 binary extraction for installed externals.
-            int binaryResolved = 0;
-            foreach (var def in candidates)
+            // Layer 2: package-icons repo (jsDelivr @main). external-app-*,
+            // windows-app-*, capability-*, and feature-* entries that weren't
+            // resolved by AppX extraction pull their icon from the hosted repo,
+            // sha256-verified against the manifest. Capabilities and optional
+            // features resolve purely here (RepoIconKey returns their path).
+            int repoResolved = 0;
+            if (_repoSource is not null)
             {
-                if (ct.IsCancellationRequested) return;
-                if (def.IconPath is not null) continue;
-                if (string.IsNullOrEmpty(def.InstalledBinaryHint)) continue;
-                if (_binarySource is null) continue;               // No source registered (test constructor without it).
-
-                try
+                // Parallel (bounded): repo fetches are network round-trips on the
+                // blocking startup path; a serial loop over ~50 icons freezes the UI.
+                var repoCandidates = candidates.Where(d => d.IconPath is null).ToList();
+                if (repoCandidates.Count > 0)
                 {
-                    if (await TryResolveFromBinaryAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
-                        binaryResolved++;
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogWarning($"Binary icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                    using var sem = new SemaphoreSlim(RepoFetchConcurrency);
+                    var tasks = repoCandidates.Select(async def =>
+                    {
+                        await sem.WaitAsync(ct).ConfigureAwait(false);
+                        try
+                        {
+                            if (await TryResolveFromRepoAsync(def, applyThemeAdaptation, manifestLoaded, ct).ConfigureAwait(false))
+                                Interlocked.Increment(ref repoResolved);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.LogWarning($"Repo icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
+                        }
+                        finally { sem.Release(); }
+                    });
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
             }
 
-            // Layer 4: Store CDN — final fallback for entries with MsStoreId where
-            // none of the above paid out. Parallel because each is a network call.
-            int storeAttempted = 0, storeResolved = 0;
-            var storeCandidates = candidates
-                .Where(d => d.IconPath is null && !string.IsNullOrEmpty(d.MsStoreId))
-                .ToList();
-
-            if (storeCandidates.Count > 0 && _storeSource is not null)
-            {
-                using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
-                var tasks = storeCandidates.Select(async def =>
-                {
-                    await sem.WaitAsync(ct).ConfigureAwait(false);
-                    try
-                    {
-                        Interlocked.Increment(ref storeAttempted);
-                        if (await TryResolveFromStoreAsync(def, applyThemeAdaptation, ct).ConfigureAwait(false))
-                            Interlocked.Increment(ref storeResolved);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.LogWarning($"Store icon resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-                    }
-                    finally { sem.Release(); }
-                });
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-
-            int unresolved = candidates.Count - sourcesResolved - appxResolved - binaryResolved - storeResolved;
+            int unresolved = candidates.Count - appxResolved - repoResolved;
             _logService.LogInformation(
                 $"AppIconResolver: {candidates.Count} candidates → " +
-                $"{sourcesResolved}/{sourcesAttempted} via IconSources, " +
-                $"{appxResolved} via AppX, {binaryResolved} via Binary, " +
-                $"{storeResolved}/{storeAttempted} via Store, " +
-                $"{unresolved} unresolved");
+                $"{appxResolved} via AppX, {repoResolved} via repo, {unresolved} unresolved");
         }
         catch (Exception ex)
         {
@@ -316,263 +223,17 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    /// <summary>
-    /// Layer 1: walk <see cref="ItemDefinition.IconSources"/> in order, return on
-    /// the first entry that yields a non-empty image. Each entry is one of:
-    /// <list type="bullet">
-    /// <item><description><c>http(s)://</c> URL — fetched via <see cref="HttpClient"/>.</description></item>
-    /// <item><description><c>data:image/&lt;type&gt;;base64,&lt;payload&gt;</c> URI —
-    /// the base64 payload is decoded directly. Useful when a vendor only ships their
-    /// logo embedded in HTML/CSS and no stable raw URL exists.</description></item>
-    /// <item><description>Local file path — read with
-    /// <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/> after env-var expansion.</description></item>
-    /// </list>
-    /// </summary>
-    /// <summary>
-    /// Runs one Layer 1 pass over the given candidates with parallel HTTP fetches
-    /// bounded by <see cref="NetworkBatchConcurrency"/>. Per-entry 429 outcomes
-    /// are recorded in <paramref name="rateLimited"/> so the caller can drive the
-    /// batch-level retry loop. Returns the count of entries that resolved on this pass.
-    /// </summary>
-    private async Task<int> RunLayer1PassAsync(
-        List<ItemDefinition> candidates,
-        ConcurrentDictionary<string, byte> rateLimited,
-        bool applyThemeAdaptation,
-        CancellationToken ct)
+    /// <summary>Runs the one-time cache-schema migration at most once per process.</summary>
+    private void EnsureSchemaOnce()
     {
-        int resolved = 0;
-        using var sem = new SemaphoreSlim(NetworkBatchConcurrency);
-        var tasks = candidates.Select(async def =>
+        if (_schemaEnsured) return;
+        lock (_schemaLock)
         {
-            await sem.WaitAsync(ct).ConfigureAwait(false);
-            try
-            {
-                if (await TryResolveFromIconSourcesAsync(def, rateLimited, applyThemeAdaptation, ct).ConfigureAwait(false))
-                    Interlocked.Increment(ref resolved);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning($"IconSources resolution failed for {def.Id} ({def.Name}): {ex.Message}");
-            }
-            finally { sem.Release(); }
-        });
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-        return resolved;
-    }
-
-    private async Task<bool> TryResolveFromIconSourcesAsync(
-        ItemDefinition def,
-        ConcurrentDictionary<string, byte> rateLimited,
-        bool applyThemeAdaptation,
-        CancellationToken ct)
-    {
-        var sources = def.IconSources;
-        if (sources is null || sources.Length == 0) return false;
-
-        foreach (var source in sources)
-        {
-            if (ct.IsCancellationRequested) return false;
-            if (string.IsNullOrWhiteSpace(source)) continue;
-
-            var kind = ClassifyIconSource(source);
-
-            // Cache key encodes the source string so any change invalidates the cache
-            // automatically. Local paths are env-expanded first so two definitions
-            // pointing at the same expanded file share one cache entry. URLs and data:
-            // URIs are hashed verbatim. SHA1 is fine — purely a cache key, not a trust boundary.
-            var cacheKeyInput = kind == IconSourceKind.LocalPath
-                ? Environment.ExpandEnvironmentVariables(source)
-                : source;
-            var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, cacheKeyInput));
-            if (File.Exists(cachePath))
-            {
-                def.IconPath = cachePath;
-                return true;
-            }
-
-            try
-            {
-                byte[]? bytes;
-                if (kind == IconSourceKind.Url)
-                {
-                    var (b, wasRateLimited) = await FetchUrlBytesAsync(source, def, ct).ConfigureAwait(false);
-                    if (wasRateLimited) rateLimited.TryAdd(def.Id, 0);
-                    bytes = b;
-                }
-                else
-                {
-                    bytes = kind switch
-                    {
-                        IconSourceKind.DataUri => DecodeBase64DataUri(source),
-                        IconSourceKind.LocalPath => await ReadLocalSourceBytesAsync(source, ct).ConfigureAwait(false),
-                        _ => null,
-                    };
-                }
-                if (bytes is null || bytes.Length == 0) continue;
-
-                using var ms = new MemoryStream(bytes);
-                await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
-                def.IconPath = cachePath;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning(
-                    $"IconSources entry failed for {def.Id} ({def.Name}) <{Truncate(source, 80)}>: {ex.Message}");
-                // Continue to the next source in the array.
-            }
-        }
-
-        return false;
-    }
-
-    private enum IconSourceKind { Url, DataUri, LocalPath }
-
-    private static IconSourceKind ClassifyIconSource(string source)
-    {
-        if (source.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-            || source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            return IconSourceKind.Url;
-        if (source.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-            return IconSourceKind.DataUri;
-        return IconSourceKind.LocalPath;
-    }
-
-    /// <summary>
-    /// Decodes a <c>data:&lt;media-type&gt;;base64,&lt;payload&gt;</c> URI into raw bytes.
-    /// Returns null for unsupported variants (no <c>;base64</c> marker, missing comma,
-    /// invalid base64). Non-base64 (URL-encoded) payloads are deliberately rejected —
-    /// IconSources is for binary image data, not text.
-    /// </summary>
-    private static byte[]? DecodeBase64DataUri(string source)
-    {
-        // Format: data:[<media-type>][;base64],<payload>
-        var commaIndex = source.IndexOf(',');
-        if (commaIndex < 0) return null;
-
-        var header = source.AsSpan(5, commaIndex - 5); // skip "data:"
-        if (!header.Contains(";base64".AsSpan(), StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        var payload = source.AsSpan(commaIndex + 1);
-        if (payload.IsEmpty) return null;
-
-        try
-        {
-            return Convert.FromBase64String(payload.ToString());
-        }
-        catch (FormatException)
-        {
-            return null;
+            if (_schemaEnsured) return;
+            _migration.EnsureSchema(_cacheRoot);
+            _schemaEnsured = true;
         }
     }
-
-    private static string Truncate(string s, int max) =>
-        s.Length <= max ? s : s.Substring(0, max) + "...";
-
-    /// <summary>
-    /// Fetches the bytes for a URL IconSources entry. Returns
-    /// <c>(bytes, wasRateLimited)</c>. <c>wasRateLimited == true</c> means the
-    /// server returned HTTP 429 — the caller (TryResolveFromIconSourcesAsync)
-    /// records this so the batch-level retry loop in ResolveBatchAsync can
-    /// re-attempt the entry. Other failure modes (404, timeouts, network errors)
-    /// produce <c>(null, false)</c> and are not retried.
-    /// </summary>
-    private async Task<(byte[]? Bytes, bool WasRateLimited)> FetchUrlBytesAsync(
-        string url, ItemDefinition def, CancellationToken ct)
-    {
-        if (_httpClient is null) return (null, false);
-
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-
-        // Acquire the per-host gate BEFORE arming the per-fetch timeout. If we
-        // armed the timeout first, an entry queued behind a slow earlier fetch
-        // would burn its 8 s budget waiting for the gate to free up and then
-        // get cancelled with no network turn. Linking the wait to the parent
-        // cancellation token lets a batch-cancel still tear it down.
-        SemaphoreSlim? hostGate = null;
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && PerHostGates.TryGetValue(uri.Host, out var gate))
-        {
-            hostGate = gate;
-            await hostGate.WaitAsync(linked.Token).ConfigureAwait(false);
-        }
-
-        try
-        {
-            linked.CancelAfter(IconSourceFetchTimeout);
-
-            using var resp = await SendIconRequestAsync(url, linked.Token).ConfigureAwait(false);
-
-            if ((int)resp.StatusCode == 429)
-            {
-                _logService.LogInformation(
-                    $"IconSources URL returned HTTP 429 for {def.Id} ({def.Name}) <{url}>");
-                return (null, true);
-            }
-            if (!resp.IsSuccessStatusCode)
-            {
-                _logService.LogInformation(
-                    $"IconSources URL returned HTTP {(int)resp.StatusCode} for {def.Id} ({def.Name}) <{url}>");
-                return (null, false);
-            }
-
-            await using var srcStream = await resp.Content.ReadAsStreamAsync(linked.Token).ConfigureAwait(false);
-            using var collector = new MemoryStream();
-            await srcStream.CopyToAsync(collector, linked.Token).ConfigureAwait(false);
-            return (collector.Length > 0 ? collector.ToArray() : null, false);
-        }
-        finally
-        {
-            hostGate?.Release();
-        }
-    }
-
-    private async Task<HttpResponseMessage> SendIconRequestAsync(string url, CancellationToken ct)
-    {
-        using var req = new HttpRequestMessage(HttpMethod.Get, url);
-        req.Headers.UserAgent.ParseAdd(IconFetchUserAgent);
-        req.Headers.Accept.ParseAdd("image/*");
-        return await _httpClient!
-            .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Reads bytes for a non-URL <see cref="ItemDefinition.IconSources"/> entry. For
-    /// Win32 executables (<c>.exe</c>/<c>.dll</c>) delegates to the binary icon
-    /// extractor — the same code path Layer 3 uses for <see cref="ItemDefinition.InstalledBinaryHint"/>.
-    /// This lets entries reuse system binaries (e.g. <c>%SystemRoot%\explorer.exe</c>
-    /// for ExplorerPatcher) without per-app code in the resolver. For everything else
-    /// (icon files like <c>.ico</c>/<c>.png</c>) reads the bytes directly.
-    /// </summary>
-    private async Task<byte[]?> ReadLocalSourceBytesAsync(string path, CancellationToken ct)
-    {
-        var expanded = Environment.ExpandEnvironmentVariables(path);
-        if (!File.Exists(expanded)) return null;
-
-        if (IsExecutableExtension(expanded))
-        {
-            // .exe/.dll: raw bytes aren't a valid image — must go through the
-            // binary extractor. If no source is registered (test constructor
-            // without one), treat as a miss so the resolver tries the next entry.
-            if (_binarySource is null) return null;
-
-            await using var stream = await _binarySource
-                .GetIconStreamAsync(expanded, LogoSize, ct)
-                .ConfigureAwait(false);
-            if (stream is null) return null;
-            using var collector = new MemoryStream();
-            await stream.CopyToAsync(collector, ct).ConfigureAwait(false);
-            return collector.Length > 0 ? collector.ToArray() : null;
-        }
-
-        return await File.ReadAllBytesAsync(expanded, ct).ConfigureAwait(false);
-    }
-
-    private static bool IsExecutableExtension(string path) =>
-        path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 
     private async Task<bool> TryResolveFromAppxAsync(
         ItemDefinition def,
@@ -615,61 +276,78 @@ public class AppIconResolver : IAppIconResolver
         return true;
     }
 
-    private async Task<bool> TryResolveFromStoreAsync(ItemDefinition def, bool applyThemeAdaptation, CancellationToken ct)
+    /// <summary>
+    /// Layer 2: package-icons repo. For external-app-* / capability-* / feature-*
+    /// the repo path is <see cref="RepoIconKey.For"/>; for windows-app-* each
+    /// <see cref="RepoIconKey.WindowsCandidates"/> is tried in order (first that
+    /// fetches wins). Bytes are sha256-verified against the manifest when known,
+    /// then cached under <c>"repo:" + sha</c> (or the path when no sha is known).
+    /// When <paramref name="manifestLoaded"/> is true, a path the manifest does
+    /// not list is treated as not-hosted and skipped without a network call.
+    /// </summary>
+    private async Task<bool> TryResolveFromRepoAsync(
+        ItemDefinition def,
+        bool applyThemeAdaptation,
+        bool manifestLoaded,
+        CancellationToken ct)
     {
-        var msStoreId = def.MsStoreId!;
-        var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, msStoreId));
-        if (File.Exists(cachePath))
+        if (_repoSource is null) return false;
+
+        IEnumerable<string> paths = def.Id.StartsWith("windows-app-", StringComparison.Ordinal)
+            ? RepoIconKey.WindowsCandidates(def)
+            : RepoIconKey.For(def) is { } single ? new[] { single } : Array.Empty<string>();
+
+        foreach (var path in paths)
         {
+            if (ct.IsCancellationRequested) return false;
+            if (string.IsNullOrEmpty(path)) continue;
+
+            var sha = _manifest?.Sha256For(path);
+
+            // The manifest is the authoritative list of hosted icons. When it
+            // loaded successfully and doesn't list this path, the icon isn't
+            // hosted — skip the guaranteed-404 network round-trip and fall
+            // through to the colored fallback. (Without a loaded manifest, sha is
+            // null for everything; we still attempt the fetch as best-effort.)
+            if (sha is null && manifestLoaded)
+                continue;
+
+            // Cache key is "repo:" + sha when known (content-addressed: changes
+            // when the icon's bytes change), else "repo:" + path so the entry
+            // still caches and invalidates on path change.
+            var cacheKey = "repo:" + (sha ?? path);
+            var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, cacheKey));
+            if (File.Exists(cachePath))
+            {
+                def.IconPath = cachePath;
+                return true;
+            }
+
+            var bytes = await _repoSource.GetIconBytesAsync(path, sha, ct).ConfigureAwait(false);
+            if (bytes is null || bytes.Length == 0) continue;
+
+            using var ms = new MemoryStream(bytes);
+            // Repo bytes are already validated as a decodable image by
+            // RepoIconSource, so a trim failure can safely fall back to raw.
+            await WriteStreamToCacheAsync(ms, cachePath, applyThemeAdaptation, ct,
+                allowRawFallback: true).ConfigureAwait(false);
+            PruneOldVersions(def.Id, Path.GetFileName(cachePath));
             def.IconPath = cachePath;
             return true;
         }
 
-        await using var stream = await _storeSource!.GetIconStreamAsync(msStoreId, ct).ConfigureAwait(false);
-        if (stream is null)
-            return false;
-
-        await WriteStreamToCacheAsync(stream, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
-        def.IconPath = cachePath;
-        return true;
-    }
-
-    private async Task<bool> TryResolveFromBinaryAsync(ItemDefinition def, bool applyThemeAdaptation, CancellationToken ct)
-    {
-        var hint = def.InstalledBinaryHint!;
-
-        // Directory hints (from InstallLocation fallback) would return a generic
-        // folder icon via Shell APIs — not useful. Skip binary extraction for
-        // those entries so they fall through to Store CDN. A future enhancement
-        // could scan the directory for an exe, but that's out of scope.
-        // Directory.Exists returns true only for directories on Windows;
-        // File.Exists check is redundant. Drop the second clause for clarity.
-        if (Directory.Exists(hint))
-            return false;
-
-        var cachePath = Path.Combine(_cacheRoot, BuildCacheFileName(def.Id, hint));
-        if (File.Exists(cachePath))
-        {
-            def.IconPath = cachePath;
-            return true;
-        }
-
-        await using var stream = await _binarySource!.GetIconStreamAsync(hint, LogoSize, ct).ConfigureAwait(false);
-        if (stream is null) return false;
-
-        await WriteStreamToCacheAsync(stream, cachePath, applyThemeAdaptation, ct).ConfigureAwait(false);
-        def.IconPath = cachePath;
-        return true;
+        return false;
     }
 
     /// <summary>
     /// Builds the cache filename for an entry: <c>&lt;def.Id&gt;.&lt;short-hash&gt;.png</c>.
     /// The id makes filenames readable; the 8-char SHA1-derived suffix flips when
     /// the layer-specific source key changes (AppX full-name on version bump,
-    /// IconSources URL on URL-rot, etc.) so the cache invalidates automatically.
-    /// 8 hex chars give 32 bits of distinguishing power — collision probability
-    /// across the catalog is negligible, and a collision would only ever cause
-    /// one entry to display the wrong icon (not a security concern).
+    /// repo sha on icon change, local path on retarget) so the cache invalidates
+    /// automatically. 8 hex chars give 32 bits of distinguishing power —
+    /// collision probability across the catalog is negligible, and a collision
+    /// would only ever cause one entry to display the wrong icon (not a security
+    /// concern).
     /// </summary>
     private static string BuildCacheFileName(string defId, string sourceKey) =>
         $"{defId}.{ShortSha1Hex(sourceKey)}{CacheFileExtension}";
@@ -682,15 +360,24 @@ public class AppIconResolver : IAppIconResolver
     }
 
     private async Task WriteStreamToCacheAsync(
-        Stream source, string cachePath, bool applyThemeAdaptation, CancellationToken ct)
+        Stream source, string cachePath, bool applyThemeAdaptation, CancellationToken ct,
+        bool allowRawFallback = true)
     {
         var sourceBytes = await ReadAllBytesAsync(source, ct).ConfigureAwait(false);
 
         // Backplate detection is theme adaptation — Windows Apps only. External
         // App vendor logos keep whatever framing the vendor shipped; only the
         // basic transparent-border trim runs for them.
-        var primaryBytes = await TryTrimTransparentBordersAsync(sourceBytes, applyThemeAdaptation, ct).ConfigureAwait(false)
-                          ?? sourceBytes;
+        var trimmed = await TryTrimTransparentBordersAsync(sourceBytes, applyThemeAdaptation, ct).ConfigureAwait(false);
+
+        // Untrusted sources (allowRawFallback == false) must decode as an image before
+        // we cache them. TryTrimTransparentBordersAsync returns null on any decode failure, so
+        // a null here means the bytes aren't a usable image. Reject rather than write arbitrary
+        // bytes to %ProgramData%; the caller logs and falls through to the next source / placeholder.
+        if (trimmed is null && !allowRawFallback)
+            throw new InvalidOperationException("Source bytes did not decode as an image; refusing to cache.");
+
+        var primaryBytes = trimmed ?? sourceBytes;
 
         await WriteBytesAtomicAsync(cachePath, primaryBytes, ct).ConfigureAwait(false);
 
@@ -770,9 +457,8 @@ public class AppIconResolver : IAppIconResolver
     /// This handles two cases the plain alpha trim cannot:
     ///   - Sticky Notes ships its AppX logo as a small shape on a fully-opaque
     ///     colored card — flood-filling the card leaves just the inner art.
-    ///   - Store CDN icons (Teams / To Do) often arrive as a logo on a flat
-    ///     white background — flood-filling the white yields a clean
-    ///     transparent icon.
+    ///   - Some icons arrive as a logo on a flat white background —
+    ///     flood-filling the white yields a clean transparent icon.
     ///
     /// Backplate detection requires all four corner pixels to be near-opaque
     /// AND match each other within <see cref="BackplateCornerColorTolerance"/>.
@@ -997,11 +683,11 @@ public class AppIconResolver : IAppIconResolver
     }
 
     /// <summary>
-    /// After a successful AppX cache write, deletes any other cache files that
+    /// After a successful cache write, deletes any other cache files that
     /// share this entry's def.Id but a different short-hash — i.e. icons cached
-    /// under older AppX package full-names from prior versions of the same app.
-    /// Keeps the cache from accumulating stale per-version entries on long-lived
-    /// installs.
+    /// under older AppX package full-names or older repo shas from prior versions
+    /// of the same app. Keeps the cache from accumulating stale per-version
+    /// entries on long-lived installs.
     /// </summary>
     private void PruneOldVersions(string defId, string keepFileName)
     {

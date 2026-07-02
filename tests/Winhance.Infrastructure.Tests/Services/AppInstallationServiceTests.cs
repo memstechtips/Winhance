@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -20,6 +21,7 @@ public class AppInstallationServiceTests
     private readonly Mock<IScheduledTaskService> _scheduledTaskService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
+    private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
 
     private AppInstallationService CreateSut() => new(
         _capabilityService.Object,
@@ -30,7 +32,8 @@ public class AppInstallationServiceTests
         _bloatRemovalService.Object,
         _scheduledTaskService.Object,
         _taskProgressService.Object,
-        _fileSystemService.Object);
+        _fileSystemService.Object,
+        _changeHistoryService.Object);
 
     // --- InstallAppAsync: routes to WindowsAppsService ---
 
@@ -481,5 +484,59 @@ public class AppInstallationServiceTests
         result.Success.Should().BeTrue();
         _externalAppsService.Verify(
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
+    }
+
+    // --- InstallAppAsync: change history logging ---
+
+    [Fact]
+    public async Task InstallAppAsync_Success_LogsAppInstalled()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "ext-app",
+            Name = "Test External App",
+            Description = "An external app",
+            WinGetPackageId = new[] { "Publisher.ExtApp" }
+        };
+
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        await sut.InstallAppAsync(item);
+
+        _changeHistoryService.Verify(
+            x => x.LogAppChange("Test External App", AppChangeKind.Installed), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_Failure_DoesNotLogAppInstalled()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "ext-app",
+            Name = "Test External App",
+            Description = "An external app",
+            WinGetPackageId = new[] { "Publisher.ExtApp" }
+        };
+
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Failed("Install failed"));
+
+        await sut.InstallAppAsync(item);
+
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
     }
 }

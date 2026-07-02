@@ -248,7 +248,7 @@ public class WimImageFormatViewModelTests : IDisposable
         await _sut.ConvertImageFormatCommand.ExecuteAsync(null);
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            It.IsAny<ConfirmationRequest>()), Times.Never);
     }
 
     [Fact]
@@ -262,8 +262,8 @@ public class WimImageFormatViewModelTests : IDisposable
         };
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.ConvertImageFormatCommand.ExecuteAsync(null);
 
@@ -283,8 +283,8 @@ public class WimImageFormatViewModelTests : IDisposable
         };
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockTaskProgressService
             .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
@@ -329,8 +329,8 @@ public class WimImageFormatViewModelTests : IDisposable
         };
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockTaskProgressService
             .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
@@ -362,8 +362,8 @@ public class WimImageFormatViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.DeleteWimCommand.ExecuteAsync(null);
 
@@ -377,8 +377,8 @@ public class WimImageFormatViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockWimImageService
             .Setup(s => s.DeleteImageFileAsync(
@@ -402,8 +402,8 @@ public class WimImageFormatViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await _sut.DeleteEsdCommand.ExecuteAsync(null);
 

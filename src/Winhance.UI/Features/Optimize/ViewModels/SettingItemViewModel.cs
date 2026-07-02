@@ -14,7 +14,6 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -31,6 +30,7 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
     private readonly INewBadgeService? _newBadgeService;
+    private readonly IApplicationModeService? _applicationModeService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
     private volatile bool _isUpdatingFromEvent;
@@ -296,7 +296,7 @@ public partial class SettingItemViewModel : BaseViewModel
         if (!string.IsNullOrEmpty(template))
             return template.Replace("{0}", value?.ToString() ?? string.Empty);
         // Fallback if the key is missing
-        return key == StringKeys.InfoBadge.NumericSetToRecommendedTooltip
+        return key == "InfoBadge_Numeric_SetToRecommended_Tooltip"
             ? $"Set to Recommended ({value})"
             : $"Set to Default ({value})";
     }
@@ -305,33 +305,65 @@ public partial class SettingItemViewModel : BaseViewModel
     // NumericRange pcfg values are raw system units (e.g. Seconds); tooltips show display units.
     public string RecommendedValueTooltip =>
         NumericRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultValueTooltip =>
         NumericDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedAcValueTooltip =>
         AcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultAcValueTooltip =>
         AcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
     public string RecommendedDcValueTooltip =>
         DcRecommendedValue is int rec
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ConvertFromSystemUnits(rec))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ConvertFromSystemUnits(rec))
             : string.Empty;
 
     public string DefaultDcValueTooltip =>
         DcDefaultValue is int def
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ConvertFromSystemUnits(def))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
+
+    // -- Accessibility names (issue #647 follow-up) ------------------------------------
+    // The quick-set buttons inside SettingsCardItem inherit no context from their
+    // parent SettingsCard, so Narrator was announcing only the action ("Set to
+    // Recommended button") without saying which setting it applied to. These helpers
+    // compose "<Setting name>: <action>" (and "<Setting name> (Plugged In|On Battery):
+    // <action>" for Dual AC/DC variants) for AutomationProperties.Name. Visible
+    // ToolTipService.ToolTip strings stay short (action only).
+    //
+    // Used via x:Bind function-call syntax in SettingsCardItem.xaml — e.g.
+    //   AutomationProperties.Name="{x:Bind A11yName(ToggleRecommendedTooltip), Mode=OneWay}"
+    // x:Bind re-evaluates when the argument's PropertyChanged fires (language change).
+
+    public string A11yName(string? action) =>
+        string.IsNullOrEmpty(action) ? Name : $"{Name}: {action}";
+
+    public string A11yAcName(string? action) =>
+        string.IsNullOrEmpty(action)
+            ? $"{Name} ({PluggedInText})"
+            : $"{Name} ({PluggedInText}): {action}";
+
+    public string A11yDcName(string? action) =>
+        string.IsNullOrEmpty(action)
+            ? $"{Name} ({OnBatteryText})"
+            : $"{Name} ({OnBatteryText}): {action}";
+
+    // Direct AutomationProperties.Name source for the AC/DC input controls
+    // (ComboBox / NumberBox) inside Dual templates — disambiguates the two
+    // sibling controls within one setting. Single-AC/DC templates bind to Name
+    // directly.
+    public string AcInputAutomationName => $"{Name} ({PluggedInText})";
+    public string DcInputAutomationName => $"{Name} ({OnBatteryText})";
 
     /// <summary>
     /// True when the NumericRange quick-set buttons should be visible: requires the
@@ -461,12 +493,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string ToggleRecommendedTooltip =>
         ToggleRecommendedState is bool s
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, ToggleStateText(s))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ToggleStateText(s))
             : string.Empty;
 
     public string ToggleDefaultTooltip =>
         ToggleDefaultState is bool s
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, ToggleStateText(s))
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ToggleStateText(s))
             : string.Empty;
 
     public bool ShowToggleQuickSetButtons
@@ -517,12 +549,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string SelectionRecommendedTooltip =>
         OptionDisplayText(SelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string SelectionDefaultTooltip =>
         OptionDisplayText(SelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public bool ShowSelectionQuickSetButtons
@@ -584,22 +616,22 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public string AcSelectionRecommendedTooltip =>
         OptionDisplayText(AcSelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string AcSelectionDefaultTooltip =>
         OptionDisplayText(AcSelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public string DcSelectionRecommendedTooltip =>
         OptionDisplayText(DcSelectionRecommendedIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToRecommendedTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", label)
             : string.Empty;
 
     public string DcSelectionDefaultTooltip =>
         OptionDisplayText(DcSelectionDefaultIndex) is { } label
-            ? FormatValueTooltip(StringKeys.InfoBadge.NumericSetToDefaultTooltip, label)
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", label)
             : string.Empty;
 
     public bool ShowAcSelectionQuickSetButtons
@@ -667,6 +699,86 @@ public partial class SettingItemViewModel : BaseViewModel
             }
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
+
+    // ───────── Page-level Quick Actions support (bulk recommended/defaults) ─────────
+
+    /// <summary>
+    /// True when this setting has a recommended value reachable through the quick-set
+    /// pipeline. Mirrors the per-card quick-set button availability across all input
+    /// types (PowerPlan is excluded — it has its own recommendation logic).
+    /// </summary>
+    public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
+
+    /// <summary>
+    /// True when this setting has a default value reachable through the quick-set pipeline.
+    /// </summary>
+    public bool HasDefaultQuickSetTarget => HasQuickSetTarget(recommended: false);
+
+    private bool HasQuickSetTarget(bool recommended) => InputType switch
+    {
+        InputType.Toggle or InputType.CheckBox =>
+            (recommended ? ToggleRecommendedState : ToggleDefaultState).HasValue,
+        InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true =>
+            (recommended ? AcSelectionRecommendedIndex : AcSelectionDefaultIndex).HasValue
+            || (SupportsSeparateACDC && (recommended ? DcSelectionRecommendedIndex : DcSelectionDefaultIndex).HasValue),
+        InputType.Selection when !IsPowerPlanSetting =>
+            (recommended ? SelectionRecommendedIndex : SelectionDefaultIndex).HasValue,
+        InputType.NumericRange when SupportsSeparateACDC =>
+            (recommended ? AcRecommendedValue : AcDefaultValue).HasValue
+            || (recommended ? DcRecommendedValue : DcDefaultValue).HasValue,
+        InputType.NumericRange =>
+            (recommended ? NumericRecommendedValue : NumericDefaultValue).HasValue,
+        _ => false
+    };
+
+    /// <summary>
+    /// Sets this setting's UI to its recommended value by executing the same commands as
+    /// the per-card quick-set buttons. Every path runs through the guarded apply pipeline,
+    /// so in Builder mode this records a builder edit and never touches the system.
+    /// Returns true when a recommended target existed.
+    /// </summary>
+    public bool TrySetToRecommended() => TryExecuteQuickSet(recommended: true);
+
+    /// <summary>
+    /// Sets this setting's UI to its default value via the quick-set pipeline.
+    /// See <see cref="TrySetToRecommended"/> for Builder-mode semantics.
+    /// </summary>
+    public bool TrySetToDefault() => TryExecuteQuickSet(recommended: false);
+
+    private bool TryExecuteQuickSet(bool recommended)
+    {
+        if (!HasQuickSetTarget(recommended)) return false;
+
+        switch (InputType)
+        {
+            case InputType.Toggle:
+            case InputType.CheckBox:
+                (recommended ? SetToggleToRecommendedCommand : SetToggleToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.Selection when SettingDefinition?.PowerCfgSettings?.Any() == true:
+                (recommended ? SetAcSelectionToRecommendedCommand : SetAcSelectionToDefaultCommand).Execute(null);
+                if (SupportsSeparateACDC)
+                    (recommended ? SetDcSelectionToRecommendedCommand : SetDcSelectionToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.Selection:
+                (recommended ? SetSelectionToRecommendedCommand : SetSelectionToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.NumericRange when SupportsSeparateACDC:
+                (recommended ? SetAcNumericToRecommendedCommand : SetAcNumericToDefaultCommand).Execute(null);
+                (recommended ? SetDcNumericToRecommendedCommand : SetDcNumericToDefaultCommand).Execute(null);
+                return true;
+
+            case InputType.NumericRange:
+                (recommended ? SetNumericToRecommendedCommand : SetNumericToDefaultCommand).Execute(null);
+                return true;
+
+            default:
+                return false;
+        }
+    }
 
 
     // Advanced unlock support
@@ -813,6 +925,16 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
+
+    // Builder mode records desired state into the UI without applying to the system.
+    private bool IsBuilderMode => _applicationModeService?.CurrentMode == WinhanceMode.Builder;
+
+    /// <summary>
+    /// When this Selection setting was seeded at the Custom index (live state matched no
+    /// predefined option), the raw state values captured at seed time. Used by Builder-mode
+    /// serialization to emit the custom value without re-reading the system. Null otherwise.
+    /// </summary>
+    public Dictionary<string, object>? CapturedCustomStateValues { get; set; }
     public bool IsToggleType => InputType == InputType.Toggle;
     public bool IsSelectionType => InputType == InputType.Selection;
     public bool IsNumericType => InputType == InputType.NumericRange;
@@ -850,7 +972,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public string OnBatteryText =>
         _localizationService.GetString("PowerStatus_OnBattery") ?? "On Battery";
 
-    public IAsyncRelayCommand ExecuteActionCommand { get; }
+    public IAsyncRelayCommand RunActionCommand { get; }
 
     public SettingItemViewModel(
         SettingItemViewModelConfig config,
@@ -862,7 +984,8 @@ public partial class SettingItemViewModel : BaseViewModel
         IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
         IRegeditLauncher? regeditLauncher = null,
-        INewBadgeService? newBadgeService = null)
+        INewBadgeService? newBadgeService = null,
+        IApplicationModeService? applicationModeService = null)
     {
         _settingApplicationService = settingApplicationService;
         _logService = logService;
@@ -871,6 +994,7 @@ public partial class SettingItemViewModel : BaseViewModel
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
+        _applicationModeService = applicationModeService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
 
@@ -898,7 +1022,7 @@ public partial class SettingItemViewModel : BaseViewModel
         IsEnabled = true;
         ParentIsEnabled = true;
 
-        ExecuteActionCommand = new AsyncRelayCommand(HandleActionAsync);
+        RunActionCommand = new AsyncRelayCommand(RunActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
 
         // Check if this setting is new in the current release
@@ -937,6 +1061,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 SectionDependencies = _localizationService.GetString("TechnicalDetails_Section_Dependencies") ?? "Depends On",
                 ScriptOnEnable = _localizationService.GetString("TechnicalDetails_Script_OnEnable") ?? "On Enable",
                 ScriptOnDisable = _localizationService.GetString("TechnicalDetails_Script_OnDisable") ?? "On Disable",
+                ScriptOnApply = _localizationService.GetString("TechnicalDetails_Script_OnApply") ?? "On Apply",
                 RegContentOnEnable = _localizationService.GetString("TechnicalDetails_RegContent_OnEnable") ?? "On Enable",
                 RegContentOnDisable = _localizationService.GetString("TechnicalDetails_RegContent_OnDisable") ?? "On Disable",
                 DependencyEquals = _localizationService.GetString("TechnicalDetails_Dependency_Equals") ?? "=",
@@ -1226,6 +1351,22 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (newValue == IsSelected) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: record the desired state only — never apply to the system,
+            // never confirm, never show a restart banner.
+            IsSelected = newValue;
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                IsSelected = newValue
+            });
+            return;
+        }
+
         try
         {
             var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(newValue);
@@ -1285,6 +1426,40 @@ public partial class SettingItemViewModel : BaseViewModel
         if (Equals(value, SelectedValue))
         {
             _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: value equals SelectedValue, skipping");
+            return;
+        }
+
+        if (IsBuilderMode)
+        {
+            // Builder mode: record the desired selection only — never apply.
+            SelectedValue = value;
+            if (value is int builderIntValue)
+            {
+                NumericValue = builderIntValue;
+                if (builderIntValue != ComboBoxConstants.CustomStateIndex)
+                {
+                    var customOption = ComboBoxOptions.FirstOrDefault(
+                        o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
+                    if (customOption != null)
+                        ComboBoxOptions.Remove(customOption);
+                }
+            }
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            UpdateStatusBanner(value);
+
+            // Only Selection settings are serialized from Builder edits today; numeric and
+            // AC/DC power edits fall back to the seeded value (see BuilderEdit scope note).
+            if (InputType == InputType.Selection && value is int builderSelIndex)
+            {
+                _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+                {
+                    SettingId = SettingId,
+                    InputType = InputType,
+                    SelectedIndex = builderSelIndex == ComboBoxConstants.CustomStateIndex ? null : builderSelIndex,
+                    CustomStateValues = builderSelIndex == ComboBoxConstants.CustomStateIndex ? CapturedCustomStateValues : null
+                });
+            }
             return;
         }
 
@@ -1372,6 +1547,14 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: AcValue/DcValue are already set by the caller; just record.
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
+
         try
         {
             IsApplying = true;
@@ -1405,6 +1588,14 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (IsApplying || _isUpdatingFromEvent || SettingDefinition == null) return;
 
+        if (IsBuilderMode)
+        {
+            // Builder mode: AcNumericValue/DcNumericValue are already set by the caller; just record.
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            return;
+        }
+
         try
         {
             IsApplying = true;
@@ -1434,9 +1625,24 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private async Task HandleActionAsync()
+    private async Task RunActionAsync()
     {
         if (IsApplying || SettingDefinition == null) return;
+
+        if (IsBuilderMode)
+        {
+            // Builder mode: mark the action for inclusion in the saved config; do not execute.
+            IsSelected = true;
+            _hasChangedThisSession = true;
+            ComputeBadgeState();
+            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                IsSelected = true
+            });
+            return;
+        }
 
         try
         {
@@ -1452,7 +1658,6 @@ public partial class SettingItemViewModel : BaseViewModel
                 SettingId = SettingId,
                 Enable = true,
                 CheckboxResult = checkboxChecked,
-                CommandString = SettingDefinition.ActionCommand,
                 ApplyRecommended = checkboxChecked
             });
 
@@ -1495,12 +1700,15 @@ public partial class SettingItemViewModel : BaseViewModel
         var continueText = _localizationService.GetString("Button_Continue");
         var cancelText = _localizationService.GetString("Button_Cancel");
 
-        return await _dialogService.ShowConfirmationWithCheckboxAsync(
-            message,
-            checkboxText,
-            title,
-            continueText,
-            cancelText);
+        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Message = message,
+            CheckboxText = checkboxText,
+            Title = title,
+            ConfirmButtonText = continueText,
+            CancelButtonText = cancelText,
+        });
+        return (r.Confirmed, r.CheckboxChecked);
     }
 
     #endregion
@@ -1517,12 +1725,16 @@ public partial class SettingItemViewModel : BaseViewModel
         var unlockText = _localizationService.GetString("Button_Unlock") ?? "Unlock";
         var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
 
-        var (confirmed, dontShowAgain) = await _dialogService.ShowConfirmationWithCheckboxAsync(
-            message,
-            checkboxText,
-            title,
-            unlockText,
-            cancelText);
+        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Message = message,
+            CheckboxText = checkboxText,
+            Title = title,
+            ConfirmButtonText = unlockText,
+            CancelButtonText = cancelText,
+        });
+        bool confirmed = r.Confirmed;
+        bool dontShowAgain = r.CheckboxChecked;
 
         if (!confirmed) return;
 
@@ -2058,17 +2270,17 @@ public partial class SettingItemViewModel : BaseViewModel
         var (baseLabel, tooltip) = kind switch
         {
             SettingBadgeKind.Recommended => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Recommended) ?? "Recommended",
-                _localizationService?.GetString(StringKeys.InfoBadge.RecommendedTooltip) ?? "Winhance's recommended value"),
+                _localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended",
+                _localizationService?.GetString("InfoBadge_Recommended_Tooltip") ?? "Winhance's recommended value"),
             SettingBadgeKind.Default => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Default) ?? "Default",
-                _localizationService?.GetString(StringKeys.InfoBadge.DefaultTooltip) ?? "Windows factory value"),
+                _localizationService?.GetString("InfoBadge_Default") ?? "Default",
+                _localizationService?.GetString("InfoBadge_Default_Tooltip") ?? "Windows factory value"),
             SettingBadgeKind.Custom => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Custom) ?? "Custom",
-                _localizationService?.GetString(StringKeys.InfoBadge.CustomTooltip) ?? "Custom value (not a known option)"),
+                _localizationService?.GetString("InfoBadge_Custom") ?? "Custom",
+                _localizationService?.GetString("InfoBadge_Custom_Tooltip") ?? "Custom value (not a known option)"),
             SettingBadgeKind.Preference => (
-                _localizationService?.GetString(StringKeys.InfoBadge.Preference) ?? "Preference",
-                _localizationService?.GetString(StringKeys.InfoBadge.PreferenceTooltip) ?? "Personal preference"),
+                _localizationService?.GetString("InfoBadge_Preference") ?? "Preference",
+                _localizationService?.GetString("InfoBadge_Preference_Tooltip") ?? "Personal preference"),
             _ => ("", ""),
         };
 
@@ -2090,6 +2302,16 @@ public partial class SettingItemViewModel : BaseViewModel
     private void InitializeHasBadgeData()
     {
         if (SettingDefinition == null)
+        {
+            HasBadgeData = false;
+            return;
+        }
+
+        // One-shot Action settings have no recommended/default/custom STATE — even when their
+        // RegistrySettings carry a RecommendedValue (e.g. Win11 Clean Start Menu's ConfigureStartPins),
+        // a lit-up state badge is meaningless for a button you just click. So: no state badges for
+        // actions, matching Win10 Clean Start Menu and Clean Taskbar.
+        if (SettingDefinition.InputType == InputType.Action)
         {
             HasBadgeData = false;
             return;
@@ -2143,6 +2365,8 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(ClickToUnlockText));
         OnPropertyChanged(nameof(PluggedInText));
         OnPropertyChanged(nameof(OnBatteryText));
+        OnPropertyChanged(nameof(AcInputAutomationName));
+        OnPropertyChanged(nameof(DcInputAutomationName));
         OnPropertyChanged(nameof(RecommendedValueTooltip));
         OnPropertyChanged(nameof(DefaultValueTooltip));
         OnPropertyChanged(nameof(RecommendedAcValueTooltip));

@@ -14,6 +14,10 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 /// </summary>
 public class WinGetPackageInstaller : IWinGetPackageInstaller
 {
+    // No wall-clock cap (installs/uninstalls can legitimately run long); a stalled
+    // process is caught by the idle-output timer instead.
+    private const int IdleTimeoutMs = 180_000;
+
     private readonly WinGetComSession _comSession;
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService _logService;
@@ -184,6 +188,12 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             void HandleErrorLine(string line)
             {
                 _logService?.LogWarning($"[{logTag}-err] {line}");
+                // Surface stderr in the terminal too — winget's actual error text
+                // is useless to users (and to bug reports) if it only hits the log file.
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = line
+                });
             }
 
             void HandleProgressLine(string line)
@@ -208,10 +218,8 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 onOutputLine: HandleOutputLine,
                 onErrorLine: HandleErrorLine,
                 cancellationToken: cancellationToken,
-                // Install can legitimately take >5 min for slow CDNs / large packages.
-                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
                 timeoutMs: 0,
-                idleTimeoutMs: 180_000,
+                idleTimeoutMs: IdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: HandleProgressLine).ConfigureAwait(false);
 
@@ -221,6 +229,19 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             {
                 TerminalOutput = "---"
             });
+
+            // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict —
+            // say so, or support transcripts read like a winget bug (see issue #675).
+            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: IdleTimeoutMs);
+            if (terminationNote != null)
+            {
+                _logService?.LogWarning($"[{logTag}] {terminationNote}");
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = terminationNote
+                });
+            }
+
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
                 TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
@@ -385,12 +406,15 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 onErrorLine: line =>
                 {
                     _logService?.LogWarning($"[{logTag}-err] {line}");
+                    // Surface stderr in the terminal too (see HandleErrorLine comment)
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        TerminalOutput = line
+                    });
                 },
                 cancellationToken: cancellationToken,
-                // Uninstall can legitimately take >5 min when MSI uninstallers run quietly.
-                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
                 timeoutMs: 0,
-                idleTimeoutMs: 180_000,
+                idleTimeoutMs: IdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: line =>
                 {
@@ -415,6 +439,18 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
             {
                 TerminalOutput = "---"
             });
+
+            // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
+            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: IdleTimeoutMs);
+            if (terminationNote != null)
+            {
+                _logService?.LogWarning($"[{logTag}] {terminationNote}");
+                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                {
+                    TerminalOutput = terminationNote
+                });
+            }
+
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
                 TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""

@@ -28,7 +28,8 @@ public class PowerService(
     IPowerPlanComboBoxService powerPlanComboBoxService,
     IProcessExecutor processExecutor,
     IFileSystemService fileSystemService,
-    IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler
+    IPowerSchemeOperations powerSchemeOperations,
+    IConfigImportState configImportState) : IPowerService, ISpecialSettingHandler
 {
     private volatile IEnumerable<SettingDefinition>? _cachedSettings;
     private readonly object _cacheLock = new object();
@@ -421,7 +422,15 @@ public class PowerService(
 
             if (IsWinhancePowerPlan(powerPlanGuid))
             {
-                await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
+                if (configImportState.IsActive && configImportState.ImportSuppliesPowerValues)
+                {
+                    logService.Log(LogLevel.Info,
+                        "[PowerService] Skipping recommended power re-apply: active config import supplies individual power values");
+                }
+                else
+                {
+                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
+                }
             }
 
             logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan");
@@ -542,7 +551,15 @@ public class PowerService(
 
             if (IsWinhancePowerPlan(powerPlanGuid))
             {
-                await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
+                if (configImportState.IsActive && configImportState.ImportSuppliesPowerValues)
+                {
+                    logService.Log(LogLevel.Info,
+                        "[PowerService] Skipping recommended power re-apply: active config import supplies individual power values");
+                }
+                else
+                {
+                    await ApplyWinhanceRecommendedSettingsAsync(settingApplicationService).ConfigureAwait(false);
+                }
             }
 
             logService.Log(LogLevel.Info, $"[PowerService] Successfully applied power plan '{planName}'");

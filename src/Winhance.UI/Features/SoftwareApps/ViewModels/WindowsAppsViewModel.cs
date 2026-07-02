@@ -12,6 +12,8 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps;
+using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -60,8 +62,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
         ItemsView.Filter = FilterItem;
-        ItemsView.SortDescriptions.Add(new SortDescription("IsInstalled", SortDirection.Descending));
-        ItemsView.SortDescriptions.Add(new SortDescription("Name", SortDirection.Ascending));
+        AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
         // Initialize partial property defaults (after Items/ItemsView,
         // since OnSearchTextChanged uses ItemsView)
@@ -72,28 +73,25 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
-    public IEnumerable<AppItemViewModel> WindowsAppsFiltered => Items
-        .Where(a =>
+    public IEnumerable<AppItemViewModel> WindowsAppsFiltered => AppSortHelper.Order(
+        Items.Where(a =>
             a.Definition.AppxPackageName?.Length > 0 &&
             string.IsNullOrEmpty(a.Definition.CapabilityName) &&
             string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
-            FilterItem(a))
-        .OrderByDescending(a => a.IsInstalled)
-        .ThenBy(a => a.Name);
+            FilterItem(a)),
+        SortMode);
 
-    public IEnumerable<AppItemViewModel> CapabilitiesFiltered => Items
-        .Where(a =>
+    public IEnumerable<AppItemViewModel> CapabilitiesFiltered => AppSortHelper.Order(
+        Items.Where(a =>
             !string.IsNullOrEmpty(a.Definition.CapabilityName) &&
-            FilterItem(a))
-        .OrderByDescending(a => a.IsInstalled)
-        .ThenBy(a => a.Name);
+            FilterItem(a)),
+        SortMode);
 
-    public IEnumerable<AppItemViewModel> OptionalFeaturesFiltered => Items
-        .Where(a =>
+    public IEnumerable<AppItemViewModel> OptionalFeaturesFiltered => AppSortHelper.Order(
+        Items.Where(a =>
             !string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
-            FilterItem(a))
-        .OrderByDescending(a => a.IsInstalled)
-        .ThenBy(a => a.Name);
+            FilterItem(a)),
+        SortMode);
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
@@ -106,6 +104,15 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
+
+    [ObservableProperty]
+    public partial AppSortMode SortMode { get; set; } = AppSortMode.NameAscInstalledFirst;
+
+    partial void OnSortModeChanged(AppSortMode value)
+    {
+        AppSortHelper.ApplySortDescriptions(ItemsView, value);
+        NotifyCardViewProperties();
+    }
 
     public string SectionAppsHeader => _localizationService.GetString("WindowsApps_Section_Apps") ?? "Windows Apps";
     public string SectionCapabilitiesHeader => _localizationService.GetString("WindowsApps_Section_Capabilities") ?? "Windows Capabilities";
@@ -429,7 +436,9 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var (confirmed, _) = await _dialogService.ShowAppOperationConfirmationAsync("install", itemNames, selectedItems.Count);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("install", itemNames, null, _localizationService));
+        bool confirmed = r.Confirmed;
         if (!confirmed) return;
 
         IsTaskRunning = true;
@@ -494,7 +503,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-        var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+        bool confirmed = r.Confirmed;
+        bool checkboxChecked = r.CheckboxChecked;
         return (confirmed, checkboxChecked);
     }
 
@@ -510,7 +522,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         {
             var itemNames = selectedItems.Select(a => a.Name).ToList();
             var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-            var (confirmed, checkboxChecked) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+            var r = await _dialogService.ShowConfirmationAsync(
+                AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+            bool confirmed = r.Confirmed;
+            bool checkboxChecked = r.CheckboxChecked;
             if (!confirmed) return;
             saveRemovalScripts = checkboxChecked;
         }
@@ -532,7 +547,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
-        var (confirmed, saveScripts) = await _dialogService.ShowAppOperationConfirmationAsync("remove", itemNames, selectedItems.Count, checkboxText);
+        var r = await _dialogService.ShowConfirmationAsync(
+            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+        bool confirmed = r.Confirmed;
+        bool saveScripts = r.CheckboxChecked;
         if (!confirmed) return;
 
         await RemoveAppsInternalAsync(selectedItems, saveScripts);

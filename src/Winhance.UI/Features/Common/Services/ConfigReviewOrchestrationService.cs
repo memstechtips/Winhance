@@ -10,9 +10,11 @@ namespace Winhance.UI.Features.Common.Services;
 public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationService, IDisposable
 {
     private bool _disposed;
+    private WinhanceMode _previousMode = WinhanceMode.Normal;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
+    private readonly IApplicationModeService _applicationModeService;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IConfigImportOverlayService _overlayService;
@@ -24,11 +26,13 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
+    private readonly IChangeHistoryService _changeHistoryService;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
+        IApplicationModeService applicationModeService,
         IConfigReviewModeService configReviewModeService,
         IConfigReviewDiffService configReviewDiffService,
         IConfigImportOverlayService overlayService,
@@ -39,11 +43,13 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
-        IPolicyCleanupService policyCleanupService)
+        IPolicyCleanupService policyCleanupService,
+        IChangeHistoryService changeHistoryService)
     {
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
+        _applicationModeService = applicationModeService;
         _configReviewModeService = configReviewModeService;
         _configReviewDiffService = configReviewDiffService;
         _overlayService = overlayService;
@@ -55,9 +61,14 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
+        _changeHistoryService = changeHistoryService;
 
         // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
+
+        // Listen for Builder exit to reload settings that were authored without applying
+        _previousMode = _applicationModeService.CurrentMode;
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
 
     public void Dispose()
@@ -65,12 +76,42 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         if (_disposed) return;
         _disposed = true;
         _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
+        _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+    }
+
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        var previous = _previousMode;
+        var current = _applicationModeService.CurrentMode;
+        _previousMode = current;
+
+        // Builder authors toggle/selection state into the shared settings VMs without
+        // applying it. Any transition out of Builder leaves those positions stale, so
+        // reload from live system state. This is safe during review entry too: the
+        // recreated ViewModels get their review decoration from SettingViewModelFactory,
+        // which applies the eagerly computed diffs against fresh discovery state.
+        if (previous == WinhanceMode.Builder && current != WinhanceMode.Builder)
+        {
+            _eventBus.Publish(new BuilderModeExitedEvent());
+            _logService.Log(LogLevel.Info, "Published BuilderModeExitedEvent to reload settings from system state");
+        }
     }
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
         if (_configReviewModeService.IsInReviewMode)
         {
+            // Entering review from Builder: skip the in-place reapply. The loaded VMs
+            // still show authored (un-applied) Builder positions, and the applier's
+            // fallback diff would read those as system truth and register false diffs.
+            // ReviewModeChanged fires before ModeChanged, so _previousMode still holds
+            // Builder here; the ModeChanged handler then publishes BuilderModeExitedEvent,
+            // and the reloaded ViewModels get review decoration from SettingViewModelFactory.
+            if (_previousMode == WinhanceMode.Builder)
+            {
+                return;
+            }
+
             // Review mode was entered - reapply diffs to any already-loaded singleton VMs
             _vmCoordinator.ReapplyReviewDiffsToExistingSettings();
             return;
@@ -258,6 +299,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
+            _configImportState.ImportSuppliesPowerValues = false;
+            var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
 
             try
             {
@@ -278,6 +321,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             finally
             {
                 _configImportState.IsActive = false;
+                _configImportState.ImportSuppliesPowerValues = false;
+                changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
@@ -309,13 +354,22 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         if (!_configReviewModeService.IsInReviewMode) return;
 
-        // Clear app selections that were set during EnterReviewModeAsync
-        await _configAppSelectionService.ClearWindowsAppsSelectionAsync();
-
-        _vmCoordinator.ClearExternalAppSelections();
+        // Preserve app selections on cancel — only exit review mode.
+        // Clearing selections was destructive: users who imported a config and clicked
+        // Cancel would lose all their carefully chosen checkboxes in Software & Apps.
+        // Cancel means "cancel the review operation", not "discard my selections".
+        // Review diffs and badges are still cleaned up via ReviewModeExitedEvent
+        // fired by ExitReviewMode() through OnReviewModeChanged.
 
         _configReviewModeService.ExitReviewMode();
-        _logService.Log(LogLevel.Info, "Review mode cancelled - all selections cleared");
+        _logService.Log(LogLevel.Info, "Review mode cancelled - selections preserved");
+    }
+
+    private string BuildImportBatchHeader()
+    {
+        var label = _localizationService.GetString("ChangeHistory_ConfigImport");
+        var source = _configImportState.SourceName;
+        return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
     private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(

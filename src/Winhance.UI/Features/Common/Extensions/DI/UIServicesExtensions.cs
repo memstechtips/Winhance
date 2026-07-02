@@ -54,7 +54,7 @@ public static class UIServicesExtensions
         // Selected Apps Provider (Singleton - Bridges WIM feature to SoftwareApps feature)
         services.AddSingleton<ISelectedAppsProvider, SelectedAppsProvider>();
 
-        // Application Close Service (Singleton - Handles shutdown with donation dialog)
+        // Application Close Service (Singleton - Handles shutdown with the sponsors dialog)
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
 
         // Startup Notification Service (Singleton - Shows backup notification after startup)
@@ -82,6 +82,7 @@ public static class UIServicesExtensions
         services.AddSingleton<IConfigReviewModeService>(sp => (IConfigReviewModeService)sp.GetRequiredService<IConfigReviewService>());
         services.AddSingleton<IConfigReviewDiffService>(sp => (IConfigReviewDiffService)sp.GetRequiredService<IConfigReviewService>());
         services.AddSingleton<IConfigReviewBadgeService>(sp => (IConfigReviewBadgeService)sp.GetRequiredService<IConfigReviewService>());
+        services.AddSingleton<IApplicationModeService>(sp => (IApplicationModeService)sp.GetRequiredService<IConfigReviewService>());
 
         // Nav Badge Service (Singleton - Computes nav badge state during review mode)
         services.AddSingleton<INavBadgeService, NavBadgeService>();
@@ -117,6 +118,7 @@ public static class UIServicesExtensions
         services.AddSingleton<TaskProgressViewModel>();
         services.AddSingleton<UpdateCheckViewModel>();
         services.AddSingleton<ReviewModeBarViewModel>();
+        services.AddSingleton<BuilderModeBarViewModel>();
 
         // MainWindow ViewModel (Singleton - one main window)
         services.AddSingleton<MainWindowViewModel>();

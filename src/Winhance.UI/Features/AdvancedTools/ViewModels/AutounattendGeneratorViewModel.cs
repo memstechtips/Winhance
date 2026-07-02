@@ -71,7 +71,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             // Show confirmation dialog
             var confirmMessage = _localizationService.GetString("Msg_GenerateXmlConfirm");
             var confirmTitle = _localizationService.GetString("Dialog_GenerateXml") ?? "Generate Autounattend XML";
-            var confirmed = await _dialogService.ShowConfirmationAsync(confirmMessage, confirmTitle);
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = confirmMessage, Title = confirmTitle })).Confirmed;
             if (!confirmed)
                 return;
 
@@ -108,11 +108,13 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
 
                 if (selectedApps.Count == 0)
                 {
-                    var continueAnyway = await _dialogService.ShowConfirmationAsync(
-                        _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
-                        _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                        _localizationService.GetString("Button_Yes") ?? "Yes",
-                        _localizationService.GetString("Button_No") ?? "No");
+                    var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                    {
+                        Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
+                        Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                        ConfirmButtonText = _localizationService.GetString("Button_Yes") ?? "Yes",
+                        CancelButtonText = _localizationService.GetString("Button_No") ?? "No",
+                    })).Confirmed;
                     if (!continueAnyway)
                         return;
                 }
@@ -131,7 +133,13 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             var successTitle = _localizationService.GetString("Dialog_Success") ?? "Success";
             var yesText = _localizationService.GetString("Button_Yes") ?? "Yes";
             var noText = _localizationService.GetString("Button_No") ?? "No";
-            var openWimUtil = await _dialogService.ShowConfirmationAsync(successMsg, successTitle, yesText, noText);
+            var openWimUtil = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = successMsg,
+                Title = successTitle,
+                ConfirmButtonText = yesText,
+                CancelButtonText = noText,
+            })).Confirmed;
 
             if (openWimUtil)
             {

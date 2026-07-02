@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
@@ -104,6 +105,7 @@ public sealed partial class AdvancedToolsPage : Page
         if (isInDetailPage)
         {
             BreadcrumbSectionText.Text = ViewModel.CurrentSectionName;
+            AutomationProperties.SetName(BreadcrumbSection, ViewModel.CurrentSectionName);
 
             if (SectionIconResourceKeys.TryGetValue(ViewModel.CurrentSectionKey, out var resourceKey) &&
                 Application.Current.Resources.TryGetValue(resourceKey, out var resourceValue) &&

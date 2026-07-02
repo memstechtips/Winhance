@@ -23,6 +23,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     protected readonly ILocalizationService _localizationService;
     protected readonly IDispatcherService _dispatcherService;
     protected readonly IEventBus _eventBus;
+    protected readonly IApplicationModeService _applicationModeService;
 
     private bool _settingsLoaded = false;
     private bool _isSubscribed = false;
@@ -31,6 +32,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
+    private ISubscriptionToken? _builderModeExitedSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -94,13 +96,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        IApplicationModeService applicationModeService)
     {
         _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        _applicationModeService = applicationModeService ?? throw new ArgumentNullException(nameof(applicationModeService));
 
         // Initialize partial property defaults
         Settings = new ObservableCollection<SettingItemViewModel>();
@@ -125,6 +129,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
+        _builderModeExitedSubscription = _eventBus.SubscribeAsync<BuilderModeExitedEvent>(OnBuilderModeExitedAsync);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -194,6 +199,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 setting.ClearReviewState();
             }
         });
+    }
+
+    private async Task OnBuilderModeExitedAsync(BuilderModeExitedEvent e)
+    {
+        // Builder moved the toggles to authored (un-applied) positions on the shared VMs.
+        // Reload from live system state so Normal mode shows the truth. Only touch features
+        // that are actually loaded — unopened ones read fresh system state on first open.
+        if (Settings?.Any() != true) return;
+        await RefreshSettingsForFilterChangeAsync();
     }
 
     private async Task RefreshSettingsForFilterChangeAsync()
@@ -411,6 +425,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             await LoadSettingsAsync();
 
             _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
+
+            // Rebuilding the list creates fresh SettingItemViewModels whose badge/technical-details
+            // visibility defaults are not the user's current View-menu state. Publish the same event
+            // the language- and filter-change rebuild paths do so the page re-applies that state
+            // (otherwise Info badges silently disappear until the user re-toggles them).
+            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
         }
         catch (Exception ex)
         {
@@ -421,6 +441,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     public virtual async Task RefreshSettingStatesAsync()
     {
         if (!_settingsLoaded || Settings == null || Settings.Count == 0)
+            return;
+
+        // Builder mode authors un-applied state into these ViewModels. The section pages
+        // call this on every navigation to keep Normal mode truthful, but re-reading the
+        // system here would clobber the authored Builder values — skip until Builder exit,
+        // which reloads from live state anyway (BuilderModeExitedEvent).
+        if (_applicationModeService.CurrentMode == WinhanceMode.Builder)
             return;
 
         try
@@ -525,6 +552,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             _reviewModeExitedSubscription?.Dispose();
             _reviewModeExitedSubscription = null;
+
+            _builderModeExitedSubscription?.Dispose();
+            _builderModeExitedSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

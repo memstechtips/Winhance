@@ -20,6 +20,7 @@ public class ConfigLoadServiceTests
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
+    private readonly Mock<IConfigImportState> _mockConfigImportState = new();
 
     private ConfigLoadService CreateService()
     {
@@ -32,7 +33,8 @@ public class ConfigLoadServiceTests
             _mockConfigMigrationService.Object,
             _mockInteractiveUserService.Object,
             _mockFileSystemService.Object,
-            _mockMainWindowProvider.Object);
+            _mockMainWindowProvider.Object,
+            _mockConfigImportState.Object);
     }
 
     // -------------------------------------------------------

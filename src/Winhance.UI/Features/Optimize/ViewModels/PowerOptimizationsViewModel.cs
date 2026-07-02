@@ -30,8 +30,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         IDialogService dialogService,
         IEventBus eventBus,
         IPowerPlanComboBoxService powerPlanComboBoxService,
-        IPowerService powerService)
-        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        IPowerService powerService,
+        IApplicationModeService applicationModeService)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _dialogService = dialogService;
         _powerPlanComboBoxService = powerPlanComboBoxService;
@@ -167,7 +168,13 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             var confirmText = _localizationService.GetString("Button_Delete");
             var cancelText = _localizationService.GetString("Button_Cancel");
 
-            var confirmed = await _dialogService.ShowConfirmationAsync(message, title, confirmText, cancelText);
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = message,
+                Title = title,
+                ConfirmButtonText = confirmText,
+                CancelButtonText = cancelText,
+            })).Confirmed;
             if (!confirmed) return;
 
             var success = await _powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);

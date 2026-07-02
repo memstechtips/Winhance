@@ -163,10 +163,8 @@ public class WindowsAppsServiceTests
 
         // User declines fallback dialog
         _dialogService
-            .Setup(x => x.ShowConfirmationWithCheckboxAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((false, false));
+            .Setup(x => x.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var result = await sut.InstallAppAsync(item);
 

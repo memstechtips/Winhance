@@ -614,6 +614,108 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "explorer-customization-thispc-folder-desktop",
+            "Name": "Show Desktop in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-desktop-win10",
+            "Name": "Show Desktop in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-documents",
+            "Name": "Show Documents in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-documents-win10",
+            "Name": "Show Documents in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-downloads",
+            "Name": "Show Downloads in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-downloads-win10",
+            "Name": "Show Downloads in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-music",
+            "Name": "Show Music in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-music-win10",
+            "Name": "Show Music in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-pictures",
+            "Name": "Show Pictures in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-pictures-win10",
+            "Name": "Show Pictures in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-videos",
+            "Name": "Show Videos in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-videos-win10",
+            "Name": "Show Videos in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-this-pc",
+            "Name": "Show This PC on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-recycle-bin",
+            "Name": "Show Recycle Bin on desktop",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-users-files",
+            "Name": "Show User's Files on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-control-panel",
+            "Name": "Show Control Panel on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-desktop-icon-network",
+            "Name": "Show Network on desktop",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-context-menu",
             "Name": "Use Classic Context Menu",
             "IsSelected": true,
@@ -752,6 +854,18 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-customization-icon-cache-size",
+            "Name": "Icon cache size",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-thumbnail-cache-cleanup",
+            "Name": "Automatic thumbnail cache cleanup",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-customization-folder-tips",
             "Name": "Display file size information in folder tips",
             "IsSelected": true,
@@ -784,7 +898,7 @@
           {
             "Id": "explorer-customization-show-lnk-extension",
             "Name": "Show .lnk file extension",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1031,6 +1145,12 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "start-all-apps-view",
+            "Name": "All apps view",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
             "Id": "start-recommended-section",
             "Name": "Recommended section",
             "InputType": 1,
@@ -1192,9 +1312,9 @@
           },
           {
             "Id": "taskbar-system-tray-icons-11",
-            "Name": "Always show all system tray icons",
-            "IsSelected": true,
-            "InputType": 0
+            "Name": "System tray icons",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "taskbar-task-view",

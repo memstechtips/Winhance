@@ -11,6 +11,7 @@ using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
+
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 public class WindowsAppUninstallService(
@@ -18,7 +19,8 @@ public class WindowsAppUninstallService(
     IWindowsAppsService windowsAppsService,
     IBloatRemovalService bloatRemovalService,
     ITaskProgressService taskProgressService,
-    IMultiScriptProgressService multiScriptProgressService) : IWindowsAppUninstallService
+    IMultiScriptProgressService multiScriptProgressService,
+    IChangeHistoryService changeHistory) : IWindowsAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null)
     {
@@ -48,6 +50,9 @@ public class WindowsAppUninstallService(
                 logService.LogInformation($"[UninstallApp] Routing to ExecuteBloatRemovalAsync for '{app.Name}'");
                 outcome = await bloatRemovalService.ExecuteBloatRemovalAsync([app], progress, cancellationToken).ConfigureAwait(false);
             }
+
+            if (outcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
 
             return outcome switch
             {
@@ -94,6 +99,8 @@ public class WindowsAppUninstallService(
                 foreach (var app in scriptApps)
                 {
                     var outcome = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
+                    if (outcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                        changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
                     if (outcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
                 }
                 logService.LogInformation("[UninstallApps] Step 2 DONE");
@@ -102,8 +109,11 @@ public class WindowsAppUninstallService(
             if (regularApps.Count > 0)
             {
                 logService.LogInformation($"[UninstallApps] Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
-                var outcome = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken).ConfigureAwait(false);
-                if (outcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
+                var regularOutcome = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken).ConfigureAwait(false);
+                if (regularOutcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                    foreach (var app in regularApps)
+                        changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                if (regularOutcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
                 logService.LogInformation("[UninstallApps] Step 3 DONE");
             }
 
@@ -199,6 +209,21 @@ public class WindowsAppUninstallService(
                 }
 
                 var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                // Log history: first scriptApps.Count results are per-dedicated-script outcomes;
+                // the last result (if regularApps.Count > 0) is the batch outcome for regular apps.
+                for (int i = 0; i < scriptApps.Count; i++)
+                {
+                    if (results[i] is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                        changeHistory.LogAppChange(scriptApps[i].Name, AppChangeKind.Removed);
+                }
+                if (regularApps.Count > 0)
+                {
+                    var regularOutcome = results[scriptApps.Count];
+                    if (regularOutcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                        foreach (var app in regularApps)
+                            changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                }
 
                 if (saveRemovalScripts)
                 {

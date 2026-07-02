@@ -123,19 +123,25 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
-                _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-                "Yes", "No");
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
+                Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
+                ConfirmButtonText = "Yes",
+                CancelButtonText = "No",
+            })).Confirmed;
             if (!confirmed) return;
 
             var selectedApps = await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
             if (selectedApps.Count == 0)
             {
-                var continueAnyway = await _dialogService.ShowConfirmationAsync(
-                    _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
-                    _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                    "Yes", "No");
+                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                {
+                    Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
+                    Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
+                    ConfirmButtonText = "Yes",
+                    CancelButtonText = "No",
+                })).Confirmed;
                 if (!continueAnyway) return;
             }
 

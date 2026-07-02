@@ -62,11 +62,7 @@ public class StartupNotificationServiceTests
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
     }
 
@@ -83,23 +79,15 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var service = CreateService();
 
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Once);
     }
 
@@ -116,12 +104,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var service = CreateService();
 
@@ -145,12 +129,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockBackupService
             .Setup(b => b.CreateRestorePointAsync(
@@ -184,12 +164,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockBackupService
             .Setup(b => b.CreateRestorePointAsync(
@@ -223,12 +199,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         _mockBackupService
             .Setup(b => b.CreateRestorePointAsync(
@@ -262,12 +234,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var service = CreateService();
 
@@ -290,12 +258,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var service = CreateService();
 
@@ -321,12 +285,8 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(false);
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var service = CreateService();
 
@@ -354,11 +314,7 @@ public class StartupNotificationServiceTests
             .Returns(false);
 
         _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ThrowsAsync(new Exception("Dialog failed"));
 
         var service = CreateService();

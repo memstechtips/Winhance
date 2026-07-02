@@ -15,8 +15,9 @@ public partial class TaskbarCustomizationsViewModel : BaseSettingsFeatureViewMod
         ILogService logService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IEventBus eventBus)
-        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus)
+        IEventBus eventBus,
+        IApplicationModeService applicationModeService)
+        : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
     }
 

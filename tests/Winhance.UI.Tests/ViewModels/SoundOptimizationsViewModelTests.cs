@@ -17,6 +17,7 @@ public class SoundOptimizationsViewModelTests
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IDispatcherService> _mockDispatcherService;
     private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService;
 
     public SoundOptimizationsViewModelTests()
     {
@@ -25,6 +26,7 @@ public class SoundOptimizationsViewModelTests
         _mockLocalizationService = new Mock<ILocalizationService>();
         _mockDispatcherService = new Mock<IDispatcherService>();
         _mockEventBus = new Mock<IEventBus>();
+        _mockApplicationModeService = new Mock<IApplicationModeService>();
 
         // Set up localization to return the key itself by default
         _mockLocalizationService
@@ -48,7 +50,8 @@ public class SoundOptimizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
     }
 
     [Fact]
@@ -262,7 +265,8 @@ public class SoundOptimizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -278,7 +282,8 @@ public class SoundOptimizationsViewModelTests
             null!,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -294,7 +299,8 @@ public class SoundOptimizationsViewModelTests
             _mockLogService.Object,
             null!,
             _mockDispatcherService.Object,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -310,7 +316,8 @@ public class SoundOptimizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             null!,
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -326,7 +333,8 @@ public class SoundOptimizationsViewModelTests
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
-            null!);
+            null!,
+            _mockApplicationModeService.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()

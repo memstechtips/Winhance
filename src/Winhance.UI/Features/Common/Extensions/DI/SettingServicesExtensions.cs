@@ -41,14 +41,6 @@ public static class SettingServicesExtensions
                 [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
             }));
 
-        services.AddSingleton<IActionCommandRegistry>(sp =>
-            new ActionCommandRegistry(new Dictionary<string, IActionCommandProvider>
-            {
-                [SettingIds.TaskbarClean]         = sp.GetRequiredService<TaskbarService>(),
-                [SettingIds.StartMenuCleanWin10]  = sp.GetRequiredService<StartMenuService>(),
-                [SettingIds.StartMenuCleanWin11]  = sp.GetRequiredService<StartMenuService>(),
-            }));
-
         // Only handlers that override DiscoverSpecialSettingsAsync (i.e. self-filter
         // and return raw values) belong in the discovery registry.
         services.AddSingleton<ISpecialDiscoveryRegistry>(sp =>
@@ -73,12 +65,6 @@ public static class SettingServicesExtensions
         // the explorer refresh is now declarative via SettingDefinition.RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
 
-        // Register StartMenuService
-        services.AddSingleton<StartMenuService>();
-
-        // Register TaskbarService
-        services.AddSingleton<TaskbarService>();
-
         return services;
     }
 
@@ -96,7 +82,8 @@ public static class SettingServicesExtensions
             sp.GetRequiredService<IPowerPlanComboBoxService>(),
             sp.GetRequiredService<IProcessExecutor>(),
             sp.GetRequiredService<IFileSystemService>(),
-            sp.GetRequiredService<IPowerSchemeOperations>()
+            sp.GetRequiredService<IPowerSchemeOperations>(),
+            sp.GetRequiredService<IConfigImportState>()
         ));
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
@@ -124,15 +111,11 @@ public static class SettingServicesExtensions
         // covers current-user / all-users / provisioned scopes)
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
 
-        // Microsoft Store CDN icon source (Layer-2 fallback for AppX entries
-        // not present on this machine in any registered/provisioned form)
-        services.AddSingleton<IStoreIconSource, StoreIconSource>();
-
-        // Layer 1b icon sources (shell images, binary icons via Windows ARP).
-        // Layer 2b is now handled by the per-entry IconSources field on
-        // ItemDefinition (URLs + local paths) rather than a separate service.
-        services.AddSingleton<IShellImageFactory, ShellImageFactory>();
-        services.AddSingleton<IBinaryIconSource, BinaryIconSource>();
+        // Package-icons repo (jsDelivr @main): hosted, sha256-verified icons for
+        // external-app-* and windows-app-* entries. Replaces the retired live
+        // Microsoft Store CDN icon source.
+        services.AddSingleton<IRepoIconSource, RepoIconSource>();
+        services.AddSingleton<IIconManifestService, IconManifestService>();
 
         // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();

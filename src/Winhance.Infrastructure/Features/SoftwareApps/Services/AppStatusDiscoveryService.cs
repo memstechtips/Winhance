@@ -285,10 +285,7 @@ public class AppStatusDiscoveryService(
     internal record RegistryUninstallInfo(
         HashSet<string> KeyNames,
         HashSet<string> DisplayNames,
-        HashSet<string> AllKeyNames)
-    {
-        public Dictionary<string, string> IconHintsByName { get; init; } = new(StringComparer.OrdinalIgnoreCase);
-    }
+        HashSet<string> AllKeyNames);
 
     /// <summary>
     /// Tests whether input matches a pattern containing {version}, {arch}, {locale} placeholders.
@@ -469,8 +466,6 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
-                        if (regInfo.IconHintsByName.TryGetValue(def.Name, out var hint1))
-                            def.InstalledBinaryHint ??= hint1;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 1 - KeyName): {def.Name}");
                     }
@@ -483,8 +478,6 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
-                        if (regInfo.IconHintsByName.TryGetValue(def.Name, out var hint2))
-                            def.InstalledBinaryHint ??= hint2;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 2 - DisplayName): {def.Name}");
                     }
@@ -500,8 +493,6 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
-                        if (regInfo.IconHintsByName.TryGetValue(matchedKey3, out var hint3))
-                            def.InstalledBinaryHint ??= hint3;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 3 - SubKeyName pattern): {def.Name}");
                     }
@@ -517,8 +508,6 @@ public class AppStatusDiscoveryService(
                     {
                         result[def.Id] = true;
                         def.DetectedVia = DetectionSource.Registry;
-                        if (regInfo.IconHintsByName.TryGetValue(matchedDn4, out var hint4))
-                            def.InstalledBinaryHint ??= hint4;
                         registryCount++;
                         logService.LogInformation($"Installed (Registry Pass 4 - DisplayName pattern): {def.Name}");
                     }
@@ -548,77 +537,12 @@ public class AppStatusDiscoveryService(
                         {
                             result[def.Id] = true;
                             def.DetectedVia = DetectionSource.FileSystem;
-                            def.InstalledBinaryHint ??= expandedPath;
                             fileSystemCount++;
                             logService.LogInformation($"Installed (FileSystem): {def.Name} ({expandedPath})");
                             break;
                         }
                     }
                 }
-            }
-
-            // Phase 6: Hint backfill — for entries detected as installed via WinGet,
-            // Chocolatey, or AppX (Phases 1-3), the registry walk in Phase 4 was skipped
-            // because they were already marked installed. That left InstalledBinaryHint
-            // null even though most of these apps install via standard MSI/EXE installers
-            // that DO create a normal uninstall key with DisplayIcon. Look up the hint
-            // for any installed entry that's missing one, using the registry data we
-            // already loaded (or load it on-demand if no prior phase needed it).
-            var entriesNeedingHint = definitionList
-                .Where(d => result.TryGetValue(d.Id, out bool installed) && installed
-                            && string.IsNullOrEmpty(d.InstalledBinaryHint))
-                .ToList();
-
-            if (entriesNeedingHint.Count > 0)
-            {
-                var regInfo = sharedRegInfo ?? await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
-                int hintsBackfilled = 0;
-
-                foreach (var def in entriesNeedingHint)
-                {
-                    string? hint = null;
-
-                    // Direct name match (the dict is keyed by both KeyName and DisplayName).
-                    if (regInfo.IconHintsByName.TryGetValue(def.Name, out var direct))
-                    {
-                        hint = direct;
-                    }
-                    // Pattern match by RegistrySubKeyName against KeyNames.
-                    else if (!string.IsNullOrEmpty(def.RegistrySubKeyName))
-                    {
-                        foreach (var kvp in regInfo.IconHintsByName)
-                        {
-                            if (regInfo.AllKeyNames.Contains(kvp.Key)
-                                && MatchesPattern(kvp.Key, def.RegistrySubKeyName!))
-                            {
-                                hint = kvp.Value;
-                                break;
-                            }
-                        }
-                    }
-                    // Pattern match by RegistryDisplayName against DisplayNames.
-                    if (hint is null && !string.IsNullOrEmpty(def.RegistryDisplayName))
-                    {
-                        foreach (var kvp in regInfo.IconHintsByName)
-                        {
-                            if (regInfo.DisplayNames.Contains(kvp.Key)
-                                && MatchesPattern(kvp.Key, def.RegistryDisplayName!))
-                            {
-                                hint = kvp.Value;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (hint is not null)
-                    {
-                        def.InstalledBinaryHint = hint;
-                        hintsBackfilled++;
-                    }
-                }
-
-                if (hintsBackfilled > 0)
-                    logService.LogInformation($"Backfilled InstalledBinaryHint for {hintsBackfilled}/{entriesNeedingHint.Count} installed entries detected via WinGet/Chocolatey/AppX");
             }
 
             var totalFound = result.Count(kvp => kvp.Value);
@@ -639,7 +563,6 @@ public class AppStatusDiscoveryService(
         var keyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var displayNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var allKeyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var iconHintsByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         await Task.Run(() =>
         {
@@ -693,28 +616,6 @@ public class AppStatusDiscoveryService(
                             var displayName = subKey.GetValue("DisplayName") as string;
                             if (!string.IsNullOrEmpty(displayName))
                                 displayNames.Add(displayName);
-
-                            // Capture DisplayIcon (strip ",index" suffix + quotes + env vars)
-                            // or fall back to InstallLocation for Layer 1b icon extraction.
-                            // Note: InstallLocation is typically a directory; Layer 1b's
-                            // BinaryIconSource consumer is responsible for handling both
-                            // file-path and directory-path hints (Shell APIs accept both,
-                            // though directories return generic folder icons).
-                            string? iconHint = (subKey.GetValue("DisplayIcon") as string)
-                                           ?? (subKey.GetValue("InstallLocation") as string);
-                            if (!string.IsNullOrWhiteSpace(iconHint))
-                            {
-                                var commaIdx = iconHint.IndexOf(',');
-                                if (commaIdx >= 0) iconHint = iconHint.Substring(0, commaIdx);
-                                iconHint = Environment.ExpandEnvironmentVariables(iconHint.Trim('"'));
-
-                                if (!string.IsNullOrWhiteSpace(iconHint))
-                                {
-                                    iconHintsByName[subKeyName] = iconHint;
-                                    if (!string.IsNullOrEmpty(displayName) && !iconHintsByName.ContainsKey(displayName))
-                                        iconHintsByName[displayName] = iconHint;
-                                }
-                            }
                         }
                         catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
                     }
@@ -723,10 +624,7 @@ public class AppStatusDiscoveryService(
             }
         }).ConfigureAwait(false);
 
-        return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames)
-        {
-            IconHintsByName = iconHintsByName
-        };
+        return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames);
     }
 
     #endregion

@@ -31,7 +31,8 @@ internal sealed class TitleBarManager
     public void SetPassthroughRegions(
         FrameworkElement titleBar,
         FrameworkElement paneToggleButton,
-        FrameworkElement titleBarButtons)
+        FrameworkElement titleBarButtons,
+        FrameworkElement? extraRegion = null)
     {
         try
         {
@@ -45,6 +46,12 @@ internal sealed class TitleBarManager
 
             // Add passthrough region for the entire title bar buttons container
             AddElementPassthroughRect(titleBarButtons, scale, passthroughRects);
+
+            // Optional extra interactive region (e.g. the centered Mode switcher)
+            if (extraRegion != null)
+            {
+                AddElementPassthroughRect(extraRegion, scale, passthroughRects);
+            }
 
             if (passthroughRects.Count > 0)
             {

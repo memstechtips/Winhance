@@ -99,10 +99,13 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            var confirmed = await _dialogService.ShowConfirmationAsync(
-                _localizationService.GetString("WIMUtil_Msg_ExtractDriversConfirm"),
-                _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
-                "Yes", "No");
+            var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Message = _localizationService.GetString("WIMUtil_Msg_ExtractDriversConfirm"),
+                Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
+                ConfirmButtonText = "Yes",
+                CancelButtonText = "No",
+            })).Confirmed;
             if (!confirmed) return;
 
             ExtractSystemDriversCard.IsProcessing = true;

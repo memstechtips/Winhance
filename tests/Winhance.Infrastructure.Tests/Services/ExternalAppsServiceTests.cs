@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -23,6 +24,7 @@ public class ExternalAppsServiceTests
     private readonly Mock<IInteractiveUserService> _interactiveUserService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
+    private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
 
     private ExternalAppsService CreateSut() => new(
         _logService.Object,
@@ -36,7 +38,8 @@ public class ExternalAppsServiceTests
         _chocolateyService.Object,
         _interactiveUserService.Object,
         _fileSystemService.Object,
-        _processExecutor.Object);
+        _processExecutor.Object,
+        _changeHistoryService.Object);
 
     // --- DomainName ---
 
@@ -756,6 +759,37 @@ public class ExternalAppsServiceTests
         _externalAppUninstallService.Verify(
             x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppAsync_Success_LogsAppRemoved()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "ext-app",
+            Name = "External App",
+            Description = "An external app"
+        };
+
+        _externalAppUninstallService
+            .Setup(x => x.UninstallAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        _interactiveUserService
+            .Setup(x => x.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs))
+            .Returns(@"C:\Users\Test\AppData\Roaming\Microsoft\Windows\Start Menu\Programs");
+        _fileSystemService
+            .Setup(x => x.CombinePath(It.IsAny<string[]>()))
+            .Returns(@"C:\Users\Test\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\External App");
+        _fileSystemService
+            .Setup(x => x.DirectoryExists(It.IsAny<string>()))
+            .Returns(false);
+
+        await sut.UninstallAppAsync(item);
+
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), AppChangeKind.Removed), Times.Once);
     }
 
     [Fact]

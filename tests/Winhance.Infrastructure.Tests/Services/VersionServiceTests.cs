@@ -215,6 +215,68 @@ public class VersionServiceTests
 
     #endregion
 
+    #region BuildInstallerArgs (issue #649 — silent-mode install location)
+
+    [Theory]
+    [InlineData(@"D:\Winhance", false)]
+    [InlineData(@"D:\Winhance\", false)]
+    [InlineData(@"C:\Program Files\Winhance", false)]
+    [InlineData(@"D:\My Portable\Winhance", true)]
+    [InlineData(@"D:\My Portable\Winhance\", true)]
+    public void BuildInstallerArgs_AlwaysIncludesDirArgPinnedToAppDir(string appDir, bool isPortable)
+    {
+        // Act
+        var args = VersionService.BuildInstallerArgs(appDir, isPortable);
+
+        // Assert — /DIR= must be present, quoted, and equal to the appDir
+        // with any trailing path separator stripped. See issue #649: without
+        // /DIR=, Inno's silent-install resolution lands {app} at Program Files
+        // (regular) or ~\Desktop\Winhance (portable) regardless of where the
+        // running app actually lives.
+        var expectedDirArg = $"/DIR=\"{appDir.TrimEnd('\\', '/')}\"";
+        args.Should().Contain(expectedDirArg);
+        args.Should().Contain("/SILENT");
+        args.Should().Contain("/SUPPRESSMSGBOXES");
+    }
+
+    [Fact]
+    public void BuildInstallerArgs_Portable_SelectsPortableInstallTaskOnly()
+    {
+        // Act
+        var args = VersionService.BuildInstallerArgs(@"D:\Portable\Winhance", isPortable: true);
+
+        // Assert
+        args.Should().Contain(@"/MERGETASKS=""portableinstall""");
+        args.Should().NotContain("regularinstall");
+    }
+
+    [Fact]
+    public void BuildInstallerArgs_Regular_SelectsRegularInstallTaskWithShortcuts()
+    {
+        // Act
+        var args = VersionService.BuildInstallerArgs(@"C:\Program Files\Winhance", isPortable: false);
+
+        // Assert
+        args.Should().Contain(@"/MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""");
+        args.Should().NotContain("portableinstall");
+    }
+
+    [Fact]
+    public void BuildInstallerArgs_PathWithSpaces_QuotesDirArgCorrectly()
+    {
+        // Arrange — the actual scenario from issue #649's reporter
+        var customPath = @"D:\Windows Tweaks\Winhance";
+
+        // Act
+        var args = VersionService.BuildInstallerArgs(customPath, isPortable: false);
+
+        // Assert — the double-quotes around /DIR= must survive so Inno parses
+        // the path with its embedded space correctly
+        args.Should().Contain($"/DIR=\"{customPath}\"");
+    }
+
+    #endregion
+
     #region Constructor Validation
 
     [Fact]

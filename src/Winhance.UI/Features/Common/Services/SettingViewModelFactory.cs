@@ -1,4 +1,5 @@
 using System.Linq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
@@ -79,7 +80,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _viewModelDeps.EventBus,
             _userPreferencesService,
             _viewModelDeps.RegeditLauncher,
-            _newBadgeService);
+            _newBadgeService,
+            _viewModelDeps.ApplicationModeService);
 
         // Set lock state for advanced settings
         if (setting.RequiresAdvancedUnlock)
@@ -156,6 +158,18 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 {
                     viewModel.SelectedValue = currentState.CurrentValue;
                     viewModel.UpdateStatusBanner(currentState.CurrentValue);
+                }
+
+                // Builder/serialization support: when the live state resolves to "Custom"
+                // (no predefined option matched), retain the raw values so Builder Save can
+                // serialize the custom value without re-reading the system.
+                if (viewModel.SelectedValue is int customSelIdx
+                    && customSelIdx == ComboBoxConstants.CustomStateIndex
+                    && currentState.RawValues != null)
+                {
+                    viewModel.CapturedCustomStateValues = currentState.RawValues
+                        .Where(kv => kv.Value != null)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value!);
                 }
 
                 // Resolve AC/DC Selection values AFTER ComboBox options are populated

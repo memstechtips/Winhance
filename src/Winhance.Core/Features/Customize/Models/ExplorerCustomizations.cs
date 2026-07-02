@@ -121,6 +121,181 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-desktop-icon-this-pc",
+                    IsSubjectivePreference = true,
+                    Name = "Show This PC on desktop",
+                    Description = "Displays the This PC (Computer) icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-recycle-bin",
+                    IsSubjectivePreference = true,
+                    Name = "Show Recycle Bin on desktop",
+                    Description = "Displays the Recycle Bin icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "TrashCanOutline",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{645FF040-5081-101B-9F08-00AA002F954E}",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{645FF040-5081-101B-9F08-00AA002F954E}",
+                            RecommendedValue = 0,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 0,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-users-files",
+                    IsSubjectivePreference = true,
+                    Name = "Show User's Files on desktop",
+                    Description = "Displays the current user's profile folder icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "FolderAccount",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{59031A47-3F72-44A7-89C5-5595FE6B30EE}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{59031A47-3F72-44A7-89C5-5595FE6B30EE}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-control-panel",
+                    IsSubjectivePreference = true,
+                    Name = "Show Control Panel on desktop",
+                    Description = "Displays the Control Panel icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "ViewGrid",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-desktop-icon-network",
+                    IsSubjectivePreference = true,
+                    Name = "Show Network on desktop",
+                    Description = "Displays the Network icon on the desktop",
+                    GroupName = "Desktop",
+                    InputType = InputType.Toggle,
+                    Icon = "NetworkOutline",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel",
+                            ValueName = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu",
+                            ValueName = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-context-menu",
                     IsSubjectivePreference = true,
                     Name = "Use Classic Context Menu",
@@ -1144,6 +1319,95 @@ if (-not (Test-Path $icoPath)) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-icon-cache-size",
+                    IsSubjectivePreference = true,
+                    Name = "Icon cache size",
+                    Description = "Sets the maximum number of icons Explorer keeps cached, so it reloads them from disk less often when browsing folders with many files",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Selection,
+                    // MaxCachedIcons is absent by default and can hold any value; only the two
+                    // explicit sizes map to options, so any other/absent state shows "Windows default".
+                    ResolveUnmatchedToDefault = true,
+                    Icon = "Cached",
+                    AddedInVersion = "26.06.08",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
+                            ValueName = "MaxCachedIcons",
+                            RecommendedValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.String,
+                        },
+                    },
+                    ComboBox = new ComboBoxMetadata
+                    {
+                        Options = new[]
+                        {
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Windows default",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = null },
+                                IsRecommended = true,
+                                IsDefault = true,
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Large (4,096 icons)",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = "4096" },
+                            },
+                            new ComboBoxOption
+                            {
+                                DisplayName = "Very large (8,192 icons)",
+                                ValueMappings = new Dictionary<string, object?> { ["MaxCachedIcons"] = "8192" },
+                            },
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thumbnail-cache-cleanup",
+                    IsSubjectivePreference = true,
+                    Name = "Automatic thumbnail cache cleanup",
+                    Description = "Lets Windows clear the thumbnail cache during automatic disk maintenance. Turn this off to keep cached thumbnails so Explorer does not have to regenerate them when you reopen folders",
+                    GroupName = "Files and Folders",
+                    InputType = InputType.Toggle,
+                    IconPack = "Fluent",
+                    Icon = "ImageMultiple",
+                    AddedInVersion = "26.06.08",
+                    // Disk Cleanup's "Thumbnail Cache" VolumeCaches handler; Autorun=0 excludes it from
+                    // automatic SilentCleanup. Mirrored to WOW6432Node per the reporter's tested setup.
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Thumbnail Cache",
+                            ValueName = "Autorun",
+                            // Autorun is effectively 0 = off, nonzero = on. Modern Win10/11 ships 3
+                            // (older builds 1); both read as "on". Enable writes 3 (first element);
+                            // disable writes 0 — the reporter's tested value to keep thumbnails.
+                            RecommendedValue = 3,
+                            EnabledValue = [3, 1],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Thumbnail Cache",
+                            ValueName = "Autorun",
+                            RecommendedValue = 3,
+                            EnabledValue = [3, 1],
+                            DisabledValue = [0],
+                            DefaultValue = 3,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-folder-tips",
                     IsSubjectivePreference = true,
                     RecommendedToggleState = true,
@@ -1266,9 +1530,8 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Id = "explorer-customization-show-lnk-extension",
                     IsSubjectivePreference = true,
-                    RecommendedToggleState = true,
                     Name = "Show .lnk file extension",
-                    Description = "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents.",
+                    Description = "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents. Once enabled, some Start Menu names may keep showing .lnk even after turning this off.",
                     GroupName = "Files and Folders",
                     InputType = InputType.Toggle,
                     IconPack = "Fluent",
@@ -1819,11 +2082,461 @@ if (Test-Path $appPathsKey) {
                 },
                 new SettingDefinition
                 {
+                    Id = "explorer-customization-thispc-folder-desktop",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Desktop in This PC",
+                    Description = "Displays the Desktop folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-documents",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Documents in This PC",
+                    Description = "Displays the Documents folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileDocument",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-downloads",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Downloads in This PC",
+                    Description = "Displays the Downloads folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Download",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-music",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Music in This PC",
+                    Description = "Displays the Music folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Music",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-pictures",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Pictures in This PC",
+                    Description = "Displays the Pictures folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Image",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-videos",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows11Only = true,
+                    Name = "Show Videos in This PC",
+                    Description = "Displays the Videos folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Video",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = "HiddenByDefault",
+                            RecommendedValue = 1,
+                            EnabledValue = [0],
+                            DisabledValue = [1],
+                            DefaultValue = 1,
+                            ValueType = RegistryValueKind.DWord,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-desktop-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-desktop",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Desktop in This PC",
+                    Description = "Displays the Desktop folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Monitor",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-documents-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-documents",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Documents in This PC",
+                    Description = "Displays the Documents folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "FileDocument",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-downloads-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-downloads",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Downloads in This PC",
+                    Description = "Displays the Downloads folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Download",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-music-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-music",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Music in This PC",
+                    Description = "Displays the Music folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Music",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-pictures-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-pictures",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Pictures in This PC",
+                    Description = "Displays the Pictures folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Image",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
+                    Id = "explorer-customization-thispc-folder-videos-win10",
+                    LocalizationId = "explorer-customization-thispc-folder-videos",
+                    IsSubjectivePreference = true,
+                    RecommendedToggleState = false,
+                    IsWindows10Only = true,
+                    Name = "Show Videos in This PC",
+                    Description = "Displays the Videos folder under This PC in File Explorer",
+                    GroupName = "This PC Folders",
+                    InputType = InputType.Toggle,
+                    Icon = "Video",
+                    AddedInVersion = "26.06.01",
+                    RestartProcess = "Explorer",
+                    RegistrySettings = new List<RegistrySetting>
+                    {
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                        new RegistrySetting
+                        {
+                            KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}",
+                            ValueName = null,
+                            RecommendedValue = null,
+                            EnabledValue = null,
+                            DisabledValue = null,
+                            DefaultValue = null,
+                            ValueType = RegistryValueKind.None,
+                        },
+                    },
+                },
+                new SettingDefinition
+                {
                     Id = "explorer-customization-3d-objects",
                     RecommendedToggleState = false,
                     Name = "Show 3D Objects",
                     Description = "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
-                    GroupName = "Navigation Pane",
+                    GroupName = "This PC Folders",
                     InputType = InputType.Toggle,
                     Icon = "Printer3d",
                     IsWindows10Only = true,

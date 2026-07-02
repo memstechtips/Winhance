@@ -52,7 +52,10 @@ internal static class PowerShellScriptUtilities
         {
             RegistryValueKind.String or RegistryValueKind.ExpandString => $"'{value}'",
             RegistryValueKind.DWord or RegistryValueKind.QWord => value.ToString()!,
-            RegistryValueKind.Binary when value is byte[] byteArray => $"@({string.Join(",", byteArray.Select(b => $"0x{b:X2}"))})",
+            RegistryValueKind.Binary when value is byte[] byteArray =>
+                byteArray.Length == 0
+                    ? "([byte[]]@())"
+                    : $"@({string.Join(",", byteArray.Select(b => $"0x{b:X2}"))})",
             RegistryValueKind.Binary => $"@(0x{Convert.ToByte(value):X2})",
             _ => $"'{value}'"
         };

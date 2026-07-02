@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Winhance.Core.Features.Common.Models;
 
 /// <summary>
@@ -20,4 +22,25 @@ public sealed record ConfirmationRequest
     /// Gets the optional checkbox text. If null, no checkbox is shown.
     /// </summary>
     public string? CheckboxText { get; init; }
+
+    /// <summary>
+    /// Gets the optional list of items to render in a scrollable list inside the dialog.
+    /// When null or empty, no list is rendered.
+    /// </summary>
+    public IReadOnlyList<string>? Items { get; init; } = null;
+
+    /// <summary>
+    /// Gets whether the optional checkbox starts checked. Defaults to true.
+    /// </summary>
+    public bool CheckboxInitiallyChecked { get; init; } = true;
+
+    /// <summary>
+    /// Gets the text for the confirm (primary) button. Defaults to "OK".
+    /// </summary>
+    public string ConfirmButtonText { get; init; } = "OK";
+
+    /// <summary>
+    /// Gets the text for the cancel (close) button. Defaults to "Cancel".
+    /// </summary>
+    public string CancelButtonText { get; init; } = "Cancel";
 }
