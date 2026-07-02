@@ -101,9 +101,8 @@ public static class InfrastructureServicesExtensions
         // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
         // context to hold its own pre-fetched async reads.
         services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
-        // Catalog detection batch driver + the observe-only parallel-run shadow (logs old-vs-new divergences).
+        // Catalog detection batch driver.
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
-        services.AddSingleton<IDetectionShadowRunner, DetectionShadowRunner>();
         // Phase 6.9 full-state provider (new-engine drop-in for GetSettingStatesAsync + overlay); Slice 6 repoints
         // the old-discovery callers onto it one at a time.
         services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
