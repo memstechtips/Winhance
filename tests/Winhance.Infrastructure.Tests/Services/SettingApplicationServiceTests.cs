@@ -23,8 +23,6 @@ public class SettingApplicationServiceTests
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IRecommendedSettingsApplier> _mockRecommended = new();
     private readonly Mock<IProcessRestartManager> _mockRestart = new();
-    private readonly Mock<ISettingDependencyResolver> _mockDepResolver = new();
-    private readonly Mock<IWindowsCompatibilityFilter> _mockCompatFilter = new();
     private readonly Mock<ISettingOperationExecutor> _mockExecutor = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
@@ -76,7 +74,7 @@ public class SettingApplicationServiceTests
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
-            _mockDepResolver.Object, _mockCompatFilter.Object, _mockExecutor.Object,
+            _mockExecutor.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
@@ -308,45 +306,6 @@ public class SettingApplicationServiceTests
 
         _mockRegistry.Verify(r => r.RegisterSetting("TestDomain",
             It.Is<SettingDefinition>(s => s.Id == "test-setting")), Times.Once);
-    }
-
-    [Fact]
-    public async Task ApplySettingAsync_HandlesDependencies()
-    {
-        SetupSettingInRegistry("test-setting");
-
-        await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "test-setting",
-            Enable = true,
-        });
-
-        _mockDepResolver.Verify(d => d.HandleDependenciesAsync(
-            "test-setting",
-            It.IsAny<IEnumerable<SettingDefinition>>(),
-            true,
-            null,
-            _service), Times.Once);
-    }
-
-    [Fact]
-    public async Task ApplySettingAsync_SkipValuePrerequisites_SkipsDependencies()
-    {
-        SetupSettingInRegistry("test-setting");
-
-        await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "test-setting",
-            Enable = true,
-            SkipValuePrerequisites = true,
-        });
-
-        _mockDepResolver.Verify(d => d.HandleDependenciesAsync(
-            It.IsAny<string>(),
-            It.IsAny<IEnumerable<SettingDefinition>>(),
-            It.IsAny<bool>(),
-            It.IsAny<object?>(),
-            It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
     [Fact]

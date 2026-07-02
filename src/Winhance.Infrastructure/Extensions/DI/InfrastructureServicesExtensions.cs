@@ -30,8 +30,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IInteractiveUserService, InteractiveUserService>();
         services.AddSingleton<ISystemInfoProvider, SystemInfoProvider>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
-        // Dependency Manager
-        services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
 
         // Windows Services
         services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
@@ -92,7 +90,6 @@ public static class InfrastructureServicesExtensions
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
-        services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
         services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();

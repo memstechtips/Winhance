@@ -24,8 +24,6 @@ public class SettingApplicationService(
     IEventBus eventBus,
     IRecommendedSettingsApplier recommendedSettingsApplier,
     IProcessRestartManager processRestartManager,
-    ISettingDependencyResolver dependencyResolver,
-    IWindowsCompatibilityFilter compatibilityFilter,
     ISettingOperationExecutor operationExecutor,
     IChangeHistoryService changeHistory,
     ILocalizationService localizationService,
@@ -144,12 +142,14 @@ public class SettingApplicationService(
 
         // Phase 6.6 Slice 2: a setting is "paired" when the new catalog holds a peer for it. Paired settings run
         // their relationships through the NEW RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the
-        // main apply); unpaired settings keep the OLD dependency-resolver / inline-preset paths below as the
-        // fallback, so nothing regresses while the catalog is still being filled in.
+        // main apply). The OLD dependency-resolver / inline-preset fallback for unpaired settings has been
+        // deleted: it was proven a no-op (the only exact-match-unpaired settings are the 6 dependency-free
+        // -win10 aliases; OldDependencyPathsAreDeadTests guards the invariant), so an unpaired setting simply
+        // runs no relationship pass.
         bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
-        // Captured BEFORE the dependency resolver runs so nested applies don't mutate the read.
+        // Captured BEFORE any relationship follow-on / nested applies run so they don't mutate the read.
         // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
         // can render AC-only on battery-less machines and before/after CANNOT disagree.
         string? beforeDisplay = null;
@@ -175,20 +175,6 @@ public class SettingApplicationService(
             }
         }
 
-        // allSettings is needed by dependency resolver and preset sync — fetch once,
-        // pass through. Only needed when prerequisites aren't being skipped.
-        IEnumerable<SettingDefinition> allSettings = skipValuePrerequisites
-            ? Enumerable.Empty<SettingDefinition>()
-            : settingsRegistry.GetFilteredSettings(featureId);
-
-        // Paired settings run forward/reverse relationships through the new engine AFTER the main apply
-        // (ApplyCatalogRelationshipsAsync). Only unpaired settings still use the OLD value-prereq + dependency paths.
-        if (!skipValuePrerequisites && !paired)
-        {
-            await dependencyResolver.HandleValuePrerequisitesAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
-            await dependencyResolver.HandleDependenciesAsync(settingId, allSettings, enable, value, this).ConfigureAwait(false);
-        }
-
         var specialHandler = specialHandlerRegistry.TryGet(settingId);
         if (specialHandler != null
             && await specialHandler.TryApplySpecialSettingAsync(setting, value!, checkboxResult, this).ConfigureAwait(false))
@@ -197,11 +183,6 @@ public class SettingApplicationService(
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler");
-
-            if (!skipValuePrerequisites)
-            {
-                await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
-            }
 
             LogChangeHistory(setting, settingId, enable, value, beforeDisplay);
             return OperationResult.Succeeded();
@@ -227,63 +208,6 @@ public class SettingApplicationService(
         else
         {
             operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-        }
-
-        // Unpaired only: the OLD inline-preset path (preset -> apply children). Paired selections drive their
-        // children through the new engine's State.Controls in ApplyCatalogRelationshipsAsync instead.
-        if (!paired && setting.SettingPresets != null &&
-            setting.InputType == InputType.Selection &&
-            value is int selectedIndex)
-        {
-            var presets = setting.SettingPresets;
-
-            if (presets.ContainsKey(selectedIndex))
-            {
-                logService.Log(LogLevel.Info,
-                    $"[SettingApplicationService] Applying preset for '{settingId}' at index {selectedIndex}");
-
-                var preset = presets[selectedIndex];
-                foreach (var (childSettingId, childValue) in preset)
-                {
-                    try
-                    {
-                        var childSetting = globalSettingsRegistry.GetSetting(childSettingId);
-                        if (childSetting == null)
-                        {
-                            logService.Log(LogLevel.Debug,
-                                $"[SettingApplicationService] Skipping preset child '{childSettingId}' - not registered (likely OS-filtered)");
-                            continue;
-                        }
-
-                        if (childSetting is SettingDefinition childSettingDef)
-                        {
-                            var compatibleSettings = compatibilityFilter.FilterSettingsByWindowsVersion(new[] { childSettingDef });
-                            if (!compatibleSettings.Any())
-                            {
-                                logService.Log(LogLevel.Info,
-                                    $"[SettingApplicationService] Skipping preset child '{childSettingId}' - not compatible with current OS version");
-                                continue;
-                            }
-                        }
-
-                        await ApplySettingAsync(new ApplySettingRequest { SettingId = childSettingId, Enable = childValue, SkipValuePrerequisites = true }).ConfigureAwait(false);
-                        logService.Log(LogLevel.Info,
-                            $"[SettingApplicationService] Applied preset setting '{childSettingId}' = {childValue}");
-                    }
-                    catch (Exception ex)
-                    {
-                        logService.Log(LogLevel.Warning,
-                            $"[SettingApplicationService] Failed to apply preset setting '{childSettingId}': {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        // Unpaired only: the OLD reverse parent-sync. Paired settings get reverse-sync from the new engine
-        // (RelationshipResolver.ResolveReverseSync) inside ApplyCatalogRelationshipsAsync below.
-        if (!skipValuePrerequisites && !paired)
-        {
-            await dependencyResolver.SyncParentToMatchingPresetAsync(setting, settingId, allSettings, this).ConfigureAwait(false);
         }
 
         // Phase 6.6 Slice 2: paired settings run ALL their relationships (forward Requires/Enables/Controls, reverse
