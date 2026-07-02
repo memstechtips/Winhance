@@ -79,7 +79,7 @@ public class SettingApplicationService(
         // This PC folder settings - a Windows-11 HiddenByDefault write AND a Windows-10 key-delete on the SAME
         // key) would apply BOTH per-OS mechanisms. Settings with no build-gated targets (AppliesTo empty) are
         // unaffected: their targets are emitted regardless of build.
-        var plan = ApplyRequestResolver.Resolve(setting, enable, value, resetToDefault, CurrentBuild());
+        var plan = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault, CurrentBuild());
         if (plan is null)
         {
             // The old executor runs HandleProcessAndServiceRestartsAsync internally as its final step, so the

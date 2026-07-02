@@ -50,20 +50,6 @@ public class ApplyRequestResolverTests
         Numeric = new Numeric { Min = 0, Max = 100, Units = "Minutes" },
     };
 
-    private static SettingDefinition Def(InputType type, params string[] optionNames)
-    {
-        var def = new SettingDefinition { Id = "t", Name = "n", Description = "d", InputType = type };
-        if (optionNames.Length > 0)
-            def = def with
-            {
-                ComboBox = new ComboBoxMetadata
-                {
-                    Options = optionNames.Select(o => new ComboBoxOption { DisplayName = o }).ToList(),
-                },
-            };
-        return def;
-    }
-
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(Setting setting, IDetectionContext context) => null;
@@ -74,7 +60,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Unpaired_def_returns_null()
     {
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { ToggleSetting("other") });
         Assert.Null(plan);
     }
@@ -84,7 +70,7 @@ public class ApplyRequestResolverTests
     {
         // ToggleSetting()'s states carry NO WindowsDefault role, so the resolver cannot derive a reset target
         // (no default direction) and falls back to the old apply by returning null.
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { ToggleSetting() });
         Assert.Null(plan);
     }
@@ -95,7 +81,7 @@ public class ApplyRequestResolverTests
         // A custom-detector setting whose states carry NO apply effects (e.g. DNS, not yet migrated) has nothing
         // for the new engine to apply, so it falls back to the old apply. ToggleSetting()'s states are effect-less.
         var setting = ToggleSetting() with { Detector = new FakeDetector() };
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Null(plan);
     }
@@ -127,7 +113,7 @@ public class ApplyRequestResolverTests
             },
         };
 
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
         Assert.Null(plan);
     }
@@ -137,7 +123,7 @@ public class ApplyRequestResolverTests
     {
         // A legacy int index needs an async index->GUID lookup the pure resolver can't do -> old apply.
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: 1,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: false, new[] { setting });
         Assert.Null(plan);
     }
@@ -148,7 +134,7 @@ public class ApplyRequestResolverTests
         // Live UI selection (Slice 7b-ui-3a): the stored value is the scheme GUID string.
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: guid,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: guid,
             resetToDefault: false, new[] { setting });
         var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
         Assert.Equal(guid, activate.Guid);
@@ -161,26 +147,17 @@ public class ApplyRequestResolverTests
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
         var value = new Dictionary<string, object> { ["Guid"] = guid, ["Name"] = "Balanced" };
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: value,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
             resetToDefault: false, new[] { setting });
         var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
         Assert.Equal(guid, activate.Guid);
     }
 
     [Fact]
-    public void Numeric_setting_without_numeric_model_returns_null()
-    {
-        // A NumericRange def whose catalog peer was not authored as a Numeric (no slider model) falls back.
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: 5,
-            resetToDefault: false, new[] { ToggleSetting() });
-        Assert.Null(plan);
-    }
-
-    [Fact]
     public void Numeric_non_dict_value_returns_null()
     {
         // The new engine only handles the AC/DC display-units dictionary shape; a bare int falls back.
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: 5,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 5,
             resetToDefault: false, new[] { NumericSetting() });
         Assert.Null(plan);
     }
@@ -188,7 +165,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Selection_index_out_of_range_returns_null()
     {
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: 7,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 7,
             resetToDefault: false, new[] { SelectionSetting() });
         Assert.Null(plan);
     }
@@ -196,16 +173,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Selection_non_index_value_returns_null()
     {
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: "OptB",
-            resetToDefault: false, new[] { SelectionSetting() });
-        Assert.Null(plan);
-    }
-
-    [Fact]
-    public void Selection_label_with_no_matching_state_returns_null()
-    {
-        // The ComboBox option "Ghost" is not an authored state on the Setting -> fall back rather than throw.
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "Ghost"), enable: true, value: 0,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: "OptB",
             resetToDefault: false, new[] { SelectionSetting() });
         Assert.Null(plan);
     }
@@ -216,7 +184,7 @@ public class ApplyRequestResolverTests
     public void Toggle_enable_builds_enabled_plan()
     {
         var setting = ToggleSetting();
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
     }
@@ -225,7 +193,7 @@ public class ApplyRequestResolverTests
     public void Toggle_disable_builds_disabled_plan()
     {
         var setting = ToggleSetting();
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled"), plan);
     }
@@ -256,7 +224,7 @@ public class ApplyRequestResolverTests
             },
         };
 
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
     }
@@ -286,7 +254,7 @@ public class ApplyRequestResolverTests
             },
         };
 
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Toggle), enable: false, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
 
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled", build: null, reset: true), plan);
@@ -296,7 +264,7 @@ public class ApplyRequestResolverTests
     public void CheckBox_builds_like_toggle()
     {
         var setting = ToggleSetting();
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.CheckBox), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
     }
@@ -305,7 +273,7 @@ public class ApplyRequestResolverTests
     public void Selection_index_maps_to_option_label_plan()
     {
         var setting = SelectionSetting();
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Selection, "OptA", "OptB"), enable: true, value: 1,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.Build(setting, "OptB"), plan);
     }
@@ -319,7 +287,7 @@ public class ApplyRequestResolverTests
             Display = new() { Name = "n", Description = "d" },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
         };
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.Action), enable: true, value: null,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
         Assert.Equal(ApplyPlanBuilder.BuildAction(setting), plan);
     }
@@ -329,7 +297,7 @@ public class ApplyRequestResolverTests
     {
         var setting = NumericSetting();
         var value = new Dictionary<string, object?> { ["ACValue"] = 10, ["DCValue"] = 5 };
-        var plan = ApplyRequestResolver.Resolve(Def(InputType.NumericRange), enable: true, value: value,
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
             resetToDefault: false, new[] { setting });
         var expected = ApplyPlanBuilder.BuildPowerCfgNumeric(setting, new[]
         {

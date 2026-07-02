@@ -24,15 +24,15 @@ public static class ApplyRequestResolver
 {
     /// <summary>Resolve against the live <see cref="SettingCatalog"/>.</summary>
     public static IReadOnlyList<ApplyOp>? Resolve(
-        SettingDefinition def, bool enable, object? value, bool resetToDefault, WinBuild? build = null)
-        => Resolve(def, enable, value, resetToDefault, SettingCatalog.All, build);
+        string settingId, bool enable, object? value, bool resetToDefault, WinBuild? build = null)
+        => Resolve(settingId, enable, value, resetToDefault, SettingCatalog.All, build);
 
     /// <summary>Resolve against an explicit catalog (testing seam).</summary>
     public static IReadOnlyList<ApplyOp>? Resolve(
-        SettingDefinition def, bool enable, object? value, bool resetToDefault,
+        string settingId, bool enable, object? value, bool resetToDefault,
         IReadOnlyList<Setting> catalog, WinBuild? build = null)
     {
-        var setting = catalog.FirstOrDefault(s => s.Id == def.Id);
+        var setting = catalog.FirstOrDefault(s => s.Id == settingId);
         if (setting is null)
             return null; // unpaired -> old apply
 
@@ -70,25 +70,27 @@ public static class ApplyRequestResolver
             return defaultLabel is null ? null : ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
         }
 
-        switch (def.InputType)
+        // Render-kind drives the apply shape: the catalog Setting's derived Control (proven == the old
+        // InputType by ControlDerivationConformanceTests). CheckBox folds into Toggle.
+        switch (setting.Control)
         {
-            case InputType.Action:
+            case ControlKind.Action:
                 return ApplyPlanBuilder.BuildAction(setting);
 
-            case InputType.Toggle:
-            case InputType.CheckBox:
+            case ControlKind.Toggle:
                 return BuildForLabel(setting, enable ? "Enabled" : "Disabled", build);
 
-            case InputType.Selection:
+            case ControlKind.Selection:
+                // The selection index maps to the state at that position (States[i].Label == the old
+                // ComboBox.Options[i].DisplayName by construction - the converter built States from Options).
                 if (value is int index
-                    && def.ComboBox?.Options is { } options
-                    && index >= 0 && index < options.Count)
+                    && index >= 0 && index < setting.States.Count)
                 {
-                    return BuildForLabel(setting, options[index].DisplayName, build);
+                    return BuildForLabel(setting, setting.States[index].Label, build);
                 }
                 return null; // non-index selection value (AC/DC dict, string, tuple) -> old apply
 
-            case InputType.NumericRange:
+            case ControlKind.Slider:
                 // Powercfg slider (Phase 6.4b). The funnel always passes display-units AC/DC in a dictionary
                 // (UI quick-set, the recommended applier, and the config-import bridge all build that shape).
                 // Pull the two values and hand them to BuildPowerCfgNumeric, which converts display->system per
