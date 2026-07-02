@@ -22,4 +22,22 @@ public static class SettingCatalog
         PrivacyOptimizationsCatalog.All,
         PowerOptimizationsCatalog.All,
     }.SelectMany(x => x).ToArray();
+
+    /// <summary>The catalog partitioned by feature module (Explorer/Power/...), mirroring the old
+    /// CompatibleSettingsRegistry.GetKnownFeatureProviders partition. Each *Catalog.cs declares its own
+    /// FeatureId const; this is the catalog-sourced replacement for the old per-feature SettingDefinition groups.</summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<Setting>> ByFeature { get; } =
+        new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [WindowsThemeCustomizationsCatalog.FeatureId] = WindowsThemeCustomizationsCatalog.All,
+            [ExplorerCustomizationsCatalog.FeatureId] = ExplorerCustomizationsCatalog.All,
+            [TaskbarCustomizationsCatalog.FeatureId] = TaskbarCustomizationsCatalog.All,
+            [StartMenuCustomizationsCatalog.FeatureId] = StartMenuCustomizationsCatalog.All,
+            [SoundOptimizationsCatalog.FeatureId] = SoundOptimizationsCatalog.All,
+            [UpdateOptimizationsCatalog.FeatureId] = UpdateOptimizationsCatalog.All,
+            [NotificationOptimizationsCatalog.FeatureId] = NotificationOptimizationsCatalog.All,
+            [GamingAndPerformanceOptimizationsCatalog.FeatureId] = GamingAndPerformanceOptimizationsCatalog.All,
+            [PrivacyOptimizationsCatalog.FeatureId] = PrivacyOptimizationsCatalog.All,
+            [PowerOptimizationsCatalog.FeatureId] = PowerOptimizationsCatalog.All,
+        };
 }
