@@ -801,7 +801,7 @@
                                   BorderThickness="0"
                                   CornerRadius="0"
                                   Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
+                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     </ToggleButton>
                     <ToggleButton x:Name="CompactViewToggle"
                                   IsChecked="{x:Bind ViewModel.IsCompactView, Mode=OneWay}"
@@ -812,7 +812,7 @@
                                   BorderThickness="0"
                                   CornerRadius="0,4,4,0"
                                   Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
+                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>
