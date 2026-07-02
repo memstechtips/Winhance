@@ -40,4 +40,13 @@ public static class SettingCatalog
             [PrivacyOptimizationsCatalog.FeatureId] = PrivacyOptimizationsCatalog.All,
             [PowerOptimizationsCatalog.FeatureId] = PowerOptimizationsCatalog.All,
         };
+
+    /// <summary>Every setting by its (canonical) Id - the O(1) pairing index.</summary>
+    public static IReadOnlyDictionary<string, Setting> ById { get; } = All.ToDictionary(s => s.Id);
+
+    /// <summary>The pairing primitive for the SettingDefinition retirement: given a setting id (canonical OR a
+    /// retired -win10 alias), return its catalog Setting, or null if unpaired. Mirrors the live UI pairing
+    /// (SettingsLoadingService uses SettingIdAliases.Normalize then looks up SettingCatalog.All by Id).</summary>
+    public static Setting? Find(string settingId) =>
+        ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) ? s : null;
 }
