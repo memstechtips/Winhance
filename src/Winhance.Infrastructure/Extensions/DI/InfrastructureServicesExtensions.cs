@@ -127,6 +127,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
         services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
         services.AddSingleton<ICatalogPowerExistenceFilter, CatalogPowerExistenceFilter>();
+        services.AddSingleton<ICatalogSettingsRegistry, CatalogSettingsRegistry>();
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
