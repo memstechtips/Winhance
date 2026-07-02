@@ -78,7 +78,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Bare_custom_detector_setting_returns_null()
     {
-        // A custom-detector setting whose states carry NO apply effects (e.g. DNS, not yet migrated) has nothing
+        // A custom-detector setting whose states carry NO apply effects has nothing
         // for the new engine to apply, so it falls back to the old apply. ToggleSetting()'s states are effect-less.
         var setting = ToggleSetting() with { Detector = new FakeDetector() };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
@@ -87,11 +87,13 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Custom_detector_reset_returns_null()
+    public void Custom_detector_reset_with_windows_default_routes_to_new_engine()
     {
-        // A custom-detector setting WITH apply effects (system-restore-style) still routes its RESET to the old
-        // apply - Slice 5 is apply-only. Even though the Enabled state is WindowsDefault (a reset target the
-        // generic reset block would otherwise pick up), the custom-detector reset guard returns null first.
+        // A custom-detector setting WITH apply effects AND a WindowsDefault state (system-restore-style) now routes its
+        // RESET through the new engine: the reset block derives the WindowsDefault state and builds it with reset:true,
+        // exactly as ApplyPlanBuilder would - proven equivalent to the old executor reset by
+        // CustomDetectorResetApplyEquivalenceTests. The passed enable/value are ignored on a reset; the WindowsDefault
+        // direction is authoritative.
         var setting = ToggleSetting() with
         {
             Detector = new FakeDetector(),
@@ -109,6 +111,37 @@ public class ApplyRequestResolverTests
                     Label = "Disabled",
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
                     Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled", build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Custom_detector_reset_with_no_windows_default_returns_null()
+    {
+        // A custom-detector setting WITH apply effects but NO WindowsDefault-roled state (system-tray / DNS selection
+        // shape): the reset block cannot derive a default target, so it returns null and the reset stays on the old
+        // apply - unchanged by the custom-detector-reset migration.
+        var setting = SelectionSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "OptA",
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("a", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = "OptB",
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("b", RunContext.User) },
                 },
             },
         };

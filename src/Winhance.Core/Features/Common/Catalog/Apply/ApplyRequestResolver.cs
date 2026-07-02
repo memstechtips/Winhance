@@ -49,17 +49,19 @@ public static class ApplyRequestResolver
             return guid is null ? null : new ApplyOp[] { new PowerPlanActivateOp(guid) };
         }
 
-        // A BARE-state custom detector (e.g. DNS, not yet migrated to the new apply) has no apply effects to run,
-        // so the new engine has nothing to build -> old apply. A custom-detector setting WHOSE states carry apply
-        // effects (system-tray / system-restore, Slice 5) is allowed through and flows into the InputType switch.
+        // A BARE-state custom detector (states carry NO apply effects) has nothing for the new engine to build, so it
+        // falls back to the old apply. A custom-detector setting WHOSE states carry apply effects (system-tray /
+        // system-restore / DNS, Slice 5/6) is allowed through and flows into the reset block / InputType switch.
         if (setting.Detector is not null && !setting.States.Any(s => s.Effects.Count > 0))
             return null;
 
-        // Custom-detector RESET is not modelled on the new engine (Slice 5 is apply-only): the special detectors'
-        // reset still runs the old apply. Without this the system-restore reset would route to the new engine,
-        // because its Enabled state is WindowsDefault (so the reset block below would otherwise pick it up).
-        if (resetToDefault && setting.Detector is not null)
-            return null;
+        // Custom-detector RESET now routes through the general reset block below: an effects-based detector with a
+        // WindowsDefault state (system-restore) resolves to Build(WindowsDefault, reset:true) - proven equivalent to
+        // the old executor reset by CustomDetectorResetApplyEquivalenceTests. A detector with no WindowsDefault state
+        // (system-tray / DNS selections) hits the null return there and stays on the old apply, unchanged.
+        // (updates-policy-mode is the one custom detector with a WindowsDefault state AND registry targets, but it is
+        // special-handled - see SettingServicesExtensions - so it never reaches Resolve; if that registration is ever
+        // removed, its reset must get its own Build(reset:true) equivalence proof before relying on this path.)
 
         // Reset-to-default (Phase 6.4b 3A): apply the WindowsDefault-roled state with its per-target reset
         // write-overrides (ResetSet) - the [1,null] Explorer targets DELETE on reset where their normal Set writes 1.

@@ -450,6 +450,64 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per effects-based custom-detector setting whose states carry a
+    /// WindowsDefault role (today only the system-restore toggle): OLD is the live executor RESET, which - because the
+    /// funnel applies the WindowsDefault DIRECTION on reset (SetToggleToDefaultCommand -> Enable = ToggleDefaultState) -
+    /// runs that direction's script; NEW is the ApplyPlanBuilder plan for the WindowsDefault state with reset:true. Both
+    /// effects-only (these settings carry no registry targets, so reset:true is inert). A custom-detector setting with
+    /// NO WindowsDefault state (system-tray / DNS selections) is skipped: the resolver's reset block returns null for it,
+    /// so its reset stays on the old apply and is not part of this migration.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunCustomDetectorReset(IEnumerable<SettingDefinition> defs)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            Setting? setting = def.DetectionType switch
+            {
+                DetectionType.SystemRestore when def.InputType == InputType.Toggle => SettingDefinitionConverter.ConvertSystemRestore(def),
+                DetectionType.SystemTrayIcons when def.ComboBox is not null => SettingDefinitionConverter.ConvertSystemTray(def),
+                DetectionType.DnsServer when def.ComboBox is not null => SettingDefinitionConverter.ConvertDnsServer(def),
+                _ => null,
+            };
+            if (setting is null)
+                continue;
+
+            // Reset routes to the new engine only when a WindowsDefault state exists (the resolver derives the reset
+            // target from it). Effects-based detectors with no WindowsDefault role stay on the old apply - skip them.
+            var wd = setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault));
+            if (wd is null)
+                continue;
+
+            // OLD reset = the WindowsDefault direction's effect intent. A toggle (no ComboBox) applies isEnabled =
+            // (WindowsDefault label == "Enabled"); a selection applies the option whose DisplayName is the WindowsDefault
+            // label (none today - custom-detector selections carry no WindowsDefault - but handled for completeness).
+            IEnumerable<string> oldEffects;
+            if (def.ComboBox is null)
+            {
+                oldEffects = OldEffectWrites(def, isEnabled: wd.Label == "Enabled");
+            }
+            else
+            {
+                var opt = def.ComboBox.Options.FirstOrDefault(o => o.DisplayName == wd.Label);
+                oldEffects = opt is null ? Enumerable.Empty<string>() : OldSelectionEffectWrites(def, opt);
+            }
+
+            var oldWrites = oldEffects.OrderBy(s => s).ToList();
+            var newWrites = NewWrites(ApplyPlanBuilder.Build(setting, wd.Label, build: null, reset: true))
+                .OrderBy(s => s).ToList();
+
+            bool match = oldWrites.SequenceEqual(newWrites);
+            rows.Add(new EquivalenceRow(
+                $"{def.Id} [reset->{wd.Label}]",
+                string.Join(" | ", oldWrites),
+                string.Join(" | ", newWrites),
+                match));
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring
