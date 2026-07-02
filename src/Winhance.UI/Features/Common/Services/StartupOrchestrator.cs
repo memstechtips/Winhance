@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
@@ -67,7 +68,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         // behave identically to release builds).
         try
         {
-            var allAddedInVersions = CollectAddedInVersions(_settingsRegistry);
+            var allAddedInVersions = CollectAddedInVersions();
             _newBadgeService.Initialize(allAddedInVersions);
         }
         catch (Exception ex)
@@ -160,31 +161,11 @@ public class StartupOrchestrator : IStartupOrchestrator
     }
 
     /// <summary>
-    /// Enumerates <c>AddedInVersion</c> across every setting in both the filtered
-    /// and bypassed maps of the registry. Duplicates are fine — the badge service
-    /// only cares about the maximum.
+    /// Enumerates <c>AddedInVersion</c> across every catalog setting - the badge service only cares about the
+    /// maximum, and the set is machine-independent: every old def pairs 1:1 to a catalog Setting (0 unpaired) and
+    /// Display.AddedInVersion == the old AddedInVersion (proven), so the newest version is identical to the old
+    /// filtered+bypassed union - without depending on registry readiness.
     /// </summary>
-    private static IEnumerable<string?> CollectAddedInVersions(ICompatibleSettingsRegistry registry)
-    {
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>>? filtered = null;
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>>? bypassed = null;
-
-        try { filtered = registry.GetAllFilteredSettings(); } catch { /* registry not ready */ }
-        try { bypassed = registry.GetAllBypassedSettings(); } catch { /* registry not ready */ }
-
-        var results = new List<string?>();
-        if (filtered is not null)
-        {
-            foreach (var kvp in filtered)
-                foreach (var s in kvp.Value)
-                    results.Add(s.AddedInVersion);
-        }
-        if (bypassed is not null)
-        {
-            foreach (var kvp in bypassed)
-                foreach (var s in kvp.Value)
-                    results.Add(s.AddedInVersion);
-        }
-        return results;
-    }
+    private static IEnumerable<string?> CollectAddedInVersions() =>
+        SettingCatalog.All.Select(s => s.Display.AddedInVersion);
 }
