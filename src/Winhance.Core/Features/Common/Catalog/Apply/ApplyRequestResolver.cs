@@ -15,7 +15,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// stateless Actions, numeric powercfg sliders, and reset-to-default (Phase 6.4b) - by pairing the def with its
 /// <see cref="SettingCatalog"/> Setting and running <see cref="ApplyPlanBuilder"/>. Returns null (-> old apply) for:
 ///   - an unpaired def (no SettingCatalog peer; a retired -win10 id normalizes to its canonical merged peer),
-///   - a reset-to-default of a setting that has no WindowsDefault state (no reset target can be derived),
+///   - a reset-to-default of a stateless Action (no default state to apply; other no-WindowsDefault resets fall through),
 ///   - a NumericRange whose value is not an AC/DC display-units dictionary (the only shape the catalog produces),
 ///   - custom-detector / dynamic-option settings (DNS / system-tray / system-restore / power-plan),
 ///   - a selection whose value is not a plain option index, or whose option label has no matching authored state.
@@ -66,13 +66,25 @@ public static class ApplyRequestResolver
         // special-handled - see SettingServicesExtensions - so it never reaches Resolve; if that registration is ever
         // removed, its reset must get its own Build(reset:true) equivalence proof before relying on this path.)
 
-        // Reset-to-default (Phase 6.4b 3A): apply the WindowsDefault-roled state with its per-target reset
-        // write-overrides (ResetSet) - the [1,null] Explorer targets DELETE on reset where their normal Set writes 1.
-        // Falls back to old apply when the setting has no WindowsDefault state (no reset target can be derived).
+        // Reset-to-default. A reset differs from a normal apply ONLY in the per-target ResetSet overrides, which
+        // live on a WindowsDefault-roled state (the [1,null] Explorer targets DELETE on reset where their normal Set
+        // writes 1). So the reset resolution is:
+        //   - a setting WITH a WindowsDefault state -> apply that state with reset:true, so its ResetSet kicks in.
+        //   - a setting WITHOUT one declares no reset-specific overrides, so its reset IS a normal apply of the
+        //     requested default value (the reset dispatcher passes the setting's default). Fall through to the
+        //     normal resolution below with reset:true threaded (a no-op today - none of this population carries a
+        //     ResetSet - but honest + future-proof). Proven reset-inert + apply-covered + ResetSet-free for the
+        //     whole population by NoWindowsDefaultResetInertTests.
+        //   - a stateless Action has no default STATE to apply (BuildAction runs its one-shot effects, which is NOT
+        //     a reset), so a reset is not representable and stays on the old apply.
         if (resetToDefault)
         {
             var defaultLabel = setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
-            return defaultLabel is null ? null : ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
+            if (defaultLabel is not null)
+                return ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
+            if (setting.Control == ControlKind.Action)
+                return null; // stateless action: reset not representable -> old apply
+            // else: fall through to the normal apply resolution below (reset:true is threaded via resetToDefault).
         }
 
         // Render-kind drives the apply shape: the catalog Setting's derived Control (proven == the old
@@ -83,7 +95,7 @@ public static class ApplyRequestResolver
                 return ApplyPlanBuilder.BuildAction(setting);
 
             case ControlKind.Toggle:
-                return BuildForLabel(setting, enable ? "Enabled" : "Disabled", build);
+                return BuildForLabel(setting, enable ? "Enabled" : "Disabled", build, resetToDefault);
 
             case ControlKind.Selection:
                 // The selection index maps to the state at that position (States[i].Label == the old
@@ -91,7 +103,7 @@ public static class ApplyRequestResolver
                 if (value is int index
                     && index >= 0 && index < setting.States.Count)
                 {
-                    return BuildForLabel(setting, setting.States[index].Label, build);
+                    return BuildForLabel(setting, setting.States[index].Label, build, resetToDefault);
                 }
                 // Separate AC/DC powercfg selection (config-import (acIndex,dcIndex) tuple / UI {ACValue,DCValue} index
                 // dict): the old PowerCfgApplier wrote GetValueFromIndex(acIndex) -> AC and GetValueFromIndex(dcIndex)
@@ -205,10 +217,10 @@ public static class ApplyRequestResolver
     /// <summary>Build the plan for a named state, or null when the setting has no such state (e.g. a custom-detector
     /// selection whose option label is not an authored state) so the caller falls back rather than the builder
     /// throwing.</summary>
-    private static IReadOnlyList<ApplyOp>? BuildForLabel(Setting setting, string label, WinBuild? build)
+    private static IReadOnlyList<ApplyOp>? BuildForLabel(Setting setting, string label, WinBuild? build, bool reset = false)
     {
         if (!setting.States.Any(s => s.Label == label))
             return null;
-        return ApplyPlanBuilder.Build(setting, label, build);
+        return ApplyPlanBuilder.Build(setting, label, build, reset);
     }
 }

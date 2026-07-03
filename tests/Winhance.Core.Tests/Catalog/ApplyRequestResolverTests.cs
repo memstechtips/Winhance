@@ -83,13 +83,16 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_with_no_default_state_returns_null()
+    public void Reset_no_windows_default_toggle_falls_through_to_normal_apply()
     {
-        // ToggleSetting()'s states carry NO WindowsDefault role, so the resolver cannot derive a reset target
-        // (no default direction) and falls back to the old apply by returning null.
+        // A toggle with NO WindowsDefault-roled state carries no reset-specific overrides (ResetSet), so its
+        // reset IS a normal apply of the requested default direction. The resolver falls through to the toggle
+        // resolution with reset:true threaded (a no-op here - no ResetSet). Proven reset-inert + apply-covered +
+        // ResetSet-free for the whole population by NoWindowsDefaultResetInertTests.
+        var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
-            resetToDefault: true, new[] { ToggleSetting() });
-        Assert.Null(plan);
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled", build: null, reset: true), plan);
     }
 
     [Fact]
@@ -140,9 +143,10 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Custom_detector_reset_with_no_windows_default_returns_null()
     {
-        // A custom-detector setting WITH apply effects but NO WindowsDefault-roled state (system-tray / DNS selection
-        // shape): the reset block cannot derive a default target, so it returns null and the reset stays on the old
-        // apply - unchanged by the custom-detector-reset migration.
+        // A custom-detector selection WITH effects but NO WindowsDefault state, reset with a NON-index value
+        // (null): it falls through the reset block to the normal selection resolution, which returns null for a
+        // non-index value -> old apply. (A reset carrying a valid option index DOES route now - see
+        // Reset_no_windows_default_selection_index_falls_through.)
         var setting = SelectionSetting() with
         {
             Detector = new FakeDetector(),
@@ -568,5 +572,76 @@ public class ApplyRequestResolverTests
             resetToDefault: false, SettingCatalog.All, win10);
 
         Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win10), plan);
+    }
+
+    // ---- Edge-2: no-WindowsDefault reset falls through to the normal apply resolution ----
+
+    [Fact]
+    public void Reset_no_windows_default_selection_index_falls_through()
+    {
+        // A no-WindowsDefault selection reset carrying a plain option index (the DNS / system-tray bulk-reset
+        // shape) applies that index - reset:true threaded (a no-op without a ResetSet).
+        var setting = SelectionSetting(); // OptA(0), OptB(1); no WindowsDefault state
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, "OptB", build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Reset_no_windows_default_powercfg_selection_acdc_dict_falls_through()
+    {
+        // A no-WindowsDefault powercfg Separate selection reset (the {ACValue,DCValue} index dict the bulk reset
+        // dispatches) falls through to the asymmetric AC/DC builder - powercfg carries no ResetSet, so no reset
+        // threading is needed there.
+        var setting = PowerCfgSelectionSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 2, ["DCValue"] = 0 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 2, 0), plan);
+    }
+
+    [Fact]
+    public void Reset_stateless_action_returns_null()
+    {
+        // A stateless Action has no default STATE to apply on reset (BuildAction runs its one-shot effects, which
+        // is NOT a reset), so its reset is not representable and stays on the old apply.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Reset_this_pc_toggle_win11_routes_via_fall_through()
+    {
+        // Real catalog: a merged This PC toggle has no WindowsDefault state. On Windows 11 the bulk reset
+        // dispatches the default direction (Disabled); the resolver falls through to Build the Disabled state with
+        // the live (Win11) build gate - the same plan a normal apply produces.
+        const string id = "explorer-customization-thispc-folder-desktop";
+        var win11 = new WinBuild(22631);
+        var canonical = SettingCatalog.All.First(s => s.Id == id);
+        var plan = ApplyRequestResolver.Resolve(id, enable: false, value: null,
+            resetToDefault: true, SettingCatalog.All, win11);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win11, reset: true), plan);
+    }
+
+    [Fact]
+    public void Reset_this_pc_toggle_win10_alias_routes_via_fall_through()
+    {
+        // On Windows 10 the UI applies the merged This PC toggle under its retired -win10 id; the bulk reset
+        // dispatches the default direction (Enabled for the key-existence Win10 variant). Alias-normalize (Edge-1) +
+        // the reset fall-through (Edge-2) route it to Build the Enabled state with the Win10 build gate.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
+            resetToDefault: true, SettingCatalog.All, win10);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Enabled", win10, reset: true), plan);
     }
 }

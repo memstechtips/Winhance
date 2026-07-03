@@ -647,6 +647,86 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Edge-2 proof (reset-INERTNESS + coverage). The population is every old def whose catalog peer has
+    /// NO WindowsDefault-roled state and is not an Action - exactly the settings whose reset ApplyRequestResolver now
+    /// FALLS THROUGH to the normal apply resolution (instead of returning null). For each, two things establish that
+    /// the fall-through faithfully reproduces the old executor's RESET:
+    ///   (1) INERTNESS - the old executor writes the same registry intent on reset as on a normal apply. The only
+    ///       reset-sensitive old-executor branch is the plain-registry else-branch's useDefaultValue path; powercfg,
+    ///       scheduled-task, script, .reg and native-power all ignore resetToDefault by construction, and a registry
+    ///       SELECTION applies via the index-mapping branch which also ignores it - so comparing OldResetWrite to
+    ///       OldApplyWrite per registry target, in BOTH directions, is the exact inertness condition (vacuously true
+    ///       for a reg-less powercfg/script setting).
+    ///   (2) COVERAGE - the peer's normal apply is proven == old apply by an existing apply-equivalence harness, so
+    ///       the fall-through (which produces that same normal-apply plan) is faithful. The predicate names the
+    ///       DETECTION population, but the resolver's actual emitted plan is proven by the SIBLING harness over that
+    ///       same population: a SEPARATE powercfg selection resets with an AC/DC index dict -> BuildPowerCfgSelectionAcDc,
+    ///       proven by RunPowerCfgSelectionAcDcApply (not the symmetric RunPowerCfgSelectionApply); a This PC toggle
+    ///       resets to the build-gated merged Build(mergedPeer, liveBuild), proven by MergedAliasApplyEquivalenceTests
+    ///       (Win10 alias + Win11 canonical) rather than RunToggleApply(ConvertToggle(def)).
+    ///   (3) noResetSet - no state carries a ResetSet (that override belongs on a WindowsDefault state), so
+    ///       Build(reset:true) == Build(reset:false) and the fall-through's reset:true equals the apply-covered plan.
+    /// Chain: fall-through plan == new apply (existing harness) == old apply == old reset (inertness). Actions are
+    /// excluded (their reset is a separate decision - a stateless action has no default STATE to fall through to).</summary>
+    public static IReadOnlyList<EquivalenceRow> RunNoWindowsDefaultResetInert(
+        IEnumerable<SettingDefinition> defs, IReadOnlyList<Setting> catalog)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in defs)
+        {
+            var peer = catalog.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(def.Id));
+            if (peer is null)
+                continue; // unpaired - not in the fall-through population
+            // Mirror the resolver's earlier early-returns that PRECEDE the reset block: an OptionSource (power-plan)
+            // setting is handled by the dynamic-option branch, and a bare-state custom detector returns null there -
+            // neither reaches the reset block, so neither is in the fall-through population.
+            if (peer.OptionSource is not null)
+                continue;
+            if (peer.Detector is not null && !peer.States.Any(s => s.Effects.Count > 0))
+                continue;
+            if (peer.States.Any(s => s.HasRole(RoleKind.WindowsDefault)))
+                continue; // routes via the proven WindowsDefault early-return, not the fall-through
+            if (peer.Control == ControlKind.Action)
+                continue; // Actions gated out of the fall-through (reset semantics decided separately)
+
+            // (1) Inertness: every registry target writes identically on reset and on a normal apply, both directions.
+            var regs = def.RegistrySettings ?? (IReadOnlyList<RegistrySetting>)System.Array.Empty<RegistrySetting>();
+            var mismatches = new List<string>();
+            foreach (var rs in regs)
+            foreach (var (dirLabel, dir) in new[] { ("en", true), ("dis", false) })
+            {
+                var apply = OldApplyWrite(rs, dir, specificValue: null).OrderBy(x => x).ToList();
+                var reset = OldResetWrite(rs, dir).OrderBy(x => x).ToList();
+                if (!apply.SequenceEqual(reset))
+                    mismatches.Add($"[{dirLabel}] apply=[{string.Join(",", apply)}] reset=[{string.Join(",", reset)}]");
+            }
+
+            // (2) Coverage: the peer's normal apply is proven == old apply by an existing apply-equivalence harness.
+            bool covered = IsPlainRegistryToggleForApply(def)
+                || IsPlainPowerCfgSelectionForApply(def)
+                || IsPlainPowerCfgNumericForApply(def)
+                || IsDnsServerForApply(def)
+                || IsSystemTrayForApply(def)
+                || IsSystemRestoreForApply(def);
+
+            // (3) No ResetSet outside a WindowsDefault state: a per-target reset override (ResetSet) belongs on a
+            // WindowsDefault state, which this population lacks. Locking that invariant means Build(reset:true) ==
+            // Build(reset:false) here, so the fall-through (which threads reset:true) equals the apply-covered plan.
+            bool noResetSet = peer.States.All(s => s.ResetSet is null || s.ResetSet.Count == 0);
+
+            bool match = mismatches.Count == 0 && covered && noResetSet;
+            rows.Add(new EquivalenceRow(
+                $"{def.Id} [{peer.Control}] reset-inert",
+                covered ? "covered" : "NOT-COVERED-by-any-apply-harness",
+                (mismatches.Count == 0 ? "inert" : string.Join(" | ", mismatches))
+                    + (noResetSet ? "" : " | HAS-ResetSet-on-non-WindowsDefault-state"),
+                match));
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring
