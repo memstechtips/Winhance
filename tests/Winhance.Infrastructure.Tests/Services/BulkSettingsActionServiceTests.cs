@@ -280,6 +280,79 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
+    // Test 2b: stateless Actions are excluded from BOTH bulk ops
+    //          (ResolveSettingsAsync), so they are never bulk-reset or
+    //          bulk-recommended (Marco 2026-07-03).
+    // ---------------------------------------------------------------
+
+    private static SettingDefinition CreateActionSetting(string id) => new()
+    {
+        Id = id,
+        Name = "Clean",
+        Description = "One-shot action",
+        InputType = InputType.Action,
+        RegistrySettings = new[]
+        {
+            new RegistrySetting
+            {
+                KeyPath = @"HKCU\Software\Test",
+                ValueName = "Favorites",
+                ValueType = RegistryValueKind.Binary,
+                EnabledValue = [new byte[0]],
+                DisabledValue = [null],
+                RecommendedValue = null,
+                DefaultValue = null,
+            }
+        }
+    };
+
+    [Fact]
+    public async Task ApplyRecommendedAsync_SkipsActions_BeforeDelegating()
+    {
+        // A stateless Action is filtered out in ResolveSettingsAsync before the applier is called.
+        var action = CreateActionSetting("clean-action");
+        var toggle = CreateToggleSetting("compatible", recommendedValue: 1, enabledValue: [1]);
+        SetupDomainWithSettings("clean-action", new[] { action }, "D1");
+        SetupDomainWithSettings("compatible", new[] { toggle }, "D2");
+
+        _mockRecommendedApplier
+            .Setup(r => r.ApplyRecommendedToSettingsAsync(
+                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<ISettingApplicationService>(),
+                It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync((IReadOnlyList<SettingDefinition> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
+                (IReadOnlyList<SettingDefinition>)passed.ToList());
+
+        await _service.ApplyRecommendedAsync(new[] { "clean-action", "compatible" });
+
+        // The applier receives only the toggle - the Action was excluded.
+        _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
+            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+                list.Count == 1 && list[0].Id == "compatible"),
+            _mockAppService.Object,
+            It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_SkipsActions()
+    {
+        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a real toggle still resets.
+        var action = CreateActionSetting("clean-action");
+        var toggle = CreateToggleSetting("reset-a", recommendedValue: 0, defaultValue: 1,
+            enabledValue: [1], disabledValue: [0]);
+        SetupDomainWithSettings("clean-action", new[] { action }, "D1");
+        SetupDomainWithSettings("reset-a", new[] { toggle }, "D2");
+
+        var applied = await _service.ResetToDefaultsAsync(new[] { "clean-action", "reset-a" });
+
+        applied.Should().Be(1); // only the toggle
+        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+            r.SettingId == "reset-a" && r.ResetToDefault == true)), Times.Once);
+        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+            r.SettingId == "clean-action")), Times.Never);
+    }
+
+    // ---------------------------------------------------------------
     // Test 3: ApplyRecommendedAsync flushes once even when all skipped
     // ---------------------------------------------------------------
 
