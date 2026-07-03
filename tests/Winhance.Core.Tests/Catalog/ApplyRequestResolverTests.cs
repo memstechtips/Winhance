@@ -535,4 +535,38 @@ public class ApplyRequestResolverTests
             resetToDefault: false, new[] { setting });
         Assert.Null(plan);
     }
+
+    // ---- Edge-1: retired "-win10" alias ids normalize to the canonical merged setting ----
+
+    [Fact]
+    public void Win10_alias_id_normalizes_to_canonical_merged_setting_enabled()
+    {
+        // Edge-1: on Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
+        // alias-normalizes it to the canonical MERGED catalog Setting and builds it with the live (Win10) build gate
+        // - the same path config-import already uses - instead of missing (unpaired) and falling to the old apply.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
+            resetToDefault: false, SettingCatalog.All, win10);
+
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Enabled", win10), plan);
+    }
+
+    [Fact]
+    public void Win10_alias_id_normalizes_to_canonical_merged_setting_disabled()
+    {
+        // The Disabled direction of the same alias id routes to the canonical setting's Disabled state on Win10.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: false, value: null,
+            resetToDefault: false, SettingCatalog.All, win10);
+
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win10), plan);
+    }
 }

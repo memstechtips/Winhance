@@ -602,6 +602,51 @@ public static class ApplyEquivalenceHarness
         return rows;
     }
 
+    /// <summary>Builds one <see cref="EquivalenceRow"/> per (retired "-win10" alias def, direction). The 6 "This PC
+    /// folder" settings were split per-OS in the old model; the catalog MERGES each pair into ONE build-gated
+    /// <see cref="Setting"/> under the canonical id, so the "-win10" ids are absent from the catalog. On Windows 10
+    /// the UI factory still applies them under their "-win10" id; Edge-1 makes <see cref="ApplyRequestResolver"/>
+    /// alias-normalize that id to the canonical merged Setting and Build it with the live (Win10) build gate. This
+    /// proves the merged-setting Win10 apply == the old "-win10" executor write intent, so the alias routing is
+    /// faithful. OLD is the old executor's registry write intent (key-existence toggles); NEW is
+    /// Build(mergedCanonical, label, win10Build). Callers pass the alias defs + the live catalog; the merged Setting
+    /// is resolved via <see cref="SettingIdAliases.Normalize"/>.</summary>
+    public static IReadOnlyList<EquivalenceRow> RunMergedAliasApply(
+        IEnumerable<SettingDefinition> aliasDefs, IReadOnlyList<Setting> catalog, WinBuild win10Build)
+    {
+        var rows = new List<EquivalenceRow>();
+
+        foreach (var def in aliasDefs)
+        {
+            var merged = catalog.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(def.Id));
+            if (merged is null)
+                continue;
+
+            foreach (var (label, isEnabled) in new[] { ("Enabled", true), ("Disabled", false) })
+            {
+                var oldRegWrites = def.RegContents.Count == 0
+                    ? def.RegistrySettings.SelectMany(rs => OldApplyWrite(rs, isEnabled, specificValue: null))
+                    : Enumerable.Empty<string>();
+
+                var oldWrites = oldRegWrites
+                    .Concat(OldEffectWrites(def, isEnabled))
+                    .OrderBy(s => s).ToList();
+
+                var newWrites = NewWrites(ApplyPlanBuilder.Build(merged, label, win10Build))
+                    .OrderBy(s => s).ToList();
+
+                bool match = oldWrites.SequenceEqual(newWrites);
+                rows.Add(new EquivalenceRow(
+                    $"{def.Id} [{label}]",
+                    string.Join(" | ", oldWrites),
+                    string.Join(" | ", newWrites),
+                    match));
+            }
+        }
+
+        return rows;
+    }
+
     private static readonly Dictionary<string, object?> EmptyValues = new();
 
     /// <summary>The old live RESET apply's write intent for one plain registry setting, mirroring

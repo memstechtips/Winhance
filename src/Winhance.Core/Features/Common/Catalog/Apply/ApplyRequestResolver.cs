@@ -14,7 +14,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// Handles the common PLAIN cases - registry/scheduled-task toggles + check-boxes, plain registry/task selections,
 /// stateless Actions, numeric powercfg sliders, and reset-to-default (Phase 6.4b) - by pairing the def with its
 /// <see cref="SettingCatalog"/> Setting and running <see cref="ApplyPlanBuilder"/>. Returns null (-> old apply) for:
-///   - an unpaired def (no SettingCatalog peer, e.g. the -win10 merged variants until the 6.5 alias),
+///   - an unpaired def (no SettingCatalog peer; a retired -win10 id normalizes to its canonical merged peer),
 ///   - a reset-to-default of a setting that has no WindowsDefault state (no reset target can be derived),
 ///   - a NumericRange whose value is not an AC/DC display-units dictionary (the only shape the catalog produces),
 ///   - custom-detector / dynamic-option settings (DNS / system-tray / system-restore / power-plan),
@@ -32,7 +32,10 @@ public static class ApplyRequestResolver
         string settingId, bool enable, object? value, bool resetToDefault,
         IReadOnlyList<Setting> catalog, WinBuild? build = null)
     {
-        var setting = catalog.FirstOrDefault(s => s.Id == settingId);
+        // Alias-normalize so a retired "-win10" This PC id resolves to its canonical MERGED catalog Setting (the 6
+        // build-gated merges); Normalize is identity for every other id (Edge-1). Config import already normalizes
+        // before apply (ConfigMigrationService); this covers the live UI apply, which passes the loaded def's id.
+        var setting = catalog.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(settingId));
         if (setting is null)
             return null; // unpaired -> old apply
 
