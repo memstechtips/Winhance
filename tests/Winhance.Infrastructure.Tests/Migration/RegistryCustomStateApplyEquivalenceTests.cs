@@ -58,26 +58,4 @@ public class RegistryCustomStateApplyEquivalenceTests
         Assert.NotEmpty(rows);
         Assert.True(rows.All(r => r.Match), $"{mismatched} registry custom-state apply plans differ - see output");
     }
-
-    [Fact]
-    public void ScriptBearing_registry_selections_produce_state_effects_so_the_resolver_gate_excludes_them()
-    {
-        // The resolver routes CustomStateValues on !States.Any(Effects); this harness excludes script selections on
-        // PowerShellScripts.Count > 0. Those two predicates agree ONLY IF every script-bearing registry selection
-        // converts to >=1 state effect (so the resolver's effects-gate excludes it, matching this harness). Lock the
-        // invariant: a future plain registry selection with a PowerShellScripts body but all-None options would
-        // convert to NO state effects, be routed by the resolver, and silently DROP the script (the old executor
-        // runs it via useEnabled=enable for a dict value). This [Fact] fails if such a setting is ever added.
-        var offenders = AllDefinitions()
-            .Where(d => d.InputType == InputType.Selection
-                        && d.RegistrySettings.Count > 0
-                        && d.PowerShellScripts.Count > 0
-                        && !SettingDefinitionConverter.ConvertSelection(d).States.Any(st => st.Effects.Count > 0))
-            .Select(d => d.Id)
-            .ToList();
-
-        Assert.True(offenders.Count == 0,
-            "Script-bearing registry selections that convert to NO state effects (resolver would route + drop the "
-            + "script): " + string.Join(", ", offenders));
-    }
 }

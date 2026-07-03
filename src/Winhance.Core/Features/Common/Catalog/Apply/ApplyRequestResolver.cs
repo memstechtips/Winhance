@@ -126,16 +126,17 @@ public static class ApplyRequestResolver
                 }
 
                 // Registry-selection CUSTOM state (config-import CustomStateValues, a Dictionary<string,object> of raw
-                // per-ValueName values for a "Custom"/no-option state). Route to BuildRegistryCustomState ONLY for a
-                // PLAIN registry selection - every target a plain-value RegTarget (no per-NIC/monitor/composite, with a
-                // ValueName) and NO effects - matching the RunRegistryCustomStateApply proven population. The old
-                // executor's custom-state branch is that registry block; a setting with effects/tasks/powercfg would
-                // ALSO apply those (dropped by this registry-only builder), so it stays on the old apply.
+                // per-ValueName values for a "Custom"/no-option state). Route to BuildRegistryCustomState for a PLAIN
+                // registry selection - every target a plain-value RegTarget (no per-NIC/monitor/composite, with a
+                // ValueName). This applies the raw per-ValueName registry values ONLY: a per-option PowerShell script
+                // is NOT run on a Custom-state import, because a "Custom" state is not one of the named options
+                // (Marco 2026-07-03 - the old executor ran an arbitrary enable-direction script here, which was
+                // incoherent for a no-option state). The normal option apply (int index) still runs the option's
+                // script via the state's Effects; only this raw custom-state re-apply is registry-only.
                 if (value is Dictionary<string, object> customValues
                     && setting.Targets.Count > 0
                     && setting.Targets.All(t => t is RegTarget
                         { PerNetworkInterface: false, PerMonitor: false, CompositeStringKey: null, ValueName: not null })
-                    && !setting.States.Any(st => st.Effects.Count > 0)
                     // A Dictionary<string,object?> AC/DC dict is the SAME runtime type as Dictionary<string,object>
                     // (nullable annotations are erased), so require the dict to actually carry one of this
                     // setting's RegTarget ValueNames - an AC/DC dict (ACValue/DCValue keys) does not, and falls back.

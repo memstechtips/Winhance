@@ -501,10 +501,12 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Registry_selection_custom_state_with_effects_returns_null()
+    public void Registry_selection_custom_state_with_effects_routes_registry_only()
     {
-        // A registry selection whose states carry effects (a per-option script) is NOT routed: the old executor
-        // ALSO runs the script, which the registry-only builder does not, so it stays on the old apply.
+        // A1 (Marco 2026-07-03): a plain registry selection whose states carry effects (a per-option script) routes
+        // its custom-state to BuildRegistryCustomState - the raw registry values ONLY. The per-option script is NOT
+        // run on a "Custom"/no-option import (a Custom state is not a named option); the normal option apply still
+        // runs the script via the state's Effects.
         var setting = SelectionSetting() with
         {
             States = new[]
@@ -516,7 +518,7 @@ public class ApplyRequestResolverTests
         var customValues = new Dictionary<string, object> { ["V"] = 3 };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
             resetToDefault: false, new[] { setting });
-        Assert.Null(plan);
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
     }
 
     [Fact]
