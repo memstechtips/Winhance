@@ -23,7 +23,6 @@ public class SettingApplicationServiceTests
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IRecommendedSettingsApplier> _mockRecommended = new();
     private readonly Mock<IProcessRestartManager> _mockRestart = new();
-    private readonly Mock<ISettingOperationExecutor> _mockExecutor = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistory = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
@@ -40,10 +39,10 @@ public class SettingApplicationServiceTests
         // "AC: x, DC: y" expectations. No-battery tests override this per-test.
         _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
 
-        _mockExecutor
-            .Setup(e => e.ApplySettingOperationsAsync(
-                It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>()))
-            .ReturnsAsync(OperationResult.Succeeded());
+        // Default: every IStateWriter write SUCCEEDS, so a paired setting routed through the new ApplyExecutor
+        // reports OperationResult.Succeeded. The old ISettingOperationExecutor "black-box succeeds" fallback for
+        // unpaired ids is gone; tests asserting a failure use an unpaired (null-plan) id instead of a mock override.
+        _mockStateWriter.SetReturnsDefault(true);
 
         // Default: GetString echoes the key back. A key-echo is NOT the "[{key}]" miss-marker, so by default
         // ResolveLocalized treats every key as a HIT returning the key text; tests that assert on display strings
@@ -74,7 +73,6 @@ public class SettingApplicationServiceTests
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object, _mockRegistry.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
-            _mockExecutor.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
@@ -96,12 +94,27 @@ public class SettingApplicationServiceTests
             .Returns(new[] { setting });
     }
 
+    // Real catalog settings whose Control routes a given value shape through the new engine to a SUCCEEDING plan.
+    // The receipt-rendering tests register a FAKE def (with controlled options / powercfg) under these ids: routing
+    // reads the LIVE catalog (so the apply succeeds and the change-history receipt is reached), while the receipt
+    // string is formatted from the fake def. SkipValuePrerequisites isolates the receipt from relationship cascades.
+    private const string PowerCfgSelectionId = "power-display-timeout"; // powercfg-Separate selection, 16 states
+    private const string PowerCfgNumericId = "power-harddisk-timeout";  // powercfg-Separate numeric slider
+
+    // A real catalog plain-registry toggle (Enabled/Disabled states, a RegTarget). Applying it routes through the
+    // new engine to a plan the (defaulted-to-success) writer completes, so the funnel returns Success. The fake def
+    // registered under this id renders as a Toggle (InputType defaults to Toggle) for the change-history receipt.
+    private static string RealPairedToggleId() => SettingCatalog.All.First(s =>
+        s.Detector is null && s.OptionSource is null && s.Numeric is null
+        && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+        && s.Targets.OfType<RegTarget>().Any()).Id;
+
     [Fact]
     public async Task ApplySettingAsync_PairedPlainToggle_RoutesThroughNewWriter_BypassingOldExecutor()
     {
-        // Phase 6.4 cutover: a real catalog plain registry toggle (no custom detector / dynamic options / numeric,
-        // with both an Enabled and a Disabled state) applies through the new ApplyExecutor + IStateWriter, NOT the
-        // old ISettingOperationExecutor. Unpaired/fake ids (every other test) still fall back to the old executor.
+        // A real catalog plain registry toggle (no custom detector / dynamic options / numeric, with both an Enabled
+        // and a Disabled state) applies through the new ApplyExecutor + IStateWriter. Unpaired/fake ids (the null-plan
+        // tests below) now resolve to null -> a logged OperationResult.Failed; there is no old-executor fallback.
         var paired = SettingCatalog.All.First(s =>
             s.Detector is null && s.OptionSource is null && s.Numeric is null
             && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
@@ -110,8 +123,6 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = paired.Id, Enable = true });
 
-        _mockExecutor.Verify(e => e.ApplySettingOperationsAsync(
-            It.IsAny<SettingDefinition>(), It.IsAny<bool>(), It.IsAny<object?>(), It.IsAny<bool>()), Times.Never);
         _mockStateWriter.Invocations.Should().NotBeEmpty("the paired toggle must apply through the new writer");
         // The new engine performs no restarts itself, so the funnel must still run process/service restarts
         // (the old executor did this as its final step) - else a setting that restarts Explorer would not take effect.
@@ -234,12 +245,16 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
-        SetupSettingInRegistry("test-setting");
+        // A paired plain toggle routes through the new engine; with the writer succeeding (ctor default), the apply
+        // succeeds. (Previously a fake id "succeeded" via the old ISettingOperationExecutor; that fallback is gone.)
+        var id = RealPairedToggleId();
+        SetupSettingInRegistry(id);
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "test-setting",
+            SettingId = id,
             Enable = true,
+            SkipValuePrerequisites = true,
         });
 
         result.Success.Should().BeTrue();
@@ -258,23 +273,6 @@ public class SettingApplicationServiceTests
 
         _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(
             evt => evt.SettingId == "test-setting")), Times.Once);
-    }
-
-    [Fact]
-    public async Task ApplySettingAsync_ValidSetting_CallsOperationExecutor()
-    {
-        SetupSettingInRegistry("test-setting");
-
-        await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "test-setting",
-            Enable = true,
-        });
-
-        _mockExecutor.Verify(e => e.ApplySettingOperationsAsync(
-            It.Is<SettingDefinition>(s => s.Id == "test-setting"),
-            true,
-            null), Times.Once);
     }
 
     [Fact]
@@ -367,18 +365,17 @@ public class SettingApplicationServiceTests
     }
 
     // ---------------------------------------------------------------
-    // BP-1: Failure propagation from OperationExecutor
+    // Unpaired setting -> resolver returns null -> logged OperationResult.Failed
+    // (the old ISettingOperationExecutor fallback that used to make a fake id "succeed" is gone; the success
+    //  path is now the new engine, covered by ApplySettingAsync_ValidSetting_ReturnsSuccess)
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplySettingAsync_ExecutorFails_PropagatesFailedResult()
+    public async Task ApplySettingAsync_UnpairedSetting_ResolverReturnsNull_PropagatesFailedResult()
     {
+        // An unpaired id (no catalog peer) resolves to a null plan; the funnel returns a failed OperationResult
+        // rather than dereferencing it. The failure message names the setting.
         SetupSettingInRegistry("fail-setting");
-        _mockExecutor
-            .Setup(e => e.ApplySettingOperationsAsync(
-                It.Is<SettingDefinition>(s => s.Id == "fail-setting"),
-                It.IsAny<bool>(), It.IsAny<object?>()))
-            .ReturnsAsync(OperationResult.Failed("Registry write denied"));
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -387,18 +384,14 @@ public class SettingApplicationServiceTests
         });
 
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Registry write denied");
+        result.ErrorMessage.Should().Contain("fail-setting");
     }
 
     [Fact]
-    public async Task ApplySettingAsync_ExecutorFails_StillPublishesEvent()
+    public async Task ApplySettingAsync_UnpairedSetting_Fails_StillPublishesEvent()
     {
+        // Even on a failed apply the event is published so listeners re-read actual system state.
         SetupSettingInRegistry("fail-event");
-        _mockExecutor
-            .Setup(e => e.ApplySettingOperationsAsync(
-                It.Is<SettingDefinition>(s => s.Id == "fail-event"),
-                It.IsAny<bool>(), It.IsAny<object?>()))
-            .ReturnsAsync(OperationResult.Failed("Some failure"));
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -410,25 +403,6 @@ public class SettingApplicationServiceTests
             evt => evt.SettingId == "fail-event")), Times.Once);
     }
 
-    [Fact]
-    public async Task ApplySettingAsync_ExecutorSucceeds_ReturnsSuccess()
-    {
-        SetupSettingInRegistry("ok-setting");
-        _mockExecutor
-            .Setup(e => e.ApplySettingOperationsAsync(
-                It.Is<SettingDefinition>(s => s.Id == "ok-setting"),
-                It.IsAny<bool>(), It.IsAny<object?>()))
-            .ReturnsAsync(OperationResult.Succeeded());
-
-        var result = await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "ok-setting",
-            Enable = true,
-        });
-
-        result.Success.Should().BeTrue();
-    }
-
     // ---------------------------------------------------------------
     // Change history (#367): record setting changes before → after
     // ---------------------------------------------------------------
@@ -436,14 +410,16 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ToggleSuccess_LogsChangeHistoryEntry()
     {
-        SetupSettingInRegistry("toggle-setting");
+        // Real paired toggle so the apply succeeds and the receipt is reached; the fake def renders as a Toggle.
+        var id = RealPairedToggleId();
+        SetupSettingInRegistry(id);
 
         // Before-state: discovery reports the toggle currently disabled.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["toggle-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+                [id] = new SettingStateResult { Success = true, IsEnabled = false },
             });
 
         _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
@@ -451,8 +427,9 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "toggle-setting",
+            SettingId = id,
             Enable = true,
+            SkipValuePrerequisites = true,
         });
 
         _mockChangeHistory.Verify(h => h.LogSettingChange(
@@ -462,14 +439,16 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_BeforeEqualsAfter_DoesNotLog()
     {
-        SetupSettingInRegistry("noop-setting");
+        // Real paired toggle so the apply succeeds and the receipt is reached; before==after suppresses the entry.
+        var id = RealPairedToggleId();
+        SetupSettingInRegistry(id);
 
-        // Before-state already matches the requested state (enabled → enable=true).
+        // Before-state already matches the requested state (enabled -> enable=true).
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["noop-setting"] = new SettingStateResult { Success = true, IsEnabled = true },
+                [id] = new SettingStateResult { Success = true, IsEnabled = true },
             });
 
         _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
@@ -477,8 +456,9 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "noop-setting",
+            SettingId = id,
             Enable = true,
+            SkipValuePrerequisites = true,
         });
 
         _mockChangeHistory.Verify(h => h.LogSettingChange(
@@ -488,13 +468,15 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ChangeHistoryThrows_ApplyStillSucceeds()
     {
-        SetupSettingInRegistry("throwing-setting");
+        // Real paired toggle so the apply succeeds; a throwing change-history write is swallowed, apply stays Success.
+        var id = RealPairedToggleId();
+        SetupSettingInRegistry(id);
 
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["throwing-setting"] = new SettingStateResult { Success = true, IsEnabled = false },
+                [id] = new SettingStateResult { Success = true, IsEnabled = false },
             });
 
         _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
@@ -507,22 +489,20 @@ public class SettingApplicationServiceTests
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "throwing-setting",
+            SettingId = id,
             Enable = true,
+            SkipValuePrerequisites = true,
         });
 
         result.Success.Should().BeTrue();
     }
 
     [Fact]
-    public async Task ApplySettingAsync_OperationFails_DoesNotLogChangeHistory()
+    public async Task ApplySettingAsync_UnpairedSetting_Fails_DoesNotLogChangeHistory()
     {
+        // A failed apply (unpaired id -> null plan, no old-executor fallback) returns before the change-history
+        // receipt, so nothing is logged even though a before-state is available.
         SetupSettingInRegistry("fail-no-history");
-        _mockExecutor
-            .Setup(e => e.ApplySettingOperationsAsync(
-                It.Is<SettingDefinition>(s => s.Id == "fail-no-history"),
-                It.IsAny<bool>(), It.IsAny<object?>()))
-            .ReturnsAsync(OperationResult.Failed("denied"));
 
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
@@ -582,14 +562,15 @@ public class SettingApplicationServiceTests
         // Power-setting options carry localization KEYS as their DisplayName. The receipt must
         // localize the key, not print the raw "Template_..." string.
         var options = new[] { Opt("Template_X_Option_0"), Opt("Template_X_Option_1") };
-        RegisterSelectionSetting("sel-localized", options);
+        RegisterSelectionSetting(PowerCfgSelectionId, options);
 
         _mockLocalization.Setup(l => l.GetString("Template_X_Option_1")).Returns("Enabled-ish label");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-localized",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
+            SkipValuePrerequisites = true,
             Value = 1,
         });
 
@@ -602,15 +583,16 @@ public class SettingApplicationServiceTests
     {
         // Config-import Selection AC/DC values arrive as a (acIndex, dcIndex) ValueTuple.
         var options = new[] { Opt("Setting_sel-tuple_Option_0"), Opt("Setting_sel-tuple_Option_1") };
-        RegisterSelectionSetting("sel-tuple", options);
+        RegisterSelectionSetting(PowerCfgSelectionId, options);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_1")).Returns("4 minutes");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-tuple",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
+            SkipValuePrerequisites = true,
             Value = (0, 1),
         });
 
@@ -623,15 +605,16 @@ public class SettingApplicationServiceTests
     {
         // UI / recommended Selection AC/DC values arrive as a dict of option indices.
         var options = new[] { Opt("Setting_sel-dict_Option_0"), Opt("Setting_sel-dict_Option_1") };
-        RegisterSelectionSetting("sel-dict", options);
+        RegisterSelectionSetting(PowerCfgSelectionId, options);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_1")).Returns("4 minutes");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-dict",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
+            SkipValuePrerequisites = true,
             Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 },
         });
 
@@ -644,12 +627,13 @@ public class SettingApplicationServiceTests
     {
         // The power-plan after-value is a dict with Guid + Name keys; the receipt shows the Name.
         var options = new[] { Opt("PowerPlan_Custom") };
-        RegisterSelectionSetting("power-plan", options);
+        RegisterSelectionSetting(SettingIds.PowerPlanSelection, options);
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "power-plan",
+            SettingId = SettingIds.PowerPlanSelection,
             Enable = true,
+            SkipValuePrerequisites = true,
             Value = new Dictionary<string, object?>
             {
                 ["Guid"] = "11111111-2222-3333-4444-555555555555",
@@ -682,15 +666,15 @@ public class SettingApplicationServiceTests
         };
         var setting = new SettingDefinition
         {
-            Id = "num-power",
+            Id = PowerCfgNumericId,
             Name = "Setting num-power",
             Description = "desc",
             InputType = InputType.NumericRange,
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
             PowerCfgSettings = powerCfg,
         };
-        _mockSettingsRegistry.Setup(r => r.GetById("num-power")).Returns(setting);
-        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetById(PowerCfgNumericId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(PowerCfgNumericId)).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
 
         _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
@@ -699,7 +683,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["num-power"] = new SettingStateResult
+                [PowerCfgNumericId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -710,7 +694,7 @@ public class SettingApplicationServiceTests
         // After-value: display-unit AC/DC dict that differs from the before so an entry is logged.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "num-power",
+            SettingId = PowerCfgNumericId,
             Enable = true,
             Value = new Dictionary<string, object?> { ["ACValue"] = 5, ["DCValue"] = 15 },
         });
@@ -742,15 +726,15 @@ public class SettingApplicationServiceTests
         };
         var setting = new SettingDefinition
         {
-            Id = "num-power-noop",
+            Id = PowerCfgNumericId,
             Name = "Setting num-power-noop",
             Description = "desc",
             InputType = InputType.NumericRange,
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60, Units = "Minutes" },
             PowerCfgSettings = powerCfg,
         };
-        _mockSettingsRegistry.Setup(r => r.GetById("num-power-noop")).Returns(setting);
-        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-noop")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetById(PowerCfgNumericId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(PowerCfgNumericId)).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
 
         _mockLocalization.Setup(l => l.GetString("Common_Unit_Minutes")).Returns("Minutes");
@@ -760,7 +744,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["num-power-noop"] = new SettingStateResult
+                [PowerCfgNumericId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -771,7 +755,7 @@ public class SettingApplicationServiceTests
         // Re-applying the same display values: AC=0, DC=10 (minutes) — no change.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "num-power-noop",
+            SettingId = PowerCfgNumericId,
             Enable = true,
             Value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 10 },
         });
@@ -800,15 +784,15 @@ public class SettingApplicationServiceTests
         };
         var setting = new SettingDefinition
         {
-            Id = "num-power-pct",
+            Id = PowerCfgNumericId,
             Name = "Setting num-power-pct",
             Description = "desc",
             InputType = InputType.NumericRange,
             NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = "%" },
             PowerCfgSettings = powerCfg,
         };
-        _mockSettingsRegistry.Setup(r => r.GetById("num-power-pct")).Returns(setting);
-        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("num-power-pct")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetById(PowerCfgNumericId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(PowerCfgNumericId)).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
 
         // "%" has no Common_Unit_* key — ResolveLocalized returns null for a miss-marker; leave
@@ -817,7 +801,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["num-power-pct"] = new SettingStateResult
+                [PowerCfgNumericId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -828,7 +812,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "num-power-pct",
+            SettingId = PowerCfgNumericId,
             Enable = true,
             Value = new Dictionary<string, object?> { ["ACValue"] = 60, ["DCValue"] = 80 },
         });
@@ -851,7 +835,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-pcfg-noop", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_1")).Returns("4 minutes");
@@ -860,7 +844,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-pcfg-noop"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -870,7 +854,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-pcfg-noop",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (0, 0),
         });
@@ -889,7 +873,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-pcfg-change", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_1")).Returns("4 minutes");
@@ -898,7 +882,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-pcfg-change"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -908,7 +892,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-pcfg-change",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (0, 1),
         });
@@ -934,7 +918,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-nobat", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_2")).Returns("9 minutes");
@@ -944,7 +928,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-nobat"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -955,7 +939,7 @@ public class SettingApplicationServiceTests
         // After: apply tuple (2, 0). AC changes Never → 9 minutes; entry renders AC-only on both sides.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-nobat",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (2, 0),
         });
@@ -977,7 +961,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-nobat-noop", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_1")).Returns("4 minutes");
@@ -987,7 +971,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-nobat-noop"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -998,7 +982,7 @@ public class SettingApplicationServiceTests
         // Apply (0, 1): AC stays option 0 (Never); DC index differs but is suppressed on no-battery.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-nobat-noop",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (0, 1),
         });
@@ -1023,7 +1007,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-fallback", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_1")).Returns("1 minute");
@@ -1035,7 +1019,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-fallback"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -1046,7 +1030,7 @@ public class SettingApplicationServiceTests
         // After applies (0, 2) so an entry is logged and we can assert the BEFORE rendering.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-fallback",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (0, 2),
         });
@@ -1067,7 +1051,7 @@ public class SettingApplicationServiceTests
         {
             new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
         };
-        RegisterSelectionSetting("sel-throw", options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
 
         _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_0")).Returns("Never");
         _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_1")).Returns("4 minutes");
@@ -1076,7 +1060,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-throw"] = new SettingStateResult
+                [PowerCfgSelectionId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -1086,7 +1070,7 @@ public class SettingApplicationServiceTests
 
         var result = await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "sel-throw",
+            SettingId = PowerCfgSelectionId,
             Enable = true,
             Value = (0, 1),
         });

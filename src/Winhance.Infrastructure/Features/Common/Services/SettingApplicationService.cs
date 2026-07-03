@@ -24,7 +24,6 @@ public class SettingApplicationService(
     IEventBus eventBus,
     IRecommendedSettingsApplier recommendedSettingsApplier,
     IProcessRestartManager processRestartManager,
-    ISettingOperationExecutor operationExecutor,
     IChangeHistoryService changeHistory,
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
@@ -64,12 +63,11 @@ public class SettingApplicationService(
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
-    /// <summary>Phase 6.4 cutover seam: apply a setting's operations through the NEW catalog engine when the setting
-    /// is paired and the request is representable (plain toggle / check-box / selection / Action, numeric powercfg
-    /// slider, and reset-to-default - Phase 6.4b), else fall back to the proven old apply.
-    /// <see cref="ApplyRequestResolver"/> decides; <see cref="ApplyExecutor"/> runs the plan against the live
-    /// <see cref="IStateWriter"/>. Unpaired / custom-detector / dynamic-option requests resolve to null and keep the
-    /// old <see cref="ISettingOperationExecutor"/> path, so nothing regresses.</summary>
+    /// <summary>Apply a setting's operations through the catalog engine: <see cref="ApplyRequestResolver"/> resolves
+    /// the request to a plan and <see cref="ApplyExecutor"/> runs it against the live <see cref="IStateWriter"/>.
+    /// Resolve is TOTAL for every reachable request shape (proven by ResolveTotalityAuditTests), so a null plan can
+    /// only be an un-audited/unreachable shape - it is logged and returned as a failed OperationResult rather than
+    /// silently applied (the old ISettingOperationExecutor fallback was removed once the engine covered every shape).</summary>
     private async Task<OperationResult> ApplyOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault)
     {
         // Phase 6.5: pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
@@ -80,10 +78,12 @@ public class SettingApplicationService(
         var plan = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault, CurrentBuild());
         if (plan is null)
         {
-            // The old executor runs HandleProcessAndServiceRestartsAsync internally as its final step, so the
-            // fallback path needs nothing extra here.
-            return await operationExecutor
-                .ApplySettingOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+            // Resolve is total for every reachable request shape (ResolveTotalityAuditTests), so a null here is an
+            // un-audited/unreachable shape. The old ISettingOperationExecutor fallback is gone, so fail loudly with a
+            // logged result rather than dereferencing a null plan.
+            var nullPlanMessage = $"No apply plan resolved for '{setting.Id}' (enable={enable}, resetToDefault={resetToDefault}) - unaudited request shape";
+            logService.Log(LogLevel.Warning, $"[SettingApplicationService] {nullPlanMessage}");
+            return OperationResult.Failed(nullPlanMessage);
         }
 
         var result = ApplyExecutor.Execute(plan, stateWriter);

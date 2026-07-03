@@ -92,7 +92,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
-        services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
         // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
