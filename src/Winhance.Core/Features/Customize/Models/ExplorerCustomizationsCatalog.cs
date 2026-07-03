@@ -3102,12 +3102,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
@@ -3136,12 +3140,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
@@ -3170,12 +3178,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
@@ -3204,12 +3216,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
@@ -3238,12 +3254,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
@@ -3272,12 +3292,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },

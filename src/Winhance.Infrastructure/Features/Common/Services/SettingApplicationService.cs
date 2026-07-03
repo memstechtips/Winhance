@@ -216,7 +216,7 @@ public class SettingApplicationService(
         if (!skipValuePrerequisites && paired)
         {
             var catalogSetting = SettingCatalog.All.First(s => s.Id == settingId);
-            var targetLabel = ResolveTargetLabel(catalogSetting, enable, value, resetToDefault);
+            var targetLabel = ResolveTargetLabel(catalogSetting, enable, value, resetToDefault, CurrentBuild());
             await ApplyCatalogRelationshipsAsync(catalogSetting, targetLabel).ConfigureAwait(false);
         }
 
@@ -274,10 +274,11 @@ public class SettingApplicationService(
     /// state's label. Returns null when the label cannot be derived (non-index selection value, or no
     /// WindowsDefault state) so the caller skips relationship resolution rather than guessing.
     /// </summary>
-    private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault)
+    private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault, WinBuild build)
     {
         if (resetToDefault)
-            return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+            // Build-aware so a merged setting's OS-divergent WindowsDefault resolves for the live OS (see ApplyRequestResolver).
+            return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
 
         // A two-state Enabled/Disabled target is a toggle/check-box; map enable straight to its label.
         bool isToggle = setting.States.Any(s => s.Label == "Enabled") && setting.States.Any(s => s.Label == "Disabled");

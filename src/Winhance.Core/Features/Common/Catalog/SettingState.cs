@@ -44,6 +44,18 @@ public sealed record SettingState
     /// owner's active (WindowsDefault) state can still fire its prerequisites. Empty = none.</summary>
     public IReadOnlyList<Link> Links { get; init; } = System.Array.Empty<Link>();
 
+    /// <summary>True when this state carries an UNCONDITIONAL role of the given kind/context (a role with no
+    /// build scope). A build-scoped role (non-empty <see cref="StateRole.AppliesTo"/>) is deliberately NOT matched
+    /// here - it is not an unconditional role - so build-unaware readers (UI badges, the validator's one-per-context
+    /// rule, relationship resolution) see a merged setting's OS-divergent default as "no single default", exactly as
+    /// they did before build-scoped roles existed. Use the build-aware overload to resolve the default for a build.</summary>
     public bool HasRole(RoleKind kind, PowerContext context = PowerContext.Always) =>
-        Roles.Any(r => r.Kind == kind && r.Context == context);
+        Roles.Any(r => r.Kind == kind && r.Context == context && r.AppliesTo.Count == 0);
+
+    /// <summary>Build-aware role query: matches an unconditional role (empty <see cref="StateRole.AppliesTo"/>) OR
+    /// one whose AppliesTo admits <paramref name="build"/>. The reset resolver uses this so a merged setting's
+    /// OS-divergent Windows default resolves to the state that is default on the LIVE build.</summary>
+    public bool HasRole(RoleKind kind, WinBuild build, PowerContext context = PowerContext.Always) =>
+        Roles.Any(r => r.Kind == kind && r.Context == context
+            && (r.AppliesTo.Count == 0 || r.AppliesTo.Any(range => range.Contains(build))));
 }

@@ -79,7 +79,13 @@ public static class ApplyRequestResolver
         //     a reset), so a reset is not representable and stays on the old apply.
         if (resetToDefault)
         {
-            var defaultLabel = setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+            // Build-aware: a merged setting's WindowsDefault role can be OS-divergent (This PC folders default to
+            // shown on Win10, hidden on Win11), so resolve the default state for the LIVE build. With no build
+            // (build is null - a caller that does not thread it), only an UNCONDITIONAL WindowsDefault matches, so a
+            // build-scoped default is invisible and the request falls through, exactly as before build-scoped roles.
+            var defaultLabel = (build is { } b
+                ? setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, b))
+                : setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault)))?.Label;
             if (defaultLabel is not null)
                 return ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
             if (setting.Control == ControlKind.Action)
