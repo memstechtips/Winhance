@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -22,6 +23,7 @@ public class RecommendedSettingsApplier(
     {
         var appliedForRestart = new List<SettingDefinition>(settings.Count);
         int total = settings.Count;
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
 
         // Suppress per-setting restarts; the CALLER flushes the coalesced restart.
         using (processRestartManager.SuppressRestarts())
@@ -42,8 +44,11 @@ public class RecommendedSettingsApplier(
 
                     if (setting.InputType == InputType.Toggle)
                     {
-                        var toggleState = SettingDefinitionToggleState.GetRecommendedToggleState(setting);
-                        if (toggleState is not bool enableValue) continue; // no recommendation
+                        // Slice C: recommended toggle state comes from the catalog Recommended role (unconditional),
+                        // == the old SettingDefinitionToggleState.GetRecommendedToggleState for every paired setting
+                        // (RecommendedToggleStateConformanceTests); Find alias-normalizes the -win10 ids.
+                        var paired = SettingCatalog.Find(setting.Id);
+                        if (paired is null || CatalogToggleState.GetRecommended(paired, currentBuild) is not bool enableValue) continue; // no recommendation
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id, Enable = enableValue, SkipValuePrerequisites = true

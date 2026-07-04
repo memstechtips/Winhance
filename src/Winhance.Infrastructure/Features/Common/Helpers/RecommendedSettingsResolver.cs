@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
@@ -52,17 +53,19 @@ internal static class RecommendedSettingsResolver
         return true;
     }
 
-    internal static bool HasRecommendedValue(SettingDefinition setting)
+    internal static bool HasRecommendedValue(SettingDefinition setting, WinBuild build)
     {
-        if (SettingDefinitionToggleState.GetRecommendedToggleState(setting).HasValue) return true;
+        var paired = SettingCatalog.Find(setting.Id);
+        if (paired is not null && CatalogToggleState.GetRecommended(paired, build).HasValue) return true;
         if (setting.PowerCfgSettings?.Any(p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true) return true;
         if (setting.ComboBox?.Options?.Any(o => o.IsRecommended) == true) return true;
         return false;
     }
 
-    internal static bool HasDefaultValue(SettingDefinition setting)
+    internal static bool HasDefaultValue(SettingDefinition setting, WinBuild build)
     {
-        if (SettingDefinitionToggleState.GetDefaultToggleState(setting).HasValue) return true;
+        var paired = SettingCatalog.Find(setting.Id);
+        if (paired is not null && CatalogToggleState.GetDefault(paired, build).HasValue) return true;
         if (setting.PowerCfgSettings?.Any(p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true) return true;
         if (setting.ComboBox?.Options?.Any(o => o.IsDefault) == true) return true;
         return false;

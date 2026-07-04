@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
@@ -39,6 +40,7 @@ public class BulkSettingsActionService(
     {
         using var changeBatch = changeHistory.BeginBatch(localizationService.GetString("QuickActions_ResetDefaults"));
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
         int applied = 0;
         int total = settings.Count;
         var appliedForRestart = new List<SettingDefinition>(total);
@@ -61,15 +63,20 @@ public class BulkSettingsActionService(
 
                 if (setting.InputType == InputType.Toggle)
                 {
-                    var toggleState = SettingDefinitionToggleState.GetDefaultToggleState(setting);
-                    if (toggleState is not bool enableValue)
+                    // Slice C: the build-aware reset engine (ApplyRequestResolver) resolves the per-OS
+                    // default itself from the setting's WindowsDefault-roled state; the bulk loop only
+                    // gates on whether a default EXISTS on this build. CatalogToggleState.GetDefault ==
+                    // the old SettingDefinitionToggleState.GetDefaultToggleState for every paired setting
+                    // (RecommendedToggleStateConformanceTests); Find alias-normalizes the -win10 ids.
+                    var paired = SettingCatalog.Find(setting.Id);
+                    if (paired is null || CatalogToggleState.GetDefault(paired, currentBuild) is not bool enableValue)
                     {
                         logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
                         continue;
                     }
 
                     // Mirror per-card HandleToggleAsync: pass only SettingId + Enable + ResetToDefault.
-                    // The apply pipeline derives the registry write from EnabledValue/DisabledValue.
+                    // The build-aware apply pipeline derives the per-OS registry write from the WindowsDefault state.
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
@@ -153,6 +160,7 @@ public class BulkSettingsActionService(
         BulkActionType actionType)
     {
         var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
         int count = 0;
 
         foreach (var setting in settings)
@@ -160,12 +168,12 @@ public class BulkSettingsActionService(
             try
             {
                 // Counter must agree with the apply path. HasRecommendedValue / HasDefaultValue
-                // route through SettingDefinitionToggleState so the count never reports a
-                // setting that the loop above would silently skip.
+                // resolve the toggle contribution from the catalog (build-aware), the same source the
+                // reset/recommended loops now use, so the count never reports a setting the loop would skip.
                 bool wouldChange = actionType switch
                 {
-                    BulkActionType.ApplyRecommended => RecommendedSettingsResolver.HasRecommendedValue(setting),
-                    BulkActionType.ResetToDefaults => RecommendedSettingsResolver.HasDefaultValue(setting),
+                    BulkActionType.ApplyRecommended => RecommendedSettingsResolver.HasRecommendedValue(setting, currentBuild),
+                    BulkActionType.ResetToDefaults => RecommendedSettingsResolver.HasDefaultValue(setting, currentBuild),
                     _ => false
                 };
 

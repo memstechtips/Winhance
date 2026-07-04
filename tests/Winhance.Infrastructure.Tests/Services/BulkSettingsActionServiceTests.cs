@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -69,6 +70,20 @@ public class BulkSettingsActionServiceTests
             _mockChangeHistory.Object,
             _mockLocalizationService.Object);
     }
+
+    // Slice C: the reset loop + affected-count pair each setting to its catalog Setting and read
+    // the build-aware WindowsDefault/Recommended roles, so tests use REAL catalog toggle ids (a
+    // synthetic fake-id def no longer pairs). TestBuild matches the mocked version service (Win11, 22621).
+    private static readonly WinBuild TestBuild = new(22621);
+
+    private static string CatalogToggleWithDefault(bool direction) =>
+        SettingCatalog.All.First(s => CatalogToggleState.GetDefault(s, TestBuild) == direction).Id;
+
+    private static string CatalogToggleWithDefaultAny() =>
+        SettingCatalog.All.First(s => CatalogToggleState.GetDefault(s, TestBuild).HasValue).Id;
+
+    private static string CatalogToggleWithRecommendation() =>
+        SettingCatalog.All.First(s => CatalogToggleState.GetRecommended(s, TestBuild).HasValue).Id;
 
     // ---------------------------------------------------------------
     // Helpers
@@ -336,18 +351,19 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_SkipsActions()
     {
-        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a real toggle still resets.
+        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a REAL catalog toggle still resets.
+        var toggleId = CatalogToggleWithDefaultAny();
         var action = CreateActionSetting("clean-action");
-        var toggle = CreateToggleSetting("reset-a", recommendedValue: 0, defaultValue: 1,
+        var toggle = CreateToggleSetting(toggleId, recommendedValue: 0, defaultValue: 1,
             enabledValue: [1], disabledValue: [0]);
         SetupDomainWithSettings("clean-action", new[] { action }, "D1");
-        SetupDomainWithSettings("reset-a", new[] { toggle }, "D2");
+        SetupDomainWithSettings(toggleId, new[] { toggle }, "D2");
 
-        var applied = await _service.ResetToDefaultsAsync(new[] { "clean-action", "reset-a" });
+        var applied = await _service.ResetToDefaultsAsync(new[] { "clean-action", toggleId });
 
         applied.Should().Be(1); // only the toggle
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "reset-a" && r.ResetToDefault == true)), Times.Once);
+            r.SettingId == toggleId && r.ResetToDefault == true)), Times.Once);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "clean-action")), Times.Never);
     }
@@ -384,34 +400,34 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_AppliesDefaultValues_ToAllSettings()
     {
-        // Arrange: setting-a default=1 (enabled), setting-b default=0 (disabled).
-        // Both fixtures must populate EnabledValue and DisabledValue so the unified
-        // toggle-state algorithm can map DefaultValue → Enable. (Real catalog settings
-        // always supply both arrays.)
-        var settingA = CreateToggleSetting("reset-a", recommendedValue: 0, defaultValue: 1,
+        // Two REAL catalog toggles: one whose Windows default on this build is Enabled, one Disabled.
+        // Slice C: the build-aware reset engine resolves the per-OS default and the bulk loop forwards
+        // it as Enable. CatalogToggleState.GetDefault == the old per-def default (conformance-proven).
+        var enabledDefaultId = CatalogToggleWithDefault(true);
+        var disabledDefaultId = CatalogToggleWithDefault(false);
+        var settingA = CreateToggleSetting(enabledDefaultId, recommendedValue: 0, defaultValue: 1,
             enabledValue: [1], disabledValue: [0]);
-        var settingB = CreateToggleSetting("reset-b", recommendedValue: 1, defaultValue: 0,
+        var settingB = CreateToggleSetting(disabledDefaultId, recommendedValue: 1, defaultValue: 0,
             enabledValue: [1], disabledValue: [0]);
 
-        SetupDomainWithSettings("reset-a", new[] { settingA }, "DomainA");
-        SetupDomainWithSettings("reset-b", new[] { settingB }, "DomainB");
+        SetupDomainWithSettings(enabledDefaultId, new[] { settingA }, "DomainA");
+        SetupDomainWithSettings(disabledDefaultId, new[] { settingB }, "DomainB");
 
         // Act
-        var applied = await _service.ResetToDefaultsAsync(new[] { "reset-a", "reset-b" });
+        var applied = await _service.ResetToDefaultsAsync(new[] { enabledDefaultId, disabledDefaultId });
 
-        // Assert: bulk Toggle apply mirrors per-card HandleToggleAsync — passes only
-        // SettingId + Enable + ResetToDefault, no Value (apply pipeline derives it).
+        // Assert: each toggle resets; Enable carries the catalog-resolved default direction; no Value.
         applied.Should().Be(2);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "reset-a" &&
+            r.SettingId == enabledDefaultId &&
             r.Enable == true &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "reset-b" &&
+            r.SettingId == disabledDefaultId &&
             r.Enable == false &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
@@ -419,35 +435,27 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 5: ResetToDefaultsAsync sets Enable=false for group policy
-    //         keys whose DefaultValue is null
+    // Test 5: ResetToDefaultsAsync forwards a Disabled catalog default as Enable=false
+    //         (the old GP key-absent resolution now lives in the converter/catalog)
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ResetToDefaultsAsync_HandlesNullDefaultValue_ForGroupPolicyKeys()
+    public async Task ResetToDefaultsAsync_DisabledDefaultToggle_ResetsWithEnableFalse()
     {
-        // Arrange: group policy setting with no DefaultValue. The Windows default for
-        // a GP key is "key absent" — expressed by the null sentinel in DisabledValue.
-        // The unified toggle-state algorithm reads that sentinel and resolves Default → false.
-        var gpSetting = CreateToggleSetting(
-            "gp-setting",
-            recommendedValue: 1,
-            defaultValue: null,
-            enabledValue: [1],
-            disabledValue: [null],
-            isGroupPolicy: true);
+        // A REAL catalog toggle whose Windows default is Disabled resets with Enable=false. Slice C:
+        // the GP "key absent = Windows default" resolution this fixture used to exercise now lives in
+        // the converter/catalog (proven by RecommendedToggleStateConformanceTests); the bulk service
+        // just forwards the catalog-resolved direction.
+        var disabledDefaultId = CatalogToggleWithDefault(false);
+        var setting = CreateToggleSetting(disabledDefaultId, recommendedValue: 1, defaultValue: 0,
+            enabledValue: [1], disabledValue: [0]);
+        SetupDomainWithSettings(disabledDefaultId, new[] { setting }, "PolicyDomain");
 
-        SetupDomainWithSettings("gp-setting", new[] { gpSetting }, "PolicyDomain");
+        var applied = await _service.ResetToDefaultsAsync(new[] { disabledDefaultId });
 
-        // Act
-        var applied = await _service.ResetToDefaultsAsync(new[] { "gp-setting" });
-
-        // Assert: Enable=false, ResetToDefault=true. Bulk Toggle apply no longer passes Value;
-        // the apply pipeline derives the registry write from DisabledValue (= [null] → delete).
         applied.Should().Be(1);
-
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "gp-setting" &&
+            r.SettingId == disabledDefaultId &&
             r.Enable == false &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
@@ -463,18 +471,17 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task GetAffectedCountAsync_ReturnsCorrectCount_ExcludingAlreadyMatching()
     {
-        // Arrange — the count must agree with the apply path. After unification the
-        // apply path's toggle-state resolver is the only judge of "would this change":
-        //   settingWithRec        – RecommendedValue=1, EnabledValue=[1]    → recommended yes
-        //   settingWithDef        – DefaultValue=0, EnabledValue=[1], DisabledValue=[0] → default yes
-        //   settingNoValues       – neither                                  → both no
-        //   settingGpKeyAbsent    – GP, no DefaultValue, DisabledValue=[null] → default yes (key-absent sentinel)
-        //   settingGpUnresolvable – GP, no DefaultValue, no null sentinel    → default no (silently skipped at apply too)
-
-        var settingWithRec = CreateToggleSetting("has-rec", recommendedValue: 1);
-        var settingWithDef = CreateToggleSetting("has-def", recommendedValue: null, defaultValue: 0,
-            enabledValue: [1], disabledValue: [0]);
-        var settingNoValues = new SettingDefinition
+        // The count must agree with the apply path. Slice C: the toggle contribution now comes from the
+        // catalog (build-aware), so a REAL catalog toggle exercises it; the ComboBox contribution is
+        // unchanged and exercised by a synthetic Selection; a setting with neither is excluded. Each
+        // count call uses a curated id list so every id's contribution is known.
+        var recToggleId = CatalogToggleWithRecommendation();  // catalog toggle carrying a Recommended role
+        var defToggleId = CatalogToggleWithDefault(false);     // catalog toggle carrying a Windows default
+        var selRec = CreateSelectionSetting("sel-rec", recommendedOption: "B", defaultOption: null,
+            new Dictionary<string, int> { ["A"] = 0, ["B"] = 1 });
+        var selDef = CreateSelectionSetting("sel-def", recommendedOption: "none", defaultOption: "A",
+            new Dictionary<string, int> { ["A"] = 0, ["B"] = 1 });
+        var noValues = new SettingDefinition
         {
             Id = "no-values",
             Name = "No Values",
@@ -493,32 +500,21 @@ public class BulkSettingsActionServiceTests
                 }
             }
         };
-        var settingGpKeyAbsent = CreateToggleSetting("gp-key-absent",
-            recommendedValue: null, defaultValue: null,
-            enabledValue: [1], disabledValue: [null], isGroupPolicy: true);
-        var settingGpUnresolvable = CreateToggleSetting("gp-unresolvable",
-            recommendedValue: null, defaultValue: null, isGroupPolicy: true);
 
-        var allIds = new[] { "has-rec", "has-def", "no-values", "gp-key-absent", "gp-unresolvable" };
+        SetupDomainWithSettings(recToggleId, new[] { CreateToggleSetting(recToggleId, recommendedValue: 1) }, "D1");
+        SetupDomainWithSettings(defToggleId, new[] { CreateToggleSetting(defToggleId, recommendedValue: null, defaultValue: 0, enabledValue: [1], disabledValue: [0]) }, "D2");
+        SetupDomainWithSettings("sel-rec", new[] { selRec }, "D3");
+        SetupDomainWithSettings("sel-def", new[] { selDef }, "D4");
+        SetupDomainWithSettings("no-values", new[] { noValues }, "D5");
 
-        SetupDomainWithSettings("has-rec",          new[] { settingWithRec },        "D1");
-        SetupDomainWithSettings("has-def",          new[] { settingWithDef },        "D2");
-        SetupDomainWithSettings("no-values",        new[] { settingNoValues },       "D3");
-        SetupDomainWithSettings("gp-key-absent",    new[] { settingGpKeyAbsent },    "D4");
-        SetupDomainWithSettings("gp-unresolvable",  new[] { settingGpUnresolvable }, "D5");
+        // ApplyRecommended: recToggle (catalog Recommended role) + selRec (ComboBox IsRecommended); no-values excluded.
+        var recCount = await _service.GetAffectedCountAsync(
+            new[] { recToggleId, "sel-rec", "no-values" }, BulkActionType.ApplyRecommended);
+        recCount.Should().Be(2);
 
-        // Act
-        var recCount     = await _service.GetAffectedCountAsync(allIds, BulkActionType.ApplyRecommended);
-        var defaultCount = await _service.GetAffectedCountAsync(allIds, BulkActionType.ResetToDefaults);
-
-        // Assert
-        // ApplyRecommended → has-rec only (everything else has null RecommendedValue + nothing else recommends).
-        recCount.Should().Be(1);
-
-        // ResetToDefaults → has-def (DefaultValue=0 maps via DisabledValue) + gp-key-absent
-        // (null sentinel in DisabledValue maps Default → Enable=false). gp-unresolvable
-        // is GP-only with no DefaultValue and no null sentinel, so the unified algorithm
-        // returns null and the apply path skips it; the counter MUST agree, hence 2 not 3.
+        // ResetToDefaults: defToggle (catalog Windows default) + selDef (ComboBox IsDefault); no-values excluded.
+        var defaultCount = await _service.GetAffectedCountAsync(
+            new[] { defToggleId, "sel-def", "no-values" }, BulkActionType.ResetToDefaults);
         defaultCount.Should().Be(2);
     }
 
@@ -529,13 +525,14 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_WrapsAppliesInChangeHistoryBatch()
     {
-        // Arrange: one resettable toggle setting
-        var setting = CreateToggleSetting("reset-batch", recommendedValue: 0, defaultValue: 1,
+        // Arrange: one resettable REAL catalog toggle
+        var toggleId = CatalogToggleWithDefaultAny();
+        var setting = CreateToggleSetting(toggleId, recommendedValue: 0, defaultValue: 1,
             enabledValue: [1], disabledValue: [0]);
-        SetupDomainWithSettings("reset-batch", new[] { setting }, "Domain");
+        SetupDomainWithSettings(toggleId, new[] { setting }, "Domain");
 
         // Act
-        await _service.ResetToDefaultsAsync(new[] { "reset-batch" });
+        await _service.ResetToDefaultsAsync(new[] { toggleId });
 
         // Assert: a batch was opened with the expected header key
         _mockChangeHistory.Verify(h => h.BeginBatch("QuickActions_ResetDefaults"), Times.Once);

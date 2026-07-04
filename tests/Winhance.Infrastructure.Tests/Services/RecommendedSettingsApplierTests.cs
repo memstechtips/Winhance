@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -47,6 +48,22 @@ public class RecommendedSettingsApplierTests
             _mockVersionService.Object,
             _mockProcessRestartManager.Object,
             _mockLog.Object);
+    }
+
+    // Slice C: the applier pairs each setting to its catalog Setting and reads the catalog
+    // Recommended role, so tests use REAL catalog toggle ids (a synthetic fake-id def no longer pairs).
+    private static readonly WinBuild TestBuild = new(22621);
+
+    private static string[] CatalogTogglesWithRecommendation(int n)
+    {
+        var ids = SettingCatalog.All
+            .Where(s => CatalogToggleState.GetRecommended(s, TestBuild).HasValue)
+            .Select(s => s.Id)
+            .Distinct()
+            .Take(n)
+            .ToArray();
+        Assert.True(ids.Length == n, $"catalog has fewer than {n} toggles with a recommendation");
+        return ids;
     }
 
     // ── Helpers ──
@@ -137,9 +154,11 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_CallsApplyPerSetting_ReturnsAppliedList()
     {
-        // Arrange: two toggle settings with recommended values
-        var setting1 = CreateToggleSetting("toggle-a", recommendedValue: 1, enabledValue: [1]);
-        var setting2 = CreateToggleSetting("toggle-b", recommendedValue: 0, enabledValue: [1], disabledValue: [0]);
+        // Two REAL catalog toggles that carry a Recommended role (Slice C: the applier reads the
+        // catalog Recommended role, so a synthetic fake-id def no longer pairs / applies).
+        var ids = CatalogTogglesWithRecommendation(2);
+        var setting1 = CreateToggleSetting(ids[0], recommendedValue: 1, enabledValue: [1]);
+        var setting2 = CreateToggleSetting(ids[1], recommendedValue: 0, enabledValue: [1], disabledValue: [0]);
         var settings = new List<SettingDefinition> { setting1, setting2 };
 
         // Act
@@ -148,16 +167,16 @@ public class RecommendedSettingsApplierTests
 
         // Assert: apply was called for each setting
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "toggle-a" && r.SkipValuePrerequisites == true
+            r.SettingId == ids[0] && r.SkipValuePrerequisites == true
         )), Times.Once);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "toggle-b" && r.SkipValuePrerequisites == true
+            r.SettingId == ids[1] && r.SkipValuePrerequisites == true
         )), Times.Once);
 
         // Assert: returned list contains both applied settings
         result.Should().HaveCount(2);
-        result.Should().Contain(s => s.Id == "toggle-a");
-        result.Should().Contain(s => s.Id == "toggle-b");
+        result.Should().Contain(s => s.Id == ids[0]);
+        result.Should().Contain(s => s.Id == ids[1]);
     }
 
     [Fact]
@@ -265,9 +284,9 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedSettingsForFeatureAsync_FlushesExactlyOnce()
     {
-        // Arrange: feature with one compatible setting
+        // Arrange: feature with one compatible setting (a REAL catalog toggle so it actually applies)
         const string triggerId = "trigger-setting";
-        var otherSetting = CreateToggleSetting("other-setting", recommendedValue: 1, enabledValue: [1]);
+        var otherSetting = CreateToggleSetting(CatalogTogglesWithRecommendation(1)[0], recommendedValue: 1, enabledValue: [1]);
         SetupFeatureLookup(triggerId, new[] { otherSetting });
 
         // Act
@@ -282,10 +301,14 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedSettingsForFeatureAsync_ExcludesTriggerSetting()
     {
-        // The trigger setting (same ID) must be excluded to prevent self-application / recursion
-        const string triggerId = "shared-id";
+        // The trigger setting (same ID) must be excluded to prevent self-application / recursion.
+        // BOTH use REAL catalog toggle ids, so an un-excluded trigger WOULD pair and apply -- i.e. it is the
+        // exclusion filter (not the catalog-pairing skip) that keeps the trigger from applying (Slice C).
+        var ids = CatalogTogglesWithRecommendation(2);
+        var triggerId = ids[0];
+        var otherId = ids[1];
         var selfSetting  = CreateToggleSetting(triggerId, recommendedValue: 1, enabledValue: [1]);
-        var otherSetting = CreateToggleSetting("other-setting", recommendedValue: 1, enabledValue: [1]);
+        var otherSetting = CreateToggleSetting(otherId, recommendedValue: 1, enabledValue: [1]);
         SetupFeatureLookup(triggerId, new[] { selfSetting, otherSetting });
 
         await _applier.ApplyRecommendedSettingsForFeatureAsync(triggerId, _mockAppService.Object);
@@ -297,7 +320,7 @@ public class RecommendedSettingsApplierTests
 
         // Other setting should be applied
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == "other-setting"
+            r.SettingId == otherId
         )), Times.Once);
     }
 
@@ -321,11 +344,15 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_IndividualFailure_ContinuesWithRemaining()
     {
-        var failSetting    = CreateToggleSetting("fail-setting",    recommendedValue: 1, enabledValue: [1]);
-        var succeedSetting = CreateToggleSetting("succeed-setting", recommendedValue: 1, enabledValue: [1]);
+        // Two REAL catalog toggles with a recommendation; the first throws on apply (Slice C).
+        var ids = CatalogTogglesWithRecommendation(2);
+        var failId = ids[0];
+        var succeedId = ids[1];
+        var failSetting    = CreateToggleSetting(failId,    recommendedValue: 1, enabledValue: [1]);
+        var succeedSetting = CreateToggleSetting(succeedId, recommendedValue: 1, enabledValue: [1]);
 
         _mockAppService
-            .Setup(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "fail-setting")))
+            .Setup(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == failId)))
             .ThrowsAsync(new InvalidOperationException("Apply failed"));
 
         // Act: should not throw despite partial failure
@@ -334,12 +361,12 @@ public class RecommendedSettingsApplierTests
 
         // Succeeded setting is in the result; failed one is not
         result.Should().HaveCount(1);
-        result.Should().Contain(s => s.Id == "succeed-setting");
+        result.Should().Contain(s => s.Id == succeedId);
 
         // Warning logged for the failure
         _mockLog.Verify(l => l.Log(
             LogLevel.Warning,
-            It.Is<string>(msg => msg.Contains("fail-setting")),
+            It.Is<string>(msg => msg.Contains(failId)),
             null), Times.Once);
     }
 }
