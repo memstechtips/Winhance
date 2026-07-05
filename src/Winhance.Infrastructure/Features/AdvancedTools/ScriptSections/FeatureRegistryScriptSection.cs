@@ -55,33 +55,27 @@ internal class FeatureRegistryScriptSection
 
                 if (settingDef.Id == SettingIds.PowerPlanSelection) continue;
 
-                foreach (var regSetting in settingDef.RegistrySettings)
-                {
-                    bool isHkcuEntry = regSetting.KeyPath.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
-                    if (isHkcuEntry == isHkcu)
-                    {
-                        hasEntriesForCurrentHive = true;
-                        break;
-                    }
-                }
+                // Slice E1b: presence gating reads the catalog Setting (Targets/Effects) instead of the def's
+                // mechanism lists, paired alias-safely via SettingCatalog.Find. It errs toward OVER-reporting so a
+                // header is emitted whenever the emit could produce content (content is never dropped by a skipped
+                // header): for a paired setting the catalog check is proven equal to the old def check over the whole
+                // population (MechanismPresenceEquivalenceTests); an unpaired setting (Find null - none in production,
+                // the equivalence test asserts zero unpaired) falls back to the def check, mirroring the registry/
+                // script emit's own def fallback below (the scheduled-task emit is catalog-only since E1a, so a def
+                // fallback there could only over-report a harmless empty header for a never-occurring unpaired task).
+                var catalog = SettingCatalog.Find(settingDef.Id);
+                bool hasRegistry = catalog != null
+                    ? AutounattendMechanismPresence.HasRegistryInHive(catalog, isHkcu)
+                    : AutounattendMechanismPresence.HasRegistryInHive(settingDef, isHkcu);
+                bool hasTask = catalog != null
+                    ? AutounattendMechanismPresence.HasScheduledTask(catalog)
+                    : AutounattendMechanismPresence.HasScheduledTask(settingDef);
+                bool hasScript = catalog != null
+                    ? AutounattendMechanismPresence.HasScriptInHive(catalog, isHkcu)
+                    : AutounattendMechanismPresence.HasScriptInHive(settingDef, isHkcu);
 
-                if (!isHkcu && settingDef.ScheduledTaskSettings?.Count > 0)
-                {
+                if (hasRegistry || (!isHkcu && hasTask) || hasScript)
                     hasEntriesForCurrentHive = true;
-                }
-
-                if (settingDef.PowerShellScripts?.Count > 0)
-                {
-                    foreach (var ps in settingDef.PowerShellScripts)
-                    {
-                        bool psIsUser = ps.RunContext == RunContext.User;
-                        if (psIsUser == isHkcu)
-                        {
-                            hasEntriesForCurrentHive = true;
-                            break;
-                        }
-                    }
-                }
 
                 if (!isHkcu && settingDef.Id == "power-hibernation-enable")
                 {
@@ -112,8 +106,15 @@ internal class FeatureRegistryScriptSection
                     continue;
                 }
 
-                // Skip settings that have PowerCfgSettings but no RegistrySettings (already handled in Power Settings section)
-                if (settingDef.PowerCfgSettings?.Any() == true && settingDef.RegistrySettings?.Any() != true)
+                // Skip settings that have PowerCfgSettings but no RegistrySettings (already handled in Power Settings
+                // section). Slice E1b: read presence off the catalog Setting (PowerCfgTarget vs RegTarget/
+                // RegistryWriteEffect) when paired, else the old def (mirroring the emit routing); the catalog check
+                // is proven equal to the old def-based check by MechanismPresenceEquivalenceTests.
+                var catalogForSkip = SettingCatalog.Find(settingDef.Id);
+                bool powerCfgOnly = catalogForSkip != null
+                    ? AutounattendMechanismPresence.HasPowerCfg(catalogForSkip) && !AutounattendMechanismPresence.HasRegistry(catalogForSkip)
+                    : AutounattendMechanismPresence.HasPowerCfg(settingDef) && !AutounattendMechanismPresence.HasRegistry(settingDef);
+                if (powerCfgOnly)
                     continue;
 
                 // Set when a paired Action setting was emitted (registry + scripts) through the new catalog Effects
