@@ -2960,21 +2960,25 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration") },
+            Targets = new Target[]
+            {
+                new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration"),
+                new TaskTarget("Task2", @"\Microsoft\Windows\WindowsAI\RecallPipeline"),
+            },
             States = new[]
             {
                 new SettingState
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(true) },
+                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(true), ["Task2"] = Of(true) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(false) },
+                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(false), ["Task2"] = Of(false) },
                 },
             },
         },

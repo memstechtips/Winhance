@@ -245,27 +245,18 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_WithScheduledTask_EmitsTaskBatch()
     {
         var sb = new StringBuilder();
+        // Slice E1a: the scheduled-task emit now sources task paths + description from the catalog Setting via
+        // SettingCatalog.Find, so the fixture must be a REAL catalog scheduled-task setting (a synthetic/unpaired id
+        // would emit no batch). gaming-task-compatibility-appraiser is a pure scheduled-task toggle in the catalog;
+        // the settingDef's ScheduledTaskSettings still drives the old hive pre-filter (FeatureRegistryScriptSection:68).
         var settingDef = new SettingDefinition
         {
-            Id = "task-setting",
+            Id = "gaming-task-compatibility-appraiser",
             Name = "Task Setting",
             Description = "Toggle a scheduled task",
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
-                    ValueName = "TaskVal",
-                    ValueType = RegistryValueKind.DWord,
-                    EnabledValue = [1],
-                    DisabledValue = [0],
-                    RecommendedValue = null,
-                    DefaultValue = null
-                }
-            },
             ScheduledTaskSettings = new[]
             {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = "\\Microsoft\\Windows\\Test\\Task", RecommendedState = null, DefaultState = null }
+                new ScheduledTaskSetting { Id = "task1", TaskPath = "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser", RecommendedState = null, DefaultState = null }
             }
         };
 
@@ -273,7 +264,7 @@ public class FeatureRegistryScriptSectionTests
         {
             new ConfigurationItem
             {
-                Id = "task-setting",
+                Id = "gaming-task-compatibility-appraiser",
                 IsSelected = false,
                 InputType = InputType.Toggle
             }

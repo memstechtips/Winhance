@@ -204,13 +204,16 @@ internal class FeatureRegistryScriptSection
                 foreach (var configItem in configSection.Items)
                 {
                     var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (settingDef?.ScheduledTaskSettings?.Count > 0)
+
+                    // Phase 6.8 Slice E1a: source the scheduled-task paths + description from the catalog Setting
+                    // (TaskTarget + Display.Description) instead of settingDef.ScheduledTaskSettings + .Description.
+                    // Pair alias-safely via SettingCatalog.Find. Proven command-equivalent to the old collection
+                    // (CollectScheduledTasks) by ScriptGenScheduledTaskEquivalenceTests, which also asserts every
+                    // scheduled-task setting is catalog-paired (zero unpaired).
+                    var catalogForTasks = settingDef != null ? SettingCatalog.Find(settingDef.Id) : null;
+                    if (catalogForTasks != null)
                     {
-                        foreach (var taskSetting in settingDef.ScheduledTaskSettings)
-                        {
-                            var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
-                            scheduledTasksToApply.Add((taskSetting.TaskPath, action, settingDef.Description));
-                        }
+                        scheduledTasksToApply.AddRange(CollectScheduledTasksFromCatalog(catalogForTasks, configItem));
                     }
 
                     if (settingDef?.Id == "power-hibernation-enable")
@@ -526,7 +529,41 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    private void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
+    /// <summary>Collects a setting's scheduled-task apply tuples (TaskPath, /Enable|/Disable, Description) from the
+    /// OLD <see cref="SettingDefinition.ScheduledTaskSettings"/> + Description. Behaviour-preserving extraction of the
+    /// old in-loop block (Phase 6.8 Slice E1a). The new-catalog mirror is
+    /// <see cref="CollectScheduledTasksFromCatalog"/>, proven command-equivalent by
+    /// ScriptGenScheduledTaskEquivalenceTests.</summary>
+    internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasks(
+        SettingDefinition settingDef, ConfigurationItem configItem)
+    {
+        if (settingDef.ScheduledTaskSettings?.Count > 0)
+        {
+            foreach (var taskSetting in settingDef.ScheduledTaskSettings)
+            {
+                var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
+                yield return (taskSetting.TaskPath, action, settingDef.Description);
+            }
+        }
+    }
+
+    /// <summary>New-catalog mirror of <see cref="CollectScheduledTasks"/> (Phase 6.8 Slice E1a). Yields the same
+    /// (TaskPath, /Enable|/Disable, Description) tuples, sourcing the task paths from the catalog Setting's
+    /// <see cref="TaskTarget"/>s (one per scheduled task) and the description from <see cref="Display.Description"/>
+    /// instead of <see cref="SettingDefinition.ScheduledTaskSettings"/> / Description. A setting with no scheduled
+    /// tasks has no TaskTargets, so this yields nothing. Proven command-equivalent by
+    /// ScriptGenScheduledTaskEquivalenceTests.</summary>
+    internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem)
+    {
+        foreach (var taskTarget in catalogSetting.Targets.OfType<TaskTarget>())
+        {
+            var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
+            yield return (taskTarget.TaskPath, action, catalogSetting.Display.Description);
+        }
+    }
+
+    internal void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
     {
         sb.AppendLine();
         sb.AppendLine($"{indent}$scheduledTasks = @(");

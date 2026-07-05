@@ -134,26 +134,34 @@ public static class SettingDefinitionConverter
         };
     }
 
-    /// <summary>Translates an old scheduled-task toggle SettingDefinition into the new Setting model: a single
-    /// <see cref="TaskTarget"/> with Enabled (task enabled) / Disabled (task disabled) states. Roles come from
-    /// the task's RecommendedState/DefaultState. An absent task is an availability concern, handled by the
-    /// caller (the old app marks the setting unavailable), not a detected state here.</summary>
+    /// <summary>Translates an old scheduled-task toggle SettingDefinition into the new Setting model: one
+    /// <see cref="TaskTarget"/> per scheduled task with Enabled (all tasks enabled) / Disabled (all tasks disabled)
+    /// states. A setting can control several tasks (e.g. Windows AI = RecallConfiguration + RecallPipeline); the old
+    /// apply/script-gen enable or disable ALL of them together, so all are modelled as detectable targets that must
+    /// match. Roles come from the first task's RecommendedState/DefaultState (every task shares the same direction).
+    /// An absent task is an availability concern, handled by the caller (the old app marks the setting unavailable),
+    /// not a detected state here.</summary>
     public static Setting ConvertScheduledTaskToggle(SettingDefinition def)
     {
-        var task = def.ScheduledTaskSettings[0];
-        var target = new TaskTarget("Task", task.TaskPath);
+        // One target per task, keying the first "Task" so single-task settings are unchanged and additional tasks
+        // get "Task2", "Task3", ... (distinct keys per CatalogValidator R5).
+        var tasks = def.ScheduledTaskSettings;
+        var targets = tasks
+            .Select((t, i) => new TaskTarget(i == 0 ? "Task" : $"Task{i + 1}", t.TaskPath))
+            .ToList();
+        var roleTask = tasks[0];
 
         var enabled = new SettingState
         {
             Label = "Enabled",
-            Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) },
-            Roles = RolesFor(true, task.RecommendedState, task.DefaultState),
+            Set = targets.ToDictionary(t => t.Key, _ => StateValue.Of(true)),
+            Roles = RolesFor(true, roleTask.RecommendedState, roleTask.DefaultState),
         };
         var disabled = new SettingState
         {
             Label = "Disabled",
-            Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) },
-            Roles = RolesFor(false, task.RecommendedState, task.DefaultState),
+            Set = targets.ToDictionary(t => t.Key, _ => StateValue.Of(false)),
+            Roles = RolesFor(false, roleTask.RecommendedState, roleTask.DefaultState),
             IsFallback = true,   // a present task that is not enabled is Disabled (mirrors the old detection)
         };
 
@@ -164,7 +172,7 @@ public static class SettingDefinitionConverter
             Availability = BuildAvailability(def),
             Apply = BuildApply(def),
             UiParentId = def.ParentSettingId,
-            Targets = new List<Target> { target },
+            Targets = targets.Cast<Target>().ToList(),
             States = WithLinks(new[] { enabled, disabled }, BuildLinks(def)),
         };
     }
