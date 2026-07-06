@@ -125,6 +125,7 @@ public static class UpdateOptimizationsCatalog
                 {
                     Label = "Paused for a long time (Unpause in Settings)",
                     Tooltip = "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
+                    Warning = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
@@ -155,6 +156,7 @@ public static class UpdateOptimizationsCatalog
                 {
                     Label = "Disabled (NOT Recommended, Security Risk)",
                     Tooltip = "Completely disable Windows Update services and block all updates - NOT RECOMMENDED",
+                    Warning = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk.",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),

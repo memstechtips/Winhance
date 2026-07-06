@@ -173,6 +173,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Force Deny",
+                    Warning = "WARNING: Force Deny removes background app permissions from Windows Settings entirely. Apps requiring background access (Teams, Zoom, WhatsApp, etc.) may not function correctly.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["LetAppsRunInBackground"] = Of(2) },
                 },
@@ -1310,6 +1311,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled (Recommended for SSD)",
+                    Warning = "WARNING: Disabling SysMain on systems with a traditional hard drive (HDD) can noticeably reduce responsiveness and slow app launches. Recommended only for SSD-only systems.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
@@ -1375,6 +1377,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "WARNING: Disabling WSearch stops file content indexing. Outlook search, Start Menu search, and File Explorer search will become slow or return no results until re-enabled.",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -1477,11 +1480,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
+                    Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
@@ -2227,6 +2232,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2413,6 +2419,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber).",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState

@@ -112,6 +112,7 @@ public static class SettingDefinitionConverter
             {
                 Label = opt.DisplayName,
                 Tooltip = opt.Tooltip,
+                Warning = opt.Warning,
                 Set = set,
                 Roles = roles,
                 Effects = BuildSelectionOptionEffects(def, opt),
@@ -202,6 +203,7 @@ public static class SettingDefinitionConverter
             {
                 Label = o.DisplayName,
                 Tooltip = o.Tooltip,
+                Warning = o.Warning,
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
             Detector = new SystemTrayDetector(showAll, hideAll),
@@ -283,6 +285,7 @@ public static class SettingDefinitionConverter
             {
                 Label = o.DisplayName,
                 Tooltip = o.Tooltip,
+                Warning = o.Warning,
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
@@ -421,6 +424,7 @@ public static class SettingDefinitionConverter
             {
                 Label = opt.DisplayName,
                 Tooltip = opt.Tooltip,
+                Warning = opt.Warning,
                 Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(value) },
                 Roles = roles,
             });
