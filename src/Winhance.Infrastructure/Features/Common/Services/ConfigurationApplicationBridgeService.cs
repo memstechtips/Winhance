@@ -154,6 +154,9 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
         // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgSettings and pass
         // through unchanged.
+        // Slice E2 PARTIAL-BLOCK: this PowerCfgSettings read + GetPowerCfgDisplayUnits(setting) stay on the def -
+        // GetPowerCfgDisplayUnits takes a SettingDefinition and is coupled to the apply/recommended cluster (Slices
+        // C/D). They move to the catalog when a catalog overload of GetPowerCfgDisplayUnits lands there.
         bool isPowerCfg = setting.PowerCfgSettings?.Any() == true;
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
@@ -248,10 +251,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
             foreach (var (item, setting) in remainingItems.ToList())
             {
-                var dependencies = setting.Dependencies?
-                    .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
-                    .Select(d => d.RequiredSettingId)
-                    .ToList() ?? new List<string>();
+                var dependencies = GetWaveDependencyIds(setting);
 
                 bool canProcess = dependencies.All(depId => processedIds.Contains(depId));
 
@@ -280,6 +280,29 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return waves;
     }
 
+    // Slice E2: the config-import wave-ordering dependency set reads off the catalog Setting's Requires-Links
+    // (paired alias-safely via SettingCatalog.Find) instead of the old def.Dependencies. The converter aggregates
+    // RequiresEnabled/RequiresDisabled (BuildLinks) + RequiresSpecificValue (BuildValuePrereqLinks) into
+    // LinkKind.Requires and drops RequiresValueBeforeAnyChange - exactly the old filter, proven set-equal over the
+    // whole population by ConfigBridgeReaderEquivalenceTests. An unpaired setting (none in production) falls back to
+    // the old def.Dependencies read, keeping the synthetic-fake-id tests valid.
+    private static List<string> GetWaveDependencyIds(SettingDefinition setting)
+    {
+        var catalog = SettingCatalog.Find(setting.Id);
+        if (catalog != null)
+            return catalog.States
+                .SelectMany(st => st.Links)
+                .Where(l => l.Kind == LinkKind.Requires)
+                .Select(l => l.OtherId)
+                .Distinct()
+                .ToList();
+
+        return setting.Dependencies?
+            .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
+            .Select(d => d.RequiredSettingId)
+            .ToList() ?? new List<string>();
+    }
+
     private async Task<(ApplyStatus status, string itemName)> ApplySettingItemAsync(
         ConfigurationItem item,
         SettingDefinition setting,
@@ -299,10 +322,28 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
+            // Slice E2: pair alias-safely via SettingCatalog.Find and read confirmation + the input-kind dispatch
+            // off the catalog (Apply.RequiresConfirmation / Control) instead of the old def (RequiresConfirmation /
+            // InputType). InputType.Selection maps to Control in {Selection, PowerPlan}: the bridge does NOT skip
+            // power-plan-selection (Control.PowerPlan), so it must still route through the Selection value path.
+            // Proven old==new over the whole population by ConfigBridgeReaderEquivalenceTests; an unpaired setting
+            // (none in production) falls back to the def, keeping the synthetic-fake-id tests valid.
+            var catalog = SettingCatalog.Find(setting.Id);
+            bool requiresConfirmation = catalog != null ? catalog.Apply.RequiresConfirmation : setting.RequiresConfirmation;
+            bool isSelection = catalog != null
+                ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan
+                : setting.InputType == InputType.Selection;
+            bool isNumericRange = catalog != null
+                ? catalog.Control == ControlKind.Slider
+                : setting.InputType == InputType.NumericRange;
+            bool isAction = catalog != null
+                ? catalog.Control == ControlKind.Action
+                : setting.InputType == InputType.Action;
+
             bool checkboxResult = false;
-            if (setting.RequiresConfirmation && confirmationHandler != null)
+            if (requiresConfirmation && confirmationHandler != null)
             {
-                var value = setting.InputType == InputType.Selection
+                var value = isSelection
                     ? (object)ResolveSelectionValue(setting, item)
                     : (object)(item.IsSelected ?? false);
 
@@ -319,16 +360,16 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
             object? valueToApply = null;
 
-            if (setting.InputType == InputType.Selection)
+            if (isSelection)
             {
                 valueToApply = ResolveSelectionValue(setting, item);
             }
-            else if (setting.InputType == InputType.NumericRange)
+            else if (isNumericRange)
             {
                 valueToApply = ResolveNumericRangeValue(setting, item);
             }
 
-            if (setting.InputType == InputType.Action)
+            if (isAction)
             {
                 // Action settings only apply when explicitly selected. An unselected Action has
                 // no "reverse" semantic — falling through with Enable=false would write
