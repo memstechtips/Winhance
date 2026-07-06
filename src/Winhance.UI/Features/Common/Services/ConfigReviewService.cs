@@ -477,7 +477,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     var diff = new ConfigReviewDiff
                     {
                         SettingId = configItem.Id,
-                        SettingName = settingDef.Name,
+                        SettingName = SettingCatalog.Find(settingDef.Id)?.Display.Name ?? settingDef.Name,
                         FeatureModuleId = featureId,
                         CurrentValueDisplay = currentDisplay,
                         ConfigValueDisplay = configDisplay,
@@ -533,6 +533,18 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return string.Format(format, themeName);
     }
 
+    /// <summary>Unpaired-fallback map from the old InputType to the catalog ControlKind (used only when
+    /// SettingCatalog.Find returns null - no shipped setting is unpaired). Selection -> Selection (a paired
+    /// power-plan resolves to Control.PowerPlan via the catalog, not this fallback); NumericRange -> Slider;
+    /// Action -> Action; Toggle/CheckBox -> Toggle.</summary>
+    private static ControlKind InputTypeToControl(InputType inputType) => inputType switch
+    {
+        InputType.Selection => ControlKind.Selection,
+        InputType.NumericRange => ControlKind.Slider,
+        InputType.Action => ControlKind.Action,
+        _ => ControlKind.Toggle,
+    };
+
     /// <summary>
     /// Computes diff between current system state and config value for a setting definition.
     /// Works with SettingDefinition + SettingStateResult (no ViewModel required).
@@ -545,10 +557,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         string onText,
         string offText)
     {
-        switch (settingDef.InputType)
+        // Slice E5: dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path),
+        // def-fallback when unpaired (none in production). Proven by ControlDerivationConformanceTests +
+        // ConfigBridgeReaderEquivalenceTests. ControlKind.Toggle covers old Toggle + CheckBox (no setting is CheckBox).
+        var dispatchCatalog = SettingCatalog.Find(settingDef.Id);
+        var control = dispatchCatalog?.Control ?? InputTypeToControl(settingDef.InputType);
+        switch (control)
         {
-            case InputType.Toggle:
-            case InputType.CheckBox:
+            case ControlKind.Toggle:
             {
                 var currentBool = currentState.IsEnabled;
                 var configBool = configItem.IsSelected ?? false;
@@ -561,7 +577,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 return (false, string.Empty, string.Empty, null, null);
             }
 
-            case InputType.Selection:
+            case ControlKind.Selection:
+            case ControlKind.PowerPlan:
             {
                 // Resolve the current index via combo box setup for accurate display
                 var comboResult = BuildComboBoxOptions(settingDef, currentState.CurrentValue);
@@ -657,7 +674,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 return (false, string.Empty, string.Empty, null, null);
             }
 
-            case InputType.NumericRange:
+            case ControlKind.Slider:
             {
                 var currentVal = currentState.CurrentValue is int cv ? cv : 0;
                 if (configItem.PowerSettings != null)
@@ -685,28 +702,67 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private static ComboBoxSetupResult BuildComboBoxOptions(SettingDefinition setting, object? currentValue)
     {
         var result = new ComboBoxSetupResult();
-        var comboBox = setting.ComboBox;
-        if (comboBox?.Options == null || comboBox.Options.Count == 0)
-            return result; // Success stays false
+
+        // Slice E5: build the review combo-box options from the catalog Setting's States (one per option) instead of
+        // the old def ComboBox, paired alias-safely via SettingCatalog.Find. Only DisplayText (from State.Label) and
+        // SelectedValue are read by the review diff (ComputeEagerDiffAsync / GetComboBoxDisplayNameFromDefAsync);
+        // Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are populated for the option object but are NOT read
+        // in this flow. State.Label == the old DisplayName (converter copies) and State.Tooltip == the old option
+        // Tooltip (Slice B, CatalogTooltipEquivalenceTests). NOTE: the badge flags map to catalog roles - HasRole
+        // diverges from the old option flags for the 2 detector selections (system-tray, dns) which carry no engine
+        // roles (ConfigReviewReaderEquivalenceTests documents the 4 divergences), but that is unobservable here since
+        // the flags are unread. The custom option label is hardcoded "Custom": this service consumes RAW un-localized
+        // defs (CompatibleSettingsRegistry), whose ComboBoxMetadata.CustomStateDisplayName is null, so the old
+        // "CustomStateDisplayName ?? Custom" was ALWAYS "Custom" here - byte-identical, not merely unobservable.
+        var catalog = SettingCatalog.Find(setting.Id);
+        if (catalog == null)
+        {
+            // Unpaired def-fallback (none in production) - the old ComboBox path, unchanged.
+            var comboBox = setting.ComboBox;
+            if (comboBox?.Options == null || comboBox.Options.Count == 0)
+                return result; // Success stays false
+
+            int fbIndex = currentValue is int fi ? fi : 0;
+            var fbCustom = fbIndex == ComboBoxConstants.CustomStateIndex;
+            for (int i = 0; i < comboBox.Options.Count; i++)
+            {
+                result.Options.Add(new ComboBoxDisplayOption(comboBox.Options[i].DisplayName, i, comboBox.Options[i].Tooltip)
+                {
+                    IsRecommended = comboBox.Options[i].IsRecommended,
+                    IsDefault = comboBox.Options[i].IsDefault,
+                    IsSubjectivePreference = setting.IsSubjectivePreference,
+                });
+            }
+            if (fbCustom)
+            {
+                var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom";
+                result.Options.Add(new ComboBoxDisplayOption(customDisplayName, ComboBoxConstants.CustomStateIndex, null));
+            }
+            result.SelectedValue = fbCustom ? ComboBoxConstants.CustomStateIndex : fbIndex;
+            result.Success = true;
+            return result;
+        }
+
+        if (catalog.States.Count == 0)
+            return result; // e.g. power-plan-selection (dynamic options; handled by the PowerPlanGuid branch)
 
         int currentIndex = currentValue is int idx ? idx : 0;
         var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
-        var options = comboBox.Options;
+        var states = catalog.States;
 
-        for (int i = 0; i < options.Count; i++)
+        for (int i = 0; i < states.Count; i++)
         {
-            result.Options.Add(new ComboBoxDisplayOption(options[i].DisplayName, i, options[i].Tooltip)
+            result.Options.Add(new ComboBoxDisplayOption(states[i].Label, i, states[i].Tooltip)
             {
-                IsRecommended = options[i].IsRecommended,
-                IsDefault = options[i].IsDefault,
-                IsSubjectivePreference = setting.IsSubjectivePreference,
+                IsRecommended = states[i].HasRole(RoleKind.Recommended),
+                IsDefault = states[i].HasRole(RoleKind.WindowsDefault),
+                IsSubjectivePreference = catalog.Display.IsSubjectivePreference,
             });
         }
 
         if (isCustomState)
         {
-            var customDisplayName = comboBox.CustomStateDisplayName ?? "Custom";
-            result.Options.Add(new ComboBoxDisplayOption(customDisplayName, ComboBoxConstants.CustomStateIndex, null));
+            result.Options.Add(new ComboBoxDisplayOption("Custom", ComboBoxConstants.CustomStateIndex, null));
         }
 
         result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
