@@ -49,6 +49,7 @@ public class ConfigReviewReaderEquivalenceTests
     {
         var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
         var mismatches = new List<string>();
+        var divergentIds = new HashSet<string>();
         var compared = 0;
         var recommendedCount = 0;
         var defaultCount = 0;
@@ -76,13 +77,19 @@ public class ConfigReviewReaderEquivalenceTests
                 bool newRec = s.States[i].HasRole(RoleKind.Recommended);
                 if (oldRec) recommendedCount++;
                 if (oldRec != newRec)
+                {
                     mismatches.Add($"{def.Id}[{i}]: old IsRecommended={oldRec} != catalog HasRole(Recommended)={newRec}");
+                    divergentIds.Add(def.Id);
+                }
 
                 bool oldDef = options[i].IsDefault;
                 bool newDef = s.States[i].HasRole(RoleKind.WindowsDefault);
                 if (oldDef) defaultCount++;
                 if (oldDef != newDef)
+                {
                     mismatches.Add($"{def.Id}[{i}]: old IsDefault={oldDef} != catalog HasRole(WindowsDefault)={newDef}");
+                    divergentIds.Add(def.Id);
+                }
             }
         }
 
@@ -92,6 +99,15 @@ public class ConfigReviewReaderEquivalenceTests
 
         Assert.True(compared > 50, $"only compared {compared} selection settings - population scoping bug");
         Assert.True(recommendedCount > 0 && defaultCount > 0, $"a flag bucket was empty (rec={recommendedCount}, def={defaultCount}) - the comparison would be vacuous");
-        Assert.True(mismatches.Count == 0, $"{mismatches.Count} role-flag mismatches (catalog HasRole vs old ComboBoxOption flags):\n" + string.Join("\n", mismatches));
+        // ACCEPTED, DOCUMENTED divergence: the 2 DETECTOR selections (system-tray, dns) carry no engine roles -
+        // "recommended"/"default" is a pure UI hint there, not a StateRole - so HasRole is false while the old option
+        // flag was true. UNOBSERVABLE in ConfigReviewService (BuildComboBoxOptions' badge flags are never read; only
+        // DisplayText + SelectedValue are). Assert the divergent set is EXACTLY these two, so a NEW divergence (a
+        // registry selection losing a role, or a third detector selection) fails RED.
+        var expectedDivergentIds = new HashSet<string> { "taskbar-system-tray-icons-11", "gaming-dns-server" };
+        Assert.True(divergentIds.SetEquals(expectedDivergentIds),
+            $"role-flag divergence set changed - expected exactly [{string.Join(", ", expectedDivergentIds.OrderBy(x => x))}] "
+                + $"(the 2 detector selections, unobservable in the review flow); got [{string.Join(", ", divergentIds.OrderBy(x => x))}]:\n"
+                + string.Join("\n", mismatches));
     }
 }
