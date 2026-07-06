@@ -159,11 +159,24 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     InputType = setting.InputType
                 };
 
-                if (setting.InputType == InputType.Toggle)
+                // Slice E4: pair alias-safely via SettingCatalog.Find and read the per-setting export dispatch off the
+                // catalog (Control / PowerCfgTarget.Mode) instead of the old def (InputType / PowerCfgSettings). Selection
+                // maps to Control in {Selection, PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection
+                // path). The InputType persistence WRITE above STAYS - it populates the config's InputType field, still
+                // read as the unpaired fallback by the E1c/E2 consumers. Proven old==new over the whole population by
+                // ConfigExportReaderEquivalenceTests + ConfigBridgeReaderEquivalenceTests; unpaired falls back to the def.
+                var catalog = SettingCatalog.Find(setting.Id);
+                bool isToggle = catalog != null ? catalog.Control == ControlKind.Toggle : setting.InputType == InputType.Toggle;
+                bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
+                bool isPowerCfgSeparate = catalog != null
+                    ? catalog.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate
+                    : setting.PowerCfgSettings?.Any() == true && setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate;
+
+                if (isToggle)
                 {
                     item.IsSelected = state?.IsEnabled ?? false;
                 }
-                else if (setting.InputType == InputType.Selection)
+                else if (isSelection)
                 {
                     var (selectedIndex, customStateValues, powerPlanGuid, powerPlanName) = GetSelectionStateFromState(setting, state);
 
@@ -181,9 +194,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                         // unattend to set AC and DC separately on install for these settings.
                         bool hasAcDcPowerSettings = false;
 
-                        if (setting.PowerCfgSettings?.Any() == true &&
-                            setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate &&
-                            state != null)
+                        if (isPowerCfgSeparate && state != null)
                         {
                             object? acValue = state.AcValue;
                             object? dcValue = state.DcValue;
@@ -209,7 +220,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     }
                 }
 
-                if (setting.InputType == InputType.Selection &&
+                if (isSelection &&
                     item.SelectedIndex == null &&
                     item.PowerSettings == null &&
                     setting.Id != SettingIds.PowerPlanSelection &&
@@ -217,10 +228,11 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 {
                     // Slice 6: rebuild the custom-state bag from the new engine's typed fields instead of the retired
                     // RawValues (CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
-                    var catalogSetting = SettingCatalog.All.FirstOrDefault(c => c.Id == SettingIdAliases.Normalize(setting.Id));
-                    var custom = catalogSetting is null
+                    // Slice E4: reuse the alias-safe `catalog` (SettingCatalog.Find) paired above instead of the manual
+                    // Normalize + FirstOrDefault.
+                    var custom = catalog is null
                         ? new Dictionary<string, object>()
-                        : CustomStateValueReconstructor.Build(catalogSetting, state)
+                        : CustomStateValueReconstructor.Build(catalog, state)
                             .Where(v => v.Value != null)
                             .ToDictionary(k => k.Key, v => v.Value!);
                     if (custom.Count > 0)
@@ -271,7 +283,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
         GetSelectionStateFromState(SettingDefinition setting, SettingStateResult? state)
     {
-        if (setting.InputType != InputType.Selection)
+        // Slice E4: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan), def-fallback.
+        var catalog = SettingCatalog.Find(setting.Id);
+        bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
+        if (!isSelection)
             return (null, null, null, null);
 
         if (state?.CurrentValue is not int index)
@@ -301,9 +316,14 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             // custom-state result is discarded by the autounattend; the read is migrated to retire RawValues.)
             if (state.Readings != null)
             {
-                foreach (var registrySetting in setting.RegistrySettings)
+                // Slice E4: source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists")
+                // instead of the old def.RegistrySettings; the key SET is identical (proven by
+                // ConfigExportReaderEquivalenceTests). Unpaired falls back to def.RegistrySettings.
+                var regKeys = catalog != null
+                    ? catalog.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists")
+                    : setting.RegistrySettings.Select(rs => rs.ValueName ?? "KeyExists");
+                foreach (var key in regKeys)
                 {
-                    var key = registrySetting.ValueName ?? "KeyExists";
                     if (state.Readings.TryGetValue(key, out var value) && value != null)
                     {
                         customValues[key] = value;
@@ -325,6 +345,24 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         if (value == null) return 0;
 
         var intValue = Convert.ToInt32(value);
+
+        // Slice E4: resolve the powercfg AC/DC value to an option index off the catalog States' Set["Power"] (==
+        // the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg builds one State per option),
+        // proven by ConfigExportReaderEquivalenceTests. Unpaired falls back to the old def ComboBox scan.
+        var catalog = SettingCatalog.Find(setting.Id);
+        if (catalog != null)
+        {
+            for (int i = 0; i < catalog.States.Count; i++)
+            {
+                if (catalog.States[i].Set.TryGetValue("Power", out var sv) &&
+                    sv.WritePayload != null && Convert.ToInt32(sv.WritePayload) == intValue)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
 
         var options = setting.ComboBox?.Options;
         if (options == null)
