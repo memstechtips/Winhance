@@ -121,6 +121,15 @@ internal class FeatureRegistryScriptSection
                 // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
                 bool actionHandledByCatalog = false;
 
+                // Slice E1c: pair alias-safely via SettingCatalog.Find (the Commit-B alias trap fix) so the
+                // Selection routing + the PowerShell-script pass below read the catalog Setting. The dispatch
+                // "is this a Selection?" moves off configItem.InputType onto the catalog Control (Control ==
+                // Selection <=> InputType.Selection over the whole population, proven by
+                // ScriptGenSelectionGateEquivalenceTests), with a configItem.InputType fallback for an unpaired
+                // setting (none in production). The toggle/action registry emit below still pair via the exact
+                // FirstOrDefault (byte-equivalent; their emit paths move to Find when they are ported).
+                var catalogItem = SettingCatalog.Find(settingDef.Id);
+
                 // Apply the setting, but only output registry entries that match the current hive
                 if (configItem.InputType == InputType.Toggle)
                 {
@@ -149,7 +158,7 @@ internal class FeatureRegistryScriptSection
                         _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                     }
                 }
-                else if (configItem.InputType == InputType.Selection)
+                else if (catalogItem != null ? catalogItem.Control == ControlKind.Selection : configItem.InputType == InputType.Selection)
                 {
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
@@ -188,10 +197,12 @@ internal class FeatureRegistryScriptSection
                 // A paired Action already emitted its scripts via AppendActionCommandsFromCatalog above; don't re-emit.
                 if (!actionHandledByCatalog)
                 {
-                    var catalogForScripts = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
-                    bool selectionWithoutIndex = configItem.InputType == InputType.Selection && !configItem.SelectedIndex.HasValue;
-                    if (catalogForScripts != null && catalogForScripts.States.Count > 0 && !selectionWithoutIndex)
-                        AppendPowerShellScriptsFromCatalog(sb, catalogForScripts, settingDef, configItem, isHkcu, indent);
+                    bool isSelection = catalogItem != null
+                        ? catalogItem.Control == ControlKind.Selection
+                        : configItem.InputType == InputType.Selection;
+                    bool selectionWithoutIndex = isSelection && !configItem.SelectedIndex.HasValue;
+                    if (catalogItem != null && catalogItem.States.Count > 0 && !selectionWithoutIndex)
+                        AppendPowerShellScriptsFromCatalog(sb, catalogItem, settingDef, configItem, isHkcu, indent);
                     else
                         AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
                 }
@@ -382,7 +393,7 @@ internal class FeatureRegistryScriptSection
         // Resolve the state whose ScriptEffects this pass should emit. A Selection keys off SelectedIndex; a
         // toggle/action keys off the Enabled/Disabled state (Custom values count as "enabled", as in the old loop).
         SettingState? activeState;
-        if (settingDef.InputType == InputType.Selection
+        if (catalogSetting.Control == ControlKind.Selection
             && configItem.SelectedIndex.HasValue
             && configItem.SelectedIndex.Value >= 0
             && configItem.SelectedIndex.Value < catalogSetting.States.Count)

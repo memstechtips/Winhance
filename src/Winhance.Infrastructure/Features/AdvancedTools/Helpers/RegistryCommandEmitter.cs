@@ -548,6 +548,12 @@ internal class RegistryCommandEmitter
         if (setting.Id == SettingIds.PowerPlanSelection)
             return;
 
+        // Slice E1c: pair alias-safely via SettingCatalog.Find (not the exact-match FirstOrDefault, the Commit-B
+        // alias trap) and read the value-mapping gate off the catalog shape - a state's Set is non-empty exactly
+        // when its option carried ValueMappings - instead of the old def ComboBox. Proven old==new over the whole
+        // selection population by ScriptGenSelectionGateEquivalenceTests (gate A + gate B).
+        var catalogSetting = SettingCatalog.Find(setting.Id);
+
         Dictionary<string, object> valuesToApply;
 
         if (configItem.CustomStateValues != null && configItem.CustomStateValues.Any())
@@ -555,9 +561,10 @@ internal class RegistryCommandEmitter
             valuesToApply = configItem.CustomStateValues;
         }
         else if (configItem.SelectedIndex.HasValue &&
-                 setting.ComboBox?.Options?.Any(o => o.ValueMappings != null) == true)
+                 catalogSetting is not null &&
+                 catalogSetting.States.Any(st => st.Set.Count > 0))
         {
-            valuesToApply = ResolveSelectionValuesFromCatalog(setting, configItem.SelectedIndex.Value);
+            valuesToApply = ResolveSelectionValuesFromCatalog(catalogSetting, configItem.SelectedIndex.Value);
         }
         else
         {
@@ -570,7 +577,6 @@ internal class RegistryCommandEmitter
         // ScriptGenApplyResolvedEquivalenceTests (750 setting/index/hive tuples, 0 mismatches). Unpaired settings
         // (none exist among selections-with-ValueMappings - ScriptGenSelectionResolveEquivalenceTests enforces that)
         // fall back to the old emitter.
-        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
         if (catalogSetting != null)
             ApplyResolvedValuesFromCatalog(sb, catalogSetting, valuesToApply, isHkcu, indent);
         else
@@ -580,24 +586,21 @@ internal class RegistryCommandEmitter
     /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the
     /// selected option's raw write-values dict from the catalog setting's States[index].Set - each Set entry keyed by
     /// the matching Target's registry ValueName (or "KeyExists" when the RegTarget has no value name), or "PowerCfgValue"
-    /// for a PowerCfgTarget, valued by StateValue.WritePayload. Returns empty when the selected option carries no
-    /// value-mappings (matching the old resolver) or - UNLIKE the old resolver, which had no catalog concept - when the
-    /// setting is unpaired or the index is out of range. That unpaired divergence (old would still emit; this emits
-    /// nothing) is safe ONLY because every selection setting carrying value-mappings is catalog-paired;
-    /// ScriptGenSelectionResolveEquivalenceTests enforces that invariant and proves byte-equivalence with the old
-    /// resolver for all paired selections (103 settings, 0 mismatches).</summary>
-    private static Dictionary<string, object> ResolveSelectionValuesFromCatalog(SettingDefinition setting, int index)
+    /// for a PowerCfgTarget, valued by StateValue.WritePayload. The caller pairs the setting (SettingCatalog.Find)
+    /// and passes the catalog Setting in. Returns empty when the selected STATE carries no write-values (an empty
+    /// Set - the old "selected option has no ValueMappings" case, proven equivalent per index by
+    /// ScriptGenSelectionGateEquivalenceTests gate B) or the index is out of range. Byte-equivalence with the old
+    /// IComboBoxResolver.ResolveIndexToRawValues for all paired selections is proven by
+    /// ScriptGenSelectionResolveEquivalenceTests (103 settings, 0 mismatches).</summary>
+    private static Dictionary<string, object> ResolveSelectionValuesFromCatalog(Winhance.Core.Features.Common.Catalog.Setting catalogSetting, int index)
     {
         var result = new Dictionary<string, object>();
 
-        // Faithful to ResolveIndexToRawValues: empty unless the SELECTED option carries value-mappings.
-        if (setting.ComboBox?.Options is not { } options
-            || index < 0 || index >= options.Count
-            || options[index].ValueMappings == null)
-            return result;
-
-        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == setting.Id);
-        if (catalogSetting == null || index >= catalogSetting.States.Count)
+        // Faithful to ResolveIndexToRawValues: empty unless the SELECTED state carries write-values. A state's Set
+        // is non-empty exactly when its option carried ValueMappings (the converter builds Set from ValueMappings),
+        // so the old "options[index].ValueMappings == null" gate is the catalog "States[index].Set is empty" check.
+        if (index < 0 || index >= catalogSetting.States.Count
+            || catalogSetting.States[index].Set.Count == 0)
             return result;
 
         foreach (var entry in catalogSetting.States[index].Set)
