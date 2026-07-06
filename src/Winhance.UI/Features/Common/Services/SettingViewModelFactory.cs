@@ -50,7 +50,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         InputType inputType,
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
-        IReadOnlyList<string?>? optionWarnings,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage)
@@ -70,7 +69,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             OnText = _localizationService.GetString("Common_On") ?? "On",
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
-            OptionWarnings = optionWarnings
+            OptionWarnings = BuildCatalogOptionWarnings(setting)
         };
 
         var viewModel = new SettingItemViewModel(
@@ -285,6 +284,29 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 LocalizeOrFallback("Common_CustomState", "Custom"));
             options.Add(new ComboBoxDisplayOption(custom ?? "Custom", ComboBoxConstants.CustomStateIndex, null));
         }
+    }
+
+    // Per-option warnings sourced from the catalog Setting's States (Slice B - retiring the old def's
+    // ComboBoxOption.Warning read). Localized via the canonical Setting_{id}_OptionWarning_{i} key with the raw
+    // state.Warning as the fallback - the SAME key + fallback the old SettingLocalizationService used off the def,
+    // so this is value-identical (OptionWarningReadSwapEquivalenceTests proves the raw values + loc-key base match
+    // over the whole population). Index-aligned with the options BuildCatalogSelectionOptions builds (one per State),
+    // which is how the status banner indexes the list. Null for a stateless setting (e.g. the dynamic power-plan),
+    // matching the old null for a setting with no ComboBox.
+    private IReadOnlyList<string?>? BuildCatalogOptionWarnings(Setting setting)
+    {
+        if (setting.States.Count == 0)
+            return null;
+
+        var warnings = new List<string?>(setting.States.Count);
+        for (int i = 0; i < setting.States.Count; i++)
+        {
+            var raw = setting.States[i].Warning;
+            warnings.Add(string.IsNullOrEmpty(raw)
+                ? raw
+                : LocalizeOrFallback($"Setting_{setting.Id}_OptionWarning_{i}", raw));
+        }
+        return warnings;
     }
 
     // Returns the localized string for the key, or the fallback when the key is missing

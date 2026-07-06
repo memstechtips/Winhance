@@ -73,7 +73,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.Should().NotBeNull();
     }
@@ -84,7 +84,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("MySetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.SettingId.Should().Be("MySetting");
     }
@@ -95,7 +95,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting", "Test Name", "Test Description");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.Name.Should().Be("Test Name");
         result.Description.Should().Be("Test Description");
@@ -107,7 +107,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting") with { GroupName = "Privacy Settings" };
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.GroupName.Should().Be("Privacy Settings");
     }
@@ -118,7 +118,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.IsSelected.Should().BeTrue();
     }
@@ -129,7 +129,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = false, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.IsSelected.Should().BeFalse();
     }
@@ -146,7 +146,7 @@ public class SettingViewModelFactoryTests
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(false);
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.IsLocked.Should().BeTrue();
     }
@@ -161,7 +161,7 @@ public class SettingViewModelFactoryTests
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(true);
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.IsLocked.Should().BeFalse();
     }
@@ -174,7 +174,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 50, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.MinValue.Should().Be(0);
         result.MaxValue.Should().Be(100);
@@ -187,7 +187,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 42, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.NumericValue.Should().Be(42);
     }
@@ -200,7 +200,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.ComboBoxOptions.Should().HaveCount(2);
     }
@@ -211,7 +211,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.SelectedValue.Should().Be(1);
     }
@@ -224,7 +224,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         _mockEnricher.Verify(e => e.ApplyReviewDiff(It.IsAny<SettingItemViewModel>(), state), Times.Once);
     }
@@ -237,7 +237,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { CurrentValue = "SomeValue", Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.SelectedValue.Should().Be("SomeValue");
     }
@@ -251,7 +251,7 @@ public class SettingViewModelFactoryTests
         var state = new SettingStateResult { Success = true };
         var parentVm = new Mock<ISettingsFeatureViewModel>().Object;
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, parentVm, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, parentVm, null, null, null);
 
         // The VM was created successfully with the parent reference
         result.Should().NotBeNull();
@@ -273,7 +273,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null, null);
+        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
         result.OnText.Should().Be("Enabled");
         result.OffText.Should().Be("Disabled");

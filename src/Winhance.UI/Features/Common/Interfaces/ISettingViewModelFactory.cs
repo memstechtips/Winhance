@@ -19,7 +19,6 @@ public interface ISettingViewModelFactory
         InputType inputType,
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
-        IReadOnlyList<string?>? optionWarnings,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage);

@@ -80,7 +80,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
-                It.IsAny<IReadOnlyList<string?>?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>()))
@@ -125,7 +124,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
-                It.IsAny<IReadOnlyList<string?>?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>()))
@@ -256,7 +254,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
-                It.IsAny<IReadOnlyList<string?>?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>()))

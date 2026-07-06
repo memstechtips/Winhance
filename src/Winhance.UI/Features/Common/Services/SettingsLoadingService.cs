@@ -85,7 +85,6 @@ public class SettingsLoadingService : ISettingsLoadingService
                     continue;
                 }
 
-                var optionWarnings = setting.ComboBox?.Options?.Select(o => o.Warning).ToList();
                 var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
                 // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
@@ -98,7 +97,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                         ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 
-                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, optionWarnings, crossGroupInfoMessage, builderComboBoxOptions, setting.VersionCompatibilityMessage);
+                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, setting.VersionCompatibilityMessage);
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
