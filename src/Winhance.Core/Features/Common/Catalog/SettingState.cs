@@ -8,6 +8,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 public sealed record SettingState
 {
     public required string Label { get; init; }                          // localization key
+    public string? Tooltip { get; init; }                                // per-option tooltip (localized at read time via OptionTooltip key); null = none
     public IReadOnlyList<StateRole> Roles { get; init; } = System.Array.Empty<StateRole>();
     public IReadOnlyDictionary<string, StateValue> Set { get; init; } =
         new Dictionary<string, StateValue>();

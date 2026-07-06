@@ -140,6 +140,7 @@ public static class SettingStructuralComparer
         {
             var (x, y) = (a[i], b[i]);
             if (x.Label != y.Label) d.Add($"States[{i}].Label {x.Label} != {y.Label}");
+            if (x.Tooltip != y.Tooltip) d.Add($"States[{i}].Tooltip {x.Tooltip} != {y.Tooltip}");
             if (x.IsFallback != y.IsFallback) d.Add($"States[{i}].IsFallback differs");
             if (!x.Roles.SequenceEqual(y.Roles)) d.Add($"States[{i}].Roles differ");
             if (!x.Effects.SequenceEqual(y.Effects)) d.Add($"States[{i}].Effects differ");           // Effect records -> structural

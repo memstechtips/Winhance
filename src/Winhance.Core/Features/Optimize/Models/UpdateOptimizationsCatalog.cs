@@ -62,6 +62,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Normal (Windows Default)",
+                    Tooltip = "Windows default behavior - automatic updates enabled",
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -92,6 +93,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Security Updates Only (Recommended)",
+                    Tooltip = "Only install critical security updates, defer feature updates by 1 year",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -122,6 +124,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Paused for a long time (Unpause in Settings)",
+                    Tooltip = "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
@@ -151,6 +154,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled (NOT Recommended, Security Risk)",
+                    Tooltip = "Completely disable Windows Update services and block all updates - NOT RECOMMENDED",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
