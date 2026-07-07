@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Localization;
@@ -24,6 +25,12 @@ public static class SettingLocalizationKeys
 
     private static string Base(SettingDefinition setting) => setting.LocalizationId ?? setting.Id;
 
+    // Catalog-Setting base (Slice C/D foundation): the catalog Id IS the canonical, alias-normalized id, so it
+    // equals the def base LocalizationId ?? Id for every paired setting (proven by LocalizeDisplayReadSwapEquivalence
+    // Tests + locked here by SettingLocalizationKeysCatalogEquivalenceTests). Lets the key-builders run off a catalog
+    // Setting instead of a SettingDefinition; the def overloads stay live until the apply-cluster / loc-key port.
+    private static string Base(Setting setting) => setting.Id;
+
     /// <summary><c>Setting_{LocalizationId ?? Id}_Name</c></summary>
     public static string Name(SettingDefinition setting) => $"Setting_{Base(setting)}_Name";
 
@@ -41,6 +48,16 @@ public static class SettingLocalizationKeys
 
     /// <summary><c>Setting_{LocalizationId ?? Id}_Option_Custom</c> — per-setting Custom-state override.</summary>
     public static string OptionCustom(SettingDefinition setting) => $"Setting_{Base(setting)}_Option_Custom";
+
+    // ---- Catalog-Setting overloads (Slice C/D foundation; additive, keyed off the catalog Id which == the def base
+    // for every paired setting). ExpectedKeys(Setting) is deferred to the LocalizationKeyReferenceTests port (it walks
+    // the catalog States and needs its own set-equivalence proof). ----
+    public static string Name(Setting setting) => $"Setting_{Base(setting)}_Name";
+    public static string Description(Setting setting) => $"Setting_{Base(setting)}_Description";
+    public static string OptionDisplay(Setting setting, int index) => $"Setting_{Base(setting)}_Option_{index}";
+    public static string OptionTooltip(Setting setting, int index) => $"Setting_{Base(setting)}_OptionTooltip_{index}";
+    public static string OptionWarning(Setting setting, int index) => $"Setting_{Base(setting)}_OptionWarning_{index}";
+    public static string OptionCustom(Setting setting) => $"Setting_{Base(setting)}_Option_Custom";
 
     /// <summary>
     /// Compacted group key, e.g. group name "Privacy &amp; Security" -&gt; <c>SettingGroup_PrivacySecurity</c>.
