@@ -76,4 +76,53 @@ public class CatalogSettingsRegistryCompositionTests
                 reg.GetFeatureIdForSetting("explorer-customization-thispc-folder-desktop-win10"));
         Assert.Null(reg.GetFeatureIdForSetting("definitely-not-a-real-setting-id"));
     }
+
+    [Fact]
+    public async Task Scope_param_relaxes_only_the_os_gate_defaulting_to_current_os()
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var hardware = new Mock<IHardwareDetectionService>();
+        hardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        hardware.Setup(h => h.HasLidAsync()).ReturnsAsync(false);
+        hardware.Setup(h => h.SupportsBrightnessControlAsync()).ReturnsAsync(true);
+        hardware.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(true);
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync((IReadOnlyList<Setting> s) => s); // passthrough - existence proven separately
+
+        var reg = new CatalogSettingsRegistry(version.Object, hardware.Object, existence.Object);
+        await reg.InitializeAsync();
+
+        var build = new WinBuild(26100, 0);
+        var caps = new HardwareCaps(false, false, true, true);
+        bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
+        bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps);
+
+        // Default GetAll = current-OS (IsAvailable); GetAll(includeOtherOsVersions:true) relaxes ONLY the OS-build
+        // gate = IsAvailableIgnoringOsBuild (hardware still applies; existence is stubbed passthrough here).
+        var currentActual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
+        var relaxedActual = reg.GetAll(includeOtherOsVersions: true).SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
+        Assert.Equal(SettingCatalog.All.Where(Current).Select(s => s.Id).OrderBy(x => x).ToList(), currentActual);
+        Assert.Equal(SettingCatalog.All.Where(Relaxed).Select(s => s.Id).OrderBy(x => x).ToList(), relaxedActual);
+
+        // The scope genuinely discriminates: OS-incompatible settings (e.g. the Win10-only ones on this Win11 build)
+        // are hidden in current-OS but shown when the OS gate is relaxed; current-OS is always a subset.
+        Assert.True(relaxedActual.Count > currentActual.Count, "relaxed scope added no OS-incompatible setting - vacuous");
+        Assert.Subset(relaxedActual.ToHashSet(), currentActual.ToHashSet());
+
+        // Per-feature honours the scope too.
+        foreach (var (featureId, settings) in SettingCatalog.ByFeature)
+        {
+            var exp = settings.Where(Relaxed).Select(s => s.Id).OrderBy(x => x).ToList();
+            var act = reg.GetByFeature(featureId, includeOtherOsVersions: true).Select(s => s.Id).OrderBy(x => x).ToList();
+            Assert.Equal(exp, act);
+        }
+
+        // GetById: an OS-incompatible setting is hidden by default, shown when the OS gate is relaxed.
+        var osIncompatible = SettingCatalog.All.First(s => !Current(s) && Relaxed(s));
+        Assert.Null(reg.GetById(osIncompatible.Id));
+        Assert.Equal(osIncompatible.Id, reg.GetById(osIncompatible.Id, includeOtherOsVersions: true)!.Id);
+    }
 }
