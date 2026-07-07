@@ -178,6 +178,41 @@ internal static class RecommendedSettingsResolver
         return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
     }
 
+    // ---- Catalog-Setting overloads (Slice C/D foundation; additive, proven == the SettingDefinition
+    // versions above by PowerCfgHelperCatalogEquivalenceTests). Wired to nothing yet - the SAS change-history
+    // rendering (E2 partial-block) + the config bridge repoint onto these when the apply-cluster ports off
+    // SettingDefinition; the def versions stay live until then. ----
+
+    // Catalog equivalent of GetPowerCfgDisplayUnits(SettingDefinition): the converter sets
+    // Numeric.Units = def.NumericRange?.Units ?? pcs.Units (the combined value, for a NumericRange powercfg) and
+    // PowerCfgTarget.Units = pcs.Units (the fallback for a Selection powercfg, which has no Numeric) - together
+    // reproducing def.NumericRange?.Units ?? def.PowerCfgSettings?[0]?.Units ?? "".
+    internal static string GetPowerCfgDisplayUnits(Setting setting)
+    {
+        if (setting.Numeric?.Units is { } units) return units;
+        return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
+    }
+
+    // Catalog equivalent of FindOptionIndexForPowerCfgValue(SettingDefinition, int?): the converter builds one
+    // State per ComboBox option (in order) whose Set[PowerCfgTarget.Key, i.e. "Power"] = StateValue.Of(the option's
+    // ValueMappings["PowerCfgValue"]) - so the first State whose Set["Power"] matches the raw value is the same
+    // index the def version returns from Options[i].ValueMappings["PowerCfgValue"]. Mirrors the live factory's
+    // SettingViewModelFactory.FindStateIndexForPowerCfgValue.
+    internal static int? FindOptionIndexForPowerCfgValue(Setting setting, int? targetValue)
+    {
+        if (!targetValue.HasValue) return null;
+        var powerKey = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Key;
+        if (powerKey is null) return null;
+        var states = setting.States;
+        for (int i = 0; i < states.Count; i++)
+        {
+            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
+                && stateValue.Matches(targetValue.Value, present: true))
+                return i;
+        }
+        return null;
+    }
+
     // Inverse of PowerCfgApplier.ConvertToSystemUnits.
     internal static int ConvertSystemToDisplayUnits(int systemValue, string? units)
     {
