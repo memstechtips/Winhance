@@ -11,6 +11,7 @@ namespace Winhance.UI.Tests.Services;
 public class StartupOrchestratorTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _settingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
     private readonly Mock<IGlobalSettingsPreloader> _settingsPreloader = new();
     private readonly Mock<IUserPreferencesService> _preferencesService = new();
     private readonly Mock<IConfigurationService> _configurationService = new();
@@ -31,6 +32,7 @@ public class StartupOrchestratorTests
     {
         return new StartupOrchestrator(
             _settingsRegistry.Object,
+            _catalogSettingsRegistry.Object,
             _settingsPreloader.Object,
             _preferencesService.Object,
             _configurationService.Object,

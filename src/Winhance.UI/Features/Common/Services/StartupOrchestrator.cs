@@ -19,6 +19,7 @@ namespace Winhance.UI.Features.Common.Services;
 public class StartupOrchestrator : IStartupOrchestrator
 {
     private readonly ICompatibleSettingsRegistry _settingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IGlobalSettingsPreloader _settingsPreloader;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
@@ -29,6 +30,7 @@ public class StartupOrchestrator : IStartupOrchestrator
 
     public StartupOrchestrator(
         ICompatibleSettingsRegistry settingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         IGlobalSettingsPreloader settingsPreloader,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
@@ -38,6 +40,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         ILogService logService)
     {
         _settingsRegistry = settingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _settingsPreloader = settingsPreloader;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
@@ -62,6 +65,19 @@ public class StartupOrchestrator : IStartupOrchestrator
             await _settingsRegistry.InitializeAsync().ConfigureAwait(false);
             await _settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
             StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
+
+            // Additively initialize the catalog-sourced settings registry (the SettingDefinition-retirement
+            // drop-in) alongside the old one so it is live for the coordinated consumer cutover. Isolated try -
+            // it is consumed by nothing yet, so a failure must not affect the old registry or the rest of startup.
+            try
+            {
+                await _catalogSettingsRegistry.InitializeAsync().ConfigureAwait(false);
+                StartupLogger.Log("StartupOrchestrator", "Phase 1: Catalog settings registry initialized");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Failed to initialize catalog settings registry: {ex.Message}");
+            }
 
         // Initialize new badge service (data-driven: uses the highest AddedInVersion
         // across the loaded registry to detect effective upgrades, so dev builds
