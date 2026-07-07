@@ -152,4 +152,53 @@ public static class SettingLocalizationKeys
             }
         }
     }
+
+    /// <summary>
+    /// Catalog-Setting overload of <see cref="ExpectedKeys(SettingDefinition)"/> (Slice C/D loc-key port):
+    /// the COMPLETE set of localization keys this setting requests at runtime, reproducing the def version off
+    /// the catalog homes. Name/Description always; group keys (compact + snake) when <c>Display.GroupName != null</c>;
+    /// the option block (per-setting Custom override + <c>Common_CustomState</c> + per-state option-display/tooltip/
+    /// warning) for a Selection setting - the catalog equivalent of the def's <c>ComboBox != null</c> (a Toggle,
+    /// Slider, Action, or dynamic PowerPlan carries no enumerated option keys, matching def <c>ComboBox == null</c>).
+    /// Per state: OptionDisplay only when the label is NOT itself a localization key; OptionTooltip/OptionWarning only
+    /// when the state carries a non-empty tooltip/warning. Set-equivalent to <see cref="ExpectedKeys(SettingDefinition)"/>
+    /// over the whole paired population (proven by SettingLocalizationKeysCatalogEquivalenceTests).
+    /// </summary>
+    public static IEnumerable<string> ExpectedKeys(Setting setting)
+    {
+        yield return Name(setting);
+        yield return Description(setting);
+
+        if (setting.Display.GroupName != null)
+        {
+            yield return GroupCompact(setting.Display.GroupName);
+            yield return GroupSnake(setting.Display.GroupName);
+        }
+
+        if (setting.Control == ControlKind.Selection)
+        {
+            yield return OptionCustom(setting);
+            yield return CommonCustomState;
+
+            for (int i = 0; i < setting.States.Count; i++)
+            {
+                var state = setting.States[i];
+
+                if (!IsLocalizationKey(state.Label))
+                {
+                    yield return OptionDisplay(setting, i);
+                }
+
+                if (!string.IsNullOrEmpty(state.Tooltip))
+                {
+                    yield return OptionTooltip(setting, i);
+                }
+
+                if (!string.IsNullOrEmpty(state.Warning))
+                {
+                    yield return OptionWarning(setting, i);
+                }
+            }
+        }
+    }
 }

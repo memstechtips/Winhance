@@ -16,9 +16,10 @@ namespace Winhance.Infrastructure.Tests.Migration;
 /// base is <c>Setting.Id</c>, and those are equal for every paired setting (LocalizeDisplayReadSwapEquivalenceTests
 /// already proved it for Name/Description; this locks it at the key-builder method level for the whole family). Lets
 /// the SAS change-history rendering (Name/OptionDisplay) + the LocalizationKeyReferenceTests port key off a catalog
-/// Setting instead of a def. ExpectedKeys(Setting) is intentionally NOT ported here - it walks the catalog States and
-/// needs its own set-equivalence proof, done with the test port that consumes it. Machine-independent (catalog + old
-/// defs only). Run: dotnet test --filter SettingLocalizationKeysCatalog</summary>
+/// Setting instead of a def. ExpectedKeys(Setting) is proven set-equivalent to ExpectedKeys(def) by the second [Fact]
+/// below (it walks the catalog States: the option block runs for a Selection setting - the catalog equivalent of the
+/// def's ComboBox != null - and the LocalizationKeyReferenceTests port consumes it). Machine-independent (catalog +
+/// old defs only). Run: dotnet test --filter SettingLocalizationKeysCatalog</summary>
 public class SettingLocalizationKeysCatalogEquivalenceTests
 {
     private readonly ITestOutputHelper _output;
@@ -85,5 +86,56 @@ public class SettingLocalizationKeysCatalogEquivalenceTests
         Assert.True(compared > 300, $"only {compared} settings paired - population scoping bug");
         Assert.True(sawKnownPositive, "known-positive 'gaming-game-mode' not in the paired population - vacuity/scoping bug");
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} key-builder catalog-vs-def mismatches:\n" + string.Join("\n", mismatches));
+    }
+
+    /// <summary>Proves ExpectedKeys(Setting) yields the SAME SET of localization keys as ExpectedKeys(def) for every
+    /// paired setting - the precondition for the LocalizationKeyReferenceTests port (which enumerates ExpectedKeys over
+    /// the catalog instead of the old defs). The catalog version walks Display.GroupName + (for a Selection setting)
+    /// the per-state Label/Tooltip/Warning; the def version walks GroupName + (for a ComboBox setting) the per-option
+    /// DisplayName/Tooltip/Warning. Vacuity guards: the option block AND the per-option display branch must both fire
+    /// for at least one paired setting, so a SetEquals that only compared Name/Description would not pass.</summary>
+    [Fact]
+    public void ExpectedKeysCatalog_MatchDefVersions_OverAllSettings()
+    {
+        var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
+        var mismatches = new List<string>();
+        var compared = 0;
+        var sawKnownPositive = false;
+        var sawOptionBlock = false;      // a Selection setting yielded its OptionCustom/CommonCustomState block
+        var sawOptionDisplayKey = false; // a per-option display key (Setting_{id}_Option_{i}) was produced
+
+        foreach (var def in AllDefinitions())
+        {
+            if (!catalogById.TryGetValue(SettingIdAliases.Normalize(def.Id), out var setting))
+                continue;
+            compared++;
+            if (def.Id == "gaming-game-mode")
+                sawKnownPositive = true;
+
+            var defKeys = SettingLocalizationKeys.ExpectedKeys(def).ToHashSet();
+            var catKeys = SettingLocalizationKeys.ExpectedKeys(setting).ToHashSet();
+
+            if (setting.Control == ControlKind.Selection)
+                sawOptionBlock = true;
+            if (catKeys.Any(k => k.Contains("_Option_") && !k.EndsWith("_Option_Custom")))
+                sawOptionDisplayKey = true;
+
+            if (!defKeys.SetEquals(catKeys))
+            {
+                var onlyDef = string.Join(", ", defKeys.Except(catKeys).OrderBy(k => k));
+                var onlyCat = string.Join(", ", catKeys.Except(defKeys).OrderBy(k => k));
+                mismatches.Add($"{def.Id}: def-only [{onlyDef}] catalog-only [{onlyCat}]");
+            }
+        }
+
+        _output.WriteLine($"{compared} settings compared, {mismatches.Count} mismatches");
+        foreach (var m in mismatches)
+            _output.WriteLine("  " + m);
+
+        Assert.True(compared > 300, $"only {compared} settings paired - population scoping bug");
+        Assert.True(sawKnownPositive, "known-positive 'gaming-game-mode' not in the paired population - vacuity/scoping bug");
+        Assert.True(sawOptionBlock, "no paired Selection setting exercised the option block - vacuity guard");
+        Assert.True(sawOptionDisplayKey, "no paired setting produced a per-option display key - vacuity guard");
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} ExpectedKeys catalog-vs-def set mismatches:\n" + string.Join("\n", mismatches));
     }
 }
