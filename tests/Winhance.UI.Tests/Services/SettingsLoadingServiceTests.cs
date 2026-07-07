@@ -23,6 +23,7 @@ public class SettingsLoadingServiceTests
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
     private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
+    private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
     private readonly SettingsLoadingService _sut;
@@ -41,6 +42,7 @@ public class SettingsLoadingServiceTests
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
             _mockSettingLocalizationService.Object,
+            _mockLocalization.Object,
             _mockApplicationModeService.Object);
     }
 

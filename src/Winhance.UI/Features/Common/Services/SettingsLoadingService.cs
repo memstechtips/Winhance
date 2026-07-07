@@ -18,6 +18,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
     private readonly ISettingLocalizationService _settingLocalizationService;
+    private readonly ILocalizationService _localization;
     private readonly IApplicationModeService _applicationModeService;
 
     public SettingsLoadingService(
@@ -28,6 +29,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
         ISettingLocalizationService settingLocalizationService,
+        ILocalizationService localization,
         IApplicationModeService applicationModeService)
     {
         _settingStateProvider = settingStateProvider;
@@ -37,6 +39,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
         _settingLocalizationService = settingLocalizationService;
+        _localization = localization;
         _applicationModeService = applicationModeService;
     }
 
@@ -97,7 +100,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                         ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 
-                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, setting.VersionCompatibilityMessage);
+                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(setting.VersionCompatibilityMessage));
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
@@ -141,6 +144,34 @@ public class SettingsLoadingService : ISettingsLoadingService
         var batchStates = await _settingStateProvider.GetStatesAsync(definitions);
 
         return batchStates;
+    }
+
+    // Slice B2: the preparation pipeline no longer localizes the def (SettingLocalizationService.LocalizeSetting is
+    // retired), so VersionCompatibilityMessage arrives raw (format: "Compatibility_Key|Arg1|Arg2..."). Localize it
+    // here before passing it to the factory - lifted verbatim from the retired LocalizeSetting. A non-Compatibility_
+    // message (incl. null) is returned unchanged, exactly as the old service left it.
+    private string? LocalizeCompatibilityMessage(string? message)
+    {
+        if (message is { } compatKey && compatKey.StartsWith("Compatibility_"))
+        {
+            var parts = compatKey.Split('|');
+            var key = parts[0];
+            if (parts.Length > 1)
+            {
+                var args = parts.Skip(1).ToArray();
+                try
+                {
+                    var format = _localization.GetString(key);
+                    return string.Format(format, args);
+                }
+                catch
+                {
+                    return _localization.GetString(key);
+                }
+            }
+            return _localization.GetString(key);
+        }
+        return message;
     }
 
     /// <summary>

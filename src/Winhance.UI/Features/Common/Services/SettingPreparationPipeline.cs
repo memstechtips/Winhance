@@ -5,29 +5,23 @@ using Winhance.UI.Features.Common.Interfaces;
 namespace Winhance.UI.Features.Common.Services;
 
 /// <summary>
-/// Prepares setting definitions by filtering for compatibility and applying localization.
-/// Replaces the two separate ICompatibleSettingsRegistry + ISettingLocalizationService
-/// calls that were always used together in SettingsLoadingService.
+/// Prepares setting definitions by filtering for compatibility.
+/// Slice B2: localization was retired (SettingLocalizationService.LocalizeSetting deleted); the display fields are
+/// now localized on the catalog path (SettingViewModelFactory), so this is a thin compatibility-filter pass-through.
+/// Full inlining/removal is a Plan 4 teardown nit.
 /// </summary>
 public class SettingPreparationPipeline : ISettingPreparationPipeline
 {
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ISettingLocalizationService _settingLocalizationService;
 
-    public SettingPreparationPipeline(
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ISettingLocalizationService settingLocalizationService)
+    public SettingPreparationPipeline(ICompatibleSettingsRegistry compatibleSettingsRegistry)
     {
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _settingLocalizationService = settingLocalizationService;
     }
 
     /// <inheritdoc />
     public IReadOnlyList<SettingDefinition> PrepareSettings(string featureModuleId)
     {
-        var settingDefinitions = _compatibleSettingsRegistry.GetFilteredSettings(featureModuleId);
-        return settingDefinitions
-            .Select(s => _settingLocalizationService.LocalizeSetting(s))
-            .ToList();
+        return _compatibleSettingsRegistry.GetFilteredSettings(featureModuleId).ToList();
     }
 }

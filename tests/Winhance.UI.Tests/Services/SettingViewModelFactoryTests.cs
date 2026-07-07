@@ -94,11 +94,14 @@ public class SettingViewModelFactoryTests
     {
         var setting = CreateToggleSetting("TestSetting", "Test Name", "Test Description");
         var state = new SettingStateResult { Success = true };
+        // Slice B2: the factory now localizes Name/Description via the canonical Setting_{id}_* keys.
+        _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Name")).Returns("Localized Name");
+        _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Description")).Returns("Localized Description");
 
         var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
-        result.Name.Should().Be("Test Name");
-        result.Description.Should().Be("Test Description");
+        result.Name.Should().Be("Localized Name");
+        result.Description.Should().Be("Localized Description");
     }
 
     [Fact]
@@ -106,10 +109,12 @@ public class SettingViewModelFactoryTests
     {
         var setting = CreateToggleSetting("TestSetting") with { GroupName = "Privacy Settings" };
         var state = new SettingStateResult { Success = true };
+        // Slice B2: the factory now localizes GroupName via the compacted SettingGroup_ key (spaces/ampersands stripped).
+        _mockLocalizationService.Setup(l => l.GetString("SettingGroup_PrivacySettings")).Returns("Localized Group");
 
         var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), setting.InputType, state, null, null, null, null);
 
-        result.GroupName.Should().Be("Privacy Settings");
+        result.GroupName.Should().Be("Localized Group");
     }
 
     [Fact]

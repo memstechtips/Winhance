@@ -59,9 +59,14 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             Setting = setting,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
-            GroupName = setting.Display.GroupName ?? string.Empty,
+            // Slice B2: localize the catalog Display fields via the canonical keys (raw Display fallback),
+            // reproducing what the retired SettingLocalizationService.LocalizeSetting did off the def - this closes
+            // the non-en display regression from the Phase 6.7 catalog-display cutover (names/descriptions/section
+            // headers rendered raw English on non-en UI). Proven byte-identical to the old path by
+            // LocalizeDisplayReadSwapEquivalenceTests (loc-key base + raw fallback match over the whole population).
+            Name = LocalizeOrFallback($"Setting_{setting.Id}_Name", setting.Display.Name) ?? setting.Display.Name,
+            Description = LocalizeOrFallback($"Setting_{setting.Id}_Description", setting.Display.Description) ?? setting.Display.Description,
+            GroupName = setting.Display.GroupName != null ? LocalizeGroupName(setting.Display.GroupName) : string.Empty,
             Icon = setting.Display.Icon?.Glyph ?? string.Empty,
             IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
             InputType = inputType,
@@ -307,6 +312,18 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 : LocalizeOrFallback($"Setting_{setting.Id}_OptionWarning_{i}", raw));
         }
         return warnings;
+    }
+
+    // Reproduces the retired SettingLocalizationService.GetLocalizedGroupName branch-for-branch (Slice B2): try the
+    // compacted group key (SettingGroup_{name without spaces/ampersands}); if it resolves use it, else fall back to
+    // the snake-case key with the raw group name as the final fallback. Keyed off the group NAME (def-independent),
+    // identical to the old service given catalog Display.GroupName == def.GroupName (LocalizeDisplayReadSwapEquivalenceTests).
+    private string LocalizeGroupName(string groupName)
+    {
+        var compact = LocalizeOrFallback(SettingLocalizationKeys.GroupCompact(groupName), null);
+        if (compact != null)
+            return compact;
+        return LocalizeOrFallback(SettingLocalizationKeys.GroupSnake(groupName), groupName) ?? groupName;
     }
 
     // Returns the localized string for the key, or the fallback when the key is missing
