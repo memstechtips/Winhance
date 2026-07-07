@@ -35,4 +35,11 @@ public static class CatalogMembershipFilter
     /// gate (Availability.Allows) AND the hardware gate (PassesHardware). Existence gating is NOT applied here.</summary>
     public static bool IsAvailable(Setting s, WinBuild build, HardwareCaps caps) =>
         s.Availability.Allows(build) && PassesHardware(s.Availability, caps);
+
+    /// <summary>Membership when the OS-build gate is RELAXED - the "show settings for other Windows
+    /// versions" scope. The hardware gate still applies (and existence, applied separately by the registry);
+    /// only the build range is ignored. The catalog-model equivalent of the old registry's OS-version-bypassed
+    /// set (FilterSettingsByWindowsVersion applyFilter:false decorates but does not remove).</summary>
+    public static bool IsAvailableIgnoringOsBuild(Setting s, HardwareCaps caps) =>
+        PassesHardware(s.Availability, caps);
 }

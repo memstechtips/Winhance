@@ -78,4 +78,60 @@ public class CatalogMembershipFilterEquivalenceTests
 
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
+
+    [Fact]
+    public void Ignoring_os_build_matches_old_hardware_only_membership_across_environments()
+    {
+        // The "show settings for other Windows versions" scope: relax the OS-build gate, keep the hardware
+        // gate (existence is applied separately by the registry, deferred on both sides here). Mirrors the old
+        // CompatibleSettingsRegistry bypass set, which hardware-filters (Power) but does NOT OS-filter
+        // (FilterSettingsByWindowsVersion applyFilter:false only decorates). The hardware filter is a no-op on
+        // the non-Power settings that carry no hardware requirement, matching the registry's Power-only bypass.
+        // Machine-INDEPENDENT: the real old hardware filter runs with stubbed probes. Depends only on caps, not
+        // build, so the matrix varies caps.
+        var oldDefs = AllOldDefs();
+        var problems = new List<string>();
+        var capsMatrix = new (string Name, HardwareCaps Caps)[]
+        {
+            ("desktop", new HardwareCaps(false, false, true, true)),
+            ("laptop", new HardwareCaps(true, true, true, true)),
+            ("desktop min-caps", new HardwareCaps(false, false, false, false)),
+            ("laptop no-hybrid", new HardwareCaps(true, true, true, false)),
+            ("battery no-lid", new HardwareCaps(true, false, true, true)),
+        };
+
+        foreach (var env in capsMatrix)
+        {
+            var hw = new Mock<IHardwareDetectionService>();
+            hw.Setup(h => h.HasBatteryAsync()).ReturnsAsync(env.Caps.HasBattery);
+            hw.Setup(h => h.HasLidAsync()).ReturnsAsync(env.Caps.HasLid);
+            hw.Setup(h => h.SupportsBrightnessControlAsync()).ReturnsAsync(env.Caps.SupportsBrightness);
+            hw.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(env.Caps.SupportsHybridSleep);
+            var log = new Mock<ILogService>().Object;
+
+            // Old "ignoring OS" membership = the hardware filter over ALL raw defs, NO OS filter.
+            var hwFilter = new HardwareCompatibilityFilter(hw.Object, log);
+            var oldHwOnly = hwFilter.FilterSettingsByHardwareAsync(oldDefs).GetAwaiter().GetResult();
+            var oldIds = oldHwOnly.Select(d => SettingIdAliases.Normalize(d.Id)).ToHashSet();
+
+            var newIds = SettingCatalog.All
+                .Where(s => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, env.Caps))
+                .Select(s => s.Id)
+                .ToHashSet();
+
+            var missing = oldIds.Except(newIds).OrderBy(x => x).ToList();
+            var extra = newIds.Except(oldIds).OrderBy(x => x).ToList();
+            if (missing.Count > 0) problems.Add($"[{env.Name}] catalog MISSING {missing.Count}: {string.Join(", ", missing)}");
+            if (extra.Count > 0) problems.Add($"[{env.Name}] catalog EXTRA {extra.Count}: {string.Join(", ", extra)}");
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+
+        // non-vacuity: the hardware gate MUST exclude something on desktop caps (a battery/lid-only power
+        // setting), else a constant-true predicate would satisfy the equivalence vacuously.
+        var desktopCaps = new HardwareCaps(false, false, true, true);
+        var desktopCount = SettingCatalog.All.Count(s => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, desktopCaps));
+        Assert.True(desktopCount > 0 && desktopCount < SettingCatalog.All.Count,
+            "hardware gate did not discriminate on desktop caps - equivalence would be vacuous");
+    }
 }
