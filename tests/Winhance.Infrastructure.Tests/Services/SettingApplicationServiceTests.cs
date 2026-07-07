@@ -95,11 +95,13 @@ public class SettingApplicationServiceTests
     }
 
     // Real catalog settings whose Control routes a given value shape through the new engine to a SUCCEEDING plan.
-    // The receipt-rendering tests register a FAKE def (with controlled options / powercfg) under these ids: routing
-    // reads the LIVE catalog (so the apply succeeds and the change-history receipt is reached), while the receipt
-    // string is formatted from the fake def. SkipValuePrerequisites isolates the receipt from relationship cascades.
-    private const string PowerCfgSelectionId = "power-display-timeout"; // powercfg-Separate selection, 16 states
-    private const string PowerCfgNumericId = "power-harddisk-timeout";  // powercfg-Separate numeric slider
+    // The receipt-rendering tests register a FAKE def under these ids purely to satisfy the funnel wiring (GetById +
+    // feature lookup); routing AND the change-history receipt rendering both read the LIVE catalog Setting (the def's
+    // options/powercfg are inert). So each test mocks the REAL catalog state labels and picks raw/apply values against
+    // the real states. SkipValuePrerequisites isolates the receipt from relationship cascades.
+    private const string PowerCfgSelectionId = "power-display-timeout"; // powercfg-Separate selection, 16 Template_TimeIntervals_Option_N states (Set["Power"] = 0,60,120,180,300,600,...)
+    private const string PowerCfgNumericId = "power-harddisk-timeout";  // powercfg-Separate numeric slider, Minutes
+    private const string PowerCfgPercentNumericId = "processor-min-state"; // powercfg-Separate numeric slider, "%" units
 
     // A real catalog plain-registry toggle (Enabled/Disabled states, a RegTarget). Applying it routes through the
     // new engine to a plan the (defaulted-to-success) writer completes, so the funnel returns Success. The fake def
@@ -548,23 +550,15 @@ public class SettingApplicationServiceTests
 
     private static ComboBoxOption Opt(string displayName) => new() { DisplayName = displayName };
 
-    // Selection option carrying a PowerCfgValue mapping, so FindOptionIndexForPowerCfgValue can map a
-    // raw system value back to this option's index.
-    private static ComboBoxOption PowerOpt(string displayName, int powerCfgValue) => new()
-    {
-        DisplayName = displayName,
-        ValueMappings = new Dictionary<string, object?> { ["PowerCfgValue"] = powerCfgValue },
-    };
-
     [Fact]
     public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
     {
-        // Power-setting options carry localization KEYS as their DisplayName. The receipt must
-        // localize the key, not print the raw "Template_..." string.
-        var options = new[] { Opt("Template_X_Option_0"), Opt("Template_X_Option_1") };
-        RegisterSelectionSetting(PowerCfgSelectionId, options);
+        // Power-setting option state labels ARE localization keys. The receipt must localize the key, not print
+        // the raw "Template_..." string. Rendering reads the REAL catalog (power-display-timeout: state 1's label
+        // is Template_TimeIntervals_Option_1, an IsLocalizationKey), so mock that real key.
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Template_X_Option_1")).Returns("Enabled-ish label");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_1")).Returns("Enabled-ish label");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -581,12 +575,12 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SelectionAcDcTuple_RendersAcDcLabels()
     {
-        // Config-import Selection AC/DC values arrive as a (acIndex, dcIndex) ValueTuple.
-        var options = new[] { Opt("Setting_sel-tuple_Option_0"), Opt("Setting_sel-tuple_Option_1") };
-        RegisterSelectionSetting(PowerCfgSelectionId, options);
+        // Config-import Selection AC/DC values arrive as a (acIndex, dcIndex) ValueTuple. Rendering reads the REAL
+        // catalog (power-display-timeout: Template_TimeIntervals_Option_N state labels).
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-tuple_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_1")).Returns("4 minutes");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -603,12 +597,12 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SelectionAcDcDictionary_RendersAcDcLabels()
     {
-        // UI / recommended Selection AC/DC values arrive as a dict of option indices.
-        var options = new[] { Opt("Setting_sel-dict_Option_0"), Opt("Setting_sel-dict_Option_1") };
-        RegisterSelectionSetting(PowerCfgSelectionId, options);
+        // UI / recommended Selection AC/DC values arrive as a dict of option indices. Rendering reads the REAL
+        // catalog (power-display-timeout: Template_TimeIntervals_Option_N state labels).
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-dict_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_1")).Returns("4 minutes");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -767,32 +761,18 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_NumericRangePowerCfgPercentUnit_RendersPercentSuffix()
     {
-        // Percent-unit NumericRange PowerCfg setting — the "%" unit has no localization key
-        // and is passed through raw. Before (80%, 100%) changes to (60%, 80%).
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting
-            {
-                SettingGUIDAlias = "PROCMIN",
-                PowerModeSupport = PowerModeSupport.Separate,
-                Units = "%",
-                RecommendedValueAC = null,
-                RecommendedValueDC = null,
-                DefaultValueAC = null,
-                DefaultValueDC = null,
-            }
-        };
+        // Percent-unit NumericRange PowerCfg setting -- the "%" unit has no localization key and is passed through
+        // raw. Rendering reads the REAL catalog (processor-min-state: Numeric.Units="%"). Before (80%, 100%)
+        // changes to (60%, 80%). The fake def only routes the funnel wiring; its metadata is inert.
         var setting = new SettingDefinition
         {
-            Id = PowerCfgNumericId,
+            Id = PowerCfgPercentNumericId,
             Name = "Setting num-power-pct",
             Description = "desc",
             InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = "%" },
-            PowerCfgSettings = powerCfg,
         };
-        _mockSettingsRegistry.Setup(r => r.GetById(PowerCfgNumericId)).Returns(setting);
-        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(PowerCfgNumericId)).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetById(PowerCfgPercentNumericId)).Returns(setting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(PowerCfgPercentNumericId)).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { setting });
 
         // "%" has no Common_Unit_* key — ResolveLocalized returns null for a miss-marker; leave
@@ -801,7 +781,7 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                [PowerCfgNumericId] = new SettingStateResult
+                [PowerCfgPercentNumericId] = new SettingStateResult
                 {
                     Success = true,
                     IsEnabled = true,
@@ -812,7 +792,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = PowerCfgNumericId,
+            SettingId = PowerCfgPercentNumericId,
             Enable = true,
             Value = new Dictionary<string, object?> { ["ACValue"] = 60, ["DCValue"] = 80 },
         });
@@ -826,19 +806,13 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SelectionPowerCfgNoChange_DoesNotLog()
     {
-        // PowerCfg Separate Selection setting. Before-state AC/DC hold raw system PowerCfg values
-        // (100 → option 0, 200 → option 1). A config import re-applying the SAME state arrives as a
-        // (0, 0) ValueTuple. Before "AC: Never, DC: Never" must equal after "AC: Never, DC: Never"
+        // PowerCfg Separate Selection setting. Rendering reads the REAL catalog (power-display-timeout, whose
+        // Set["Power"] value 0 -> option 0). Before-state raw AC/DC = 0 -> option 0. A config import re-applying
+        // the SAME state arrives as a (0, 0) ValueTuple. Before "AC: Never, DC: Never" must equal after
         // byte-for-byte so no phantom receipt entry is logged.
-        var options = new[] { PowerOpt("Setting_sel-pcfg-noop_Option_0", 100), PowerOpt("Setting_sel-pcfg-noop_Option_1", 200) };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-noop_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
 
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
@@ -848,7 +822,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    AcValue = 100, DcValue = 100,
+                    AcValue = 0, DcValue = 0,
                 },
             });
 
@@ -866,17 +840,13 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SelectionPowerCfgRealChange_LogsBeforeAndAfter()
     {
-        // Same setting; DC actually changes (option 0 → option 1). The before renders from the raw
-        // system values, the after from the (0, 1) ValueTuple, both in AC/DC label shape.
-        var options = new[] { PowerOpt("Setting_sel-pcfg-change_Option_0", 100), PowerOpt("Setting_sel-pcfg-change_Option_1", 200) };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        // Same setting; DC actually changes (option 0 -> option 1). The before renders from the raw system values
+        // (0 -> option 0), the after from the (0, 1) ValueTuple, both in AC/DC label shape. Rendering reads the
+        // REAL catalog (power-display-timeout: Template_TimeIntervals_Option_N).
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-pcfg-change_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_1")).Returns("4 minutes");
 
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
@@ -886,7 +856,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    AcValue = 100, DcValue = 100,
+                    AcValue = 0, DcValue = 0,
                 },
             });
 
@@ -910,20 +880,16 @@ public class SettingApplicationServiceTests
     public async Task ApplySettingAsync_NoBatterySelection_RendersAcOnly()
     {
         // Battery-less desktop: only the AC dropdown exists and PowerCfgApplier skips all DC writes.
-        // The receipt must show "AC: <label>" only — no ", DC: ..." phantom.
+        // The receipt must show "AC: <label>" only -- no ", DC: ..." phantom. Rendering reads the REAL catalog
+        // (power-display-timeout: Set["Power"] raw 0 -> option 0; apply index 2 -> option 2).
         _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
 
-        var options = new[] { PowerOpt("Setting_sel-nobat_Option_0", 100), PowerOpt("Setting_sel-nobat_Option_1", 200), PowerOpt("Setting_sel-nobat_Option_2", 300) };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat_Option_2")).Returns("9 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_2")).Returns("9 minutes");
 
-        // Before-state raw AC = 100 → option 0 "Never". DC raw is garbage on a battery-less machine.
+        // Before-state raw AC = 0 -> option 0 "Never". DC raw is garbage on a battery-less machine.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -932,7 +898,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    AcValue = 100, DcValue = 999999,
+                    AcValue = 0, DcValue = 999999,
                 },
             });
 
@@ -951,22 +917,16 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_NoBatteryAcUnchanged_DoesNotLog()
     {
-        // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant)
-        // DC garbage differs. The receipt must suppress the entry — DC garbage must NEVER create a
-        // phantom change. Before "AC: Never" == after "AC: Never".
+        // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant) DC garbage
+        // differs. The receipt must suppress the entry -- DC garbage must NEVER create a phantom change. Before
+        // "AC: Never" == after "AC: Never". Rendering reads the REAL catalog (power-display-timeout: raw 0 -> opt 0).
         _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
 
-        var options = new[] { PowerOpt("Setting_sel-nobat-noop_Option_0", 100), PowerOpt("Setting_sel-nobat-noop_Option_1", 200) };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-nobat-noop_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
 
-        // AC raw 100 → option 0 "Never". DC raw is garbage and DIFFERENT from the applied DC index.
+        // AC raw 0 -> option 0 "Never". DC raw is garbage and DIFFERENT from the applied DC index.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -975,7 +935,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    AcValue = 100, DcValue = 12345,
+                    AcValue = 0, DcValue = 12345,
                 },
             });
 
@@ -994,27 +954,16 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_FallbackRawValueWithNoMatchingOption_RendersCustomNotIndexedLabel()
     {
-        // Regression for the fallback-as-index bug (commit f9528147): a raw PowerCfg DC value that
-        // matches NO option (raw 1, options map 0/60/300) must render "Custom" — NOT Options[1].
-        // Battery present so DC still renders.
-        var options = new[]
-        {
-            PowerOpt("Setting_sel-fallback_Option_0", 0),
-            PowerOpt("Setting_sel-fallback_Option_1", 60),
-            PowerOpt("Setting_sel-fallback_Option_2", 300),
-        };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        // Regression for the fallback-as-index bug (commit f9528147): a raw PowerCfg DC value that matches NO
+        // option must render "Custom" -- NOT States[rawValue]. Rendering reads the REAL catalog
+        // (power-display-timeout: Set["Power"] values 0,60,120,180,300,...; raw 1 matches none). Battery present.
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_1")).Returns("1 minute");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-fallback_Option_2")).Returns("5 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_2")).Returns("5 minutes");
         _mockLocalization.Setup(l => l.GetString("Common_CustomState")).Returns("Custom");
 
-        // AC raw 0 → option 0 "Never". DC raw 1 matches NO option's PowerCfgValue.
+        // AC raw 0 -> option 0 "Never". DC raw 1 matches NO option's Set["Power"] value.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -1042,19 +991,15 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_BatteryDetectionThrows_AppliesAndRendersBothComponents()
     {
-        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still
-        // succeeds and the entry renders BOTH AC and DC (more information, never a phantom suppression).
+        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still succeeds and the
+        // entry renders BOTH AC and DC (more information, never a phantom suppression). Rendering reads the REAL
+        // catalog (power-display-timeout: raw 0 -> option 0).
         _mockHardware.Setup(h => h.HasBatteryAsync()).ThrowsAsync(new InvalidOperationException("WMI exploded"));
 
-        var options = new[] { PowerOpt("Setting_sel-throw_Option_0", 100), PowerOpt("Setting_sel-throw_Option_1", 200) };
-        var powerCfg = new[]
-        {
-            new PowerCfgSetting { SettingGUIDAlias = "VIDEOIDLE", PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null },
-        };
-        RegisterSelectionSetting(PowerCfgSelectionId, options, powerCfg);
+        RegisterSelectionSetting(PowerCfgSelectionId, System.Array.Empty<ComboBoxOption>());
 
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_0")).Returns("Never");
-        _mockLocalization.Setup(l => l.GetString("Setting_sel-throw_Option_1")).Returns("4 minutes");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_0")).Returns("Never");
+        _mockLocalization.Setup(l => l.GetString("Template_TimeIntervals_Option_1")).Returns("4 minutes");
 
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
@@ -1064,7 +1009,7 @@ public class SettingApplicationServiceTests
                 {
                     Success = true,
                     IsEnabled = true,
-                    AcValue = 100, DcValue = 100,
+                    AcValue = 0, DcValue = 0,
                 },
             });
 

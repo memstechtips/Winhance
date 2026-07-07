@@ -148,6 +148,17 @@ public class SettingApplicationService(
         // runs no relationship pass.
         bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
 
+        // SettingDefinition retirement (D): pair the id to its catalog Setting ONCE for the change-history
+        // rendering methods (LogChangeHistory / FormatBeforeDisplay / FormatStateDisplay / GetOptionLabel),
+        // which now read the catalog homes (Display / States / Targets / Numeric + the SettingLocalizationKeys +
+        // RecommendedSettingsResolver catalog overloads) instead of the def. Find is alias-normalized so a -win10
+        // This PC id resolves to its canonical merged Setting. Non-null for every reachable rendering call (an
+        // unpaired id throws above before any receipt; the before-capture only runs after that guard, and the
+        // special-handler ids updates-policy/theme are paired). A null (unreachable) simply skips the receipt - a
+        // cosmetic change-history gap matching today's unpaired behaviour. SAS keeps its SettingDefinition feed
+        // (still fed by the registry until the Slice F flip); only the receipt rendering reads the catalog Setting.
+        var renderSetting = SettingCatalog.Find(settingId);
+
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE any relationship follow-on / nested applies run so they don't mutate the read.
         // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
@@ -164,9 +175,9 @@ public class SettingApplicationService(
                 // A genuinely unpaired setting returns Success=false here, leaving beforeDisplay null - a cosmetic
                 // change-history gap that cannot arise for a real setting.
                 var states = await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false);
-                if (states.TryGetValue(settingId, out var state) && state.Success)
+                if (renderSetting != null && states.TryGetValue(settingId, out var state) && state.Success)
                 {
-                    beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);
+                    beforeDisplay = FormatBeforeDisplay(renderSetting, state, hasBattery);
                 }
             }
             catch (Exception ex)
@@ -184,7 +195,8 @@ public class SettingApplicationService(
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
             logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler");
 
-            LogChangeHistory(setting, settingId, enable, value, beforeDisplay);
+            if (renderSetting != null)
+                LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
             return OperationResult.Succeeded();
         }
 
@@ -247,7 +259,8 @@ public class SettingApplicationService(
         }
 
         logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
-        LogChangeHistory(setting, settingId, enable, value, beforeDisplay);
+        if (renderSetting != null)
+            LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
         return OperationResult.Succeeded();
     }
 
@@ -400,14 +413,14 @@ public class SettingApplicationService(
         return new ApplySettingRequest { SettingId = targetId, Enable = true, Value = index, SkipValuePrerequisites = true, ResetToDefault = isReset };
     }
 
-    private void LogChangeHistory(SettingDefinition setting, string settingId, bool enable, object? value, string? beforeDisplay)
+    private void LogChangeHistory(Setting setting, string settingId, bool enable, object? value, string? beforeDisplay)
     {
         try
         {
-            var name = ResolveLocalized(SettingLocalizationKeys.Name(setting)) ?? setting.Name;
-            var group = ResolveLocalizedGroup(setting.GroupName);
+            var name = ResolveLocalized(SettingLocalizationKeys.Name(setting)) ?? setting.Display.Name;
+            var group = ResolveLocalizedGroup(setting.Display.GroupName);
 
-            if (setting.InputType == InputType.Action)
+            if (setting.Control == ControlKind.Action)
             {
                 changeHistory.LogSettingAction(name, group);
                 return;
@@ -449,12 +462,12 @@ public class SettingApplicationService(
     /// used, with the raw <c>DisplayName</c> as the final fallback. Out-of-range indices resolve
     /// to the localized "Custom" state.
     /// </summary>
-    private string GetOptionLabel(SettingDefinition setting, int index)
+    private string GetOptionLabel(Setting setting, int index)
     {
-        if (setting.ComboBox == null || index < 0 || index >= setting.ComboBox.Options.Count)
+        if (index < 0 || index >= setting.States.Count)
             return ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "Custom";
 
-        var dn = setting.ComboBox.Options[index].DisplayName;
+        var dn = setting.States[index].Label;
         var key = SettingLocalizationKeys.IsLocalizationKey(dn)
             ? dn
             : SettingLocalizationKeys.OptionDisplay(setting, index);
@@ -472,11 +485,14 @@ public class SettingApplicationService(
         catch { return null; }
     }
 
-    private string FormatStateDisplay(SettingDefinition setting, bool enable, object? value, bool hasBattery)
+    private string FormatStateDisplay(Setting setting, bool enable, object? value, bool hasBattery)
     {
-        switch (setting.InputType)
+        switch (setting.Control)
         {
-            case InputType.Selection:
+            // A power-plan setting rendered its dict/index shapes via the OLD InputType.Selection branch, so
+            // its catalog Control (PowerPlan) routes here alongside Selection.
+            case ControlKind.Selection:
+            case ControlKind.PowerPlan:
                 // UI / recommended path: a single selected option index.
                 if (value is int index)
                     return GetOptionLabel(setting, index);
@@ -505,13 +521,13 @@ public class SettingApplicationService(
                 }
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
-            case InputType.NumericRange:
+            case ControlKind.Slider:
                 // After-values are display units (the bridge fix converts on import; UI/recommended
                 // paths already supply display units) — render as-is, with unit suffix when available.
                 if (value is Dictionary<string, object?> acdcNum
                     && acdcNum.TryGetValue("ACValue", out var acNum)
                     && acdcNum.TryGetValue("DCValue", out var dcNum)
-                    && setting.PowerCfgSettings?.Any() == true)
+                    && setting.Targets.OfType<PowerCfgTarget>().Any())
                 {
                     var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
                     return FormatPowerNumeric(units, acNum, dcNum, hasBattery);
@@ -522,7 +538,7 @@ public class SettingApplicationService(
                     return ComposeAcDc(acNumPlain?.ToString() ?? "", dcNumPlain?.ToString() ?? "", hasBattery);
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
-            default: // Toggle, CheckBox
+            default: // Toggle (Action is handled in LogChangeHistory before this is reached)
                 return localizationService.GetString(
                     enable ? "Template_EnabledDisabled_Option_1" : "Template_EnabledDisabled_Option_0");
         }
@@ -540,15 +556,15 @@ public class SettingApplicationService(
     /// DC component is omitted entirely (see <see cref="ComposeAcDc"/>) so before and after agree.
     /// All other settings defer to <see cref="FormatStateDisplay"/>.
     /// </summary>
-    private string FormatBeforeDisplay(SettingDefinition setting, SettingStateResult state, bool hasBattery)
+    private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
         // Read AC/DC from the new engine's typed fields (threaded onto the before-state at the provider read).
         // These are SYSTEM PowerCfg values (an enum/code), not option indices.
         int? acInt = state.AcValue;
         int? dcInt = state.DcValue;
 
-        if (setting.InputType == InputType.NumericRange
-            && setting.PowerCfgSettings?.Any() == true
+        if (setting.Control == ControlKind.Slider
+            && setting.Targets.OfType<PowerCfgTarget>().Any()
             && acInt.HasValue && dcInt.HasValue)
         {
             var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
@@ -562,8 +578,8 @@ public class SettingApplicationService(
         // "AC: x, DC: y". Render the before in the same AC/DC shape so no-op detection works. The raw
         // ACValue/DCValue here are SYSTEM PowerCfg values (e.g. an enum/code), not option indices —
         // map each to its option index via the ValueMappings["PowerCfgValue"] lookup.
-        if (setting.InputType == InputType.Selection
-            && setting.PowerCfgSettings?.Any() == true
+        if (setting.Control == ControlKind.Selection
+            && setting.Targets.OfType<PowerCfgTarget>().Any()
             && acInt.HasValue && dcInt.HasValue)
         {
             // No match for a raw PowerCfg value must render as the localized "Custom" label
