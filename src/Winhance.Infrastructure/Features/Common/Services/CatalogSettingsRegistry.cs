@@ -18,6 +18,7 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
     private readonly ICatalogPowerExistenceFilter _existence;
     private Dictionary<string, IReadOnlyList<Setting>> _byFeature = new();
     private Dictionary<string, Setting> _byId = new();
+    private Dictionary<string, string> _featureById = new();
     private bool _initialized;
 
     public CatalogSettingsRegistry(IWindowsVersionService version, IHardwareDetectionService hardware, ICatalogPowerExistenceFilter existence)
@@ -40,6 +41,7 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
         var byId = new Dictionary<string, Setting>();
+        var featureById = new Dictionary<string, string>();
         foreach (var (featureId, settings) in SettingCatalog.ByFeature)
         {
             var osHw = settings.Where(s => CatalogMembershipFilter.IsAvailable(s, build, caps)).ToList();
@@ -47,11 +49,12 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
                 ? await _existence.FilterAsync(osHw).ConfigureAwait(false)
                 : osHw;
             byFeature[featureId] = filtered;
-            foreach (var s in filtered) byId[s.Id] = s;
+            foreach (var s in filtered) { byId[s.Id] = s; featureById[s.Id] = featureId; }
         }
 
         _byFeature = byFeature;
         _byId = byId;
+        _featureById = featureById;
         _initialized = true;
     }
 
@@ -60,6 +63,9 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 
     public Setting? GetById(string settingId) =>
         _byId.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) ? s : null;
+
+    public string? GetFeatureIdForSetting(string settingId) =>
+        _featureById.TryGetValue(SettingIdAliases.Normalize(settingId), out var f) ? f : null;
 
     public IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll() => _byFeature;
 }

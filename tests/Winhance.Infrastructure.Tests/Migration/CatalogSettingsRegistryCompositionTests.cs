@@ -54,5 +54,26 @@ public class CatalogSettingsRegistryCompositionTests
         var known = SettingCatalog.All.First(Available).Id;
         Assert.Equal(known, reg.GetById(known)!.Id);
         Assert.Null(reg.GetById("definitely-not-a-real-setting-id"));
+
+        // GetFeatureIdForSetting: every available setting reports its owning feature (== the ByFeature
+        // partition proven above); a "-win10" alias resolves to the canonical's feature (input
+        // alias-normalized like GetById); a miss is null.
+        int probedFeatures = 0;
+        foreach (var (featureId, settings) in SettingCatalog.ByFeature)
+        {
+            foreach (var s in settings.Where(Available))
+            {
+                Assert.Equal(featureId, reg.GetFeatureIdForSetting(s.Id));
+                probedFeatures++;
+            }
+        }
+        Assert.NotEqual(0, probedFeatures);
+
+        const string canonicalDesktop = "explorer-customization-thispc-folder-desktop";
+        if (reg.GetById(canonicalDesktop) is not null)
+            Assert.Equal(
+                reg.GetFeatureIdForSetting(canonicalDesktop),
+                reg.GetFeatureIdForSetting("explorer-customization-thispc-folder-desktop-win10"));
+        Assert.Null(reg.GetFeatureIdForSetting("definitely-not-a-real-setting-id"));
     }
 }

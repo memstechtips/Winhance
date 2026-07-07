@@ -14,5 +14,10 @@ public interface ICatalogSettingsRegistry
     Task InitializeAsync();
     IReadOnlyList<Setting> GetByFeature(string featureId);
     Setting? GetById(string settingId);
+    /// <summary>The owning feature id (e.g. "power", "update") for the given setting id, alias-normalized
+    /// like GetById, or null if the setting is not present on this machine. The catalog-native replacement for
+    /// the old registry's GetFeatureIdForSetting; the OS-portable membership resolves a "-win10" id on either
+    /// OS, so the old bypassed fallback (GetFeatureIdForSettingBypassed) is obviated.</summary>
+    string? GetFeatureIdForSetting(string settingId);
     IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll();
 }
