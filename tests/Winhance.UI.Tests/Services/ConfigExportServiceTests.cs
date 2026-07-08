@@ -21,7 +21,6 @@ public class ConfigExportServiceTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
-    private readonly Mock<IGlobalSettingsPreloader> _mockSettingsPreloader = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsAppsItemsProvider> _mockWindowsAppsVM = new();
@@ -59,7 +58,6 @@ public class ConfigExportServiceTests
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockCompatibleSettingsRegistry.Object,
-            _mockSettingsPreloader.Object,
             _mockSettingStateProvider.Object,
             _mockInteractiveUserService.Object,
             _mockWindowsAppsVM.Object,

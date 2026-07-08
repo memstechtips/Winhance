@@ -13,7 +13,6 @@ public class ConfigurationService : IConfigurationService
 {
     private readonly ILogService _logService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly IGlobalSettingsPreloader _settingsPreloader;
     private readonly IConfigExportService _configExportService;
     private readonly IConfigLoadService _configLoadService;
     private readonly IConfigApplicationExecutionService _configExecutionService;
@@ -24,7 +23,6 @@ public class ConfigurationService : IConfigurationService
     public ConfigurationService(
         ILogService logService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IGlobalSettingsPreloader settingsPreloader,
         IConfigExportService configExportService,
         IConfigLoadService configLoadService,
         IConfigApplicationExecutionService configExecutionService,
@@ -34,7 +32,6 @@ public class ConfigurationService : IConfigurationService
     {
         _logService = logService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _settingsPreloader = settingsPreloader;
         _configExportService = configExportService;
         _configLoadService = configLoadService;
         _configExecutionService = configExecutionService;
@@ -44,7 +41,7 @@ public class ConfigurationService : IConfigurationService
     }
 
     private Task EnsureRegistryInitializedAsync()
-        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _settingsPreloader, _logService);
+        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _logService);
 
     public async Task ExportConfigurationAsync()
     {

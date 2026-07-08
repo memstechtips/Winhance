@@ -12,7 +12,6 @@ public class StartupOrchestratorTests
 {
     private readonly Mock<ICompatibleSettingsRegistry> _settingsRegistry = new();
     private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
-    private readonly Mock<IGlobalSettingsPreloader> _settingsPreloader = new();
     private readonly Mock<IUserPreferencesService> _preferencesService = new();
     private readonly Mock<IConfigurationService> _configurationService = new();
     private readonly Mock<IScriptMigrationService> _migrationService = new();
@@ -33,7 +32,6 @@ public class StartupOrchestratorTests
         return new StartupOrchestrator(
             _settingsRegistry.Object,
             _catalogSettingsRegistry.Object,
-            _settingsPreloader.Object,
             _preferencesService.Object,
             _configurationService.Object,
             _migrationService.Object,
@@ -62,17 +60,6 @@ public class StartupOrchestratorTests
         await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
         _settingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
-    }
-
-    [Fact]
-    public async Task RunStartupSequenceAsync_PreloadsSettings()
-    {
-        var sut = CreateSut();
-        var (statusProgress, detailedProgress, _) = CreateProgressTracking();
-
-        await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
-
-        _settingsPreloader.Verify(p => p.PreloadAllSettingsAsync(), Times.Once);
     }
 
     [Fact]
@@ -281,9 +268,6 @@ public class StartupOrchestratorTests
         _settingsRegistry.Setup(r => r.InitializeAsync())
             .Callback(() => callOrder.Add("Phase1_Registry"))
             .Returns(Task.CompletedTask);
-        _settingsPreloader.Setup(p => p.PreloadAllSettingsAsync())
-            .Callback(() => callOrder.Add("Phase1_Preload"))
-            .Returns(Task.CompletedTask);
         _migrationService.Setup(m => m.MigrateFromOldPathsAsync())
             .Callback(() => callOrder.Add("Phase3_Migration"))
             .ReturnsAsync(new ScriptMigrationResult());
@@ -298,7 +282,6 @@ public class StartupOrchestratorTests
 
         callOrder.Should().ContainInOrder(
             "Phase1_Registry",
-            "Phase1_Preload",
             "Phase3_Migration",
             "Phase4_Update");
     }

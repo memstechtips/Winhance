@@ -19,7 +19,6 @@ public class SettingApplicationServiceTests
     private readonly Mock<ICompatibleSettingsRegistry> _mockSettingsRegistry = new();
     private readonly Mock<ISpecialSettingHandlerRegistry> _mockSpecialHandlerRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
-    private readonly Mock<IGlobalSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IRecommendedSettingsApplier> _mockRecommended = new();
     private readonly Mock<IProcessRestartManager> _mockRestart = new();
@@ -71,7 +70,7 @@ public class SettingApplicationServiceTests
 
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
-            _mockLog.Object, _mockRegistry.Object,
+            _mockLog.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
@@ -291,21 +290,6 @@ public class SettingApplicationServiceTests
 
         await action.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*missing*not found*");
-    }
-
-    [Fact]
-    public async Task ApplySettingAsync_RegistersSettingInGlobalRegistry()
-    {
-        SetupSettingInRegistry("test-setting");
-
-        await _service.ApplySettingAsync(new ApplySettingRequest
-        {
-            SettingId = "test-setting",
-            Enable = true,
-        });
-
-        _mockRegistry.Verify(r => r.RegisterSetting("TestDomain",
-            It.Is<SettingDefinition>(s => s.Id == "test-setting")), Times.Once);
     }
 
     [Fact]

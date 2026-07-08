@@ -20,7 +20,6 @@ public class SettingApplicationService(
     ICompatibleSettingsRegistry settingsRegistry,
     ISpecialSettingHandlerRegistry specialHandlerRegistry,
     ILogService logService,
-    IGlobalSettingsRegistry globalSettingsRegistry,
     IEventBus eventBus,
     IRecommendedSettingsApplier recommendedSettingsApplier,
     IProcessRestartManager processRestartManager,
@@ -133,12 +132,6 @@ public class SettingApplicationService(
         }
         if (setting == null)
             throw new ArgumentException($"Setting '{settingId}' not found in registry");
-
-        var featureId = settingsRegistry.GetFeatureIdForSetting(settingId)
-            ?? settingsRegistry.GetFeatureIdForSettingBypassed(settingId)
-            ?? throw new InvalidOperationException($"Setting '{settingId}' has no feature mapping");
-
-        globalSettingsRegistry.RegisterSetting(featureId, setting);
 
         // Phase 6.6 Slice 2: a setting is "paired" when the new catalog holds a peer for it. Paired settings run
         // their relationships through the NEW RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the

@@ -20,7 +20,6 @@ public class StartupOrchestrator : IStartupOrchestrator
 {
     private readonly ICompatibleSettingsRegistry _settingsRegistry;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
-    private readonly IGlobalSettingsPreloader _settingsPreloader;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
     private readonly IScriptMigrationService _migrationService;
@@ -31,7 +30,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     public StartupOrchestrator(
         ICompatibleSettingsRegistry settingsRegistry,
         ICatalogSettingsRegistry catalogSettingsRegistry,
-        IGlobalSettingsPreloader settingsPreloader,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
         IScriptMigrationService migrationService,
@@ -41,7 +39,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         _settingsRegistry = settingsRegistry;
         _catalogSettingsRegistry = catalogSettingsRegistry;
-        _settingsPreloader = settingsPreloader;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
         _migrationService = migrationService;
@@ -63,7 +60,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         try
         {
             await _settingsRegistry.InitializeAsync().ConfigureAwait(false);
-            await _settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
             StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
 
             // Additively initialize the catalog-sourced settings registry (the SettingDefinition-retirement

@@ -12,7 +12,6 @@ public class ConfigurationServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
-    private readonly Mock<IGlobalSettingsPreloader> _mockSettingsPreloader = new();
     private readonly Mock<IConfigExportService> _mockConfigExportService = new();
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
     private readonly Mock<IConfigApplicationExecutionService> _mockConfigExecutionService = new();
@@ -34,7 +33,6 @@ public class ConfigurationServiceTests
         return new ConfigurationService(
             _mockLogService.Object,
             _mockCompatibleSettingsRegistry.Object,
-            _mockSettingsPreloader.Object,
             _mockConfigExportService.Object,
             _mockConfigLoadService.Object,
             _mockConfigExecutionService.Object,

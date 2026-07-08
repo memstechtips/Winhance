@@ -50,12 +50,6 @@ public static class InfrastructureServicesExtensions
         // Initialization Service
         services.AddSingleton<IInitializationService, Winhance.Core.Features.Common.Services.InitializationService>();
 
-        // Settings Registry
-        services.AddSingleton<IGlobalSettingsRegistry, Winhance.Core.Features.Common.Services.GlobalSettingsRegistry>();
-
-        // Global Settings Preloader (registers bypassed settings in the global registry)
-        services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
-
         // File System Service
         services.AddSingleton<IFileSystemService, FileSystemService>();
 

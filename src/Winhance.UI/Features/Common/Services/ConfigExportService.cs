@@ -17,7 +17,6 @@ public class ConfigExportService : IConfigExportService
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly IGlobalSettingsPreloader _settingsPreloader;
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWindowsAppsItemsProvider _windowsAppsVM;
@@ -32,7 +31,6 @@ public class ConfigExportService : IConfigExportService
         IDialogService dialogService,
         ILocalizationService localizationService,
         ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        IGlobalSettingsPreloader settingsPreloader,
         ICatalogSettingStateProvider settingStateProvider,
         IInteractiveUserService interactiveUserService,
         IWindowsAppsItemsProvider windowsAppsVM,
@@ -46,7 +44,6 @@ public class ConfigExportService : IConfigExportService
         _dialogService = dialogService;
         _localizationService = localizationService;
         _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _settingsPreloader = settingsPreloader;
         _settingStateProvider = settingStateProvider;
         _interactiveUserService = interactiveUserService;
         _windowsAppsVM = windowsAppsVM;
@@ -58,7 +55,7 @@ public class ConfigExportService : IConfigExportService
     }
 
     private Task EnsureRegistryInitializedAsync()
-        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _settingsPreloader, _logService);
+        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _logService);
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
