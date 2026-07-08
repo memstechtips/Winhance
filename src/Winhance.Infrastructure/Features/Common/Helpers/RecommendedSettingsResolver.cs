@@ -261,11 +261,12 @@ internal static class RecommendedSettingsResolver
     // the catalog settings registry gates OS membership via CatalogMembershipFilter.IsAvailable, and a by-id
     // consumer that still needs the OS check reads Setting.Availability.Allows(build) directly (the bare-model
     // 1:1 of the old IsWindows10Only / IsWindows11Only / build-range gate) - no resolver helper is needed.
-    // GetRecommendedValueForSetting / GetDefaultValueForSetting are DEFERRED (a Slice 3 fork): their only
-    // reachable non-null else-branch case is the Action start-menu-clean-11, whose RecommendedValue signal
-    // ConvertAction drops (the catalog Action carries its write as a RegistryWriteEffect with no per-mechanism
-    // recommended/default marker), so the catalog cannot distinguish it from taskbar-clean (RecommendedValue null).
-    // See the plan doc (Slice 2 GROUNDING). ----
+    // GetRecommendedValueForSetting / GetDefaultValueForSetting get NO catalog overload: Marco resolved the fork
+    // (2026-07-08) by EXCLUDING Actions from Apply-Recommended (RecommendedSettingsApplier, mirroring the Bulk
+    // reset exclusion). Their only reachable non-null else-branch case was the Action start-menu-clean-11, whose
+    // RecommendedValue signal ConvertAction drops (an Action's write is a marker-less RegistryWriteEffect); with
+    // Actions excluded, the else-branch population is NumericRange only (all powercfg / registry-free) where both
+    // helpers return null, so they are dead-in-effect and simply drop out at the Slice 3 repoint. ----
 
     // Catalog equivalent of HasRecommendedValue(SettingDefinition, WinBuild). The def unions three signals: a
     // recommended toggle state (it already delegates to CatalogToggleState), a powercfg recommended AC/DC value,

@@ -31,6 +31,15 @@ public class RecommendedSettingsApplier(
             for (int i = 0; i < total; i++)
             {
                 var setting = settings[i];
+
+                // A one-shot Action is not a stateful setting to bulk-recommend (mirrors
+                // BulkSettingsActionService's reset-loop exclusion; Marco 2026-07-03 / 2026-07-08).
+                // Skipping it here also keeps the else-branch value helpers (GetRecommendedValueForSetting /
+                // GetDefaultValueForSetting) from ever seeing an Action - the catalog Action model drops the
+                // RecommendedValue signal, so those helpers cannot be reproduced off the catalog.
+                if (setting.InputType == InputType.Action)
+                    continue;
+
                 try
                 {
                     progress?.Report(new TaskProgressDetail

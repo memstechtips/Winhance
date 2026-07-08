@@ -369,4 +369,39 @@ public class RecommendedSettingsApplierTests
             It.Is<string>(msg => msg.Contains(failId)),
             null), Times.Once);
     }
+
+    [Fact]
+    public async Task ApplyRecommendedToSettingsAsync_ActionSetting_IsExcluded()
+    {
+        // A one-shot Action is not a stateful setting to bulk-recommend (mirrors the reset-loop
+        // exclusion; Marco 2026-07-08). RecommendedValue=1 means WITHOUT the skip the else branch would
+        // apply it, so this fails red if the InputType.Action exclusion is removed (non-vacuous).
+        var action = new SettingDefinition
+        {
+            Id = "action-id",
+            Name = "Action",
+            Description = "",
+            InputType = InputType.Action,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting
+                {
+                    KeyPath = @"HKLM\Software\Test",
+                    ValueName = "V",
+                    ValueType = RegistryValueKind.DWord,
+                    RecommendedValue = 1,
+                    DefaultValue = null,
+                    EnabledValue = [1],
+                }
+            }
+        };
+
+        var result = await _applier.ApplyRecommendedToSettingsAsync(
+            new List<SettingDefinition> { action }, _mockAppService.Object);
+
+        _mockAppService.Verify(
+            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "action-id")),
+            Times.Never);
+        result.Should().BeEmpty();
+    }
 }
