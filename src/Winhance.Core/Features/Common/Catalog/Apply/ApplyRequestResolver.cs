@@ -59,9 +59,10 @@ public static class ApplyRequestResolver
             return null;
 
         // Custom-detector RESET now routes through the general reset block below: an effects-based detector with a
-        // WindowsDefault state (system-restore) resolves to Build(WindowsDefault, reset:true) - proven equivalent to
-        // the old executor reset by CustomDetectorResetApplyEquivalenceTests. A detector with no WindowsDefault state
-        // (system-tray / DNS selections) hits the null return there and stays on the old apply, unchanged.
+        // WindowsDefault state (system-restore, and system-tray / DNS since the Slice 2 converter-gap fix gave their
+        // IsRecommended/IsDefault options StateRoles) resolves to Build(WindowsDefault, reset:true) - proven equivalent
+        // to the old executor reset by CustomDetectorResetApplyEquivalenceTests. A detector with no WindowsDefault
+        // state hits the null return there and stays on the old apply, unchanged.
         // (updates-policy-mode is the one custom detector with a WindowsDefault state AND registry targets, but it is
         // special-handled - see SettingServicesExtensions - so it never reaches Resolve; if that registration is ever
         // removed, its reset must get its own Build(reset:true) equivalence proof before relying on this path.)

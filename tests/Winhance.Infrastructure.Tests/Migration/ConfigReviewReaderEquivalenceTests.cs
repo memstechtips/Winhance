@@ -99,15 +99,12 @@ public class ConfigReviewReaderEquivalenceTests
 
         Assert.True(compared > 50, $"only compared {compared} selection settings - population scoping bug");
         Assert.True(recommendedCount > 0 && defaultCount > 0, $"a flag bucket was empty (rec={recommendedCount}, def={defaultCount}) - the comparison would be vacuous");
-        // ACCEPTED, DOCUMENTED divergence: the 2 DETECTOR selections (system-tray, dns) carry no engine roles -
-        // "recommended"/"default" is a pure UI hint there, not a StateRole - so HasRole is false while the old option
-        // flag was true. UNOBSERVABLE in ConfigReviewService (BuildComboBoxOptions' badge flags are never read; only
-        // DisplayText + SelectedValue are). Assert the divergent set is EXACTLY these two, so a NEW divergence (a
-        // registry selection losing a role, or a third detector selection) fails RED.
-        var expectedDivergentIds = new HashSet<string> { "taskbar-system-tray-icons-11", "gaming-dns-server" };
-        Assert.True(divergentIds.SetEquals(expectedDivergentIds),
-            $"role-flag divergence set changed - expected exactly [{string.Join(", ", expectedDivergentIds.OrderBy(x => x))}] "
-                + $"(the 2 detector selections, unobservable in the review flow); got [{string.Join(", ", divergentIds.OrderBy(x => x))}]:\n"
-                + string.Join("\n", mismatches));
+        // The 2 DETECTOR selections (system-tray, dns) formerly diverged here: ConvertSystemTray/ConvertDnsServer
+        // dropped the option IsRecommended/IsDefault -> StateRole mapping that ConvertSelection carries. That gap is
+        // now CLOSED (both converter paths + the 2 authored catalogs carry the roles via the shared RolesForOption
+        // helper), so the whole selection population matches per index with ZERO divergence. A new divergence fails RED.
+        Assert.True(divergentIds.Count == 0,
+            $"role-flag divergence (expected none - the detector-selection role gap is closed): "
+                + $"[{string.Join(", ", divergentIds.OrderBy(x => x))}]:\n" + string.Join("\n", mismatches));
     }
 }

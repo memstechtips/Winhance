@@ -581,8 +581,9 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Reset_no_windows_default_selection_index_falls_through()
     {
-        // A no-WindowsDefault selection reset carrying a plain option index (the DNS / system-tray bulk-reset
-        // shape) applies that index - reset:true threaded (a no-op without a ResetSet).
+        // A no-WindowsDefault selection reset carrying a plain option index (a selection with no IsDefault
+        // option - what DNS / system-tray were before the Slice 2 converter-gap fix) applies that index -
+        // reset:true threaded (a no-op without a ResetSet).
         var setting = SelectionSetting(); // OptA(0), OptB(1); no WindowsDefault state
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: true, new[] { setting });

@@ -72,19 +72,11 @@ public class RecommendedResolverIndexCatalogEquivalenceTests
         Assert.True(nonNullRecommended > 0, "no non-null recommended index - GetRecommendedIndex comparison is vacuous");
         Assert.True(nonNullDefault > 0, "no non-null default index - GetDefaultIndex comparison is vacuous");
 
-        // PINNED KNOWN CONVERTER GAP (not count==0): ConvertSystemTray / ConvertDnsServer build their states WITHOUT
-        // mapping the option IsRecommended/IsDefault flags to a StateRole (unlike ConvertSelection / ConvertUpdatePolicy),
-        // so the catalog carries no recommended/default role for these 2 detector-based selections and the index
-        // overloads return null where the def returns an index. A PRE-EXISTING catalog gap (my overloads are correct for
-        // the other 416 settings). MUST be closed - add the role mapping to those 2 converter paths + author the roles in
-        // GamingAndPerformanceOptimizationsCatalog / TaskbarCustomizationsCatalog (a lockstep converter+catalog change,
-        // re-gated by CatalogAuthoringEquivalenceTests) - BEFORE the apply-cluster (Slice 3) repoints BulkSettingsActionService
-        // / RecommendedSettingsApplier onto these overloads, else gaming-dns-server / taskbar-system-tray-icons-11 silently
-        // drop out of Apply-Recommended / Reset-to-Defaults. Pinned by exact id set so a THIRD divergence fails RED.
-        var knownGap = new HashSet<string> { "gaming-dns-server", "taskbar-system-tray-icons-11" };
-        var divergentIds = mismatches.Select(m => m.Substring(0, m.IndexOf(':'))).Distinct().ToHashSet();
-        Assert.True(divergentIds.SetEquals(knownGap),
-            $"unexpected index-divergence id set [{string.Join(", ", divergentIds.OrderBy(x => x))}] != known converter gap [{string.Join(", ", knownGap.OrderBy(x => x))}]:\n" + string.Join("\n", mismatches));
+        // ConvertSystemTray / ConvertDnsServer now carry the option IsRecommended/IsDefault -> StateRole mapping (via the
+        // shared RolesForOption helper, like ConvertSelection), so gaming-dns-server / taskbar-system-tray-icons-11 no longer
+        // diverge - the overloads reproduce the def index over the WHOLE population. CatalogAuthoringEquivalenceTests re-gates
+        // the authored roles == Convert(def) for these 2 detector selections.
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} index-helper catalog-vs-def mismatches:\n" + string.Join("\n", mismatches));
     }
 
     private static string Fmt(int? v) => v is null ? "null" : v.Value.ToString();

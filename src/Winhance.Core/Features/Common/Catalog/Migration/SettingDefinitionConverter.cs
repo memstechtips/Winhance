@@ -104,9 +104,7 @@ public static class SettingDefinitionConverter
                 }
             }
 
-            var roles = new List<StateRole>();
-            if (opt.IsRecommended) roles.Add(new StateRole(RoleKind.Recommended));
-            if (opt.IsDefault) roles.Add(new StateRole(RoleKind.WindowsDefault));
+            var roles = RolesForOption(opt);
 
             states.Add(new SettingState
             {
@@ -204,6 +202,7 @@ public static class SettingDefinitionConverter
                 Label = o.DisplayName,
                 Tooltip = o.Tooltip,
                 Warning = o.Warning,
+                Roles = RolesForOption(o),
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
             Detector = new SystemTrayDetector(showAll, hideAll),
@@ -286,6 +285,7 @@ public static class SettingDefinitionConverter
                 Label = o.DisplayName,
                 Tooltip = o.Tooltip,
                 Warning = o.Warning,
+                Roles = RolesForOption(o),
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
@@ -725,6 +725,17 @@ public static class SettingDefinitionConverter
         foreach (var kvp in variables)
             script = script!.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
         return script;
+    }
+
+    // The per-option role mapping used by EVERY selection converter path (ConvertSelection, ConvertSystemTray,
+    // ConvertDnsServer): IsRecommended -> Recommended, IsDefault -> WindowsDefault, in that order. Centralised so a
+    // detector-selection path cannot silently drop it (ConvertSystemTray/ConvertDnsServer did before this).
+    private static IReadOnlyList<StateRole> RolesForOption(ComboBoxOption opt)
+    {
+        var roles = new List<StateRole>();
+        if (opt.IsRecommended) roles.Add(new StateRole(RoleKind.Recommended));
+        if (opt.IsDefault) roles.Add(new StateRole(RoleKind.WindowsDefault));
+        return roles;
     }
 
     private static IReadOnlyList<StateRole> RolesFor(bool isEnabledState, bool? recommendedIsEnabled, bool? defaultIsEnabled)

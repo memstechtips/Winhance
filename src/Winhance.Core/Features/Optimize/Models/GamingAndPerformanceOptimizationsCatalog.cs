@@ -974,6 +974,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Setting_gaming-dns-server_Option_0",
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Effects = new Effect[]
                     {
                         new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }", RunContext.User),

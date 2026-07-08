@@ -451,11 +451,11 @@ public static class ApplyEquivalenceHarness
     }
 
     /// <summary>Builds one <see cref="EquivalenceRow"/> per effects-based custom-detector setting whose states carry a
-    /// WindowsDefault role (today only the system-restore toggle): OLD is the live executor RESET, which - because the
+    /// WindowsDefault role (system-restore, plus system-tray / DNS since the Slice 2 converter-gap fix): OLD is the live executor RESET, which - because the
     /// funnel applies the WindowsDefault DIRECTION on reset (SetToggleToDefaultCommand -> Enable = ToggleDefaultState) -
     /// runs that direction's script; NEW is the ApplyPlanBuilder plan for the WindowsDefault state with reset:true. Both
     /// effects-only (these settings carry no registry targets, so reset:true is inert). A custom-detector setting with
-    /// NO WindowsDefault state (system-tray / DNS selections) is skipped: the resolver's reset block returns null for it,
+    /// NO WindowsDefault state is skipped: the resolver's reset block returns null for it,
     /// so its reset stays on the old apply and is not part of this migration.</summary>
     public static IReadOnlyList<EquivalenceRow> RunCustomDetectorReset(IEnumerable<SettingDefinition> defs)
     {
@@ -481,7 +481,7 @@ public static class ApplyEquivalenceHarness
 
             // OLD reset = the WindowsDefault direction's effect intent. A toggle (no ComboBox) applies isEnabled =
             // (WindowsDefault label == "Enabled"); a selection applies the option whose DisplayName is the WindowsDefault
-            // label (none today - custom-detector selections carry no WindowsDefault - but handled for completeness).
+            // label (system-tray / DNS since the Slice 2 converter-gap fix gave their options StateRoles).
             IEnumerable<string> oldEffects;
             if (def.ComboBox is null)
             {
