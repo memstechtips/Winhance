@@ -253,4 +253,122 @@ internal static class RecommendedSettingsResolver
             _ => systemValue
         };
     }
+
+    // ---- Slice 2 catalog-Setting value/presence overloads (additive, wired to nothing yet; proven == the
+    // SettingDefinition versions above over the population by RecommendedResolverValueCatalogEquivalenceTests).
+    // The apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) repoints onto these at Slice 3;
+    // the def versions stay live until then. IsCompatibleWithCurrentOS has NO catalog overload - it is OBVIATED:
+    // the catalog settings registry gates OS membership via CatalogMembershipFilter.IsAvailable, and a by-id
+    // consumer that still needs the OS check reads Setting.Availability.Allows(build) directly (the bare-model
+    // 1:1 of the old IsWindows10Only / IsWindows11Only / build-range gate) - no resolver helper is needed.
+    // GetRecommendedValueForSetting / GetDefaultValueForSetting are DEFERRED (a Slice 3 fork): their only
+    // reachable non-null else-branch case is the Action start-menu-clean-11, whose RecommendedValue signal
+    // ConvertAction drops (the catalog Action carries its write as a RegistryWriteEffect with no per-mechanism
+    // recommended/default marker), so the catalog cannot distinguish it from taskbar-clean (RecommendedValue null).
+    // See the plan doc (Slice 2 GROUNDING). ----
+
+    // Catalog equivalent of HasRecommendedValue(SettingDefinition, WinBuild). The def unions three signals: a
+    // recommended toggle state (it already delegates to CatalogToggleState), a powercfg recommended AC/DC value,
+    // and a registry-selection IsRecommended option. Catalog homes: the toggle via the SAME build-aware
+    // CatalogToggleState.GetRecommended; a powercfg slider's recommended via Numeric.Recommended; a selection's
+    // recommended (registry unconditional OR powercfg context-scoped) as a Recommended-kind role on some state.
+    // The role check is Selection-scoped so a merged toggle's build-scoped role can never be caught build-unaware
+    // here (selections are never merged). Powercfg present-vs-matching: the def counts a recommended AC/DC value
+    // even when it maps to no option, the catalog role is present only when it matched an option - equal for the
+    // real population (every recommended powercfg value is a selectable option), gated by the equivalence test.
+    internal static bool HasRecommendedValue(Setting setting, WinBuild build)
+    {
+        if (CatalogToggleState.GetRecommended(setting, build) is not null) return true;
+        if (setting.Numeric is { } numeric && numeric.Recommended.Count > 0) return true;
+        if (setting.Control == ControlKind.Selection
+            && setting.States.Any(s => s.Roles.Any(r => r.Kind == RoleKind.Recommended)))
+            return true;
+        return false;
+    }
+
+    // Catalog equivalent of HasDefaultValue(SettingDefinition, WinBuild): as HasRecommendedValue but the
+    // WindowsDefault role / Numeric.WindowsDefault. The toggle part is the SAME build-aware CatalogToggleState.GetDefault
+    // the def hybrid already calls, so the merged (-win10) toggles - whose Windows default is OS-divergent and
+    // build-scoped - agree on either OS with zero divergence.
+    internal static bool HasDefaultValue(Setting setting, WinBuild build)
+    {
+        if (CatalogToggleState.GetDefault(setting, build) is not null) return true;
+        if (setting.Numeric is { } numeric && numeric.WindowsDefault.Count > 0) return true;
+        if (setting.Control == ControlKind.Selection
+            && setting.States.Any(s => s.Roles.Any(r => r.Kind == RoleKind.WindowsDefault)))
+            return true;
+        return false;
+    }
+
+    // Catalog equivalent of BuildPowerCfgApplyValue(SettingDefinition, bool). The def reads PowerCfgSettings[0]'s
+    // Recommended/Default AC/DC raw values, maps a Selection value to its option index via
+    // FindOptionIndexForPowerCfgValue and a NumericRange value to display units. The catalog carries the same: a
+    // powercfg Selection's recommended/default option is the state with a context-scoped role (Recommended /
+    // WindowsDefault, AC / DC) - and that index equals FindOptionIndexForPowerCfgValue(RecommendedValueAC) because
+    // the converter adds the role to exactly the option whose PowerCfgValue equals the per-mode value; a NumericRange's
+    // Numeric.Recommended / Numeric.WindowsDefault ContextValues are already in DISPLAY units (the converter pre-applied
+    // the same system->display conversion), so they are handed over directly. isSeparate comes from PowerCfgTarget.Mode.
+    internal static object? BuildPowerCfgApplyValue(Setting setting, bool useRecommended)
+    {
+        var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pcfg is null) return null;
+
+        bool isSeparate = pcfg.Mode == PowerModeSupport.Separate;
+        var roleKind = useRecommended ? RoleKind.Recommended : RoleKind.WindowsDefault;
+
+        if (setting.Control == ControlKind.Selection)
+        {
+            int? acIdx = IndexOfContextRole(setting, roleKind, PowerContext.AC);
+            int? dcIdx = IndexOfContextRole(setting, roleKind, PowerContext.DC);
+
+            if (isSeparate)
+            {
+                if (!acIdx.HasValue && !dcIdx.HasValue) return null;
+                return new Dictionary<string, object?>
+                {
+                    ["ACValue"] = acIdx ?? 0,
+                    ["DCValue"] = dcIdx ?? 0
+                };
+            }
+            return (object?)(acIdx ?? dcIdx);
+        }
+
+        if (setting.Numeric is { } numeric)
+        {
+            var contextValues = useRecommended ? numeric.Recommended : numeric.WindowsDefault;
+            int? acDisplay = ContextValueFor(contextValues, PowerContext.AC);
+            int? dcDisplay = ContextValueFor(contextValues, PowerContext.DC);
+
+            if (isSeparate)
+            {
+                if (!acDisplay.HasValue && !dcDisplay.HasValue) return null;
+                return new Dictionary<string, object?>
+                {
+                    ["ACValue"] = acDisplay ?? 0,
+                    ["DCValue"] = dcDisplay ?? 0
+                };
+            }
+            return (object?)(acDisplay ?? dcDisplay);
+        }
+
+        return null;
+    }
+
+    // Index of the first state carrying a role of the given kind in the given power context (a powercfg selection's
+    // per-mode Recommended / WindowsDefault marker). Equals FindOptionIndexForPowerCfgValue(setting, the per-mode
+    // value) - the converter adds the context role to exactly the option whose PowerCfgValue matches that value.
+    private static int? IndexOfContextRole(Setting setting, RoleKind kind, PowerContext context)
+    {
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].Roles.Any(r => r.Kind == kind && r.Context == context))
+                return i;
+        return null;
+    }
+
+    private static int? ContextValueFor(IReadOnlyList<ContextValue> values, PowerContext context)
+    {
+        foreach (var v in values)
+            if (v.Context == context) return v.Value;
+        return null;
+    }
 }
