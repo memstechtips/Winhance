@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -15,6 +16,12 @@ public interface IProcessRestartManager
     /// outside any SuppressRestarts scope.
     /// </summary>
     Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings);
+
+    /// <summary>Catalog-Setting overload of the batch flush: reads the unified ApplyBehavior.Restart. The
+    /// apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) uses this once it deals in
+    /// Setting; the SettingDefinition overload stays for the not-yet-ported SAS path. Equivalent because no
+    /// setting sets both a process and a service restart (RestartTargetCatalogEquivalenceTests).</summary>
+    Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings);
 
     /// <summary>
     /// Suppresses all process/service restarts until the returned scope is disposed.

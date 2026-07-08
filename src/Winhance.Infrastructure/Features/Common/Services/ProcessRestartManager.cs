@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -78,16 +79,57 @@ public class ProcessRestartManager(
     public async Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings)
     {
         if (appliedSettings == null) return;
+        var (processes, services) = CollectRestartTargets(appliedSettings);
+        await FlushSetsAsync(processes, services).ConfigureAwait(false);
+    }
 
+    /// <inheritdoc />
+    public async Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings)
+    {
+        if (appliedSettings == null) return;
+        var (processes, services) = CollectRestartTargets(appliedSettings);
+        await FlushSetsAsync(processes, services).ConfigureAwait(false);
+    }
+
+    // Collect the distinct (process, service) restart targets across a batch. Static + internal so the
+    // catalog-equivalence test can compare the two overloads over the whole population without triggering
+    // real restarts. The def keeps RestartProcess/RestartService as separate strings.
+    internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
+        IEnumerable<SettingDefinition> settings)
+    {
         var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (settings != null)
+            foreach (var s in settings)
+            {
+                if (!string.IsNullOrEmpty(s.RestartProcess)) processes.Add(s.RestartProcess!);
+                if (!string.IsNullOrEmpty(s.RestartService)) services.Add(s.RestartService!);
+            }
+        return (processes, services);
+    }
 
-        foreach (var s in appliedSettings)
-        {
-            if (!string.IsNullOrEmpty(s.RestartProcess)) processes.Add(s.RestartProcess);
-            if (!string.IsNullOrEmpty(s.RestartService)) services.Add(s.RestartService);
-        }
+    // Catalog-Setting equivalent: the def's separate RestartProcess / RestartService are unified into
+    // ApplyBehavior.Restart (a single RestartTarget) - lossless because NO setting sets both (verified in
+    // source + pinned by RestartTargetCatalogEquivalenceTests).
+    internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
+        IEnumerable<Setting> settings)
+    {
+        var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (settings != null)
+            foreach (var s in settings)
+            {
+                switch (s.Apply.Restart)
+                {
+                    case RestartProcess rp when !string.IsNullOrEmpty(rp.Name): processes.Add(rp.Name); break;
+                    case RestartService rs when !string.IsNullOrEmpty(rs.Name): services.Add(rs.Name); break;
+                }
+            }
+        return (processes, services);
+    }
 
+    private async Task FlushSetsAsync(HashSet<string> processes, HashSet<string> services)
+    {
         if (processes.Count == 0 && services.Count == 0) return;
 
         logService.Log(LogLevel.Info,
