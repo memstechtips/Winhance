@@ -213,6 +213,34 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
+    // Catalog equivalent of GetRecommendedIndex(SettingDefinition): the converter builds one State per ComboBox
+    // option IN ORDER and maps opt.IsRecommended -> an UNCONDITIONAL StateRole(Recommended) on that State
+    // (SettingDefinitionConverter.ConvertSelection), so the first State carrying an unconditional Recommended role
+    // is the same index the def returns from the first Options[i].IsRecommended. Scoped to Selection - the def
+    // reads ComboBox?.Options and returns null when there is none (Toggle/Slider/Action/PowerPlan). A powercfg
+    // Selection's roles are CONTEXT-scoped (AC/DC), so the unconditional HasRole(Recommended) does not match them,
+    // matching the def (whose powercfg options carry no IsRecommended flag). No merged (-win10) setting is a
+    // Selection (the 6 aliases are This PC toggles), so the Selection roles are unconditional and this is
+    // build-invariant. Proven == the def version over the whole population by RecommendedResolverIndexCatalog
+    // EquivalenceTests.
+    internal static int? GetRecommendedIndex(Setting setting)
+    {
+        if (setting.Control != ControlKind.Selection) return null;
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].HasRole(RoleKind.Recommended)) return i;
+        return null;
+    }
+
+    // Catalog equivalent of GetDefaultIndex(SettingDefinition): as GetRecommendedIndex, but the WindowsDefault
+    // role (converter maps opt.IsDefault -> StateRole(WindowsDefault)).
+    internal static int? GetDefaultIndex(Setting setting)
+    {
+        if (setting.Control != ControlKind.Selection) return null;
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].HasRole(RoleKind.WindowsDefault)) return i;
+        return null;
+    }
+
     // Inverse of PowerCfgApplier.ConvertToSystemUnits.
     internal static int ConvertSystemToDisplayUnits(int systemValue, string? units)
     {
