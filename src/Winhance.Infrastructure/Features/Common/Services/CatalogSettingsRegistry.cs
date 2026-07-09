@@ -77,21 +77,43 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         return !s.Availability.ValidatesExistence || _existencePassed.Contains(s.Id);
     }
 
-    public IReadOnlyList<Setting> GetByFeature(string featureId, bool includeOtherOsVersions = false) =>
-        SettingCatalog.ByFeature.TryGetValue(featureId, out var settings)
+    /// <summary>Guards the pure-query surface: the machine CONTEXT must be resolved (InitializeAsync) before any
+    /// membership query, exactly as the old CompatibleSettingsRegistry threw on uninitialized use. Without this an
+    /// uninitialized registry answers over a default (0,0) build + empty existence set, silently hiding every
+    /// build-gated / powercfg setting - which surfaces downstream as a misleading "Setting not found" on apply
+    /// rather than the real "registry not initialized" cause. Every live consumer queries post-startup, so this
+    /// never fires in practice; it converts a swallowed-init failure into a loud, accurate error.</summary>
+    private void EnsureInitialized()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("CatalogSettingsRegistry not initialized. Call InitializeAsync first.");
+    }
+
+    public IReadOnlyList<Setting> GetByFeature(string featureId, bool includeOtherOsVersions = false)
+    {
+        EnsureInitialized();
+        return SettingCatalog.ByFeature.TryGetValue(featureId, out var settings)
             ? settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList()
             : Array.Empty<Setting>();
+    }
 
-    public Setting? GetById(string settingId, bool includeOtherOsVersions = false) =>
-        SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, includeOtherOsVersions)
+    public Setting? GetById(string settingId, bool includeOtherOsVersions = false)
+    {
+        EnsureInitialized();
+        return SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, includeOtherOsVersions)
             ? s
             : null;
+    }
 
-    public string? GetFeatureIdForSetting(string settingId) =>
-        _featureById.TryGetValue(SettingIdAliases.Normalize(settingId), out var f) ? f : null;
+    public string? GetFeatureIdForSetting(string settingId)
+    {
+        EnsureInitialized();
+        return _featureById.TryGetValue(SettingIdAliases.Normalize(settingId), out var f) ? f : null;
+    }
 
     public IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(bool includeOtherOsVersions = false)
     {
+        EnsureInitialized();
         var result = new Dictionary<string, IReadOnlyList<Setting>>();
         foreach (var (featureId, settings) in SettingCatalog.ByFeature)
             result[featureId] = settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList();

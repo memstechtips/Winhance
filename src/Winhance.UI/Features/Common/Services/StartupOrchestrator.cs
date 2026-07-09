@@ -63,8 +63,11 @@ public class StartupOrchestrator : IStartupOrchestrator
             StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
 
             // Additively initialize the catalog-sourced settings registry (the SettingDefinition-retirement
-            // drop-in) alongside the old one so it is live for the coordinated consumer cutover. Isolated try -
-            // it is consumed by nothing yet, so a failure must not affect the old registry or the rest of startup.
+            // drop-in) alongside the old one. It is now LIVE in production - consumed by PolicyCleanupService and
+            // the apply cluster (RecommendedSettingsApplier + BulkSettingsActionService (3b), SettingApplication
+            // Service (4c)). Isolated try - a catalog-init failure must not abort the old-registry init or the
+            // rest of startup; the registry's own EnsureInitialized guard then turns any use-before-init into a
+            // loud, accurate error rather than a silent empty-membership answer.
             try
             {
                 await _catalogSettingsRegistry.InitializeAsync().ConfigureAwait(false);

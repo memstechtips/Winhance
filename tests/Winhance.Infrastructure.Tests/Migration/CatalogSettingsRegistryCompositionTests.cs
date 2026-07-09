@@ -125,4 +125,23 @@ public class CatalogSettingsRegistryCompositionTests
         Assert.Null(reg.GetById(osIncompatible.Id));
         Assert.Equal(osIncompatible.Id, reg.GetById(osIncompatible.Id, includeOtherOsVersions: true)!.Id);
     }
+
+    [Fact]
+    public void Query_before_InitializeAsync_throws()
+    {
+        // Guard rail: the pure-query surface must not answer over an unresolved machine context. An
+        // uninitialized registry (e.g. a swallowed startup init) throws loudly rather than silently hiding every
+        // build-gated / powercfg setting (which downstream reads as a misleading "Setting not found"). Mirrors
+        // the old CompatibleSettingsRegistry, which also threw on uninitialized use. All live consumers query
+        // post-startup, so this never fires in practice.
+        var reg = new CatalogSettingsRegistry(
+            new Mock<IWindowsVersionService>().Object,
+            new Mock<IHardwareDetectionService>().Object,
+            new Mock<ICatalogPowerExistenceFilter>().Object);
+
+        Assert.Throws<System.InvalidOperationException>(() => reg.GetById("any"));
+        Assert.Throws<System.InvalidOperationException>(() => reg.GetByFeature("any"));
+        Assert.Throws<System.InvalidOperationException>(() => reg.GetFeatureIdForSetting("any"));
+        Assert.Throws<System.InvalidOperationException>(() => reg.GetAll());
+    }
 }
