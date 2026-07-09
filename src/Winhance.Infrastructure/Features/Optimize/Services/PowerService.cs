@@ -31,7 +31,7 @@ public class PowerService(
     /// longer registered as an apply handler. This <see cref="ISpecialSettingHandler"/> entry point is a dead stub
     /// that always returns false; PowerService's live surface is now the corrupt-plan cleanup + the plan queries.
     /// </summary>
-    public Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
+    public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
 
     /// <summary>

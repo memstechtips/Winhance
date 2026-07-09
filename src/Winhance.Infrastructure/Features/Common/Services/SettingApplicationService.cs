@@ -181,7 +181,7 @@ public class SettingApplicationService(
 
         var specialHandler = specialHandlerRegistry.TryGet(settingId);
         if (specialHandler != null
-            && await specialHandler.TryApplySpecialSettingAsync(setting, value!, checkboxResult, this).ConfigureAwait(false))
+            && await specialHandler.TryApplySpecialSettingAsync(settingId, value!, checkboxResult, this).ConfigureAwait(false))
         {
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 

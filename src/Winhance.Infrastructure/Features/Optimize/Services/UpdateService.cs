@@ -17,17 +17,19 @@ public class UpdateService(
     IFileSystemService fileSystemService,
     IStateWriter stateWriter) : ISpecialSettingHandler
 {
-    public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
+    public async Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
     {
-        if (setting.Id == SettingIds.UpdatesPolicyMode && value is int index)
+        if (settingId == SettingIds.UpdatesPolicyMode && value is int index)
         {
-            await ApplyUpdatesPolicyModeAsync(setting, index, settingApplicationService).ConfigureAwait(false);
+            await ApplyUpdatesPolicyModeAsync(index, settingApplicationService).ConfigureAwait(false);
             return true;
         }
         return false;
     }
 
-    public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value, ISettingApplicationService? settingApplicationService = null)
+    // Slice 4b: id-decoupled. Every mode re-resolves the updates-policy-mode catalog Setting internally, so the
+    // SettingDefinition is no longer threaded through.
+    public async Task ApplyUpdatesPolicyModeAsync(object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)
             throw new ArgumentException("Expected integer selection index");
@@ -37,16 +39,16 @@ public class UpdateService(
         switch (selectionIndex)
         {
             case 0:
-                await ApplyNormalModeAsync(setting).ConfigureAwait(false);
+                await ApplyNormalModeAsync().ConfigureAwait(false);
                 break;
             case 1:
-                await ApplySecurityOnlyModeAsync(setting).ConfigureAwait(false);
+                await ApplySecurityOnlyModeAsync().ConfigureAwait(false);
                 break;
             case 2:
-                await ApplyPausedModeAsync(setting, settingApplicationService).ConfigureAwait(false);
+                await ApplyPausedModeAsync(settingApplicationService).ConfigureAwait(false);
                 break;
             case 3:
-                await ApplyDisabledModeAsync(setting, settingApplicationService).ConfigureAwait(false);
+                await ApplyDisabledModeAsync(settingApplicationService).ConfigureAwait(false);
                 break;
             default:
                 throw new ArgumentException($"Invalid selection index: {selectionIndex}");
@@ -55,30 +57,30 @@ public class UpdateService(
         logService.Log(LogLevel.Info, $"[UpdateService] Successfully applied updates-policy-mode index {selectionIndex}");
     }
 
-    private async Task ApplyNormalModeAsync(SettingDefinition setting)
+    private async Task ApplyNormalModeAsync()
     {
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
         await EnableUpdateTasksAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 0);
+        ApplyRegistrySettingsForIndex(0);
     }
 
-    private async Task ApplySecurityOnlyModeAsync(SettingDefinition setting)
+    private async Task ApplySecurityOnlyModeAsync()
     {
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 1);
+        ApplyRegistrySettingsForIndex(1);
     }
 
     // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
-    private async Task ApplyPausedModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
+    private async Task ApplyPausedModeAsync(ISettingApplicationService? settingApplicationService)
     {
         logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
         try
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.UpdatesPolicyMode).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -87,18 +89,18 @@ public class UpdateService(
 
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await SetUpdateServicesManualAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 2);
+        ApplyRegistrySettingsForIndex(2);
     }
 
     // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
-    private async Task ApplyDisabledModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
+    private async Task ApplyDisabledModeAsync(ISettingApplicationService? settingApplicationService)
     {
         logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
         try
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.UpdatesPolicyMode).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -109,7 +111,7 @@ public class UpdateService(
         await DisableUpdateTasksAsync().ConfigureAwait(false);
         await RenameCriticalDllsAsync().ConfigureAwait(false);
         await CleanupUpdateFilesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 3);
+        ApplyRegistrySettingsForIndex(3);
     }
 
     private async Task<(bool Success, string Output, string Error)> RunCommandAsync(string command)
@@ -330,12 +332,10 @@ public class UpdateService(
         }
     }
 
-    private void ApplyRegistrySettingsForIndex(SettingDefinition setting, int index)
+    private void ApplyRegistrySettingsForIndex(int index)
     {
-        var options = setting.ComboBox?.Options;
-        if (options == null || index < 0 || index >= options.Count)
-            return;
-
+        // Slice 4b: the bounds check reads the catalog States (the old def-ComboBox.Options check was redundant -
+        // States are authored one-per-option, so the same length), so this no longer needs the SettingDefinition.
         // Phase 6.4b: apply the registry block through the NEW catalog engine instead of the old
         // WindowsRegistryService.ApplySetting (a teardown-deleted method on the teardown-deleted RegistrySetting).
         // The updates-policy-mode catalog Setting's States are authored one-per-option in option order, so
@@ -343,7 +343,7 @@ public class UpdateService(
         // (verified write-equivalent - every option maps all 22 ValueNames, and updates-policy-mode is green in
         // SelectionApplyEquivalenceTests). The bespoke service/DLL/task orchestration around this call stays as-is.
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
-        if (catalogSetting == null || index >= catalogSetting.States.Count)
+        if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
             logService.Log(LogLevel.Warning,
                 $"[UpdateService] updates-policy-mode missing from the catalog or index {index} out of range - registry block skipped");

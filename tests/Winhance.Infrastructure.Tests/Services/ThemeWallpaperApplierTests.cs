@@ -36,7 +36,7 @@ public class ThemeWallpaperApplierTests
     {
         var setting = new SettingDefinition { Id = "not-theme", Name = "not-theme", Description = "not-theme" };
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
+        var result = await _sut.TryApplySpecialSettingAsync(setting.Id, 0);
 
         result.Should().BeFalse();
         _stateWriter.VerifyNoOtherCalls();
@@ -47,7 +47,7 @@ public class ThemeWallpaperApplierTests
     {
         var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting, "dark");
+        var result = await _sut.TryApplySpecialSettingAsync(setting.Id, "dark");
 
         result.Should().BeFalse();
     }
@@ -60,7 +60,7 @@ public class ThemeWallpaperApplierTests
         // AppsUseLightTheme + SystemUsesLightTheme are written 0 via the state writer.
         var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1);  // 1 = Dark
+        await _sut.TryApplySpecialSettingAsync(setting.Id, 1);  // 1 = Dark
 
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
             It.Is<object>(v => v.Equals(0))), Times.Exactly(2));
@@ -71,7 +71,7 @@ public class ThemeWallpaperApplierTests
     {
         var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 0);  // 0 = Light
+        await _sut.TryApplySpecialSettingAsync(setting.Id, 0);  // 0 = Light
 
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
             It.Is<object>(v => v.Equals(1))), Times.Exactly(2));
@@ -90,7 +90,7 @@ public class ThemeWallpaperApplierTests
             RegistrySettings = new List<RegistrySetting>()
         };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: true);
+        await _sut.TryApplySpecialSettingAsync(setting.Id, 1, additionalContext: true);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Once);
     }
@@ -106,7 +106,7 @@ public class ThemeWallpaperApplierTests
             RegistrySettings = new List<RegistrySetting>()
         };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: false);
+        await _sut.TryApplySpecialSettingAsync(setting.Id, 1, additionalContext: false);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }
@@ -124,7 +124,7 @@ public class ThemeWallpaperApplierTests
             RegistrySettings = new List<RegistrySetting>()
         };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: true);
+        await _sut.TryApplySpecialSettingAsync(setting.Id, 1, additionalContext: true);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }

@@ -43,7 +43,7 @@ public class UpdateServiceTests
         };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting, 0);
+        var result = await _service.TryApplySpecialSettingAsync(setting.Id, 0);
 
         // Assert
         result.Should().BeFalse();
@@ -61,7 +61,7 @@ public class UpdateServiceTests
         };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting, "not-an-int");
+        var result = await _service.TryApplySpecialSettingAsync(setting.Id, "not-an-int");
 
         // Assert
         result.Should().BeFalse();
@@ -83,7 +83,7 @@ public class UpdateServiceTests
         };
 
         // Act
-        var act = () => _service.ApplyUpdatesPolicyModeAsync(setting, "invalid");
+        var act = () => _service.ApplyUpdatesPolicyModeAsync("invalid");
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
@@ -104,7 +104,7 @@ public class UpdateServiceTests
         SetupProcessExecutor();
 
         // Act
-        var act = () => _service.ApplyUpdatesPolicyModeAsync(setting, 99);
+        var act = () => _service.ApplyUpdatesPolicyModeAsync(99);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
@@ -128,7 +128,7 @@ public class UpdateServiceTests
             .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
 
         // Act
-        await _service.ApplyUpdatesPolicyModeAsync(setting, 0);
+        await _service.ApplyUpdatesPolicyModeAsync(0);
 
         // Assert — verify services were enabled (sc config and net start commands)
         _mockProcessExecutor.Verify(
@@ -153,7 +153,7 @@ public class UpdateServiceTests
             .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
 
         // Act
-        await _service.ApplyUpdatesPolicyModeAsync(setting, 1);
+        await _service.ApplyUpdatesPolicyModeAsync(1);
 
         // Assert — verify process commands were executed for enabling services
         _mockProcessExecutor.Verify(

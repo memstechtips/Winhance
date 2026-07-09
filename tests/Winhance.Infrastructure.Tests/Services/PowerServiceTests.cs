@@ -131,7 +131,7 @@ public class PowerServiceTests
         // the interface method remains only because PowerService is still a discovery handler, and it handles nothing.
         var setting = MakeSetting(SettingIds.PowerPlanSelection);
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
+        var result = await _sut.TryApplySpecialSettingAsync(setting.Id, 0);
 
         result.Should().BeFalse();
     }

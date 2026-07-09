@@ -24,12 +24,12 @@ public sealed class ThemeWallpaperApplier(
     IFileSystemService fileSystemService) : ISpecialSettingHandler
 {
     public async Task<bool> TryApplySpecialSettingAsync(
-        SettingDefinition setting,
+        string settingId,
         object value,
         bool additionalContext = false,
         ISettingApplicationService? settingApplicationService = null)
     {
-        if (setting.Id != SettingIds.ThemeModeWindows) return false;
+        if (settingId != SettingIds.ThemeModeWindows) return false;
         if (value is not int selectionIndex) return false;
 
         logService.Log(LogLevel.Info,
