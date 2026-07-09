@@ -38,42 +38,59 @@ public class ProcessRestartManager(
         }
     }
 
-    public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
+    public Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
+        => HandleRestartsAsync(setting.RestartProcess, setting.RestartService, setting.Id);
+
+    /// <inheritdoc />
+    public Task HandleProcessAndServiceRestartsAsync(Setting setting)
+    {
+        // The catalog Setting unifies the def's separate RestartProcess/RestartService into one
+        // ApplyBehavior.Restart RestartTarget (lossless - no setting sets both; RestartTargetCatalogEquivalence
+        // Tests). Reuse the proven CollectRestartTargets extraction (0/1 process, 0/1 service), then run the
+        // identical restart logic the def overload runs.
+        var (processes, services) = CollectRestartTargets(new[] { setting });
+        return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id);
+    }
+
+    // Shared restart logic for both single-setting overloads. Behaviour-identical to the old
+    // HandleProcessAndServiceRestartsAsync(SettingDefinition) body (process/service handled independently),
+    // just parameterised by the extracted (process, service, id) so the catalog Setting overload can reuse it.
+    private async Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId)
     {
         if (_suppressCount > 0)
         {
-            if (!string.IsNullOrEmpty(setting.RestartProcess))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (restarts suppressed - parent will restart)");
-            if (!string.IsNullOrEmpty(setting.RestartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (restarts suppressed - parent will restart)");
+            if (!string.IsNullOrEmpty(restartProcess))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{restartProcess}' (restarts suppressed - parent will restart)");
+            if (!string.IsNullOrEmpty(restartService))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{restartService}' (restarts suppressed - parent will restart)");
             return;
         }
 
         if (configImportState.IsActive)
         {
             // For Explorer, fire the theme/settings broadcasts immediately so user sees
-            // visual feedback during import — but defer the Explorer kill until end-of-import.
-            if (!string.IsNullOrEmpty(setting.RestartProcess)
-                && setting.RestartProcess.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+            // visual feedback during import - but defer the Explorer kill until end-of-import.
+            if (!string.IsNullOrEmpty(restartProcess)
+                && restartProcess.Equals("explorer", StringComparison.OrdinalIgnoreCase))
             {
                 await uiManagementService.RefreshWindowsGUI(killExplorer: false).ConfigureAwait(false);
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Broadcast Explorer-refresh for '{setting.Id}' (kill deferred — config import mode)");
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Broadcast Explorer-refresh for '{settingId}' (kill deferred - config import mode)");
             }
-            else if (!string.IsNullOrEmpty(setting.RestartProcess))
+            else if (!string.IsNullOrEmpty(restartProcess))
             {
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{restartProcess}' (config import mode - will restart at end)");
             }
 
-            if (!string.IsNullOrEmpty(setting.RestartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (config import mode - will restart at end)");
+            if (!string.IsNullOrEmpty(restartService))
+                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{restartService}' (config import mode - will restart at end)");
             return;
         }
 
-        if (!string.IsNullOrEmpty(setting.RestartProcess))
-            await RestartProcessByNameAsync(setting.RestartProcess, setting.Id).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(restartProcess))
+            await RestartProcessByNameAsync(restartProcess, settingId).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(setting.RestartService))
-            RestartServiceByName(setting.RestartService, setting.Id);
+        if (!string.IsNullOrEmpty(restartService))
+            RestartServiceByName(restartService, settingId);
     }
 
     public async Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings)
