@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
@@ -21,4 +22,9 @@ public interface ICatalogSettingStateProvider
     /// <summary>The detected state per setting keyed by <c>SettingDefinition.Id</c>, built from the new engine
     /// alone.</summary>
     Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<SettingDefinition> settings);
+
+    /// <summary>Catalog-native overload (Slice 4bb-2): the detected state per catalog <see cref="Setting"/> keyed
+    /// by <c>Setting.Id</c>, built from the new engine alone. Additive; the <see cref="SettingDefinition"/> overload
+    /// stays live until its reader consumers migrate off the def.</summary>
+    Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings);
 }

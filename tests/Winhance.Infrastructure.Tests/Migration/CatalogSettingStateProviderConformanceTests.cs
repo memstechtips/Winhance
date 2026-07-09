@@ -51,11 +51,11 @@ public class CatalogSettingStateProviderConformanceTests
     //  default state" rule). These construct readings and assert against what Windows ships - NOT a live hybrid.
     // ============================================================================================================
 
-    private static bool Derive(Setting s, InputType inputType, string? stateLabel)
-        => CatalogSettingStateProvider.DeriveIsEnabled(s, inputType, new CatalogDetectionResult { StateLabel = stateLabel });
+    private static bool Derive(Setting s, string? stateLabel)
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { StateLabel = stateLabel });
 
     private static bool DeriveNumeric(Setting s, int? acReadingSystemUnits)
-        => CatalogSettingStateProvider.DeriveIsEnabled(s, InputType.NumericRange, new CatalogDetectionResult { Value = acReadingSystemUnits });
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { Value = acReadingSystemUnits });
 
     [Fact]
     public void IsEnabled_registry_selection_is_modified_from_windows_default()
@@ -64,10 +64,10 @@ public class CatalogSettingStateProviderConformanceTests
         // The hard instance: Disabled is neither default nor recommended, yet it IS a modification from the Windows
         // default, so it must read enabled - this is where `!WindowsDefault` and `HasRole(Recommended)` diverge.
         var s = Catalog["gaming-print-spooler-service"];
-        Assert.False(Derive(s, InputType.Selection, "ServiceOption_Automatic"));         // Windows default -> not enabled
-        Assert.True(Derive(s, InputType.Selection, "ServiceOption_ManualRecommended"));  // recommended, non-default -> enabled
-        Assert.True(Derive(s, InputType.Selection, "ServiceOption_Disabled"));           // non-default, non-recommended -> enabled
-        Assert.True(Derive(s, InputType.Selection, null));                               // Custom / unrecognised -> non-default -> enabled
+        Assert.False(Derive(s, "ServiceOption_Automatic"));         // Windows default -> not enabled
+        Assert.True(Derive(s, "ServiceOption_ManualRecommended"));  // recommended, non-default -> enabled
+        Assert.True(Derive(s, "ServiceOption_Disabled"));           // non-default, non-recommended -> enabled
+        Assert.True(Derive(s, null));                               // Custom / unrecognised -> non-default -> enabled
     }
 
     [Fact]
@@ -76,9 +76,9 @@ public class CatalogSettingStateProviderConformanceTests
         // SelectionStates(LidActions, recAC:1, recDC:1, defAC:1, defDC:1) -> option index 1 is the AC default. The
         // WindowsDefault role is context-scoped (AC), so IsEnabled must check the AC role, not the Always default.
         var s = Catalog["lid-close-action"];
-        Assert.False(Derive(s, InputType.Selection, "Template_LidActions_Option_1"));    // AC default -> not enabled
-        Assert.True(Derive(s, InputType.Selection, "Template_LidActions_Option_0"));     // non-default -> enabled
-        Assert.True(Derive(s, InputType.Selection, "Template_LidActions_Option_3"));     // non-default -> enabled
+        Assert.False(Derive(s, "Template_LidActions_Option_1"));    // AC default -> not enabled
+        Assert.True(Derive(s, "Template_LidActions_Option_0"));     // non-default -> enabled
+        Assert.True(Derive(s, "Template_LidActions_Option_3"));     // non-default -> enabled
     }
 
     [Fact]
@@ -105,11 +105,44 @@ public class CatalogSettingStateProviderConformanceTests
     public void IsEnabled_toggle_tracks_the_enabled_label_unchanged()
     {
         // Toggles keep the proven switch-position rule (StateLabel == "Enabled"); any toggle Setting exercises it.
-        var toggle = Catalog.Values.First(x => x.Numeric is null && x.OptionSource is null
-            && x.States.Any(st => st.Label == "Enabled"));
-        Assert.True(Derive(toggle, InputType.Toggle, "Enabled"));
-        Assert.False(Derive(toggle, InputType.Toggle, "Disabled"));
-        Assert.False(Derive(toggle, InputType.Toggle, null));   // a Custom toggle -> not enabled
+        var toggle = Catalog.Values.First(x => x.Control == ControlKind.Toggle);
+        Assert.True(Derive(toggle, "Enabled"));
+        Assert.False(Derive(toggle, "Disabled"));
+        Assert.False(Derive(toggle, null));   // a Custom toggle -> not enabled
+    }
+
+    [Fact]
+    public void ResolveSelectionIndex_state_labels_match_option_displaynames_over_selections()
+    {
+        // Slice 4bb-2: the provider's ResolveSelectionIndex was ported to match the new-engine StateLabel against
+        // catalog States[i].Label instead of the old ComboBox.Options[i].DisplayName. That is byte-equivalent iff,
+        // for every selection, the catalog States are in option order with Label == the option DisplayName (the
+        // converter builds them that way; the catalog must match). This machine-independent [Fact] pins the
+        // invariant over the whole selection population, so a future authoring that reorders states or gives one a
+        // richer/localized Label - which would silently change which index a StateLabel resolves to - fails here.
+        var offenders = new List<string>();
+        int comparedSelections = 0;
+        foreach (var def in AllDefinitions())
+        {
+            if (def.InputType != InputType.Selection || def.ComboBox?.Options is not { } options)
+                continue;
+            if (!Catalog.TryGetValue(SettingIdAliases.Normalize(def.Id), out var s))
+                continue;
+            comparedSelections++;
+            if (s.States.Count != options.Count)
+            {
+                offenders.Add($"{def.Id}: States.Count {s.States.Count} != Options.Count {options.Count}");
+                continue;
+            }
+            for (int i = 0; i < options.Count; i++)
+                if (!string.Equals(s.States[i].Label, options[i].DisplayName, System.StringComparison.Ordinal))
+                    offenders.Add($"{def.Id}[{i}]: State.Label '{s.States[i].Label}' != Option.DisplayName '{options[i].DisplayName}'");
+        }
+
+        Assert.True(comparedSelections > 0, "no selections compared - population scoping bug");
+        Assert.True(offenders.Count == 0,
+            "catalog selection States must be in option order with Label == the option DisplayName (else " +
+            "ResolveSelectionIndex diverges from the old ComboBox-based resolution):\n" + string.Join("\n", offenders));
     }
 
     [Fact]
