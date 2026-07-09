@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,6 +12,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
@@ -24,9 +26,9 @@ public class PowerPlanActivationService(
     IPowerSchemeOperations powerSchemeOperations,
     IProcessExecutor processExecutor,
     IFileSystemService fileSystemService,
-    ICompatibleSettingsRegistry compatibleSettingsRegistry) : IPowerPlanActivationService
+    ICatalogSettingsRegistry catalogSettingsRegistry) : IPowerPlanActivationService
 {
-    private volatile IEnumerable<SettingDefinition>? _cachedSettings;
+    private volatile IReadOnlyList<Setting>? _cachedSettings;
     private readonly object _cacheLock = new object();
 
     /// <summary>
@@ -418,78 +420,20 @@ public class PowerPlanActivationService(
             {
                 try
                 {
-                    var powerCfgWithRecommended = setting.PowerCfgSettings?.FirstOrDefault(ps =>
-                        ps.RecommendedValueAC.HasValue || ps.RecommendedValueDC.HasValue);
-
-                    if (powerCfgWithRecommended != null)
-                    {
-                        var acValue = powerCfgWithRecommended.RecommendedValueAC ?? powerCfgWithRecommended.RecommendedValueDC ?? 0;
-                        var dcValue = powerCfgWithRecommended.RecommendedValueDC ?? powerCfgWithRecommended.RecommendedValueAC ?? 0;
-
-                        logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {acValue}, DC: {dcValue}");
-
-                        var planSchemeGuid = Guid.Parse(planGuid);
-                        var subgroupGuid = Guid.Parse(powerCfgWithRecommended.SubgroupGuid);
-                        var settGuid = Guid.Parse(powerCfgWithRecommended.SettingGuid);
-
-                        PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)acValue);
-                        PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)dcValue);
-
-                        appliedCount++;
+                    var write = RecommendedSettingsResolver.ComputePlanRecommendedWrite(setting);
+                    if (write is not { } w)
                         continue;
-                    }
 
-                    if (setting.InputType == InputType.Selection &&
-                        setting.Recommendation?.RecommendedOptionAC != null &&
-                        setting.PowerCfgSettings?.Any() == true)
-                    {
-                        var recommendedOptionAC = setting.Recommendation.RecommendedOptionAC;
-                        var recommendedOptionDC = setting.Recommendation.RecommendedOptionDC ?? recommendedOptionAC;
+                    logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {w.Ac}, DC: {w.Dc}");
 
-                        var options = setting.ComboBox?.Options;
+                    var planSchemeGuid = Guid.Parse(planGuid);
+                    var subgroupGuid = Guid.Parse(w.SubgroupGuid);
+                    var settGuid = Guid.Parse(w.SettingGuid);
 
-                        if (options != null)
-                        {
-                            var indexAC = -1;
-                            var indexDC = -1;
-                            for (int oi = 0; oi < options.Count; oi++)
-                            {
-                                if (indexAC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionAC, StringComparison.Ordinal))
-                                    indexAC = oi;
-                                if (indexDC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionDC, StringComparison.Ordinal))
-                                    indexDC = oi;
-                            }
+                    PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Ac);
+                    PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Dc);
 
-                            if (options.Any(o => o.ValueMappings != null))
-                            {
-                                int? acValue = null, dcValue = null;
-
-                                if (indexAC >= 0 && options[indexAC].ValueMappings is { } valueDictAC &&
-                                    valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) && powerCfgValueAC != null)
-                                    acValue = Convert.ToInt32(powerCfgValueAC);
-
-                                if (indexDC >= 0 && options[indexDC].ValueMappings is { } valueDictDC &&
-                                    valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) && powerCfgValueDC != null)
-                                    dcValue = Convert.ToInt32(powerCfgValueDC);
-
-                                if (acValue.HasValue && dcValue.HasValue)
-                                {
-                                    var powerCfgSetting = setting.PowerCfgSettings[0];
-
-                                    logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {recommendedOptionAC} ({acValue}), DC: {recommendedOptionDC} ({dcValue})");
-
-                                    var recPlanGuid = Guid.Parse(planGuid);
-                                    var recSubGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                                    var recSettGuid = Guid.Parse(powerCfgSetting.SettingGuid);
-
-                                    PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref recPlanGuid, ref recSubGuid, ref recSettGuid, (uint)acValue.Value);
-                                    PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref recPlanGuid, ref recSubGuid, ref recSettGuid, (uint)dcValue.Value);
-
-                                    appliedCount++;
-                                }
-                            }
-                        }
-                    }
+                    appliedCount++;
                 }
                 catch (Exception ex)
                 {
@@ -568,7 +512,7 @@ public class PowerPlanActivationService(
     /// The filtered settings for the power feature, or an empty enumerable
     /// if loading fails (failure is logged, never thrown).
     /// </returns>
-    private Task<IEnumerable<SettingDefinition>> GetSettingsAsync()
+    private Task<IReadOnlyList<Setting>> GetSettingsAsync()
     {
         if (_cachedSettings != null)
             return Task.FromResult(_cachedSettings);
@@ -581,13 +525,13 @@ public class PowerPlanActivationService(
             try
             {
                 logService.Log(LogLevel.Info, "Loading Power settings");
-                _cachedSettings = compatibleSettingsRegistry.GetFilteredSettings(FeatureIds.Power);
+                _cachedSettings = catalogSettingsRegistry.GetByFeature(FeatureIds.Power);
                 return Task.FromResult(_cachedSettings);
             }
             catch (Exception ex)
             {
                 logService.Log(LogLevel.Error, $"Error loading Power settings: {ex.Message}");
-                return Task.FromResult(Enumerable.Empty<SettingDefinition>());
+                return Task.FromResult<IReadOnlyList<Setting>>(System.Array.Empty<Setting>());
             }
         }
     }

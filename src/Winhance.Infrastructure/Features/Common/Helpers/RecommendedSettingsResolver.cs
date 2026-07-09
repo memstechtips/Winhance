@@ -254,6 +254,15 @@ internal static class RecommendedSettingsResolver
         };
     }
 
+    // Inverse of ConvertSystemToDisplayUnits (== the converter's ConvertSystemToDisplay): back to raw powercfg
+    // system units. minutes/hours multiply; everything else (seconds, milliseconds, percent) is 1:1.
+    internal static int ConvertDisplayToSystemUnits(int displayValue, string? units) => units?.ToLowerInvariant() switch
+    {
+        "minutes" => displayValue * 60,
+        "hours" => displayValue * 3600,
+        _ => displayValue,
+    };
+
     // ---- Slice 2 catalog-Setting value/presence overloads (additive, wired to nothing yet; proven == the
     // SettingDefinition versions above over the population by RecommendedResolverValueCatalogEquivalenceTests).
     // The apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) repoints onto these at Slice 3;
@@ -370,6 +379,119 @@ internal static class RecommendedSettingsResolver
     {
         foreach (var v in values)
             if (v.Context == context) return v.Value;
+        return null;
+    }
+
+    // ---- Slice 5 (PowerPlanActivationService port): the recommended AC/DC SYSTEM values the service writes to a
+    // freshly-created power plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting. The def form is the
+    // verbatim extraction of ApplyRecommendedSettingsToPlanAsync's inline branches (the old-logic reference); the
+    // catalog form reads the same values off the Setting. Proven catalog == def over the whole Power population by
+    // PowerPlanRecommendedWriteEquivalenceTests; the service uses the catalog form. ----
+
+    /// <summary>The (subgroup, setting, AC, DC) write the old ApplyRecommendedSettingsToPlanAsync computed for a
+    /// setting. Branch 1 = the first PowerCfgSetting with a recommended AC/DC value, writing the raw SYSTEM value
+    /// (AC falling back to DC and vice-versa). Branch 2 = a Selection whose Recommendation.RecommendedOptionAC/DC
+    /// label maps (via ComboBox option DisplayName) to an option carrying ValueMappings["PowerCfgValue"], emitted
+    /// only when BOTH AC and DC resolve. Null = nothing to write. Verbatim extraction - do not "improve".</summary>
+    internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(SettingDefinition setting)
+    {
+        var powerCfgWithRecommended = setting.PowerCfgSettings?.FirstOrDefault(ps =>
+            ps.RecommendedValueAC.HasValue || ps.RecommendedValueDC.HasValue);
+
+        if (powerCfgWithRecommended != null)
+        {
+            var acValue = powerCfgWithRecommended.RecommendedValueAC ?? powerCfgWithRecommended.RecommendedValueDC ?? 0;
+            var dcValue = powerCfgWithRecommended.RecommendedValueDC ?? powerCfgWithRecommended.RecommendedValueAC ?? 0;
+            return (powerCfgWithRecommended.SubgroupGuid, powerCfgWithRecommended.SettingGuid, acValue, dcValue);
+        }
+
+        if (setting.InputType == InputType.Selection
+            && setting.Recommendation?.RecommendedOptionAC != null
+            && setting.PowerCfgSettings?.Any() == true)
+        {
+            var recommendedOptionAC = setting.Recommendation.RecommendedOptionAC;
+            var recommendedOptionDC = setting.Recommendation.RecommendedOptionDC ?? recommendedOptionAC;
+            var options = setting.ComboBox?.Options;
+            if (options != null)
+            {
+                var indexAC = -1;
+                var indexDC = -1;
+                for (int oi = 0; oi < options.Count; oi++)
+                {
+                    if (indexAC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionAC, StringComparison.Ordinal))
+                        indexAC = oi;
+                    if (indexDC < 0 && string.Equals(options[oi].DisplayName, recommendedOptionDC, StringComparison.Ordinal))
+                        indexDC = oi;
+                }
+
+                if (options.Any(o => o.ValueMappings != null))
+                {
+                    int? acValue = null, dcValue = null;
+                    if (indexAC >= 0 && options[indexAC].ValueMappings is { } valueDictAC
+                        && valueDictAC.TryGetValue("PowerCfgValue", out var powerCfgValueAC) && powerCfgValueAC != null)
+                        acValue = Convert.ToInt32(powerCfgValueAC);
+                    if (indexDC >= 0 && options[indexDC].ValueMappings is { } valueDictDC
+                        && valueDictDC.TryGetValue("PowerCfgValue", out var powerCfgValueDC) && powerCfgValueDC != null)
+                        dcValue = Convert.ToInt32(powerCfgValueDC);
+
+                    if (acValue.HasValue && dcValue.HasValue)
+                    {
+                        var pcs0 = setting.PowerCfgSettings[0];
+                        return (pcs0.SubgroupGuid, pcs0.SettingGuid, acValue.Value, dcValue.Value);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Catalog equivalent of ComputePlanRecommendedWrite(SettingDefinition): the single PowerCfgTarget
+    /// supplies the subgroup/setting GUIDs; the per-context recommended SYSTEM value is the Recommended-role
+    /// state's Set["Power"] payload (Selection) or Numeric.Recommended converted from display back to system
+    /// units (Slider - e.g. a Minutes slider over a Seconds powercfg value). AC/DC fall back to each other as the def branch 1.
+    /// The def's dead branch 2 (every powercfg selection carries a RecommendedValueAC, so branch 1 always fires)
+    /// has no catalog form; the equivalence test proves catalog == def over the whole Power population.</summary>
+    internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
+    {
+        var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pcfg is null) return null;
+
+        int? acSys = RecommendedSystemValue(setting, pcfg, PowerContext.AC);
+        int? dcSys = RecommendedSystemValue(setting, pcfg, PowerContext.DC);
+        if (!acSys.HasValue && !dcSys.HasValue) return null;
+
+        int ac = acSys ?? dcSys ?? 0;
+        int dc = dcSys ?? acSys ?? 0;
+        return (pcfg.SubgroupGuid, pcfg.SettingGuid, ac, dc);
+    }
+
+    // The recommended SYSTEM powercfg value for one context: a Selection's Recommended-context-role state carries
+    // Set["Power"] = StateValue.Of(the option's PowerCfgValue), so its WritePayload IS the system value the def
+    // wrote from RecommendedValueAC/DC; a Slider's Numeric.Recommended is in DISPLAY units, inverted back to the
+    // raw SYSTEM value the write needs. Null when there is no recommended role/value in that context.
+    private static int? RecommendedSystemValue(Setting setting, PowerCfgTarget pcfg, PowerContext context)
+    {
+        // State-based (Selection - or, defensively, any state-carrying powercfg setting): the recommended value
+        // is the Recommended-context-role state's Set["Power"] payload. Gating on States.Count (not Control ==
+        // Selection) keeps a future powercfg setting whose two states happen to compute as Toggle from silently
+        // dropping its plan write. A Numeric slider has no states and falls through to Numeric.Recommended below.
+        if (setting.States.Count > 0)
+        {
+            foreach (var st in setting.States)
+                if (st.Roles.Any(r => r.Kind == RoleKind.Recommended && r.Context == context)
+                    && st.Set.TryGetValue(pcfg.Key, out var sv) && sv.WritePayload != null)
+                    return Convert.ToInt32(sv.WritePayload);
+            return null;
+        }
+        if (setting.Numeric is { } numeric)
+        {
+            // Numeric.Recommended is in DISPLAY units (the converter pre-applied system->display); the plan
+            // write needs the raw SYSTEM value, so invert it - e.g. power-harddisk-timeout is a Minutes slider
+            // over a Seconds powercfg value, so display 10 -> system 600.
+            var display = ContextValueFor(numeric.Recommended, context);
+            return display.HasValue ? ConvertDisplayToSystemUnits(display.Value, numeric.Units) : (int?)null;
+        }
         return null;
     }
 }
