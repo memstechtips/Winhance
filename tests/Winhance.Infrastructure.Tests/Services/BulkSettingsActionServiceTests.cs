@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using FluentAssertions;
-using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -14,7 +13,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class BulkSettingsActionServiceTests
 {
-    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IWindowsVersionService> _mockVersionService = new();
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
     private readonly Mock<IProcessRestartManager> _mockProcessRestartManager = new();
@@ -36,21 +35,22 @@ public class BulkSettingsActionServiceTests
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed
+        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed. Slice 3b: the reset loop builds
+        // its restart set from catalog Settings, so the flush overload takes IEnumerable<Setting>.
         _mockProcessRestartManager
             .Setup(p => p.SuppressRestarts())
-            .Returns(Mock.Of<System.IDisposable>());
+            .Returns(Mock.Of<IDisposable>());
         _mockProcessRestartManager
-            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()))
+            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()))
             .Returns(Task.CompletedTask);
 
-        // Default: ApplyRecommendedToSettingsAsync returns empty list
+        // Default: ApplyRecommendedToSettingsAsync (now catalog-Setting typed) returns empty list
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .ReturnsAsync(new List<SettingDefinition>());
+            .ReturnsAsync(new List<Setting>());
 
         // Default: GetString returns the key; BeginBatch returns a no-op disposable
         _mockLocalizationService
@@ -71,128 +71,58 @@ public class BulkSettingsActionServiceTests
             _mockLocalizationService.Object);
     }
 
-    // Slice C: the reset loop + affected-count pair each setting to its catalog Setting and read
-    // the build-aware WindowsDefault/Recommended roles, so tests use REAL catalog toggle ids (a
-    // synthetic fake-id def no longer pairs). TestBuild matches the mocked version service (Win11, 22621).
-    private static readonly WinBuild TestBuild = new(22621);
+    // Slice 3b: the reset loop + affected-count + ResolveSettingsAsync all read catalog Settings DIRECTLY (the
+    // registry now returns Setting, the SettingCatalog.Find re-pairing is gone). Tests construct synthetic
+    // Settings with exactly the roles they exercise - no real catalog id is needed.
 
-    private static string CatalogToggleWithDefault(bool direction) =>
-        SettingCatalog.All.First(s => CatalogToggleState.GetDefault(s, TestBuild) == direction).Id;
+    private static Display Disp(string id) => new() { Name = $"Setting {id}", Description = $"Description for {id}" };
 
-    private static string CatalogToggleWithDefaultAny() =>
-        SettingCatalog.All.First(s => CatalogToggleState.GetDefault(s, TestBuild).HasValue).Id;
-
-    private static string CatalogToggleWithRecommendation() =>
-        SettingCatalog.All.First(s => CatalogToggleState.GetRecommended(s, TestBuild).HasValue).Id;
-
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
-
-    private static SettingDefinition CreateToggleSetting(
-        string id,
-        object? recommendedValue,
-        object? defaultValue = null,
-        object?[]? enabledValue = null,
-        object?[]? disabledValue = null,
-        bool isGroupPolicy = false) => new()
+    // A toggle Setting: a Recommended role on Enabled/Disabled means recommend enabling/disabling; a
+    // WindowsDefault role on Enabled/Disabled is the reset direction. null = that role absent.
+    private static Setting Toggle(string id, bool? recommended = null, bool? windowsDefault = null)
     {
-        Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = InputType.Toggle,
-        RegistrySettings = new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = @"HKLM\Software\Test",
-                ValueName = "TestValue",
-                ValueType = RegistryValueKind.DWord,
-                RecommendedValue = recommendedValue,
-                DefaultValue = defaultValue,
-                EnabledValue = enabledValue ?? (recommendedValue != null ? [recommendedValue] : null),
-                DisabledValue = disabledValue,
-                IsGroupPolicy = isGroupPolicy,
-            }
-        }
-    };
-
-    private static SettingDefinition CreateSelectionSetting(
-        string id,
-        string recommendedOption,
-        string? defaultOption,
-        Dictionary<string, int> comboBoxOptions)
-    {
-        // Sort option names alphabetically; their index becomes the selection index.
-        var sortedNames = comboBoxOptions.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray();
-        var options = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(sortedNames.Length);
-        for (int i = 0; i < sortedNames.Length; i++)
-        {
-            var name = sortedNames[i];
-            options.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
-            {
-                DisplayName = name,
-                IsRecommended = name == recommendedOption,
-                IsDefault = defaultOption != null && name == defaultOption,
-                ValueMappings = new Dictionary<string, object?> { { "TestValue", comboBoxOptions[name] } },
-            });
-        }
-
-        return new SettingDefinition
+        var enabledRoles = new List<StateRole>();
+        var disabledRoles = new List<StateRole>();
+        if (recommended == true) enabledRoles.Add(new StateRole(RoleKind.Recommended));
+        else if (recommended == false) disabledRoles.Add(new StateRole(RoleKind.Recommended));
+        if (windowsDefault == true) enabledRoles.Add(new StateRole(RoleKind.WindowsDefault));
+        else if (windowsDefault == false) disabledRoles.Add(new StateRole(RoleKind.WindowsDefault));
+        return new Setting
         {
             Id = id,
-            Name = $"Setting {id}",
-            Description = $"Description for {id}",
-            InputType = InputType.Selection,
-            ComboBox = new ComboBoxMetadata { Options = options },
-            RegistrySettings = new[]
+            Display = Disp(id),
+            States = new[]
             {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\Software\Test",
-                    ValueName = "TestValue",
-                    ValueType = RegistryValueKind.DWord,
-                    IsPrimary = true,
-                    RecommendedValue = null,
-                    DefaultValue = null,
-                }
-            }
+                new SettingState { Label = "Enabled", Roles = enabledRoles },
+                new SettingState { Label = "Disabled", Roles = disabledRoles },
+            },
         };
     }
 
-    private static SettingDefinition CreateNumericSetting(
-        string id,
-        object? recommendedValue,
-        object? defaultValue = null) => new()
+    // A registry-style Selection Setting (>=3 non-Enabled/Disabled states => Control.Selection) with an optional
+    // Recommended and/or WindowsDefault role at the given index.
+    private static Setting Selection(string id, int? recommendedIndex = null, int? defaultIndex = null, int numOptions = 3)
     {
-        Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = InputType.NumericRange,
-        RegistrySettings = new[]
+        var states = new List<SettingState>(numOptions);
+        for (int i = 0; i < numOptions; i++)
         {
-            new RegistrySetting
-            {
-                KeyPath = @"HKLM\Software\Test",
-                ValueName = "NumericValue",
-                ValueType = RegistryValueKind.DWord,
-                RecommendedValue = recommendedValue,
-                DefaultValue = defaultValue,
-            }
+            var roles = new List<StateRole>();
+            if (recommendedIndex == i) roles.Add(new StateRole(RoleKind.Recommended));
+            if (defaultIndex == i) roles.Add(new StateRole(RoleKind.WindowsDefault));
+            states.Add(new SettingState { Label = $"Option{i}", Roles = roles });
         }
-    };
-
-    private void SetupDomainWithSettings(
-        string settingId,
-        IEnumerable<SettingDefinition> settings,
-        string domainName = "TestDomain")
-    {
-        // domainName is retained for call-site readability but unused — the registry's
-        // GetById is O(1) and domain-agnostic.
-        _ = domainName;
-        var match = settings.FirstOrDefault(s => s.Id == settingId);
-        _mockRegistry.Setup(r => r.GetById(settingId)).Returns(match);
+        return new Setting { Id = id, Display = Disp(id), States = states };
     }
+
+    // A numeric (slider) Setting (Control.Slider); used only to prove ResolveSettingsAsync passes it through.
+    private static Setting NumericSetting(string id) =>
+        new() { Id = id, Display = Disp(id), Numeric = new Numeric { Min = 0, Max = 100 } };
+
+    // An Action Setting (no states => Control.Action) - excluded from both bulk ops.
+    private static Setting ActionSetting(string id) => new() { Id = id, Display = Disp(id) };
+
+    private void SetupRegistry(string id, Setting? setting)
+        => _mockRegistry.Setup(r => r.GetById(id, It.IsAny<bool>())).Returns(setting);
 
     // ---------------------------------------------------------------
     // Test 1: ApplyRecommendedAsync delegates to IRecommendedSettingsApplier
@@ -202,93 +132,60 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ApplyRecommendedAsync_DelegatesToApplier_ThenFlushesOnce()
     {
-        // Arrange: two settings resolved from the registry
-        var setting1 = CreateToggleSetting("setting-a", recommendedValue: 1,
-            enabledValue: [1], disabledValue: [0]);
-        var setting2 = CreateToggleSetting("setting-b", recommendedValue: 0,
-            enabledValue: [1], disabledValue: [0]);
+        var setting1 = Toggle("setting-a", recommended: true);
+        var setting2 = Toggle("setting-b", recommended: false);
+        SetupRegistry("setting-a", setting1);
+        SetupRegistry("setting-b", setting2);
 
-        SetupDomainWithSettings("setting-a", new[] { setting1 }, "DomainA");
-        SetupDomainWithSettings("setting-b", new[] { setting2 }, "DomainB");
-
-        // Configure the applier mock to return both settings as "applied"
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .ReturnsAsync(new List<SettingDefinition> { setting1, setting2 });
+            .ReturnsAsync(new List<Setting> { setting1, setting2 });
 
-        // Act
         var applied = await _service.ApplyRecommendedAsync(new[] { "setting-a", "setting-b" });
 
-        // Assert: delegated to the applier with the resolved settings list
         _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
-            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+            It.Is<IReadOnlyList<Setting>>(list =>
                 list.Count == 2 &&
                 list.Any(s => s.Id == "setting-a") &&
                 list.Any(s => s.Id == "setting-b")),
             _mockAppService.Object,
             It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
 
-        // Assert: flushed exactly once with the applied list
         _mockProcessRestartManager.Verify(p =>
-            p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()),
             Times.Once);
 
-        // Assert: count reflects applied settings returned by the applier
         applied.Should().Be(2);
     }
 
     // ---------------------------------------------------------------
-    // Test 2: ApplyRecommendedAsync — OS-incompatible settings excluded
-    //         before handing off to the applier (ResolveSettingsAsync).
+    // Test 2: OS-incompatible settings are excluded before delegating.
+    //         Slice 3b: the OS gate moved to the catalog registry, which
+    //         returns null for an OS-incompatible id (GetById), so
+    //         ResolveSettingsAsync's null-skip drops it.
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task ApplyRecommendedAsync_SkipsIncompatibleOS_BeforeDelegating()
+    public async Task ApplyRecommendedAsync_SkipsRegistryExcluded_BeforeDelegating()
     {
-        // Arrange: running Windows 11; win10-only setting is OS-filtered out in
-        // ResolveSettingsAsync before the applier is called.
-        var win10OnlySetting = new SettingDefinition
-        {
-            Id = "win10-only",
-            Name = "Win10 Only",
-            Description = "Test",
-            InputType = InputType.Toggle,
-            IsWindows10Only = true,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\Software\Test",
-                    ValueName = "Win10Val",
-                    ValueType = RegistryValueKind.DWord,
-                    RecommendedValue = 1,
-                    EnabledValue = [1],
-                    DefaultValue = null
-                }
-            }
-        };
-        var compatibleSetting = CreateToggleSetting("compatible", recommendedValue: 1, enabledValue: [1]);
-
-        SetupDomainWithSettings("win10-only",  new[] { win10OnlySetting }, "D1");
-        SetupDomainWithSettings("compatible",  new[] { compatibleSetting }, "D2");
+        SetupRegistry("os-incompatible", null); // registry OS-filtered it out
+        SetupRegistry("compatible", Toggle("compatible", recommended: true));
 
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .ReturnsAsync((IReadOnlyList<SettingDefinition> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
-                (IReadOnlyList<SettingDefinition>)passed.ToList());
+            .ReturnsAsync((IReadOnlyList<Setting> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
+                (IReadOnlyList<Setting>)passed.ToList());
 
-        // Act
-        await _service.ApplyRecommendedAsync(new[] { "win10-only", "compatible" });
+        await _service.ApplyRecommendedAsync(new[] { "os-incompatible", "compatible" });
 
-        // Assert: the applier is called only with the compatible setting
         _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
-            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+            It.Is<IReadOnlyList<Setting>>(list =>
                 list.Count == 1 && list[0].Id == "compatible"),
             _mockAppService.Object,
             It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
@@ -300,49 +197,24 @@ public class BulkSettingsActionServiceTests
     //          bulk-recommended (Marco 2026-07-03).
     // ---------------------------------------------------------------
 
-    private static SettingDefinition CreateActionSetting(string id) => new()
-    {
-        Id = id,
-        Name = "Clean",
-        Description = "One-shot action",
-        InputType = InputType.Action,
-        RegistrySettings = new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = @"HKCU\Software\Test",
-                ValueName = "Favorites",
-                ValueType = RegistryValueKind.Binary,
-                EnabledValue = [new byte[0]],
-                DisabledValue = [null],
-                RecommendedValue = null,
-                DefaultValue = null,
-            }
-        }
-    };
-
     [Fact]
     public async Task ApplyRecommendedAsync_SkipsActions_BeforeDelegating()
     {
-        // A stateless Action is filtered out in ResolveSettingsAsync before the applier is called.
-        var action = CreateActionSetting("clean-action");
-        var toggle = CreateToggleSetting("compatible", recommendedValue: 1, enabledValue: [1]);
-        SetupDomainWithSettings("clean-action", new[] { action }, "D1");
-        SetupDomainWithSettings("compatible", new[] { toggle }, "D2");
+        SetupRegistry("clean-action", ActionSetting("clean-action"));
+        SetupRegistry("compatible", Toggle("compatible", recommended: true));
 
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .ReturnsAsync((IReadOnlyList<SettingDefinition> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
-                (IReadOnlyList<SettingDefinition>)passed.ToList());
+            .ReturnsAsync((IReadOnlyList<Setting> passed, ISettingApplicationService _, IProgress<TaskProgressDetail> _) =>
+                (IReadOnlyList<Setting>)passed.ToList());
 
         await _service.ApplyRecommendedAsync(new[] { "clean-action", "compatible" });
 
-        // The applier receives only the toggle - the Action was excluded.
         _mockRecommendedApplier.Verify(r => r.ApplyRecommendedToSettingsAsync(
-            It.Is<IReadOnlyList<SettingDefinition>>(list =>
+            It.Is<IReadOnlyList<Setting>>(list =>
                 list.Count == 1 && list[0].Id == "compatible"),
             _mockAppService.Object,
             It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
@@ -351,19 +223,15 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_SkipsActions()
     {
-        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a REAL catalog toggle still resets.
-        var toggleId = CatalogToggleWithDefaultAny();
-        var action = CreateActionSetting("clean-action");
-        var toggle = CreateToggleSetting(toggleId, recommendedValue: 0, defaultValue: 1,
-            enabledValue: [1], disabledValue: [0]);
-        SetupDomainWithSettings("clean-action", new[] { action }, "D1");
-        SetupDomainWithSettings(toggleId, new[] { toggle }, "D2");
+        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a toggle still resets.
+        SetupRegistry("clean-action", ActionSetting("clean-action"));
+        SetupRegistry("reset-toggle", Toggle("reset-toggle", windowsDefault: true));
 
-        var applied = await _service.ResetToDefaultsAsync(new[] { "clean-action", toggleId });
+        var applied = await _service.ResetToDefaultsAsync(new[] { "clean-action", "reset-toggle" });
 
         applied.Should().Be(1); // only the toggle
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == toggleId && r.ResetToDefault == true)), Times.Once);
+            r.SettingId == "reset-toggle" && r.ResetToDefault == true)), Times.Once);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "clean-action")), Times.Never);
     }
@@ -375,59 +243,48 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ApplyRecommendedAsync_NothingApplied_StillFlushesOnce()
     {
-        // Applier returns empty (nothing recommended) — flush still called once.
-        var setting = CreateToggleSetting("no-rec", recommendedValue: null);
-        SetupDomainWithSettings("no-rec", new[] { setting }, "D1");
+        SetupRegistry("no-rec", Toggle("no-rec"));
 
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .ReturnsAsync(new List<SettingDefinition>());
+            .ReturnsAsync(new List<Setting>());
 
         await _service.ApplyRecommendedAsync(new[] { "no-rec" });
 
         _mockProcessRestartManager.Verify(
-            p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<SettingDefinition>>()),
+            p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()),
             Times.Once);
     }
 
     // ---------------------------------------------------------------
-    // Test 4: ResetToDefaultsAsync applies default values to all settings
+    // Test 4: ResetToDefaultsAsync forwards the catalog default direction
+    //         as Enable (true/false) for each toggle.
     // ---------------------------------------------------------------
 
     [Fact]
     public async Task ResetToDefaultsAsync_AppliesDefaultValues_ToAllSettings()
     {
-        // Two REAL catalog toggles: one whose Windows default on this build is Enabled, one Disabled.
-        // Slice C: the build-aware reset engine resolves the per-OS default and the bulk loop forwards
-        // it as Enable. CatalogToggleState.GetDefault == the old per-def default (conformance-proven).
-        var enabledDefaultId = CatalogToggleWithDefault(true);
-        var disabledDefaultId = CatalogToggleWithDefault(false);
-        var settingA = CreateToggleSetting(enabledDefaultId, recommendedValue: 0, defaultValue: 1,
-            enabledValue: [1], disabledValue: [0]);
-        var settingB = CreateToggleSetting(disabledDefaultId, recommendedValue: 1, defaultValue: 0,
-            enabledValue: [1], disabledValue: [0]);
+        // One toggle whose Windows default is Enabled, one whose default is Disabled. The build-aware reset
+        // engine resolves the per-OS default; the bulk loop forwards the catalog-resolved direction as Enable.
+        SetupRegistry("enabled-default", Toggle("enabled-default", windowsDefault: true));
+        SetupRegistry("disabled-default", Toggle("disabled-default", windowsDefault: false));
 
-        SetupDomainWithSettings(enabledDefaultId, new[] { settingA }, "DomainA");
-        SetupDomainWithSettings(disabledDefaultId, new[] { settingB }, "DomainB");
+        var applied = await _service.ResetToDefaultsAsync(new[] { "enabled-default", "disabled-default" });
 
-        // Act
-        var applied = await _service.ResetToDefaultsAsync(new[] { enabledDefaultId, disabledDefaultId });
-
-        // Assert: each toggle resets; Enable carries the catalog-resolved default direction; no Value.
         applied.Should().Be(2);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == enabledDefaultId &&
+            r.SettingId == "enabled-default" &&
             r.Enable == true &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
         )), Times.Once);
 
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == disabledDefaultId &&
+            r.SettingId == "disabled-default" &&
             r.Enable == false &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
@@ -435,27 +292,19 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 5: ResetToDefaultsAsync forwards a Disabled catalog default as Enable=false
-    //         (the old GP key-absent resolution now lives in the converter/catalog)
+    // Test 5: a Disabled catalog default resets with Enable=false.
     // ---------------------------------------------------------------
 
     [Fact]
     public async Task ResetToDefaultsAsync_DisabledDefaultToggle_ResetsWithEnableFalse()
     {
-        // A REAL catalog toggle whose Windows default is Disabled resets with Enable=false. Slice C:
-        // the GP "key absent = Windows default" resolution this fixture used to exercise now lives in
-        // the converter/catalog (proven by RecommendedToggleStateConformanceTests); the bulk service
-        // just forwards the catalog-resolved direction.
-        var disabledDefaultId = CatalogToggleWithDefault(false);
-        var setting = CreateToggleSetting(disabledDefaultId, recommendedValue: 1, defaultValue: 0,
-            enabledValue: [1], disabledValue: [0]);
-        SetupDomainWithSettings(disabledDefaultId, new[] { setting }, "PolicyDomain");
+        SetupRegistry("disabled-default", Toggle("disabled-default", windowsDefault: false));
 
-        var applied = await _service.ResetToDefaultsAsync(new[] { disabledDefaultId });
+        var applied = await _service.ResetToDefaultsAsync(new[] { "disabled-default" });
 
         applied.Should().Be(1);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
-            r.SettingId == disabledDefaultId &&
+            r.SettingId == "disabled-default" &&
             r.Enable == false &&
             r.ResetToDefault == true &&
             r.SkipValuePrerequisites == true
@@ -463,58 +312,35 @@ public class BulkSettingsActionServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Test 6: GetAffectedCountAsync returns the correct count,
-    //         excluding settings that have neither a recommended value
-    //         nor a default/group-policy entry (nothing would change).
+    // Test 6: GetAffectedCountAsync counts only settings whose catalog
+    //         recommended/default contribution is present, and dispatches
+    //         the right predicate per action type.
     // ---------------------------------------------------------------
 
     [Fact]
     public async Task GetAffectedCountAsync_ReturnsCorrectCount_ExcludingAlreadyMatching()
     {
-        // The count must agree with the apply path. Slice C: the toggle contribution now comes from the
-        // catalog (build-aware), so a REAL catalog toggle exercises it; the ComboBox contribution is
-        // unchanged and exercised by a synthetic Selection; a setting with neither is excluded. Each
-        // count call uses a curated id list so every id's contribution is known.
-        var recToggleId = CatalogToggleWithRecommendation();  // catalog toggle carrying a Recommended role
-        var defToggleId = CatalogToggleWithDefault(false);     // catalog toggle carrying a Windows default
-        var selRec = CreateSelectionSetting("sel-rec", recommendedOption: "B", defaultOption: null,
-            new Dictionary<string, int> { ["A"] = 0, ["B"] = 1 });
-        var selDef = CreateSelectionSetting("sel-def", recommendedOption: "none", defaultOption: "A",
-            new Dictionary<string, int> { ["A"] = 0, ["B"] = 1 });
-        var noValues = new SettingDefinition
-        {
-            Id = "no-values",
-            Name = "No Values",
-            Description = "Test",
-            InputType = InputType.Toggle,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\Software\Test",
-                    ValueName = "Empty",
-                    ValueType = RegistryValueKind.DWord,
-                    RecommendedValue = null,
-                    DefaultValue = null,
-                    IsGroupPolicy = false,
-                }
-            }
-        };
+        // recToggle carries ONLY a Recommended role, defToggle ONLY a Windows default - so a mis-dispatch
+        // (wrong predicate) would change the count. selRec/selDef exercise the Selection role contribution;
+        // noValues has neither and is excluded from both.
+        var recToggle = Toggle("rec-toggle", recommended: true);
+        var defToggle = Toggle("def-toggle", windowsDefault: false);
+        var selRec = Selection("sel-rec", recommendedIndex: 1);
+        var selDef = Selection("sel-def", defaultIndex: 0);
+        var noValues = Toggle("no-values");
 
-        SetupDomainWithSettings(recToggleId, new[] { CreateToggleSetting(recToggleId, recommendedValue: 1) }, "D1");
-        SetupDomainWithSettings(defToggleId, new[] { CreateToggleSetting(defToggleId, recommendedValue: null, defaultValue: 0, enabledValue: [1], disabledValue: [0]) }, "D2");
-        SetupDomainWithSettings("sel-rec", new[] { selRec }, "D3");
-        SetupDomainWithSettings("sel-def", new[] { selDef }, "D4");
-        SetupDomainWithSettings("no-values", new[] { noValues }, "D5");
+        SetupRegistry("rec-toggle", recToggle);
+        SetupRegistry("def-toggle", defToggle);
+        SetupRegistry("sel-rec", selRec);
+        SetupRegistry("sel-def", selDef);
+        SetupRegistry("no-values", noValues);
 
-        // ApplyRecommended: recToggle (catalog Recommended role) + selRec (ComboBox IsRecommended); no-values excluded.
         var recCount = await _service.GetAffectedCountAsync(
-            new[] { recToggleId, "sel-rec", "no-values" }, BulkActionType.ApplyRecommended);
+            new[] { "rec-toggle", "sel-rec", "no-values" }, BulkActionType.ApplyRecommended);
         recCount.Should().Be(2);
 
-        // ResetToDefaults: defToggle (catalog Windows default) + selDef (ComboBox IsDefault); no-values excluded.
         var defaultCount = await _service.GetAffectedCountAsync(
-            new[] { defToggleId, "sel-def", "no-values" }, BulkActionType.ResetToDefaults);
+            new[] { "def-toggle", "sel-def", "no-values" }, BulkActionType.ResetToDefaults);
         defaultCount.Should().Be(2);
     }
 
@@ -525,60 +351,87 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_WrapsAppliesInChangeHistoryBatch()
     {
-        // Arrange: one resettable REAL catalog toggle
-        var toggleId = CatalogToggleWithDefaultAny();
-        var setting = CreateToggleSetting(toggleId, recommendedValue: 0, defaultValue: 1,
-            enabledValue: [1], disabledValue: [0]);
-        SetupDomainWithSettings(toggleId, new[] { setting }, "Domain");
+        SetupRegistry("reset-toggle", Toggle("reset-toggle", windowsDefault: true));
 
-        // Act
-        await _service.ResetToDefaultsAsync(new[] { toggleId });
+        await _service.ResetToDefaultsAsync(new[] { "reset-toggle" });
 
-        // Assert: a batch was opened with the expected header key
         _mockChangeHistory.Verify(h => h.BeginBatch("QuickActions_ResetDefaults"), Times.Once);
     }
 
     // ---------------------------------------------------------------
-    // Test 8: ApplyRecommendedAsync passes all resolved settings to the
-    //         applier (Toggle + Selection + Numeric)
+    // Test 8: ApplyRecommendedAsync passes all resolved types (Toggle +
+    //         Selection + Numeric) to the applier.
     // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplyRecommendedAsync_PassesAllResolvedTypes_ToApplier()
     {
-        var toggleSetting = CreateToggleSetting("toggle-input", recommendedValue: 1, enabledValue: [1]);
+        SetupRegistry("toggle-input", Toggle("toggle-input", recommended: true));
+        SetupRegistry("selection-input", Selection("selection-input", recommendedIndex: 1));
+        SetupRegistry("numeric-input", NumericSetting("numeric-input"));
 
-        var comboBoxOptions = new Dictionary<string, int>
-        {
-            ["High"]   = 3,
-            ["Low"]    = 1,
-            ["Medium"] = 2,
-        };
-        var selectionSetting = CreateSelectionSetting("selection-input", "Medium", null, comboBoxOptions);
-        var numericSetting   = CreateNumericSetting("numeric-input", recommendedValue: 75);
-
-        SetupDomainWithSettings("toggle-input",    new[] { toggleSetting },    "D1");
-        SetupDomainWithSettings("selection-input", new[] { selectionSetting }, "D2");
-        SetupDomainWithSettings("numeric-input",   new[] { numericSetting },   "D3");
-
-        IReadOnlyList<SettingDefinition>? captured = null;
+        IReadOnlyList<Setting>? captured = null;
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<IProgress<TaskProgressDetail>>()))
-            .Callback<IReadOnlyList<SettingDefinition>, ISettingApplicationService, IProgress<TaskProgressDetail>>(
+            .Callback<IReadOnlyList<Setting>, ISettingApplicationService, IProgress<TaskProgressDetail>>(
                 (list, _, _) => captured = list)
-            .ReturnsAsync(new List<SettingDefinition> { toggleSetting, selectionSetting, numericSetting });
+            .ReturnsAsync(new List<Setting>());
 
-        var applied = await _service.ApplyRecommendedAsync(
+        await _service.ApplyRecommendedAsync(
             new[] { "toggle-input", "selection-input", "numeric-input" });
 
-        applied.Should().Be(3);
         captured.Should().NotBeNull();
         captured!.Should().HaveCount(3);
         captured.Should().Contain(s => s.Id == "toggle-input");
         captured.Should().Contain(s => s.Id == "selection-input");
         captured.Should().Contain(s => s.Id == "numeric-input");
+    }
+
+    // ---------------------------------------------------------------
+    // Test 9: bulk reset must NOT call ApplySettingAsync for a PowerPlan setting. power-plan-selection's
+    //         DERIVED Control is PowerPlan (OptionSource != null), not the old InputType.Selection. OLD: it
+    //         matched the Selection branch, found no static default, and fell through WITHOUT applying (but
+    //         still counted via the post-chain applied++). The un-gated reset else branch would instead apply
+    //         it UNCONDITIONALLY (a null-plan Failed reset + spurious event). The Slider gate restores the old
+    //         no-apply; the fall-through applied++ keeps the count identical. The Times.Never is the guard -
+    //         it fails RED against the un-gated else (which called ApplySettingAsync).
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_PowerPlanSetting_IsNotApplied()
+    {
+        var powerPlan = new Setting
+        {
+            Id = "power-plan-selection",
+            Display = Disp("power-plan-selection"),
+            OptionSource = Mock.Of<IDynamicOptionSource>(),
+        };
+        SetupRegistry("power-plan-selection", powerPlan);
+
+        var applied = await _service.ResetToDefaultsAsync(new[] { "power-plan-selection" });
+
+        // Counted by the post-chain applied++ fall-through, same as the old Selection-branch skip.
+        applied.Should().Be(1);
+        // The regression guard: no spurious apply (the un-gated else would have called this once).
+        _mockAppService.Verify(
+            s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
+    }
+
+    // A Slider (NumericRange) still reaches the reset else branch - guards that the Slider gate did not
+    // exclude the real NumericRange population. A no-powercfg Slider resets with a null value, exactly as
+    // the old NumericRange else branch did (unconditional apply).
+    [Fact]
+    public async Task ResetToDefaultsAsync_SliderSetting_ReachesElseBranch()
+    {
+        SetupRegistry("slider", NumericSetting("slider"));
+
+        var applied = await _service.ResetToDefaultsAsync(new[] { "slider" });
+
+        applied.Should().Be(1);
+        _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+            r.SettingId == "slider" && r.ResetToDefault == true)), Times.Once);
     }
 }

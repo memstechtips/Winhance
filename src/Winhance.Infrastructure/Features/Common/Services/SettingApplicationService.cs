@@ -198,11 +198,15 @@ public class SettingApplicationService(
         {
             // One coalesced restart for the whole click: suppress the primary action's restart AND the
             // recommended batch, then flush once for primary + recommended combined.
-            var toRestart = new List<SettingDefinition>();
+            var toRestart = new List<Setting>();
             using (processRestartManager.SuppressRestarts())
             {
                 operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-                toRestart.Add(setting);
+                // SettingDefinition retirement (Slice 3b): the recommended applier now returns catalog Settings,
+                // so the coalesced restart set is built from Settings. The primary Action's restart targets come
+                // from its catalog Setting (renderSetting = Find(settingId)); the 3a Setting-taking flush overload
+                // reads the unified ApplyBehavior.Restart, proven == the old def RestartProcess/RestartService.
+                if (renderSetting != null) toRestart.Add(renderSetting);
 
                 var recApplied = await recommendedSettingsApplier
                     .ApplyRecommendedForFeatureAsync(settingId, this).ConfigureAwait(false);

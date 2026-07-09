@@ -12,7 +12,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class BulkSettingsActionService(
-    ICompatibleSettingsRegistry settingsRegistry,
+    ICatalogSettingsRegistry settingsRegistry,
     IWindowsVersionService versionService,
     ISettingApplicationService settingApplicationService,
     IProcessRestartManager processRestartManager,
@@ -43,7 +43,7 @@ public class BulkSettingsActionService(
         var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
         int applied = 0;
         int total = settings.Count;
-        var appliedForRestart = new List<SettingDefinition>(total);
+        var appliedForRestart = new List<Setting>(total);
 
         using (processRestartManager.SuppressRestarts())
         {
@@ -55,21 +55,19 @@ public class BulkSettingsActionService(
                 progress?.Report(new TaskProgressDetail
                 {
                     Progress = (double)i / total * 100,
-                    StatusText = $"Resetting to default: {setting.Name}",
+                    StatusText = $"Resetting to default: {setting.Display.Name}",
                     QueueCurrent = i + 1,
                     QueueTotal = total,
                     IsActive = true
                 });
 
-                if (setting.InputType == InputType.Toggle)
+                if (setting.Control == ControlKind.Toggle)
                 {
-                    // Slice C: the build-aware reset engine (ApplyRequestResolver) resolves the per-OS
-                    // default itself from the setting's WindowsDefault-roled state; the bulk loop only
-                    // gates on whether a default EXISTS on this build. CatalogToggleState.GetDefault ==
-                    // the old SettingDefinitionToggleState.GetDefaultToggleState for every paired setting
-                    // (RecommendedToggleStateConformanceTests); Find alias-normalizes the -win10 ids.
-                    var paired = SettingCatalog.Find(setting.Id);
-                    if (paired is null || CatalogToggleState.GetDefault(paired, currentBuild) is not bool enableValue)
+                    // Slice 3b: setting IS the catalog Setting; the build-aware reset engine
+                    // (ApplyRequestResolver) resolves the per-OS default from its WindowsDefault-roled state,
+                    // and the bulk loop only gates on whether a default EXISTS on this build. GetDefault is
+                    // build-aware; no re-pairing needed.
+                    if (CatalogToggleState.GetDefault(setting, currentBuild) is not bool enableValue)
                     {
                         logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
                         continue;
@@ -85,7 +83,7 @@ public class BulkSettingsActionService(
                         SkipValuePrerequisites = true
                     }).ConfigureAwait(false);
                 }
-                else if (setting.InputType == InputType.Selection)
+                else if (setting.Control == ControlKind.Selection)
                 {
                     var powerCfgValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
                     if (powerCfgValue != null)
@@ -117,10 +115,15 @@ public class BulkSettingsActionService(
                         // exactly one IsDefault option.
                     }
                 }
-                else
+                else if (setting.Control == ControlKind.Slider)
                 {
-                    var valueToApply = RecommendedSettingsResolver.GetDefaultValueForSetting(setting)
-                        ?? RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
+                    // Slider (NumericRange) reset. Population here is powercfg NumericRange only:
+                    // GetDefaultValueForSetting was dead-in-effect (registry-free) and has no catalog overload,
+                    // so it collapses to BuildPowerCfgApplyValue. GATED to Slider so power-plan-selection - whose
+                    // DERIVED Control is PowerPlan (OptionSource), not the old InputType.Selection - is NOT reset
+                    // here: the old code matched it in the Selection branch and skipped it (no static default),
+                    // and it is likewise excluded from the affected-count (HasDefaultValue is false for PowerPlan).
+                    var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
                         SettingId = setting.Id,
@@ -191,17 +194,18 @@ public class BulkSettingsActionService(
         return count;
     }
 
-    private Task<List<SettingDefinition>> ResolveSettingsAsync(IEnumerable<string> settingIds)
+    private Task<List<Setting>> ResolveSettingsAsync(IEnumerable<string> settingIds)
     {
-        var osInfo = RecommendedSettingsResolver.BuildOSInfo(versionService);
-
-        var result = new List<SettingDefinition>();
+        var result = new List<Setting>();
         var idSet = settingIds.ToHashSet();
 
         foreach (var settingId in idSet)
         {
             try
             {
+                // The catalog registry is current-OS scoped (OS build + hardware + existence) and
+                // alias-normalizes the id, so an OS-incompatible setting returns null here - the old
+                // BuildOSInfo + IsCompatibleWithCurrentOS re-filter is obviated.
                 var setting = settingsRegistry.GetById(settingId);
                 if (setting == null)
                 {
@@ -213,15 +217,12 @@ public class BulkSettingsActionService(
                 // "Reset to Defaults" / "Apply Recommended" ops (and their affected-count). Their old-executor reset
                 // was an incoherent else-branch accident; a one-shot action is not a stateful setting to bulk-reset
                 // or bulk-recommend. This also makes the resolver's Action-reset path unreachable (Marco 2026-07-03).
-                if (setting.InputType == InputType.Action)
+                if (setting.Control == ControlKind.Action)
                 {
                     continue;
                 }
 
-                if (RecommendedSettingsResolver.IsCompatibleWithCurrentOS(setting, osInfo))
-                {
-                    result.Add(setting);
-                }
+                result.Add(setting);
             }
             catch (Exception ex)
             {

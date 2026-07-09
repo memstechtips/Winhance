@@ -307,28 +307,33 @@ public class SettingApplicationServiceTests
         // Bug A "one restart per click": the primary Action apply and the recommended batch must
         // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
         // covering the primary action AND every recommended setting.
+        // Slice 3b: the recommended applier + the coalesced-restart flush are now catalog-Setting typed, and
+        // SAS builds the restart set from the primary's catalog Setting (renderSetting = Find(settingId)). Repoint
+        // the synthetic Action id onto a REAL catalog Action so renderSetting resolves and joins the flush set;
+        // the def (still fed via the old registry) only supplies the InputType.Action gate.
+        var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         var actionSetting = new SettingDefinition
         {
-            Id = "action-clean",
+            Id = actionId,
             Name = "Action Clean",
             Description = "desc",
             InputType = InputType.Action,
         };
-        _mockSettingsRegistry.Setup(r => r.GetById("action-clean")).Returns(actionSetting);
-        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("action-clean")).Returns("TestDomain");
+        _mockSettingsRegistry.Setup(r => r.GetById(actionId)).Returns(actionSetting);
+        _mockSettingsRegistry.Setup(r => r.GetFeatureIdForSetting(actionId)).Returns("TestDomain");
         _mockSettingsRegistry.Setup(r => r.GetFilteredSettings("TestDomain")).Returns(new[] { actionSetting });
 
-        var recommended = new SettingDefinition { Id = "rec1", Name = "Rec1", Description = "d" };
+        var recommended = new Setting { Id = "rec1", Display = new Display { Name = "Rec1", Description = "d" } };
         _mockRecommended
-            .Setup(r => r.ApplyRecommendedForFeatureAsync("action-clean", It.IsAny<ISettingApplicationService>()))
-            .ReturnsAsync(new List<SettingDefinition> { recommended });
+            .Setup(r => r.ApplyRecommendedForFeatureAsync(actionId, It.IsAny<ISettingApplicationService>()))
+            .ReturnsAsync(new List<Setting> { recommended });
 
         // The using-scope needs a real IDisposable back from the mock.
         _mockRestart.Setup(r => r.SuppressRestarts()).Returns(Mock.Of<IDisposable>());
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = "action-clean",
+            SettingId = actionId,
             Enable = true,
             ApplyRecommended = true,
         });
@@ -338,15 +343,15 @@ public class SettingApplicationServiceTests
 
         // The recommended batch runs through the NON-flushing feature core...
         _mockRecommended.Verify(r => r.ApplyRecommendedForFeatureAsync(
-            "action-clean", _service), Times.Once);
+            actionId, _service), Times.Once);
         // ...and the standalone flushing entry is NOT used on this path (would double-restart).
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
 
         // Exactly one coalesced flush, containing the primary action AND the recommended setting.
         _mockRestart.Verify(r => r.FlushCoalescedRestartsAsync(
-            It.Is<IEnumerable<SettingDefinition>>(list =>
-                list.Any(s => s.Id == "action-clean") && list.Any(s => s.Id == "rec1"))),
+            It.Is<IEnumerable<Setting>>(list =>
+                list.Any(s => s.Id == actionId) && list.Any(s => s.Id == "rec1"))),
             Times.Once);
     }
 

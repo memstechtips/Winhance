@@ -8,6 +8,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -28,7 +29,7 @@ public class BulkSettingsActionServiceTests
 {
     private const string TestSettingId = "test-selection";
 
-    private readonly Mock<ICompatibleSettingsRegistry> _settingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _settingsRegistry = new();
     private readonly Mock<IWindowsVersionService> _versionService = new();
     private readonly Mock<ISettingApplicationService> _applicationService = new();
     private readonly Mock<IProcessRestartManager> _processRestartManager = new();
@@ -56,45 +57,46 @@ public class BulkSettingsActionServiceTests
     {
         foreach (var s in settings)
         {
-            var captured = s;
-            _settingsRegistry.Setup(r => r.GetById(captured.Id)).Returns(captured);
+            // Slice 3b: the registry returns the catalog Setting. Convert the def the same way production does
+            // so the round-trip (converter-built States + roles) matches the live pairing.
+            var captured = SettingDefinitionConverter.ConvertSelection(s);
+            _settingsRegistry.Setup(r => r.GetById(captured.Id, It.IsAny<bool>())).Returns(captured);
         }
 
         _processRestartManager
             .Setup(p => p.SuppressRestarts())
             .Returns(Mock.Of<System.IDisposable>());
         _processRestartManager
-            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<System.Collections.Generic.IEnumerable<SettingDefinition>>()))
+            .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<System.Collections.Generic.IEnumerable<Setting>>()))
             .Returns(Task.CompletedTask);
 
         // Applier mock: delegates each setting's apply to _applicationService so
         // existing round-trip tests that capture the written Value still work.
         _recommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
-                It.IsAny<System.Collections.Generic.IReadOnlyList<SettingDefinition>>(),
+                It.IsAny<System.Collections.Generic.IReadOnlyList<Setting>>(),
                 It.IsAny<ISettingApplicationService>(),
                 It.IsAny<System.IProgress<TaskProgressDetail>>()))
-            .Returns(async (System.Collections.Generic.IReadOnlyList<SettingDefinition> list,
+            .Returns(async (System.Collections.Generic.IReadOnlyList<Setting> list,
                             ISettingApplicationService applySvc,
                             System.IProgress<TaskProgressDetail> _) =>
             {
-                var applied = new System.Collections.Generic.List<SettingDefinition>();
+                var applied = new System.Collections.Generic.List<Setting>();
                 foreach (var s in list)
                 {
-                    if (s.InputType == InputType.Selection &&
-                        s.ComboBox?.Options != null)
+                    if (s.Control == ControlKind.Selection)
                     {
-                        // Find the IsRecommended option index
-                        var recIdx = s.ComboBox.Options
-                            .Select((opt, i) => (opt, i))
-                            .FirstOrDefault(x => x.opt.IsRecommended);
-                        if (recIdx.opt != null)
+                        // Find the Recommended-role state index (Slice 3b: catalog Setting, not ComboBox flags)
+                        int recIdx = -1;
+                        for (int i = 0; i < s.States.Count; i++)
+                            if (s.States[i].HasRole(RoleKind.Recommended)) { recIdx = i; break; }
+                        if (recIdx >= 0)
                         {
                             await applySvc.ApplySettingAsync(new ApplySettingRequest
                             {
                                 SettingId = s.Id,
                                 Enable = true,
-                                Value = recIdx.i,
+                                Value = recIdx,
                                 SkipValuePrerequisites = true,
                             });
                             applied.Add(s);
@@ -102,7 +104,7 @@ public class BulkSettingsActionServiceTests
                     }
                     // Other types: skip (not needed by existing UI tests)
                 }
-                return (System.Collections.Generic.IReadOnlyList<SettingDefinition>)applied;
+                return (System.Collections.Generic.IReadOnlyList<Setting>)applied;
             });
 
         return new BulkSettingsActionService(
