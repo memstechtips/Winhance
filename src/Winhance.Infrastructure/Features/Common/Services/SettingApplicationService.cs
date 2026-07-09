@@ -17,7 +17,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class SettingApplicationService(
-    ICompatibleSettingsRegistry settingsRegistry,
+    ICatalogSettingsRegistry settingsRegistry,
     ISpecialSettingHandlerRegistry specialHandlerRegistry,
     ILogService logService,
     IEventBus eventBus,
@@ -67,7 +67,7 @@ public class SettingApplicationService(
     /// Resolve is TOTAL for every reachable request shape (proven by ResolveTotalityAuditTests), so a null plan can
     /// only be an un-audited/unreachable shape - it is logged and returned as a failed OperationResult rather than
     /// silently applied (the old ISettingOperationExecutor fallback was removed once the engine covered every shape).</summary>
-    private async Task<OperationResult> ApplyOperationsAsync(SettingDefinition setting, bool enable, object? value, bool resetToDefault)
+    private async Task<OperationResult> ApplyOperationsAsync(Setting setting, bool enable, object? value, bool resetToDefault)
     {
         // Phase 6.5: pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
         // (Target.AppliesTo). Without it the build gate is skipped and a build-gated/merged setting (e.g. the
@@ -118,18 +118,12 @@ public class SettingApplicationService(
 
         logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
 
+        // The catalog registry's GetById alias-normalizes the id (a retired "-win10" This PC alias resolves to its
+        // canonical merged Setting) and OS-scopes membership, but a merged setting is OS-portable (Availability
+        // Everywhere + build-gated targets), so it resolves DIRECTLY here on either OS - obviating the old cross-OS
+        // GetByIdBypassed fallback. A genuinely OS-incompatible or non-catalog id returns null and falls through to
+        // the throw (as before: the old GetByIdBypassed also kept the hardware/existence gates, so it threw too).
         var setting = settingsRegistry.GetById(settingId);
-        if (setting == null)
-        {
-            // Phase 6.5 cross-OS resolution: a merged catalog setting whose OLD def is OS-filtered-out on this
-            // machine (e.g. a This PC folder setting imported from a "-win10" config, normalized to its canonical
-            // id, running on the OS whose old split-def is filtered) misses the OS-filtered registry. The NEW engine
-            // applies it OS-portably via build-gated targets, so resolve from the BYPASSED index when the catalog
-            // has a peer that is build-compatible with this machine. A genuinely-incompatible / non-catalog id is
-            // not resolved and still falls through to the throw below.
-            if (SettingCatalog.All.Any(s => s.Id == settingId && s.Availability.Allows(CurrentBuild())))
-                setting = settingsRegistry.GetByIdBypassed(settingId);
-        }
         if (setting == null)
             throw new ArgumentException($"Setting '{settingId}' not found in registry");
 
@@ -141,15 +135,13 @@ public class SettingApplicationService(
         // runs no relationship pass.
         bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
 
-        // SettingDefinition retirement (D): pair the id to its catalog Setting ONCE for the change-history
-        // rendering methods (LogChangeHistory / FormatBeforeDisplay / FormatStateDisplay / GetOptionLabel),
-        // which now read the catalog homes (Display / States / Targets / Numeric + the SettingLocalizationKeys +
-        // RecommendedSettingsResolver catalog overloads) instead of the def. Find is alias-normalized so a -win10
-        // This PC id resolves to its canonical merged Setting. Non-null for every reachable rendering call (an
-        // unpaired id throws above before any receipt; the before-capture only runs after that guard, and the
-        // special-handler ids updates-policy/theme are paired). A null (unreachable) simply skips the receipt - a
-        // cosmetic change-history gap matching today's unpaired behaviour. SAS keeps its SettingDefinition feed
-        // (still fed by the registry until the Slice F flip); only the receipt rendering reads the catalog Setting.
+        // Pair the id to its catalog Setting for the change-history rendering methods (LogChangeHistory /
+        // FormatBeforeDisplay / FormatStateDisplay / GetOptionLabel). Find is alias-normalized (a -win10 This PC id
+        // resolves to its canonical merged Setting) and catalog-wide (NOT OS-scoped), so it degrades to null for a
+        // genuinely-unpaired id and the receipt is simply skipped rather than throwing. In production this is the
+        // same Setting as 'setting' above (the catalog registry's GetById resolves the identical canonical Setting);
+        // it is read separately so an unpaired id (unreachable past the throw, but exercised by the tests) skips the
+        // receipt via a null pairing instead of rendering a non-catalog object.
         var renderSetting = SettingCatalog.Find(settingId);
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
@@ -157,7 +149,7 @@ public class SettingApplicationService(
         // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
         // can render AC-only on battery-less machines and before/after CANNOT disagree.
         string? beforeDisplay = null;
-        if (setting.InputType != InputType.Action)
+        if (setting.Control != ControlKind.Action)
         {
             var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
             try
@@ -194,7 +186,7 @@ public class SettingApplicationService(
         }
 
         OperationResult operationResult;
-        if (applyRecommended && setting.InputType == InputType.Action)
+        if (applyRecommended && setting.Control == ControlKind.Action)
         {
             // One coalesced restart for the whole click: suppress the primary action's restart AND the
             // recommended batch, then flush once for primary + recommended combined.
