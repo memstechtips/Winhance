@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -16,7 +15,8 @@ public class ConfigExportService : IConfigExportService
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilter;
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWindowsAppsItemsProvider _windowsAppsVM;
@@ -30,7 +30,8 @@ public class ConfigExportService : IConfigExportService
         ILogService logService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilter,
         ICatalogSettingStateProvider settingStateProvider,
         IInteractiveUserService interactiveUserService,
         IWindowsAppsItemsProvider windowsAppsVM,
@@ -43,7 +44,8 @@ public class ConfigExportService : IConfigExportService
         _logService = logService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilter = windowsVersionFilter;
         _settingStateProvider = settingStateProvider;
         _interactiveUserService = interactiveUserService;
         _windowsAppsVM = windowsAppsVM;
@@ -54,8 +56,10 @@ public class ConfigExportService : IConfigExportService
         _autounattendGenerator = autounattendGenerator;
     }
 
+    // Slice 7d: repointed off the shared initializer helper (which takes the OLD registry interface). The
+    // catalog registry's InitializeAsync is an idempotent no-op once resolved, so no IsInitialized pre-check.
     private Task EnsureRegistryInitializedAsync()
-        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _logService);
+        => _catalogSettingsRegistry.InitializeAsync();
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
@@ -336,7 +340,13 @@ public class ConfigExportService : IConfigExportService
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
     {
-        var allSettingsByFeature = _compatibleSettingsRegistry.GetAllFilteredSettings();
+        // Slice 7d: the old read branched on the registry's mutable SetFilterEnabled state; the
+        // show-other-Windows-versions scope is now threaded explicitly (the 7a pattern). A filter-OFF export
+        // still includes other-OS settings, with ONE reviewer-bounded id-set delta: the old bypassed set was
+        // deliberately NOT alias-normalized (it carried the 6 "-win10" This PC rows ALONGSIDE the 6 canonical
+        // merged rows), while GetAll(true) enumerates the canonical-only catalog - so filter-OFF exports drop
+        // those 6 duplicate alias rows (state was identical via normalization; import normalizes them anyway).
+        var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         int totalOptimizeSettings = 0;
         int totalCustomizeSettings = 0;
@@ -360,8 +370,8 @@ public class ConfigExportService : IConfigExportService
                 continue;
             }
 
-            // Slice 6: read state from the new-engine full-state provider (the drop-in for old discovery + overlay).
-            // Every setting here is catalog-paired (completeness-proven: 0 unpaired) and this service reads no
+            // Slice 6, trimmed in Slice 7d: read state from the new-engine full-state provider via its catalog
+            // Setting overload (Slice 4bb-2), the drop-in for old discovery + overlay. This service reads no
             // RawValues (custom-state goes through Readings), so the provider is a faithful replacement.
             var states = await _settingStateProvider.GetStatesAsync(settings);
 
@@ -372,23 +382,21 @@ public class ConfigExportService : IConfigExportService
                 var item = new ConfigurationItem
                 {
                     Id = setting.Id,
-                    Name = setting.Name,
-                    InputType = setting.InputType
+                    Name = setting.Display.Name,
+                    InputType = ControlToInputType(setting.Control)
                 };
 
-                // Slice E4: pair alias-safely via SettingCatalog.Find and read the per-setting export dispatch off the
-                // catalog (Control / PowerCfgTarget.Mode) instead of the old def (InputType / PowerCfgSettings). Selection
-                // maps to Control in {Selection, PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection
-                // path). The InputType persistence WRITE above STAYS - it populates the config's InputType field, still
-                // read as the unpaired fallback by the E1c/E2 consumers. Proven old==new over the whole population by
-                // ConfigExportReaderEquivalenceTests + ConfigBridgeReaderEquivalenceTests; unpaired falls back to the def.
-                var catalog = SettingCatalog.Find(setting.Id);
-                bool isToggle = catalog != null ? catalog.Control == ControlKind.Toggle : setting.InputType == InputType.Toggle;
-                bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
-                bool isNumericRange = catalog != null ? catalog.Control == ControlKind.Slider : setting.InputType == InputType.NumericRange;
-                bool isPowerCfgSeparate = catalog != null
-                    ? catalog.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate
-                    : setting.PowerCfgSettings?.Any() == true && setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate;
+                // Slice E4, trimmed in Slice 7d: the loop variable IS the catalog Setting, so the export dispatch
+                // reads it directly (Control / PowerCfgTarget.Mode). Selection maps to Control in {Selection,
+                // PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection path). The InputType
+                // persistence WRITE above STAYS and is LOAD-BEARING: FeatureRegistryScriptSection dispatches its
+                // PRIMARY Toggle/Action script-gen paths off the persisted configItem.InputType, and
+                // ConfigMigrationService gates its Toggle->Selection import migrations on it - the exact
+                // ControlToInputType map keeps those readers correct. It retires only when script-gen ports.
+                bool isToggle = setting.Control == ControlKind.Toggle;
+                bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
+                bool isNumericRange = setting.Control == ControlKind.Slider;
+                bool isPowerCfgSeparate = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
 
                 if (isToggle)
                 {
@@ -553,11 +561,10 @@ public class ConfigExportService : IConfigExportService
     }
 
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
-        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult? state)
+        GetSelectionStateFromState(Setting setting, SettingStateResult? state)
     {
-        // Slice E4: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan), def-fallback.
-        var catalog = SettingCatalog.Find(setting.Id);
-        bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
+        // Slice E4, trimmed in 7d: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
+        bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
         if (!isSelection)
             return (null, null, null, null);
 
@@ -587,12 +594,10 @@ public class ConfigExportService : IConfigExportService
             // registry key by Migration/CustomStateReadingsEquivalenceTests (423/423).
             if (state.Readings != null)
             {
-                // Slice E4: source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists")
-                // instead of the old def.RegistrySettings; the key SET is identical (the converter groups mirrors by
-                // ValueName), proven by ConfigExportReaderEquivalenceTests. Unpaired falls back to def.RegistrySettings.
-                var regKeys = catalog != null
-                    ? catalog.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists")
-                    : setting.RegistrySettings.Select(rs => rs.ValueName ?? "KeyExists");
+                // Slice E4, trimmed in 7d: source the custom-state registry KEYS from the catalog RegTargets
+                // (ValueName ?? "KeyExists"); the key SET is identical to the old def read (the converter
+                // groups mirrors by ValueName), proven by ConfigExportReaderEquivalenceTests.
+                var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {
                     if (state.Readings.TryGetValue(key, out var value) && value != null)
@@ -608,41 +613,19 @@ public class ConfigExportService : IConfigExportService
         return (index, null, null, null);
     }
 
-    private static int ResolveValueToIndex(SettingDefinition setting, object? value)
+    private static int ResolveValueToIndex(Setting setting, object? value)
     {
         if (value == null) return 0;
 
         var intValue = Convert.ToInt32(value);
 
-        // Slice E4: resolve the powercfg AC/DC value to an option index off the catalog States' Set["Power"] (==
-        // the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg builds one State per option),
-        // proven by ConfigExportReaderEquivalenceTests. Unpaired falls back to the old def ComboBox scan.
-        var catalog = SettingCatalog.Find(setting.Id);
-        if (catalog != null)
+        // Slice E4, trimmed in 7d: resolve the powercfg AC/DC value to an option index off the catalog States'
+        // Set["Power"] (== the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg builds
+        // one State per option), proven by ConfigExportReaderEquivalenceTests.
+        for (int i = 0; i < setting.States.Count; i++)
         {
-            for (int i = 0; i < catalog.States.Count; i++)
-            {
-                if (catalog.States[i].Set.TryGetValue("Power", out var sv) &&
-                    sv.WritePayload != null && Convert.ToInt32(sv.WritePayload) == intValue)
-                {
-                    return i;
-                }
-            }
-
-            return 0;
-        }
-
-        var options = setting.ComboBox?.Options;
-        if (options == null)
-            return 0;
-
-        for (int i = 0; i < options.Count; i++)
-        {
-            var mapping = options[i].ValueMappings;
-            if (mapping == null) continue;
-
-            if (mapping.TryGetValue("PowerCfgValue", out var expectedValue) &&
-                expectedValue != null && Convert.ToInt32(expectedValue) == intValue)
+            if (setting.States[i].Set.TryGetValue("Power", out var sv) &&
+                sv.WritePayload != null && Convert.ToInt32(sv.WritePayload) == intValue)
             {
                 return i;
             }
@@ -650,4 +633,17 @@ public class ConfigExportService : IConfigExportService
 
         return 0;
     }
+
+    /// <summary>Twin of ConfigReviewService.ControlToInputType (private per-service transitional helpers):
+    /// populates the PERSISTED config-file InputType field from the derived Control. The field is LOAD-BEARING
+    /// (FeatureRegistryScriptSection Toggle/Action dispatch + ConfigMigrationService import gates read it), so it
+    /// outlives this slice until script-gen ports. Exact for the shipped population: PowerPlan settings were
+    /// InputType.Selection, no setting is CheckBox.</summary>
+    private static InputType ControlToInputType(ControlKind control) => control switch
+    {
+        ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,
+        ControlKind.Slider => InputType.NumericRange,
+        ControlKind.Action => InputType.Action,
+        _ => InputType.Toggle,
+    };
 }

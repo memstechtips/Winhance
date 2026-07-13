@@ -20,7 +20,8 @@ public class ConfigExportServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilter = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsAppsItemsProvider> _mockWindowsAppsVM = new();
@@ -49,6 +50,10 @@ public class ConfigExportServiceTests
         _mockThemeService
             .Setup(t => t.GetEffectiveTheme())
             .Returns(ElementTheme.Dark);
+
+        _mockWindowsVersionFilter
+            .Setup(f => f.IsFilterEnabled)
+            .Returns(true);
     }
 
     private ConfigExportService CreateService()
@@ -57,7 +62,8 @@ public class ConfigExportServiceTests
             _mockLogService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockCompatibleSettingsRegistry.Object,
+            _mockCatalogSettingsRegistry.Object,
+            _mockWindowsVersionFilter.Object,
             _mockSettingStateProvider.Object,
             _mockInteractiveUserService.Object,
             _mockWindowsAppsVM.Object,
@@ -75,9 +81,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_ReturnsVersion2Config()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -90,14 +96,40 @@ public class ConfigExportServiceTests
 
         result.Should().NotBeNull();
         result.Version.Should().Be("2.0");
+        // Pin the mode threading: filter ON must enumerate the current-OS scope (includeOtherOsVersions: false).
+        _mockCatalogSettingsRegistry.Verify(r => r.GetAll(false), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateConfigurationFromSystemAsync_FilterOff_EnumeratesOtherOsScope()
+    {
+        _mockWindowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        // Strict on the scope arg: only includeOtherOsVersions: true is set up - a false arg would return
+        // Moq's null default and throw, so the !IsFilterEnabled threading is load-bearing here.
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(true))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
+
+        _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
+
+        _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockExternalAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
+
+        var service = CreateService();
+        var result = await service.CreateConfigurationFromSystemAsync();
+
+        result.Should().NotBeNull();
+        _mockCatalogSettingsRegistry.Verify(r => r.GetAll(true), Times.Once);
     }
 
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_WithNoSettings_HasEmptyFeatureSections()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -115,9 +147,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_LoadsWindowsAppsWhenNotInitialized()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(false);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -134,9 +166,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_IsBackup_ExportsInstalledStatusNotSelectedStatus()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         var installedApp = CreateAppItemViewModel("app1", "App 1", isInstalled: true, isSelected: false);
         var selectedApp = CreateAppItemViewModel("app2", "App 2", isInstalled: false, isSelected: true);
@@ -159,9 +191,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_NotBackup_ExportsSelectedStatus()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         var installedApp = CreateAppItemViewModel("app1", "App 1", isInstalled: true, isSelected: false);
         var selectedApp = CreateAppItemViewModel("app2", "App 2", isInstalled: false, isSelected: true);
@@ -184,9 +216,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_IsBackup_SkipsExternalApps()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -208,10 +240,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task ExportConfigurationAsync_WhenNoMainWindow_ShowsError()
     {
-        _mockCompatibleSettingsRegistry.Setup(r => r.IsInitialized).Returns(true);
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -244,10 +275,9 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateUserBackupConfigAsync_CreatesBackupDirectory()
     {
-        _mockCompatibleSettingsRegistry.Setup(r => r.IsInitialized).Returns(true);
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel>());
@@ -278,9 +308,8 @@ public class ConfigExportServiceTests
     [Fact]
     public async Task CreateUserBackupConfigAsync_WhenExceptionOccurs_LogsError()
     {
-        _mockCompatibleSettingsRegistry.Setup(r => r.IsInitialized).Returns(true);
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
             .Throws(new Exception("Test error"));
 
         var service = CreateService();
