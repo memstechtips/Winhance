@@ -30,6 +30,10 @@ namespace Winhance.Infrastructure.Tests.Migration;
 ///      Selection maps to Control in {Selection, PowerPlan} (the power-plan is InputType.Selection + OptionSource ->
 ///      Control.PowerPlan). NumericRange -> Slider, Action -> Action.
 ///
+///   4. Numeric isPowerCfg gate (ResolveNumericRangeValue, Slice 6): def.PowerCfgSettings?.Any() moves to
+///      catalog Targets.OfType<PowerCfgTarget>().Any() - the gate that decides system->display unit conversion.
+///      (The units themselves are proven by PowerCfgHelperCatalogEquivalenceTests.)
+///
 /// Green means the E2 reader swaps are provably behaviour-preserving. Pure - depends only on the catalog.
 /// Run: dotnet test --filter ConfigBridgeReaderEquivalence</summary>
 public class ConfigBridgeReaderEquivalenceTests
@@ -175,5 +179,43 @@ public class ConfigBridgeReaderEquivalenceTests
         Assert.True(compared > 300, $"only compared {compared} settings - population scoping bug");
         Assert.True(selection > 0 && numeric > 0 && action > 0, $"a dispatch bucket was empty (sel={selection}, num={numeric}, act={action}) - the comparison would be vacuous");
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} InputType-dispatch mismatches:\n" + string.Join("\n", mismatches));
+    }
+
+    /// <summary>Numeric isPowerCfg-gate swap (ResolveNumericRangeValue, Slice 6): the bridge's "is this a
+    /// powercfg-backed numeric" gate moves from def.PowerCfgSettings?.Any() to catalog
+    /// Targets.OfType&lt;PowerCfgTarget&gt;().Any(). Compared over every paired NumericRange def - the only
+    /// population ResolveNumericRangeValue serves (the Slider dispatch fact above proves the populations
+    /// coincide). The guarded units value (GetPowerCfgDisplayUnits def vs catalog) is proven by
+    /// PowerCfgHelperCatalogEquivalenceTests.</summary>
+    [Fact]
+    public void NumericIsPowerCfgGate_CatalogPowerCfgTargets_MatchOldPowerCfgSettings()
+    {
+        var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
+        var mismatches = new List<string>();
+        var compared = 0;
+        var powerCfgTrue = 0;
+
+        foreach (var def in AllDefinitions())
+        {
+            if (def.InputType != InputType.NumericRange)
+                continue;
+            if (!catalogById.TryGetValue(SettingIdAliases.Normalize(def.Id), out var s))
+                continue;
+            compared++;
+
+            bool oldGate = def.PowerCfgSettings?.Any() == true;
+            bool newGate = s.Targets.OfType<PowerCfgTarget>().Any();
+            if (oldGate) powerCfgTrue++;
+            if (oldGate != newGate)
+                mismatches.Add($"{def.Id}: isPowerCfg old(PowerCfgSettings.Any)={oldGate} != new(PowerCfgTarget.Any)={newGate}");
+        }
+
+        _output.WriteLine($"{compared} NumericRange settings compared, {powerCfgTrue} powercfg-backed, {mismatches.Count} mismatches");
+        foreach (var m in mismatches)
+            _output.WriteLine($"  {m}");
+
+        Assert.True(compared >= 10, $"only compared {compared} NumericRange settings - population scoping bug");
+        Assert.True(powerCfgTrue > 0, "no NumericRange setting was powercfg-backed - the gate comparison would be vacuous");
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} isPowerCfg-gate mismatches:\n" + string.Join("\n", mismatches));
     }
 }

@@ -12,18 +12,18 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 public class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
 {
     private readonly ISettingApplicationService _settingApplicationService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
     private readonly IConfigImportState _configImportState;
 
     public ConfigurationApplicationBridgeService(
         ISettingApplicationService settingApplicationService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService,
         IConfigImportState configImportState)
     {
         _settingApplicationService = settingApplicationService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
         _configImportState = configImportState;
     }
@@ -31,7 +31,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
     public async Task<bool> ApplyConfigurationSectionAsync(
         ConfigSection section,
         string sectionName,
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null)
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null)
     {
         if (section?.Items == null || !section.Items.Any())
         {
@@ -99,7 +99,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return failCount == 0;
     }
 
-    private object ResolveSelectionValue(SettingDefinition setting, ConfigurationItem item)
+    private object ResolveSelectionValue(Setting setting, ConfigurationItem item)
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
         {
@@ -128,7 +128,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return 0;
     }
 
-    private object ResolvePowerPlanValue(SettingDefinition setting, ConfigurationItem item)
+    private object ResolvePowerPlanValue(Setting setting, ConfigurationItem item)
     {
         if (!string.IsNullOrEmpty(item.PowerPlanGuid))
         {
@@ -143,7 +143,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         throw new InvalidOperationException("Configuration file is invalid or corrupted.");
     }
 
-    private object? ResolveNumericRangeValue(SettingDefinition setting, ConfigurationItem item)
+    private object? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
     {
         if (item.PowerSettings == null || item.PowerSettings.Count == 0)
             return null;
@@ -152,12 +152,12 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         // reads, e.g. seconds). PowerCfgApplier treats incoming dict/scalar values as DISPLAY
         // units and converts display→system itself, so we must convert system→display here —
         // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
-        // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgSettings and pass
+        // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgTarget and pass
         // through unchanged.
-        // Slice E2 PARTIAL-BLOCK: this PowerCfgSettings read + GetPowerCfgDisplayUnits(setting) stay on the def -
-        // GetPowerCfgDisplayUnits takes a SettingDefinition and is coupled to the apply/recommended cluster (Slices
-        // C/D). They move to the catalog when a catalog overload of GetPowerCfgDisplayUnits lands there.
-        bool isPowerCfg = setting.PowerCfgSettings?.Any() == true;
+        // Slice 6: the gate + units read the catalog Setting - PowerCfgTarget presence (== the old
+        // PowerCfgSettings.Any gate, proven by ConfigBridgeReaderEquivalenceTests) and the proven
+        // GetPowerCfgDisplayUnits(Setting) overload (PowerCfgHelperCatalogEquivalenceTests).
+        bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
         var hasAcValue = item.PowerSettings.TryGetValue("ACValue", out var acVal);
@@ -224,21 +224,26 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         Failed
     }
 
-    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
+    private List<List<(ConfigurationItem item, Setting setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
     {
-        var waves = new List<List<(ConfigurationItem, SettingDefinition)>>();
+        var waves = new List<List<(ConfigurationItem, Setting)>>();
         var processedIds = new HashSet<string>();
-        var remainingItems = new List<(ConfigurationItem item, SettingDefinition setting)>();
-
-        var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
+        var remainingItems = new List<(ConfigurationItem item, Setting setting)>();
 
         foreach (var item in items)
         {
             if (string.IsNullOrEmpty(item.Id))
                 continue;
 
-            var setting = FindSettingById(item.Id, allSettings)
-                ?? ResolveBypassedCatalogSetting(item.Id);
+            // Slice 6: pair via the catalog registry (alias-normalized + current-OS/hardware/existence
+            // scoped; membership proven == the old filtered registry by its equivalence suites). A miss
+            // keeps the old filtered-lookup silent-drop semantics. The old cross-OS bypassed fallback is
+            // OBVIATED: a merged setting (Availability Everywhere, build-gated targets) resolves directly
+            // on either OS. One deliberate delta vs the bypassed era: a NON-merged OS-gated id imported
+            // on the other OS used to resolve here and then FAIL in the apply funnel (guaranteed-Failed
+            // noise, section=false); now it drops pre-wave like any other OS-filtered miss - nothing is
+            // applied either way, since the funnel's registry makes the same GetById decision.
+            var setting = _catalogSettingsRegistry.GetById(item.Id);
             if (setting != null)
             {
                 remainingItems.Add((item, setting));
@@ -247,7 +252,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
         while (remainingItems.Any())
         {
-            var currentWave = new List<(ConfigurationItem, SettingDefinition)>();
+            var currentWave = new List<(ConfigurationItem, Setting)>();
 
             foreach (var (item, setting) in remainingItems.ToList())
             {
@@ -280,33 +285,22 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return waves;
     }
 
-    // Slice E2: the config-import wave-ordering dependency set reads off the catalog Setting's Requires-Links
-    // (paired alias-safely via SettingCatalog.Find) instead of the old def.Dependencies. The converter aggregates
-    // RequiresEnabled/RequiresDisabled (BuildLinks) + RequiresSpecificValue (BuildValuePrereqLinks) into
-    // LinkKind.Requires and drops RequiresValueBeforeAnyChange - exactly the old filter, proven set-equal over the
-    // whole population by ConfigBridgeReaderEquivalenceTests. An unpaired setting (none in production) falls back to
-    // the old def.Dependencies read, keeping the synthetic-fake-id tests valid.
-    private static List<string> GetWaveDependencyIds(SettingDefinition setting)
-    {
-        var catalog = SettingCatalog.Find(setting.Id);
-        if (catalog != null)
-            return catalog.States
-                .SelectMany(st => st.Links)
-                .Where(l => l.Kind == LinkKind.Requires)
-                .Select(l => l.OtherId)
-                .Distinct()
-                .ToList();
-
-        return setting.Dependencies?
-            .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
-            .Select(d => d.RequiredSettingId)
-            .ToList() ?? new List<string>();
-    }
+    // The config-import wave-ordering dependency set: the catalog Setting's aggregated Requires-Link
+    // OtherIds (proven set-equal to the old def.Dependencies filter over the whole population by
+    // ConfigBridgeReaderEquivalenceTests). Since Slice 6 the paired setting IS the registry-returned
+    // catalog object, so the old live-catalog Find re-pairing and the unpaired def fallback are gone.
+    private static List<string> GetWaveDependencyIds(Setting setting)
+        => setting.States
+            .SelectMany(st => st.Links)
+            .Where(l => l.Kind == LinkKind.Requires)
+            .Select(l => l.OtherId)
+            .Distinct()
+            .ToList();
 
     private async Task<(ApplyStatus status, string itemName)> ApplySettingItemAsync(
         ConfigurationItem item,
-        SettingDefinition setting,
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
+        Setting setting,
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
     {
         try
         {
@@ -322,23 +316,14 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
-            // Slice E2: pair alias-safely via SettingCatalog.Find and read confirmation + the input-kind dispatch
-            // off the catalog (Apply.RequiresConfirmation / Control) instead of the old def (RequiresConfirmation /
-            // InputType). InputType.Selection maps to Control in {Selection, PowerPlan}: the bridge does NOT skip
-            // power-plan-selection (Control.PowerPlan), so it must still route through the Selection value path.
-            // Proven old==new over the whole population by ConfigBridgeReaderEquivalenceTests; an unpaired setting
-            // (none in production) falls back to the def, keeping the synthetic-fake-id tests valid.
-            var catalog = SettingCatalog.Find(setting.Id);
-            bool requiresConfirmation = catalog != null ? catalog.Apply.RequiresConfirmation : setting.RequiresConfirmation;
-            bool isSelection = catalog != null
-                ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan
-                : setting.InputType == InputType.Selection;
-            bool isNumericRange = catalog != null
-                ? catalog.Control == ControlKind.Slider
-                : setting.InputType == InputType.NumericRange;
-            bool isAction = catalog != null
-                ? catalog.Control == ControlKind.Action
-                : setting.InputType == InputType.Action;
+            // Confirmation + input-kind dispatch read the registry-paired catalog Setting directly
+            // (Apply.RequiresConfirmation / Control; proven == the old def reads over the whole population
+            // by ConfigBridgeReaderEquivalenceTests). Control in {Selection, PowerPlan} both route the
+            // Selection value path: the bridge does NOT skip power-plan-selection (Control.PowerPlan).
+            bool requiresConfirmation = setting.Apply.RequiresConfirmation;
+            bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
+            bool isNumericRange = setting.Control == ControlKind.Slider;
+            bool isAction = setting.Control == ControlKind.Action;
 
             bool checkboxResult = false;
             if (requiresConfirmation && confirmationHandler != null)
@@ -347,7 +332,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     ? (object)ResolveSelectionValue(setting, item)
                     : (object)(item.IsSelected ?? false);
 
-                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting).ConfigureAwait(false);
+                var (confirmed, checkbox) = await confirmationHandler(item.Id, value).ConfigureAwait(false);
 
                 if (!confirmed)
                 {
@@ -380,7 +365,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     return (ApplyStatus.Applied, item.Name);
                 }
 
-                // Catalog path: operations declared directly on the SettingDefinition.
+                // Catalog path: the Action's operations are the catalog Setting's Effects.
                 // Enable=true matches the runtime button-click flow (RunActionAsync).
                 await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
@@ -412,25 +397,4 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         }
     }
 
-    // Phase 6.5 cross-OS resolution: when the OS-filtered model has no def for this (already-normalized) id but the
-    // NEW catalog has a peer, resolve the def from the BYPASSED model so the item reaches the apply funnel - which is
-    // the build authority (it applies via the new engine for a build-compatible setting, or fails gracefully for a
-    // build-incompatible one via its own catalog+build gate). Gated on catalog membership so genuinely-unknown ids
-    // are still dropped. Covers a merged This PC setting imported from a "-win10" config (normalized to canonical)
-    // whose old split-def is OS-filtered-out on this machine.
-    private SettingDefinition? ResolveBypassedCatalogSetting(string id)
-        => SettingCatalog.All.Any(s => s.Id == id)
-            ? FindSettingById(id, _compatibleSettingsRegistry.GetAllBypassedSettings())
-            : null;
-
-    private SettingDefinition? FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
-    {
-        foreach (var featureSettings in allSettings.Values)
-        {
-            var setting = featureSettings.FirstOrDefault(s => s.Id == id);
-            if (setting != null)
-                return setting;
-        }
-        return null;
-    }
 }

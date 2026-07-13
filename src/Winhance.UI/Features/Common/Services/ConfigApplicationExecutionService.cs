@@ -380,8 +380,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         }
 
         // Build confirmation handler ONCE - identical for all features during import
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
-            (settingId, value, setting) =>
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
+            (settingId, value) =>
             {
                 if (settingId == SettingIds.PowerPlanSelection || settingId == SettingIds.UpdatesPolicyMode)
                     return Task.FromResult((true, true));

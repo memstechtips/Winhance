@@ -179,9 +179,9 @@ internal static class RecommendedSettingsResolver
     }
 
     // ---- Catalog-Setting overloads (Slice C/D foundation; additive, proven == the SettingDefinition
-    // versions above by PowerCfgHelperCatalogEquivalenceTests). Wired to nothing yet - the SAS change-history
-    // rendering (E2 partial-block) + the config bridge repoint onto these when the apply-cluster ports off
-    // SettingDefinition; the def versions stay live until then. ----
+    // versions above by PowerCfgHelperCatalogEquivalenceTests). LIVE since the apply-cluster cutover:
+    // SAS (Slice 4c) and the config bridge (Slice 6) consume them; the def versions stay only for the
+    // remaining def-based readers until teardown. ----
 
     // Catalog equivalent of GetPowerCfgDisplayUnits(SettingDefinition): the converter sets
     // Numeric.Units = def.NumericRange?.Units ?? pcs.Units (the combined value, for a NumericRange powercfg) and

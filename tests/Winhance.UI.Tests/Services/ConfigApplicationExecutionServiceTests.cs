@@ -229,7 +229,7 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(b => b.ApplyConfigurationSectionAsync(
                 It.IsAny<ConfigSection>(),
                 It.IsAny<string>(),
-                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>>()))
+                It.IsAny<Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>>()))
             .ReturnsAsync(true);
 
         // Explorer restart
@@ -280,7 +280,7 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(b => b.ApplyConfigurationSectionAsync(
                 It.IsAny<ConfigSection>(),
                 It.IsAny<string>(),
-                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>>()))
+                It.IsAny<Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>>()))
             .ReturnsAsync(true);
 
         _mockWindowsUIManagementService
@@ -409,7 +409,7 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(b => b.ApplyConfigurationSectionAsync(
                 It.IsAny<ConfigSection>(),
                 It.IsAny<string>(),
-                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool, bool)>>>()))
+                It.IsAny<Func<string, object?, Task<(bool, bool)>>>()))
             .ReturnsAsync(true);
 
         _mockWindowsUIManagementService
@@ -458,7 +458,7 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(b => b.ApplyConfigurationSectionAsync(
                 It.IsAny<ConfigSection>(),
                 It.IsAny<string>(),
-                It.IsAny<Func<string, object?, SettingDefinition, Task<(bool, bool)>>>()))
+                It.IsAny<Func<string, object?, Task<(bool, bool)>>>()))
             .ReturnsAsync(true);
 
         _mockWindowsUIManagementService
