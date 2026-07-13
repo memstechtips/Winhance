@@ -58,21 +58,14 @@ internal class FeatureRegistryScriptSection
                 // Slice E1b: presence gating reads the catalog Setting (Targets/Effects) instead of the def's
                 // mechanism lists, paired alias-safely via SettingCatalog.Find. It errs toward OVER-reporting so a
                 // header is emitted whenever the emit could produce content (content is never dropped by a skipped
-                // header): for a paired setting the catalog check is proven equal to the old def check over the whole
-                // population (MechanismPresenceEquivalenceTests); an unpaired setting (Find null - none in production,
-                // the equivalence test asserts zero unpaired) falls back to the def check, mirroring the registry/
-                // script emit's own def fallback below (the scheduled-task emit is catalog-only since E1a, so a def
-                // fallback there could only over-report a harmless empty header for a never-occurring unpaired task).
+                // header): the catalog check is proven equal to the old def check over the whole population
+                // (MechanismPresenceEquivalenceTests). Catalog-only since 7e-4b: an unpaired setting (Find null -
+                // none in production, the equivalence test asserts zero unpaired) contributes no presence, matching
+                // the shipped unknown-id skip semantics.
                 var catalog = SettingCatalog.Find(settingDef.Id);
-                bool hasRegistry = catalog != null
-                    ? AutounattendMechanismPresence.HasRegistryInHive(catalog, isHkcu)
-                    : AutounattendMechanismPresence.HasRegistryInHive(settingDef, isHkcu);
-                bool hasTask = catalog != null
-                    ? AutounattendMechanismPresence.HasScheduledTask(catalog)
-                    : AutounattendMechanismPresence.HasScheduledTask(settingDef);
-                bool hasScript = catalog != null
-                    ? AutounattendMechanismPresence.HasScriptInHive(catalog, isHkcu)
-                    : AutounattendMechanismPresence.HasScriptInHive(settingDef, isHkcu);
+                bool hasRegistry = catalog != null && AutounattendMechanismPresence.HasRegistryInHive(catalog, isHkcu);
+                bool hasTask = catalog != null && AutounattendMechanismPresence.HasScheduledTask(catalog);
+                bool hasScript = catalog != null && AutounattendMechanismPresence.HasScriptInHive(catalog, isHkcu);
 
                 if (hasRegistry || (!isHkcu && hasTask) || hasScript)
                     hasEntriesForCurrentHive = true;
@@ -108,12 +101,13 @@ internal class FeatureRegistryScriptSection
 
                 // Skip settings that have PowerCfgSettings but no RegistrySettings (already handled in Power Settings
                 // section). Slice E1b: read presence off the catalog Setting (PowerCfgTarget vs RegTarget/
-                // RegistryWriteEffect) when paired, else the old def (mirroring the emit routing); the catalog check
-                // is proven equal to the old def-based check by MechanismPresenceEquivalenceTests.
+                // RegistryWriteEffect); the catalog check is proven equal to the old def-based check by
+                // MechanismPresenceEquivalenceTests. Catalog-only since 7e-4b: an unpaired id (none in production)
+                // never reads as powercfg-only and flows on to the emit fallbacks below.
                 var catalogForSkip = SettingCatalog.Find(settingDef.Id);
                 bool powerCfgOnly = catalogForSkip != null
-                    ? AutounattendMechanismPresence.HasPowerCfg(catalogForSkip) && !AutounattendMechanismPresence.HasRegistry(catalogForSkip)
-                    : AutounattendMechanismPresence.HasPowerCfg(settingDef) && !AutounattendMechanismPresence.HasRegistry(settingDef);
+                    && AutounattendMechanismPresence.HasPowerCfg(catalogForSkip)
+                    && !AutounattendMechanismPresence.HasRegistry(catalogForSkip);
                 if (powerCfgOnly)
                     continue;
 

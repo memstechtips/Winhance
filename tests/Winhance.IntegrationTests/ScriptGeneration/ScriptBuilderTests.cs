@@ -123,8 +123,11 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithOptimizeFeatures_ContainsRegistryCommands()
     {
-        // Arrange — config with an Optimize toggle that has registry settings
-        var toggleItem = TestSettingFactory.CreateToggleItem("privacy1", "Disable Telemetry", true);
+        // Arrange - an Optimize toggle. Slice 7e-4b: the script-gen presence gate is catalog-only (an
+        // unpaired id contributes no presence and its feature section is skipped), so the item pairs to
+        // the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp). The paired
+        // emit reads the CATALOG RegTarget and state values; the def is an INERT id-carrier.
+        var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
         var config = new UnifiedConfigurationFile
         {
             Optimize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
@@ -133,26 +136,11 @@ public class ScriptBuilderTests
             }),
         };
 
-        // Provide matching SettingDefinitions with real registry settings
         var settingDef = new SettingDefinition
         {
-            Id = "privacy1",
-            Name = "Disable Telemetry",
-            Description = "Disables telemetry",
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
-                    ValueName = "AllowTelemetry",
-                    RecommendedValue = 0,
-                    DefaultValue = 1,
-                    EnabledValue = [0],
-                    DisabledValue = [1],
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-            },
+            Id = "security-remote-assistance",
+            Name = "Remote Assistance",
+            Description = "Remote assistance",
         };
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
         {
@@ -164,7 +152,7 @@ public class ScriptBuilderTests
 
         // Assert
         script.Should().Contain("Set-RegistryValue");
-        script.Should().Contain("AllowTelemetry");
+        script.Should().Contain("fAllowToGetHelp");
     }
 
     [Fact]

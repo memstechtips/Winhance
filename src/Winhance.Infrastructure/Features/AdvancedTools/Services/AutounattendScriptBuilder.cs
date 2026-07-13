@@ -160,29 +160,21 @@ public class AutounattendScriptBuilder
                 if (!selectedIds.Contains(settingDef.Id)) continue;
 
                 // Slice E1b: read native-power presence + the autounattend fallback off the catalog Setting
-                // (Targets/Effects) when paired, else the old def (mirroring the rest of the pipeline); the catalog
-                // checks are proven equal to the old def-based checks over the whole population by
-                // MechanismPresenceEquivalenceTests. Native power is authored on only one setting
-                // (power-hibernation-enable), which is catalog-paired.
+                // (Targets/Effects); the catalog checks are proven equal to the old def-based checks over the whole
+                // population by MechanismPresenceEquivalenceTests. Catalog-only since 7e-4b: an unpaired id (none in
+                // production) has no native-power presence and is skipped silently. Native power is authored on only
+                // one setting (power-hibernation-enable), which is catalog-paired.
                 var catalog = SettingCatalog.Find(settingDef.Id);
-                bool hasNativePower = catalog != null
-                    ? AutounattendMechanismPresence.HasNativePower(catalog)
-                    : AutounattendMechanismPresence.HasNativePower(settingDef);
+                bool hasNativePower = catalog != null && AutounattendMechanismPresence.HasNativePower(catalog);
                 if (!hasNativePower) continue;
 
                 bool hasAutounattendFallback = catalog != null
-                    ? AutounattendMechanismPresence.HasRegistry(catalog)
+                    && (AutounattendMechanismPresence.HasRegistry(catalog)
                         || AutounattendMechanismPresence.HasPowerCfg(catalog)
                         || AutounattendMechanismPresence.HasScript(catalog)
                         || AutounattendMechanismPresence.HasRegContent(catalog)
                         || AutounattendMechanismPresence.HasScheduledTask(catalog)
-                        || settingDef.Id == "power-hibernation-enable"
-                    : AutounattendMechanismPresence.HasRegistry(settingDef)
-                        || AutounattendMechanismPresence.HasPowerCfg(settingDef)
-                        || AutounattendMechanismPresence.HasScript(settingDef)
-                        || AutounattendMechanismPresence.HasRegContent(settingDef)
-                        || AutounattendMechanismPresence.HasScheduledTask(settingDef)
-                        || settingDef.Id == "power-hibernation-enable";
+                        || settingDef.Id == "power-hibernation-enable");
 
                 if (!hasAutounattendFallback)
                 {

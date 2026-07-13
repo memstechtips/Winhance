@@ -645,7 +645,7 @@ public class RegistryCommandEmitterTests
     {
         var sb = new StringBuilder();
         // Slice 7e-4a: the unpaired ApplyResolvedValues fallback is gone, so the fixture pairs to a REAL
-        // catalog selection (registry DWORD target "Start"; custom value 3 avoids its LockWhenValue=4 wrap)
+        // catalog selection (registry DWORD target "Start"; custom value 3 is arbitrary - the emit path has no lock handling)
         // and the def is INERT (id-carrier only) - a regression that reads the def emits nothing and fails.
         var setting = CreateSettingDefinition("gaming-touch-keyboard-service", "Touch Keyboard", Array.Empty<RegistrySetting>());
         var configItem = new ConfigurationItem
@@ -810,5 +810,41 @@ public class RegistryCommandEmitterTests
             Description = description,
             RegistrySettings = registrySettings
         };
+    }
+
+    // ---------------------------------------------------------------
+    // AppendRegContentCommandsFromCatalog - mixed-hive rejection
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void AppendRegContentCommandsFromCatalog_MixedHiveContent_Throws()
+    {
+        // Direct emitter-level coverage of the mixed-hive guard (7e-4b): the builder-level routing test
+        // was deleted because no paired catalog content can mix hives and unpaired ids now skip at the
+        // section gate - but the guard itself stays load-bearing for future authored content, and this
+        // method accepts caller-constructed Settings, so the throw is directly testable here.
+        var sb = new StringBuilder();
+        var mixed = new Winhance.Core.Features.Common.Catalog.Setting
+        {
+            Id = "synthetic-mixed-regcontent",
+            Display = new Winhance.Core.Features.Common.Catalog.Display { Name = "Mixed", Description = "Mixed hives" },
+            States = new[]
+            {
+                new Winhance.Core.Features.Common.Catalog.SettingState
+                {
+                    Label = "Enabled",
+                    Effects = new Winhance.Core.Features.Common.Catalog.Effect[]
+                    {
+                        new Winhance.Core.Features.Common.Catalog.RegContentEffect(
+                            "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\Software\\Test]\r\n\"A\"=dword:00000001\r\n\r\n[HKEY_LOCAL_MACHINE\\Software\\Test]\r\n\"B\"=dword:00000001\r\n"),
+                    },
+                },
+                new Winhance.Core.Features.Common.Catalog.SettingState { Label = "Disabled" },
+            },
+        };
+
+        var act = () => _sut.AppendRegContentCommandsFromCatalog(sb, mixed, isEnabled: true, isHkcuPass: false);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*mixes HKEY_CURRENT_USER and system-hive*");
     }
 }

@@ -81,25 +81,17 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_HklmToggle_EmitsRegistryCommands()
     {
         var sb = new StringBuilder();
-        var settingDef = CreateSettingDef("test-privacy-setting", "Disable Telemetry", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Test",
-                ValueName = "AllowTelemetry",
-                ValueType = RegistryValueKind.DWord,
-                EnabledValue = [0],
-                DisabledValue = [1],
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4b: the presence gate is catalog-only, so the fixture pairs to a REAL catalog HKLM registry
+        // toggle (security-remote-assistance, RegTarget fAllowToGetHelp, HKLM DWORD) and the def is INERT
+        // (id-carrier only) - the toggle emit reads the catalog too, so a regression that reads the def emits
+        // nothing and fails loudly.
+        var settingDef = CreateSettingDef("security-remote-assistance", "Remote Assistance", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup(FeatureIds.Privacy, new[]
         {
             new ConfigurationItem
             {
-                Id = "test-privacy-setting",
+                Id = "security-remote-assistance",
                 IsSelected = true,
                 InputType = InputType.Toggle
             }
@@ -114,7 +106,7 @@ public class FeatureRegistryScriptSectionTests
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
-        output.Should().Contain("AllowTelemetry");
+        output.Should().Contain("fAllowToGetHelp");
     }
 
     // ---------------------------------------------------------------
@@ -125,25 +117,16 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_HkcuEntries_NotEmittedInHklmPass()
     {
         var sb = new StringBuilder();
-        var settingDef = CreateSettingDef("hkcu-setting", "User Setting", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
-                ValueName = "UserVal",
-                ValueType = RegistryValueKind.DWord,
-                EnabledValue = [1],
-                DisabledValue = [0],
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4b: catalog-only presence gate - repointed onto a REAL HKCU-only catalog toggle
+        // (gaming-game-mode, RegTarget AutoGameModeEnabled under HKEY_CURRENT_USER) so this negative still
+        // proves the HIVE filter rather than the unpaired-id skip; the def is INERT (id-carrier only).
+        var settingDef = CreateSettingDef("gaming-game-mode", "Game Mode", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
         {
             new ConfigurationItem
             {
-                Id = "hkcu-setting",
+                Id = "gaming-game-mode",
                 IsSelected = true,
                 InputType = InputType.Toggle
             }
@@ -163,25 +146,16 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_HkcuEntries_EmittedInHkcuPass()
     {
         var sb = new StringBuilder();
-        var settingDef = CreateSettingDef("hkcu-setting", "User Setting", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
-                ValueName = "UserVal",
-                ValueType = RegistryValueKind.DWord,
-                EnabledValue = [1],
-                DisabledValue = [0],
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4b: catalog-only presence gate + catalog-sourced toggle emit - repointed onto the REAL HKCU
+        // catalog toggle gaming-game-mode; the def is INERT (id-carrier only), so the emitted value name below
+        // can only come from the catalog RegTarget.
+        var settingDef = CreateSettingDef("gaming-game-mode", "Game Mode", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
         {
             new ConfigurationItem
             {
-                Id = "hkcu-setting",
+                Id = "gaming-game-mode",
                 IsSelected = true,
                 InputType = InputType.Toggle
             }
@@ -194,7 +168,9 @@ public class FeatureRegistryScriptSectionTests
 
         _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Customize", isHkcu: true, indent: "    ");
 
-        sb.ToString().Should().Contain("Set-RegistryValue");
+        var output = sb.ToString();
+        output.Should().Contain("Set-RegistryValue");
+        output.Should().Contain("AutoGameModeEnabled");
     }
 
     // ---------------------------------------------------------------
@@ -205,25 +181,18 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_SelectionType_DelegatesCorrectly()
     {
         var sb = new StringBuilder();
-        var settingDef = CreateSettingDef("selection-setting", "Selection Setting", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
-                ValueName = "Mode",
-                ValueType = RegistryValueKind.DWord,
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4b: catalog-only presence gate - the fixture pairs to a REAL catalog registry selection
+        // (gaming-touch-keyboard-service, HKLM DWORD RegTarget "Start"; custom value 3 (arbitrary; the
+        // emit path has no lock handling)) and the def is INERT (id-carrier only), the 7e-4a recipe.
+        var settingDef = CreateSettingDef("gaming-touch-keyboard-service", "Touch Keyboard", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
         {
             new ConfigurationItem
             {
-                Id = "selection-setting",
+                Id = "gaming-touch-keyboard-service",
                 InputType = InputType.Selection,
-                CustomStateValues = new Dictionary<string, object> { { "Mode", 2 } }
+                CustomStateValues = new Dictionary<string, object> { { "Start", 3 } }
             }
         });
 
@@ -234,7 +203,9 @@ public class FeatureRegistryScriptSectionTests
 
         _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
 
-        sb.ToString().Should().Contain("Set-RegistryValue");
+        var output = sb.ToString();
+        output.Should().Contain("Set-RegistryValue");
+        output.Should().Contain("-Name 'Start'");
     }
 
     // ---------------------------------------------------------------
@@ -245,19 +216,15 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_WithScheduledTask_EmitsTaskBatch()
     {
         var sb = new StringBuilder();
-        // Slice E1a: the scheduled-task emit now sources task paths + description from the catalog Setting via
+        // Slice E1a: the scheduled-task emit sources task paths + description from the catalog Setting via
         // SettingCatalog.Find, so the fixture must be a REAL catalog scheduled-task setting (a synthetic/unpaired id
-        // would emit no batch). gaming-task-compatibility-appraiser is a pure scheduled-task toggle in the catalog;
-        // the settingDef's ScheduledTaskSettings still drives the old hive pre-filter (FeatureRegistryScriptSection:68).
+        // would emit no batch). Slice 7e-4b: the presence gate is catalog-only too, so the def is INERT
+        // (id-carrier only) - nothing on this path reads its fields anymore.
         var settingDef = new SettingDefinition
         {
             Id = "gaming-task-compatibility-appraiser",
             Name = "Task Setting",
-            Description = "Toggle a scheduled task",
-            ScheduledTaskSettings = new[]
-            {
-                new ScheduledTaskSetting { Id = "task1", TaskPath = "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser", RecommendedState = null, DefaultState = null }
-            }
+            Description = "Toggle a scheduled task"
         };
 
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
@@ -340,23 +307,13 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_EmitsSectionHeader()
     {
         var sb = new StringBuilder();
-        var settingDef = CreateSettingDef("setting1", "Test", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
-                ValueName = "Val",
-                ValueType = RegistryValueKind.DWord,
-                EnabledValue = [1],
-                DisabledValue = [0],
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4b: catalog-only presence gate - the fixture pairs to a REAL catalog HKLM toggle
+        // (security-remote-assistance) so the section header still emits; the def is INERT (id-carrier only).
+        var settingDef = CreateSettingDef("security-remote-assistance", "Test", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup(FeatureIds.Privacy, new[]
         {
-            new ConfigurationItem { Id = "setting1", IsSelected = true, InputType = InputType.Toggle }
+            new ConfigurationItem { Id = "security-remote-assistance", IsSelected = true, InputType = InputType.Toggle }
         });
 
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
@@ -379,35 +336,38 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_PowerCfgOnlySettingDef_IsSkipped()
     {
         var sb = new StringBuilder();
-        var settingDef = new SettingDefinition
-        {
-            Id = "powercfg-only",
-            Name = "PowerCfg Only",
-            Description = "A powercfg-only setting",
-            RegistrySettings = Array.Empty<RegistrySetting>(),
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting { SubgroupGuid = "sub", SettingGuid = "set", RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
+        // Slice 7e-4b: the powerCfgOnly skip is catalog-only, so the excluded side must be a REAL powercfg-only
+        // catalog setting (power-display-timeout: PowerCfgTarget, no RegTarget) - a synthetic id would now skip
+        // via UNPAIRED (no presence at the section gate) and the fact would go vacuous. A REAL HKLM toggle
+        // (security-remote-assistance) rides along so the section runs and the per-item loop actually reaches
+        // the powerCfgOnly branch. Both defs are INERT (id-carriers only); if the branch broke, the
+        // CustomStateValues below would drive a powercfg emit and the negative assertion would fail loudly.
+        var powerCfgOnlyDef = CreateSettingDef("power-display-timeout", "Turn off the display", Array.Empty<RegistrySetting>());
+        var toggleDef = CreateSettingDef("security-remote-assistance", "Remote Assistance", Array.Empty<RegistrySetting>());
 
-        // Need an HKLM entry to pass the hasEntriesForCurrentHive check - but
-        // since RegistrySettings is empty and we are in !isHkcu mode, it won't.
-        // This setting effectively gets skipped from the feature entirely.
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
         {
-            new ConfigurationItem { Id = "powercfg-only", IsSelected = true, InputType = InputType.Toggle }
+            new ConfigurationItem
+            {
+                Id = "power-display-timeout",
+                InputType = InputType.Selection,
+                CustomStateValues = new Dictionary<string, object> { { "PowerCfgValue", 60 } }
+            },
+            new ConfigurationItem { Id = "security-remote-assistance", IsSelected = true, InputType = InputType.Toggle }
         });
 
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
         {
-            { "TestFeature", new[] { settingDef } }
+            { "TestFeature", new[] { powerCfgOnlyDef, toggleDef } }
         };
 
         _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "");
 
-        // No registry commands emitted because this setting has no registry settings matching the hive
-        sb.ToString().Should().NotContain("Set-RegistryValue");
+        var output = sb.ToString();
+        // The section ran (the rider toggle emitted), so the powercfg-only setting was skipped by the
+        // powerCfgOnly BRANCH itself - and its CustomStateValues produced no powercfg emission.
+        output.Should().Contain("fAllowToGetHelp");
+        output.Should().NotContain("powercfg");
     }
 
     // ---------------------------------------------------------------

@@ -316,24 +316,14 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithOptimizeFeatures_EmitsHklmRegistryEntries()
     {
+        // Slice 7e-4b: the feature presence gate is catalog-only, so the fixture pairs to a REAL catalog HKLM
+        // registry toggle (security-remote-assistance, RegTarget fAllowToGetHelp) and the def is INERT
+        // (id-carrier only) - the toggle emit reads the catalog too.
         var settingDef = new SettingDefinition
         {
-            Id = "test-optimize-setting",
+            Id = "security-remote-assistance",
             Name = "Optimize Setting",
-            Description = "Test optimize",
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Test",
-                    ValueName = "OptVal",
-                    ValueType = RegistryValueKind.DWord,
-                    EnabledValue = [1],
-                    DisabledValue = [0],
-                    RecommendedValue = null,
-                    DefaultValue = null
-                }
-            }
+            Description = "Test optimize"
         };
 
         var config = new UnifiedConfigurationFile
@@ -349,7 +339,7 @@ public class AutounattendScriptBuilderTests
                             {
                                 new ConfigurationItem
                                 {
-                                    Id = "test-optimize-setting",
+                                    Id = "security-remote-assistance",
                                     IsSelected = true,
                                     InputType = InputType.Toggle
                                 }
@@ -368,7 +358,7 @@ public class AutounattendScriptBuilderTests
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
 
         result.Should().Contain("Set-RegistryValue");
-        result.Should().Contain("OptVal");
+        result.Should().Contain("fAllowToGetHelp");
     }
 
     // ---------------------------------------------------------------
@@ -378,24 +368,14 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithCustomizeFeatures_EmitsHkcuInUserBlock()
     {
+        // Slice 7e-4b: catalog-only presence gate - repointed onto a REAL catalog HKCU toggle (gaming-game-mode,
+        // RegTarget AutoGameModeEnabled under HKEY_CURRENT_USER); the def is INERT (id-carrier only). The value
+        // name lands only in the HKCU pass, i.e. inside the $UserCustomizations block.
         var settingDef = new SettingDefinition
         {
-            Id = "test-customize-setting",
+            Id = "gaming-game-mode",
             Name = "Customize Setting",
-            Description = "Test customize",
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = "HKEY_CURRENT_USER\\Software\\Test",
-                    ValueName = "CustVal",
-                    ValueType = RegistryValueKind.DWord,
-                    EnabledValue = [1],
-                    DisabledValue = [0],
-                    RecommendedValue = null,
-                    DefaultValue = null
-                }
-            }
+            Description = "Test customize"
         };
 
         var config = new UnifiedConfigurationFile
@@ -411,7 +391,7 @@ public class AutounattendScriptBuilderTests
                             {
                                 new ConfigurationItem
                                 {
-                                    Id = "test-customize-setting",
+                                    Id = "gaming-game-mode",
                                     IsSelected = true,
                                     InputType = InputType.Toggle
                                 }
@@ -431,7 +411,7 @@ public class AutounattendScriptBuilderTests
 
         // The HKCU entries should appear after "if ($UserCustomizations)"
         var userBlockIndex = result.IndexOf("if ($UserCustomizations)");
-        var custValIndex = result.IndexOf("CustVal", userBlockIndex);
+        var custValIndex = result.IndexOf("AutoGameModeEnabled", userBlockIndex);
         custValIndex.Should().BeGreaterThan(userBlockIndex);
     }
 
