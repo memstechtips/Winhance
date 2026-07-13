@@ -10,13 +10,15 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
 
 public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 {
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilter;
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
     private readonly AutounattendScriptBuilder _scriptBuilder;
@@ -24,14 +26,16 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly ISelectedAppsProvider _selectedAppsProvider;
 
     public AutounattendXmlGeneratorService(
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilter,
         ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
         AutounattendScriptBuilder scriptBuilder,
         IPowerShellRunner powerShellRunner,
         ISelectedAppsProvider selectedAppsProvider)
     {
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilter = windowsVersionFilter;
         _settingStateProvider = settingStateProvider;
         _logService = logService;
         _scriptBuilder = scriptBuilder;
@@ -45,6 +49,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         try
         {
             _logService.Log(LogLevel.Info, "Starting autounattend.xml generation");
+
+            // Slice 7f: ensure the catalog registry is initialized (idempotent) - self-heals a degraded
+            // startup on every generator entry point (closes the 7d-ledgered Builder-export gap).
+            await _catalogSettingsRegistry.InitializeAsync();
 
             var apps = selectedWindowsApps
                 ?? await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
@@ -65,6 +73,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         try
         {
             _logService.Log(LogLevel.Info, "Starting autounattend.xml generation from Builder config");
+            await _catalogSettingsRegistry.InitializeAsync();
             return await RenderConfigToXmlAsync(config, outputPath);
         }
         catch (Exception ex)
@@ -76,7 +85,12 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task<string> RenderConfigToXmlAsync(UnifiedConfigurationFile config, string outputPath)
     {
-        var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
+        // Slice 7f: enumerate the catalog registry with the show-other-Windows-versions scope threaded
+        // explicitly (the 7a/7d pattern). The Setting dict binds the script builder's catalog overload
+        // directly - the def-dict pairing SHIM is deleted with this slice. Filter-OFF is delta-free on
+        // THIS path: the shim already alias-collapsed the old bypassed set onto the same canonical merged
+        // Settings that GetAll(true) returns.
+        var allSettings = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         var scriptContent = await _scriptBuilder.BuildWinhancementsScriptAsync(config, allSettings);
 
@@ -121,7 +135,17 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
     {
-        var allSettingsByFeature = _compatibleSettingsRegistry.GetAllFilteredSettings();
+        // Slice 7f: the old read branched on the registry's mutable SetFilterEnabled state; the
+        // show-other-Windows-versions scope is now threaded explicitly (the 7a/7d pattern). Same
+        // reviewer-bounded filter-OFF delta as ConfigExportService (7d): the old bypassed set carried the 6
+        // "-win10" This PC rows ALONGSIDE their 6 canonical merged rows, while GetAll(true) is
+        // canonical-only - so a filter-OFF generation drops the 6 duplicate alias items (their emitted
+        // state was identical: the script section alias-normalizes item ids onto the same merged Setting,
+        // so the old script simply wrote those registry values twice). One inert ordering delta on this
+        // path: the catalog registry's feature iteration ORDER differs from the old registry's, so the
+        // generated script's per-feature sections reorder (set-equal, independent writes; the
+        // Builder-config path takes its order from the config file and is unaffected).
+        var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         int totalOptimizeSettings = 0;
         int totalCustomizeSettings = 0;
@@ -145,7 +169,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 continue;
             }
 
-            // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
+            // Slice 6, trimmed in Slice 7f: read from the new-engine full-state provider via its catalog
+            // Setting overload (Slice 4bb-2), the drop-in for old discovery + overlay.
             var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
@@ -155,22 +180,19 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 var item = new ConfigurationItem
                 {
                     Id = setting.Id,
-                    Name = setting.Name,
-                    InputType = setting.InputType
+                    Name = setting.Display.Name,
+                    InputType = ControlToInputType(setting.Control)
                 };
 
-                // Slice E4: pair alias-safely via SettingCatalog.Find and read the per-setting export dispatch off the
-                // catalog (Control / PowerCfgTarget.Mode) instead of the old def (InputType / PowerCfgSettings). Selection
-                // maps to Control in {Selection, PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection
-                // path). The InputType persistence WRITE above STAYS - it populates the config's InputType field, still
-                // read as the unpaired fallback by the E1c/E2 consumers. Proven old==new over the whole population by
-                // ConfigExportReaderEquivalenceTests + ConfigBridgeReaderEquivalenceTests; unpaired falls back to the def.
-                var catalog = SettingCatalog.Find(setting.Id);
-                bool isToggle = catalog != null ? catalog.Control == ControlKind.Toggle : setting.InputType == InputType.Toggle;
-                bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
-                bool isPowerCfgSeparate = catalog != null
-                    ? catalog.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate
-                    : setting.PowerCfgSettings?.Any() == true && setting.PowerCfgSettings[0].PowerModeSupport == PowerModeSupport.Separate;
+                // Slice E4, trimmed in Slice 7f: the loop variable IS the catalog Setting, so the dispatch
+                // reads it directly (Control / PowerCfgTarget.Mode). Selection maps to Control in {Selection,
+                // PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection path). The InputType
+                // persistence WRITE above STAYS and is LOAD-BEARING: FeatureRegistryScriptSection's dispatch
+                // fallbacks and ConfigMigrationService's import gates read the persisted field - the exact
+                // ControlToInputType map keeps them correct. It retires with the legacy field at teardown.
+                bool isToggle = setting.Control == ControlKind.Toggle;
+                bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
+                bool isPowerCfgSeparate = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
 
                 if (isToggle)
                 {
@@ -226,15 +248,12 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     setting.Id != SettingIds.PowerPlanSelection &&
                     state != null)
                 {
-                    // Slice 6: rebuild the custom-state bag from the new engine's typed fields instead of the retired
-                    // RawValues (CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
-                    // Slice E4: reuse the alias-safe `catalog` (SettingCatalog.Find) paired above instead of the manual
-                    // Normalize + FirstOrDefault.
-                    var custom = catalog is null
-                        ? new Dictionary<string, object>()
-                        : CustomStateValueReconstructor.Build(catalog, state)
-                            .Where(v => v.Value != null)
-                            .ToDictionary(k => k.Key, v => v.Value!);
+                    // Slice 6, trimmed in Slice 7f: rebuild the custom-state bag from the new engine's typed
+                    // fields instead of the retired RawValues (CustomStateReconstructionEquivalenceTests:
+                    // 105/105 == the old hybrid RawValues); the loop variable IS the catalog Setting.
+                    var custom = CustomStateValueReconstructor.Build(setting, state)
+                        .Where(v => v.Value != null)
+                        .ToDictionary(k => k.Key, v => v.Value!);
                     if (custom.Count > 0)
                         item.CustomStateValues = custom;
                 }
@@ -281,11 +300,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     }
 
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
-        GetSelectionStateFromState(SettingDefinition setting, SettingStateResult? state)
+        GetSelectionStateFromState(Setting setting, SettingStateResult? state)
     {
-        // Slice E4: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan), def-fallback.
-        var catalog = SettingCatalog.Find(setting.Id);
-        bool isSelection = catalog != null ? catalog.Control is ControlKind.Selection or ControlKind.PowerPlan : setting.InputType == InputType.Selection;
+        // Slice E4, trimmed in 7f: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
+        bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
         if (!isSelection)
             return (null, null, null, null);
 
@@ -316,12 +334,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             // custom-state result is discarded by the autounattend; the read is migrated to retire RawValues.)
             if (state.Readings != null)
             {
-                // Slice E4: source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists")
-                // instead of the old def.RegistrySettings; the key SET is identical (proven by
-                // ConfigExportReaderEquivalenceTests). Unpaired falls back to def.RegistrySettings.
-                var regKeys = catalog != null
-                    ? catalog.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists")
-                    : setting.RegistrySettings.Select(rs => rs.ValueName ?? "KeyExists");
+                // Slice E4, trimmed in 7f: source the custom-state registry KEYS from the catalog RegTargets
+                // (ValueName ?? "KeyExists"); the key SET is identical to the old def read (the converter
+                // groups mirrors by ValueName), proven by ConfigExportReaderEquivalenceTests.
+                var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {
                     if (state.Readings.TryGetValue(key, out var value) && value != null)
@@ -339,42 +355,20 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     // D-S2: index resolver for a Separate-mode powercfg Selection's AC/DC values - verbatim mirror of
     // ConfigExportService.ResolveValueToIndex so both exporters resolve a raw powercfg value to its option
-    // index identically (via the option ValueMappings["PowerCfgValue"]).
-    private static int ResolveValueToIndex(SettingDefinition setting, object? value)
+    // index identically (via the catalog States' Set["Power"] payload).
+    private static int ResolveValueToIndex(Setting setting, object? value)
     {
         if (value == null) return 0;
 
         var intValue = Convert.ToInt32(value);
 
-        // Slice E4: resolve the powercfg AC/DC value to an option index off the catalog States' Set["Power"] (==
-        // the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg builds one State per option),
-        // proven by ConfigExportReaderEquivalenceTests. Unpaired falls back to the old def ComboBox scan.
-        var catalog = SettingCatalog.Find(setting.Id);
-        if (catalog != null)
+        // Slice E4, trimmed in 7f: resolve the powercfg AC/DC value to an option index off the catalog States'
+        // Set["Power"] (== the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg
+        // builds one State per option), proven by ConfigExportReaderEquivalenceTests.
+        for (int i = 0; i < setting.States.Count; i++)
         {
-            for (int i = 0; i < catalog.States.Count; i++)
-            {
-                if (catalog.States[i].Set.TryGetValue("Power", out var sv) &&
-                    sv.WritePayload != null && Convert.ToInt32(sv.WritePayload) == intValue)
-                {
-                    return i;
-                }
-            }
-
-            return 0;
-        }
-
-        var options = setting.ComboBox?.Options;
-        if (options == null)
-            return 0;
-
-        for (int i = 0; i < options.Count; i++)
-        {
-            var mapping = options[i].ValueMappings;
-            if (mapping == null) continue;
-
-            if (mapping.TryGetValue("PowerCfgValue", out var expectedValue) &&
-                expectedValue != null && Convert.ToInt32(expectedValue) == intValue)
+            if (setting.States[i].Set.TryGetValue("Power", out var sv) &&
+                sv.WritePayload != null && Convert.ToInt32(sv.WritePayload) == intValue)
             {
                 return i;
             }
@@ -382,6 +376,20 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         return 0;
     }
+
+    /// <summary>Twin of ConfigExportService.ControlToInputType / ConfigReviewService.ControlToInputType
+    /// (private per-service transitional helpers): populates the PERSISTED config-file InputType field from
+    /// the derived Control. The field is LOAD-BEARING (FeatureRegistryScriptSection's dispatch fallbacks +
+    /// ConfigMigrationService's import gates read it), so the twins retire together with the legacy field at
+    /// teardown. Exact for the shipped population: PowerPlan settings were InputType.Selection, no setting is
+    /// CheckBox.</summary>
+    private static InputType ControlToInputType(ControlKind control) => control switch
+    {
+        ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,
+        ControlKind.Slider => InputType.NumericRange,
+        ControlKind.Action => InputType.Action,
+        _ => InputType.Toggle,
+    };
 
     private string LoadEmbeddedTemplate()
     {

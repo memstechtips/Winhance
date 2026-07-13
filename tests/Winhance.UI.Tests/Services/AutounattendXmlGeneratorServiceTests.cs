@@ -7,19 +7,28 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.Services;
+using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
 
 namespace Winhance.UI.Tests.Services;
 
 public class AutounattendXmlGeneratorServiceTests
 {
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilter = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
+
+    public AutounattendXmlGeneratorServiceTests()
+    {
+        // Default mode: version filter ON (the app default) -> the service must enumerate the
+        // current-OS scope (GetAll(includeOtherOsVersions: false)).
+        _mockWindowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
+    }
 
     private AutounattendScriptBuilder CreateScriptBuilder()
     {
@@ -35,11 +44,12 @@ public class AutounattendXmlGeneratorServiceTests
         AutounattendScriptBuilder? scriptBuilder = null)
     {
         _mockSettingStateProvider
-            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         return new AutounattendXmlGeneratorService(
-            _mockCompatibleSettingsRegistry.Object,
+            _mockCatalogSettingsRegistry.Object,
+            _mockWindowsVersionFilter.Object,
             _mockSettingStateProvider.Object,
             _mockLogService.Object,
             scriptBuilder ?? CreateScriptBuilder(),
@@ -49,12 +59,12 @@ public class AutounattendXmlGeneratorServiceTests
 
     private void SetupEmptySettings()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
     }
 
@@ -164,11 +174,12 @@ public class AutounattendXmlGeneratorServiceTests
     }
 
     // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - calls GetAllFilteredSettings
+    // GenerateFromCurrentSelectionsAsync - enumerates the catalog
+    // registry with the mode threaded (Slice 7f)
     // -------------------------------------------------------
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_CallsGetAllFilteredSettings()
+    public async Task GenerateFromCurrentSelectionsAsync_CallsGetAll_CurrentOsScope()
     {
         SetupEmptySettings();
 
@@ -190,11 +201,46 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        // GetAllFilteredSettings is called twice: once in CreateConfigurationFromSystemAsync
-        // and once to pass to BuildWinhancementsScriptAsync
-        _mockCompatibleSettingsRegistry.Verify(
-            r => r.GetAllFilteredSettings(),
+        // GetAll runs twice: once in PopulateFeatureBasedSections and once in RenderConfigToXmlAsync
+        // (the dict handed to BuildWinhancementsScriptAsync). Pin the mode threading per the 7a recipe:
+        // filter ON must enumerate the current-OS scope (includeOtherOsVersions: false).
+        _mockCatalogSettingsRegistry.Verify(
+            r => r.GetAll(false),
             Times.AtLeast(1));
+    }
+
+    [Fact]
+    public async Task GenerateFromCurrentSelectionsAsync_FilterOff_EnumeratesOtherOsScope()
+    {
+        _mockWindowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        // Strict on the scope arg: only includeOtherOsVersions: true is set up - a false arg would return
+        // Moq's null default and throw, so the !IsFilterEnabled threading is load-bearing here.
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(true))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+
+        var service = CreateService();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
+
+        try
+        {
+            await service.GenerateFromCurrentSelectionsAsync(outputPath, new List<ConfigurationItem>());
+        }
+        catch (Exception)
+        {
+            // Expected: embedded template not available in test context
+        }
+        finally
+        {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+        }
+
+        _mockCatalogSettingsRegistry.Verify(r => r.GetAll(true), Times.AtLeast(1));
     }
 
     // -------------------------------------------------------
@@ -235,8 +281,8 @@ public class AutounattendXmlGeneratorServiceTests
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WhenExceptionOccurs_LogsErrorAndRethrows()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
             .Throws(new InvalidOperationException("Test error"));
 
         _mockSelectedAppsProvider
@@ -299,7 +345,7 @@ public class AutounattendXmlGeneratorServiceTests
         };
 
         // We verify the script builder receives the apps by checking that
-        // GetAllFilteredSettings is invoked (it runs after the config is created with apps).
+        // the registry enumeration is invoked (it runs after the config is created with apps).
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
 
@@ -316,8 +362,8 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        // Verify the service proceeded past app assignment (reached GetAllFilteredSettings)
-        _mockCompatibleSettingsRegistry.Verify(r => r.GetAllFilteredSettings(), Times.AtLeast(1));
+        // Verify the service proceeded past app assignment (reached the registry enumeration)
+        _mockCatalogSettingsRegistry.Verify(r => r.GetAll(It.IsAny<bool>()), Times.AtLeast(1));
     }
 
     [Fact]
@@ -389,26 +435,29 @@ public class AutounattendXmlGeneratorServiceTests
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithOptimizeFeatureSettings_CallsDiscoveryService()
     {
-        var privacySettings = new List<SettingDefinition>
+        var privacySettings = new List<Setting>
         {
             new()
             {
                 Id = "test-privacy-setting",
-                Name = "Test Privacy Setting",
-                Description = "Test privacy setting desc",
-                InputType = InputType.Toggle
+                Display = new() { Name = "Test Privacy Setting", Description = "Test privacy setting desc" },
+                States = new[]
+                {
+                    new SettingState { Label = "Enabled" },
+                    new SettingState { Label = "Disabled" }
+                }
             }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>
             {
                 { "Privacy", privacySettings }
             });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 {
@@ -435,7 +484,7 @@ public class AutounattendXmlGeneratorServiceTests
         }
 
         _mockSettingStateProvider.Verify(
-            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()),
             Times.AtLeastOnce);
     }
 
@@ -477,14 +526,23 @@ public class AutounattendXmlGeneratorServiceTests
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithUnknownFeature_LogsWarningAndSkips()
     {
-        var unknownSettings = new List<SettingDefinition>
+        var unknownSettings = new List<Setting>
         {
-            new() { Id = "unknown-setting", Name = "Unknown", Description = "Unknown desc", InputType = InputType.Toggle }
+            new()
+            {
+                Id = "unknown-setting",
+                Display = new() { Name = "Unknown", Description = "Unknown desc" },
+                States = new[]
+                {
+                    new SettingState { Label = "Enabled" },
+                    new SettingState { Label = "Disabled" }
+                }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>
             {
                 { "UnknownFeature", unknownSettings }
             });
@@ -519,11 +577,11 @@ public class AutounattendXmlGeneratorServiceTests
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithEmptyFeatureSettings_SkipsFeature()
     {
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetAll(It.IsAny<bool>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>
             {
-                { "Privacy", Enumerable.Empty<SettingDefinition>() }
+                { "Privacy", new List<Setting>() }
             });
 
         var apps = new List<ConfigurationItem>();
@@ -545,7 +603,7 @@ public class AutounattendXmlGeneratorServiceTests
 
         // Discovery service should not be called for empty feature settings
         _mockSettingStateProvider.Verify(
-            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()),
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()),
             Times.Never);
     }
 }
