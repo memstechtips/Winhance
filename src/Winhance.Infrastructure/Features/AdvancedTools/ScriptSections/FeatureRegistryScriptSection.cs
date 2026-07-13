@@ -146,7 +146,10 @@ internal class FeatureRegistryScriptSection
                     // when a build is available; without one (a unit test feeding no build) they fall back to the old
                     // OS-filtered-def emitter, preserving prior behaviour. Non-build-gated paired toggles always use
                     // the new path (no AppliesTo to filter). Proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests.
-                    var catalogToggle = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                    // Slice 7e-2: alias-normalized Find (was exact-match FirstOrDefault) - the deferred E1c
+                    // toggle-emit pairing flip, pre-pinned by ScriptPassFindFlip_IsNeutral_BecauseAliased
+                    // SettingsAreScriptLess + proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests.
+                    var catalogToggle = SettingCatalog.Find(settingDef.Id);
                     bool isBuildGated = catalogToggle != null && catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0);
                     if (catalogToggle != null && (!isBuildGated || build is not null))
                     {
@@ -174,7 +177,9 @@ internal class FeatureRegistryScriptSection
                     // (ScriptGenActionEquivalenceTests). The shared script block below is skipped for this item so its
                     // scripts are not double-emitted. All three Action settings are catalog-paired; an unpaired Action
                     // falls back to the old registry emit (when selected) + the shared script block.
-                    var catalogAction = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
+                    // Slice 7e-2: alias-normalized Find (was exact-match FirstOrDefault); no Action is aliased,
+                    // so this is identity for the Action population (ScriptGenActionEquivalenceTests).
+                    var catalogAction = SettingCatalog.Find(settingDef.Id);
                     if (catalogAction != null)
                     {
                         AppendActionCommandsFromCatalog(sb, catalogAction, configItem, isHkcu, indent);
