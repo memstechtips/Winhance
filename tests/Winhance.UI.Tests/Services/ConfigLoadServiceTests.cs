@@ -15,7 +15,6 @@ public class ConfigLoadServiceTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<IConfigMigrationService> _mockConfigMigrationService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -29,7 +28,6 @@ public class ConfigLoadServiceTests
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object,
-            _mockCompatibleSettingsRegistry.Object,
             _mockConfigMigrationService.Object,
             _mockInteractiveUserService.Object,
             _mockFileSystemService.Object,
@@ -39,6 +37,11 @@ public class ConfigLoadServiceTests
 
     // -------------------------------------------------------
     // DetectIncompatibleSettings
+    // Slice 7b: gating is the catalog Availability model over the LIVE SettingCatalog (static, not
+    // mockable), so fixtures use REAL catalog ids + mocked build numbers - machine-independent, since
+    // Availability is authored data. Real ids used: privacy-timeline-suggestions (Windows10-gated,
+    // "Timeline Suggestions"), start-recommended-section (Windows11-gated, "Recommended section"),
+    // explorer-context-menu-compress-to (builds 26100+, 24H2), gaming-game-mode (ungated).
     // -------------------------------------------------------
 
     [Fact]
@@ -53,22 +56,9 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithWindows10OnlySetting_OnWindows11_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_CatalogWindows10OnlySetting_OnWindows11_ReturnsIncompatible()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "win10-setting",
-            Name = "Win10 Setting",
-            Description = "Only for Win10",
-            IsWindows10Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile
         {
@@ -76,11 +66,11 @@ public class ConfigLoadServiceTests
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Privacy"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "win10-setting", Name = "Win10 Setting" }
+                            new ConfigurationItem { Id = "privacy-timeline-suggestions", Name = "Timeline Suggestions" }
                         }
                     }
                 }
@@ -90,27 +80,15 @@ public class ConfigLoadServiceTests
         var service = CreateService();
         var result = service.DetectIncompatibleSettings(config);
 
+        // The name comes from the catalog Display.Name now (== the old def.Name for every paired setting)
         result.Should().ContainSingle()
-            .Which.Should().Be("Win10 Setting (TestFeature)");
+            .Which.Should().Be("Timeline Suggestions (Privacy)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithWindows11OnlySetting_OnWindows10_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_CatalogWindows11OnlySetting_OnWindows10_ReturnsIncompatible()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(false);
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(19045);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "win11-setting",
-            Name = "Win11 Setting",
-            Description = "Only for Win11",
-            IsWindows11Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
 
         var config = new UnifiedConfigurationFile
         {
@@ -118,11 +96,11 @@ public class ConfigLoadServiceTests
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["StartMenu"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "win11-setting", Name = "Win11 Setting" }
+                            new ConfigurationItem { Id = "start-recommended-section", Name = "Recommended section" }
                         }
                     }
                 }
@@ -133,38 +111,26 @@ public class ConfigLoadServiceTests
         var result = service.DetectIncompatibleSettings(config);
 
         result.Should().ContainSingle()
-            .Which.Should().Be("Win11 Setting (TestFeature)");
+            .Which.Should().Be("Recommended section (StartMenu)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithMinimumBuildNumber_BelowThreshold_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_CatalogBuildRangeGatedSetting_BelowRange_ReturnsIncompatible()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22000);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "new-build-setting",
-            Name = "New Build Setting",
-            Description = "Requires newer build",
-            MinimumBuildNumber = 22621
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
+        // explorer-context-menu-compress-to is gated to builds 26100+ (24H2); build 22631 is below.
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile
         {
-            Optimize = new FeatureGroupSection
+            Customize = new FeatureGroupSection
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Explorer"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "new-build-setting", Name = "New Build Setting" }
+                            new ConfigurationItem { Id = "explorer-context-menu-compress-to", Name = "Compress To" }
                         }
                     }
                 }
@@ -178,123 +144,22 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithMaximumBuildNumber_AboveThreshold_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_CatalogBuildRangeGatedSetting_InRange_ReturnsEmpty()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(30000);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "old-build-setting",
-            Name = "Old Build Setting",
-            Description = "For older builds only",
-            MaximumBuildNumber = 22621
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
+        // Same 26100+ gated setting, but the build is inside the range.
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(26120);
 
         var config = new UnifiedConfigurationFile
         {
-            Optimize = new FeatureGroupSection
+            Customize = new FeatureGroupSection
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Explorer"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "old-build-setting", Name = "Old Build Setting" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_WithSupportedBuildRanges_OutOfRange_ReturnsIncompatible()
-    {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(25000);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "range-setting",
-            Name = "Range Setting",
-            Description = "Has build ranges",
-            SupportedBuildRanges = new List<(int MinBuild, int MaxBuild)>
-            {
-                (22000, 22621),
-                (26000, 30000)
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["TestFeature"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "range-setting", Name = "Range Setting" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_WithSupportedBuildRanges_InRange_ReturnsEmpty()
-    {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22500);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "range-setting",
-            Name = "Range Setting",
-            Description = "Has build ranges",
-            SupportedBuildRanges = new List<(int MinBuild, int MaxBuild)>
-            {
-                (22000, 22621)
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["TestFeature"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "range-setting", Name = "Range Setting" }
+                            new ConfigurationItem { Id = "explorer-context-menu-compress-to", Name = "Compress To" }
                         }
                     }
                 }
@@ -308,21 +173,39 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithCompatibleSetting_ReturnsEmpty()
+    public void DetectIncompatibleSettings_CatalogUngatedSetting_ReturnsEmpty()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var settingDef = new SettingDefinition
+        var config = new UnifiedConfigurationFile
         {
-            Id = "compatible-setting",
-            Name = "Compatible Setting",
-            Description = "Works everywhere"
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Gaming"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "gaming-game-mode", Name = "Game Mode" }
+                        }
+                    }
+                }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
+        var service = CreateService();
+        var result = service.DetectIncompatibleSettings(config);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DetectIncompatibleSettings_UnknownId_IsSkippedSilently()
+    {
+        // Pins the Slice 7b fallback removal: an id with no catalog peer is not a setting - it is
+        // neither flagged incompatible nor gated (the old bypassed-def flag fallback is gone).
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile
         {
@@ -334,7 +217,7 @@ public class ConfigLoadServiceTests
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "compatible-setting", Name = "Compatible Setting" }
+                            new ConfigurationItem { Id = "totally-unknown-id", Name = "Unknown" }
                         }
                     }
                 }
@@ -370,29 +253,11 @@ public class ConfigLoadServiceTests
     // -------------------------------------------------------
 
     [Fact]
-    public void FilterConfigForCurrentSystem_RemovesIncompatibleSettings()
+    public void FilterConfigForCurrentSystem_RemovesCatalogIncompatible_KeepsCompatible()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
-
-        var compatibleDef = new SettingDefinition
-        {
-            Id = "compatible",
-            Name = "Compatible",
-            Description = "Works"
-        };
-
-        var incompatibleDef = new SettingDefinition
-        {
-            Id = "incompatible",
-            Name = "Incompatible",
-            Description = "Win10 only",
-            IsWindows10Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { compatibleDef, incompatibleDef });
+        // On a Win11 build, the Windows10-gated privacy-timeline-suggestions is removed; the ungated
+        // gaming-game-mode is kept.
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile
         {
@@ -407,8 +272,8 @@ public class ConfigLoadServiceTests
                         IsIncluded = true,
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "compatible", Name = "Compatible" },
-                            new ConfigurationItem { Id = "incompatible", Name = "Incompatible" }
+                            new ConfigurationItem { Id = "gaming-game-mode", Name = "Game Mode" },
+                            new ConfigurationItem { Id = "privacy-timeline-suggestions", Name = "Timeline Suggestions" }
                         }
                     }
                 }
@@ -420,18 +285,13 @@ public class ConfigLoadServiceTests
 
         result.Version.Should().Be("2.0");
         result.Optimize.Features["TestFeature"].Items.Should().ContainSingle()
-            .Which.Id.Should().Be("compatible");
+            .Which.Id.Should().Be("gaming-game-mode");
     }
 
     [Fact]
-    public void FilterConfigForCurrentSystem_KeepsSettingsNotInRegistry()
+    public void FilterConfigForCurrentSystem_KeepsUnknownIds()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(Enumerable.Empty<SettingDefinition>());
+        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile
         {

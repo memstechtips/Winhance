@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
@@ -16,7 +15,6 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
@@ -28,7 +26,6 @@ public class ConfigLoadService : IConfigLoadService
         IDialogService dialogService,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IFileSystemService fileSystemService,
@@ -39,7 +36,6 @@ public class ConfigLoadService : IConfigLoadService
         _dialogService = dialogService;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
@@ -269,7 +265,6 @@ public class ConfigLoadService : IConfigLoadService
     public List<string> DetectIncompatibleSettings(UnifiedConfigurationFile config)
     {
         var incompatible = new List<string>();
-        var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
         var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
@@ -285,60 +280,22 @@ public class ConfigLoadService : IConfigLoadService
 
             foreach (var feature in section.Value.Features)
             {
-                var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
-
                 foreach (var configItem in feature.Value.Items)
                 {
-                    // Phase 6.5: a paired catalog setting is gated by the new Availability model (the post-migration
-                    // source of truth); only unpaired (not-yet-migrated) settings still consult the old build flags.
+                    // Slice 7b: gating reads ONLY the catalog Availability model (the source of truth). The old
+                    // bypassed-def flag fallback is gone - every InputType-bearing def id is catalog-paired
+                    // (0 unpaired, completeness-proven). The only def-resolvable ids with no EXACT catalog match
+                    // are the 6 merged "-win10" aliases: file/backup loads normalize them upstream
+                    // (ConfigMigrationService), and the embedded Recommended/Win10-defaults configs carry them
+                    // with values byte-identical to their canonical peers, which the import bridge applies via
+                    // its alias-normalizing GetById (an idempotent duplicate, matching pre-existing Win10
+                    // behaviour). So an id with no catalog peer is skipped silently. The name reads Display.Name
+                    // (== the old def.Name for every paired setting per the display equivalence; the old code
+                    // already fell back to it).
                     var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (newSetting != null)
+                    if (newSetting != null && !newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
                     {
-                        if (!newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
-                        {
-                            var name = allSettings.FirstOrDefault(s => s.Id == configItem.Id)?.Name ?? newSetting.Display.Name;
-                            incompatible.Add($"{name} ({feature.Key})");
-                        }
-                        continue;
-                    }
-
-                    var settingDef = allSettings.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (settingDef != null)
-                    {
-                        bool isIncompatible = false;
-
-                        if (settingDef.IsWindows10Only && isWindows11)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.IsWindows11Only && !isWindows11)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.SupportedBuildRanges?.Count > 0)
-                        {
-                            bool inRange = settingDef.SupportedBuildRanges.Any(range =>
-                                buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
-                            if (!inRange)
-                            {
-                                isIncompatible = true;
-                            }
-                        }
-                        else if (!BuildVersionGate.IsCompatible(
-                            buildNumber,
-                            buildRevision,
-                            settingDef.MinimumBuildNumber,
-                            settingDef.MinimumBuildRevision,
-                            settingDef.MaximumBuildNumber,
-                            settingDef.MaximumBuildRevision))
-                        {
-                            isIncompatible = true;
-                        }
-
-                        if (isIncompatible)
-                        {
-                            incompatible.Add($"{settingDef.Name} ({feature.Key})");
-                        }
+                        incompatible.Add($"{newSetting.Display.Name} ({feature.Key})");
                     }
                 }
             }
@@ -349,12 +306,11 @@ public class ConfigLoadService : IConfigLoadService
 
     public UnifiedConfigurationFile FilterConfigForCurrentSystem(UnifiedConfigurationFile config)
     {
-        var isWindows11 = _windowsVersionService.IsWindows11();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
         var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
-        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber, buildRevision);
-        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber, buildRevision);
+        var filteredOptimize = FilterFeatureGroup(config.Optimize, buildNumber, buildRevision);
+        var filteredCustomize = FilterFeatureGroup(config.Customize, buildNumber, buildRevision);
 
         return new UnifiedConfigurationFile
         {
@@ -368,7 +324,6 @@ public class ConfigLoadService : IConfigLoadService
 
     private FeatureGroupSection FilterFeatureGroup(
         FeatureGroupSection section,
-        bool isWindows11,
         int buildNumber,
         int buildRevision)
     {
@@ -378,13 +333,14 @@ public class ConfigLoadService : IConfigLoadService
 
         foreach (var feature in section.Features)
         {
-            var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
             var filteredItems = new List<ConfigurationItem>();
 
             foreach (var item in feature.Value.Items)
             {
-                // Phase 6.5: paired catalog setting -> gate via the new Availability model; unpaired -> old flags;
-                // unknown id -> keep (unchanged).
+                // Slice 7b: paired catalog setting -> gate via the Availability model; unknown id -> keep
+                // (unchanged). The old bypassed-def flag fallback is gone (0 unpaired; the raw "-win10" alias
+                // ids in the embedded configs flow to the import bridge, whose alias-normalizing GetById
+                // applies them onto the merged setting - see the DetectIncompatibleSettings comment).
                 var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == item.Id);
                 if (newSetting != null)
                 {
@@ -395,48 +351,7 @@ public class ConfigLoadService : IConfigLoadService
                     continue;
                 }
 
-                var settingDef = allSettings.FirstOrDefault(s => s.Id == item.Id);
-                if (settingDef != null)
-                {
-                    bool isCompatible = true;
-
-                    if (settingDef.IsWindows10Only && isWindows11)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.IsWindows11Only && !isWindows11)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.SupportedBuildRanges?.Count > 0)
-                    {
-                        bool inRange = settingDef.SupportedBuildRanges.Any(range =>
-                            buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
-                        if (!inRange)
-                        {
-                            isCompatible = false;
-                        }
-                    }
-                    else if (!BuildVersionGate.IsCompatible(
-                        buildNumber,
-                        buildRevision,
-                        settingDef.MinimumBuildNumber,
-                        settingDef.MinimumBuildRevision,
-                        settingDef.MaximumBuildNumber,
-                        settingDef.MaximumBuildRevision))
-                    {
-                        isCompatible = false;
-                    }
-
-                    if (isCompatible)
-                    {
-                        filteredItems.Add(item);
-                    }
-                }
-                else
-                {
-                    filteredItems.Add(item);
-                }
+                filteredItems.Add(item);
             }
 
             filteredFeatures[feature.Key] = new ConfigSection
