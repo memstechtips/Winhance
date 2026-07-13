@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -14,18 +16,22 @@ namespace Winhance.UI.Tests.Services;
 public class SettingLocalizationServiceTests
 {
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _compatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _windowsVersionFilter = new();
 
     public SettingLocalizationServiceTests()
     {
         // Default: return the key wrapped in brackets to indicate "not found"
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => $"[{k}]");
+        // Default: filter ON (the normal mode) -> the service passes includeOtherOsVersions: false
+        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
     }
 
     private SettingLocalizationService CreateSut() => new(
         _localizationService.Object,
-        _compatibleSettingsRegistry.Object);
+        _catalogSettingsRegistry.Object,
+        _windowsVersionFilter.Object);
 
     private SettingDefinition CreateTestSetting(
         string id = "test-setting",
@@ -79,18 +85,18 @@ public class SettingLocalizationServiceTests
             ["privacy-child1"] = "Setting_Child1_Name"
         };
 
-        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("privacy-child1"))
-            .Returns("Privacy");
-
-        var childSetting = new SettingDefinition
+        var childSetting = new Setting
         {
             Id = "privacy-child1",
-            Name = "Child Setting 1",
-            Description = "Child desc",
-            GroupName = "Privacy_Group"
+            Display = new Display
+            {
+                Name = "Child Setting 1",
+                Description = "Child desc",
+                GroupName = "Privacy_Group",
+            },
         };
-        _compatibleSettingsRegistry.Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { childSetting });
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<bool>()))
+            .Returns(childSetting);
 
         _localizationService.Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
             .Returns("Warning Header");
@@ -109,18 +115,23 @@ public class SettingLocalizationServiceTests
         result.Should().NotBeNull();
         result.Should().Contain("Warning Header");
         result.Should().Contain("Localized Child");
+        // Pin the group-key construction (feature name + localized group) so a wrong Display field read fails.
+        result.Should().Contain("Privacy & Security (Privacy Group Localized)");
+        // Pin the mode threading: filter ON must query the current-OS scope (includeOtherOsVersions: false).
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", false), Times.Once);
     }
 
     [Fact]
-    public void BuildCrossGroupInfoMessage_WhenFeatureIdNotFound_SkipsSetting()
+    public void BuildCrossGroupInfoMessage_WhenChildNotResolved_SkipsSetting()
     {
         var crossGroupSettings = new Dictionary<string, string>
         {
             ["unknown-child1"] = "Setting_Unknown_Name"
         };
 
-        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("unknown-child1"))
-            .Returns((string?)null);
+        // An id outside the mode-scoped catalog membership resolves to null (was: feature-index miss)
+        _catalogSettingsRegistry.Setup(r => r.GetById("unknown-child1", It.IsAny<bool>()))
+            .Returns((Setting?)null);
 
         var sut = CreateSut();
         var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
@@ -128,5 +139,39 @@ public class SettingLocalizationServiceTests
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void BuildCrossGroupInfoMessage_WhenFilterOff_QueriesOtherOsScope()
+    {
+        var crossGroupSettings = new Dictionary<string, string>
+        {
+            ["privacy-child1"] = "Setting_Child1_Name"
+        };
+
+        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        var childSetting = new Setting
+        {
+            Id = "privacy-child1",
+            Display = new Display
+            {
+                Name = "Child Setting 1",
+                Description = "Child desc",
+                GroupName = "Privacy_Group",
+            },
+        };
+        // Strict on the scope arg: only includeOtherOsVersions: true resolves - a false arg returns
+        // null and fails NotBeNull, so the !IsFilterEnabled threading is load-bearing here.
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", true))
+            .Returns(childSetting);
+
+        var sut = CreateSut();
+        var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
+
+        var result = sut.BuildCrossGroupInfoMessage(setting);
+
+        result.Should().NotBeNull();
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", true), Times.Once);
     }
 }

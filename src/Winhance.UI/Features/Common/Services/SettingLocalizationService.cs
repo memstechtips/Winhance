@@ -15,14 +15,17 @@ namespace Winhance.UI.Features.Common.Services;
 public class SettingLocalizationService : ISettingLocalizationService
 {
     private readonly ILocalizationService _localization;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilter;
 
     public SettingLocalizationService(
         ILocalizationService localization,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry)
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilter)
     {
         _localization = localization;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilter = windowsVersionFilter;
     }
 
     public string? BuildCrossGroupInfoMessage(SettingDefinition setting)
@@ -40,16 +43,18 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             try
             {
-                var featureId = _compatibleSettingsRegistry.GetFeatureIdForSetting(childSettingId);
-                if (featureId == null) continue;
-
-                var filteredSettings = _compatibleSettingsRegistry.GetFilteredSettings(featureId);
-                var childSetting = filteredSettings.FirstOrDefault(s => s.Id == childSettingId);
+                // Slice 7a: one catalog GetById reproduces the old two-step resolve (feature-index hop +
+                // filtered-list scan) - both old skip conditions were exactly "id not in the mode-scoped
+                // membership", which GetById's null covers. The show-other-Windows-versions mode is threaded
+                // explicitly (the old registry read it from its mutable SetFilterEnabled state); none of the
+                // authored cross-group child ids is alias-affected, so Normalize is identity here.
+                var childSetting = _catalogSettingsRegistry.GetById(
+                    childSettingId, includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
                 if (childSetting == null) continue;
 
                 var featureName = GetFeatureName(childSettingId);
-                var groupNameKey = $"SettingGroup_{childSetting.GroupName?.Replace(" ", "_")}";
+                var groupNameKey = $"SettingGroup_{childSetting.Display.GroupName?.Replace(" ", "_")}";
                 var localizedGroupName = _localization.GetString(groupNameKey);
                 var groupKey = $"{featureName} ({localizedGroupName})";
 
