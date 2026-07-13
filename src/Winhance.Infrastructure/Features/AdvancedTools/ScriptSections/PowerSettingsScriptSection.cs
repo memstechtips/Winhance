@@ -232,68 +232,41 @@ internal class PowerSettingsScriptSection
             if (settingDef.Id == SettingIds.PowerPlanSelection)
                 continue;
 
-            // Read metadata from the new catalog Setting when this def has a catalog peer; the live AC/DC
-            // values still come from bulkQueryResults keyed by the (unchanged) powercfg SettingGuid.
-            var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == settingDef.Id);
-            if (catalogSetting != null)
+            // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
+            // keyed by the (unchanged) powercfg SettingGuid. PowerSettingsMetadataEquivalenceTests pinned the
+            // paired reads == the retired def fields. Find alias-normalizes the id, which is identity here:
+            // the 6 SettingIdAliases ids are all explorer This PC folder toggles, so no power setting id is
+            // aliased. An unpaired id has no catalog metadata and is skipped silently (0 unpaired in production).
+            var catalogSetting = SettingCatalog.Find(settingDef.Id);
+            if (catalogSetting == null)
+                continue;
+
+            var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
+            if (powerCfgTargets.Count == 0)
+                continue;
+
+            if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.Battery) && !hasBattery)
+                continue;
+
+            if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.BrightnessSupport))
+                continue;
+
+            foreach (var powerCfgTarget in powerCfgTargets)
             {
-                var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
-                if (powerCfgTargets.Count == 0)
+                if (!bulkQueryResults.TryGetValue(powerCfgTarget.SettingGuid, out var values))
                     continue;
 
-                if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.Battery) && !hasBattery)
+                if (!values.acValue.HasValue || !values.dcValue.HasValue)
                     continue;
 
-                if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.BrightnessSupport))
-                    continue;
-
-                foreach (var powerCfgTarget in powerCfgTargets)
+                powerSettings.Add(new PowerSettingData
                 {
-                    if (!bulkQueryResults.TryGetValue(powerCfgTarget.SettingGuid, out var values))
-                        continue;
-
-                    if (!values.acValue.HasValue || !values.dcValue.HasValue)
-                        continue;
-
-                    powerSettings.Add(new PowerSettingData
-                    {
-                        SubgroupGuid = powerCfgTarget.SubgroupGuid,
-                        SettingGuid = powerCfgTarget.SettingGuid,
-                        AcValue = values.acValue.Value,
-                        DcValue = values.dcValue.Value,
-                        Description = catalogSetting.Display.Description
-                    });
-                }
-            }
-            else
-            {
-                // Unpaired setting: fall back to the old SettingDefinition fields so nothing regresses.
-                if (settingDef.PowerCfgSettings?.Any() != true)
-                    continue;
-
-                if (settingDef.RequiresBattery && !hasBattery)
-                    continue;
-
-                if (settingDef.RequiresBrightnessSupport)
-                    continue;
-
-                foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
-                {
-                    if (!bulkQueryResults.TryGetValue(powerCfgSetting.SettingGuid, out var values))
-                        continue;
-
-                    if (!values.acValue.HasValue || !values.dcValue.HasValue)
-                        continue;
-
-                    powerSettings.Add(new PowerSettingData
-                    {
-                        SubgroupGuid = powerCfgSetting.SubgroupGuid,
-                        SettingGuid = powerCfgSetting.SettingGuid,
-                        AcValue = values.acValue.Value,
-                        DcValue = values.dcValue.Value,
-                        Description = settingDef.Description
-                    });
-                }
+                    SubgroupGuid = powerCfgTarget.SubgroupGuid,
+                    SettingGuid = powerCfgTarget.SettingGuid,
+                    AcValue = values.acValue.Value,
+                    DcValue = values.dcValue.Value,
+                    Description = catalogSetting.Display.Description
+                });
             }
         }
 

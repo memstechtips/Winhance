@@ -240,23 +240,15 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
+        // Slice 7e-4c: the unpaired def fallback is retired, so this fact rides the REAL catalog setting
+        // power-display-timeout (PowerOptimizationsCatalog.cs: subgroup 7516b95f-f776-4464-8c53-06167f40cc99,
+        // setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e, no hardware gate). The def is an INERT id-carrier;
+        // the emitted GUIDs and description come from the catalog Setting, the AC/DC values from the query mock.
         var settingDef = new SettingDefinition
         {
-            Id = "test-power-setting",
-            Name = "Test Power",
-            Description = "A test power setting",
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "sub-guid",
-                    SettingGuid = "setting-guid",
-                    RecommendedValueAC = null,
-                    RecommendedValueDC = null,
-                    DefaultValueAC = null,
-                    DefaultValueDC = null
-                }
-            }
+            Id = "power-display-timeout",
+            Name = "Turn off the display",
+            Description = "inert - the paired emit reads the catalog Setting, not this def"
         };
 
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
@@ -269,7 +261,7 @@ public class PowerSettingsScriptSectionTests
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                { "setting-guid", (10, 5) }
+                { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (10, 5) }
             });
         _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(true);
 
@@ -278,8 +270,10 @@ public class PowerSettingsScriptSectionTests
 
         result.Should().BeTrue();
         var output = sb.ToString();
-        output.Should().Contain("sub-guid");
-        output.Should().Contain("setting-guid");
+        output.Should().Contain("7516b95f-f776-4464-8c53-06167f40cc99");
+        output.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
+        output.Should().Contain("AC=10; DC=5");
+        output.Should().Contain("Specifies the period of inactivity before Windows turns off the display");
         output.Should().Contain("powercfg");
     }
 
@@ -314,29 +308,27 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
+        // Slice 7e-4c: battery gating now reads the catalog Setting's Availability.Hardware, so this fact
+        // rides the REAL battery-gated catalog setting critical-battery-notification
+        // (PowerOptimizationsCatalog.cs: Hardware = [ Battery ], subgroup e73a048d-bf27-4f12-9731-8b2076e8891f,
+        // setting 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f). Both defs are INERT id-carriers; the ungated
+        // power-display-timeout rides along as a control so a dead pipeline cannot pass this test vacuously.
         var batterySettingDef = new SettingDefinition
         {
-            Id = "battery-setting",
-            Name = "Battery",
-            Description = "Requires battery",
-            RequiresBattery = true,
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "battery-sub",
-                    SettingGuid = "battery-set",
-                    RecommendedValueAC = null,
-                    RecommendedValueDC = null,
-                    DefaultValueAC = null,
-                    DefaultValueDC = null
-                }
-            }
+            Id = "critical-battery-notification",
+            Name = "Critical battery notification",
+            Description = "inert - battery gating reads the catalog Setting, not this def"
+        };
+        var controlSettingDef = new SettingDefinition
+        {
+            Id = "power-display-timeout",
+            Name = "Turn off the display",
+            Description = "inert - control setting proving extraction ran"
         };
 
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
         {
-            { FeatureIds.Power, new[] { batterySettingDef } }
+            { FeatureIds.Power, new[] { batterySettingDef, controlSettingDef } }
         };
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -344,24 +336,28 @@ public class PowerSettingsScriptSectionTests
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                { "battery-set", (10, 5) }
+                { "5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f", (10, 5) },
+                { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (20, 15) }
             });
         _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(false);
 
         var sb = new StringBuilder();
         await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
 
-        // The battery setting should be skipped, so the output will only have
-        // the power plan section header but no settings array entries for battery-sub/battery-set
-        sb.ToString().Should().NotContain("battery-sub");
+        // The control setting is emitted; the battery-gated one is skipped. Its GUIDs appear nowhere else
+        // in the section output (they are not in the hardcoded hidden-settings enablement array).
+        var output = sb.ToString();
+        output.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
+        output.Should().NotContain("e73a048d-bf27-4f12-9731-8b2076e8891f");
+        output.Should().NotContain("5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f");
     }
 
     // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - Skips brightness settings
+    // AppendPowerSettingsSectionAsync - Unpaired def id is skipped silently
     // ---------------------------------------------------------------
 
     [Fact]
-    public async Task AppendPowerSettingsSectionAsync_RequiresBrightness_AlwaysSkipped()
+    public async Task AppendPowerSettingsSectionAsync_UnpairedDef_SkippedSilently()
     {
         var config = new UnifiedConfigurationFile
         {
@@ -387,18 +383,24 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
-        var brightnessSettingDef = new SettingDefinition
+        // Slice 7e-4c pin: the unpaired def fallback is retired. This id is NOT in SettingCatalog, yet the
+        // def still carries the old PowerCfgSettings payload and the bulk query has values for its GUID -
+        // under the retired fallback that emitted an entry; now the unpaired id contributes nothing, silently.
+        // (This slot was the RequiresBrightnessSupport fact: the paired BrightnessSupport gate keeps its
+        // production line, but no authored catalog setting declares HardwareRequirement.BrightnessSupport,
+        // so that intent has no real catalog carrier to repoint onto and the fact was reclassified into
+        // this unpaired-skip pin.)
+        var unpairedSettingDef = new SettingDefinition
         {
-            Id = "brightness-setting",
-            Name = "Brightness",
-            Description = "Requires brightness support",
-            RequiresBrightnessSupport = true,
+            Id = "unpaired-power-setting",
+            Name = "Unpaired",
+            Description = "Retired-fallback payload that must no longer be read",
             PowerCfgSettings = new[]
             {
                 new PowerCfgSetting
                 {
-                    SubgroupGuid = "bright-sub",
-                    SettingGuid = "bright-set",
+                    SubgroupGuid = "fake-subgroup-guid",
+                    SettingGuid = "fake-setting-guid",
                     RecommendedValueAC = null,
                     RecommendedValueDC = null,
                     DefaultValueAC = null,
@@ -409,7 +411,7 @@ public class PowerSettingsScriptSectionTests
 
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
         {
-            { FeatureIds.Power, new[] { brightnessSettingDef } }
+            { FeatureIds.Power, new[] { unpairedSettingDef } }
         };
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -417,13 +419,15 @@ public class PowerSettingsScriptSectionTests
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                { "bright-set", (50, 30) }
+                { "fake-setting-guid", (50, 30) }
             });
         _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(true);
 
         var sb = new StringBuilder();
         await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
 
-        sb.ToString().Should().NotContain("bright-sub");
+        var output = sb.ToString();
+        output.Should().NotContain("fake-subgroup-guid");
+        output.Should().NotContain("fake-setting-guid");
     }
 }

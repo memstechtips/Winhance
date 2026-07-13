@@ -158,13 +158,17 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithPowerSettings_ContainsPowerCfgCommands()
     {
-        // Arrange
-        var powerItem = TestSettingFactory.CreateSelectionItem("power1", "Sleep Timeout",
+        // Arrange - Slice 7e-4c: the unpaired def fallback in PowerSettingsScriptSection is retired, so
+        // the fixture rides the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
+        // subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e,
+        // no hardware gate). The def is an INERT id-carrier; the paired emit reads the catalog
+        // PowerCfgTarget GUIDs and takes the AC/DC values from the bulk query mock.
+        var powerItem = TestSettingFactory.CreateSelectionItem("power-display-timeout", "Turn off the display",
             selectedIndex: 1,
             powerSettings: new Dictionary<string, object>
             {
-                ["SubgroupGuid"] = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
-                ["SettingGuid"] = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+                ["SubgroupGuid"] = "7516b95f-f776-4464-8c53-06167f40cc99",
+                ["SettingGuid"] = "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
                 ["AcValue"] = 1800,
                 ["DcValue"] = 900,
             });
@@ -178,40 +182,30 @@ public class ScriptBuilderTests
 
         var powerSettingDef = new SettingDefinition
         {
-            Id = "power1",
-            Name = "Sleep Timeout",
-            Description = "Sleep timeout setting",
+            Id = "power-display-timeout",
+            Name = "Turn off the display",
+            Description = "inert - the paired emit reads the catalog Setting, not this def",
             InputType = InputType.Selection,
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
-                    SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
-                    DefaultValueAC = 0,
-                    DefaultValueDC = 0,
-                    RecommendedValueAC = 1800,
-                    RecommendedValueDC = 900,
-                },
-            },
         };
         var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
         {
             ["Power"] = new[] { powerSettingDef },
         };
 
-        // Set up mock to return AC/DC values for the setting GUID
+        // Set up mock to return AC/DC values for the catalog setting GUID
         _powerSettingsQuery
             .Setup(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                ["29f6c1db-86da-48c5-9fdb-f2b67b1f44da"] = (1800, 900),
+                ["3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e"] = (1800, 900),
             });
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
+        // Assert - the emitted entry carries the catalog PowerCfgTarget GUIDs
         script.Should().Contain("powercfg");
+        script.Should().Contain("7516b95f-f776-4464-8c53-06167f40cc99");
+        script.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
     }
 }
