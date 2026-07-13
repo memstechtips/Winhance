@@ -644,22 +644,15 @@ public class RegistryCommandEmitterTests
     public void AppendSelectionCommandsFiltered_WithCustomStateValues_AppliesValues()
     {
         var sb = new StringBuilder();
-        var setting = CreateSettingDefinition("test-selection", "Test Selection", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = "HKEY_LOCAL_MACHINE\\Software\\Test",
-                ValueName = "SelVal",
-                ValueType = RegistryValueKind.DWord,
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4a: the unpaired ApplyResolvedValues fallback is gone, so the fixture pairs to a REAL
+        // catalog selection (registry DWORD target "Start"; custom value 3 avoids its LockWhenValue=4 wrap)
+        // and the def is INERT (id-carrier only) - a regression that reads the def emits nothing and fails.
+        var setting = CreateSettingDefinition("gaming-touch-keyboard-service", "Touch Keyboard", Array.Empty<RegistrySetting>());
         var configItem = new ConfigurationItem
         {
-            Id = "test-selection",
+            Id = "gaming-touch-keyboard-service",
             InputType = InputType.Selection,
-            CustomStateValues = new Dictionary<string, object> { { "SelVal", 3 } }
+            CustomStateValues = new Dictionary<string, object> { { "Start", 3 } }
         };
 
         _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
@@ -784,23 +777,15 @@ public class RegistryCommandEmitterTests
     public void AppendSelectionCommandsFiltered_ApplyPerMonitor_WrapsInForEachObject()
     {
         var sb = new StringBuilder();
-        var setting = CreateSettingDefinition("test-monitor-sel", "Monitor Selection", new[]
-        {
-            new RegistrySetting
-            {
-                KeyPath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\MonitorDataStore",
-                ValueName = "SomeValue",
-                ValueType = RegistryValueKind.DWord,
-                ApplyPerMonitor = true,
-                RecommendedValue = null,
-                DefaultValue = null
-            }
-        });
+        // Slice 7e-4a: repointed onto the REAL PerMonitor catalog selection (gaming-auto-color-management,
+        // RegTarget PerMonitor=true) - the per-subkey wrap now comes from ApplyResolvedValuesFromCatalog's
+        // rt.PerMonitor handling; the def fixture is INERT (id-carrier only).
+        var setting = CreateSettingDefinition("gaming-auto-color-management", "Auto Color Management", Array.Empty<RegistrySetting>());
         var configItem = new ConfigurationItem
         {
-            Id = "test-monitor-sel",
+            Id = "gaming-auto-color-management",
             InputType = InputType.Selection,
-            CustomStateValues = new Dictionary<string, object> { { "SomeValue", 1 } }
+            CustomStateValues = new Dictionary<string, object> { { "AutoColorManagementEnabled", 1 } }
         };
 
         _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);

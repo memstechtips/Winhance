@@ -572,15 +572,14 @@ internal class RegistryCommandEmitter
             return;
         }
 
-        // Phase 6.8 F2a: route the emission through the new catalog model (Targets) for paired settings.
-        // ApplyResolvedValuesFromCatalog is byte-equivalent to ApplyResolvedValues - proven by
-        // ScriptGenApplyResolvedEquivalenceTests (750 setting/index/hive tuples, 0 mismatches). Unpaired settings
-        // (none exist among selections-with-ValueMappings - ScriptGenSelectionResolveEquivalenceTests enforces that)
-        // fall back to the old emitter.
+        // Phase 6.8 F2a: the emission routes through the new catalog model (Targets).
+        // ApplyResolvedValuesFromCatalog is byte-equivalent to the old ApplyResolvedValues - proven by
+        // ScriptGenApplyResolvedEquivalenceTests (750 setting/index/hive tuples, 0 mismatches). Slice 7e-4a
+        // deleted the unpaired fallback: no selection with ValueMappings is unpaired
+        // (ScriptGenSelectionResolveEquivalenceTests enforces 0) and an unpaired custom-state id is not a
+        // shipped setting - skip silently, the same unknown-id semantics the config-load path uses.
         if (catalogSetting != null)
             ApplyResolvedValuesFromCatalog(sb, catalogSetting, valuesToApply, isHkcu, indent);
-        else
-            ApplyResolvedValues(sb, setting, valuesToApply, isHkcu, indent);
     }
 
     /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the
