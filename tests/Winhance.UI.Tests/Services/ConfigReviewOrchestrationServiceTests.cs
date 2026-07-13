@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -22,7 +23,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IConfigAppSelectionService> _mockConfigAppSelectionService = new();
     private readonly Mock<IConfigApplicationExecutionService> _mockConfigExecutionService = new();
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilter = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
@@ -59,7 +60,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockConfigAppSelectionService.Object,
             _mockConfigExecutionService.Object,
             _mockConfigLoadService.Object,
-            _mockCompatibleSettingsRegistry.Object,
+            _mockWindowsVersionFilter.Object,
             _mockEventBus.Object,
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
@@ -237,7 +238,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task EnterReviewModeAsync_ForcesFilterEnabled()
+    public async Task EnterReviewModeAsync_ForcesLegacyRegistryFilterOn()
     {
         var config = new UnifiedConfigurationFile();
 
@@ -248,7 +249,32 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(true), Times.Once);
+        // Slice 7g: the "silent early force" goes through the mode owner's transitional facade.
+        _mockWindowsVersionFilter.Verify(f => f.SetLegacyRegistryFilter(true), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_WhenEntryFails_ResyncsLegacyFlagToLiveFilterState()
+    {
+        var config = new UnifiedConfigurationFile();
+
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Returns(new List<string>());
+
+        _mockConfigReviewModeService
+            .Setup(s => s.EnterReviewModeAsync(It.IsAny<UnifiedConfigurationFile>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("entry failed"));
+
+        // The user's live mode is filter OFF: a failed entry must not leave the legacy flag
+        // stranded forced-ON (the pre-existing stale-flag bug the 7f review traced).
+        _mockWindowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        _mockConfigReviewModeService.Verify(s => s.ExitReviewMode(), Times.Once);
+        _mockWindowsVersionFilter.Verify(f => f.SetLegacyRegistryFilter(false), Times.Once);
     }
 
     [Fact]
@@ -264,7 +290,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         await service.EnterReviewModeAsync(config);
 
         _mockConfigReviewModeService.Verify(
-            r => r.EnterReviewModeAsync(config),
+            r => r.EnterReviewModeAsync(config, false),
             Times.Once);
     }
 

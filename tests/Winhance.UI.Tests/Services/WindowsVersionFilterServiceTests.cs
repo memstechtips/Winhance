@@ -724,4 +724,30 @@ public class WindowsVersionFilterServiceTests
             p => p.SetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, true),
             Times.Once);
     }
+
+    // -------------------------------------------------------
+    // SetLegacyRegistryFilter (Slice 7g transitional facade)
+    // -------------------------------------------------------
+
+    [Fact]
+    public void SetLegacyRegistryFilter_WritesLegacyFlag_EventlesslyAndWithoutTouchingState()
+    {
+        var service = CreateService();
+        service.IsFilterEnabled.Should().BeTrue();
+
+        bool eventFired = false;
+        service.FilterStateChanged += (_, _) => eventFired = true;
+
+        // Write the OPPOSITE of IsFilterEnabled so any state/flag conflation would be visible.
+        service.SetLegacyRegistryFilter(false);
+
+        // The legacy registry flag is written verbatim...
+        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(false), Times.Once);
+        // ...but the mode state and BOTH event channels stay untouched (the "silent" contract:
+        // review entry must not refresh pages mid-entry, and the later ForceFilterOn transition
+        // must remain a real transition rather than a no-op).
+        service.IsFilterEnabled.Should().BeTrue();
+        eventFired.Should().BeFalse();
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
+    }
 }

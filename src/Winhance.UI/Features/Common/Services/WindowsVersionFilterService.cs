@@ -147,6 +147,16 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
     }
 
     /// <inheritdoc />
+    public void SetLegacyRegistryFilter(bool enabled)
+    {
+        // Deliberately eventless: does NOT touch IsFilterEnabled, publish FilterStateChangedEvent,
+        // or fire FilterStateChanged. The review-entry "silent early force" must not refresh pages
+        // mid-entry, and must leave the later ForceFilterOn transition (which carries the
+        // page-refresh events) a real transition instead of a no-op.
+        _compatibleSettingsRegistry.SetFilterEnabled(enabled);
+    }
+
+    /// <inheritdoc />
     public async Task RestoreFilterPreferenceAsync()
     {
         var savedPreference = await _preferencesService.GetPreferenceAsync(
