@@ -191,6 +191,10 @@ public class ScriptGenPowerShellEquivalenceTests
             $"{compared.Count} comparisons, {mismatches.Count} mismatches | "
             + $"toggles=[{string.Join(", ", toggles)}] selections=[{string.Join(", ", selections)}] "
             + $"actionsSkipped=[{string.Join(", ", actionsSkipped)}] unpaired={unpaired} buildGated={buildGated}");
+
+        // 7e-5 review hardening: the production def script fallback is GONE, so an unpaired script-bearing
+        // setting would silently drop its scripts - pin zero-unpaired so a future de-pairing fails RED here.
+        Assert.True(unpaired == 0, $"{unpaired} script-bearing settings are catalog-unpaired - their scripts would silently drop");
         foreach (var m in mismatches)
             _output.WriteLine(m);
 

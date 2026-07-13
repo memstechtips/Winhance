@@ -18,10 +18,11 @@ namespace Winhance.UI.Tests.Services;
 /// AutounattendScriptBuilder. Directly exercises BuildWinhancementsScriptAsync and inspects
 /// the generated PowerShell to assert which block (SYSTEM or user) each payload lands in.
 /// Slice 7e-4b: the script-gen presence gates are catalog-only (an unpaired id contributes no presence
-/// and its feature section is skipped), so every fixture pairs to a REAL catalog id. Each def fixture
-/// carries only the payload its exercised path still reads: nothing but the id for catalog-driven
-/// emits (INERT id-carrier), or the setting's REAL PowerShellScripts for the surviving def-fallback
-/// (a Selection with no SelectedIndex).
+/// and its feature section is skipped), so every fixture pairs to a REAL catalog id. Slice 7e-5: the
+/// script emit is catalog-ALWAYS (a Selection with no SelectedIndex now reads the un-baked catalog
+/// Setting.CustomStateScripts - the last def-reading fallback is gone), so every def fixture is an
+/// INERT id-carrier (no payload); each asserted script string below is the CATALOG-sourced bytes,
+/// byte-pinned to the old defs by CustomStateScriptsConformanceTests.
 /// </summary>
 public class AutounattendScriptBuilderRoutingTests
 {
@@ -145,23 +146,18 @@ public class AutounattendScriptBuilderRoutingTests
     [Fact]
     public async Task PowerShellScript_DefaultsToSystemRunContext()
     {
-        // The def-fallback script pass is still live for a Selection with no SelectedIndex (no catalog
-        // state to resolve), so this pairs to the REAL catalog selection gaming-touch-keyboard-service and
-        // the def carries that setting's REAL EnabledScript - whose PowerShellScriptSetting omits
-        // RunContext in production, exercising the defaults-to-System routing on real payload. IsSelected
-        // routes the old emitter to the EnabledScript; the DisabledScript is not read on this path and is
-        // omitted per the minimal-fixture rule.
+        // Slice 7e-5: a Selection with no SelectedIndex + IsSelected routes to the catalog CUSTOM-state
+        // path (AppendCustomStateScriptsFromCatalog), which reads gaming-touch-keyboard-service's un-baked
+        // Setting.CustomStateScripts - authored RunContext.System because the production def OMITS
+        // RunContext (PowerShellScriptSetting defaults to System; the converter carries that default into
+        // the catalog). The def is an INERT id-carrier; the asserted text below is the catalog script body,
+        // byte-pinned to the def's raw EnabledScript by CustomStateScriptsConformanceTests.
         var def = new SettingDefinition
         {
             Id = "gaming-touch-keyboard-service",
             Name = "Touch Keyboard and Handwriting Panel Service",
             Description = "Touch keyboard service",
             InputType = InputType.Selection,
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                // RunContext intentionally omitted, mirroring the production def - defaults to System.
-                new() { EnabledScript = @"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue" },
-            },
         };
         var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Selection, IsSelected = true };
         var builder = CreateBuilder(out _);
@@ -181,31 +177,15 @@ public class AutounattendScriptBuilderRoutingTests
 
     private static SettingDefinition DnsServerDefinition() => new()
     {
-        // Slice 7e-4b: the REAL gaming-dns-server def payload. PowerShellScripts is the one field the
-        // surviving def-fallback path (a Selection with no SelectedIndex) still reads, so it carries the
-        // production scripts verbatim; the old ComboBox presets live converter-baked in the catalog States
-        // and no exercised path reads a def ComboBox anymore.
+        // Slice 7e-5: INERT id-carrier (no payload). Both DNS script shapes read the CATALOG now - a
+        // Selection WITH an index reads the option state's converter-BAKED ScriptEffects, and one with NO
+        // index (a "Custom" DNS) reads the un-baked Setting.CustomStateScripts; the asserted strings in the
+        // facts below are catalog-sourced bytes (byte-pinned to the old def scripts by
+        // CustomStateScriptsConformanceTests).
         Id = "gaming-dns-server",
         Name = "DNS Server",
         Description = "DNS test",
         InputType = InputType.Selection,
-        PowerShellScripts = new List<PowerShellScriptSetting>
-        {
-            new()
-            {
-                EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
-                DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
-                RequiresElevation = true,
-                RunContext = RunContext.User,
-            },
-            new()
-            {
-                EnabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
-                DisabledScript = @"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }",
-                RequiresElevation = true,
-                RunContext = RunContext.User,
-            },
-        },
     };
 
     [Fact]
@@ -232,10 +212,11 @@ public class AutounattendScriptBuilderRoutingTests
     public async Task DnsCustomState_SubstitutesFromCustomStateValues_AndDoesNotEmitReset()
     {
         // A "Custom" DNS entry matches no preset option, so SelectedIndex stays null and the script pass
-        // takes the def-fallback (old emitter): the fixture's REAL EnabledScripts are emitted with
-        // CustomStateValues substituted. The second real script's {{dohtemplate}} placeholder
-        // intentionally survives substitution (its runtime guard treats a literal {{...}} as absent), so
-        // only {{primary}} is asserted substituted - no blanket NotContain on "{{".
+        // takes the catalog CUSTOM-state path (Slice 7e-5, AppendCustomStateScriptsFromCatalog): the
+        // un-baked catalog CustomStateScripts are emitted with CustomStateValues substituted. The second
+        // script's {{dohtemplate}} placeholder intentionally survives substitution (its runtime guard
+        // treats a literal {{...}} as absent), so only {{primary}} is asserted substituted - no blanket
+        // NotContain on "{{".
         var def = DnsServerDefinition();
         var item = new ConfigurationItem
         {

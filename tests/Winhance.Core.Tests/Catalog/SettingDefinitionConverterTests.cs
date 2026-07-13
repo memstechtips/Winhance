@@ -332,6 +332,76 @@ public class SettingDefinitionConverterTests
         var s = SettingDefinitionConverter.ConvertSelection(def);
         var effect = Assert.IsType<ScriptEffect>(Assert.Single(s.States.Single(x => x.Label == "Cloudflare").Effects));
         Assert.Equal("set 1.1.1.1 now", effect.Script);
+
+        // Slice 7e-5: alongside the per-state BAKED effect, the setting carries the same script UN-BAKED (raw
+        // EnabledScript, placeholder intact) as its custom-state script - the autounattend "Custom" (no
+        // SelectedIndex) path substitutes runtime CustomStateValues into it instead of the option's presets.
+        var custom = Assert.Single(s.CustomStateScripts);
+        Assert.Equal("set {{ip}} now", custom.Script);
+        Assert.Equal(RunContext.System, custom.Run);
+    }
+
+    [Fact]
+    public void Selection_custom_state_scripts_carry_all_raw_enabled_scripts_in_source_order()
+    {
+        // Two shared script bodies (mirrors gaming-dns-server's shape): CustomStateScripts must carry BOTH raw
+        // EnabledScripts in def.PowerShellScripts order with their RunContexts - never the DisabledScript, and
+        // never baked (the {{p}} placeholder survives).
+        var def = new SettingDefinition
+        {
+            Id = "s", Name = "n", Description = "d", InputType = InputType.Selection,
+            RegistrySettings = new[]
+            {
+                new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
+            },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "SET {{p}}", DisabledScript = "RESET", RunContext = RunContext.User },
+                new PowerShellScriptSetting { EnabledScript = "DOH {{t}}", DisabledScript = "DOHCLEAR", RunContext = RunContext.System },
+            },
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new ComboBoxOption { DisplayName = "On", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 1 }, Script = ScriptOption.Enabled, ScriptVariables = new Dictionary<string, string> { ["p"] = "1.1.1.1" } },
+                },
+            },
+        };
+
+        var s = SettingDefinitionConverter.ConvertSelection(def);
+
+        Assert.Equal(2, s.CustomStateScripts.Count);
+        Assert.Equal(new ScriptEffect("SET {{p}}", RunContext.User), s.CustomStateScripts[0]);
+        Assert.Equal(new ScriptEffect("DOH {{t}}", RunContext.System), s.CustomStateScripts[1]);
+    }
+
+    [Fact]
+    public void Selection_without_scripts_has_empty_custom_state_scripts()
+    {
+        var def = SelectionDef(
+            resolveUnmatched: false,
+            new RegistrySetting { KeyPath = @"HKLM\E", ValueName = "Mode", RecommendedValue = null, DefaultValue = null, ValueType = RegistryValueKind.DWord },
+            new ComboBoxOption { DisplayName = "A", ValueMappings = new Dictionary<string, object?> { ["Mode"] = 0 }, IsDefault = true });
+
+        Assert.Empty(SettingDefinitionConverter.ConvertSelection(def).CustomStateScripts);
+    }
+
+    [Fact]
+    public void Toggle_does_not_populate_custom_state_scripts()
+    {
+        // The custom-state script home is a SELECTION concern (a toggle config item always resolves a state);
+        // ConvertToggle leaves the field at its empty default even for a script-bearing toggle.
+        var def = new SettingDefinition
+        {
+            Id = "t", Name = "n", Description = "d", InputType = InputType.Toggle,
+            RegistrySettings = new[] { Reg() },
+            PowerShellScripts = new[]
+            {
+                new PowerShellScriptSetting { EnabledScript = "ON", DisabledScript = "OFF", RunContext = RunContext.System },
+            },
+        };
+
+        Assert.Empty(SettingDefinitionConverter.ConvertToggle(def).CustomStateScripts);
     }
 
     [Fact]
@@ -485,6 +555,9 @@ public class SettingDefinitionConverterTests
         Assert.Equal(RunContext.User, hideEffect.Run);
         Assert.Empty(s.States.Single(x => x.Label == "Custom").Effects);
 
+        // Slice 7e-5: the detector-selection path also carries the raw custom-state script home.
+        Assert.Equal(new ScriptEffect("SHOW-ALL", RunContext.User), Assert.Single(s.CustomStateScripts));
+
         var keys = new[] { "a", "b", "c" };
         // all promoted -> the Script.Enabled label; none -> the Script.Disabled label; mixed -> Custom.
         Assert.Equal("Show all icons", CatalogDiscovery.DetectState(s, new TrayCtx(keys, promoted: 3)));
@@ -608,6 +681,13 @@ public class SettingDefinitionConverterTests
         var googleEffects = s.States.Single(x => x.Label == "Google").Effects;
         Assert.Equal("SET 8.8.8.8 8.8.4.4", Assert.IsType<ScriptEffect>(googleEffects[0]).Script);
         Assert.Equal("DOH t={{dohtemplate}} p=8.8.8.8 s=8.8.4.4", Assert.IsType<ScriptEffect>(googleEffects[1]).Script);
+
+        // Slice 7e-5: the custom-state script home carries BOTH raw EnabledScripts fully UN-BAKED (every
+        // placeholder intact) in source order - the autounattend "Custom DNS" path substitutes the user's
+        // CustomStateValues into these, not any option's presets.
+        Assert.Equal(2, s.CustomStateScripts.Count);
+        Assert.Equal(new ScriptEffect("SET {{primary}} {{secondary}}", RunContext.User), s.CustomStateScripts[0]);
+        Assert.Equal(new ScriptEffect("DOH t={{dohtemplate}} p={{primary}} s={{secondary}}", RunContext.User), s.CustomStateScripts[1]);
     }
 
     private static SettingDefinition StartMenuDef(string id) =>

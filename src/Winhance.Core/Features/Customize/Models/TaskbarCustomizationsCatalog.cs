@@ -636,6 +636,7 @@ public static class TaskbarCustomizationsCatalog
                 new SettingState { Label = "Hide all icons", Effects = new Effect[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 1 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }", RunContext.User) } },
                 new SettingState { Label = "Custom", Roles = new[] { StateRole.WindowsDefault } },
             },
+            CustomStateScripts = new[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 0 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }", RunContext.User) },
             Detector = new SystemTrayDetector("Show all icons", "Hide all icons"),
         },
         new()

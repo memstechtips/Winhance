@@ -26,6 +26,7 @@ public static class SettingStructuralComparer
         DiffTargets(a.Targets, b.Targets, d);
         DiffStates(a.States, b.States, d);
         DiffEffects(a.Effects, b.Effects, d);
+        DiffCustomStateScripts(a.CustomStateScripts, b.CustomStateScripts, d);
         DiffNumeric(a.Numeric, b.Numeric, d);
 
         return d;
@@ -171,6 +172,17 @@ public static class SettingStructuralComparer
                 d.Add($"Effects[{i}] differs");
             }
         }
+    }
+
+    /// <summary>Compares the un-baked custom-state script list (Slice 7e-5) per index. ScriptEffect's members are
+    /// all scalar (string Script + RunContext Run - no collection member), so record equality IS structural here,
+    /// exactly as in <see cref="DiffEffects"/>' non-registry arm.</summary>
+    private static void DiffCustomStateScripts(IReadOnlyList<ScriptEffect> a, IReadOnlyList<ScriptEffect> b, List<string> d)
+    {
+        if (a.Count != b.Count) { d.Add($"CustomStateScripts count {a.Count} != {b.Count}"); return; }
+        for (int i = 0; i < a.Count; i++)
+            if (!a[i].Equals(b[i]))
+                d.Add($"CustomStateScripts[{i}] differs");
     }
 
     private static void DiffControls(IReadOnlyDictionary<string, string>? a, IReadOnlyDictionary<string, string>? b, int i, List<string> d)

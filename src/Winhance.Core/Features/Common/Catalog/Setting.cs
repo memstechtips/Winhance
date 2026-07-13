@@ -24,6 +24,15 @@ public sealed record Setting
     /// detected setting - toggles/selections carry their effects per-state on SettingState.Effects.</summary>
     public IReadOnlyList<Effect> Effects { get; init; } = System.Array.Empty<Effect>();
 
+    /// <summary>The UN-BAKED setting-level scripts (placeholders like <c>{{primary}}</c> intact, source order)
+    /// that the autounattend script-gen CUSTOM state runs with the config item's CustomStateValues substituted -
+    /// the catalog home of what the old emitter read off SettingDefinition.PowerShellScripts for a Selection with
+    /// no SelectedIndex (a "Custom" value matching no preset option, so no state's baked ScriptEffects apply).
+    /// Converter-sourced from ALL of def.PowerShellScripts, each as (EnabledScript raw + RunContext); only the
+    /// script-bearing Selections carry any. (The old PowerShellScriptSetting.RequiresElevation flag is never read
+    /// by the emit, so it is deliberately not modelled.)</summary>
+    public IReadOnlyList<ScriptEffect> CustomStateScripts { get; init; } = System.Array.Empty<ScriptEffect>();
+
     public IStateDetector? Detector { get; init; }
 
     /// <summary>Set when this setting's options are produced at runtime (e.g. the installed power plans) rather

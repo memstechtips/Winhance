@@ -131,6 +131,7 @@ public static class SettingDefinitionConverter
             UiParentId = def.ParentSettingId,
             Targets = targets.Cast<Target>().ToList(),
             States = WithLinks(states, BuildLinks(def)),
+            CustomStateScripts = BuildCustomStateScripts(def),
         };
     }
 
@@ -205,6 +206,7 @@ public static class SettingDefinitionConverter
                 Roles = RolesForOption(o),
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
+            CustomStateScripts = BuildCustomStateScripts(def),
             Detector = new SystemTrayDetector(showAll, hideAll),
         };
     }
@@ -288,6 +290,7 @@ public static class SettingDefinitionConverter
                 Roles = RolesForOption(o),
                 Effects = BuildSelectionOptionEffects(def, o),
             }).ToList(), BuildLinks(def)),
+            CustomStateScripts = BuildCustomStateScripts(def),
             Detector = new DnsServerDetector(automaticLabel, primaryIpToLabel),
         };
     }
@@ -713,6 +716,23 @@ public static class SettingDefinitionConverter
         }
 
         return effects;
+    }
+
+    /// <summary>Builds the UN-BAKED custom-state script list (Slice 7e-5) for a selection: ALL of
+    /// def.PowerShellScripts in source order, each as its raw EnabledScript (placeholders like <c>{{primary}}</c>
+    /// left intact - NO ScriptVariables baking) + RunContext. This is the catalog home of what the old autounattend
+    /// emitter read for a Selection with no SelectedIndex (a "Custom" value matching no preset option): its
+    /// hasCustomState/IsSelected path runs the EnabledScript with only the runtime CustomStateValues substituted.
+    /// Used by EVERY selection converter path that models a ComboBox (ConvertSelection - and via it
+    /// ConvertUpdatePolicy - plus ConvertSystemTray and ConvertDnsServer); ConvertPowerCfg's selections carry no
+    /// PowerShellScripts, so they never populate this. A null EnabledScript maps to an empty body (the emit skips
+    /// empties, matching the old IsNullOrEmpty guard); no shipped selection script has one.</summary>
+    private static IReadOnlyList<ScriptEffect> BuildCustomStateScripts(SettingDefinition def)
+    {
+        var scripts = new List<ScriptEffect>(def.PowerShellScripts.Count);
+        foreach (var ps in def.PowerShellScripts)
+            scripts.Add(new ScriptEffect(ps.EnabledScript ?? string.Empty, ps.RunContext));
+        return scripts;
     }
 
     /// <summary>Substitutes a selection option's <c>{{key}}</c> placeholders into a script body, matching the old

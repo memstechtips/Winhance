@@ -188,25 +188,26 @@ internal class FeatureRegistryScriptSection
                     }
                 }
 
-                // Emit PowerShell scripts whose RunContext matches the current pass.
-                // Phase 6.8 F3: route paired settings WITH states (toggle/selection) through the new catalog script
-                // emitter (AppendPowerShellScriptsFromCatalog - proven byte-equivalent by
-                // ScriptGenPowerShellEquivalenceTests). Action settings (Effects-modeled, no States) and unpaired
-                // settings stay on the old emitter, which reads settingDef.PowerShellScripts. EXCEPTION: a Selection with
-                // NO SelectedIndex (a "Custom" value matching no preset option) has no catalog state to resolve - the old
-                // emitter's hasCustomState path emits the un-baked EnabledScript, which the new state-mirror cannot
-                // reproduce - so route that case to the old emitter too (byte-faithful via AppendPowerShellScripts).
-                // A paired Action already emitted its scripts via AppendActionCommandsFromCatalog above; don't re-emit.
-                if (!actionHandledByCatalog)
+                // Emit PowerShell scripts whose RunContext matches the current pass. Catalog-always since Slice
+                // 7e-5: a paired Selection with NO SelectedIndex (a "Custom" value matching no preset option)
+                // routes to the custom-state emitter (AppendCustomStateScriptsFromCatalog, reading the un-baked
+                // Setting.CustomStateScripts - byte-equal to the old def emitter over every intent-expressing
+                // shape per ScriptGenCustomStateEquivalenceTests, which also pins the DELIBERATE no-intent DELTA:
+                // old fell through to the DisabledScript, new emits nothing). Every other paired setting WITH
+                // states (toggle / selection-with-index) stays on AppendPowerShellScriptsFromCatalog (proven
+                // byte-equivalent by ScriptGenPowerShellEquivalenceTests). A paired setting with NO states
+                // (slider / power-plan; a paired Action set actionHandledByCatalog above) has no state scripts -
+                // emitting nothing matches the old emitter over its script-less def. An UNPAIRED id (none in
+                // production - the equivalence tests assert zero unpaired selections) emits nothing, keeping the
+                // 7e-4b/4c unpaired->skip semantics; the def-fallback else is gone. AppendPowerShellScripts
+                // survives as the equivalence ORACLE only (ScriptGenPowerShell/Action/CustomState suites).
+                if (!actionHandledByCatalog && catalogItem != null)
                 {
-                    bool isSelection = catalogItem != null
-                        ? catalogItem.Control == ControlKind.Selection
-                        : configItem.InputType == InputType.Selection;
-                    bool selectionWithoutIndex = isSelection && !configItem.SelectedIndex.HasValue;
-                    if (catalogItem != null && catalogItem.States.Count > 0 && !selectionWithoutIndex)
+                    bool selectionWithoutIndex = catalogItem.Control == ControlKind.Selection && !configItem.SelectedIndex.HasValue;
+                    if (selectionWithoutIndex)
+                        AppendCustomStateScriptsFromCatalog(sb, catalogItem, configItem, isHkcu, indent);
+                    else if (catalogItem.States.Count > 0)
                         AppendPowerShellScriptsFromCatalog(sb, catalogItem, configItem, isHkcu, indent);
-                    else
-                        AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
                 }
 
             }
@@ -270,9 +271,12 @@ internal class FeatureRegistryScriptSection
 
     /// <summary>Emits the PowerShell-script blocks for a setting whose RunContext matches the current hive pass.
     /// Behaviour-preserving extraction of the old in-loop block (Phase 6.8 F3): scripts are sourced from
-    /// <see cref="SettingDefinition.PowerShellScripts"/> and the old ComboBox options. The new-catalog mirror is
-    /// <see cref="AppendPowerShellScriptsFromCatalog"/>, which is proven byte-equivalent by
-    /// ScriptGenPowerShellEquivalenceTests.</summary>
+    /// <see cref="SettingDefinition.PowerShellScripts"/> and the old ComboBox options. ORACLE ONLY since Slice
+    /// 7e-5 - no production call site remains (the loop above is catalog-always); it survives as the OLD side of
+    /// the byte-equivalence facts (ScriptGenPowerShellEquivalenceTests / ScriptGenActionEquivalenceTests /
+    /// ScriptGenCustomStateEquivalenceTests) and is deleted with SettingDefinition in Plan 4. The new-catalog
+    /// mirrors are <see cref="AppendPowerShellScriptsFromCatalog"/> (state-resolved shapes) and
+    /// <see cref="AppendCustomStateScriptsFromCatalog"/> (the Selection-without-index "Custom" shape).</summary>
     internal void AppendPowerShellScripts(
         StringBuilder sb,
         SettingDefinition settingDef,
@@ -380,10 +384,10 @@ internal class FeatureRegistryScriptSection
     /// baked each option's preset ScriptVariables into <see cref="ScriptEffect.Script"/> and placed the correct
     /// Enabled/Disabled/None script on the right state, so only the runtime CustomStateValues pass is re-applied here.
     /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option) has no
-    /// catalog state to resolve, so this emits nothing - whereas the old emitter's hasCustomState path emits the
-    /// un-baked EnabledScript. The production loop therefore routes Selection-without-index back to
-    /// <see cref="AppendPowerShellScripts"/> rather than here. Equivalence (for the routed-here cases) is pinned by
-    /// ScriptGenPowerShellEquivalenceTests.</summary>
+    /// catalog state to resolve, so this emits nothing - that shape needs the UN-BAKED scripts. The production
+    /// loop therefore routes Selection-without-index to <see cref="AppendCustomStateScriptsFromCatalog"/> (Slice
+    /// 7e-5, reading Setting.CustomStateScripts) rather than here. Equivalence (for the routed-here cases) is
+    /// pinned by ScriptGenPowerShellEquivalenceTests.</summary>
     internal void AppendPowerShellScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -433,6 +437,97 @@ internal class FeatureRegistryScriptSection
                     {
                         script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString() ?? string.Empty);
                     }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
+    }
+
+    /// <summary>Slice 7e-5: new-catalog home of the LAST def-reading script emit - the "Custom" Selection shape
+    /// (no SelectedIndex: the persisted value matched no preset option, so no catalog state's baked ScriptEffects
+    /// apply). Emits from <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the
+    /// UN-BAKED raw EnabledScripts + RunContext, byte-pinned to the old def.PowerShellScripts by
+    /// CustomStateScriptsConformanceTests) exactly as the old <see cref="AppendPowerShellScripts"/> served this
+    /// shape: per-entry hive filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() ||
+    /// IsSelected == true, then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge,
+    /// null values skipped, ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive -
+    /// there is no SelectedIndex, so no option ScriptVariables source exists), then the identical emit block.
+    /// Byte-equal to the old emitter over every reachable custom shape (both hives) per
+    /// ScriptGenCustomStateEquivalenceTests.
+    ///
+    /// *** BOUNDED DELTA (deliberate, orchestrator-decided) ***: when useEnabled is FALSE (no CustomStateValues
+    /// AND IsSelected != true) this emits NOTHING, where the old emitter fell through to the DisabledScript. That
+    /// fall-through was incidental - a config item carrying NO index, NO custom values and NO selection expresses
+    /// no intent, and emitting a Disabled/RESET script for it (e.g. resetting the user's DNS to automatic) is the
+    /// riskier behavior. The delta is pinned deliberately (old emits the Disabled block, new emits nothing) by
+    /// ScriptGenCustomStateEquivalenceTests.BoundedDelta_NoIntentShape_OldEmitsDisabledScript_NewEmitsNothing.</summary>
+    internal void AppendCustomStateScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Custom state (user-entered values) always counts as "enabled" - the user picking Custom DNS is
+        // expressing intent to configure, not to reset. Same rule (and same loop-invariant evaluation) as the
+        // old emitter's hasCustomState/IsSelected path.
+        bool useEnabled = configItem.CustomStateValues?.Any() == true || configItem.IsSelected == true;
+
+        // The BOUNDED DELTA documented above: a no-intent shape emits nothing (old: DisabledScript fall-through).
+        if (!useEnabled)
+        {
+            return;
+        }
+
+        foreach (var scriptEffect in catalogSetting.CustomStateScripts)
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+            {
+                continue;
+            }
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution - the ONLY placeholder source on this path (no SelectedIndex
+            // means no preset option, so the old code's ScriptVariables merge source is structurally absent).
+            // Mirrors the old placeholders dictionary exactly: OrdinalIgnoreCase keys, null values skipped,
+            // ToString() ?? "", literal {{key}} Replace; unmatched placeholders survive (the DNS DoH script
+            // self-guards on a literal {{dohtemplate}}).
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
+                    }
+                }
+
+                foreach (var kvp in placeholders)
+                {
+                    script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
                 }
             }
 

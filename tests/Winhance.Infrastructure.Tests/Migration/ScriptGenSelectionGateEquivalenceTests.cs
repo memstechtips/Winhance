@@ -16,8 +16,9 @@ namespace Winhance.Infrastructure.Tests.Migration;
 /// (Setting.Control / SettingState.Set). This proves the three swapped decisions are old-vs-new IDENTICAL
 /// over the whole shipped selection population, machine-independently (catalog + old defs only, no I/O):
 ///
-///   1. DISPATCH (FeatureRegistryScriptSection: the Selection call-site + selectionWithoutIndex +
-///      AppendPowerShellScriptsFromCatalog): the routing "is this a Selection?" moves from
+///   1. DISPATCH (FeatureRegistryScriptSection: the Selection call-site + selectionWithoutIndex, which since
+///      Slice 7e-5 routes between AppendPowerShellScriptsFromCatalog and AppendCustomStateScriptsFromCatalog):
+///      the routing "is this a Selection?" moves from
 ///      configItem/settingDef.InputType == InputType.Selection to catalog Control == ControlKind.Selection.
 ///      Faithful iff, over the reachable population (power-plan-selection is skipped upstream, being the only
 ///      OptionSource setting), InputType.Selection &lt;=&gt; Control == Selection. (ControlDerivationConformanceTests
@@ -66,8 +67,8 @@ public class ScriptGenSelectionGateEquivalenceTests
     /// upstream - it is the only OptionSource setting, so it derives Control == PowerPlan not Selection),
     /// catalog Control == ControlKind.Selection is IDENTICAL to old InputType == InputType.Selection. Both
     /// directions: every Selection def pairs and derives Control.Selection, and no non-Selection def does. This is
-    /// what makes routing the Selection call-site / selectionWithoutIndex / AppendPowerShellScriptsFromCatalog off
-    /// InputType onto Control faithful.</summary>
+    /// what makes routing the Selection call-site / selectionWithoutIndex (since 7e-5: the custom-state emitter's
+    /// dispatch) off InputType onto Control faithful.</summary>
     [Fact]
     public void DispatchSwap_CatalogControlSelection_MatchesOldInputTypeSelection()
     {
@@ -84,9 +85,10 @@ public class ScriptGenSelectionGateEquivalenceTests
             var normalizedId = SettingIdAliases.Normalize(def.Id);
             if (!catalogById.TryGetValue(normalizedId, out var s))
             {
-                // An unpaired Selection would fall to the def-fallback in the routing (configItem.InputType), so a
-                // Toggle/Action unpaired def is fine - but an unpaired SELECTION is worth surfacing (the emit still
-                // works via the fallback, but the catalog is expected complete for the shipped population).
+                // Since 7e-5 the script pass is catalog-ALWAYS: an unpaired id emits nothing (the def fallback is
+                // gone, matching the 7e-4b/4c unpaired->skip semantics). An unpaired SELECTION would therefore
+                // silently drop its scripts - surface it (the catalog is expected complete for the shipped
+                // population; zero unpaired today).
                 if (def.InputType == InputType.Selection)
                     unpairedSelections.Add(def.Id);
                 continue;
@@ -106,7 +108,7 @@ public class ScriptGenSelectionGateEquivalenceTests
             _output.WriteLine($"  {m}");
 
         Assert.True(comparedIds.Count > 300, $"only compared {comparedIds.Count} settings - population scoping bug");
-        Assert.True(unpairedSelections.Count == 0, "selection defs with NO catalog peer (the routing would fall back to configItem.InputType): " + string.Join(", ", unpairedSelections));
+        Assert.True(unpairedSelections.Count == 0, "selection defs with NO catalog peer (the catalog-always script pass would emit NOTHING for them): " + string.Join(", ", unpairedSelections));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} dispatch mismatches (catalog Control.Selection vs old InputType.Selection):\n" + string.Join("\n", mismatches));
     }
 
@@ -215,7 +217,7 @@ public class ScriptGenSelectionGateEquivalenceTests
         }
 
         Assert.True(violations.Count == 0,
-            "the E1c script-pass Find-flip is neutral ONLY while aliased settings are script-less; move the toggle/action emit pairings to Find (their own slice) before adding scripts here:\n"
+            "the E1c script-pass Find-flip is neutral ONLY while aliased settings are script-less; a script on an aliased setting needs its own equivalence check before it can ship:\n"
                 + string.Join("\n", violations));
     }
 }

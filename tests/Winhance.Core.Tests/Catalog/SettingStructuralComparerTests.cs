@@ -185,4 +185,54 @@ public class SettingStructuralComparerTests
         var b = Action(new ScriptEffect("one", RunContext.System), new ScriptEffect("two", RunContext.System));
         Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
     }
+
+    // ---- CustomStateScripts (Slice 7e-5: the un-baked custom-state script home) ----------------------------
+
+    private static Setting WithCustomScripts(params ScriptEffect[] scripts) => new()
+    {
+        Id = "c",
+        Display = new() { Name = "n", Description = "d", GroupName = "g" },
+        CustomStateScripts = scripts,
+    };
+
+    [Fact]
+    public void CustomStateScripts_IdenticalLists_WithDistinctInstances_AreEqual()
+    {
+        var a = WithCustomScripts(new ScriptEffect("set {{primary}}", RunContext.User));
+        var b = WithCustomScripts(new ScriptEffect("set {{primary}}", RunContext.User));
+        Assert.Empty(SettingStructuralComparer.Diff(a, b)); // scalar-member record -> structural equality
+    }
+
+    [Fact]
+    public void CustomStateScripts_DifferentScriptBody_Differs()
+    {
+        var a = WithCustomScripts(new ScriptEffect("one", RunContext.User));
+        var b = WithCustomScripts(new ScriptEffect("two", RunContext.User));
+        Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.StartsWith("CustomStateScripts[0]"));
+    }
+
+    [Fact]
+    public void CustomStateScripts_DifferentRunContext_Differs()
+    {
+        var a = WithCustomScripts(new ScriptEffect("one", RunContext.User));
+        var b = WithCustomScripts(new ScriptEffect("one", RunContext.System));
+        Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.StartsWith("CustomStateScripts[0]"));
+    }
+
+    [Fact]
+    public void CustomStateScripts_DifferentCount_Differs()
+    {
+        var a = WithCustomScripts(new ScriptEffect("one", RunContext.User));
+        var b = WithCustomScripts(new ScriptEffect("one", RunContext.User), new ScriptEffect("two", RunContext.User));
+        Assert.Contains(SettingStructuralComparer.Diff(a, b), s => s.StartsWith("CustomStateScripts count"));
+    }
+
+    [Fact]
+    public void CustomStateScripts_PerIndex_OrderMatters()
+    {
+        // The emit runs the list in source order, so a reordering is a REAL divergence, not a set-equality wash.
+        var a = WithCustomScripts(new ScriptEffect("one", RunContext.User), new ScriptEffect("two", RunContext.User));
+        var b = WithCustomScripts(new ScriptEffect("two", RunContext.User), new ScriptEffect("one", RunContext.User));
+        Assert.NotEmpty(SettingStructuralComparer.Diff(a, b));
+    }
 }

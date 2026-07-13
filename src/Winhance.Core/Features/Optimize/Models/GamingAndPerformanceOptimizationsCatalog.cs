@@ -1063,6 +1063,11 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     },
                 },
             },
+            CustomStateScripts = new[]
+            {
+                new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }", RunContext.User),
+                new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+            },
             Detector = new DnsServerDetector("Setting_gaming-dns-server_Option_0", new Dictionary<string, string>
             {
                 ["1.1.1.1"] = "Setting_gaming-dns-server_Option_1",
@@ -2400,6 +2405,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     },
                 },
             },
+            CustomStateScripts = new[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
         },
         new()
         {

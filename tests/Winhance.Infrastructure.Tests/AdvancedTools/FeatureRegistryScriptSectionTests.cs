@@ -184,6 +184,10 @@ public class FeatureRegistryScriptSectionTests
         // Slice 7e-4b: catalog-only presence gate - the fixture pairs to a REAL catalog registry selection
         // (gaming-touch-keyboard-service, HKLM DWORD RegTarget "Start"; custom value 3 (arbitrary; the
         // emit path has no lock handling)) and the def is INERT (id-carrier only), the 7e-4a recipe.
+        // Slice 7e-5: this no-index + CustomStateValues shape now ALSO routes the script pass to the
+        // catalog custom-state emitter, so the setting's un-baked enabled script (the TextInputHost
+        // restore, RunContext.System) newly emits into this HKLM-pass output alongside the registry
+        // write - the assertions below are contains-checks and stay green; noted for byte-level readers.
         var settingDef = CreateSettingDef("gaming-touch-keyboard-service", "Touch Keyboard", Array.Empty<RegistrySetting>());
 
         var featureGroup = CreateFeatureGroup("TestFeature", new[]

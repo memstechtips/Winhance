@@ -123,6 +123,10 @@ public class ScriptGenActionEquivalenceTests
         }
 
         _output.WriteLine($"{compared.Count} (action,isSelected,hive) tuples compared, {mismatches.Count} mismatches, {unpaired} unpaired skipped");
+
+        // 7e-5 review hardening: zero-unpaired pin (see ScriptGenPowerShellEquivalenceTests) - an unpaired
+        // Action's registry+script emit would silently drop now that the def fallbacks are gone.
+        Assert.True(unpaired == 0, $"{unpaired} Action settings are catalog-unpaired - their emits would silently drop");
         foreach (var m in mismatches)
             _output.WriteLine(m);
 
