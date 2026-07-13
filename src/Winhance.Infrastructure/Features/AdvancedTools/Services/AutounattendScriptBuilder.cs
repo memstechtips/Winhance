@@ -35,9 +35,37 @@ public class AutounattendScriptBuilder
         _appRemovalSection = new AppRemovalScriptSection();
     }
 
-    public async Task<string> BuildWinhancementsScriptAsync(
+    /// <summary>7f-TRANSITIONAL SEAM (Slice 7e-6; deleted at 7f when the UI caller passes catalog Settings
+    /// directly): keeps the old def-dict signature for the UI caller while the pipeline runs on catalog
+    /// Settings. Pairs each def per feature via alias-normalized <see cref="SettingCatalog.Find"/> and forwards
+    /// to the Setting-dict overload. An UNPAIRED id (none in production) is skipped silently - the established
+    /// unknown-id semantics - and alias collapse is deduped by Setting.Id, so a group carrying both variants of
+    /// an OS-merged setting yields the merged Setting once.</summary>
+    public Task<string> BuildWinhancementsScriptAsync(
         UnifiedConfigurationFile config,
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    {
+        var paired = new Dictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>();
+        foreach (var (featureId, defs) in allSettings)
+        {
+            var settings = new List<Winhance.Core.Features.Common.Catalog.Setting>();
+            var seenIds = new HashSet<string>();
+            foreach (var def in defs)
+            {
+                var setting = SettingCatalog.Find(def.Id);
+                if (setting == null) continue;
+                if (!seenIds.Add(setting.Id)) continue;
+                settings.Add(setting);
+            }
+            paired[featureId] = settings;
+        }
+
+        return BuildWinhancementsScriptAsync(config, paired);
+    }
+
+    public async Task<string> BuildWinhancementsScriptAsync(
+        UnifiedConfigurationFile config,
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         WarnOnUnreachableNativePowerApiSettings(config, allSettings);
 
@@ -146,41 +174,43 @@ public class AutounattendScriptBuilder
     /// </summary>
     private void WarnOnUnreachableNativePowerApiSettings(
         UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
+        // Config ids are alias-normalized so an old "-win10" item id still matches its merged catalog
+        // Setting's canonical Id (the dict values are canonical since Slice 7e-6).
         var selectedIds = new HashSet<string>(
-            config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))
-                .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))),
+            config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))
+                .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))),
             StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in allSettings)
         {
-            foreach (var settingDef in group.Value)
+            foreach (var setting in group.Value)
             {
-                if (!selectedIds.Contains(settingDef.Id)) continue;
+                if (!selectedIds.Contains(setting.Id)) continue;
 
-                // Slice E1b: read native-power presence + the autounattend fallback off the catalog Setting
+                // Slice E1b: native-power presence + the autounattend fallback are read off the catalog Setting
                 // (Targets/Effects); the catalog checks are proven equal to the old def-based checks over the whole
-                // population by MechanismPresenceEquivalenceTests. Catalog-only since 7e-4b: an unpaired id (none in
-                // production) has no native-power presence and is skipped silently. Native power is authored on only
-                // one setting (power-hibernation-enable), which is catalog-paired.
-                var catalog = SettingCatalog.Find(settingDef.Id);
-                bool hasNativePower = catalog != null && AutounattendMechanismPresence.HasNativePower(catalog);
+                // population by MechanismPresenceEquivalenceTests. Slice 7e-6: the dict carries the paired catalog
+                // Settings themselves (an unpaired id never enters it - the def-dict shim skips it), so the
+                // internal SettingCatalog.Find re-pairing is gone. Native power is authored on only one setting
+                // (power-hibernation-enable), which is catalog-paired.
+                bool hasNativePower = AutounattendMechanismPresence.HasNativePower(setting);
                 if (!hasNativePower) continue;
 
-                bool hasAutounattendFallback = catalog != null
-                    && (AutounattendMechanismPresence.HasRegistry(catalog)
-                        || AutounattendMechanismPresence.HasPowerCfg(catalog)
-                        || AutounattendMechanismPresence.HasScript(catalog)
-                        || AutounattendMechanismPresence.HasRegContent(catalog)
-                        || AutounattendMechanismPresence.HasScheduledTask(catalog)
-                        || settingDef.Id == "power-hibernation-enable");
+                bool hasAutounattendFallback =
+                    AutounattendMechanismPresence.HasRegistry(setting)
+                    || AutounattendMechanismPresence.HasPowerCfg(setting)
+                    || AutounattendMechanismPresence.HasScript(setting)
+                    || AutounattendMechanismPresence.HasRegContent(setting)
+                    || AutounattendMechanismPresence.HasScheduledTask(setting)
+                    || setting.Id == "power-hibernation-enable";
 
                 if (!hasAutounattendFallback)
                 {
                     _logService.Log(
                         LogLevel.Warning,
-                        $"Setting '{settingDef.Id}' is applied only via NativePowerApiSettings, " +
+                        $"Setting '{setting.Id}' is applied only via NativePowerApiSettings, " +
                         $"which has no autounattend emitter. It will be silently skipped during " +
                         $"unattend install. Add a RegistrySettings or PowerCfgSettings fallback.");
                 }

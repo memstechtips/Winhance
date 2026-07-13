@@ -41,9 +41,8 @@ internal class PowerSettingsScriptSection
         _logService = logService;
     }
 
-    public ConfigurationItem? FindPowerPlanSetting(
-        UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    // Slice 7e-6: the phantom def-dict param is dropped (the body never read it).
+    public ConfigurationItem? FindPowerPlanSetting(UnifiedConfigurationFile config)
     {
         if (!config.Optimize.Features.TryGetValue(FeatureIds.Power, out var powerSection))
             return null;
@@ -55,10 +54,10 @@ internal class PowerSettingsScriptSection
     public async Task<bool> AppendPowerSettingsSectionAsync(
         StringBuilder sb,
         UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings,
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
         string indent)
     {
-        var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
+        var powerPlanSetting = FindPowerPlanSetting(config);
         var activePowerPlan = await _powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
         var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings).ConfigureAwait(false);
 
@@ -216,30 +215,27 @@ internal class PowerSettingsScriptSection
 
     private async Task<List<PowerSettingData>> ExtractPowerSettingsAsync(
         string activePowerPlanGuid,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         var powerSettings = new List<PowerSettingData>();
 
-        if (!allSettings.TryGetValue(FeatureIds.Power, out var settingDefinitions))
+        if (!allSettings.TryGetValue(FeatureIds.Power, out var settings))
             return powerSettings;
 
         bool hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
 
         var bulkQueryResults = await _powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 
-        foreach (var settingDef in settingDefinitions)
+        foreach (var catalogSetting in settings)
         {
-            if (settingDef.Id == SettingIds.PowerPlanSelection)
+            if (catalogSetting.Id == SettingIds.PowerPlanSelection)
                 continue;
 
             // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
             // keyed by the (unchanged) powercfg SettingGuid. PowerSettingsMetadataEquivalenceTests pinned the
-            // paired reads == the retired def fields. Find alias-normalizes the id, which is identity here:
-            // the 6 SettingIdAliases ids are all explorer This PC folder toggles, so no power setting id is
-            // aliased. An unpaired id has no catalog metadata and is skipped silently (0 unpaired in production).
-            var catalogSetting = SettingCatalog.Find(settingDef.Id);
-            if (catalogSetting == null)
-                continue;
+            // paired reads == the retired def fields. Slice 7e-6: the dict carries the paired catalog Settings
+            // themselves (the builder's def-dict shim pairs via alias-normalized Find and skips unpaired ids),
+            // so the internal Find and its unpaired-continue are gone.
 
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
             if (powerCfgTargets.Count == 0)

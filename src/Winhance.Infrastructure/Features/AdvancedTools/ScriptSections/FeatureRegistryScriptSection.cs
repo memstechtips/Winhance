@@ -30,7 +30,7 @@ internal class FeatureRegistryScriptSection
     public void AppendFeatureGroupRegistryEntries(
         StringBuilder sb,
         FeatureGroupSection featureGroup,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings,
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
         string groupName,
         bool isHkcu,
         string indent,
@@ -41,36 +41,39 @@ internal class FeatureRegistryScriptSection
             var featureId = featureKvp.Key;
             var configSection = featureKvp.Value;
 
-            if (!allSettings.TryGetValue(featureId, out var settingDefinitions))
+            if (!allSettings.TryGetValue(featureId, out var settings))
             {
-                _logService.Log(LogLevel.Warning, $"Could not find SettingDefinitions for feature: {featureId}");
+                _logService.Log(LogLevel.Warning, $"Could not find Settings for feature: {featureId}");
                 continue;
             }
 
             bool hasEntriesForCurrentHive = false;
             foreach (var configItem in configSection.Items)
             {
-                var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                if (settingDef == null) continue;
+                // Slice 7e-6: the dict carries the paired catalog Settings (keyed by canonical Id), so the
+                // per-item pairing is a lookup by the alias-NORMALIZED config id - an old config carrying a
+                // retired "-win10" id still reaches its merged catalog Setting, exactly as the old
+                // exact-match-def-then-Find composite resolved it on the machine whose OS-filtered def group
+                // carried the same variant. A miss (unknown id) contributes no presence - the established
+                // silent-skip.
+                var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                if (setting == null) continue;
 
-                if (settingDef.Id == SettingIds.PowerPlanSelection) continue;
+                if (setting.Id == SettingIds.PowerPlanSelection) continue;
 
-                // Slice E1b: presence gating reads the catalog Setting (Targets/Effects) instead of the def's
-                // mechanism lists, paired alias-safely via SettingCatalog.Find. It errs toward OVER-reporting so a
-                // header is emitted whenever the emit could produce content (content is never dropped by a skipped
-                // header): the catalog check is proven equal to the old def check over the whole population
-                // (MechanismPresenceEquivalenceTests). Catalog-only since 7e-4b: an unpaired setting (Find null -
-                // none in production, the equivalence test asserts zero unpaired) contributes no presence, matching
-                // the shipped unknown-id skip semantics.
-                var catalog = SettingCatalog.Find(settingDef.Id);
-                bool hasRegistry = catalog != null && AutounattendMechanismPresence.HasRegistryInHive(catalog, isHkcu);
-                bool hasTask = catalog != null && AutounattendMechanismPresence.HasScheduledTask(catalog);
-                bool hasScript = catalog != null && AutounattendMechanismPresence.HasScriptInHive(catalog, isHkcu);
+                // Slice E1b: presence gating reads the catalog Setting (Targets/Effects). It errs toward
+                // OVER-reporting so a header is emitted whenever the emit could produce content (content is
+                // never dropped by a skipped header): the catalog check is proven equal to the old def check
+                // over the whole population (MechanismPresenceEquivalenceTests). Slice 7e-6: the Setting
+                // arrives in the dict - the internal SettingCatalog.Find re-pairing is gone.
+                bool hasRegistry = AutounattendMechanismPresence.HasRegistryInHive(setting, isHkcu);
+                bool hasTask = AutounattendMechanismPresence.HasScheduledTask(setting);
+                bool hasScript = AutounattendMechanismPresence.HasScriptInHive(setting, isHkcu);
 
                 if (hasRegistry || (!isHkcu && hasTask) || hasScript)
                     hasEntriesForCurrentHive = true;
 
-                if (!isHkcu && settingDef.Id == "power-hibernation-enable")
+                if (!isHkcu && setting.Id == "power-hibernation-enable")
                 {
                     hasEntriesForCurrentHive = true;
                 }
@@ -92,122 +95,79 @@ internal class FeatureRegistryScriptSection
             // Process each setting in the feature
             foreach (var configItem in configSection.Items)
             {
-                var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                if (settingDef == null)
+                // Slice 7e-6: alias-normalized lookup of the paired catalog Setting in the dict (see the
+                // presence gate above).
+                var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                if (setting == null)
                 {
-                    _logService.Log(LogLevel.Warning, $"Could not find SettingDefinition for: {configItem.Id}");
+                    _logService.Log(LogLevel.Warning, $"Could not find catalog Setting for: {configItem.Id}");
                     continue;
                 }
 
-                // Skip settings that have PowerCfgSettings but no RegistrySettings (already handled in Power Settings
-                // section). Slice E1b: read presence off the catalog Setting (PowerCfgTarget vs RegTarget/
-                // RegistryWriteEffect); the catalog check is proven equal to the old def-based check by
-                // MechanismPresenceEquivalenceTests. Catalog-only since 7e-4b: an unpaired id (none in production)
-                // never reads as powercfg-only and flows on to the emit fallbacks below.
-                var catalogForSkip = SettingCatalog.Find(settingDef.Id);
-                bool powerCfgOnly = catalogForSkip != null
-                    && AutounattendMechanismPresence.HasPowerCfg(catalogForSkip)
-                    && !AutounattendMechanismPresence.HasRegistry(catalogForSkip);
+                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power
+                // Settings section). Slice E1b: presence off the catalog Setting (PowerCfgTarget vs RegTarget/
+                // RegistryWriteEffect); proven equal to the old def-based check by
+                // MechanismPresenceEquivalenceTests.
+                bool powerCfgOnly = AutounattendMechanismPresence.HasPowerCfg(setting)
+                    && !AutounattendMechanismPresence.HasRegistry(setting);
                 if (powerCfgOnly)
                     continue;
 
-                // Set when a paired Action setting was emitted (registry + scripts) through the new catalog Effects
+                // Set when an Action setting was emitted (registry + scripts) through the catalog Effects
                 // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
                 bool actionHandledByCatalog = false;
 
-                // Slice E1c: pair alias-safely via SettingCatalog.Find (the Commit-B alias trap fix) so the
-                // Selection routing + the PowerShell-script pass below read the catalog Setting. The dispatch
-                // "is this a Selection?" moves off configItem.InputType onto the catalog Control (Control ==
-                // Selection <=> InputType.Selection over the whole population, proven by
-                // ScriptGenSelectionGateEquivalenceTests), with a configItem.InputType fallback for an unpaired
-                // setting (none in production). Since 7e-2 the toggle/action emits also pair via Find.
-                var catalogItem = SettingCatalog.Find(settingDef.Id);
-
-                // Apply the setting, but only output registry entries that match the current hive
-                // Slice 7e-3: dispatch off the catalog Control (the :161/:200 Selection pattern), persisted
-                // InputType fallback only for unpaired (none in production; old-export configs also dispatch
-                // correctly regardless of their persisted field). Control==InputType per
-                // ControlDerivationConformanceTests.
-                if (catalogItem != null ? catalogItem.Control == ControlKind.Toggle : configItem.InputType == InputType.Toggle)
+                // Slice 7e-3: dispatch off the catalog Control (Control == InputType over the whole population
+                // per ControlDerivationConformanceTests). Slice 7e-6: the setting IS the dict object - the
+                // per-branch SettingCatalog.Find re-pairings and the unpaired InputType/def-emitter fallbacks
+                // are gone (an unpaired id never enters the dict; the builder's def-dict shim skips it).
+                if (setting.Control == ControlKind.Toggle)
                 {
-                    // Phase 6.8 F2b: route paired, NON-build-gated toggles through the new catalog emitter
-                    // (AppendToggleCommandsFromCatalog - proven command-multiset-equivalent to the old emitter by
-                    // ScriptGenToggleEquivalenceTests). Build-gated (OS-merged "This PC") toggles and unpaired settings
-                    // fall back to the old emitter, which has the OS-filtered def (the new method has no build context to
-                    // pick the per-OS target). The new method emits ONLY registry targets, so the RegContents tail is
-                    // emitted explicitly here via AppendRegContentCommandsFromCatalog (F2c, off the active state's
-                    // RegContentEffects) - a no-op for toggles without RegContent effects, so no guard is needed.
-                    // Phase 6.8 tail: build-gated (OS-merged "This PC folder") toggles now route through the new
-                    // catalog emitter too, with the live build threaded so AppendToggleCommandsFromCatalog picks the
-                    // OS-appropriate target (Win11 HiddenByDefault vs Win10 KeyExists). They go to the new path ONLY
-                    // when a build is available; without one (a unit test feeding no build) they fall back to the old
-                    // OS-filtered-def emitter, preserving prior behaviour. Non-build-gated paired toggles always use
-                    // the new path (no AppliesTo to filter). Proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests.
-                    // Slice 7e-2: alias-normalized Find (was exact-match FirstOrDefault) - the deferred E1c
-                    // toggle-emit pairing flip, pre-pinned by ScriptPassFindFlip_IsNeutral_BecauseAliased
-                    // SettingsAreScriptLess + proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests.
-                    var catalogToggle = SettingCatalog.Find(settingDef.Id);
-                    bool isBuildGated = catalogToggle != null && catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0);
-                    if (catalogToggle != null && (!isBuildGated || build is not null))
-                    {
-                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, configItem, isHkcu, indent, build);
-                        _registryEmitter.AppendRegContentCommandsFromCatalog(sb, catalogToggle, configItem.IsSelected, isHkcu, indent);
-                    }
-                    else
-                    {
-                        _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
-                    }
+                    // Phase 6.8 F2b/tail: every toggle routes through the catalog emitter
+                    // (AppendToggleCommandsFromCatalog) with the live build threaded, so the OS-merged
+                    // "This PC folder" toggles pick the build-appropriate target (Win11 HiddenByDefault vs
+                    // Win10 KeyExists) - proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests. The
+                    // RegContents tail is emitted explicitly (F2c, off the active state's RegContentEffects)
+                    // - a no-op for toggles without RegContent effects. Slice 7e-6: the old OS-filtered-def
+                    // fallback for a build-less call died with the def dict; a caller feeding NO build on a
+                    // build-gated toggle now gets the emitter's documented null-build behaviour (no target
+                    // dropped). Production always threads the live build.
+                    _registryEmitter.AppendToggleCommandsFromCatalog(sb, setting, configItem, isHkcu, indent, build);
+                    _registryEmitter.AppendRegContentCommandsFromCatalog(sb, setting, configItem.IsSelected, isHkcu, indent);
                 }
-                else if (catalogItem != null ? catalogItem.Control == ControlKind.Selection : configItem.InputType == InputType.Selection)
+                else if (setting.Control == ControlKind.Selection)
                 {
-                    _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    _registryEmitter.AppendSelectionCommands(sb, setting, configItem, isHkcu, indent);
                 }
-                else if (catalogItem != null ? catalogItem.Control == ControlKind.Action : configItem.InputType == InputType.Action)
+                else if (setting.Control == ControlKind.Action)
                 {
-                    // Action settings are one-shot "apply" — only emit when the user actually
-                    // selected them. Unlike Toggle, an unselected Action has no "disabled"
-                    // semantic; we must not emit a DisabledValue write (which would delete
-                    // the key the action would have set).
-                    // Phase 6.8 tail: route paired Action settings (registry writes AND scripts) through the new
-                    // catalog Effects emitter. AppendActionCommandsFromCatalog guards IsSelected internally and emits
-                    // both passes byte-equivalently to the old AppendToggleCommandsFiltered + AppendPowerShellScripts
-                    // (ScriptGenActionEquivalenceTests). The shared script block below is skipped for this item so its
-                    // scripts are not double-emitted. All three Action settings are catalog-paired; an unpaired Action
-                    // falls back to the old registry emit (when selected) + the shared script block.
-                    // Slice 7e-2: alias-normalized Find (was exact-match FirstOrDefault); no Action is aliased,
-                    // so this is identity for the Action population (ScriptGenActionEquivalenceTests).
-                    var catalogAction = SettingCatalog.Find(settingDef.Id);
-                    if (catalogAction != null)
-                    {
-                        AppendActionCommandsFromCatalog(sb, catalogAction, configItem, isHkcu, indent);
-                        actionHandledByCatalog = true;
-                    }
-                    else if (configItem.IsSelected == true)
-                    {
-                        _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
-                    }
+                    // Action settings are one-shot "apply" - only emit when the user actually selected them
+                    // (AppendActionCommandsFromCatalog guards IsSelected internally; an unselected Action has
+                    // no "disabled" semantic, so nothing may be emitted for it). Registry writes AND scripts
+                    // both come from the setting-level catalog Effects, byte-equivalent to the old def
+                    // emitters per ScriptGenActionEquivalenceTests. The shared script block below is skipped
+                    // for this item so its scripts are not double-emitted.
+                    AppendActionCommandsFromCatalog(sb, setting, configItem, isHkcu, indent);
+                    actionHandledByCatalog = true;
                 }
 
                 // Emit PowerShell scripts whose RunContext matches the current pass. Catalog-always since Slice
-                // 7e-5: a paired Selection with NO SelectedIndex (a "Custom" value matching no preset option)
-                // routes to the custom-state emitter (AppendCustomStateScriptsFromCatalog, reading the un-baked
+                // 7e-5: a Selection with NO SelectedIndex (a "Custom" value matching no preset option) routes
+                // to the custom-state emitter (AppendCustomStateScriptsFromCatalog, reading the un-baked
                 // Setting.CustomStateScripts - byte-equal to the old def emitter over every intent-expressing
-                // shape per ScriptGenCustomStateEquivalenceTests, which also pins the DELIBERATE no-intent DELTA:
-                // old fell through to the DisabledScript, new emits nothing). Every other paired setting WITH
-                // states (toggle / selection-with-index) stays on AppendPowerShellScriptsFromCatalog (proven
-                // byte-equivalent by ScriptGenPowerShellEquivalenceTests). A paired setting with NO states
-                // (slider / power-plan; a paired Action set actionHandledByCatalog above) has no state scripts -
-                // emitting nothing matches the old emitter over its script-less def. An UNPAIRED id (none in
-                // production - the equivalence tests assert zero unpaired selections) emits nothing, keeping the
-                // 7e-4b/4c unpaired->skip semantics; the def-fallback else is gone. AppendPowerShellScripts
-                // survives as the equivalence ORACLE only (ScriptGenPowerShell/Action/CustomState suites).
-                if (!actionHandledByCatalog && catalogItem != null)
+                // shape per ScriptGenCustomStateEquivalenceTests). Every other setting WITH states (toggle /
+                // selection-with-index) stays on AppendPowerShellScriptsFromCatalog (proven byte-equivalent by
+                // ScriptGenPowerShellEquivalenceTests). A setting with NO states (slider / power-plan; an
+                // Action set actionHandledByCatalog above) has no state scripts - emitting nothing matches the
+                // old emitter over its script-less def. AppendPowerShellScripts survives as the equivalence
+                // ORACLE only (ScriptGenPowerShell/Action/CustomState suites).
+                if (!actionHandledByCatalog)
                 {
-                    bool selectionWithoutIndex = catalogItem.Control == ControlKind.Selection && !configItem.SelectedIndex.HasValue;
+                    bool selectionWithoutIndex = setting.Control == ControlKind.Selection && !configItem.SelectedIndex.HasValue;
                     if (selectionWithoutIndex)
-                        AppendCustomStateScriptsFromCatalog(sb, catalogItem, configItem, isHkcu, indent);
-                    else if (catalogItem.States.Count > 0)
-                        AppendPowerShellScriptsFromCatalog(sb, catalogItem, configItem, isHkcu, indent);
+                        AppendCustomStateScriptsFromCatalog(sb, setting, configItem, isHkcu, indent);
+                    else if (setting.States.Count > 0)
+                        AppendPowerShellScriptsFromCatalog(sb, setting, configItem, isHkcu, indent);
                 }
 
             }
@@ -218,20 +178,18 @@ internal class FeatureRegistryScriptSection
 
                 foreach (var configItem in configSection.Items)
                 {
-                    var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-
-                    // Phase 6.8 Slice E1a: source the scheduled-task paths + description from the catalog Setting
-                    // (TaskTarget + Display.Description) instead of settingDef.ScheduledTaskSettings + .Description.
-                    // Pair alias-safely via SettingCatalog.Find. Proven command-equivalent to the old collection
-                    // (CollectScheduledTasks) by ScriptGenScheduledTaskEquivalenceTests, which also asserts every
-                    // scheduled-task setting is catalog-paired (zero unpaired).
-                    var catalogForTasks = settingDef != null ? SettingCatalog.Find(settingDef.Id) : null;
-                    if (catalogForTasks != null)
+                    // Phase 6.8 Slice E1a: the scheduled-task paths + description come from the catalog Setting
+                    // (TaskTarget + Display.Description), proven command-equivalent by
+                    // ScriptGenScheduledTaskEquivalenceTests (which also asserts every scheduled-task setting
+                    // is catalog-paired). Slice 7e-6: the Setting arrives in the dict (alias-normalized
+                    // lookup); the internal SettingCatalog.Find re-pairing is gone.
+                    var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                    if (setting != null)
                     {
-                        scheduledTasksToApply.AddRange(CollectScheduledTasksFromCatalog(catalogForTasks, configItem));
+                        scheduledTasksToApply.AddRange(CollectScheduledTasksFromCatalog(setting, configItem));
                     }
 
-                    if (settingDef?.Id == "power-hibernation-enable")
+                    if (setting?.Id == "power-hibernation-enable")
                     {
                         var hibernateState = configItem.IsSelected == true ? "on" : "off";
                         sb.AppendLine();

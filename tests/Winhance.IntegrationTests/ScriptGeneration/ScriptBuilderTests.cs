@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -58,7 +59,7 @@ public class ScriptBuilderTests
                 TestSettingFactory.CreateAppItem("app1", "Clipchamp",
                     appxPackageName: new[] { "Clipchamp.Clipchamp" })),
         };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -73,7 +74,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = TestSettingFactory.CreateFullConfig();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -90,7 +91,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = TestSettingFactory.CreateFullConfig();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -107,7 +108,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = new UnifiedConfigurationFile();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -123,10 +124,9 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithOptimizeFeatures_ContainsRegistryCommands()
     {
-        // Arrange - an Optimize toggle. Slice 7e-4b: the script-gen presence gate is catalog-only (an
-        // unpaired id contributes no presence and its feature section is skipped), so the item pairs to
-        // the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp). The paired
-        // emit reads the CATALOG RegTarget and state values; the def is an INERT id-carrier.
+        // Arrange - an Optimize toggle. Slice 7e-6: the pipeline runs on the catalog Setting dict, so the
+        // fixture passes the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp)
+        // directly; the emit reads the CATALOG RegTarget and state values.
         var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
         var config = new UnifiedConfigurationFile
         {
@@ -136,15 +136,9 @@ public class ScriptBuilderTests
             }),
         };
 
-        var settingDef = new SettingDefinition
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "security-remote-assistance",
-            Name = "Remote Assistance",
-            Description = "Remote assistance",
-        };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["Privacy"] = new[] { settingDef },
+            ["Privacy"] = new[] { SettingCatalog.Find("security-remote-assistance")! },
         };
 
         // Act
@@ -158,10 +152,9 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithPowerSettings_ContainsPowerCfgCommands()
     {
-        // Arrange - Slice 7e-4c: the unpaired def fallback in PowerSettingsScriptSection is retired, so
-        // the fixture rides the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
+        // Arrange - the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
         // subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e,
-        // no hardware gate). The def is an INERT id-carrier; the paired emit reads the catalog
+        // no hardware gate) rides the Setting dict directly (Slice 7e-6); the emit reads the catalog
         // PowerCfgTarget GUIDs and takes the AC/DC values from the bulk query mock.
         var powerItem = TestSettingFactory.CreateSelectionItem("power-display-timeout", "Turn off the display",
             selectedIndex: 1,
@@ -180,16 +173,9 @@ public class ScriptBuilderTests
             }),
         };
 
-        var powerSettingDef = new SettingDefinition
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "power-display-timeout",
-            Name = "Turn off the display",
-            Description = "inert - the paired emit reads the catalog Setting, not this def",
-            InputType = InputType.Selection,
-        };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["Power"] = new[] { powerSettingDef },
+            ["Power"] = new[] { SettingCatalog.Find("power-display-timeout")! },
         };
 
         // Set up mock to return AC/DC values for the catalog setting GUID

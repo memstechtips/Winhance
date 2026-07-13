@@ -543,16 +543,19 @@ internal class RegistryCommandEmitter
         }
     }
 
-    public void AppendSelectionCommandsFiltered(StringBuilder sb, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
+    /// <summary>Emits a Selection setting's resolved value writes. Slice 7e-6: takes the PAIRED catalog Setting
+    /// (the section's dict now carries catalog Settings, so the internal alias-normalizing SettingCatalog.Find
+    /// re-pairing is gone) and is renamed from AppendSelectionCommandsFiltered - it no longer filters/reads defs.
+    /// The PowerPlanSelection skip stays (that id is emitted by the Power Settings section). Value resolution:
+    /// runtime CustomStateValues win; otherwise a SelectedIndex resolves through the catalog States' Set
+    /// (ResolveSelectionValuesFromCatalog - ScriptGenSelectionResolveEquivalenceTests; the "any state carries
+    /// write-values" gate is ScriptGenSelectionGateEquivalenceTests' gate A); a selection with neither logs a
+    /// warning and emits nothing. Emission routes through ApplyResolvedValuesFromCatalog
+    /// (ScriptGenApplyResolvedEquivalenceTests).</summary>
+    public void AppendSelectionCommands(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
             return;
-
-        // Slice E1c: pair alias-safely via SettingCatalog.Find (not the exact-match FirstOrDefault, the Commit-B
-        // alias trap) and read the value-mapping gate off the catalog shape - a state's Set is non-empty exactly
-        // when its option carried ValueMappings - instead of the old def ComboBox. Proven old==new over the whole
-        // selection population by ScriptGenSelectionGateEquivalenceTests (gate A + gate B).
-        var catalogSetting = SettingCatalog.Find(setting.Id);
 
         Dictionary<string, object> valuesToApply;
 
@@ -561,10 +564,9 @@ internal class RegistryCommandEmitter
             valuesToApply = configItem.CustomStateValues;
         }
         else if (configItem.SelectedIndex.HasValue &&
-                 catalogSetting is not null &&
-                 catalogSetting.States.Any(st => st.Set.Count > 0))
+                 setting.States.Any(st => st.Set.Count > 0))
         {
-            valuesToApply = ResolveSelectionValuesFromCatalog(catalogSetting, configItem.SelectedIndex.Value);
+            valuesToApply = ResolveSelectionValuesFromCatalog(setting, configItem.SelectedIndex.Value);
         }
         else
         {
@@ -572,14 +574,7 @@ internal class RegistryCommandEmitter
             return;
         }
 
-        // Phase 6.8 F2a: the emission routes through the new catalog model (Targets).
-        // ApplyResolvedValuesFromCatalog is byte-equivalent to the old ApplyResolvedValues - proven by
-        // ScriptGenApplyResolvedEquivalenceTests (750 setting/index/hive tuples, 0 mismatches). Slice 7e-4a
-        // deleted the unpaired fallback: no selection with ValueMappings is unpaired
-        // (ScriptGenSelectionResolveEquivalenceTests enforces 0) and an unpaired custom-state id is not a
-        // shipped setting - skip silently, the same unknown-id semantics the config-load path uses.
-        if (catalogSetting != null)
-            ApplyResolvedValuesFromCatalog(sb, catalogSetting, valuesToApply, isHkcu, indent);
+        ApplyResolvedValuesFromCatalog(sb, setting, valuesToApply, isHkcu, indent);
     }
 
     /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the

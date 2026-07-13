@@ -2,6 +2,7 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -620,14 +621,15 @@ public class RegistryCommandEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // AppendSelectionCommandsFiltered
+    // AppendSelectionCommands (Slice 7e-6: takes the paired catalog Setting; renamed from
+    // AppendSelectionCommandsFiltered)
     // ---------------------------------------------------------------
 
     [Fact]
-    public void AppendSelectionCommandsFiltered_PowerPlanSelection_SkipsEntirely()
+    public void AppendSelectionCommands_PowerPlanSelection_SkipsEntirely()
     {
         var sb = new StringBuilder();
-        var setting = CreateSettingDefinition("power-plan-selection", "Power Plan", Array.Empty<RegistrySetting>());
+        var setting = SettingCatalog.Find("power-plan-selection")!;
         var configItem = new ConfigurationItem
         {
             Id = "power-plan-selection",
@@ -635,19 +637,18 @@ public class RegistryCommandEmitterTests
             SelectedIndex = 0
         };
 
-        _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
+        _sut.AppendSelectionCommands(sb, setting, configItem, isHkcu: false);
 
         sb.ToString().Trim().Should().BeEmpty();
     }
 
     [Fact]
-    public void AppendSelectionCommandsFiltered_WithCustomStateValues_AppliesValues()
+    public void AppendSelectionCommands_WithCustomStateValues_AppliesValues()
     {
         var sb = new StringBuilder();
-        // Slice 7e-4a: the unpaired ApplyResolvedValues fallback is gone, so the fixture pairs to a REAL
-        // catalog selection (registry DWORD target "Start"; custom value 3 is arbitrary - the emit path has no lock handling)
-        // and the def is INERT (id-carrier only) - a regression that reads the def emits nothing and fails.
-        var setting = CreateSettingDefinition("gaming-touch-keyboard-service", "Touch Keyboard", Array.Empty<RegistrySetting>());
+        // Slice 7e-6: the caller passes the REAL catalog selection itself (registry DWORD target "Start";
+        // custom value 3 is arbitrary - the emit path has no lock handling).
+        var setting = SettingCatalog.Find("gaming-touch-keyboard-service")!;
         var configItem = new ConfigurationItem
         {
             Id = "gaming-touch-keyboard-service",
@@ -655,24 +656,30 @@ public class RegistryCommandEmitterTests
             CustomStateValues = new Dictionary<string, object> { { "Start", 3 } }
         };
 
-        _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
+        _sut.AppendSelectionCommands(sb, setting, configItem, isHkcu: false);
 
         sb.ToString().Should().Contain("Set-RegistryValue");
         sb.ToString().Should().Contain("3");
     }
 
     [Fact]
-    public void AppendSelectionCommandsFiltered_NoValueMappingsOrCustomState_LogsWarning()
+    public void AppendSelectionCommands_NoValueMappingsOrCustomState_LogsWarning()
     {
         var sb = new StringBuilder();
-        var setting = CreateSettingDefinition("test-selection", "Test Selection", Array.Empty<RegistrySetting>());
+        // A synthetic catalog Setting (fake id, no states) - the no-CustomStateValues / no-SelectedIndex
+        // shape must warn and emit nothing regardless of the setting's write surface.
+        var setting = new Setting
+        {
+            Id = "test-selection",
+            Display = new Display { Name = "Test Selection", Description = "Test Selection" }
+        };
         var configItem = new ConfigurationItem
         {
             Id = "test-selection",
             InputType = InputType.Selection
         };
 
-        _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
+        _sut.AppendSelectionCommands(sb, setting, configItem, isHkcu: false);
 
         _logService.Verify(l => l.Log(
             LogLevel.Warning,
@@ -774,13 +781,12 @@ public class RegistryCommandEmitterTests
     // ---------------------------------------------------------------
 
     [Fact]
-    public void AppendSelectionCommandsFiltered_ApplyPerMonitor_WrapsInForEachObject()
+    public void AppendSelectionCommands_ApplyPerMonitor_WrapsInForEachObject()
     {
         var sb = new StringBuilder();
-        // Slice 7e-4a: repointed onto the REAL PerMonitor catalog selection (gaming-auto-color-management,
-        // RegTarget PerMonitor=true) - the per-subkey wrap now comes from ApplyResolvedValuesFromCatalog's
-        // rt.PerMonitor handling; the def fixture is INERT (id-carrier only).
-        var setting = CreateSettingDefinition("gaming-auto-color-management", "Auto Color Management", Array.Empty<RegistrySetting>());
+        // The REAL PerMonitor catalog selection (gaming-auto-color-management, RegTarget PerMonitor=true) -
+        // the per-subkey wrap comes from ApplyResolvedValuesFromCatalog's rt.PerMonitor handling.
+        var setting = SettingCatalog.Find("gaming-auto-color-management")!;
         var configItem = new ConfigurationItem
         {
             Id = "gaming-auto-color-management",
@@ -788,7 +794,7 @@ public class RegistryCommandEmitterTests
             CustomStateValues = new Dictionary<string, object> { { "AutoColorManagementEnabled", 1 } }
         };
 
-        _sut.AppendSelectionCommandsFiltered(sb, setting, configItem, isHkcu: false);
+        _sut.AppendSelectionCommands(sb, setting, configItem, isHkcu: false);
 
         var output = sb.ToString();
         output.Should().Contain("Get-ChildItem");
