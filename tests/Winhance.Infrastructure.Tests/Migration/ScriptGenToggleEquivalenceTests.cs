@@ -118,7 +118,7 @@ public class ScriptGenToggleEquivalenceTests
                     emitter.AppendToggleCommandsFiltered(sbOld, def, configItem, isHkcu, "");
 
                     var sbNew = new StringBuilder();
-                    emitter.AppendToggleCommandsFromCatalog(sbNew, catalogSetting, def, configItem, isHkcu, "");
+                    emitter.AppendToggleCommandsFromCatalog(sbNew, catalogSetting, configItem, isHkcu, "");
 
                     compared.Add($"{def.Id} isSelected={isSelected} isHkcu={isHkcu}");
 

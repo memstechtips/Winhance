@@ -270,7 +270,7 @@ internal class RegistryCommandEmitter
     /// or the state carries no entry for the target - matching the old GetWriteValue(EnabledValue/DisabledValue)
     /// returning the first non-null entry or null. This method emits ONLY registry targets; the RegContents tail
     /// is left to the call site. Proven by ScriptGenToggleEquivalenceTests.</summary>
-    public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, SettingDefinition setting, ConfigurationItem configItem, bool isHkcu, string indent = "", Winhance.Core.Features.Common.Catalog.WinBuild? build = null)
+    public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem, bool isHkcu, string indent = "", Winhance.Core.Features.Common.Catalog.WinBuild? build = null)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
         var isEnabled = configItem.IsSelected;

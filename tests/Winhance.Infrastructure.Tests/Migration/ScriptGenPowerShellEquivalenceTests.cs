@@ -88,7 +88,7 @@ public class ScriptGenPowerShellEquivalenceTests
             sut.AppendPowerShellScripts(sbOld, def, ci, isHkcu, "");
 
             var sbNew = new StringBuilder();
-            sut.AppendPowerShellScriptsFromCatalog(sbNew, catalogSetting, def, ci, isHkcu, "");
+            sut.AppendPowerShellScriptsFromCatalog(sbNew, catalogSetting, ci, isHkcu, "");
 
             var tag = $"{def.Id} {label} isHkcu={isHkcu}";
             compared.Add(tag);

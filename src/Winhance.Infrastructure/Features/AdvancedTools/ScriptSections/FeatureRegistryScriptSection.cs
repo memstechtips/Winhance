@@ -150,7 +150,7 @@ internal class FeatureRegistryScriptSection
                     bool isBuildGated = catalogToggle != null && catalogToggle.Targets.Any(t => t.AppliesTo.Count > 0);
                     if (catalogToggle != null && (!isBuildGated || build is not null))
                     {
-                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, settingDef, configItem, isHkcu, indent, build);
+                        _registryEmitter.AppendToggleCommandsFromCatalog(sb, catalogToggle, configItem, isHkcu, indent, build);
                         _registryEmitter.AppendRegContentCommandsFromCatalog(sb, catalogToggle, configItem.IsSelected, isHkcu, indent);
                     }
                     else
@@ -202,7 +202,7 @@ internal class FeatureRegistryScriptSection
                         : configItem.InputType == InputType.Selection;
                     bool selectionWithoutIndex = isSelection && !configItem.SelectedIndex.HasValue;
                     if (catalogItem != null && catalogItem.States.Count > 0 && !selectionWithoutIndex)
-                        AppendPowerShellScriptsFromCatalog(sb, catalogItem, settingDef, configItem, isHkcu, indent);
+                        AppendPowerShellScriptsFromCatalog(sb, catalogItem, configItem, isHkcu, indent);
                     else
                         AppendPowerShellScripts(sb, settingDef, configItem, isHkcu, indent);
                 }
@@ -385,7 +385,6 @@ internal class FeatureRegistryScriptSection
     internal void AppendPowerShellScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
-        SettingDefinition settingDef,
         ConfigurationItem configItem,
         bool isHkcu,
         string indent)

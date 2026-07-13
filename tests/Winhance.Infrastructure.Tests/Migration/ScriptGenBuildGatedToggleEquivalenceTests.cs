@@ -114,7 +114,7 @@ public class ScriptGenBuildGatedToggleEquivalenceTests
 
                         // NEW: the merged catalog Setting projected onto this OS via the threaded build.
                         var sbNew = new StringBuilder();
-                        emitter.AppendToggleCommandsFromCatalog(sbNew, catalogSetting, oldDef, configItem, isHkcu, "", build);
+                        emitter.AppendToggleCommandsFromCatalog(sbNew, catalogSetting, configItem, isHkcu, "", build);
 
                         compared.Add($"{canonicalDef.Id} os={os} isSelected={isSelected} isHkcu={isHkcu}");
 
