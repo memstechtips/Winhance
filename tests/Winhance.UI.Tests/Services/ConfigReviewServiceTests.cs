@@ -13,7 +13,7 @@ namespace Winhance.UI.Tests.Services;
 public class ConfigReviewServiceTests : IDisposable
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
@@ -39,7 +39,7 @@ public class ConfigReviewServiceTests : IDisposable
     {
         _service = new ConfigReviewService(
             _mockLogService.Object,
-            _mockCompatibleSettingsRegistry.Object,
+            _mockCatalogSettingsRegistry.Object,
             _mockSettingStateProvider.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object);
@@ -281,20 +281,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_ComputesDiffsForToggleSettings()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "privacy-setting",
-            Name = "Privacy Setting",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["privacy-setting"] = new SettingStateResult { IsEnabled = false }
@@ -338,20 +341,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_NoDiff_WhenCurrentMatchesConfig()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "privacy-setting",
-            Name = "Privacy Setting",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["privacy-setting"] = new SettingStateResult { IsEnabled = true }
@@ -392,20 +398,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_ActionSettings_AlwaysRegistered()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "taskbar-clean",
-            Name = "Clean Taskbar",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Clean Taskbar", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Taskbar"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Taskbar", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 // Current state matches config (no value diff) but it's an action setting
@@ -453,20 +462,23 @@ public class ConfigReviewServiceTests : IDisposable
     [InlineData(1, "Dark")]
     public async Task EnterReviewModeAsync_ThemeWallpaperAction_IncludesThemeName(int selectedIndex, string expectedThemeName)
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = SettingIds.ThemeModeWindows,
-            Name = "Choose your mode",
-            Description = "Test",
-            InputType = InputType.Selection
+            Display = new() { Name = "Choose your mode", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Light" },
+                new SettingState { Label = "Dark" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("WindowsTheme"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
@@ -962,9 +974,9 @@ public class ConfigReviewServiceTests : IDisposable
             }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(Enumerable.Empty<SettingDefinition>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(Array.Empty<Setting>());
 
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
@@ -975,20 +987,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureFullyReviewed_WithUnreviewedDiffs_ReturnsFalse()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "s1",
-            Name = "S1",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "S1", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1038,20 +1053,23 @@ public class ConfigReviewServiceTests : IDisposable
         // Reproduces Bug: entering review mode while already on a sub-page
         // means MarkFeatureVisited is never called, but reviewing all items
         // should still mark the feature as fully reviewed.
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "s1",
-            Name = "S1",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "S1", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1098,20 +1116,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureFullyReviewed_FiresBadgeStateChanged_WhenLastDiffReviewed()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "s1",
-            Name = "S1",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "S1", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1182,20 +1203,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task LanguageChanged_WhenInReviewMode_RelocalizesDisplayStrings()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "s1",
-            Name = "Setting 1",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Setting 1", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["s1"] = new SettingStateResult { IsEnabled = false }
@@ -1262,20 +1286,19 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_WithACValueDiff_RegistersDiff()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "numeric-setting",
-            Name = "Numeric Setting",
-            Description = "Test",
-            InputType = InputType.NumericRange
+            Display = new() { Name = "Numeric Setting", Description = "Test" },
+            Numeric = new() { Min = 0, Max = 3600 }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["numeric-setting"] = new SettingStateResult { CurrentValue = 30 }
@@ -1325,20 +1348,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_Selection_WithDifferentIndex_RegistersDiff()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "selection-setting",
-            Name = "Selection Setting",
-            Description = "Test",
-            InputType = InputType.Selection
+            Display = new() { Name = "Selection Setting", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Option B" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["selection-setting"] = new SettingStateResult { CurrentValue = 0 }
@@ -1385,20 +1411,23 @@ public class ConfigReviewServiceTests : IDisposable
     {
         _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
 
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "start-menu-clean-10",
-            Name = "Clean Start Menu (Win10)",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Clean Start Menu (Win10)", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("StartMenu"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["start-menu-clean-10"] = new SettingStateResult { IsEnabled = false }
@@ -1440,20 +1469,23 @@ public class ConfigReviewServiceTests : IDisposable
     {
         _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(false);
 
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "start-menu-clean-11",
-            Name = "Clean Start Menu (Win11)",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Clean Start Menu (Win11)", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("StartMenu"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["start-menu-clean-11"] = new SettingStateResult { IsEnabled = false }
@@ -1497,20 +1529,19 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_SameACValue_NoDiff()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "nr-same",
-            Name = "Numeric Same",
-            Description = "Test",
-            InputType = InputType.NumericRange
+            Display = new() { Name = "Numeric Same", Description = "Test" },
+            Numeric = new() { Min = 0, Max = 3600 }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-same"] = new SettingStateResult { CurrentValue = 30 }
@@ -1553,20 +1584,19 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_NoPowerSettings_NoDiff()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "nr-nopower",
-            Name = "No Power Settings",
-            Description = "Test",
-            InputType = InputType.NumericRange
+            Display = new() { Name = "No Power Settings", Description = "Test" },
+            Numeric = new() { Min = 0, Max = 3600 }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-nopower"] = new SettingStateResult { CurrentValue = 50 }
@@ -1606,20 +1636,19 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_WithDCValueOnly_UsesACValueForComparison()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "nr-dconly",
-            Name = "DC Only NumericRange",
-            Description = "Test",
-            InputType = InputType.NumericRange
+            Display = new() { Name = "DC Only NumericRange", Description = "Test" },
+            Numeric = new() { Min = 0, Max = 3600 }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["nr-dconly"] = new SettingStateResult { CurrentValue = 30 }
@@ -1668,31 +1697,33 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task EnterReviewModeAsync_MultipleFeatures_ComputesDiffsPerFeature()
     {
         // Privacy (Toggle)
-        var privacyDef = new SettingDefinition
+        var privacySetting = new Setting
         {
             Id = "priv1",
-            Name = "Privacy Setting",
-            Description = "Test",
-            InputType = InputType.Toggle
+            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" }
+            }
         };
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { privacyDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { privacySetting });
 
-        // Power (NumericRange)
-        var powerDef = new SettingDefinition
+        // Power (Slider)
+        var powerSetting = new Setting
         {
             Id = "pow1",
-            Name = "Power Setting",
-            Description = "Test",
-            InputType = InputType.NumericRange
+            Display = new() { Name = "Power Setting", Description = "Test" },
+            Numeric = new() { Min = 0, Max = 3600 }
         };
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { powerDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { powerSetting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<Setting>>(
                 l => l.Any(s => s.Id == "priv1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
@@ -1700,7 +1731,7 @@ public class ConfigReviewServiceTests : IDisposable
             });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(
+            .Setup(d => d.GetStatesAsync(It.Is<IReadOnlyList<Setting>>(
                 l => l.Any(s => s.Id == "pow1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
@@ -1768,20 +1799,23 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_Selection_WithNullSelectedIndex_NoDiff()
     {
-        var settingDef = new SettingDefinition
+        var setting = new Setting
         {
             Id = "sel-null",
-            Name = "Selection Null Index",
-            Description = "Test",
-            InputType = InputType.Selection
+            Display = new() { Name = "Selection Null Index", Description = "Test" },
+            States = new[]
+            {
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Option B" }
+            }
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["sel-null"] = new SettingStateResult { CurrentValue = 0 }
@@ -1821,20 +1855,21 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_Selection_WithPowerPlanGuid_DifferentPlan_RegistersDiff()
     {
-        var settingDef = new SettingDefinition
+        // The shipped power-plan setting is OptionSource-driven (0 static States -> ControlKind.PowerPlan);
+        // the PowerPlanGuid branch never reads static options, so a mock source suffices.
+        var setting = new Setting
         {
             Id = "power-plan",
-            Name = "Power Plan",
-            Description = "Test",
-            InputType = InputType.Selection
+            Display = new() { Name = "Power Plan", Description = "Test" },
+            OptionSource = new Mock<IDynamicOptionSource>().Object
         };
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetFilteredSettings("Power"))
-            .Returns(new[] { settingDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Returns(new[] { setting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 ["power-plan"] = new SettingStateResult
