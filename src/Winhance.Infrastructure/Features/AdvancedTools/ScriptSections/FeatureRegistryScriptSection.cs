@@ -126,12 +126,15 @@ internal class FeatureRegistryScriptSection
                 // "is this a Selection?" moves off configItem.InputType onto the catalog Control (Control ==
                 // Selection <=> InputType.Selection over the whole population, proven by
                 // ScriptGenSelectionGateEquivalenceTests), with a configItem.InputType fallback for an unpaired
-                // setting (none in production). The toggle/action registry emit below still pair via the exact
-                // FirstOrDefault (byte-equivalent; their emit paths move to Find when they are ported).
+                // setting (none in production). Since 7e-2 the toggle/action emits also pair via Find.
                 var catalogItem = SettingCatalog.Find(settingDef.Id);
 
                 // Apply the setting, but only output registry entries that match the current hive
-                if (configItem.InputType == InputType.Toggle)
+                // Slice 7e-3: dispatch off the catalog Control (the :161/:200 Selection pattern), persisted
+                // InputType fallback only for unpaired (none in production; old-export configs also dispatch
+                // correctly regardless of their persisted field). Control==InputType per
+                // ControlDerivationConformanceTests.
+                if (catalogItem != null ? catalogItem.Control == ControlKind.Toggle : configItem.InputType == InputType.Toggle)
                 {
                     // Phase 6.8 F2b: route paired, NON-build-gated toggles through the new catalog emitter
                     // (AppendToggleCommandsFromCatalog - proven command-multiset-equivalent to the old emitter by
@@ -165,7 +168,7 @@ internal class FeatureRegistryScriptSection
                 {
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
-                else if (configItem.InputType == InputType.Action)
+                else if (catalogItem != null ? catalogItem.Control == ControlKind.Action : configItem.InputType == InputType.Action)
                 {
                     // Action settings are one-shot "apply" — only emit when the user actually
                     // selected them. Unlike Toggle, an unselected Action has no "disabled"
