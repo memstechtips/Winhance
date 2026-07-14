@@ -199,7 +199,7 @@ public class SystemDetectionContextTests
 
         // An OptionSource (no Detector) must trigger the per-batch plan pre-fetch, which populates the installed
         // plans via the faithful PowerPlanOptions.Build port (content equivalence is covered by
-        // PowerPlanOptionsEquivalenceTests; this asserts the context delegates to it on the prefetched plans).
+        // PowerPlanOptionsConformanceTests; this asserts the context delegates to it on the prefetched plans).
         await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
 
         Assert.Equal(PowerPlanOptions.Build(systemPlans), ctx.InstalledPowerPlans());

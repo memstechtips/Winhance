@@ -15,11 +15,3 @@ public sealed record PowerPlanComboBoxOption
 }
 
 public sealed record PowerPlanImportResult(bool Success, string ImportedGuid, string ErrorMessage = "");
-
-public sealed record PowerPlanResolutionResult
-{
-    public bool Success { get; init; }
-    public string Guid { get; init; } = string.Empty;
-    public string DisplayName { get; init; } = string.Empty;
-    public string ErrorMessage { get; init; } = string.Empty;
-}

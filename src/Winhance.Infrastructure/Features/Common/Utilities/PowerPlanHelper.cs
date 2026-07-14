@@ -1,7 +1,7 @@
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
 /// <summary>
-/// Shared power plan identification logic used by PowerService and PowerPlanComboBoxService.
+/// Shared power plan identification logic used by PowerService and PowerPlanOptions.
 /// </summary>
 internal static class PowerPlanHelper
 {

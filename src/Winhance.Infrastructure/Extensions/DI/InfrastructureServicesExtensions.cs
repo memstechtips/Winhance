@@ -105,7 +105,6 @@ public static class InfrastructureServicesExtensions
         // now builds the combobox options directly off the new catalog model. Resolver/PowerPlan stay - still consumed
         // by the teardown-scope old apply layer.)
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
-        services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 
         // Settings Compatibility
         services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
