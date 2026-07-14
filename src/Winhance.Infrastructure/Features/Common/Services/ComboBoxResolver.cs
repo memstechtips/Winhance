@@ -204,12 +204,18 @@ public class ComboBoxResolver : IComboBoxResolver
         // counts only when the reads carry it (the def's guard: a powercfg selection with no PowerCfgValue read has
         // an EMPTY backing set, so it is NOT all-absent).
         //
-        // CAVEAT: a precedence-CORRECTED selection (CatalogAuthoringEquivalenceTests.PrecedenceCorrectedIds - among
+        // CAVEAT: a precedence-CORRECTED selection (CatalogDetectionModelConformanceTests.PrecedenceCorrectedIds - among
         // selections only gaming-touch-keyboard-service) authors an Of(x).OrAbsent() that is NOT a DefaultValue-fold
         // but a deliberate detection fix (its def DefaultValue is null). This overload then diverges from the def
         // there BY DESIGN: the old .Any/DefaultValue detection is exactly the bug the catalog retires. That divergence
-        // is accepted (and bounded to those ids) by ComboBoxResolverSettingEquivalenceTests, mirroring how
-        // CatalogAuthoringEquivalenceTests excludes the same ids from its 1:1 gate.
+        // is CORRECT, not merely tolerated: CatalogDetectionModelConformanceTests runs each of those ids through
+        // CatalogDiscovery.DetectState over CONSTRUCTED readings (clean / recommended-applied / group-policy /
+        // mirror-split) and proves the corrected reading is the one Windows would show. It pins the detection MODEL
+        // this fallback implements, not this method directly.
+        // HISTORICAL: until the SettingDefinition teardown, ComboBoxResolverSettingEquivalenceTests additionally
+        // proved the divergence set was EXACTLY those ids. That oracle died with the def -- with no old model left
+        // there is nothing to diverge FROM, so the set is no longer bounded by a test; the id list it bounded now
+        // lives on CatalogDetectionModelConformanceTests.
         var keysWithFoldedDefault = new HashSet<string>();
         foreach (var st in states)
             foreach (var e in st.Set)

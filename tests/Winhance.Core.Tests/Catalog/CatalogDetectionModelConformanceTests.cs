@@ -20,6 +20,38 @@ namespace Winhance.Core.Tests.Catalog;
 /// </summary>
 public class CatalogDetectionModelConformanceTests
 {
+
+    /// <summary>THE CANONICAL LIST. Settings whose registry detection was deliberately CORRECTED to the
+    /// effective-value-by-precedence model, and which therefore INTENTIONALLY diverge from the old app's
+    /// detection. The old `.Any` detection reports Enabled when ANY target is in its enabled state (so an absent
+    /// mirror hive reads as 'enabled'); it cannot express "absent = the Windows default state". The catalog adds
+    /// Of(v).OrAbsent() on the deciding key. Where they differ, THE OLD APP IS THE BUG -- their correctness is
+    /// pinned by the facts in THIS class, over constructed readings, on any machine.
+    ///
+    /// This list moved here at the SettingDefinition teardown. It used to live on
+    /// CatalogAuthoringEquivalenceTests (which excluded these ids from its authored-vs-converter structural gate)
+    /// and on ComboBoxResolverSettingEquivalenceTests (which bounded the divergence to exactly these ids) -- BOTH
+    /// are old-model oracles that die with the def. But the CONCEPT is still LIVE and is cited by SHIPPING code
+    /// (ComboBoxResolver's value-match fallback documents its by-design divergence by naming this list), so the
+    /// list needs a home that outlives the oracles rather than being deleted with them.</summary>
+    public static readonly IReadOnlyList<string> PrecedenceCorrectedIds = new[]
+    {
+        "privacy-advertising-id", "privacy-diagnostics", "privacy-lock-screen-overlay",
+        "privacy-inking-typing-dictionary",
+        "gaming-directx-flip-model", "gaming-directx-vrr-optimizations", "gaming-touch-keyboard-service",
+    };
+
+    /// <summary>Rot guard: every precedence-corrected id must still be a real catalog setting. If one is renamed
+    /// or retired, this fails loudly instead of the list silently pointing at nothing (which would make the
+    /// divergence ComboBoxResolver documents unbounded and unexplained).</summary>
+    [Fact]
+    public void PrecedenceCorrectedIds_AllResolveToRealCatalogSettings()
+    {
+        Assert.NotEmpty(PrecedenceCorrectedIds);
+        var missing = PrecedenceCorrectedIds.Where(id => SettingCatalog.Find(id) == null).ToList();
+        Assert.True(missing.Count == 0,
+            "precedence-corrected ids no longer in the catalog: " + string.Join(", ", missing));
+    }
     /// <summary>Returns a value per (keyPath, valueName); a pair not in the dict reads as absent. KeyExists is false
     /// (none of the audited settings are key-existence toggles).</summary>
     private sealed class Ctx : IDetectionContext
