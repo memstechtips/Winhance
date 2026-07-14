@@ -56,7 +56,7 @@ public class PowerPlanActivationService(
         {
             logService.Log(LogLevel.Warning, $"[PowerService] Plan '{planName}' ({powerPlanGuid}) not found on system");
 
-            var predefinedPlan = PowerPlanDefinitions.BuiltInPowerPlans
+            var predefinedPlan = PowerPlanCatalog.BuiltInPowerPlans
                 .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
 
             if (predefinedPlan != null)
@@ -243,7 +243,7 @@ public class PowerPlanActivationService(
 
     private async Task<PowerPlanImportResult> CreateWinhancePowerPlanAsync(PredefinedPowerPlan predefinedPlan)
     {
-        var ultimatePerformancePlan = PowerPlanDefinitions.BuiltInPowerPlans
+        var ultimatePerformancePlan = PowerPlanCatalog.BuiltInPowerPlans
             .FirstOrDefault(p => p.Name == "Ultimate Performance");
 
         if (ultimatePerformancePlan == null)

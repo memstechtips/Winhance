@@ -825,7 +825,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         if (string.IsNullOrEmpty(guid)) return null;
         var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanDefinitions.BuiltInPowerPlans.FirstOrDefault(
+        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
             p => NormalizeGuid(p.Guid) == normalizedGuid);
         return predefined?.LocalizationKey;
     }
@@ -836,7 +836,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private static PredefinedPowerPlan? ResolveToPredefinedPlan(string? guid, string? name)
     {
-        var plans = PowerPlanDefinitions.BuiltInPowerPlans;
+        var plans = PowerPlanCatalog.BuiltInPowerPlans;
 
         // 1. Try GUID match first (most reliable, locale-independent)
         if (!string.IsNullOrEmpty(guid))
@@ -869,7 +869,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (string.IsNullOrEmpty(guid)) return null;
 
         var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanDefinitions.BuiltInPowerPlans.FirstOrDefault(
+        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
             p => NormalizeGuid(p.Guid) == normalizedGuid);
 
         if (predefined == null) return null;

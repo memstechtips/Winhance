@@ -259,11 +259,11 @@ public class SettingApplicationService(
     /// <summary>Phase 6.7 Slice 8b-2b (D1): true when a power-plan apply value identifies the Winhance Power Plan.
     /// The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary
     /// (ConfigurationApplicationBridgeService). Both forms route through the shared
-    /// <see cref="PowerPlanDefinitions.IsWinhancePowerPlan"/> check.</summary>
+    /// <see cref="PowerPlanCatalog.IsWinhancePowerPlan"/> check.</summary>
     private static bool IsWinhancePowerPlanValue(object? value) => value switch
     {
-        string guid => PowerPlanDefinitions.IsWinhancePowerPlan(guid),
-        Dictionary<string, object> dict => PowerPlanDefinitions.IsWinhancePowerPlan(
+        string guid => PowerPlanCatalog.IsWinhancePowerPlan(guid),
+        Dictionary<string, object> dict => PowerPlanCatalog.IsWinhancePowerPlan(
             dict.TryGetValue("Guid", out var g) ? g?.ToString() : null,
             dict.TryGetValue("Name", out var n) ? n?.ToString() : null),
         _ => false,

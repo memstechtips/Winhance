@@ -898,7 +898,7 @@ public class SettingApplicationServiceTests
         {
             SettingId = SettingIds.PowerPlanSelection,
             Enable = true,
-            Value = PowerPlanDefinitions.WinhancePowerPlanGuid,
+            Value = PowerPlanCatalog.WinhancePowerPlanGuid,
         });
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
@@ -918,7 +918,7 @@ public class SettingApplicationServiceTests
         {
             SettingId = SettingIds.PowerPlanSelection,
             Enable = true,
-            Value = PowerPlanDefinitions.WinhancePowerPlanGuid,
+            Value = PowerPlanCatalog.WinhancePowerPlanGuid,
         });
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(

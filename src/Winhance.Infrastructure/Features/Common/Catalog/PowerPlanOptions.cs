@@ -23,7 +23,7 @@ internal static class PowerPlanOptions
         var processedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var processedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var predefined in PowerPlanDefinitions.BuiltInPowerPlans)
+        foreach (var predefined in PowerPlanCatalog.BuiltInPowerPlans)
         {
             var match = systemPlans.FirstOrDefault(sp =>
                 string.Equals(sp.Guid, predefined.Guid, StringComparison.OrdinalIgnoreCase));
