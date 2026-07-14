@@ -19,7 +19,9 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInitializationService> _mockInitializationService = new();
-    private readonly Mock<ISettingPreparationPipeline> _mockPreparationPipeline = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilterService = new();
+    private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
     private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
@@ -31,14 +33,24 @@ public class SettingsLoadingServiceTests
     public SettingsLoadingServiceTests()
     {
         _mockSettingStateProvider
-            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+
+        // Filter ON is the default: the service must request the current-OS scope
+        // (GetByFeature(feature, includeOtherOsVersions: false)). Filter-OFF facts override per-test.
+        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(true);
+
+        // A fixed live build for compatibility-message derivation (Windows 11 24H2).
+        _mockWindowsVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        _mockWindowsVersionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
         _sut = new SettingsLoadingService(
             _mockSettingStateProvider.Object,
             _mockLogService.Object,
             _mockInitializationService.Object,
-            _mockPreparationPipeline.Object,
+            _mockCatalogSettingsRegistry.Object,
+            _mockWindowsVersionFilterService.Object,
+            _mockWindowsVersionService.Object,
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
             _mockSettingLocalizationService.Object,
@@ -51,18 +63,18 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ReturnsViewModelsForAllSettings()
     {
-        var settings = new List<SettingDefinition>
+        var settings = new List<Setting>
         {
-            new() { Id = "security-workplace-join-messages", Name = "Setting 1", Description = "Desc 1", InputType = InputType.Toggle },
-            new() { Id = "start-disable-bing-search-results", Name = "Setting 2", Description = "Desc 2", InputType = InputType.Toggle }
+            CreateCatalogSetting("security-workplace-join-messages"),
+            CreateCatalogSetting("start-disable-bing-search-results")
         };
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", false))
             .Returns(settings);
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -91,23 +103,26 @@ public class SettingsLoadingServiceTests
             "TestFeature", "Loading...", null);
 
         result.Should().HaveCount(2);
+
+        // L4b mode pin: filter ON (the default here) must request the current-OS scope.
+        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", false), Times.Once);
     }
 
     [Fact]
     public async Task LoadConfiguredSettingsAsync_SkipsSettingsWithFailedState()
     {
-        var settings = new List<SettingDefinition>
+        var settings = new List<Setting>
         {
-            new() { Id = "security-workplace-join-messages", Name = "Good", Description = "Good desc", InputType = InputType.Toggle },
-            new() { Id = "BadSetting", Name = "Bad", Description = "Bad desc", InputType = InputType.Toggle }
+            CreateCatalogSetting("security-workplace-join-messages"),
+            CreateCatalogSetting("BadSetting")
         };
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", false))
             .Returns(settings);
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -139,12 +154,12 @@ public class SettingsLoadingServiceTests
     public async Task LoadConfiguredSettingsAsync_StartsAndCompletesFeatureInitialization()
     {
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
-            .Returns(new List<SettingDefinition>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<bool>()))
+            .Returns(new List<Setting>());
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
@@ -162,14 +177,14 @@ public class SettingsLoadingServiceTests
     public async Task LoadConfiguredSettingsAsync_WhenExceptionThrown_CompletesInitializationAndRethrows()
     {
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
-            .Throws(new Exception("Pipeline error"));
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<bool>()))
+            .Throws(new Exception("Registry error"));
 
         var act = () => _sut.LoadConfiguredSettingsAsync(
             "TestFeature", "Loading...", null);
 
-        await act.Should().ThrowAsync<Exception>().WithMessage("Pipeline error");
+        await act.Should().ThrowAsync<Exception>().WithMessage("Registry error");
         _mockInitializationService.Verify(i => i.CompleteFeatureInitialization("TestFeature"), Times.Once);
     }
 
@@ -177,12 +192,12 @@ public class SettingsLoadingServiceTests
     public async Task LoadConfiguredSettingsAsync_WithEmptySettings_ReturnsEmptyCollection()
     {
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("EmptyFeature"))
-            .Returns(new List<SettingDefinition>());
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("EmptyFeature", It.IsAny<bool>()))
+            .Returns(new List<Setting>());
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
@@ -193,6 +208,99 @@ public class SettingsLoadingServiceTests
             "EmptyFeature", "Loading...", null);
 
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task LoadConfiguredSettingsAsync_WhenFilterDisabled_LoadsTheOtherOsVersionsScope()
+    {
+        // STRICT filter-OFF pin: ONLY the includeOtherOsVersions: true scope is set up. If the service failed
+        // to thread !IsFilterEnabled through to GetByFeature, the false-arg call would return Moq's empty
+        // default and the count assert below would fail - the scope threading is load-bearing.
+        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", true))
+            .Returns(new List<Setting> { CreateCatalogSetting("security-workplace-join-messages") });
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                { "security-workplace-join-messages", new SettingStateResult { Success = true, IsEnabled = true } }
+            });
+
+        _mockUserPreferencesService
+            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
+            .ReturnsAsync(false);
+
+        var mockVm = CreateMockSettingItemViewModel("security-workplace-join-messages");
+        _mockViewModelFactory
+            .Setup(f => f.CreateAsync(
+                It.IsAny<Setting>(),
+                It.IsAny<SettingStateResult>(),
+                It.IsAny<ISettingsFeatureViewModel?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ComboBoxSetupResult?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(mockVm);
+
+        var result = await _sut.LoadConfiguredSettingsAsync(
+            "TestFeature", "Loading...", null);
+
+        result.Should().HaveCount(1);
+        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", true), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadConfiguredSettingsAsync_DerivesAndLocalizesCompatibilityMessage_ForOsGatedSetting()
+    {
+        // Filter OFF surfaces other-OS settings; a Windows-10-only setting on the mocked 26100 build derives
+        // "Compatibility_Windows10Only" (AvailabilityCompatibility), which the service localizes before the
+        // factory call. GetString is mocked key-verbatim (this file's convention), so the factory receives
+        // the key itself.
+        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(false);
+        _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+
+        var win10Only = new Setting
+        {
+            Id = "legacy-win10-setting",
+            Display = new() { Name = "Legacy", Description = "Windows 10 only" },
+            Availability = new Availability { Builds = new[] { BuildRange.Windows10 } }
+        };
+
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", true))
+            .Returns(new List<Setting> { win10Only });
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                { "legacy-win10-setting", new SettingStateResult { Success = true, IsEnabled = true } }
+            });
+
+        _mockUserPreferencesService
+            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
+            .ReturnsAsync(false);
+
+        string? receivedCompatibilityMessage = null;
+        var mockVm = CreateMockSettingItemViewModel("legacy-win10-setting");
+        _mockViewModelFactory
+            .Setup(f => f.CreateAsync(
+                It.IsAny<Setting>(),
+                It.IsAny<SettingStateResult>(),
+                It.IsAny<ISettingsFeatureViewModel?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ComboBoxSetupResult?>(),
+                It.IsAny<string?>()))
+            .Callback<Setting, SettingStateResult, ISettingsFeatureViewModel?, string?, ComboBoxSetupResult?, string?>(
+                (_, _, _, _, _, compatibilityMessage) => receivedCompatibilityMessage = compatibilityMessage)
+            .ReturnsAsync(mockVm);
+
+        await _sut.LoadConfiguredSettingsAsync(
+            "TestFeature", "Loading...", null);
+
+        receivedCompatibilityMessage.Should().Be("Compatibility_Windows10Only");
     }
 
     // ── RefreshSettingStatesAsync ──
@@ -208,10 +316,10 @@ public class SettingsLoadingServiceTests
     }
 
     [Fact]
-    public async Task RefreshSettingStatesAsync_WithSettingsHavingNullDefinitions_ReturnsEmptyDictionary()
+    public async Task RefreshSettingStatesAsync_WithSettingsHavingNoParentModule_ReturnsEmptyDictionary()
     {
+        // No ParentFeatureViewModel means no owning module to re-source catalog Settings from.
         var mockVm = CreateMockSettingItemViewModel("Setting1");
-        // SettingDefinition is null by default in the mock
 
         var result = await _sut.RefreshSettingStatesAsync(new[] { mockVm });
 
@@ -223,20 +331,14 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ResolvesComboBoxForSelectionTypeSettings()
     {
-        var selectionSetting = new SettingDefinition
-        {
-            Id = "explorer-customization-measurement-system",
-            Name = "Select",
-            Description = "Select desc",
-            InputType = InputType.Selection
-        };
+        var selectionSetting = CreateCatalogSetting("explorer-customization-measurement-system");
 
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestFeature"))
-            .Returns(new List<SettingDefinition> { selectionSetting });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestFeature", false))
+            .Returns(new List<Setting> { selectionSetting });
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "explorer-customization-measurement-system", new SettingStateResult
@@ -261,11 +363,11 @@ public class SettingsLoadingServiceTests
         await _sut.LoadConfiguredSettingsAsync(
             "TestFeature", "Loading...", null);
 
-        // G1a: combo-box resolution is no longer a separate IComboBoxResolver pass - a Selection's CurrentValue comes
-        // from GetStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
-        // detection path ran for the selection (pairing-independent; the VM list itself depends on catalog pairing).
+        // G1a: combo-box resolution is no longer a separate IComboBoxResolver pass - a Selection's CurrentValue
+        // comes from GetStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
+        // detection path ran for the selection.
         _mockSettingStateProvider.Verify(
-            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()), Times.Once);
+            d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()), Times.Once);
     }
 
     // ── RefreshSettingStatesAsync: combo box resolution + batch verification ──
@@ -273,23 +375,19 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task RefreshSettingStatesAsync_SelectionSettings_ResolvesComboBoxValues()
     {
-        var selectionDef = new SettingDefinition
-        {
-            Id = "SelectSetting",
-            Name = "Select Setting",
-            Description = "Selection test",
-            InputType = InputType.Selection
-        };
+        var selectionSetting = CreateCatalogSetting("SelectSetting");
 
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestModule"))
-            .Returns(new List<SettingDefinition> { selectionDef });
+        // Exact-arg setup doubles as the refresh-path filter-ON pin: a true-arg call would return Moq's
+        // empty default and the lookup below would fail.
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestModule", false))
+            .Returns(new List<Setting> { selectionSetting });
 
-        var vm = CreateMockSettingItemViewModel("SelectSetting", selectionDef, parent.Object);
+        var vm = CreateMockSettingItemViewModel("SelectSetting", parent.Object);
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "SelectSetting", new SettingStateResult { Success = true, CurrentValue = 1 } }
@@ -304,36 +402,27 @@ public class SettingsLoadingServiceTests
     }
 
     [Fact]
-    public async Task RefreshSettingStatesAsync_WithMixedInputTypes_ReturnsStatesForAll()
+    public async Task RefreshSettingStatesAsync_WithMultipleSettings_ReturnsStatesForAll()
     {
-        var toggleDef = new SettingDefinition
-        {
-            Id = "Toggle1", Name = "Toggle", Description = "Toggle desc", InputType = InputType.Toggle
-        };
-        var selectionDef = new SettingDefinition
-        {
-            Id = "Select1", Name = "Select", Description = "Select desc", InputType = InputType.Selection
-        };
-        var numericDef = new SettingDefinition
-        {
-            Id = "Numeric1", Name = "Numeric", Description = "Numeric desc", InputType = InputType.NumericRange
-        };
+        var toggleSetting = CreateCatalogSetting("Toggle1");
+        var selectionSetting = CreateCatalogSetting("Select1");
+        var numericSetting = CreateCatalogSetting("Numeric1");
 
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestModule"))
-            .Returns(new List<SettingDefinition> { toggleDef, selectionDef, numericDef });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestModule", false))
+            .Returns(new List<Setting> { toggleSetting, selectionSetting, numericSetting });
 
         var vms = new[]
         {
-            CreateMockSettingItemViewModel("Toggle1", toggleDef, parent.Object),
-            CreateMockSettingItemViewModel("Select1", selectionDef, parent.Object),
-            CreateMockSettingItemViewModel("Numeric1", numericDef, parent.Object)
+            CreateMockSettingItemViewModel("Toggle1", parent.Object),
+            CreateMockSettingItemViewModel("Select1", parent.Object),
+            CreateMockSettingItemViewModel("Numeric1", parent.Object)
         };
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "Toggle1", new SettingStateResult { Success = true, IsEnabled = true } },
@@ -352,34 +441,25 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task RefreshSettingStatesAsync_CallsStateProviderExactlyOnce()
     {
-        var def1 = new SettingDefinition
-        {
-            Id = "S1", Name = "S1", Description = "Desc", InputType = InputType.Toggle
-        };
-        var def2 = new SettingDefinition
-        {
-            Id = "S2", Name = "S2", Description = "Desc", InputType = InputType.Toggle
-        };
-        var def3 = new SettingDefinition
-        {
-            Id = "S3", Name = "S3", Description = "Desc", InputType = InputType.NumericRange
-        };
+        var setting1 = CreateCatalogSetting("S1");
+        var setting2 = CreateCatalogSetting("S2");
+        var setting3 = CreateCatalogSetting("S3");
 
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
-        _mockPreparationPipeline
-            .Setup(p => p.PrepareSettings("TestModule"))
-            .Returns(new List<SettingDefinition> { def1, def2, def3 });
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("TestModule", false))
+            .Returns(new List<Setting> { setting1, setting2, setting3 });
 
         var vms = new[]
         {
-            CreateMockSettingItemViewModel("S1", def1, parent.Object),
-            CreateMockSettingItemViewModel("S2", def2, parent.Object),
-            CreateMockSettingItemViewModel("S3", def3, parent.Object)
+            CreateMockSettingItemViewModel("S1", parent.Object),
+            CreateMockSettingItemViewModel("S2", parent.Object),
+            CreateMockSettingItemViewModel("S3", parent.Object)
         };
 
         _mockSettingStateProvider
-            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 { "S1", new SettingStateResult { Success = true } },
@@ -389,38 +469,32 @@ public class SettingsLoadingServiceTests
 
         await _sut.RefreshSettingStatesAsync(vms);
 
-        // Batch call: exactly one call with all 3 definitions, not 3 individual calls
+        // Batch call: exactly one call with all 3 settings, not 3 individual calls
         _mockSettingStateProvider.Verify(
-            d => d.GetStatesAsync(It.Is<IReadOnlyList<SettingDefinition>>(l => l.Count == 3)),
+            d => d.GetStatesAsync(It.Is<IReadOnlyList<Setting>>(l => l.Count == 3)),
             Times.Once);
     }
 
     // ── Helper ──
 
-    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null)
+    private static Setting CreateCatalogSetting(string id)
     {
-        return CreateMockSettingItemViewModel(settingId, new SettingDefinition
-        {
-            Id = settingId,
-            Name = settingId,
-            Description = "Test",
-            InputType = InputType.Toggle
-        }, parent);
+        return new Setting { Id = id, Display = new() { Name = id, Description = "Test" } };
     }
 
-    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, SettingDefinition settingDefinition, ISettingsFeatureViewModel? parent = null)
+    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null)
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = settingDefinition.Name, Description = settingDefinition.Description } },
+            Setting = new Setting { Id = settingId, Display = new() { Name = settingId, Description = "Test" } },
             ParentFeatureViewModel = parent,
             SettingId = settingId,
-            Name = settingDefinition.Name,
-            Description = settingDefinition.Description,
+            Name = settingId,
+            Description = "Test",
             GroupName = string.Empty,
             Icon = string.Empty,
             IconPack = "Material",
-            InputType = settingDefinition.InputType,
+            InputType = InputType.Toggle,
             IsSelected = false,
             OnText = "On",
             OffText = "Off",

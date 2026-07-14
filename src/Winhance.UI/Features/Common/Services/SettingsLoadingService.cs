@@ -14,7 +14,9 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
-    private readonly ISettingPreparationPipeline _preparationPipeline;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilterService;
+    private readonly IWindowsVersionService _windowsVersionService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
     private readonly ISettingLocalizationService _settingLocalizationService;
@@ -25,7 +27,9 @@ public class SettingsLoadingService : ISettingsLoadingService
         ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
         IInitializationService initializationService,
-        ISettingPreparationPipeline preparationPipeline,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilterService,
+        IWindowsVersionService windowsVersionService,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
         ISettingLocalizationService settingLocalizationService,
@@ -35,7 +39,9 @@ public class SettingsLoadingService : ISettingsLoadingService
         _settingStateProvider = settingStateProvider;
         _logService = logService;
         _initializationService = initializationService;
-        _preparationPipeline = preparationPipeline;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilterService = windowsVersionFilterService;
+        _windowsVersionService = windowsVersionService;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
         _settingLocalizationService = settingLocalizationService;
@@ -53,7 +59,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
             _initializationService.StartFeatureInitialization(featureModuleId);
 
-            var settingsList = _preparationPipeline.PrepareSettings(featureModuleId);
+            var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled);
 
             var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
@@ -62,10 +68,14 @@ public class SettingsLoadingService : ISettingsLoadingService
                 Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            // Slice 6: the new-engine full-state provider IS the old-discovery+overlay result (completeness-proven:
-            // every setting pairs), so it replaces both and retires the observe-only shadow. Custom-state now comes
-            // from the typed fields (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
+            // Slice 6: the new-engine full-state provider IS the old-discovery+overlay result, so it replaces both
+            // and retires the observe-only shadow. Custom-state now comes from the typed fields
+            // (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
             var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
+
+            // L4b: the compatibility message is derived from the catalog Availability against the live build
+            // (AvailabilityCompatibility reproduces the retired def decoration); read the build once per load.
+            var liveBuild = LiveBuild();
 
             // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
             foreach (var setting in settingsList)
@@ -78,29 +88,19 @@ public class SettingsLoadingService : ISettingsLoadingService
 
                 var currentState = batchStates.TryGetValue(setting.Id, out var s) ? s : new SettingStateResult();
 
-                // Bridge to the new model: pair the old SettingDefinition to its catalog Setting (by id, after
-                // normalizing the 6 "-win10" ThisPC aliases) and build the VM from that. The catalog is complete,
-                // so a missing peer is a real gap - skip the VM rather than crash the page.
-                var paired = SettingCatalog.All.FirstOrDefault(c => c.Id == SettingIdAliases.Normalize(setting.Id));
-                if (paired is null)
-                {
-                    _logService.Log(LogLevel.Warning, $"No catalog Setting for '{setting.Id}'; skipping VM.");
-                    continue;
-                }
-
-                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(paired);
+                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
                 // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
                 // G1b: build it here from the new engine's DynamicOptions (the same runtime options the live GUID-valued
                 // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads -
                 // retiring the old IComboBoxSetupService precompute. The factory's builder block localizes the
-                // PowerPlan_ DisplayText, so the bridge passes the raw loc key.
+                // PowerPlan_ DisplayText, so this service passes the raw loc key.
                 ComboBoxSetupResult? builderComboBoxOptions =
-                    (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.Recommendation?.LoadDynamicOptions == true)
+                    (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.OptionSource is not null)
                         ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 
-                var viewModel = await _viewModelFactory.CreateAsync(paired, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(setting.VersionCompatibilityMessage));
+                var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)));
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
@@ -123,31 +123,31 @@ public class SettingsLoadingService : ISettingsLoadingService
     {
         var settingsList = settings.ToList();
 
-        // The VM no longer carries its SettingDefinition (Phase 6.7 Slice 11). Re-source the definitions for this
-        // refresh from the preparation pipeline, keyed by each VM's owning feature module and filtered to the VMs
-        // on screen - the same pipeline + filter as the initial load, so the definitions are identical.
+        // The VM no longer carries its setting model (Phase 6.7 Slice 11). Re-source the catalog Settings for this
+        // refresh from the catalog registry, keyed by each VM's owning feature module and filtered to the VMs
+        // on screen - the same registry + scope as the initial load, so the settings are identical.
         var wantedIds = new HashSet<string>(settingsList.Select(s => s.SettingId));
-        var definitions = settingsList
+        var catalogSettings = settingsList
             .Select(s => s.ParentFeatureViewModel?.ModuleId)
             .Where(m => !string.IsNullOrEmpty(m))
             .Distinct()
-            .SelectMany(m => _preparationPipeline.PrepareSettings(m!))
-            .Where(d => wantedIds.Contains(d.Id))
-            .GroupBy(d => d.Id)
+            .SelectMany(m => _catalogSettingsRegistry.GetByFeature(m!, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled))
+            .Where(c => wantedIds.Contains(c.Id))
+            .GroupBy(c => c.Id)
             .Select(g => g.First())
             .ToList();
 
-        if (definitions.Count == 0)
+        if (catalogSettings.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
         // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
-        var batchStates = await _settingStateProvider.GetStatesAsync(definitions);
+        var batchStates = await _settingStateProvider.GetStatesAsync(catalogSettings);
 
         return batchStates;
     }
 
-    // Slice B2: the preparation pipeline no longer localizes the def (SettingLocalizationService.LocalizeSetting is
-    // retired), so VersionCompatibilityMessage arrives raw (format: "Compatibility_Key|Arg1|Arg2..."). Localize it
+    // Slice B2/L4b: the compatibility message arrives raw from the catalog derivation
+    // (AvailabilityCompatibility.DeriveCompatibilityMessage; format: "Compatibility_Key|Arg1|Arg2..."). Localize it
     // here before passing it to the factory - lifted verbatim from the retired LocalizeSetting. A non-Compatibility_
     // message (incl. null) is returned unchanged, exactly as the old service left it.
     private string? LocalizeCompatibilityMessage(string? message)
@@ -173,6 +173,11 @@ public class SettingsLoadingService : ISettingsLoadingService
         }
         return message;
     }
+
+    /// <summary>The live Windows build for compatibility-message derivation. Read ONCE per load (cached in a
+    /// local before the VM loop), not per setting.</summary>
+    private WinBuild LiveBuild() =>
+        new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
 
     /// <summary>
     /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from the

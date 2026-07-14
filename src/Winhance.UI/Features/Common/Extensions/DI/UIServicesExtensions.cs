@@ -108,9 +108,6 @@ public static class UIServicesExtensions
         // Setting ViewModel Factory (Singleton - Creates fully-configured setting ViewModels)
         services.AddSingleton<ISettingViewModelFactory, SettingViewModelFactory>();
 
-        // Setting Preparation Pipeline (filters and localizes settings for a feature module)
-        services.AddSingleton<ISettingPreparationPipeline, SettingPreparationPipeline>();
-
         // Settings Loading Service (Singleton - Orchestrates setting loading and refresh)
         services.AddSingleton<Features.Common.Interfaces.ISettingsLoadingService, SettingsLoadingService>();
 
