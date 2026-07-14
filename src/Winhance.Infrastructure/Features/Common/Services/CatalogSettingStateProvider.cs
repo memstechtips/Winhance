@@ -10,15 +10,15 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 /// <summary>
-/// Phase 6.8 full-state provider (additive): builds a complete typed <see cref="SettingStateResult"/> per setting
-/// from the NEW catalog detection engine ALONE (<see cref="ICatalogDetectionService.DetectAsync"/>), with no call to
-/// the old <c>SystemSettingsDiscoveryService.GetSettingStatesAsync</c>. It reproduces the field semantics of
-/// <c>CatalogDetectionStateOverlay.Apply</c>, except it produces the WHOLE result (the overlay layers onto an
-/// old-discovery base; this one builds from the <c>CatalogDetectionResult</c> alone).
+/// Phase 6.8 full-state provider: builds a complete typed <see cref="SettingStateResult"/> per catalog
+/// <see cref="Setting"/> from the NEW catalog detection engine ALONE (<see cref="ICatalogDetectionService.DetectAsync"/>),
+/// with no call to the old <c>SystemSettingsDiscoveryService.GetSettingStatesAsync</c>. It reproduces the field
+/// semantics of <c>CatalogDetectionStateOverlay.Apply</c>, except it produces the WHOLE result (the overlay layers
+/// onto an old-discovery base; this one builds from the <c>CatalogDetectionResult</c> alone).
 ///
-/// Pairs a def to its catalog Setting by normalized Id (SettingIdAliases, so the retired OS-merged "-win10" variants
-/// resolve to their canonical merged Setting); a def with no catalog peer returns an unsuccessful result rather than
-/// throwing. There is no untyped RawValues bag (option B): the registry readings live on
+/// Catalog-native since Slice 4bb-2; the def-based overload (which paired each def to its catalog Setting via
+/// SettingIdAliases normalization) was retired in Slice L6 once the last reader consumers moved onto catalog
+/// Settings. There is no untyped RawValues bag (option B): the registry readings live on
 /// <see cref="SettingStateResult.Readings"/> and the powercfg AC/DC on the typed <see cref="SettingStateResult.AcValue"/>/
 /// <see cref="SettingStateResult.DcValue"/> fields. Gated by <c>CatalogSettingStateProviderConformanceTests</c>.
 /// </summary>
@@ -33,54 +33,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         _comboBoxResolver = comboBoxResolver;
     }
 
-    public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<SettingDefinition> settings)
-    {
-        var catalogById = SettingCatalog.All.ToDictionary(s => s.Id);
-
-        // Pair each def to its catalog Setting by NORMALIZED id: a retired OS-merged "-win10" variant (absent from
-        // SettingCatalog.All - the 6 "This PC" folder toggles merged into one build-gated Setting) resolves to its
-        // canonical merged Setting via SettingIdAliases, mirroring the live UI pairing (SettingsLoadingService). A def
-        // with no catalog peer even after normalizing gets a non-success result below (no throw). Each result stays
-        // keyed by the ORIGINAL def id.
-        Setting? Pair(SettingDefinition d) =>
-            catalogById.TryGetValue(SettingIdAliases.Normalize(d.Id), out var s) ? s : null;
-
-        // Detect over the DISTINCT canonical settings. Two OS variants can normalize to one canonical (only one loads
-        // per OS in production), so dedupe by Id defensively rather than hand DetectAsync the same Setting twice.
-        var detectionInput = settings
-            .Select(Pair)
-            .Where(s => s is not null)
-            .Select(s => s!)
-            .GroupBy(s => s.Id)
-            .Select(g => g.First())
-            .ToList();
-
-        var detected = await _detection.DetectAsync(detectionInput).ConfigureAwait(false);
-
-        var results = new Dictionary<string, SettingStateResult>();
-        foreach (var def in settings)
-        {
-            if (Pair(def) is not { } catalogSetting)
-            {
-                // No catalog peer even after alias-normalizing - surface it, don't throw.
-                results[def.Id] = new SettingStateResult { Success = false, ErrorMessage = "unpaired" };
-                continue;
-            }
-
-            // Detection is keyed by the CANONICAL Setting.Id, which differs from def.Id for a normalized alias.
-            var r = detected.TryGetValue(catalogSetting.Id, out var dr) ? dr : null;
-            results[def.Id] = Map(catalogSetting, r);
-        }
-
-        return results;
-    }
-
-
-    /// <summary>Catalog-native overload (Slice 4bb-2): builds a complete <see cref="SettingStateResult"/> per catalog
-    /// <see cref="Setting"/>, pairing each Setting to ITSELF (no <c>SettingIdAliases</c> normalization - a Setting is
-    /// already the canonical merged catalog entry, so there is no -win10 alias to resolve). Additive; wired to nothing
-    /// yet - the <see cref="GetStatesAsync(IReadOnlyList{SettingDefinition})"/> overload stays live for the reader
-    /// consumers until their own slices. Dedupes the detection input by Id defensively and keys each result by Setting.Id.</summary>
+    /// <summary>Builds a complete <see cref="SettingStateResult"/> per catalog <see cref="Setting"/> (Slice 4bb-2;
+    /// the sole API since Slice L6 retired the def-based overload). A Setting is already the canonical merged
+    /// catalog entry, so there is no <c>SettingIdAliases</c> normalization or -win10 alias pairing to do. Dedupes
+    /// the detection input by Id defensively and keys each result by Setting.Id.</summary>
     public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings)
     {
         var detectionInput = settings
@@ -185,7 +141,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     /// role/value (what Windows ships), NOT the subjective <see cref="RoleKind.Recommended"/> role (which shifts per
     /// release and would mis-report a deliberately-changed setting). This replaces the old multi-target <c>.Any</c> lie
     /// the migration exists to retire, so a live divergence from the old hybrid here is OLD's bug - the IsEnabled gate
-    /// is therefore a machine-independent model-conformance assertion (see FullStateProviderEquivalenceTests), NOT the
+    /// is therefore a machine-independent model-conformance assertion (see CatalogSettingStateProviderConformanceTests), NOT the
     /// live hybrid. Per input type:
     /// <list type="bullet">
     ///   <item>Numeric: the detected AC reading (system units, converted to display units) differs from the

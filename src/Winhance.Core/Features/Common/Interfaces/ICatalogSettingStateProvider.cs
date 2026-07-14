@@ -6,25 +6,19 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Common.Interfaces;
 
 /// <summary>
-/// The full-state provider: produces a complete typed <see cref="SettingStateResult"/> per setting from the catalog
-/// detection engine ALONE. It is the live source of setting state after old discovery was retired (Phase 6.9); it
-/// replaced the old-discovery + <c>CatalogDetectionStateOverlay</c> hybrid, building the whole result from the new
-/// engine's <c>CatalogDetectionResult</c>.
+/// The full-state provider: produces a complete typed <see cref="SettingStateResult"/> per catalog
+/// <see cref="Setting"/> from the catalog detection engine ALONE. It is the live source of setting state after old
+/// discovery was retired (Phase 6.9); it replaced the old-discovery + <c>CatalogDetectionStateOverlay</c> hybrid,
+/// building the whole result from the new engine's <c>CatalogDetectionResult</c>.
 ///
-/// Pairs a def to its catalog Setting by normalized Id (via <c>SettingIdAliases</c>, so the retired OS-merged
-/// "-win10" variants resolve to their canonical merged Setting); a def with no catalog peer even after normalizing is
-/// returned as an unsuccessful result rather than throwing. Its machine-independent behaviour (the Windows-grounded
-/// IsEnabled rule, alias pairing, and the selection value-match fallback) is gated by
-/// <c>CatalogSettingStateProviderConformanceTests</c>.
+/// Catalog-native since Slice 4bb-2; the def-based overload (which paired each def to its catalog Setting via
+/// <c>SettingIdAliases</c>) was retired in Slice L6 once the last reader consumers moved onto catalog Settings.
+/// Its machine-independent behaviour (the Windows-grounded IsEnabled rule and the selection value-match fallback)
+/// is gated by <c>CatalogSettingStateProviderConformanceTests</c>.
 /// </summary>
 public interface ICatalogSettingStateProvider
 {
-    /// <summary>The detected state per setting keyed by <c>SettingDefinition.Id</c>, built from the new engine
-    /// alone.</summary>
-    Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<SettingDefinition> settings);
-
-    /// <summary>Catalog-native overload (Slice 4bb-2): the detected state per catalog <see cref="Setting"/> keyed
-    /// by <c>Setting.Id</c>, built from the new engine alone. Additive; the <see cref="SettingDefinition"/> overload
-    /// stays live until its reader consumers migrate off the def.</summary>
+    /// <summary>The detected state per catalog <see cref="Setting"/> keyed by <c>Setting.Id</c>, built from the
+    /// new engine alone.</summary>
     Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings);
 }

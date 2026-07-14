@@ -9,7 +9,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;
-using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -19,8 +18,10 @@ namespace Winhance.Infrastructure.Tests.Migration;
 /// guard left behind after old discovery + the equivalence oracle were retired (Phase 6.9 teardown). These construct
 /// readings/detection results directly and assert against what Windows ships and the catalog model, never a live
 /// old-vs-new comparison. Covers: the Windows-grounded IsEnabled rule (the <c>IsEnabled_*</c> facts + the
-/// <c>Every_gate_*</c> structural invariants that keep the rule well-defined), the win10-alias pairing, and the
-/// selection value-match fallback (the Phase 6.9 Custom-regression guard).
+/// <c>Every_gate_*</c> structural invariants that keep the rule well-defined) and the selection value-match
+/// fallback (the Phase 6.9 Custom-regression guard). The win10-alias pairing fact retired with the def-based
+/// provider overload (Slice L6): the Setting overload does no pairing - a Setting is already the canonical
+/// merged catalog entry, and the -win10 defs have no catalog peer to feed it.
 ///
 /// Run: dotnet test --filter CatalogSettingStateProviderConformance</summary>
 public class CatalogSettingStateProviderConformanceTests
@@ -190,77 +191,6 @@ public class CatalogSettingStateProviderConformanceTests
             "Every gate-population numeric must carry a WindowsDefault(AC) value. Offenders: " + string.Join(", ", offenders));
     }
 
-    [Fact]
-    public async Task Provider_pairs_the_win10_aliases_to_their_canonical_setting()
-    {
-        // Slice 5: the 6 OS-merged "-win10" ThisPC-folder defs are absent from SettingCatalog.All; the provider must
-        // normalize them to their canonical merged Setting (like SettingsLoadingService) instead of reporting them
-        // unpaired. Because a "-win10" def and its canonical peer pair to the SAME Setting and read the SAME live
-        // detection, the provider must produce FIELD-IDENTICAL results for both - a machine-independent proof that the
-        // alias pairing works (it holds on Win10 or Win11: both sides read whatever target is live on this build).
-        var log = new Mock<ILogService>();
-        var interactiveUser = new Mock<IInteractiveUserService>();
-        interactiveUser.Setup(x => x.IsOtsElevation).Returns(false);
-        var reg = new WindowsRegistryService(log.Object, interactiveUser.Object);
-        var powerQuery = new PowerSettingsQueryService(log.Object);
-        var factory = new SystemDetectionContextFactory(
-            reg,
-            new Mock<ISystemRestoreService>().Object,
-            new Mock<IScheduledTaskService>().Object,
-            powerQuery,
-            log.Object);
-        var detection = new CatalogDetectionService(factory, log.Object);
-        // ResolveRawValuesToIndex (the selection value-match base) is pure, so the resolver needs no dependencies.
-        var provider = new CatalogSettingStateProvider(detection, new ComboBoxResolver());
-
-        var allDefs = AllDefinitions().ToList();
-        var aliasIds = new[]
-        {
-            "explorer-customization-thispc-folder-desktop-win10",
-            "explorer-customization-thispc-folder-documents-win10",
-            "explorer-customization-thispc-folder-downloads-win10",
-            "explorer-customization-thispc-folder-music-win10",
-            "explorer-customization-thispc-folder-pictures-win10",
-            "explorer-customization-thispc-folder-videos-win10",
-        };
-
-        var mismatches = new List<string>();
-        int checkedPairs = 0;
-
-        foreach (var aliasId in aliasIds)
-        {
-            var canonicalId = SettingIdAliases.Normalize(aliasId);
-            Assert.NotEqual(aliasId, canonicalId); // sanity: it really is a retired alias
-
-            var win10Def = allDefs.FirstOrDefault(d => d.Id == aliasId);
-            var canonicalDef = allDefs.FirstOrDefault(d => d.Id == canonicalId);
-            if (win10Def is null || canonicalDef is null)
-            {
-                mismatches.Add($"{aliasId}: def missing (win10={win10Def is not null}, canonical={canonicalDef is not null})");
-                continue;
-            }
-
-            var states = await provider.GetStatesAsync(new[] { win10Def, canonicalDef });
-            var win10 = states[aliasId];
-            var canonical = states[canonicalId];
-
-            // Paired now, not "unpaired".
-            Assert.True(win10.Success, $"{aliasId} should pair to its canonical Setting, got unpaired ({win10.ErrorMessage})");
-            checkedPairs++;
-
-            // Field-identical to the canonical peer (both pair to the same Setting + read the same detection).
-            CompareField(mismatches, aliasId, "IsEnabled", canonical.IsEnabled, win10.IsEnabled);
-            CompareField(mismatches, aliasId, "CurrentValue", canonical.CurrentValue, win10.CurrentValue);
-            CompareField(mismatches, aliasId, "Success", canonical.Success, win10.Success);
-            CompareField(mismatches, aliasId, "AcValue", canonical.AcValue, win10.AcValue);
-            CompareField(mismatches, aliasId, "DcValue", canonical.DcValue, win10.DcValue);
-            CompareReadings(mismatches, aliasId, canonical.Readings, win10.Readings);
-        }
-
-        Assert.True(checkedPairs == aliasIds.Length, $"expected {aliasIds.Length} alias pairs, paired {checkedPairs}");
-        Assert.True(mismatches.Count == 0, "win10 alias pairing diverged from the canonical peer:\n" + string.Join("\n", mismatches));
-    }
-
     /// <summary>Regression (Phase 6.9): a selection for which the new engine yields NO resolved state label (null -
     /// StateDetectionEngine found no match, or the label isn't a verbatim option DisplayName) must fall back to the
     /// value-match the live UI consumed (ResolveRawValuesToIndex over the reads), NOT collapse to the Custom index.
@@ -273,7 +203,11 @@ public class CatalogSettingStateProviderConformanceTests
     {
         // gaming-sysmain-service: option index 1 is Start=3 ("Manual"). The engine reports NO label (the regression
         // trigger) but the live reads say Start=3, so the value-match must land on index 1, never Custom (-1).
-        var sysmain = AllDefinitions().First(d => d.Id == "gaming-sysmain-service");
+        // L6 (def-overload retirement): re-homed onto the Setting overload - feed the paired catalog Setting
+        // directly (gaming-sysmain-service is unaliased, so Find resolves the same Setting the retired def
+        // overload paired to); the mocked detection and the assertions are unchanged.
+        var sysmain = SettingCatalog.Find("gaming-sysmain-service");
+        Assert.NotNull(sysmain);
 
         var detection = new Mock<ICatalogDetectionService>();
         detection
@@ -290,55 +224,10 @@ public class CatalogSettingStateProviderConformanceTests
 
         var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver());
 
-        var states = await provider.GetStatesAsync(new[] { sysmain });
+        var states = await provider.GetStatesAsync(new[] { sysmain! });
 
         Assert.True(states.TryGetValue("gaming-sysmain-service", out var s));
         Assert.True(s!.Success);
         Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
     }
-
-    private static void CompareField(List<string> mismatches, string id, string field, object? left, object? right)
-    {
-        if (!ScalarEquals(left, right))
-            mismatches.Add($"{id}.{field}: canonical={Fmt(left)} alias={Fmt(right)}");
-    }
-
-    private static void CompareReadings(
-        List<string> mismatches,
-        string id,
-        IReadOnlyDictionary<string, object?>? left,
-        IReadOnlyDictionary<string, object?>? right)
-    {
-        if (left is null && right is null)
-            return;
-        if (left is null || right is null)
-        {
-            mismatches.Add($"{id}.Readings: canonical={(left is null ? "<null>" : $"{{{left.Count}}}")} alias={(right is null ? "<null>" : $"{{{right.Count}}}")}");
-            return;
-        }
-        var keys = left.Keys.Union(right.Keys);
-        foreach (var key in keys)
-        {
-            object? a = left.TryGetValue(key, out var av) ? av : null;
-            object? b = right.TryGetValue(key, out var bv) ? bv : null;
-            if (!ScalarEquals(a, b))
-                mismatches.Add($"{id}.Readings[{key}]: canonical={Fmt(a)} alias={Fmt(b)}");
-        }
-    }
-
-    private static bool ScalarEquals(object? a, object? b)
-    {
-        if (a is null || b is null)
-            return a is null && b is null;
-        if (a is byte[] ba && b is byte[] bb)
-            return ba.SequenceEqual(bb);
-        return a.Equals(b);
-    }
-
-    private static string Fmt(object? v) => v switch
-    {
-        null => "<null>",
-        byte[] bytes => "byte[" + string.Join(",", bytes) + "]",
-        _ => $"{v} ({v.GetType().Name})",
-    };
 }

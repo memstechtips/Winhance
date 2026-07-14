@@ -256,7 +256,7 @@ public class WindowsAppsService(
         try
         {
             // Slice L3: pair via the catalog (UpdatesPolicyMode is not aliased; Find resolves the same
-            // Setting the def overload paired to internally), binding the Setting-list GetStatesAsync.
+            // Setting the retired def overload paired to internally), binding the Setting-list GetStatesAsync.
             var policySetting = SettingCatalog.Find(SettingIds.UpdatesPolicyMode);
             if (policySetting == null)
                 return false;
