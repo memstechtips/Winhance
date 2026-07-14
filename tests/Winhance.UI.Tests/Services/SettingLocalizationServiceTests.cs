@@ -3,7 +3,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
@@ -33,24 +32,19 @@ public class SettingLocalizationServiceTests
         _catalogSettingsRegistry.Object,
         _windowsVersionFilter.Object);
 
-    private SettingDefinition CreateTestSetting(
+    // L2b: the service takes the catalog Setting now (the cross-group map lives on Display per Slice L2).
+    private static Setting CreateTestSetting(
         string id = "test-setting",
-        string name = "Test Setting",
-        string description = "Test Description",
-        string? groupName = "TestGroup",
-        ComboBoxMetadata? comboBox = null,
-        NumericRangeMetadata? numericRange = null,
-        string? versionCompatibilityMessage = null,
         Dictionary<string, string>? crossGroupChildSettings = null) => new()
     {
         Id = id,
-        Name = name,
-        Description = description,
-        GroupName = groupName,
-        ComboBox = comboBox,
-        NumericRange = numericRange,
-        VersionCompatibilityMessage = versionCompatibilityMessage,
-        CrossGroupChildSettings = crossGroupChildSettings
+        Display = new Display
+        {
+            Name = "Test Setting",
+            Description = "Test Description",
+            GroupName = "TestGroup",
+            CrossGroupChildSettings = crossGroupChildSettings,
+        },
     };
 
     // --- BuildCrossGroupInfoMessage ---

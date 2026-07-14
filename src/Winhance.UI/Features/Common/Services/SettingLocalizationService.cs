@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -28,9 +28,9 @@ public class SettingLocalizationService : ISettingLocalizationService
         _windowsVersionFilter = windowsVersionFilter;
     }
 
-    public string? BuildCrossGroupInfoMessage(SettingDefinition setting)
+    public string? BuildCrossGroupInfoMessage(Setting setting)
     {
-        var crossGroupSettings = setting.CrossGroupChildSettings;
+        var crossGroupSettings = setting.Display.CrossGroupChildSettings;
         if (crossGroupSettings == null || crossGroupSettings.Count == 0)
         {
             return null;

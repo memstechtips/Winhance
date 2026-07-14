@@ -1,4 +1,4 @@
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
@@ -11,5 +11,5 @@ public interface ISettingLocalizationService
     /// <summary>
     /// Builds a localized message showing cross-group child settings grouped by feature and group.
     /// </summary>
-    string? BuildCrossGroupInfoMessage(SettingDefinition setting);
+    string? BuildCrossGroupInfoMessage(Setting setting);
 }

@@ -88,7 +88,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                     continue;
                 }
 
-                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(paired);
 
                 // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
                 // G1b: build it here from the new engine's DynamicOptions (the same runtime options the live GUID-valued
