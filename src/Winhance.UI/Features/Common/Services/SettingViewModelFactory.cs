@@ -47,13 +47,16 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     /// </summary>
     public async Task<SettingItemViewModel> CreateAsync(
         Setting setting,
-        InputType inputType,
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage)
     {
+        // Slice L4a: the def-threaded inputType parameter is gone -- derive the same value from the
+        // catalog Setting's Control so the dispatch below and config.InputType are unchanged.
+        var inputType = ControlToInputType(setting.Control);
+
         var config = new SettingItemViewModelConfig
         {
             Setting = setting,
@@ -348,4 +351,19 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
         return null;
     }
+
+    /// <summary>Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService
+    /// .ControlToInputType (private per-service transitional helpers): derives the VM-facing InputType from
+    /// the catalog Setting's derived Control, replacing the def.InputType the loading bridge used to thread
+    /// in (the factory's last def input). Transitional -- retires together with the VM's InputType at
+    /// teardown. Exact for the shipped population per ControlDerivationConformanceTests (derived Control
+    /// matches the old InputType over every paired setting): PowerPlan settings were InputType.Selection,
+    /// no setting is CheckBox.</summary>
+    private static InputType ControlToInputType(ControlKind control) => control switch
+    {
+        ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,
+        ControlKind.Slider => InputType.NumericRange,
+        ControlKind.Action => InputType.Action,
+        _ => InputType.Toggle,
+    };
 }

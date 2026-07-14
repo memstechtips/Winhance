@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -16,7 +15,6 @@ public interface ISettingViewModelFactory
     /// </summary>
     Task<SettingItemViewModel> CreateAsync(
         Setting setting,
-        InputType inputType,
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,

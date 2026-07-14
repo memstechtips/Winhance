@@ -79,7 +79,6 @@ public class SettingsLoadingServiceTests
         _mockViewModelFactory
             .SetupSequence(f => f.CreateAsync(
                 It.IsAny<Setting>(),
-                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
@@ -123,7 +122,6 @@ public class SettingsLoadingServiceTests
         _mockViewModelFactory
             .Setup(f => f.CreateAsync(
                 It.IsAny<Setting>(),
-                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
@@ -253,7 +251,6 @@ public class SettingsLoadingServiceTests
         _mockViewModelFactory
             .Setup(f => f.CreateAsync(
                 It.IsAny<Setting>(),
-                It.IsAny<InputType>(),
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),

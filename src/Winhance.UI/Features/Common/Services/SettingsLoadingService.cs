@@ -100,7 +100,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                         ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 
-                var viewModel = await _viewModelFactory.CreateAsync(paired, setting.InputType, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(setting.VersionCompatibilityMessage));
+                var viewModel = await _viewModelFactory.CreateAsync(paired, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(setting.VersionCompatibilityMessage));
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
