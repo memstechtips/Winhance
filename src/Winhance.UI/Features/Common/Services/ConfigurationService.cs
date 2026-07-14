@@ -1,7 +1,6 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -12,7 +11,7 @@ namespace Winhance.UI.Features.Common.Services;
 public class ConfigurationService : IConfigurationService
 {
     private readonly ILogService _logService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IConfigExportService _configExportService;
     private readonly IConfigLoadService _configLoadService;
     private readonly IConfigApplicationExecutionService _configExecutionService;
@@ -22,7 +21,7 @@ public class ConfigurationService : IConfigurationService
 
     public ConfigurationService(
         ILogService logService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         IConfigExportService configExportService,
         IConfigLoadService configLoadService,
         IConfigApplicationExecutionService configExecutionService,
@@ -31,7 +30,7 @@ public class ConfigurationService : IConfigurationService
         ILocalizationService localizationService)
     {
         _logService = logService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _configExportService = configExportService;
         _configLoadService = configLoadService;
         _configExecutionService = configExecutionService;
@@ -40,8 +39,11 @@ public class ConfigurationService : IConfigurationService
         _localizationService = localizationService;
     }
 
+    // Idempotent catalog-registry init on the import entry points. Closes the import path's
+    // degraded-startup gap the same way Slice 7f closed the generator's: if the Phase-1 init
+    // failed, the import self-heals here instead of surfacing a use-before-init error downstream.
     private Task EnsureRegistryInitializedAsync()
-        => ConfigRegistryInitializer.EnsureInitializedAsync(_compatibleSettingsRegistry, _logService);
+        => _catalogSettingsRegistry.InitializeAsync();
 
     public async Task ExportConfigurationAsync()
     {

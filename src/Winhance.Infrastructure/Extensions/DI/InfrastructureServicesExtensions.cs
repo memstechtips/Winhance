@@ -108,7 +108,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 
         // Settings Compatibility
-        services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
         services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
         services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
         services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();

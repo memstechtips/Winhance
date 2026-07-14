@@ -28,7 +28,6 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IInteractiveUserService))]
     [InlineData(typeof(IProcessExecutor))]
     [InlineData(typeof(IUserPreferencesService))]
-    [InlineData(typeof(ICompatibleSettingsRegistry))]
     [InlineData(typeof(IWindowsCompatibilityFilter))]
     [InlineData(typeof(IHardwareCompatibilityFilter))]
     [InlineData(typeof(IHardwareDetectionService))]

@@ -10,7 +10,6 @@ namespace Winhance.UI.Tests.Services;
 
 public class StartupOrchestratorTests
 {
-    private readonly Mock<ICompatibleSettingsRegistry> _settingsRegistry = new();
     private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
     private readonly Mock<IUserPreferencesService> _preferencesService = new();
     private readonly Mock<IConfigurationService> _configurationService = new();
@@ -30,7 +29,6 @@ public class StartupOrchestratorTests
     private StartupOrchestrator CreateSut()
     {
         return new StartupOrchestrator(
-            _settingsRegistry.Object,
             _catalogSettingsRegistry.Object,
             _preferencesService.Object,
             _configurationService.Object,
@@ -59,13 +57,13 @@ public class StartupOrchestratorTests
 
         await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
-        _settingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
+        _catalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
     }
 
     [Fact]
     public async Task RunStartupSequenceAsync_Phase1Failure_ContinuesToPhase2()
     {
-        _settingsRegistry.Setup(r => r.InitializeAsync())
+        _catalogSettingsRegistry.Setup(r => r.InitializeAsync())
             .ThrowsAsync(new InvalidOperationException("Settings init failed"));
 
         var sut = CreateSut();
@@ -75,7 +73,7 @@ public class StartupOrchestratorTests
 
         result.Should().NotBeNull();
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("Failed to initialize settings registry"))), Times.Once);
+            s.Contains("Failed to initialize catalog settings registry"))), Times.Once);
     }
 
     // --- Phase 2: User backup config ---
@@ -265,7 +263,7 @@ public class StartupOrchestratorTests
             .Returns(true);
 
         var callOrder = new List<string>();
-        _settingsRegistry.Setup(r => r.InitializeAsync())
+        _catalogSettingsRegistry.Setup(r => r.InitializeAsync())
             .Callback(() => callOrder.Add("Phase1_Registry"))
             .Returns(Task.CompletedTask);
         _migrationService.Setup(m => m.MigrateFromOldPathsAsync())
@@ -291,7 +289,7 @@ public class StartupOrchestratorTests
     [Fact]
     public async Task RunStartupSequenceAsync_WhenAllPhasesFail_StillReturnsResult()
     {
-        _settingsRegistry.Setup(r => r.InitializeAsync())
+        _catalogSettingsRegistry.Setup(r => r.InitializeAsync())
             .ThrowsAsync(new Exception("Phase 1 fail"));
         _preferencesService.Setup(p => p.GetPreference(
             UserPreferenceKeys.InitialConfigBackupCompleted, false))

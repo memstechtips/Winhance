@@ -14,7 +14,6 @@ namespace Winhance.UI.Tests.Services;
 public class WindowsVersionFilterServiceTests
 {
     private readonly Mock<IUserPreferencesService> _mockPreferencesService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
@@ -24,7 +23,6 @@ public class WindowsVersionFilterServiceTests
     {
         return new WindowsVersionFilterService(
             _mockPreferencesService.Object,
-            _mockCompatibleSettingsRegistry.Object,
             _mockEventBus.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
@@ -59,22 +57,6 @@ public class WindowsVersionFilterServiceTests
         await service.LoadFilterPreferenceAsync();
 
         service.IsFilterEnabled.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task LoadFilterPreferenceAsync_AppliesFilterToRegistry()
-    {
-        _mockPreferencesService
-            .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, true))
-            .ReturnsAsync(false);
-
-        var service = CreateService();
-
-        await service.LoadFilterPreferenceAsync();
-
-        _mockCompatibleSettingsRegistry.Verify(
-            r => r.SetFilterEnabled(false),
-            Times.Once);
     }
 
     [Fact]
@@ -341,26 +323,6 @@ public class WindowsVersionFilterServiceTests
     }
 
     [Fact]
-    public async Task ToggleFilterAsync_UpdatesCompatibleSettingsRegistry()
-    {
-        _mockPreferencesService
-            .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
-            .ReturnsAsync(true);
-
-        _mockPreferencesService
-            .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
-            .ReturnsAsync(OperationResult.Succeeded());
-
-        var service = CreateService();
-
-        await service.ToggleFilterAsync(isInReviewMode: false);
-
-        _mockCompatibleSettingsRegistry.Verify(
-            r => r.SetFilterEnabled(false),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task ToggleFilterAsync_PublishesFilterStateChangedEvent()
     {
         _mockPreferencesService
@@ -533,7 +495,6 @@ public class WindowsVersionFilterServiceTests
         service.ForceFilterOn();
 
         eventFired.Should().BeFalse();
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(It.IsAny<bool>()), Times.Never);
         _mockEventBus.Verify(e => e.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
     }
 
@@ -553,13 +514,11 @@ public class WindowsVersionFilterServiceTests
         service.IsFilterEnabled.Should().BeFalse();
 
         // Reset mock call tracking
-        _mockCompatibleSettingsRegistry.Invocations.Clear();
         _mockEventBus.Invocations.Clear();
 
         service.ForceFilterOn();
 
         service.IsFilterEnabled.Should().BeTrue();
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(true), Times.Once);
         _mockEventBus.Verify(
             e => e.Publish(It.Is<FilterStateChangedEvent>(evt => evt.IsFilterEnabled == true)),
             Times.Once);
@@ -615,14 +574,12 @@ public class WindowsVersionFilterServiceTests
         service.IsFilterEnabled.Should().BeTrue();
 
         // Clear invocations for clean verification
-        _mockCompatibleSettingsRegistry.Invocations.Clear();
         _mockEventBus.Invocations.Clear();
 
         // Restore should bring it back to saved value (false)
         await service.RestoreFilterPreferenceAsync();
 
         service.IsFilterEnabled.Should().BeFalse();
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(false), Times.Once);
         _mockEventBus.Verify(
             e => e.Publish(It.Is<FilterStateChangedEvent>(evt => evt.IsFilterEnabled == false)),
             Times.Once);
@@ -640,7 +597,6 @@ public class WindowsVersionFilterServiceTests
 
         await service.RestoreFilterPreferenceAsync();
 
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(It.IsAny<bool>()), Times.Never);
         _mockEventBus.Verify(e => e.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
     }
 
@@ -723,31 +679,5 @@ public class WindowsVersionFilterServiceTests
         _mockPreferencesService.Verify(
             p => p.SetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, true),
             Times.Once);
-    }
-
-    // -------------------------------------------------------
-    // SetLegacyRegistryFilter (Slice 7g transitional facade)
-    // -------------------------------------------------------
-
-    [Fact]
-    public void SetLegacyRegistryFilter_WritesLegacyFlag_EventlesslyAndWithoutTouchingState()
-    {
-        var service = CreateService();
-        service.IsFilterEnabled.Should().BeTrue();
-
-        bool eventFired = false;
-        service.FilterStateChanged += (_, _) => eventFired = true;
-
-        // Write the OPPOSITE of IsFilterEnabled so any state/flag conflation would be visible.
-        service.SetLegacyRegistryFilter(false);
-
-        // The legacy registry flag is written verbatim...
-        _mockCompatibleSettingsRegistry.Verify(r => r.SetFilterEnabled(false), Times.Once);
-        // ...but the mode state and BOTH event channels stay untouched (the "silent" contract:
-        // review entry must not refresh pages mid-entry, and the later ForceFilterOn transition
-        // must remain a real transition rather than a no-op).
-        service.IsFilterEnabled.Should().BeTrue();
-        eventFired.Should().BeFalse();
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
     }
 }

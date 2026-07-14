@@ -18,7 +18,6 @@ namespace Winhance.UI.Features.Common.Services;
 /// </summary>
 public class StartupOrchestrator : IStartupOrchestrator
 {
-    private readonly ICompatibleSettingsRegistry _settingsRegistry;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
@@ -28,7 +27,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     private readonly ILogService _logService;
 
     public StartupOrchestrator(
-        ICompatibleSettingsRegistry settingsRegistry,
         ICatalogSettingsRegistry catalogSettingsRegistry,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
@@ -37,7 +35,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         INewBadgeService newBadgeService,
         ILogService logService)
     {
-        _settingsRegistry = settingsRegistry;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
@@ -54,20 +51,15 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         bool isFirstLaunch = false;
 
-        // 1. Initialize settings registry
+        // 1. Initialize the catalog settings registry - the only settings membership since the
+        // L5 teardown removed the old CompatibleSettingsRegistry init.
         statusProgress.Report("Loading_InitializingSettings");
         StartupLogger.Log("StartupOrchestrator", "Phase 1: Initializing settings registry...");
         try
         {
-            await _settingsRegistry.InitializeAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
-
-            // Additively initialize the catalog-sourced settings registry (the SettingDefinition-retirement
-            // drop-in) alongside the old one. It is now LIVE in production - consumed by PolicyCleanupService and
-            // the apply cluster (RecommendedSettingsApplier + BulkSettingsActionService (3b), SettingApplication
-            // Service (4c)). Isolated try - a catalog-init failure must not abort the old-registry init or the
-            // rest of startup; the registry's own EnsureInitialized guard then turns any use-before-init into a
-            // loud, accurate error rather than a silent empty-membership answer.
+            // Isolated try - a catalog-init failure must not abort the rest of startup; the
+            // registry's own EnsureInitialized guard then turns any use-before-init into a loud,
+            // accurate error rather than a silent empty-membership answer.
             try
             {
                 await _catalogSettingsRegistry.InitializeAsync().ConfigureAwait(false);
@@ -78,26 +70,26 @@ public class StartupOrchestrator : IStartupOrchestrator
                 _logService.LogWarning($"Failed to initialize catalog settings registry: {ex.Message}");
             }
 
-        // Initialize new badge service (data-driven: uses the highest AddedInVersion
-        // across the loaded registry to detect effective upgrades, so dev builds
-        // behave identically to release builds).
-        try
-        {
-            var allAddedInVersions = CollectAddedInVersions();
-            _newBadgeService.Initialize(allAddedInVersions);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"New badge service init failed: {ex.Message}");
-        }
+            // Initialize new badge service (data-driven: uses the highest AddedInVersion
+            // across the loaded registry to detect effective upgrades, so dev builds
+            // behave identically to release builds).
+            try
+            {
+                var allAddedInVersions = CollectAddedInVersions();
+                _newBadgeService.Initialize(allAddedInVersions);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"New badge service init failed: {ex.Message}");
+            }
 
             // Pre-cache regedit icon for Technical Details panel
             RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 1: Settings registry FAILED: {ex.Message}");
-            _logService.LogWarning($"Failed to initialize settings registry: {ex.Message}");
+            StartupLogger.Log("StartupOrchestrator", $"Phase 1 FAILED: {ex.Message}");
+            _logService.LogWarning($"Startup phase 1 failed: {ex.Message}");
         }
 
         // 2. User backup config (first-run only)

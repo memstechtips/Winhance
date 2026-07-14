@@ -27,15 +27,6 @@ public interface IWindowsVersionFilterService
     void ForceFilterOn();
 
     /// <summary>
-    /// TRANSITIONAL (retires with the OLD registry's mode flag at the loading-path migration):
-    /// eventlessly writes the legacy CompatibleSettingsRegistry filter flag WITHOUT touching
-    /// IsFilterEnabled or firing events. Review-mode entry forces the legacy flag ON early (the
-    /// "silent early force") so the still-old-registry loading path reads the review scope before
-    /// the async ForceFilterOn chain catches up; the failed-entry path re-syncs it to IsFilterEnabled.
-    /// </summary>
-    void SetLegacyRegistryFilter(bool enabled);
-
-    /// <summary>
     /// Restores the persisted filter preference (e.g., when exiting review mode).
     /// </summary>
     Task RestoreFilterPreferenceAsync();

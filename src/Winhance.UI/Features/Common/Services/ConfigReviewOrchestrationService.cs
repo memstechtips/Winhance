@@ -3,7 +3,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -22,7 +21,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IConfigAppSelectionService _configAppSelectionService;
     private readonly IConfigApplicationExecutionService _configExecutionService;
     private readonly IConfigLoadService _configLoadService;
-    private readonly IWindowsVersionFilterService _windowsVersionFilter;
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
@@ -40,7 +38,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IConfigAppSelectionService configAppSelectionService,
         IConfigApplicationExecutionService configExecutionService,
         IConfigLoadService configLoadService,
-        IWindowsVersionFilterService windowsVersionFilter,
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
@@ -57,7 +54,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _configAppSelectionService = configAppSelectionService;
         _configExecutionService = configExecutionService;
         _configLoadService = configLoadService;
-        _windowsVersionFilter = windowsVersionFilter;
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
@@ -140,15 +136,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
-            // Slice 7g: force the LEGACY registry's filter flag ON before computing diffs so the
-            // still-old-registry loading path doesn't serve version-filtered settings (phantom diffs)
-            // when the user had the filter toggled off. Deliberately EVENTLESS and leaves
-            // IsFilterEnabled untouched (the "silent early force"): firing events here would refresh
-            // pages mid-entry, and setting IsFilterEnabled early would turn the later ForceFilterOn
-            // transition (which carries the page-refresh events) into a no-op. Flipped (7a+) readers
-            // read IsFilterEnabled and catch up via the async ForceFilterOn chain - the accepted,
-            // self-healing 7a window.
-            _windowsVersionFilter.SetLegacyRegistryFilter(true);
+            // Review-entry filter forcing is carried solely by the async ForceFilterOn chain
+            // (MainWindowViewModel forces the filter on when the review bar flips). The brief
+            // mid-entry window before that chain lands is the accepted, self-healing 7a window.
 
             // Enter review mode on the service (eagerly computes diffs and fires events)
             await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);
@@ -173,13 +163,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
             _configReviewModeService.ExitReviewMode();
-            // Slice 7g: a FAILED entry can leave the early-forced legacy flag stranded ON whenever the
-            // exit-restore never runs - either the throw preceded the mode flip (ExitReviewMode then fires
-            // no ReviewModeChanged) or the bar never saw "true" (its false->false ObservableProperty
-            // equality guard swallows the exit event, so MainWindowViewModel never restores). Re-sync the
-            // legacy flag to the live IsFilterEnabled so the loading path and the UI toggle agree again.
-            // When the bar DID flip, the exit-restore sets both consistently and this is an idempotent rewrite.
-            _windowsVersionFilter.SetLegacyRegistryFilter(_windowsVersionFilter.IsFilterEnabled);
             _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
         }
     }

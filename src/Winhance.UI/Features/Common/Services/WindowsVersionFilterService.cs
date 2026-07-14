@@ -16,7 +16,6 @@ namespace Winhance.UI.Features.Common.Services;
 public class WindowsVersionFilterService : IWindowsVersionFilterService
 {
     private readonly IUserPreferencesService _preferencesService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
@@ -24,14 +23,12 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
     public WindowsVersionFilterService(
         IUserPreferencesService preferencesService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IDialogService dialogService,
         ILocalizationService localizationService,
         ILogService logService)
     {
         _preferencesService = preferencesService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
         _dialogService = dialogService;
         _localizationService = localizationService;
@@ -51,8 +48,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         {
             IsFilterEnabled = await _preferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
-
-            _compatibleSettingsRegistry.SetFilterEnabled(IsFilterEnabled);
 
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                 $"Loaded Windows version filter preference: {(IsFilterEnabled ? "ON" : "OFF")}");
@@ -113,9 +108,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 UserPreferenceKeys.EnableWindowsVersionFilter,
                 IsFilterEnabled);
 
-            // Update registry filter state
-            _compatibleSettingsRegistry.SetFilterEnabled(IsFilterEnabled);
-
             // Publish event for all subscribers (pages/viewmodels) to refresh
             _eventBus.Publish(new FilterStateChangedEvent(IsFilterEnabled));
 
@@ -140,20 +132,9 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         if (!IsFilterEnabled)
         {
             IsFilterEnabled = true;
-            _compatibleSettingsRegistry.SetFilterEnabled(true);
             _eventBus.Publish(new FilterStateChangedEvent(true));
             FilterStateChanged?.Invoke(this, true);
         }
-    }
-
-    /// <inheritdoc />
-    public void SetLegacyRegistryFilter(bool enabled)
-    {
-        // Deliberately eventless: does NOT touch IsFilterEnabled, publish FilterStateChangedEvent,
-        // or fire FilterStateChanged. The review-entry "silent early force" must not refresh pages
-        // mid-entry, and must leave the later ForceFilterOn transition (which carries the
-        // page-refresh events) a real transition instead of a no-op.
-        _compatibleSettingsRegistry.SetFilterEnabled(enabled);
     }
 
     /// <inheritdoc />
@@ -164,7 +145,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         if (IsFilterEnabled != savedPreference)
         {
             IsFilterEnabled = savedPreference;
-            _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
             _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
             FilterStateChanged?.Invoke(this, savedPreference);
         }
