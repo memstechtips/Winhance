@@ -153,7 +153,7 @@ public class WindowsAppsServiceTests
 
         // Update policy is not disabled (no blocking)
         _settingStateProvider
-            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         // User has NOT opted to skip confirmation
@@ -190,7 +190,7 @@ public class WindowsAppsServiceTests
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
         _settingStateProvider
-            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<SettingDefinition>>()))
+            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         // User has previously opted to skip confirmation

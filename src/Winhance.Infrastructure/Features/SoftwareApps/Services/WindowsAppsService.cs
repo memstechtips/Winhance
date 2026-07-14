@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Native;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Utilities;
@@ -255,8 +255,9 @@ public class WindowsAppsService(
     {
         try
         {
-            var updateSettings = UpdateOptimizations.GetUpdateOptimizations();
-            var policySetting = updateSettings.Settings.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
+            // Slice L3: pair via the catalog (UpdatesPolicyMode is not aliased; Find resolves the same
+            // Setting the def overload paired to internally), binding the Setting-list GetStatesAsync.
+            var policySetting = SettingCatalog.Find(SettingIds.UpdatesPolicyMode);
             if (policySetting == null)
                 return false;
 
