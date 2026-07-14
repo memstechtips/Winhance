@@ -38,7 +38,7 @@ public class WallpaperService : IWallpaperService
     /// <inheritdoc/>
     public string GetDefaultWallpaperPath(bool isWindows11, bool isDarkMode)
     {
-        return WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
+        return WallpaperDefaults.GetDefaultWallpaperPath(isWindows11, isDarkMode);
     }
 
     /// <inheritdoc/>

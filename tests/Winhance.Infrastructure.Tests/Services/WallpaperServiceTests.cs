@@ -52,8 +52,8 @@ public class WallpaperServiceTests
 
         // Assert
         var expected = System.IO.Path.Combine(
-            WindowsThemeCustomizations.Wallpaper.Windows11BasePath,
-            WindowsThemeCustomizations.Wallpaper.Windows11DarkWallpaper);
+            WallpaperDefaults.Windows11BasePath,
+            WallpaperDefaults.Windows11DarkWallpaper);
         result.Should().Be(expected);
     }
 
@@ -65,8 +65,8 @@ public class WallpaperServiceTests
 
         // Assert
         var expected = System.IO.Path.Combine(
-            WindowsThemeCustomizations.Wallpaper.Windows11BasePath,
-            WindowsThemeCustomizations.Wallpaper.Windows11LightWallpaper);
+            WallpaperDefaults.Windows11BasePath,
+            WallpaperDefaults.Windows11LightWallpaper);
         result.Should().Be(expected);
     }
 
@@ -77,7 +77,7 @@ public class WallpaperServiceTests
         var result = _service.GetDefaultWallpaperPath(isWindows11: false, isDarkMode: false);
 
         // Assert
-        result.Should().Be(WindowsThemeCustomizations.Wallpaper.Windows10Wallpaper);
+        result.Should().Be(WallpaperDefaults.Windows10Wallpaper);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class WallpaperServiceTests
         var result = _service.GetDefaultWallpaperPath(isWindows11: false, isDarkMode: true);
 
         // Assert
-        result.Should().Be(WindowsThemeCustomizations.Wallpaper.Windows10Wallpaper);
+        result.Should().Be(WallpaperDefaults.Windows10Wallpaper);
     }
 
     #endregion

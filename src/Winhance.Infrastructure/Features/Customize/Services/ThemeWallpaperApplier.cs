@@ -60,7 +60,7 @@ public sealed class ThemeWallpaperApplier(
             {
                 var isDarkMode = selectionIndex == 1;
                 var isWindows11 = versionService.IsWindows11();
-                var wallpaperPath = WindowsThemeCustomizations.Wallpaper.GetDefaultWallpaperPath(isWindows11, isDarkMode);
+                var wallpaperPath = WallpaperDefaults.GetDefaultWallpaperPath(isWindows11, isDarkMode);
 
                 if (fileSystemService.FileExists(wallpaperPath))
                 {

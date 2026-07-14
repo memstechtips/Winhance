@@ -8,28 +8,6 @@ namespace Winhance.Core.Features.Customize.Models;
 
 public static class WindowsThemeCustomizations
 {
-    public static class Wallpaper
-    {
-        public const string Windows11BasePath = @"C:\Windows\Web\Wallpaper\Windows";
-        public const string Windows11LightWallpaper = "img0.jpg";
-        public const string Windows11DarkWallpaper = "img19.jpg";
-        public const string Windows10Wallpaper =
-            @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg";
-
-        public static string GetDefaultWallpaperPath(bool isWindows11, bool isDarkMode)
-        {
-            if (isWindows11)
-            {
-                return System.IO.Path.Combine(
-                    Windows11BasePath,
-                    isDarkMode ? Windows11DarkWallpaper : Windows11LightWallpaper
-                );
-            }
-
-            return Windows10Wallpaper;
-        }
-    }
-
     public static SettingGroup GetWindowsThemeCustomizations()
     {
         return new SettingGroup
