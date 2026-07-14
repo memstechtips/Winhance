@@ -473,7 +473,8 @@ public static class SettingDefinitionConverter
     };
 
     /// <summary>Everything the user sees: the source name/description/group, the icon (pack + glyph unified),
-    /// the NEW-badge version, and the subjective-preference flag.</summary>
+    /// the NEW-badge version, the subjective-preference flag, and the cross-group child-settings map
+    /// (copied; null stays null - only privacy-ads-promotional-master carries one).</summary>
     private static Display BuildDisplay(SettingDefinition def) => new()
     {
         Name = def.Name,
@@ -484,6 +485,9 @@ public static class SettingDefinitionConverter
             : null,
         AddedInVersion = def.AddedInVersion,
         IsSubjectivePreference = def.IsSubjectivePreference,
+        CrossGroupChildSettings = def.CrossGroupChildSettings is { } cross
+            ? new Dictionary<string, string>(cross)
+            : null,
     };
 
     /// <summary>Collapses the old OS/build gating flags into one build-range list (empty = every build).

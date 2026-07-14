@@ -15,7 +15,7 @@ public static class SettingStructuralComparer
         var d = new List<string>();
 
         if (a.Id != b.Id) d.Add($"Id: {a.Id} != {b.Id}");
-        if (!a.Display.Equals(b.Display)) d.Add($"Display: {a.Display} != {b.Display}");          // scalar/record members -> structural
+        DiffDisplay(a.Display, b.Display, d);
         if (a.UiParentId != b.UiParentId) d.Add($"UiParentId: {a.UiParentId} != {b.UiParentId}");
         if (!a.Apply.Equals(b.Apply)) d.Add($"Apply: {a.Apply} != {b.Apply}");                    // RestartTarget records compare structurally
 
@@ -30,6 +30,20 @@ public static class SettingStructuralComparer
         DiffNumeric(a.Numeric, b.Numeric, d);
 
         return d;
+    }
+
+    /// <summary>Compares Display. Record equality covers the scalar/record members (Name/Icon/...), but
+    /// CrossGroupChildSettings is a dictionary a record compares BY REFERENCE, so it is nulled out of the
+    /// record comparison and its content compared explicitly: null-vs-null equal (the converter maps a null
+    /// def field to null, never an empty dictionary), otherwise count + exact key/value equality.</summary>
+    private static void DiffDisplay(Display a, Display b, List<string> d)
+    {
+        if (!(a with { CrossGroupChildSettings = null }).Equals(b with { CrossGroupChildSettings = null }))
+            d.Add($"Display: {a} != {b}");
+        if ((a.CrossGroupChildSettings is null) != (b.CrossGroupChildSettings is null))
+            d.Add("Display.CrossGroupChildSettings nullness differs");
+        else if (a.CrossGroupChildSettings is not null && !DictEqual(a.CrossGroupChildSettings, b.CrossGroupChildSettings!))
+            d.Add("Display.CrossGroupChildSettings differ");
     }
 
     private static void DiffDetector(IStateDetector? a, IStateDetector? b, List<string> d)

@@ -392,6 +392,17 @@ public static class PrivacyOptimizationsCatalog
                 Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
                 GroupName = "Content Delivery & Advertising",
                 Icon = MaterialIcons.AdvertisementsOff,
+                CrossGroupChildSettings = new Dictionary<string, string>
+                {
+                    ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
+                    ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
+                    ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
+                    ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
+                    ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
+                    ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
+                    ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
+                    ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
+                },
             },
             Targets = new Target[]
             {
