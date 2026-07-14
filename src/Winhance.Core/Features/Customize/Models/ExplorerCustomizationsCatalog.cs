@@ -2134,6 +2134,234 @@ if (Test-Path $appPathsKey) {
         },
         new()
         {
+            Id = "explorer-customization-thispc-folder-desktop",
+            Display = new()
+            {
+                Name = "Show Desktop in This PC",
+                Description = "Displays the Desktop folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Monitor,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-documents",
+            Display = new()
+            {
+                Name = "Show Documents in This PC",
+                Description = "Displays the Documents folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.FileDocument,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-downloads",
+            Display = new()
+            {
+                Name = "Show Downloads in This PC",
+                Description = "Displays the Downloads folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Download,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-music",
+            Display = new()
+            {
+                Name = "Show Music in This PC",
+                Description = "Displays the Music folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Music,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-pictures",
+            Display = new()
+            {
+                Name = "Show Pictures in This PC",
+                Description = "Displays the Pictures folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Image,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-videos",
+            Display = new()
+            {
+                Name = "Show Videos in This PC",
+                Description = "Displays the Videos folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Video,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-customization-3d-objects",
             Display = new()
             {
@@ -3082,234 +3310,6 @@ if (Test-Path $appPathsKey) {
                         ["DisableAutoplay"] = Of(1),
                         ["NoDriveTypeAutoRun"] = Of(255),
                     },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-desktop",
-            Display = new()
-            {
-                Name = "Show Desktop in This PC",
-                Description = "Displays the Desktop folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Monitor,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-documents",
-            Display = new()
-            {
-                Name = "Show Documents in This PC",
-                Description = "Displays the Documents folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.FileDocument,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-downloads",
-            Display = new()
-            {
-                Name = "Show Downloads in This PC",
-                Description = "Displays the Downloads folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Download,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-music",
-            Display = new()
-            {
-                Name = "Show Music in This PC",
-                Description = "Displays the Music folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Music,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-pictures",
-            Display = new()
-            {
-                Name = "Show Pictures in This PC",
-                Description = "Displays the Pictures folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Image,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-videos",
-            Display = new()
-            {
-                Name = "Show Videos in This PC",
-                Description = "Displays the Videos folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Video,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
-                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
-                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
             },
         },
