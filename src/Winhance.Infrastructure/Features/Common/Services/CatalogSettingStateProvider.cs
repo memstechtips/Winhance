@@ -202,8 +202,11 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     /// catalog <see cref="SettingState"/> whose <c>Label</c> equals the label (Ordinal), else
     /// <see cref="ComboBoxConstants.CustomStateIndex"/> (-1) for a Custom / null / state-less selection. Reads the
     /// catalog <c>States[i].Label</c> in place of the old <c>ComboBox.Options[i].DisplayName</c>; the converter builds
-    /// every selection state as <c>Label = opt.DisplayName</c> in option order (proven by
-    /// CatalogSettingStateProviderConformanceTests over the whole selection population), so this is byte-equivalent.
+    /// every selection state as <c>Label = opt.DisplayName</c> in option order, so this was byte-equivalent to the
+    /// old resolution. That def-vs-catalog proof died with the def at teardown (the catalog IS the option order
+    /// now); what survives is CatalogSettingStateProviderConformanceTests'
+    /// Every_selection_has_distinct_non_empty_state_labels, which pins the property this first-match lookup
+    /// actually depends on -- duplicate or blank Labels would silently resolve to the wrong option.
     /// The new engine's StateLabel already IS a catalog State Label, so this is the natural match.</summary>
     private static int ResolveSelectionIndex(Setting setting, string? label)
     {

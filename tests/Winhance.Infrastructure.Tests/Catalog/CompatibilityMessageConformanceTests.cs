@@ -1,7 +1,7 @@
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Machine-independent RULE conformance for AvailabilityCompatibility.DeriveCompatibilityMessage on
 /// CONSTRUCTED Availability instances -- no defs, no old filter. Pins every derivation-rule branch so the helper

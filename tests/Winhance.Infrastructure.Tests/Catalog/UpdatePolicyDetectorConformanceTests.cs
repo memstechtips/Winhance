@@ -4,7 +4,7 @@ using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Machine-INDEPENDENT conformance for <see cref="UpdatePolicyDetector"/> (Phase 6.9 Slice 6): over
 /// CONSTRUCTED contexts it asserts the detector resolves the update-policy state exactly as the old

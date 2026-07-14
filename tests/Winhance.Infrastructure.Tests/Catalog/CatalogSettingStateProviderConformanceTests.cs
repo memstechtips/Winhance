@@ -3,16 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Catalog.Migration;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Machine-INDEPENDENT conformance for the new-engine <see cref="CatalogSettingStateProvider"/> - the permanent
 /// guard left behind after old discovery + the equivalence oracle were retired (Phase 6.9 teardown). These construct
@@ -21,31 +16,43 @@ namespace Winhance.Infrastructure.Tests.Migration;
 /// <c>Every_gate_*</c> structural invariants that keep the rule well-defined) and the selection value-match
 /// fallback (the Phase 6.9 Custom-regression guard). The win10-alias pairing fact retired with the def-based
 /// provider overload (Slice L6): the Setting overload does no pairing - a Setting is already the canonical
-/// merged catalog entry, and the -win10 defs have no catalog peer to feed it.
+/// merged catalog entry, and the -win10 defs have no catalog peer to feed it. At teardown the States-vs-option-
+/// DisplayNames oracle died with the old model, and the Every_gate_* populations were re-expressed over the
+/// catalog itself (see the gate-population predicates below) - their assertions are unchanged.
 ///
 /// Run: dotnet test --filter CatalogSettingStateProviderConformance</summary>
 public class CatalogSettingStateProviderConformanceTests
 {
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
-    /// <summary>Every SettingDefinition the app ships, straight from the static feature providers (no DI, no
-    /// Windows-version filtering) - the same population the migration equivalence tests used.</summary>
-    private static IEnumerable<SettingDefinition> AllDefinitions()
-    {
-        return new[]
-        {
-            ExplorerCustomizations.GetExplorerCustomizations().Settings,
-            StartMenuCustomizations.GetStartMenuCustomizations().Settings,
-            TaskbarCustomizations.GetTaskbarCustomizations().Settings,
-            WindowsThemeCustomizations.GetWindowsThemeCustomizations().Settings,
-            PowerOptimizations.GetPowerOptimizations().Settings,
-            GamingAndPerformanceOptimizations.GetGamingAndPerformanceOptimizations().Settings,
-            NotificationOptimizations.GetNotificationOptimizations().Settings,
-            PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations().Settings,
-            SoundOptimizations.GetSoundOptimizations().Settings,
-            UpdateOptimizations.GetUpdateOptimizations().Settings,
-        }.SelectMany(group => group);
-    }
+    // ============================================================================================================
+    //  Gate-population predicates. Catalog-side translations of the IsPure* classifiers that used to live on the old
+    //  migration harness (IsPureRegistrySelection / IsPurePowerCfgSelection / IsPurePowerCfgNumeric), which died with
+    //  the old model at teardown. Faithful: "pure" == exactly one DETECTION mechanism and no custom detector.
+    //  NOTE a PowerCfgTarget's EnablementKey is a NESTED RegTarget, not a top-level Target, so OfType over Targets
+    //  never sees an enablement key - which is precisely what the old predicates meant by "no registry settings".
+    // ============================================================================================================
+
+    private static bool IsPureRegistrySelection(Setting s) =>
+        s.Control == ControlKind.Selection
+        && s.Detector is null
+        && s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
+
+    private static bool IsPurePowerCfgSelection(Setting s) =>
+        s.Control == ControlKind.Selection
+        && s.Detector is null
+        && s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
+
+    private static bool IsPurePowerCfgNumeric(Setting s) =>
+        s.Control == ControlKind.Slider
+        && s.Detector is null
+        && s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
 
     // ============================================================================================================
     //  Machine-INDEPENDENT model-conformance for IsEnabled (the done-right, Windows-grounded "not in the Windows-
@@ -113,59 +120,25 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void ResolveSelectionIndex_state_labels_match_option_displaynames_over_selections()
-    {
-        // Slice 4bb-2: the provider's ResolveSelectionIndex was ported to match the new-engine StateLabel against
-        // catalog States[i].Label instead of the old ComboBox.Options[i].DisplayName. That is byte-equivalent iff,
-        // for every selection, the catalog States are in option order with Label == the option DisplayName (the
-        // converter builds them that way; the catalog must match). This machine-independent [Fact] pins the
-        // invariant over the whole selection population, so a future authoring that reorders states or gives one a
-        // richer/localized Label - which would silently change which index a StateLabel resolves to - fails here.
-        var offenders = new List<string>();
-        int comparedSelections = 0;
-        foreach (var def in AllDefinitions())
-        {
-            if (def.InputType != InputType.Selection || def.ComboBox?.Options is not { } options)
-                continue;
-            if (!Catalog.TryGetValue(SettingIdAliases.Normalize(def.Id), out var s))
-                continue;
-            comparedSelections++;
-            if (s.States.Count != options.Count)
-            {
-                offenders.Add($"{def.Id}: States.Count {s.States.Count} != Options.Count {options.Count}");
-                continue;
-            }
-            for (int i = 0; i < options.Count; i++)
-                if (!string.Equals(s.States[i].Label, options[i].DisplayName, System.StringComparison.Ordinal))
-                    offenders.Add($"{def.Id}[{i}]: State.Label '{s.States[i].Label}' != Option.DisplayName '{options[i].DisplayName}'");
-        }
-
-        Assert.True(comparedSelections > 0, "no selections compared - population scoping bug");
-        Assert.True(offenders.Count == 0,
-            "catalog selection States must be in option order with Label == the option DisplayName (else " +
-            "ResolveSelectionIndex diverges from the old ComboBox-based resolution):\n" + string.Join("\n", offenders));
-    }
-
-    [Fact]
     public void Every_gate_selection_has_exactly_one_windows_default_anchor()
     {
         // The DeriveIsEnabled selection rule ("not the WindowsDefault state") is only well-defined when each gate-
         // population selection has EXACTLY ONE WindowsDefault anchor in its resolution context (AC for powercfg,
         // Always for registry). This pins the "a semantic state is not reliably a role" trap structurally: a future
         // authoring that drops or duplicates the default anchor fails here, not silently in the field.
-        var offenders = new List<string>();
-        foreach (var def in AllDefinitions())
-        {
-            bool pureReg = RegistryToggleEquivalenceHarness.IsPureRegistrySelection(def);
-            bool purePwr = RegistryToggleEquivalenceHarness.IsPurePowerCfgSelection(def);
-            if (!pureReg && !purePwr) continue;
-            if (!Catalog.TryGetValue(def.Id, out var s)) continue;
+        var population = SettingCatalog.All
+            .Where(s => IsPureRegistrySelection(s) || IsPurePowerCfgSelection(s))
+            .ToList();
+        Assert.NotEmpty(population);   // vacuity guard: a silently-narrowed predicate must fail, not pass over nothing
 
+        var offenders = new List<string>();
+        foreach (var s in population)
+        {
             int windowsDefaults = s.States.Count(st =>
                 st.HasRole(RoleKind.WindowsDefault, PowerContext.Always) ||
                 st.HasRole(RoleKind.WindowsDefault, PowerContext.AC));
             if (windowsDefaults != 1)
-                offenders.Add($"{def.Id}={windowsDefaults}");
+                offenders.Add($"{s.Id}={windowsDefaults}");
         }
 
         Assert.True(offenders.Count == 0,
@@ -178,13 +151,14 @@ public class CatalogSettingStateProviderConformanceTests
     {
         // The numeric IsEnabled rule compares against Numeric.WindowsDefault(AC); assert every gate-population numeric
         // supplies one, so the rule is never silently a no-op (return false for lack of an anchor).
+        var population = SettingCatalog.All.Where(IsPurePowerCfgNumeric).ToList();
+        Assert.NotEmpty(population);   // vacuity guard: a silently-narrowed predicate must fail, not pass over nothing
+
         var offenders = new List<string>();
-        foreach (var def in AllDefinitions())
+        foreach (var s in population)
         {
-            if (!RegistryToggleEquivalenceHarness.IsPurePowerCfgNumeric(def)) continue;
-            if (!Catalog.TryGetValue(def.Id, out var s)) continue;
             if (s.Numeric is null || !s.Numeric.WindowsDefault.Any(cv => cv.Context == PowerContext.AC))
-                offenders.Add(def.Id);
+                offenders.Add(s.Id);
         }
 
         Assert.True(offenders.Count == 0,
@@ -229,5 +203,35 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.True(states.TryGetValue("gaming-sysmain-service", out var s));
         Assert.True(s!.Success);
         Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
+    }
+
+    /// <summary>The surviving, def-free half of the invariant ResolveSelectionIndex rests on. It resolves a state
+    /// label to an option index by taking the FIRST State whose Label matches (Ordinal) -- which is only
+    /// well-defined if a selection's Labels are DISTINCT and non-empty. The old oracle proved the stronger
+    /// `States[i].Label == ComboBox.Options[i].DisplayName, in option order`; that half is inherently def-dependent
+    /// and dies with the def (the catalog IS the option order now). This pins what remains checkable -- and it is
+    /// the part that actually matters: duplicate or blank Labels would make the first-match resolution ambiguous
+    /// and silently return the wrong option index.</summary>
+    [Fact]
+    public void Every_selection_has_distinct_non_empty_state_labels()
+    {
+        var selections = SettingCatalog.All.Where(s => s.Control == ControlKind.Selection).ToList();
+        Assert.NotEmpty(selections);
+
+        var offenders = new List<string>();
+        foreach (var s in selections)
+        {
+            if (s.States.Any(st => string.IsNullOrWhiteSpace(st.Label)))
+                offenders.Add($"{s.Id}: has a blank state Label");
+
+            var dupes = s.States.GroupBy(st => st.Label, System.StringComparer.Ordinal)
+                .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (dupes.Count > 0)
+                offenders.Add($"{s.Id}: duplicate state Labels [{string.Join(", ", dupes)}]");
+        }
+
+        Assert.True(offenders.Count == 0,
+            "ResolveSelectionIndex takes the FIRST state whose Label matches, so a selection's Labels must be "
+                + "distinct and non-empty:" + "\n" + string.Join("\n", offenders));
     }
 }

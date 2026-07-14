@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Deletion precondition gate: for EVERY catalog setting, exercise the reachable apply-request shapes its
 /// producers (per-card VM handlers, bulk apply/reset, config-import bridge, relationship cascade) can dispatch, and

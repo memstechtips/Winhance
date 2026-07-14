@@ -2,10 +2,10 @@ using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>The pairing primitive SettingCatalog.Find - the O(1) lookup every SettingDefinition-retirement
-/// reader-port uses to resolve a def id to its catalog Setting. Proves canonical + -win10 alias + miss.</summary>
+/// <summary>The catalog lookup primitive SettingCatalog.Find - the O(1) resolver from a setting id to its
+/// catalog Setting, used by readers across the app. Proves canonical + -win10 alias + miss.</summary>
 public class SettingCatalogFindTests
 {
     [Fact]

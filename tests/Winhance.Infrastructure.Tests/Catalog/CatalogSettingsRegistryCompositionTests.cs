@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.Migration;
+namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Proves CatalogSettingsRegistry composes the proven membership pieces correctly: per-feature +
 /// flattened membership equals SettingCatalog filtered by CatalogMembershipFilter (existence stubbed to
@@ -131,9 +131,8 @@ public class CatalogSettingsRegistryCompositionTests
     {
         // Guard rail: the pure-query surface must not answer over an unresolved machine context. An
         // uninitialized registry (e.g. a swallowed startup init) throws loudly rather than silently hiding every
-        // build-gated / powercfg setting (which downstream reads as a misleading "Setting not found"). Mirrors
-        // the old CompatibleSettingsRegistry, which also threw on uninitialized use. All live consumers query
-        // post-startup, so this never fires in practice.
+        // build-gated / powercfg setting (which downstream reads as a misleading "Setting not found"). All live
+        // consumers query post-startup, so this never fires in practice.
         var reg = new CatalogSettingsRegistry(
             new Mock<IWindowsVersionService>().Object,
             new Mock<IHardwareDetectionService>().Object,
