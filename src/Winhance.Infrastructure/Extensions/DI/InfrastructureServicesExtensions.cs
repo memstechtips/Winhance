@@ -107,13 +107,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
 
         // Settings Compatibility
-        services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
-        services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
         services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();
 
         // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
-        services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
         services.AddSingleton<ICatalogPowerExistenceFilter, CatalogPowerExistenceFilter>();
         services.AddSingleton<ICatalogSettingsRegistry, CatalogSettingsRegistry>();
 
