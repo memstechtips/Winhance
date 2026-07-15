@@ -2244,7 +2244,9 @@ public partial class SettingItemViewModel : BaseViewModel
         bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting
             && Setting.States.Any(st => st.HasRole(RoleKind.Recommended) || st.HasRole(RoleKind.WindowsDefault));
         bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
-            || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue;
+            || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue
+            || DcRecommendedValue.HasValue || DcDefaultValue.HasValue
+            || DcSelectionRecommendedIndex.HasValue || DcSelectionDefaultIndex.HasValue;
         HasBadgeData = hasToggleData || hasSelectionData || hasPowerCfgData;
     }
 
