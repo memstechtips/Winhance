@@ -1,12 +1,10 @@
 using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Catalog.Migration;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -73,7 +71,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.Should().NotBeNull();
     }
@@ -84,7 +82,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("MySetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SettingId.Should().Be("MySetting");
     }
@@ -98,7 +96,7 @@ public class SettingViewModelFactoryTests
         _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Name")).Returns("Localized Name");
         _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Description")).Returns("Localized Description");
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.Name.Should().Be("Localized Name");
         result.Description.Should().Be("Localized Description");
@@ -107,12 +105,12 @@ public class SettingViewModelFactoryTests
     [Fact]
     public async Task CreateAsync_SetsGroupName()
     {
-        var setting = CreateToggleSetting("TestSetting") with { GroupName = "Privacy Settings" };
+        var setting = CreateToggleSetting("TestSetting", groupName: "Privacy Settings");
         var state = new SettingStateResult { Success = true };
         // Slice B2: the factory now localizes GroupName via the compacted SettingGroup_ key (spaces/ampersands stripped).
         _mockLocalizationService.Setup(l => l.GetString("SettingGroup_PrivacySettings")).Returns("Localized Group");
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.GroupName.Should().Be("Localized Group");
     }
@@ -123,7 +121,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsSelected.Should().BeTrue();
     }
@@ -134,7 +132,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = false, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsSelected.Should().BeFalse();
     }
@@ -144,14 +142,14 @@ public class SettingViewModelFactoryTests
     [Fact]
     public async Task CreateAsync_WhenRequiresAdvancedUnlock_SetsIsLocked()
     {
-        var setting = CreateToggleSetting("AdvancedSetting") with { RequiresAdvancedUnlock = true };
+        var setting = CreateToggleSetting("AdvancedSetting", requiresAdvancedUnlock: true);
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(false);
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsLocked.Should().BeTrue();
     }
@@ -159,14 +157,14 @@ public class SettingViewModelFactoryTests
     [Fact]
     public async Task CreateAsync_WhenAdvancedUnlocked_SetsIsLockedToFalse()
     {
-        var setting = CreateToggleSetting("AdvancedSetting") with { RequiresAdvancedUnlock = true };
+        var setting = CreateToggleSetting("AdvancedSetting", requiresAdvancedUnlock: true);
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(true);
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsLocked.Should().BeFalse();
     }
@@ -179,7 +177,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 50, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.MinValue.Should().Be(0);
         result.MaxValue.Should().Be(100);
@@ -192,7 +190,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 42, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.NumericValue.Should().Be(42);
     }
@@ -205,7 +203,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.ComboBoxOptions.Should().HaveCount(2);
     }
@@ -216,7 +214,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SelectedValue.Should().Be(1);
     }
@@ -229,7 +227,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        await _sut.CreateAsync(setting, state, null, null, null, null);
 
         _mockEnricher.Verify(e => e.ApplyReviewDiff(It.IsAny<SettingItemViewModel>(), state), Times.Once);
     }
@@ -242,7 +240,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { CurrentValue = "SomeValue", Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SelectedValue.Should().Be("SomeValue");
     }
@@ -256,7 +254,7 @@ public class SettingViewModelFactoryTests
         var state = new SettingStateResult { Success = true };
         var parentVm = new Mock<ISettingsFeatureViewModel>().Object;
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, parentVm, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, parentVm, null, null, null);
 
         // The VM was created successfully with the parent reference
         result.Should().NotBeNull();
@@ -278,7 +276,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(PairFor(setting) ?? SyntheticAlwaysNumericSetting(setting), state, null, null, null, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.OnText.Should().Be("Enabled");
         result.OffText.Should().Be("Disabled");
@@ -286,96 +284,41 @@ public class SettingViewModelFactoryTests
 
     // ── Helper methods ──
 
-    // Pair the new-model Setting exactly as production does: a catalog-authored id resolves to its catalog
-    // Setting; a synthetic test def simulates the converter peer the factory would pair. A registry-only
-    // NumericRange has no production peer (zero exist) -> null (caller substitutes a synthetic Numeric Setting).
-    private static Setting? PairFor(SettingDefinition def)
-    {
-        var catalogPeer = SettingCatalog.All.FirstOrDefault(s => s.Id == def.Id);
-        if (catalogPeer is not null) return catalogPeer;
-        if (def.InputType == InputType.NumericRange && (def.PowerCfgSettings?.Count ?? 0) == 0) return null;
-        if (def.PowerCfgSettings is { Count: > 0 }) return SettingDefinitionConverter.ConvertPowerCfg(def);
-        if (def.InputType == InputType.Selection) return SettingDefinitionConverter.ConvertSelection(def);
-        return SettingDefinitionConverter.ConvertToggle(def);
-    }
-
-    // Registry single-spinner NumericRange has no production peer (PairFor -> null). Synthesize a Setting whose
-    // Always-context Numeric carries the def's range (+ primary registry Recommended/Default when present).
-    private static Setting SyntheticAlwaysNumericSetting(SettingDefinition def)
-    {
-        var reg = def.RegistrySettings is { Count: > 0 } rs ? rs[0] : null;
-        var recommended = reg?.RecommendedValue is { } rv
-            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(rv)) }
-            : System.Array.Empty<ContextValue>();
-        var windowsDefault = reg?.DefaultValue is { } dv
-            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(dv)) }
-            : System.Array.Empty<ContextValue>();
-        return new Setting
+    // Synthetic catalog Setting fixtures (T6: the old def->Setting converter retired). The factory reads the passed
+    // Setting; these hand-built Settings carry exactly the fields CreateAsync reads (Control -> InputType, Display,
+    // Availability, Numeric, States), reproducing the shape the old converter produced for the equivalent def.
+    private static Setting CreateToggleSetting(
+        string id, string name = "Test", string description = "Test Description",
+        string groupName = "", bool requiresAdvancedUnlock = false) =>
+        new Setting
         {
-            Id = def.Id,
-            Display = new() { Name = def.Name, Description = def.Description },
-            Numeric = new()
+            Id = id,
+            Display = new() { Name = name, Description = description, GroupName = groupName },
+            Availability = requiresAdvancedUnlock ? new Availability { RequiresAdvancedUnlock = true } : Availability.Everywhere,
+            States = new[]
             {
-                Min = def.NumericRange?.MinValue ?? 0,
-                Max = def.NumericRange?.MaxValue ?? 100,
-                Units = def.NumericRange?.Units,
-                Recommended = recommended,
-                WindowsDefault = windowsDefault,
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" },
             },
         };
-    }
 
-    private static SettingDefinition CreateToggleSetting(
-        string id, string name = "Test", string description = "Test Description")
-    {
-        return new SettingDefinition
+    private static Setting CreateNumericRangeSetting(string id, int min, int max, string units) =>
+        new Setting
         {
             Id = id,
-            Name = name,
-            Description = description,
-            InputType = InputType.Toggle,
-            GroupName = string.Empty,
-            Icon = "TestIcon",
-            IconPack = "Material"
+            Display = new() { Name = "Numeric", Description = "Numeric setting", GroupName = "" },
+            Numeric = new() { Min = min, Max = max, Units = units },
         };
-    }
 
-    private static SettingDefinition CreateNumericRangeSetting(
-        string id, int min, int max, string units)
-    {
-        return new SettingDefinition
+    private static Setting CreateSelectionSetting(string id) =>
+        new Setting
         {
             Id = id,
-            Name = "Numeric",
-            Description = "Numeric setting",
-            InputType = InputType.NumericRange,
-            GroupName = string.Empty,
-            NumericRange = new NumericRangeMetadata
+            Display = new() { Name = "Selection", Description = "Selection setting", GroupName = "" },
+            States = new[]
             {
-                MinValue = min,
-                MaxValue = max,
-                Units = units
-            }
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Option B" },
+            },
         };
-    }
-
-    private static SettingDefinition CreateSelectionSetting(string id)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = "Selection",
-            Description = "Selection setting",
-            InputType = InputType.Selection,
-            GroupName = string.Empty,
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new ComboBoxOption { DisplayName = "Option A" },
-                    new ComboBoxOption { DisplayName = "Option B" }
-                }
-            }
-        };
-    }
 }

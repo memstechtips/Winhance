@@ -117,28 +117,4 @@ public static class TestSettingFactory
             }),
         };
     }
-
-    public static SettingDefinition CreateSettingDefinition(
-        string id,
-        string name = "Test Setting",
-        int? minBuild = null,
-        int? maxBuild = null,
-        bool requiresBattery = false,
-        bool requiresLid = false,
-        bool requiresDesktop = false,
-        IReadOnlyList<(int MinBuild, int MaxBuild)>? supportedBuildRanges = null)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = name,
-            Description = $"Test setting: {name}",
-            MinimumBuildNumber = minBuild,
-            MaximumBuildNumber = maxBuild,
-            RequiresBattery = requiresBattery,
-            RequiresLid = requiresLid,
-            RequiresDesktop = requiresDesktop,
-            SupportedBuildRanges = supportedBuildRanges ?? Array.Empty<(int, int)>(),
-        };
-    }
 }
