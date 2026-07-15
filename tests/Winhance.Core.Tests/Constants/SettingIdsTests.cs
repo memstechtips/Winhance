@@ -1,34 +1,14 @@
 using FluentAssertions;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Constants;
 
 public class SettingIdsTests
 {
-    [Fact]
-    public void PowerPlanSelection_MatchesDefinitionInPowerOptimizations()
-    {
-        var settings = PowerOptimizations.GetPowerOptimizations().Settings;
-        settings.Should().Contain(s => s.Id == SettingIds.PowerPlanSelection);
-    }
-
-    [Fact]
-    public void ThemeModeWindows_MatchesDefinitionInWindowsThemeCustomizations()
-    {
-        var settings = WindowsThemeCustomizations.GetWindowsThemeCustomizations().Settings;
-        settings.Should().Contain(s => s.Id == SettingIds.ThemeModeWindows);
-    }
-
-    [Fact]
-    public void UpdatesPolicyMode_MatchesDefinitionInUpdateOptimizations()
-    {
-        var settings = UpdateOptimizations.GetUpdateOptimizations().Settings;
-        settings.Should().Contain(s => s.Id == SettingIds.UpdatesPolicyMode);
-    }
-
+    // The 3 def-provider parity facts (SettingIds.X == the old def's Id) were retired with the
+    // SettingDefinition teardown (Plan-4 T7b); the id contract is now pinned by the catalog authoring/
+    // conformance suites. These two def-free invariants survive.
     [Fact]
     public void Constants_AreNonEmpty()
     {
