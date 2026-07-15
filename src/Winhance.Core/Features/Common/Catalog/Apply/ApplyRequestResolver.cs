@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The apply-side inverse of the Phase 6.3 detection overlay: maps an OLD-model apply request
-/// (a <see cref="SettingDefinition"/> + enable/value/resetToDefault) to a NEW-engine apply plan
+/// (a <c>SettingDefinition</c> + enable/value/resetToDefault) to a NEW-engine apply plan
 /// (<see cref="ApplyOp"/> list) for execution by <see cref="ApplyExecutor"/>, or returns <c>null</c> when the
 /// request is not (yet) representable in the new model so the caller falls back to the proven old apply. Pure.
 ///

@@ -227,118 +227,9 @@ internal class FeatureRegistryScriptSection
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
-    /// <summary>Emits the PowerShell-script blocks for a setting whose RunContext matches the current hive pass.
-    /// Behaviour-preserving extraction of the old in-loop block (Phase 6.8 F3): scripts are sourced from
-    /// <see cref="SettingDefinition.PowerShellScripts"/> and the old ComboBox options. ORACLE ONLY since Slice
-    /// 7e-5 - no production call site remains (the loop above is catalog-always); it survives as the OLD side of
-    /// the byte-equivalence facts (ScriptGenPowerShellEquivalenceTests / ScriptGenActionEquivalenceTests /
-    /// ScriptGenCustomStateEquivalenceTests) and is deleted with SettingDefinition in Plan 4. The new-catalog
-    /// mirrors are <see cref="AppendPowerShellScriptsFromCatalog"/> (state-resolved shapes) and
-    /// <see cref="AppendCustomStateScriptsFromCatalog"/> (the Selection-without-index "Custom" shape).</summary>
-    internal void AppendPowerShellScripts(
-        StringBuilder sb,
-        SettingDefinition settingDef,
-        ConfigurationItem configItem,
-        bool isHkcu,
-        string indent)
-    {
-        if (settingDef.PowerShellScripts?.Count > 0)
-        {
-            foreach (var scriptSetting in settingDef.PowerShellScripts)
-            {
-                bool scriptIsUser = scriptSetting.RunContext == RunContext.User;
-                if (scriptIsUser != isHkcu)
-                {
-                    continue;
-                }
-
-                // Custom state (user-entered values) always counts as "enabled" - the user
-                // picking Custom DNS is expressing intent to configure, not to reset.
-                bool hasCustomState = configItem.CustomStateValues?.Any() == true;
-                var useEnabled = hasCustomState || configItem.IsSelected == true;
-
-                if (!hasCustomState
-                    && settingDef.InputType == InputType.Selection
-                    && settingDef.ComboBox?.Options is { } selScriptOptions
-                    && configItem.SelectedIndex.HasValue
-                    && configItem.SelectedIndex.Value >= 0
-                    && configItem.SelectedIndex.Value < selScriptOptions.Count
-                    && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
-                {
-                    // A "None" option applies no script - emit nothing into the
-                    // autounattend for this selection (e.g. Custom / leave-alone).
-                    if (scriptOption == ScriptOption.None)
-                    {
-                        continue;
-                    }
-
-                    useEnabled = scriptOption == ScriptOption.Enabled;
-                }
-
-                var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
-
-                // Placeholder substitution. Merge sources with CustomStateValues winning
-                // so a user-entered "Custom" selection overrides any preset option.
-                if (!string.IsNullOrEmpty(script))
-                {
-                    var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                    if (settingDef.ComboBox?.Options is { } selVarOptions
-                        && configItem.SelectedIndex.HasValue
-                        && configItem.SelectedIndex.Value >= 0
-                        && configItem.SelectedIndex.Value < selVarOptions.Count
-                        && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
-                    {
-                        foreach (var kvp in variables)
-                        {
-                            placeholders[kvp.Key] = kvp.Value;
-                        }
-                    }
-
-                    if (configItem.CustomStateValues is { } customValues)
-                    {
-                        foreach (var kvp in customValues)
-                        {
-                            if (kvp.Value != null)
-                            {
-                                placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
-                            }
-                        }
-                    }
-
-                    foreach (var kvp in placeholders)
-                    {
-                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(script))
-                {
-                    var escapedDescription = EscapePowerShellString(settingDef.Description);
-                    sb.AppendLine();
-                    sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
-                    sb.AppendLine($"{indent}try {{");
-                    foreach (var line in script.Split('\n'))
-                    {
-                        var trimmedLine = line.Trim();
-                        if (!string.IsNullOrEmpty(trimmedLine))
-                        {
-                            sb.AppendLine($"{indent}    {trimmedLine}");
-                        }
-                    }
-                    sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
-                    sb.AppendLine($"{indent}}} catch {{");
-                    sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
-                    sb.AppendLine($"{indent}}}");
-                    sb.AppendLine();
-                }
-            }
-        }
-    }
-
-    /// <summary>New-catalog mirror of <see cref="AppendPowerShellScripts"/> (Phase 6.8 F3). Emits byte-identical
+    /// <summary>New-catalog mirror of <c>AppendPowerShellScripts</c> (Phase 6.8 F3). Emits byte-identical
     /// output, sourcing the script bodies from the catalog Setting's active <see cref="SettingState"/> ScriptEffects
-    /// instead of <see cref="SettingDefinition.PowerShellScripts"/> / the old ComboBox. The converter has already
+    /// instead of <c>SettingDefinition.PowerShellScripts</c> / the old ComboBox. The converter has already
     /// baked each option's preset ScriptVariables into <see cref="ScriptEffect.Script"/> and placed the correct
     /// Enabled/Disabled/None script on the right state, so only the runtime CustomStateValues pass is re-applied here.
     /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option) has no
@@ -425,7 +316,7 @@ internal class FeatureRegistryScriptSection
     /// (no SelectedIndex: the persisted value matched no preset option, so no catalog state's baked ScriptEffects
     /// apply). Emits from <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the
     /// UN-BAKED raw EnabledScripts + RunContext, byte-pinned to the old def.PowerShellScripts by
-    /// CustomStateScriptsConformanceTests) exactly as the old <see cref="AppendPowerShellScripts"/> served this
+    /// CustomStateScriptsConformanceTests) exactly as the old <c>AppendPowerShellScripts</c> served this
     /// shape: per-entry hive filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() ||
     /// IsSelected == true, then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge,
     /// null values skipped, ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive -
@@ -540,7 +431,7 @@ internal class FeatureRegistryScriptSection
     }
 
     /// <summary>Emits the PowerShell-script blocks for an Action setting's setting-level ScriptEffects whose RunContext
-    /// matches the current hive pass. Byte-identical to <see cref="AppendPowerShellScripts"/> for an enabled Action:
+    /// matches the current hive pass. Byte-identical to <c>AppendPowerShellScripts</c> for an enabled Action:
     /// the converter copies each old PowerShellScript.EnabledScript verbatim into a ScriptEffect, and an Action has no
     /// ComboBox options, so the only placeholder pass that applies is the runtime CustomStateValues substitution
     /// (mirroring the old code's CustomStateValues merge; an Action's ScriptVariables source does not exist).</summary>
@@ -595,28 +486,10 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Collects a setting's scheduled-task apply tuples (TaskPath, /Enable|/Disable, Description) from the
-    /// OLD <see cref="SettingDefinition.ScheduledTaskSettings"/> + Description. Behaviour-preserving extraction of the
-    /// old in-loop block (Phase 6.8 Slice E1a). The new-catalog mirror is
-    /// <see cref="CollectScheduledTasksFromCatalog"/>, proven command-equivalent by
-    /// ScriptGenScheduledTaskEquivalenceTests.</summary>
-    internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasks(
-        SettingDefinition settingDef, ConfigurationItem configItem)
-    {
-        if (settingDef.ScheduledTaskSettings?.Count > 0)
-        {
-            foreach (var taskSetting in settingDef.ScheduledTaskSettings)
-            {
-                var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
-                yield return (taskSetting.TaskPath, action, settingDef.Description);
-            }
-        }
-    }
-
-    /// <summary>New-catalog mirror of <see cref="CollectScheduledTasks"/> (Phase 6.8 Slice E1a). Yields the same
+    /// <summary>New-catalog mirror of <c>CollectScheduledTasks</c> (Phase 6.8 Slice E1a). Yields the same
     /// (TaskPath, /Enable|/Disable, Description) tuples, sourcing the task paths from the catalog Setting's
     /// <see cref="TaskTarget"/>s (one per scheduled task) and the description from <see cref="Display.Description"/>
-    /// instead of <see cref="SettingDefinition.ScheduledTaskSettings"/> / Description. A setting with no scheduled
+    /// instead of <c>SettingDefinition.ScheduledTaskSettings</c> / Description. A setting with no scheduled
     /// tasks has no TaskTargets, so this yields nothing. Proven command-equivalent by
     /// ScriptGenScheduledTaskEquivalenceTests.</summary>
     internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(

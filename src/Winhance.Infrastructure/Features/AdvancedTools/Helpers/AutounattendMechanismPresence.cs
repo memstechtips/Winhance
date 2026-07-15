@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 /// <summary>
 /// Presence predicates the autounattend pipeline uses to gate section headers, skip already-handled
 /// settings, and warn on unreachable payloads. Each predicate has a NEW catalog <see cref="Setting"/> overload
-/// (read from Targets/Effects) and an OLD <see cref="SettingDefinition"/> overload (a verbatim extraction of the
+/// (read from Targets/Effects) and an OLD <c>SettingDefinition</c> overload (a verbatim extraction of the
 /// pre-Slice-E1b inline logic in FeatureRegistryScriptSection / AutounattendScriptBuilder). Production reads the
 /// catalog overload when the setting is catalog-paired (every production setting is) and falls back to the def
 /// overload for an unpaired setting, mirroring the emit's own catalog/def routing so a header is never emitted
@@ -76,40 +76,4 @@ internal static class AutounattendMechanismPresence
     private static bool IsHkcu(string keyPath) =>
         keyPath.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
 
-    // ---- SettingDefinition (old, equivalence oracle - deleted in Plan 4) ---------------------------------
-
-    /// <summary>Old form of <see cref="HasRegistryInHive(Setting, bool)"/> - verbatim from the pre-E1b
-    /// FeatureRegistryScriptSection hive pre-filter.</summary>
-    public static bool HasRegistryInHive(SettingDefinition def, bool isHkcu) =>
-        def.RegistrySettings.Any(rs => IsHkcu(rs.KeyPath) == isHkcu);
-
-    /// <summary>Old form of <see cref="HasScheduledTask(Setting)"/>.</summary>
-    public static bool HasScheduledTask(SettingDefinition def) =>
-        def.ScheduledTaskSettings?.Count > 0;
-
-    /// <summary>Old form of <see cref="HasScriptInHive(Setting, bool)"/> - verbatim from the pre-E1b
-    /// FeatureRegistryScriptSection hive pre-filter (RunContext.User -> HKCU).</summary>
-    public static bool HasScriptInHive(SettingDefinition def, bool isHkcu) =>
-        def.PowerShellScripts?.Any(ps => (ps.RunContext == RunContext.User) == isHkcu) == true;
-
-    /// <summary>Old form of <see cref="HasScript(Setting)"/> - the diagnostic's hive-agnostic PowerShellScripts
-    /// presence.</summary>
-    public static bool HasScript(SettingDefinition def) =>
-        def.PowerShellScripts?.Count > 0;
-
-    /// <summary>Old form of <see cref="HasRegistry(Setting)"/>.</summary>
-    public static bool HasRegistry(SettingDefinition def) =>
-        def.RegistrySettings?.Any() == true;
-
-    /// <summary>Old form of <see cref="HasPowerCfg(Setting)"/>.</summary>
-    public static bool HasPowerCfg(SettingDefinition def) =>
-        def.PowerCfgSettings?.Any() == true;
-
-    /// <summary>Old form of <see cref="HasRegContent(Setting)"/>.</summary>
-    public static bool HasRegContent(SettingDefinition def) =>
-        def.RegContents?.Count > 0;
-
-    /// <summary>Old form of <see cref="HasNativePower(Setting)"/>.</summary>
-    public static bool HasNativePower(SettingDefinition def) =>
-        def.NativePowerApiSettings?.Count > 0;
 }

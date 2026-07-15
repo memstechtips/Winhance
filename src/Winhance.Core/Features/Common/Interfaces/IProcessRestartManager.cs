@@ -7,21 +7,11 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IProcessRestartManager
 {
-    Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting);
-
     /// <summary>Catalog-Setting overload of the single-setting restart: reads the unified ApplyBehavior.Restart
     /// (RestartProcess / RestartService), equivalent to the def's separate RestartProcess/RestartService because no
     /// setting sets both (RestartTargetCatalogEquivalenceTests). SAS repoints its single-setting restart onto this
     /// as it ports off SettingDefinition; the def overload stays for the not-yet-ported paths.</summary>
     Task HandleProcessAndServiceRestartsAsync(Setting setting);
-
-    /// <summary>
-    /// Coalesces restarts across a batch of applied settings: each distinct
-    /// RestartProcess / RestartService is triggered exactly once, regardless of
-    /// how many settings in the batch declared it. Call this AFTER the batch,
-    /// outside any SuppressRestarts scope.
-    /// </summary>
-    Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings);
 
     /// <summary>Catalog-Setting overload of the batch flush: reads the unified ApplyBehavior.Restart. The
     /// apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) uses this once it deals in

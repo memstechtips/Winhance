@@ -38,9 +38,6 @@ public class ProcessRestartManager(
         }
     }
 
-    public Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
-        => HandleRestartsAsync(setting.RestartProcess, setting.RestartService, setting.Id);
-
     /// <inheritdoc />
     public Task HandleProcessAndServiceRestartsAsync(Setting setting)
     {
@@ -93,36 +90,12 @@ public class ProcessRestartManager(
             RestartServiceByName(restartService, settingId);
     }
 
-    public async Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings)
-    {
-        if (appliedSettings == null) return;
-        var (processes, services) = CollectRestartTargets(appliedSettings);
-        await FlushSetsAsync(processes, services).ConfigureAwait(false);
-    }
-
     /// <inheritdoc />
     public async Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings)
     {
         if (appliedSettings == null) return;
         var (processes, services) = CollectRestartTargets(appliedSettings);
         await FlushSetsAsync(processes, services).ConfigureAwait(false);
-    }
-
-    // Collect the distinct (process, service) restart targets across a batch. Static + internal so the
-    // catalog-equivalence test can compare the two overloads over the whole population without triggering
-    // real restarts. The def keeps RestartProcess/RestartService as separate strings.
-    internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
-        IEnumerable<SettingDefinition> settings)
-    {
-        var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (settings != null)
-            foreach (var s in settings)
-            {
-                if (!string.IsNullOrEmpty(s.RestartProcess)) processes.Add(s.RestartProcess!);
-                if (!string.IsNullOrEmpty(s.RestartService)) services.Add(s.RestartService!);
-            }
-        return (processes, services);
     }
 
     // Catalog-Setting equivalent: the def's separate RestartProcess / RestartService are unified into
