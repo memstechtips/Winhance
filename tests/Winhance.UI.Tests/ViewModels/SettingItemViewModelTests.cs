@@ -6,9 +6,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Catalog.Migration;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -184,29 +181,18 @@ public class SettingItemViewModelTests : IDisposable
     public void Action_WithRecommendedRegistryValue_ShowsNoStateBadges()
     {
         // Regression: a one-shot Action must not light up Recommended/Default/Custom state badges,
-        // even when its RegistrySettings carry a RecommendedValue (Win11 Clean Start Menu's
+        // even when it carries recommended/default data (Win11 Clean Start Menu's
         // ConfigureStartPins did, which wrongly lit Recommended + Custom). Matches Win10 clean / taskbar clean.
-        var def = new SettingDefinition
+        // An Action carries no roled states in the new model (Control=Action), and InitializeHasBadgeData
+        // short-circuits InputType.Action to HasBadgeData=false, so the badge row stays empty regardless.
+        var setting = new Setting
         {
             Id = "act-badge",
-            Name = "Action",
-            Description = "d",
-            InputType = InputType.Action,
-            RegistrySettings = new List<RegistrySetting>
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Test",
-                    ValueName = "V",
-                    RecommendedValue = "x",
-                    DefaultValue = null,
-                    ValueType = Microsoft.Win32.RegistryValueKind.String,
-                },
-            },
+            Display = new() { Name = "Action", Description = "d" },
         };
         var config = _defaultConfig with
         {
-            Setting = PairFor(def)!,
+            Setting = setting,
             SettingId = "act-badge",
             InputType = InputType.Action,
         };
@@ -268,32 +254,11 @@ public class SettingItemViewModelTests : IDisposable
     public void UpdateStatusBanner_WithOptionWarning_SetsErrorBanner()
     {
         // Arrange: selection setting where option 0 has a Warning string.
-        var settingDef = new SettingDefinition
-        {
-            Id = "gaming-windows-search-service",
-            Name = "Windows Search Indexing Service",
-            Description = "desc",
-            InputType = InputType.Selection,
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption
-                    {
-                        DisplayName = "Disabled",
-                        Warning = "WARNING: Disabling WSearch breaks Outlook search."
-                    },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption
-                    {
-                        DisplayName = "Manual"
-                    }
-                }
-            }
-        };
+        // The option-warning banner is computed from config.OptionWarnings, not the Setting, so a minimal synthetic Setting suffices.
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
-            SettingId = settingDef.Id,
+            Setting = new Setting { Id = "gaming-windows-search-service", Display = new() { Name = "Windows Search Indexing Service", Description = "desc" } },
+            SettingId = "gaming-windows-search-service",
             InputType = InputType.Selection,
             OptionWarnings = new string?[] { "WARNING: Disabling WSearch breaks Outlook search.", null },
         };
@@ -317,16 +282,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void IsSubSetting_ReturnsTrueWhenParentSettingIdIsSet()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "child-setting",
-            Name = "Child",
-            Description = "Child setting",
-            ParentSettingId = "parent-setting"
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = new Setting { Id = "child-setting", Display = new() { Name = "Child", Description = "Child setting" }, UiParentId = "parent-setting" },
             SettingId = "child-setting"
         };
         var sut = CreateSut(config);
@@ -515,17 +473,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_WithMinuteUnits_ConvertsSecondsToMinutes()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "power-timeout",
-            Name = "Power Timeout",
-            Description = "Timeout setting",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("power-timeout", 0, 120, "Minutes"),
             SettingId = "power-timeout",
             InputType = InputType.NumericRange
         };
@@ -539,17 +489,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_WithHourUnits_ConvertsSecondsToHours()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "disk-timeout",
-            Name = "Disk Timeout",
-            Description = "Disk timeout setting",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 24, Units = "Hours" }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("disk-timeout", 0, 24, "Hours"),
             SettingId = "disk-timeout",
             InputType = InputType.NumericRange
         };
@@ -563,17 +505,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_WithNullUnits_PassesValueThrough()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "raw-setting",
-            Name = "Raw Setting",
-            Description = "No unit conversion",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 1000, Units = null }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("raw-setting", 0, 1000, null),
             SettingId = "raw-setting",
             InputType = InputType.NumericRange
         };
@@ -587,17 +521,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_ZeroValue_RemainsZero()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "zero-setting",
-            Name = "Zero Setting",
-            Description = "Zero value test",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("zero-setting", 0, 120, "Minutes"),
             SettingId = "zero-setting",
             InputType = InputType.NumericRange
         };
@@ -613,21 +539,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_SeparateACDC_UpdatesBothValues()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "acdc-numeric",
-            Name = "AC/DC Numeric",
-            Description = "Separate AC/DC numeric",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = PowerCfgSeparateNumericSetting("acdc-numeric", null, null, null, null, units: "Minutes"),
             SettingId = "acdc-numeric",
             InputType = InputType.NumericRange
         };
@@ -642,21 +556,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_SeparateACDC_MissingDCValue_OnlyUpdatesAC()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "acdc-ac-only",
-            Name = "AC Only Numeric",
-            Description = "Only AC value present",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = PowerCfgSeparateNumericSetting("acdc-ac-only", null, null, null, null, units: "Minutes"),
             SettingId = "acdc-ac-only",
             InputType = InputType.NumericRange
         };
@@ -674,29 +576,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_Selection_SeparateACDC_UpdatesBothIndices()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "acdc-selection",
-            Name = "AC/DC Selection",
-            Description = "Separate AC/DC selection",
-            InputType = InputType.Selection,
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 20 } } },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option C", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 30 } } }
-                }
-            },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = PowerCfgSeparateSelectionSetting("acdc-selection", new[] { ("Option A", 10), ("Option B", 20), ("Option C", 30) }),
             SettingId = "acdc-selection",
             InputType = InputType.Selection
         };
@@ -711,28 +593,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_Selection_SeparateACDC_UnknownPowerCfgValue_DefaultsToZero()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "acdc-unknown",
-            Name = "AC/DC Unknown Value",
-            Description = "Unknown PowerCfg value defaults to 0",
-            InputType = InputType.Selection,
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 10 } } },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", ValueMappings = new Dictionary<string, object?> { { "PowerCfgValue", 20 } } }
-                }
-            },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting { PowerModeSupport = PowerModeSupport.Separate, RecommendedValueAC = null, RecommendedValueDC = null, DefaultValueAC = null, DefaultValueDC = null }
-            }
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = PowerCfgSeparateSelectionSetting("acdc-unknown", new[] { ("Option A", 10), ("Option B", 20) }),
             SettingId = "acdc-unknown",
             InputType = InputType.Selection
         };
@@ -747,13 +610,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_Selection_NonSeparate_UpdatesSelectedValue()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "standard-selection",
-            Name = "Standard Selection",
-            Description = "Non-separate selection",
-            InputType = InputType.Selection
-        };
         var config = _defaultConfig with
         {
             Setting = new Setting { Id = "standard-selection", Display = new() { Name = "Standard Selection", Description = "Non-separate selection" } },
@@ -772,17 +628,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_FailedResult_DoesNotResetNumericValue()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "fail-numeric",
-            Name = "Fail Numeric",
-            Description = "Failed result test",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("fail-numeric", 0, 120, "Minutes"),
             SettingId = "fail-numeric",
             InputType = InputType.NumericRange
         };
@@ -797,17 +645,9 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_NullCurrentValue_DoesNotResetToZero()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "null-current",
-            Name = "Null Current Value",
-            Description = "Null CurrentValue test",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120 }
-        };
         var config = _defaultConfig with
         {
-            Setting = SyntheticAlwaysNumericSetting(settingDef),
+            Setting = AlwaysNumericSetting("null-current", 0, 120, null),
             SettingId = "null-current",
             InputType = InputType.NumericRange
         };
@@ -980,18 +820,11 @@ public class SettingItemViewModelTests : IDisposable
     // ── Advanced Unlock ──
 
     [Fact]
-    public void RequiresAdvancedUnlock_ReturnsTrueWhenSettingDefinitionRequiresIt()
+    public void RequiresAdvancedUnlock_ReturnsTrueWhenSettingRequiresIt()
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = "advanced-setting",
-            Name = "Advanced",
-            Description = "Requires unlock",
-            RequiresAdvancedUnlock = true
-        };
         var config = _defaultConfig with
         {
-            Setting = PairFor(settingDef)!,
+            Setting = new Setting { Id = "advanced-setting", Display = new() { Name = "Advanced", Description = "Requires unlock" }, Availability = new Availability { RequiresAdvancedUnlock = true } },
             SettingId = "advanced-setting"
         };
         var sut = CreateSut(config);
@@ -1000,7 +833,7 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RequiresAdvancedUnlock_ReturnsFalseWhenSettingDefinitionDoesNotRequireIt()
+    public void RequiresAdvancedUnlock_ReturnsFalseWhenSettingDoesNotRequireIt()
     {
         var sut = CreateSut();
         sut.RequiresAdvancedUnlock.Should().BeFalse();
@@ -1117,11 +950,7 @@ public class SettingItemViewModelTests : IDisposable
     {
         // fax-like: RecommendedValue = 0 (disabled), DefaultValue = 0 (disabled)
         // IsSelected = false (disabled) => both Recommended + Default lit, Custom dim, no Preference.
-        var def = BuildToggleSettingDefinition(
-            id: "toggle-fax-like",
-            recommendedValue: 0,
-            defaultValue: 0);
-        var config = BuildToggleConfig(def);
+        var config = ToggleConfig(ToggleSetting("toggle-fax-like", recommendedEnabled: false, defaultEnabled: false));
         var sut = CreateSut(config);
         sut.IsSelected = false;
         sut.ComputeBadgeState();
@@ -1138,8 +967,7 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Toggle_NonSubjective_EnabledMismatch_AllDim()
     {
-        var def = BuildToggleSettingDefinition(id: "toggle-svc", recommendedValue: 0, defaultValue: 0);
-        var sut = CreateSut(BuildToggleConfig(def));
+        var sut = CreateSut(ToggleConfig(ToggleSetting("toggle-svc", recommendedEnabled: false, defaultEnabled: false)));
         sut.IsSelected = true;
         sut.ComputeBadgeState();
 
@@ -1157,10 +985,7 @@ public class SettingItemViewModelTests : IDisposable
         // Inverted policy: EnabledValue=[null], DisabledValue=[1],
         // RecommendedToggleState=false (recommend the blocking state).
         // Toggle OFF means user has the recommended blocking state applied.
-        var def = BuildInvertedPolicyToggleDefinition(
-            id: "security-workplace-join-messages-like",
-            recommendedToggleState: false);
-        var sut = CreateSut(BuildToggleConfig(def));
+        var sut = CreateSut(ToggleConfig(ToggleSetting("security-workplace-join-messages-like", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = false; // toggle OFF -> matches recommended, NOT default
         sut.ComputeBadgeState();
 
@@ -1177,10 +1002,7 @@ public class SettingItemViewModelTests : IDisposable
     {
         // Same inverted-policy shape; toggle ON means key-absent state,
         // which is the Windows default (messages shown / feature enabled).
-        var def = BuildInvertedPolicyToggleDefinition(
-            id: "security-workplace-join-messages-like-on",
-            recommendedToggleState: false);
-        var sut = CreateSut(BuildToggleConfig(def));
+        var sut = CreateSut(ToggleConfig(ToggleSetting("security-workplace-join-messages-like-on", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = true;
         sut.ComputeBadgeState();
 
@@ -1199,10 +1021,7 @@ public class SettingItemViewModelTests : IDisposable
         // plus a group-policy enforcer reg. Under the role-collapsed model the converter derives the
         // WindowsDefault role from the PRIMARY reg's DefaultValue = 1 (= ON), so toggle ON (IsSelected = true)
         // matches Default and the Default badge lights. The old per-reg AND that dimmed it (Slice 5b/5c) is gone.
-        var def = BuildBaseWithPolicyEnforcerToggleDefinition(
-            id: "tailored-experiences-like",
-            recommendedToggleState: false);
-        var sut = CreateSut(BuildToggleConfig(def));
+        var sut = CreateSut(ToggleConfig(ToggleSetting("tailored-experiences-like", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = true;
         sut.ComputeBadgeState();
 
@@ -1219,10 +1038,7 @@ public class SettingItemViewModelTests : IDisposable
     {
         // Same shape as above; toggle OFF is the recommended state. Default must
         // be dim because the base reg's Windows default is ON.
-        var def = BuildBaseWithPolicyEnforcerToggleDefinition(
-            id: "tailored-experiences-like-off",
-            recommendedToggleState: false);
-        var sut = CreateSut(BuildToggleConfig(def));
+        var sut = CreateSut(ToggleConfig(ToggleSetting("tailored-experiences-like-off", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = false;
         sut.ComputeBadgeState();
 
@@ -1237,11 +1053,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_Subjective_OnRecommended_PreferenceAndRecommendedLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "uac-like",
-            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
-            with { IsSubjectivePreference = true };
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("uac-like",
+            new[] { ("DefOpt", false, true), ("RecOpt", true, false) }, subjective: true)));
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
@@ -1261,11 +1074,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_Subjective_OnDefault_PreferenceAndDefaultLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "uac-like-2",
-            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
-            with { IsSubjectivePreference = true };
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("uac-like-2",
+            new[] { ("DefOpt", false, true), ("RecOpt", true, false) }, subjective: true)));
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
@@ -1281,11 +1091,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_Subjective_UnmappedValue_CustomLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "uac-like-3",
-            options: new[] { ("DefOpt", 0, false, true), ("RecOpt", 1, true, false) })
-            with { IsSubjectivePreference = true };
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("uac-like-3",
+            new[] { ("DefOpt", false, true), ("RecOpt", true, false) }, subjective: true)));
         sut.SelectedValue = 99;
         sut.ComputeBadgeState();
 
@@ -1301,11 +1108,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_MultiDefault_NoRecommended_OnEitherOption_DefaultLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "measurement-like",
-            options: new[] { ("Metric", 0, false, true), ("Imperial", 1, false, true) })
-            with { IsSubjectivePreference = true };
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("measurement-like",
+            new[] { ("Metric", false, true), ("Imperial", false, true) }, subjective: true)));
 
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
@@ -1329,10 +1133,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_NonSubjective_OnRecommended_OnlyRecommendedLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "non-subj-rec",
-            options: new[] { ("Def", 0, false, true), ("Rec", 1, true, false) });
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("non-subj-rec",
+            new[] { ("Def", false, true), ("Rec", true, false) })));
         sut.SelectedValue = 1;
         sut.ComputeBadgeState();
 
@@ -1347,10 +1149,8 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Selection_OptionIsBothRecommendedAndDefault_BothLit()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "both-flags",
-            options: new[] { ("OnlyOption", 0, true, true) });
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("both-flags",
+            new[] { ("OnlyOption", true, true) })));
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
@@ -1364,17 +1164,14 @@ public class SettingItemViewModelTests : IDisposable
 
     // removed in P3b: BadgeRow_NumericRange_AtRecommended_OnlyRecommendedLit covered a registry single-spinner
     // NumericRange -- a verified-nonexistent production shape (every NumericRange setting is powercfg; zero registry
-    // numerics). The new role-collapsed model no longer badges that dead single-spinner path, and PairFor returns
-    // null for it so ComputeBadgeState early-returns. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
+    // numerics). The new role-collapsed model no longer badges that dead single-spinner path, and no synthetic
+    // fixture builds it. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
 
     [Fact]
     public void BadgeRow_Definition_HasNoRecommendedAtAll_RecommendedPillAbsent()
     {
-        var def = BuildSelectionSettingDefinition(
-            id: "no-rec",
-            options: new[] { ("A", 0, false, true), ("B", 1, false, true) })
-            with { IsSubjectivePreference = true };
-        var sut = CreateSut(BuildSelectionConfig(def));
+        var sut = CreateSut(SelectionConfig(SelectionSetting("no-rec",
+            new[] { ("A", false, true), ("B", false, true) }, subjective: true)));
         sut.SelectedValue = 0;
         sut.ComputeBadgeState();
 
@@ -1390,9 +1187,8 @@ public class SettingItemViewModelTests : IDisposable
         // skips DC writes. The badge must not treat the unchanged-DC system value as a
         // mismatch — otherwise the user sees Recommended lit after Apply, then a system-
         // state refresh re-syncs the VM and the badge flips to Custom.
-        var def = BuildPowerCfgSeparateNumericDefinition(
-            "acdc-no-battery", recAc: 0, recDc: 600, defAc: 1200, defDc: 600);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
+            "acdc-no-battery", recAc: 0, recDc: 600, defAc: 1200, defDc: 600)));
         sut.HasBattery = false;
         sut.AcNumericValue = 0;     // matches RecAC
         sut.DcNumericValue = 20;    // differs from RecDC (=600) — but DC must be ignored
@@ -1411,9 +1207,8 @@ public class SettingItemViewModelTests : IDisposable
     {
         // Pattern 2: on a laptop, AC/DC sides each get their own Recommended/Default/Custom
         // pills so partial matches are visible.
-        var def = BuildPowerCfgSeparateNumericDefinition(
-            "acdc-with-battery", recAc: 50, recDc: 25, defAc: 0, defDc: 25);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
+            "acdc-with-battery", recAc: 50, recDc: 25, defAc: 0, defDc: 25)));
         sut.HasBattery = true;
         sut.AcNumericValue = 50;    // matches RecAC
         sut.DcNumericValue = 25;    // matches both RecDC AND DefDC (Rec==Def on this side)
@@ -1435,11 +1230,10 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_AcDcSeparate_WithBattery_DcOnlyRecommendation_NoAcPillEmitted()
     {
-        // If a PowerCfgSetting only declares RecommendedValueDC (no AC counterpart), the
+        // If a powercfg setting only declares RecommendedValueDC (no AC counterpart), the
         // per-mode emitter must produce only the DC Recommended pill — not a phantom AC pill.
-        var def = BuildPowerCfgSeparateNumericDefinition(
-            "acdc-dc-only-rec", recAc: null, recDc: 600, defAc: null, defDc: 1200);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
+            "acdc-dc-only-rec", recAc: null, recDc: 600, defAc: null, defDc: 1200)));
         sut.HasBattery = true;
         sut.ComputeBadgeState();
 
@@ -1452,9 +1246,8 @@ public class SettingItemViewModelTests : IDisposable
     {
         // Partial-custom case: AC matches neither Rec nor Def, DC matches Rec. We expect
         // Custom (AC) lit, Custom (DC) dim — the lit-state must follow the side, not the row.
-        var def = BuildPowerCfgSeparateNumericDefinition(
-            "acdc-partial-custom", recAc: 50, recDc: 25, defAc: 0, defDc: 75);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
+            "acdc-partial-custom", recAc: 50, recDc: 25, defAc: 0, defDc: 75)));
         sut.HasBattery = true;
         sut.AcNumericValue = 33;    // matches neither RecAC=50 nor DefAC=0 → AC Custom
         sut.DcNumericValue = 25;    // matches RecDC → DC Recommended
@@ -1466,264 +1259,142 @@ public class SettingItemViewModelTests : IDisposable
         customDc.IsHighlighted.Should().BeFalse();
     }
 
-    private static SettingDefinition BuildSelectionSettingDefinition(
-        string id,
-        IEnumerable<(string DisplayName, int Value, bool IsRecommended, bool IsDefault)> options)
-    {
-        var list = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>();
-        foreach (var (name, v, rec, def) in options)
-        {
-            list.Add(new Winhance.Core.Features.Common.Models.ComboBoxOption
-            {
-                DisplayName = name,
-                ValueMappings = new Dictionary<string, object?> { ["V"] = v },
-                IsRecommended = rec,
-                IsDefault = def,
-            });
-        }
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = id,
-            Description = "",
-            InputType = InputType.Selection,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
-                    ValueName = "V",
-                    RecommendedValue = null,
-                    DefaultValue = null,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-            },
-            ComboBox = new ComboBoxMetadata { Options = list },
-        };
-    }
+    // ---------------------------------------------------------------------------------------------------
+    // Synthetic catalog-Setting fixtures (T5: the old def->Setting converter retired).
+    // The SettingItemViewModel reads the PASSED Setting (no live-catalog resolution), so hand-built synthetic
+    // Settings carrying exactly the fields the VM reads are correct here -- simpler, non-vacuous, and immune to
+    // catalog edits. Each builder reproduces the shape the old converter produced for the
+    // equivalent old def, so the VM's badge/value behaviour is unchanged from the converter-based fixtures these replace.
+    // ---------------------------------------------------------------------------------------------------
 
-    private SettingItemViewModelConfig BuildSelectionConfig(SettingDefinition def) =>
-        new SettingItemViewModelConfig
-        {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            InputType = InputType.Selection,
-            IsSelected = false,
-        };
-
-    private static SettingDefinition BuildToggleSettingDefinition(
-        string id,
-        object recommendedValue,
-        object defaultValue)
+    // A toggle Setting: Enabled/Disabled states carrying the Recommended/WindowsDefault roles the old converter
+    // derived (RolesFor) -- a role lands on the Enabled state when that role's toggle state is enabled, on the
+    // Disabled state when it is disabled. null = that role absent.
+    private static Setting ToggleSetting(string id, bool? recommendedEnabled, bool? defaultEnabled)
     {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = id,
-            Description = "",
-            InputType = InputType.Toggle,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
-                    ValueName = "V",
-                    EnabledValue = new object?[] { 1 },
-                    DisabledValue = new object?[] { 0 },
-                    RecommendedValue = recommendedValue,
-                    DefaultValue = defaultValue,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-            },
-        };
-    }
-
-    private static SettingDefinition BuildInvertedPolicyToggleDefinition(string id, bool? recommendedToggleState)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = id,
-            Description = "",
-            InputType = InputType.Toggle,
-            RecommendedToggleState = recommendedToggleState,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Test",
-                    ValueName = "BlockThing",
-                    EnabledValue = new object?[] { null },
-                    DisabledValue = new object?[] { 1 },
-                    RecommendedValue = null,
-                    DefaultValue = null,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsGroupPolicy = true,
-                    IsPrimary = true,
-                },
-            },
-        };
-    }
-
-    private static SettingDefinition BuildBaseWithPolicyEnforcerToggleDefinition(
-        string id,
-        bool? recommendedToggleState)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = id,
-            Description = "",
-            InputType = InputType.Toggle,
-            RecommendedToggleState = recommendedToggleState,
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
-                    ValueName = "Feature",
-                    EnabledValue = new object?[] { 1 },
-                    DisabledValue = new object?[] { 0 },
-                    RecommendedValue = 0,
-                    DefaultValue = 1,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_CURRENT_USER\SOFTWARE\Policies\Test",
-                    ValueName = "DisableFeature",
-                    EnabledValue = new object?[] { 0 },
-                    DisabledValue = new object?[] { null },
-                    RecommendedValue = null,
-                    DefaultValue = null,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsGroupPolicy = true,
-                },
-            },
-        };
-    }
-
-    // Phase 6.7 P3b: pair the new-model Setting exactly as production does. The factory pairs def.Id -> SettingCatalog.All;
-    // for a catalog-authored setting that IS the real catalog Setting. For a SYNTHETIC test def (id not in the catalog) we
-    // simulate the peer the factory would pair via the converter (catalog == converter output, proven by
-    // CatalogAuthoringEquivalenceTests). A registry-only NumericRange has NO production peer (zero exist) -> no pairing (null).
-    private static Setting? PairFor(SettingDefinition def)
-    {
-        var catalogPeer = SettingCatalog.All.FirstOrDefault(s => s.Id == def.Id);
-        if (catalogPeer is not null) return catalogPeer;
-        if (def.InputType == InputType.NumericRange && (def.PowerCfgSettings?.Count ?? 0) == 0) return null;
-        if (def.PowerCfgSettings is { Count: > 0 }) return SettingDefinitionConverter.ConvertPowerCfg(def);
-        if (def.InputType == InputType.Selection) return SettingDefinitionConverter.ConvertSelection(def);
-        return SettingDefinitionConverter.ConvertToggle(def);
-    }
-
-    // Registry single-spinner NumericRange has no production peer (PairFor -> null). The single-spinner numeric
-    // accessors now read the Always-context Numeric, so synthesize a Setting carrying that from the def's
-    // NumericRange (+ the primary registry Recommended/Default when present; units null -> 1:1).
-    private static Setting SyntheticAlwaysNumericSetting(SettingDefinition def)
-    {
-        var reg = def.RegistrySettings is { Count: > 0 } rs ? rs[0] : null;
-        var recommended = reg?.RecommendedValue is { } rv
-            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(rv)) }
-            : System.Array.Empty<ContextValue>();
-        var windowsDefault = reg?.DefaultValue is { } dv
-            ? new[] { new ContextValue(PowerContext.Always, Convert.ToInt32(dv)) }
-            : System.Array.Empty<ContextValue>();
+        var enabled = new List<StateRole>();
+        var disabled = new List<StateRole>();
+        if (recommendedEnabled is bool r) (r ? enabled : disabled).Add(StateRole.Recommended);
+        if (defaultEnabled is bool d) (d ? enabled : disabled).Add(StateRole.WindowsDefault);
         return new Setting
         {
-            Id = def.Id,
-            Display = new() { Name = def.Name, Description = def.Description },
-            Numeric = new()
+            Id = id,
+            Display = new() { Name = id, Description = "" },
+            States = new[]
             {
-                Min = def.NumericRange?.MinValue ?? 0,
-                Max = def.NumericRange?.MaxValue ?? 100,
-                Units = def.NumericRange?.Units,
-                Recommended = recommended,
-                WindowsDefault = windowsDefault,
+                new SettingState { Label = "Enabled", Roles = enabled },
+                new SettingState { Label = "Disabled", Roles = disabled },
             },
         };
     }
 
-    private SettingItemViewModelConfig BuildToggleConfig(SettingDefinition def) =>
+    // A registry SELECTION Setting: one state per option carrying its Recommended/WindowsDefault roles. The badge
+    // logic reads only the state Roles + the selected index (never the accept-Set for a non-powercfg selection),
+    // so the Set is omitted. subjective -> Display.IsSubjectivePreference (the Preference badge).
+    private static Setting SelectionSetting(string id, (string Label, bool Recommended, bool Default)[] options, bool subjective = false)
+    {
+        var states = new List<SettingState>();
+        foreach (var (label, rec, def) in options)
+        {
+            var roles = new List<StateRole>();
+            if (rec) roles.Add(StateRole.Recommended);
+            if (def) roles.Add(StateRole.WindowsDefault);
+            states.Add(new SettingState { Label = label, Roles = roles });
+        }
+        return new Setting
+        {
+            Id = id,
+            Display = new() { Name = id, Description = "", IsSubjectivePreference = subjective },
+            States = states,
+        };
+    }
+
+    // A single-spinner (Always-context) numeric Setting: the VM reads Numeric.Units for conversion and the
+    // Always-context Recommended/WindowsDefault for the quick-set/badge accessors. Registry single-spinner numerics
+    // had no powercfg peer, so this carries only the Always context.
+    private static Setting AlwaysNumericSetting(string id, int min, int max, string? units, int? recommended = null, int? windowsDefault = null)
+    {
+        var rec = recommended is int r ? new[] { new ContextValue(PowerContext.Always, r) } : System.Array.Empty<ContextValue>();
+        var def = windowsDefault is int d ? new[] { new ContextValue(PowerContext.Always, d) } : System.Array.Empty<ContextValue>();
+        return new Setting
+        {
+            Id = id,
+            Display = new() { Name = id, Description = "" },
+            Numeric = new() { Min = min, Max = max, Units = units, Recommended = rec, WindowsDefault = def },
+        };
+    }
+
+    // A powercfg AC/DC-Separate NUMERIC Setting: per-context Recommended/WindowsDefault ContextValues (only the
+    // non-null sides, mirroring ConvertPowerCfg) plus the Separate PowerCfgTarget that drives SupportsSeparateACDC.
+    // Units default to "" (the converter's NumericRange.Units ?? pcs.Units ?? ""), so ConvertFrom/ToSystemUnits is 1:1.
+    private static Setting PowerCfgSeparateNumericSetting(string id, int? recAc, int? recDc, int? defAc, int? defDc, string? units = "")
+    {
+        var recommended = new List<ContextValue>();
+        if (recAc is int ra) recommended.Add(new ContextValue(PowerContext.AC, ra));
+        if (recDc is int rd) recommended.Add(new ContextValue(PowerContext.DC, rd));
+        var windowsDefault = new List<ContextValue>();
+        if (defAc is int da) windowsDefault.Add(new ContextValue(PowerContext.AC, da));
+        if (defDc is int dd) windowsDefault.Add(new ContextValue(PowerContext.DC, dd));
+        return new Setting
+        {
+            Id = id,
+            Display = new() { Name = id, Description = "" },
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new Target[] { new PowerCfgTarget("Power", "sub", "setting", PowerModeSupport.Separate) },
+            Numeric = new() { Min = 0, Max = 100, Units = units, Recommended = recommended, WindowsDefault = windowsDefault },
+        };
+    }
+
+    // A powercfg AC/DC-Separate SELECTION Setting: one state per option whose Set["Power"] accepts that option's raw
+    // powercfg value (how UpdateStateFromSystemState maps an AC/DC reading to an option index), plus the Separate
+    // PowerCfgTarget. No roles (the AC/DC selection tests assert index resolution, not badges).
+    private static Setting PowerCfgSeparateSelectionSetting(string id, (string Label, int PowerValue)[] options)
+    {
+        var states = new List<SettingState>();
+        foreach (var (label, power) in options)
+            states.Add(new SettingState { Label = label, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(power) } });
+        return new Setting
+        {
+            Id = id,
+            Display = new() { Name = id, Description = "" },
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new Target[] { new PowerCfgTarget("Power", "sub", "setting", PowerModeSupport.Separate) },
+            States = states,
+        };
+    }
+
+    private SettingItemViewModelConfig ToggleConfig(Setting setting) =>
         new SettingItemViewModelConfig
         {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.Toggle,
             IsSelected = false,
         };
 
-    // ───────── Task B4: NumericRange quick-set buttons ─────────
-
-    private static SettingDefinition BuildNumericSettingDefinition(
-        string id,
-        object? recommendedValue,
-        object? defaultValue)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = id,
-            Description = "",
-            InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = null },
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKEY_CURRENT_USER\Software\Winhance\Test",
-                    ValueName = "V",
-                    RecommendedValue = recommendedValue,
-                    DefaultValue = defaultValue,
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-            },
-        };
-    }
-
-    private SettingItemViewModelConfig BuildNumericConfig(SettingDefinition def) =>
+    private SettingItemViewModelConfig SelectionConfig(Setting setting) =>
         new SettingItemViewModelConfig
         {
-            Setting = PairFor(def) ?? SyntheticAlwaysNumericSetting(def),
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
-            InputType = InputType.NumericRange,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
+            InputType = InputType.Selection,
             IsSelected = false,
         };
 
-    private static SettingDefinition BuildPowerCfgSeparateNumericDefinition(
-        string id,
-        int? recAc, int? recDc, int? defAc, int? defDc)
-    {
-        return new SettingDefinition
+    private SettingItemViewModelConfig NumericConfig(Setting setting) =>
+        new SettingItemViewModelConfig
         {
-            Id = id,
-            Name = id,
-            Description = "",
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.NumericRange,
-            NumericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100, Units = null },
-            PowerCfgSettings = new List<PowerCfgSetting>
-            {
-                new PowerCfgSetting
-                {
-                    PowerModeSupport = PowerModeSupport.Separate,
-                    RecommendedValueAC = recAc,
-                    RecommendedValueDC = recDc,
-                    DefaultValueAC = defAc,
-                    DefaultValueDC = defDc,
-                },
-            },
+            IsSelected = false,
         };
-    }
 
     [Fact]
     public void SetNumericToRecommendedCommand_NumericRange_SetsNumericValueToRecommended()
@@ -1732,8 +1403,7 @@ public class SettingItemViewModelTests : IDisposable
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        var def = BuildNumericSettingDefinition("numeric-rec", recommendedValue: 100, defaultValue: 0);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(AlwaysNumericSetting("numeric-rec", 0, 100, null, recommended: 100, windowsDefault: 0)));
 
         sut.SetNumericToRecommendedCommand.Execute(null);
 
@@ -1751,8 +1421,7 @@ public class SettingItemViewModelTests : IDisposable
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        var def = BuildNumericSettingDefinition("numeric-def", recommendedValue: 100, defaultValue: 25);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(AlwaysNumericSetting("numeric-def", 0, 100, null, recommended: 100, windowsDefault: 25)));
 
         sut.SetNumericToDefaultCommand.Execute(null);
 
@@ -1770,8 +1439,7 @@ public class SettingItemViewModelTests : IDisposable
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        var def = BuildPowerCfgSeparateNumericDefinition("acdc-rec", recAc: 50, recDc: 25, defAc: 0, defDc: 0);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-rec", recAc: 50, recDc: 25, defAc: 0, defDc: 0)));
         sut.AcNumericValue = 0;
         sut.DcNumericValue = 0;
 
@@ -1788,8 +1456,7 @@ public class SettingItemViewModelTests : IDisposable
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        var def = BuildPowerCfgSeparateNumericDefinition("acdc-def", recAc: 50, recDc: 25, defAc: 100, defDc: 75);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-def", recAc: 50, recDc: 25, defAc: 100, defDc: 75)));
         sut.AcNumericValue = 10;
         sut.DcNumericValue = 20;
 
@@ -1802,8 +1469,7 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void ShowNumericQuickSetButtons_ReflectsIsInfoBadgeGloballyVisible()
     {
-        var def = BuildNumericSettingDefinition("numeric-toggle", recommendedValue: 100, defaultValue: 0);
-        var sut = CreateSut(BuildNumericConfig(def));
+        var sut = CreateSut(NumericConfig(AlwaysNumericSetting("numeric-toggle", 0, 100, null, recommended: 100, windowsDefault: 0)));
 
         sut.IsInfoBadgeGloballyVisible = false;
         sut.ShowNumericQuickSetButtons.Should().BeFalse(
@@ -1814,21 +1480,19 @@ public class SettingItemViewModelTests : IDisposable
             because: "ShowInfoBadges is on AND the setting has Recommended/Default data");
     }
 
-    // ── Pinned regression tests: real SettingDefinition instances ──
+    // ── Pinned regression tests: real catalog Setting instances ──
 
     [Fact]
     public void WorkplaceJoinMessages_ToggleOff_RecommendedLit_DefaultDim()
     {
-        var def = PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations()
-            .Settings
-            .First(s => s.Id == "security-workplace-join-messages");
+        var setting = SettingCatalog.All.First(s => s.Id == "security-workplace-join-messages");
 
         var config = new SettingItemViewModelConfig
         {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.Toggle,
             IsSelected = false, // toggle OFF -> blocking state applied
         };
@@ -1842,16 +1506,14 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void WorkplaceJoinMessages_ToggleOn_DefaultLit_RecommendedDim()
     {
-        var def = PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations()
-            .Settings
-            .First(s => s.Id == "security-workplace-join-messages");
+        var setting = SettingCatalog.All.First(s => s.Id == "security-workplace-join-messages");
 
         var config = new SettingItemViewModelConfig
         {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.Toggle,
             IsSelected = true, // toggle ON -> Windows default
         };
@@ -1865,16 +1527,14 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BingSearchResults_ToggleOff_RecommendedLit_DefaultDim()
     {
-        var def = StartMenuCustomizations.GetStartMenuCustomizations()
-            .Settings
-            .First(s => s.Id == "start-disable-bing-search-results");
+        var setting = SettingCatalog.All.First(s => s.Id == "start-disable-bing-search-results");
 
         var config = new SettingItemViewModelConfig
         {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.Toggle,
             IsSelected = false,
         };
@@ -1888,16 +1548,14 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BingSearchResults_ToggleOn_DefaultLit_RecommendedDim()
     {
-        var def = StartMenuCustomizations.GetStartMenuCustomizations()
-            .Settings
-            .First(s => s.Id == "start-disable-bing-search-results");
+        var setting = SettingCatalog.All.First(s => s.Id == "start-disable-bing-search-results");
 
         var config = new SettingItemViewModelConfig
         {
-            Setting = PairFor(def)!,
-            SettingId = def.Id,
-            Name = def.Name,
-            Description = def.Description,
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name,
+            Description = setting.Display.Description,
             InputType = InputType.Toggle,
             IsSelected = true,
         };
