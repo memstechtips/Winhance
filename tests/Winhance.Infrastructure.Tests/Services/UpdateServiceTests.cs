@@ -35,15 +35,9 @@ public class UpdateServiceTests
     public async Task TryApplySpecialSettingAsync_NonUpdatesPolicyMode_ReturnsFalse()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "some-other-setting",
-            Name = "Other",
-            Description = "Not updates policy"
-        };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting.Id, 0);
+        var result = await _service.TryApplySpecialSettingAsync("some-other-setting", 0);
 
         // Assert
         result.Should().BeFalse();
@@ -53,15 +47,9 @@ public class UpdateServiceTests
     public async Task TryApplySpecialSettingAsync_UpdatesPolicyMode_NonIntValue_ReturnsFalse()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting.Id, "not-an-int");
+        var result = await _service.TryApplySpecialSettingAsync("updates-policy-mode", "not-an-int");
 
         // Assert
         result.Should().BeFalse();
@@ -75,12 +63,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_NonIntValue_ThrowsArgumentException()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         // Act
         var act = () => _service.ApplyUpdatesPolicyModeAsync("invalid");
@@ -94,12 +76,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_InvalidIndex_ThrowsArgumentException()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
 
@@ -115,12 +91,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_NormalMode_EnablesServicesAndTasks()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
@@ -140,12 +110,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_SecurityOnlyMode_AppliesRegistrySettings()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);

@@ -36,14 +36,6 @@ public class PowerServiceTests
             _powerSchemeOperations.Object);
     }
 
-    private static SettingDefinition MakeSetting(string id, string? name = null, string? description = null) =>
-        new()
-        {
-            Id = id,
-            Name = name ?? id,
-            Description = description ?? $"Description for {id}",
-        };
-
     [Fact]
     public async Task GetActivePowerPlanAsync_DelegatesToQueryService()
     {
@@ -129,9 +121,8 @@ public class PowerServiceTests
     {
         // Slice 8c: PowerService is no longer an apply handler (power-plan apply runs through the catalog engine);
         // the interface method remains only because PowerService is still a discovery handler, and it handles nothing.
-        var setting = MakeSetting(SettingIds.PowerPlanSelection);
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting.Id, 0);
+        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.PowerPlanSelection, 0);
 
         result.Should().BeFalse();
     }
