@@ -40,8 +40,6 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         _build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
         _caps = new HardwareCaps(
             await _hardware.HasBatteryAsync().ConfigureAwait(false),
-            await _hardware.HasLidAsync().ConfigureAwait(false),
-            await _hardware.SupportsBrightnessControlAsync().ConfigureAwait(false),
             await _hardware.SupportsHybridSleepAsync().ConfigureAwait(false));
 
         // Resolve powercfg existence ONCE over the OS-version-INDEPENDENT candidate set (hardware-passing settings

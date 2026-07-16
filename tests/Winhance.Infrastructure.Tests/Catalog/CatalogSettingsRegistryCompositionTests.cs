@@ -22,8 +22,6 @@ public class CatalogSettingsRegistryCompositionTests
         version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         var hardware = new Mock<IHardwareDetectionService>();
         hardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.HasLidAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.SupportsBrightnessControlAsync()).ReturnsAsync(true);
         hardware.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(true);
         var existence = new Mock<ICatalogPowerExistenceFilter>();
         existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
@@ -33,7 +31,7 @@ public class CatalogSettingsRegistryCompositionTests
         await reg.InitializeAsync();
 
         var build = new WinBuild(26100, 0);
-        var caps = new HardwareCaps(false, false, true, true);
+        var caps = new HardwareCaps(false, true);
         bool Available(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
 
         // flattened membership == the catalog filtered by IsAvailable
@@ -85,8 +83,6 @@ public class CatalogSettingsRegistryCompositionTests
         version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         var hardware = new Mock<IHardwareDetectionService>();
         hardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.HasLidAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.SupportsBrightnessControlAsync()).ReturnsAsync(true);
         hardware.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(true);
         var existence = new Mock<ICatalogPowerExistenceFilter>();
         existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
@@ -96,7 +92,7 @@ public class CatalogSettingsRegistryCompositionTests
         await reg.InitializeAsync();
 
         var build = new WinBuild(26100, 0);
-        var caps = new HardwareCaps(false, false, true, true);
+        var caps = new HardwareCaps(false, true);
         bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
         bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps);
 

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The machine capabilities a catalog membership filter needs - the catalog-model equivalent of the
-/// probes the old HardwareCompatibilityFilter read from IHardwareDetectionService (battery / lid / brightness /
-/// hybrid-sleep).</summary>
-public readonly record struct HardwareCaps(bool HasBattery, bool HasLid, bool SupportsBrightness, bool SupportsHybridSleep);
+/// probes the old HardwareCompatibilityFilter read from IHardwareDetectionService (battery / hybrid-sleep).</summary>
+public readonly record struct HardwareCaps(bool HasBattery, bool SupportsHybridSleep);
 
 /// <summary>Pure catalog-membership gating: reproduces the old WindowsCompatibilityFilter (OS build) +
 /// HardwareCompatibilityFilter (hardware caps) decisions from <see cref="Setting.Availability"/>, so the settings
@@ -14,7 +13,9 @@ public readonly record struct HardwareCaps(bool HasBattery, bool HasLid, bool Su
 /// still ran the old PowerSettingsValidationService.</summary>
 public static class CatalogMembershipFilter
 {
-    /// <summary>Mirrors the old HardwareCompatibilityFilter's five checks against Setting.Availability.Hardware.</summary>
+    /// <summary>Checks the setting's Availability.Hardware requirements against the machine caps. Only the two
+    /// requirements any catalog setting actually uses are gated - Battery and HybridSleepCapable; the carrier-less
+    /// Lid / Desktop / BrightnessSupport gates were removed as unused (re-add on demand when a setting needs one).</summary>
     public static bool PassesHardware(Availability a, HardwareCaps c)
     {
         foreach (var req in a.Hardware)
@@ -22,9 +23,6 @@ public static class CatalogMembershipFilter
             switch (req)
             {
                 case HardwareRequirement.Battery when !c.HasBattery: return false;
-                case HardwareRequirement.Lid when !c.HasLid: return false;
-                case HardwareRequirement.Desktop when c.HasBattery || c.HasLid: return false;
-                case HardwareRequirement.BrightnessSupport when !c.SupportsBrightness: return false;
                 case HardwareRequirement.HybridSleepCapable when !c.SupportsHybridSleep: return false;
             }
         }

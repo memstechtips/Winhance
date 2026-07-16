@@ -27,7 +27,6 @@ public class ScriptBuilderTests
             .Returns(Task.CompletedTask);
 
         _hardwareDetection.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        _hardwareDetection.Setup(h => h.HasLidAsync()).ReturnsAsync(false);
 
         _powerSettingsQuery
             .Setup(p => p.GetActivePowerPlanAsync())

@@ -35,7 +35,7 @@ public sealed record Availability
     public bool Allows(WinBuild build) => Builds.Count == 0 || Builds.Any(r => r.Contains(build));
 
     /// <summary>Hardware capabilities the machine must have for this setting to apply (the old RequiresBattery /
-    /// RequiresHybridSleepCapable / RequiresLid / RequiresDesktop / RequiresBrightnessSupport gates). Empty = none.</summary>
+    /// RequiresHybridSleepCapable gates). Empty = none.</summary>
     public IReadOnlyList<HardwareRequirement> Hardware { get; init; } = Array.Empty<HardwareRequirement>();
 
     /// <summary>The setting is hidden behind the advanced-settings unlock (old RequiresAdvancedUnlock). Presentation
@@ -48,4 +48,4 @@ public sealed record Availability
 }
 
 /// <summary>A hardware capability a setting requires to be shown/applied.</summary>
-public enum HardwareRequirement { Battery, HybridSleepCapable, Lid, Desktop, BrightnessSupport }
+public enum HardwareRequirement { Battery, HybridSleepCapable }

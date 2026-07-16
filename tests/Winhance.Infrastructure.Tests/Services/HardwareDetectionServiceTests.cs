@@ -52,40 +52,6 @@ public class HardwareDetectionServiceTests
 
     #endregion
 
-    #region HasLidAsync — WMI integration test
-
-    [Fact]
-    public async Task HasLidAsync_DoesNotThrow_ReturnsBooleanValue()
-    {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
-
-        // Act
-        var act = () => service.HasLidAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
-    }
-
-    #endregion
-
-    #region SupportsBrightnessControlAsync
-
-    [Fact]
-    public async Task SupportsBrightnessControlAsync_DoesNotThrow_ReturnsBooleanValue()
-    {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
-
-        // Act
-        var act = () => service.SupportsBrightnessControlAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
-    }
-
-    #endregion
-
     #region SupportsHybridSleepAsync
 
     [Fact]

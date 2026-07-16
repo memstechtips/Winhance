@@ -244,9 +244,6 @@ internal class PowerSettingsScriptSection
             if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.Battery) && !hasBattery)
                 continue;
 
-            if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.BrightnessSupport))
-                continue;
-
             foreach (var powerCfgTarget in powerCfgTargets)
             {
                 if (!bulkQueryResults.TryGetValue(powerCfgTarget.SettingGuid, out var values))
