@@ -56,9 +56,9 @@ public class SettingApplicationService(
         return _hasBatteryCache.Value;
     }
 
-    // The live Windows build, used to (a) gate ApplyPlanBuilder's per-target AppliesTo and (b) decide whether a
-    // catalog setting whose OLD def is OS-filtered-out is still build-compatible enough to resolve via the bypassed
-    // registry. Same source the config build-gating uses.
+    // The live Windows build, threaded into ApplyRequestResolver.Resolve / ResolveTargetLabel to gate
+    // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses. (The old bypassed-registry
+    // OS-compatibility path this comment used to mention was removed with CompatibleSettingsRegistry at teardown.)
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 

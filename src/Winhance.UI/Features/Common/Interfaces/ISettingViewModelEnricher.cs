@@ -5,8 +5,8 @@ namespace Winhance.UI.Features.Common.Interfaces;
 
 /// <summary>
 /// Enriches a SettingItemViewModel with hardware detection, cross-group info, and review diff state.
-/// Consolidates the three post-construction enrichment services (IHardwareDetectionService,
-/// ISettingLocalizationService, ISettingReviewDiffApplier) behind a single interface.
+/// Consolidates the post-construction enrichment services (IHardwareDetectionService,
+/// ISettingReviewDiffApplier) behind a single interface.
 /// </summary>
 public interface ISettingViewModelEnricher
 {

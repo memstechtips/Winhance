@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -77,7 +76,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             // (AvailabilityCompatibility reproduces the retired def decoration); read the build once per load.
             var liveBuild = LiveBuild();
 
-            // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
+            // Create ViewModels for all settings (skip any whose state the detection provider could not resolve -- Success == false)
             foreach (var setting in settingsList)
             {
                 if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)

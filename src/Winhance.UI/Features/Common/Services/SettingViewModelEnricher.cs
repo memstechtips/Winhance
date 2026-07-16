@@ -11,16 +11,13 @@ namespace Winhance.UI.Features.Common.Services;
 public class SettingViewModelEnricher : ISettingViewModelEnricher
 {
     private readonly IHardwareDetectionService _hardwareDetectionService;
-    private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly ISettingReviewDiffApplier _reviewDiffApplier;
 
     public SettingViewModelEnricher(
         IHardwareDetectionService hardwareDetectionService,
-        ISettingLocalizationService settingLocalizationService,
         ISettingReviewDiffApplier reviewDiffApplier)
     {
         _hardwareDetectionService = hardwareDetectionService;
-        _settingLocalizationService = settingLocalizationService;
         _reviewDiffApplier = reviewDiffApplier;
     }
 

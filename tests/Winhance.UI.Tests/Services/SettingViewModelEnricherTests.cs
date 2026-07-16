@@ -15,7 +15,6 @@ namespace Winhance.UI.Tests.Services;
 public class SettingViewModelEnricherTests
 {
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
-    private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
     private readonly Mock<ISettingReviewDiffApplier> _mockReviewDiffApplier = new();
 
     // Dependencies for constructing SettingItemViewModel
@@ -44,7 +43,6 @@ public class SettingViewModelEnricherTests
     {
         return new SettingViewModelEnricher(
             _mockHardwareDetectionService.Object,
-            _mockSettingLocalizationService.Object,
             _mockReviewDiffApplier.Object);
     }
 
