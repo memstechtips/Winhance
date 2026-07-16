@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 
@@ -5,7 +6,13 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>An apply-only side-effect a state runs when applied. Fire-and-forget — NEVER participates in
 /// detection. Each state owns the concrete effect for that state; there is no shared enabled/disabled pair.</summary>
-public abstract record Effect;
+public abstract record Effect
+{
+    /// <summary>Build ranges this effect applies to (empty = every build), reusing the same scoping primitive
+    /// as Target.AppliesTo / StateRole.AppliesTo. Only WallpaperEffect uses it today (the default wallpaper is
+    /// OS-divergent); every other effect leaves it empty (unconditional).</summary>
+    public IReadOnlyList<BuildRange> AppliesTo { get; init; } = System.Array.Empty<BuildRange>();
+}
 
 /// <summary>PowerShell script this state runs on apply. Detection comes from an accompanying Target in the state's Set.</summary>
 public sealed record ScriptEffect(string Script, RunContext Run) : Effect;
@@ -22,3 +29,9 @@ public sealed record RegistryWriteEffect(string Path, string ValueName, Registry
 {
     public bool IsGroupPolicy { get; init; }
 }
+
+/// <summary>The default Windows wallpaper this state applies when the user opts into "also change the
+/// wallpaper" on a theme switch (theme-mode-windows Light/Dark). OS-divergent, so authored per-OS via
+/// Effect.AppliesTo. Apply-only + INERT in the apply engine (WindowsStateWriter.RunEffect's default no-op) -
+/// ThemeWallpaperApplier reads it directly. Surfaced in the Technical Details Effects section.</summary>
+public sealed record WallpaperEffect(string Path) : Effect;
