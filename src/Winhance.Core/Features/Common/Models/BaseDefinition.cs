@@ -17,7 +17,6 @@ public abstract record BaseDefinition
     public int? MinimumBuildRevision { get; init; }
     public int? MaximumBuildNumber { get; init; }
     public int? MaximumBuildRevision { get; init; }
-    public IReadOnlyList<RegistrySetting> RegistrySettings { get; init; } = Array.Empty<RegistrySetting>();
     public string? RestartProcess { get; init; }
     public string? RestartService { get; init; }
     public bool RequiresRestart { get; init; }

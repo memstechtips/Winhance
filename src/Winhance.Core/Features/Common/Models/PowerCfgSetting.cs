@@ -17,7 +17,6 @@ public sealed record PowerCfgSetting
     public string SettingGuid { get; init; } = string.Empty;
     public PowerModeSupport PowerModeSupport { get; init; } = PowerModeSupport.Both;
     public string? Units { get; init; }
-    public RegistrySetting? EnablementRegistrySetting { get; init; }
     public required int? RecommendedValueAC { get; init; }
     public required int? RecommendedValueDC { get; init; }
     public required int? DefaultValueAC { get; init; }
