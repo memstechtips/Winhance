@@ -4,7 +4,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The platform reads a custom detector needs, abstracted so detectors are unit-testable without
 /// touching the real registry or network. The real implementation wraps the Windows registry + network
-/// services. Grows as more detectors are ported.</summary>
+/// services.</summary>
 public interface IDetectionContext
 {
     /// <summary>The running Windows build. Used to select build-applicable targets (Target.AppliesTo).</summary>
@@ -39,20 +39,19 @@ public interface IDetectionContext
     /// by the power-plan detector; unrelated to the per-setting powercfg value reads.</summary>
     string? ActivePowerPlanGuid();
 
-    /// <summary>The active power scheme's RAW OS name (e.g. "Balanced", or a custom plan's actual name) - the same
-    /// value the old discovery stored as RawValues["ActivePowerPlan"], read from the same source
-    /// (GetAvailablePowerPlansAsync's active plan). Null when there is no active scheme. Default null: only the live
-    /// context reads it; the throwaway migration contexts and test fakes have no plan.</summary>
+    /// <summary>The active power scheme's RAW OS name (e.g. "Balanced", or a custom plan's actual name), read from
+    /// GetAvailablePowerPlansAsync's active plan. Null when there is no active scheme. Default null: only the live
+    /// context reads it; test fakes have no plan.</summary>
     string? ActivePowerPlanName() => null;
 
     /// <summary>The machine's installed power plans as dynamic options (Label = plan name, Value = scheme GUID),
     /// pre-fetched per batch like the active plan. Consumed by <see cref="PowerPlanOptionSource"/>. Default empty:
-    /// only the live context enumerates them; the throwaway migration contexts and test fakes have no plans to read.</summary>
+    /// only the live context enumerates them; test fakes have no plans to read.</summary>
     IReadOnlyList<DynamicOption> InstalledPowerPlans() => System.Array.Empty<DynamicOption>();
 
-    /// <summary>Whether Windows Update's critical DLLs have been renamed to their "_BAK" backups (the enforcement the
-    /// old UpdateService special handler used to detect the Disabled update-policy state - a filesystem check the
-    /// registry cannot express). Consumed by <see cref="UpdatePolicyDetector"/>. Default false: only the live context
-    /// touches the filesystem; the throwaway migration contexts and test fakes report "not renamed".</summary>
+    /// <summary>Whether Windows Update's critical DLLs have been renamed to their "_BAK" backups (the enforcement of
+    /// the Disabled update-policy state - a filesystem check the registry cannot express). Consumed by
+    /// <see cref="UpdatePolicyDetector"/>. Default false: only the live context touches the filesystem; test fakes
+    /// report "not renamed".</summary>
     bool CriticalUpdateDllsRenamed() => false;
 }

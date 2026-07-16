@@ -4,17 +4,17 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Maps a retired config-item setting id to its current canonical <see cref="SettingCatalog"/> id, so OLD
-/// configuration files keep importing after the old <c>SettingDefinition</c> variants are retired at teardown.
+/// configuration files keep importing even though those ids are no longer standalone settings.
 ///
-/// Phase 6.5 case: the 6 "This PC folder" settings were split per-OS in the old model (a Windows-11 canonical def
-/// plus a "-win10" Windows-10 variant). The new catalog MERGES each pair into ONE build-gated <see cref="Setting"/>
+/// The 6 "This PC folder" settings were split per-OS in the old model (a Windows-11 canonical id
+/// plus a "-win10" Windows-10 variant). The catalog MERGES each pair into ONE build-gated <see cref="Setting"/>
 /// under the canonical id (Windows-11 and Windows-10 targets gated by <c>AppliesTo</c>), so the "-win10" ids are
 /// unpaired. Normalizing them to the canonical id lets an old config resolve, gate (via <see cref="Availability"/>),
 /// and apply through the merged setting on either OS. Applied once in <c>ConfigMigrationService.MigrateConfig</c>.
 /// </summary>
 public static class SettingIdAliases
 {
-    // Retired id -> canonical catalog id. Verified 2026-06-26: these 6 "-win10" ids are absent from SettingCatalog;
+    // Retired id -> canonical catalog id. These 6 "-win10" ids are absent from SettingCatalog;
     // their canonical (no-suffix) peers ARE present (ExplorerCustomizationsCatalog). No "-win11" variant exists.
     private static readonly IReadOnlyDictionary<string, string> Aliases = new Dictionary<string, string>
     {

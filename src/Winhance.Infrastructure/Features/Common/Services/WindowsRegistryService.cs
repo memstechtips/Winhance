@@ -468,8 +468,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
     /// Read-merge-write of one sub-key inside a packed ";"-delimited "key=value" REG_SZ value: ensures the key
     /// exists, re-reads the current composite value, sets (or, when <paramref name="subValue"/> is null, removes)
     /// the given sub-key, then writes the merged string back (trailing ";", OrdinalIgnoreCase sub-keys via
-    /// <see cref="ParseCompositeString"/>). Extracted verbatim from the old ApplySetting CompositeStringKey branch
-    /// so the old apply and the new IStateWriter share identical behaviour; the caller resolves the sub-value.
+    /// <see cref="ParseCompositeString"/>). The caller resolves the sub-value.
     /// </summary>
     public bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue)
     {

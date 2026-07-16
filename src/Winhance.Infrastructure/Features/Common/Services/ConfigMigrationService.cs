@@ -70,7 +70,7 @@ public class ConfigMigrationService : IConfigMigrationService
         {
             if (item?.Id == null) continue;
 
-            // Phase 6.5: normalize a retired config id (e.g. the merged "-win10" This PC variants) to its canonical
+            // Normalize a retired config id (e.g. the merged "-win10" This PC variants) to its canonical
             // catalog id BEFORE any id-keyed migration runs, so every downstream consumer (build-gating, apply,
             // export round-trip) sees the canonical id. Pure passthrough for ids that are not aliases.
             item.Id = SettingIdAliases.Normalize(item.Id);

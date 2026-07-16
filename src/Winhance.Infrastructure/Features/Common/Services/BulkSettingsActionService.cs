@@ -63,10 +63,9 @@ public class BulkSettingsActionService(
 
                 if (setting.Control == ControlKind.Toggle)
                 {
-                    // Slice 3b: setting IS the catalog Setting; the build-aware reset engine
-                    // (ApplyRequestResolver) resolves the per-OS default from its WindowsDefault-roled state,
-                    // and the bulk loop only gates on whether a default EXISTS on this build. GetDefault is
-                    // build-aware; no re-pairing needed.
+                    // The build-aware reset engine (ApplyRequestResolver) resolves the per-OS default from its
+                    // WindowsDefault-roled state, and the bulk loop only gates on whether a default EXISTS on this
+                    // build. GetDefault is build-aware.
                     if (CatalogToggleState.GetDefault(setting, currentBuild) is not bool enableValue)
                     {
                         logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
@@ -117,12 +116,10 @@ public class BulkSettingsActionService(
                 }
                 else if (setting.Control == ControlKind.Slider)
                 {
-                    // Slider (NumericRange) reset. Population here is powercfg NumericRange only:
-                    // GetDefaultValueForSetting was dead-in-effect (registry-free) and has no catalog overload,
-                    // so it collapses to BuildPowerCfgApplyValue. GATED to Slider so power-plan-selection - whose
-                    // DERIVED Control is PowerPlan (OptionSource), not the old InputType.Selection - is NOT reset
-                    // here: the old code matched it in the Selection branch and skipped it (no static default),
-                    // and it is likewise excluded from the affected-count (HasDefaultValue is false for PowerPlan).
+                    // Slider (NumericRange) reset. Population here is powercfg NumericRange only, so it uses
+                    // BuildPowerCfgApplyValue. GATED to Slider so power-plan-selection - whose DERIVED Control is
+                    // PowerPlan (OptionSource) - is NOT reset here (no static default), and is likewise excluded
+                    // from the affected-count (HasDefaultValue is false for PowerPlan).
                     var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
@@ -204,8 +201,7 @@ public class BulkSettingsActionService(
             try
             {
                 // The catalog registry is current-OS scoped (OS build + hardware + existence) and
-                // alias-normalizes the id, so an OS-incompatible setting returns null here - the old
-                // BuildOSInfo + IsCompatibleWithCurrentOS re-filter is obviated.
+                // alias-normalizes the id, so an OS-incompatible setting returns null here.
                 var setting = settingsRegistry.GetById(settingId);
                 if (setting == null)
                 {

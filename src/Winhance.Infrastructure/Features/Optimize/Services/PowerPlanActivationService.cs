@@ -16,10 +16,9 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-/// <summary>Holds the power-plan activation orchestration extracted from PowerService (Phase 6.7 Slice 8b-1).
-/// Behaviour-preserving verbatim move: ensure-installed + activate + the power-settings cache, MINUS the
-/// post-activation side-effects (event publish + recommended re-apply) that stay with the caller (D1/D2).
-/// Six leaf dependencies; no PowerService / no IStateWriter reference, so it is DI-cycle-safe.</summary>
+/// <summary>Holds the power-plan activation orchestration: ensure-installed + activate + the power-settings
+/// cache, MINUS the post-activation side-effects (event publish + recommended re-apply) that stay with the
+/// caller. Six leaf dependencies; no PowerService / no IStateWriter reference, so it is DI-cycle-safe.</summary>
 public class PowerPlanActivationService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
@@ -33,9 +32,8 @@ public class PowerPlanActivationService(
 
     /// <summary>
     /// Ensures the plan with the given GUID is installed and active (importing a predefined-but-not-installed
-    /// plan first), returning success plus the final activated GUID. Verbatim move of the old
-    /// PowerService.ApplyPowerPlanByGuidAsync detection+activation body, MINUS its post-activation tail
-    /// (PowerPlanChangedEvent + recommended re-apply), which the caller now owns (Slice 8b-1).
+    /// plan first), returning success plus the final activated GUID. The post-activation tail
+    /// (PowerPlanChangedEvent + recommended re-apply) is owned by the caller, not this method.
     /// </summary>
     public async Task<(bool Success, string ActivatedGuid)> EnsureActivatedAsync(string powerPlanGuid, string? planName = null)
     {

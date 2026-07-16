@@ -3,10 +3,9 @@ using System.ComponentModel;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-// View-model DTOs for combobox option display. Relocated from the now-deleted IComboBoxSetupService.cs (the
-// IComboBoxSetupService/ComboBoxSetupService were retired once every consumer built these directly off the new
-// catalog model - Phase 6.8 E/G1b). Kept in this namespace so the ~11 consumers (the factory, the loading bridge,
-// the bespoke PowerPlanComboBox control, ConfigReviewService, PowerPlanComboBoxService) need no using change.
+// View-model DTOs for combobox option display. Kept in this namespace so the ~11 consumers (the factory, the
+// loading bridge, the bespoke PowerPlanComboBox control, ConfigReviewService, PowerPlanComboBoxService) need
+// no using change.
 public class ComboBoxSetupResult
 {
     public ObservableCollection<ComboBoxDisplayOption> Options { get; set; } = new();

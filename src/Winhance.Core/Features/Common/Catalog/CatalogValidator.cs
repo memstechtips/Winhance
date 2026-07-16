@@ -5,8 +5,8 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Validates a Setting's authoring against the structural invariants the detection engine relies on.
-/// Pure; returns ALL violations (empty list = valid). Some rules (e.g. acyclic relationship graphs and
-/// "referenced localization key exists") will be added once those parts of the model exist.
+/// Pure; returns ALL violations (empty list = valid). Cross-setting rules like acyclic relationship graphs
+/// are checked separately by ValidateCatalog (DetectLinkCycles).
 /// </summary>
 public static class CatalogValidator
 {
@@ -88,8 +88,8 @@ public static class CatalogValidator
 
     /// <summary>
     /// Cross-setting checks that need the whole catalog: unique ids, every relationship target exists,
-    /// and the Link relationship graph is acyclic (the cycle guard the old apply path lacked — an
-    /// auto-applied requirement that loops back would recurse without it).
+    /// and the Link relationship graph is acyclic (an auto-applied requirement that loops back would
+    /// recurse without this cycle guard).
     /// </summary>
     public static IReadOnlyList<CatalogValidationError> ValidateCatalog(IReadOnlyList<Setting> settings)
     {

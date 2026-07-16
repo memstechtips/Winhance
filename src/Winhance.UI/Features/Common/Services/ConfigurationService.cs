@@ -40,8 +40,8 @@ public class ConfigurationService : IConfigurationService
     }
 
     // Idempotent catalog-registry init on the import entry points. Closes the import path's
-    // degraded-startup gap the same way Slice 7f closed the generator's: if the Phase-1 init
-    // failed, the import self-heals here instead of surfacing a use-before-init error downstream.
+    // degraded-startup gap: if the Phase-1 init failed, the import self-heals here instead of
+    // surfacing a use-before-init error downstream.
     private Task EnsureRegistryInitializedAsync()
         => _catalogSettingsRegistry.InitializeAsync();
 

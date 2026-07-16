@@ -51,8 +51,7 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         bool isFirstLaunch = false;
 
-        // 1. Initialize the catalog settings registry - the only settings membership since the
-        // L5 teardown removed the old CompatibleSettingsRegistry init.
+        // 1. Initialize the catalog settings registry
         statusProgress.Report("Loading_InitializingSettings");
         StartupLogger.Log("StartupOrchestrator", "Phase 1: Initializing settings registry...");
         try
@@ -169,9 +168,7 @@ public class StartupOrchestrator : IStartupOrchestrator
 
     /// <summary>
     /// Enumerates <c>AddedInVersion</c> across every catalog setting - the badge service only cares about the
-    /// maximum, and the set is machine-independent: every old def pairs 1:1 to a catalog Setting (0 unpaired) and
-    /// Display.AddedInVersion == the old AddedInVersion (proven), so the newest version is identical to the old
-    /// filtered+bypassed union - without depending on registry readiness.
+    /// maximum, and the set is machine-independent, without depending on registry readiness.
     /// </summary>
     private static IEnumerable<string?> CollectAddedInVersions() =>
         SettingCatalog.All.Select(s => s.Display.AddedInVersion);

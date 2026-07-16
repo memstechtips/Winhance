@@ -4,8 +4,7 @@ using System.Linq;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A setting: identity (Id) + what the user sees (Display) + where/how (Targets) + what (States) +
-/// optional custom Detector, gating (Availability), apply behaviour (Apply), and relationships. The new
-/// unified model. Pure data; not yet wired into live services.</summary>
+/// optional custom Detector, gating (Availability), apply behaviour (Apply), and relationships. Pure data.</summary>
 public sealed record Setting
 {
     public required string Id { get; init; }                         // the contract: configs + loc keys key off this
@@ -26,11 +25,8 @@ public sealed record Setting
 
     /// <summary>The UN-BAKED setting-level scripts (placeholders like <c>{{primary}}</c> intact, source order)
     /// that the autounattend script-gen CUSTOM state runs with the config item's CustomStateValues substituted -
-    /// the catalog home of what the old emitter read off SettingDefinition.PowerShellScripts for a Selection with
-    /// no SelectedIndex (a "Custom" value matching no preset option, so no state's baked ScriptEffects apply).
-    /// Converter-sourced from ALL of def.PowerShellScripts, each as (EnabledScript raw + RunContext); only the
-    /// script-bearing Selections carry any. (The old PowerShellScriptSetting.RequiresElevation flag is never read
-    /// by the emit, so it is deliberately not modelled.)</summary>
+    /// for a Selection with no SelectedIndex (a "Custom" value matching no preset option, so no state's baked
+    /// ScriptEffects apply). Only the script-bearing Selections carry any.</summary>
     public IReadOnlyList<ScriptEffect> CustomStateScripts { get; init; } = System.Array.Empty<ScriptEffect>();
 
     public IStateDetector? Detector { get; init; }
@@ -42,8 +38,8 @@ public sealed record Setting
     public Availability Availability { get; init; } = Availability.Everywhere;   // gating
     public ApplyBehavior Apply { get; init; } = ApplyBehavior.None;              // confirmation + restart
 
-    // Forward relationships (Requires/Enables) moved onto SettingState.Links (Phase 6.6) - they are a property of the
-    // state that triggers them, like Controls. ResolveReverseCascade/CatalogValidator now read States.SelectMany(Links).
+    // Forward relationships (Requires/Enables) live on SettingState.Links - they are a property of the
+    // state that triggers them, like Controls. ResolveReverseCascade/CatalogValidator read States.SelectMany(Links).
 
     /// <summary>Presentation only: nest this setting under the parent in the UI and disable its control when
     /// the parent is off. No apply behaviour. Null = top-level.</summary>
@@ -52,8 +48,8 @@ public sealed record Setting
     /// <summary>The render-kind, DERIVED from the setting shape - the single source of truth, so it can never
     /// drift from what the engine detects. Presentation reads this to pick a control; the engine resolves state
     /// from the same shape directly (so "explicit render-kind" and "shape-driven engine" are one thing). Toggle ==
-    /// exactly two states both labelled "Enabled"/"Disabled" (the converter invariant the live detection already
-    /// relies on); everything else follows from OptionSource / Numeric / States presence.</summary>
+    /// exactly two states both labelled "Enabled"/"Disabled" (the invariant the live detection relies on);
+    /// everything else follows from OptionSource / Numeric / States presence.</summary>
     public ControlKind Control =>
         OptionSource is not null ? ControlKind.PowerPlan
         : Numeric is not null ? ControlKind.Slider

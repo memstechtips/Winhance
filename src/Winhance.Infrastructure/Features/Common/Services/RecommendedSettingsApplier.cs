@@ -34,9 +34,8 @@ public class RecommendedSettingsApplier(
 
                 // A one-shot Action is not a stateful setting to bulk-recommend (mirrors
                 // BulkSettingsActionService's reset-loop exclusion; Marco 2026-07-03 / 2026-07-08).
-                // The setting IS the catalog Setting now, so Control is the render-kind. An Action carries no
-                // recommendable state (the else branch's BuildPowerCfgApplyValue also returns null for it);
-                // this guard is the explicit exclusion.
+                // Control is the render-kind. An Action carries no recommendable state (the else branch's
+                // BuildPowerCfgApplyValue also returns null for it); this guard is the explicit exclusion.
                 if (setting.Control == ControlKind.Action)
                     continue;
 
@@ -53,8 +52,7 @@ public class RecommendedSettingsApplier(
 
                     if (setting.Control == ControlKind.Toggle)
                     {
-                        // Slice 3b: setting IS the catalog Setting; read the recommended toggle state directly
-                        // from its Recommended role (build-aware). No re-pairing needed.
+                        // Read the recommended toggle state directly from its Recommended role (build-aware).
                         if (CatalogToggleState.GetRecommended(setting, currentBuild) is not bool enableValue) continue; // no recommendation
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
@@ -83,9 +81,8 @@ public class RecommendedSettingsApplier(
                     }
                     else
                     {
-                        // else-branch population is powercfg NumericRange only (Actions excluded above);
-                        // GetRecommendedValueForSetting was dead-in-effect here (registry-free) and has no
-                        // catalog overload, so it collapses to BuildPowerCfgApplyValue.
+                        // else-branch population is powercfg NumericRange only (Actions excluded above),
+                        // so it uses BuildPowerCfgApplyValue.
                         var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                         if (valueToApply == null) continue; // nothing recommended
                         await apply.ApplySettingAsync(new ApplySettingRequest
@@ -114,7 +111,7 @@ public class RecommendedSettingsApplier(
             ?? throw new InvalidOperationException($"Setting '{triggerSettingId}' has no feature mapping");
 
         // The catalog registry is current-OS scoped (OS build + hardware + existence), so it already
-        // excludes OS-incompatible settings - the old .Where(IsCompatibleWithCurrentOS) re-filter is obviated.
+        // excludes OS-incompatible settings.
         var settings = catalogSettingsRegistry.GetByFeature(featureId)
             .Where(s => s.Id != triggerSettingId)
             .ToList();

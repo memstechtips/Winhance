@@ -14,8 +14,7 @@ public interface IWindowsRegistryService
     string[] GetSubKeyNames(string keyPath);
     Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries);
 
-    // --- Apply primitives (exposed for the new catalog IStateWriter; the old ApplySetting calls the same methods,
-    //     so its byte-for-byte behaviour is unchanged). Extract-refactor: see WindowsStateWriter.
+    // --- Apply primitives, exposed for the catalog IStateWriter (see WindowsStateWriter).
 
     /// <summary>Creates the registry key (and parents) if it does not already exist; true if it exists afterwards.</summary>
     bool CreateKey(string keyPath);
