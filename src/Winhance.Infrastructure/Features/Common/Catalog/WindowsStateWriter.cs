@@ -9,11 +9,9 @@ using Winhance.Core.Features.Optimize.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
 /// <summary>The live <see cref="IStateWriter"/>: executes an apply plan against the real Windows system. Every method
-/// DELEGATES to the proven WindowsRegistryService primitives (exposed in Phase 6.4 Slice 1) / scheduled-task /
-/// powercfg / effect services - it never reimplements byte logic - so the new apply path performs the exact writes
-/// the old ApplySetting did. Registered as a singleton; sync-over-async at the writer boundary (the apply funnel
-/// runs off the UI thread). Powercfg + effects land in Slice 2b/2c; the writer is not wired into the funnel until
-/// Slice 4.</summary>
+/// DELEGATES to the proven WindowsRegistryService primitives / scheduled-task / powercfg / effect services - it
+/// never reimplements byte logic. Registered as a singleton; sync-over-async at the writer boundary (the apply
+/// funnel runs off the UI thread).</summary>
 [SupportedOSPlatform("windows")]
 public sealed class WindowsStateWriter : IStateWriter
 {
@@ -43,12 +41,12 @@ public sealed class WindowsStateWriter : IStateWriter
         _log = log;
     }
 
-    // --- Registry: delegate to the primitives exposed in Phase 6.4 Slice 1 (CreateKey, SetValue, DeleteValue,
+    // --- Registry: delegate to the primitives (CreateKey, SetValue, DeleteValue,
     //     DeleteKey, ModifyBinaryBit, ModifyBinaryByte, SetCompositeSubValue, GetSubKeyNames). ---
 
     public bool WriteRegistry(RegTarget target, string path, object value)
     {
-        // Old apply plain-value path: CreateKey parent first, then SetValue (WindowsRegistryService.ApplySetting).
+        // Plain-value path: CreateKey parent first, then SetValue.
         if (!_reg.CreateKey(path))
             return false;
         return _reg.SetValue(path, target.ValueName!, value, target.Type);
@@ -56,8 +54,8 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool DeleteRegistry(RegTarget target, string path)
     {
-        // A ValueName-less target encodes state as key existence, so its "off" deletes the KEY (old ApplySetting
-        // DeleteKey branch). A named value deletes just the value (old ApplySetting null-value DeleteValue branch).
+        // A ValueName-less target encodes state as key existence, so its "off" deletes the KEY. A named value
+        // deletes just the value.
         return target.ValueName == null
             ? _reg.DeleteKey(path)
             : _reg.DeleteValue(path, target.ValueName);
@@ -65,7 +63,7 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool EnsureRegistryKey(RegTarget target, string path)
     {
-        // Key-existence "on" state: create the key (old ApplySetting ValueName-null enable -> CreateKey).
+        // Key-existence "on" state: create the key.
         return _reg.CreateKey(path);
     }
 
@@ -75,7 +73,7 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set)
     {
-        // Old apply bit branch: CreateKey first, then ModifyBinaryBit (12-byte default array handled inside).
+        // Bit branch: CreateKey first, then ModifyBinaryBit (12-byte default array handled inside).
         if (!_reg.CreateKey(path))
             return false;
         return _reg.ModifyBinaryBit(path, target.ValueName!, byteIndex, bitMask, set);
@@ -83,7 +81,7 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value)
     {
-        // Old apply byte branch: CreateKey first, then ModifyBinaryByte.
+        // Byte branch: CreateKey first, then ModifyBinaryByte.
         if (!_reg.CreateKey(path))
             return false;
         return _reg.ModifyBinaryByte(path, target.ValueName!, byteIndex, value);
@@ -91,14 +89,14 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue)
     {
-        // SetCompositeSubValue does its own CreateKey + re-read-merge-write per call (extracted in Slice 1).
+        // SetCompositeSubValue does its own CreateKey + re-read-merge-write per call.
         return _reg.SetCompositeSubValue(path, target.ValueName!, compositeKey, subValue);
     }
 
     public bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value)
     {
-        // Per-NIC / per-monitor: enumerate the parent's sub-keys LIVE per call and write the value under each
-        // (old ApplySetting expands every sub-key then writes). No sub-keys -> false, matching the old apply.
+        // Per-NIC / per-monitor: enumerate the parent's sub-keys LIVE per call and write the value under each.
+        // No sub-keys -> false.
         var subKeys = _reg.GetSubKeyNames(parentPath);
         if (subKeys.Length == 0)
         {
@@ -118,8 +116,7 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool DeleteRegistryPerSubkey(RegTarget target, string parentPath)
     {
-        // Per-NIC / per-monitor "absent": enumerate sub-keys LIVE per call and delete the value under each
-        // (old ApplySetting per-sub-key apply with a null value -> DeleteValue under each sub-key).
+        // Per-NIC / per-monitor "absent": enumerate sub-keys LIVE per call and delete the value under each.
         var subKeys = _reg.GetSubKeyNames(parentPath);
         if (subKeys.Length == 0)
         {
@@ -141,7 +138,7 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetTask(TaskTarget target, bool enabled)
     {
-        // Old apply (SettingOperationExecutor): Enable/DisableTaskAsync. Sync-over-async at the writer boundary.
+        // Enable/DisableTaskAsync. Sync-over-async at the writer boundary.
         var result = enabled
             ? _tasks.EnableTaskAsync(target.TaskPath).GetAwaiter().GetResult()
             : _tasks.DisableTaskAsync(target.TaskPath).GetAwaiter().GetResult();
@@ -162,26 +159,24 @@ public sealed class WindowsStateWriter : IStateWriter
         switch (effect)
         {
             case ScriptEffect s:
-                // Old apply runs the script in-memory and does NOT track its result (it never adds to
-                // failedOperations). RunContext is carried for fidelity but the old apply does not pass it.
-                // Sync-over-async at the writer boundary.
+                // Runs the script in-memory and does NOT track its result (returns success regardless).
+                // RunContext is carried for fidelity but not passed. Sync-over-async at the writer boundary.
                 _powerShell.RunScriptInMemoryAsync(s.Script).GetAwaiter().GetResult();
                 return true;
 
             case RegContentEffect r:
-                // .reg import via the OTS-aware dance (throws on a file-system / process exception, like the old
-                // apply; a non-zero reg.exe exit is logged, not treated as failure).
+                // .reg import via the OTS-aware dance (throws on a file-system / process exception; a non-zero
+                // reg.exe exit is logged, not treated as failure).
                 _regImport.RunRegImportAsync(r.Content).GetAwaiter().GetResult();
                 return true;
 
             case NativePowerEffect n:
-                // CallNtPowerInformation (e.g. the hibernate toggle); the old apply treats status 0 as success.
+                // CallNtPowerInformation (e.g. the hibernate toggle); status 0 is success.
                 byte value = n.Value;
                 return PowerProf.CallNtPowerInformation(n.InformationLevel, ref value, 1, IntPtr.Zero, 0) == 0;
 
             case RegistryWriteEffect w:
-                // Apply-only registry write (an Action's enabled-branch value write): CreateKey then SetValue,
-                // matching the old enabled-branch ApplySetting.
+                // Apply-only registry write (an Action's enabled-branch value write): CreateKey then SetValue.
                 if (!_reg.CreateKey(w.Path))
                     return false;
                 return _reg.SetValue(w.Path, w.ValueName, w.Value, w.Kind);
@@ -196,13 +191,10 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool ActivatePowerPlan(string guid)
     {
-        // Slice 8b-1: delegate to the extracted IPowerPlanActivationService, which reproduces the old
-        // PowerService.ApplyPowerPlanByGuidAsync detection+activation body (import-if-missing for a
-        // predefined-but-not-installed plan, then activate, then InvalidateCache) - replacing 8a's
-        // activate-installed-only stub. A cheap guard still rejects an empty/unparseable GUID up front
-        // (preserving 8a's defensive behaviour and keeping EnsureActivatedAsync's empty-GUID throw off the
-        // sync-over-async boundary). Sync-over-async at the writer boundary; NOT reached at runtime until 8b-2
-        // flips the resolver + removes the PowerService special handler.
+        // Delegate to IPowerPlanActivationService: import-if-missing for a predefined-but-not-installed plan,
+        // then activate, then InvalidateCache. A cheap guard rejects an empty/unparseable GUID up front (keeps
+        // EnsureActivatedAsync's empty-GUID throw off the sync-over-async boundary). Sync-over-async at the
+        // writer boundary.
         if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out _))
         {
             _log.Log(LogLevel.Error, $"[WindowsStateWriter] ActivatePowerPlan: invalid GUID '{guid}'");

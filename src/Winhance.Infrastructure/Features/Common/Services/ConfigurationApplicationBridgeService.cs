@@ -42,10 +42,11 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {sectionName} section");
 
         // If this section carries individual PowerCfg-backed items alongside the power-plan
-        // selection, mark the import as the source of truth for power values. The power-plan
-        // special handler reads this flag and skips its recommended-settings re-apply, which
-        // would otherwise duplicate (and race with) these individual items in the same wave.
-        // Only set true here; the import orchestrators reset it (other sections run in parallel).
+        // selection, mark the import as the source of truth for power values. The apply funnel
+        // (SettingApplicationService) reads this flag and skips the recommended re-apply after a
+        // power-plan activation, which would otherwise duplicate (and race with) these individual
+        // items in the same wave. Only set true here; the import orchestrators reset it (other
+        // sections run in parallel).
         if (section.Items.Any(i =>
                 !string.IsNullOrEmpty(i.Id) &&
                 i.Id != SettingIds.PowerPlanSelection &&
@@ -154,9 +155,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
         // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgTarget and pass
         // through unchanged.
-        // Slice 6: the gate + units read the catalog Setting - PowerCfgTarget presence (== the old
-        // PowerCfgSettings.Any gate, proven at migration by the now-retired ConfigBridgeReaderEquivalenceTests) and the proven
-        // GetPowerCfgDisplayUnits(Setting) overload (the now-retired PowerCfgHelperCatalogEquivalenceTests).
+        // The gate + units read the Setting's PowerCfgTarget presence and the
+        // GetPowerCfgDisplayUnits(Setting) overload.
         bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
@@ -235,14 +235,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             if (string.IsNullOrEmpty(item.Id))
                 continue;
 
-            // Slice 6: pair via the catalog registry (alias-normalized + current-OS/hardware/existence
-            // scoped; membership proven == the old filtered registry by its equivalence suites). A miss
-            // keeps the old filtered-lookup silent-drop semantics. The old cross-OS bypassed fallback is
-            // OBVIATED: a merged setting (Availability Everywhere, build-gated targets) resolves directly
-            // on either OS. One deliberate delta vs the bypassed era: a NON-merged OS-gated id imported
-            // on the other OS used to resolve here and then FAIL in the apply funnel (guaranteed-Failed
-            // noise, section=false); now it drops pre-wave like any other OS-filtered miss - nothing is
-            // applied either way, since the funnel's registry makes the same GetById decision.
+            // Pair via the registry (alias-normalized + current-OS/hardware/existence scoped). A miss
+            // drops silently.
             var setting = _catalogSettingsRegistry.GetById(item.Id);
             if (setting != null)
             {
@@ -285,10 +279,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return waves;
     }
 
-    // The config-import wave-ordering dependency set: the catalog Setting's aggregated Requires-Link
-    // OtherIds (proven set-equal to the old def.Dependencies filter over the whole population by
-    // the now-retired ConfigBridgeReaderEquivalenceTests). Since Slice 6 the paired setting IS the registry-returned
-    // catalog object, so the old live-catalog Find re-pairing and the unpaired def fallback are gone.
+    // The config-import wave-ordering dependency set: the Setting's aggregated Requires-Link
+    // OtherIds.
     private static List<string> GetWaveDependencyIds(Setting setting)
         => setting.States
             .SelectMany(st => st.Links)
@@ -316,9 +308,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
-            // Confirmation + input-kind dispatch read the registry-paired catalog Setting directly
-            // (Apply.RequiresConfirmation / Control; proven == the old def reads over the whole population
-            // by the now-retired ConfigBridgeReaderEquivalenceTests). Control in {Selection, PowerPlan} both route the
+            // Confirmation + input-kind dispatch read the registry-paired Setting directly
+            // (Apply.RequiresConfirmation / Control). Control in {Selection, PowerPlan} both route the
             // Selection value path: the bridge does NOT skip power-plan-selection (Control.PowerPlan).
             bool requiresConfirmation = setting.Apply.RequiresConfirmation;
             bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
@@ -365,7 +356,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     return (ApplyStatus.Applied, item.Name);
                 }
 
-                // Catalog path: the Action's operations are the catalog Setting's Effects.
+                // The Action's operations are the Setting's Effects.
                 // Enable=true matches the runtime button-click flow (RunActionAsync).
                 await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {

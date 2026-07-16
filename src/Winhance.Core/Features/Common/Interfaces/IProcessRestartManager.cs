@@ -7,16 +7,13 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IProcessRestartManager
 {
-    /// <summary>Catalog-Setting overload of the single-setting restart: reads the unified ApplyBehavior.Restart
-    /// (RestartProcess / RestartService), equivalent to the def's separate RestartProcess/RestartService because no
-    /// setting sets both (the now-retired RestartTargetCatalogEquivalenceTests). SAS repointed its single-setting restart onto this
-    /// after it ported off the old SettingDefinition; the def overload was removed at teardown.</summary>
+    /// <summary>Single-setting restart: reads the unified ApplyBehavior.Restart (RestartProcess / RestartService).
+    /// No setting sets both a process and a service restart.</summary>
     Task HandleProcessAndServiceRestartsAsync(Setting setting);
 
-    /// <summary>Catalog-Setting overload of the batch flush: reads the unified ApplyBehavior.Restart. The
-    /// apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) uses this once it deals in
-    /// Setting; the old SettingDefinition overload was removed at teardown. Equivalent because no
-    /// setting sets both a process and a service restart (the now-retired RestartTargetCatalogEquivalenceTests).</summary>
+    /// <summary>Batch flush: reads the unified ApplyBehavior.Restart. The apply-cluster
+    /// (RecommendedSettingsApplier / BulkSettingsActionService) uses this. No setting sets both a process and
+    /// a service restart.</summary>
     Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings);
 
     /// <summary>

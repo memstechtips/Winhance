@@ -9,7 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>The live detection context: the real Windows reads behind <see cref="IDetectionContext"/>, so the new
+/// <summary>The live detection context: the real Windows reads behind <see cref="IDetectionContext"/>, so the
 /// detection engine can read a machine. Registry, DNS, build and system-restore reads delegate straight through;
 /// the asynchronous reads (scheduled tasks, powercfg values, the active power plan) are pre-fetched per batch by
 /// <see cref="PrefetchAsync"/> and then served synchronously from a cache, keeping the engine and detectors
@@ -119,8 +119,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             return null;
         }
 
-        // A setting absent from the active scheme's read set reads as not present - the same outcome the old
-        // discovery service produces when its batched dictionary has no entry for the setting GUID.
+        // A setting absent from the active scheme's read set reads as not present.
         if (!_powerCache.TryGetValue(settingGuid, out var values))
             return null;
 
@@ -169,9 +168,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _taskCache = new Dictionary<string, bool?>(read);
         }
 
-        // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. The old discovery
-        // service keys this same dictionary by PowerCfgSetting.SettingGuid, which the converter copies verbatim onto
-        // PowerCfgTarget.SettingGuid, so PowerCfgValue serves it with the same lookup.
+        // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. PowerCfgValue
+        // serves it via the same key (PowerCfgTarget.SettingGuid).
         bool needsPower = settings.Any(s => LiveTargets(s, build).OfType<PowerCfgTarget>().Any());
         if (needsPower)
         {
@@ -189,11 +187,10 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
 
             var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            // Faithful port of the old PowerPlanComboBoxService dropdown list (predefined plans incl. not-installed,
-            // localized labels, custom plans, sorted) in the new GUID-valued shape.
+            // The dropdown list (predefined plans incl. not-installed, localized labels, custom plans, sorted)
+            // in GUID-valued shape.
             _installedPlans = PowerPlanOptions.Build(plans);
-            // The active plan's RAW OS name - same source + selection as the old discovery's RawValues["ActivePowerPlan"]
-            // (SystemSettingsDiscoveryService: availablePlans.FirstOrDefault(IsActive).Name).
+            // The active plan's RAW OS name (availablePlans.FirstOrDefault(IsActive).Name).
             _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
 
             _planPrefetched = true;
