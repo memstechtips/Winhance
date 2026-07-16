@@ -135,6 +135,10 @@ internal sealed class TechnicalDetailsManager : IDisposable
             if (relationshipRows.Count > 0)
                 sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionRelationships, false, relationshipRows));
 
+            var applyRows = BuildApplyBehaviorRows(setting);
+            if (applyRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionApplyBehavior, false, applyRows));
+
             _setSections(sections);
         }
         catch (Exception ex)
@@ -520,6 +524,31 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 if (!seen.Add($"controls:{kv.Key}:{kv.Value}")) continue;
                 rows.Add(InfoRow(LocalizeSettingName(kv.Key), $"{_labels.RelControls}: {kv.Value}"));
             }
+        }
+        return rows;
+    }
+
+    // --- Apply Behavior: the apply-time gates/side-effects declared on Setting.Apply (a confirmation prompt,
+    // a recommended reboot, and/or a process/service restart for the change to take effect). Documented for NO
+    // setting before this - e.g. theme-mode-windows carries RequiresConfirmation + a RestartProcess("Explorer").
+    private List<TechnicalDetailRow> BuildApplyBehaviorRows(Setting setting)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        var apply = setting.Apply;
+
+        if (apply.RequiresConfirmation)
+            rows.Add(InfoRow(_labels.ApplyRequiresConfirmation, _labels.ApplyRequiresConfirmationDetail));
+        if (apply.RequiresReboot)
+            rows.Add(InfoRow(_labels.ApplyRequiresReboot, _labels.ApplyRequiresRebootDetail));
+
+        switch (apply.Restart)
+        {
+            case RestartProcess p:
+                rows.Add(InfoRow(_labels.ApplyRestartProcess, p.Name));
+                break;
+            case RestartService s:
+                rows.Add(InfoRow(_labels.ApplyRestartService, s.Name));
+                break;
         }
         return rows;
     }

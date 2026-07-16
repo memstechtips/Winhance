@@ -70,4 +70,13 @@ public record TechnicalDetailLabels
     public string PowerPlanInstalled    { get; init; } = "Installed on system";
     public string PowerPlanNotInstalled { get; init; } = "Not installed";
     public string PowerPlanApplyNote    { get; init; } = "Applying selects this scheme (creates it if not installed).";
+
+    // Apply Behavior section
+    public string SectionApplyBehavior             { get; init; } = "Apply Behavior";
+    public string ApplyRequiresConfirmation        { get; init; } = "Asks for confirmation";
+    public string ApplyRequiresConfirmationDetail  { get; init; } = "Prompts before applying this setting";
+    public string ApplyRequiresReboot              { get; init; } = "Requires a system restart";
+    public string ApplyRequiresRebootDetail        { get; init; } = "Reboot for the change to fully take effect";
+    public string ApplyRestartProcess              { get; init; } = "Restarts a process";
+    public string ApplyRestartService              { get; init; } = "Restarts a service";
 }
