@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Core.Features.Customize.Models;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
@@ -33,12 +32,6 @@ public class WallpaperService : IWallpaperService
         _interactiveUserService = interactiveUserService;
         _registryService = registryService;
         _systemParametersService = systemParametersService;
-    }
-
-    /// <inheritdoc/>
-    public string GetDefaultWallpaperPath(bool isWindows11, bool isDarkMode)
-    {
-        return WallpaperDefaults.GetDefaultWallpaperPath(isWindows11, isDarkMode);
     }
 
     /// <inheritdoc/>

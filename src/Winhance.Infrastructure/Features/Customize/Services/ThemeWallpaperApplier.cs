@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Core.Features.Customize.Models;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
@@ -58,11 +57,17 @@ public sealed class ThemeWallpaperApplier(
         {
             try
             {
-                var isDarkMode = selectionIndex == 1;
-                var isWindows11 = versionService.IsWindows11();
-                var wallpaperPath = WallpaperDefaults.GetDefaultWallpaperPath(isWindows11, isDarkMode);
+                // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect
+                // (Plan-5): pick the effect whose AppliesTo admits the live build. Single source of truth,
+                // replacing the retired WallpaperDefaults helper.
+                var themeState = catalogSetting?.States.FirstOrDefault(s => s.Label == stateLabel);
+                var liveBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
+                var wallpaperPath = themeState?.Effects
+                    .OfType<WallpaperEffect>()
+                    .FirstOrDefault(e => e.AppliesTo.Count == 0 || e.AppliesTo.Any(r => r.Contains(liveBuild)))
+                    ?.Path;
 
-                if (fileSystemService.FileExists(wallpaperPath))
+                if (wallpaperPath != null && fileSystemService.FileExists(wallpaperPath))
                 {
                     await wallpaperService.SetWallpaperAsync(wallpaperPath).ConfigureAwait(false);
                     logService.Log(LogLevel.Info, $"[ThemeWallpaperApplier] Wallpaper changed to: {wallpaperPath}");

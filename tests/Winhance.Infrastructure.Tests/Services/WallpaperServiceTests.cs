@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Customize.Models;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Xunit;
 
@@ -38,56 +37,6 @@ public class WallpaperServiceTests
 
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("logService");
-    }
-
-    #endregion
-
-    #region GetDefaultWallpaperPath
-
-    [Fact]
-    public void GetDefaultWallpaperPath_Windows11DarkMode_ReturnsDarkWallpaperPath()
-    {
-        // Act
-        var result = _service.GetDefaultWallpaperPath(isWindows11: true, isDarkMode: true);
-
-        // Assert
-        var expected = System.IO.Path.Combine(
-            WallpaperDefaults.Windows11BasePath,
-            WallpaperDefaults.Windows11DarkWallpaper);
-        result.Should().Be(expected);
-    }
-
-    [Fact]
-    public void GetDefaultWallpaperPath_Windows11LightMode_ReturnsLightWallpaperPath()
-    {
-        // Act
-        var result = _service.GetDefaultWallpaperPath(isWindows11: true, isDarkMode: false);
-
-        // Assert
-        var expected = System.IO.Path.Combine(
-            WallpaperDefaults.Windows11BasePath,
-            WallpaperDefaults.Windows11LightWallpaper);
-        result.Should().Be(expected);
-    }
-
-    [Fact]
-    public void GetDefaultWallpaperPath_Windows10_ReturnsWindows10WallpaperPath()
-    {
-        // Act — isDarkMode is irrelevant for Windows 10
-        var result = _service.GetDefaultWallpaperPath(isWindows11: false, isDarkMode: false);
-
-        // Assert
-        result.Should().Be(WallpaperDefaults.Windows10Wallpaper);
-    }
-
-    [Fact]
-    public void GetDefaultWallpaperPath_Windows10DarkMode_ReturnsWindows10WallpaperPath()
-    {
-        // Act — Windows 10 doesn't have a separate dark wallpaper
-        var result = _service.GetDefaultWallpaperPath(isWindows11: false, isDarkMode: true);
-
-        // Assert
-        result.Should().Be(WallpaperDefaults.Windows10Wallpaper);
     }
 
     #endregion
