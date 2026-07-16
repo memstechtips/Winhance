@@ -23,9 +23,6 @@ public abstract record BaseDefinition
     public bool RequiresRestart { get; init; }
 
     // Typed metadata (replaces untyped CustomProperties dictionary)
-    public ComboBoxMetadata? ComboBox { get; init; }
-    public NumericRangeMetadata? NumericRange { get; init; }
-    public PowerRecommendation? Recommendation { get; init; }
     public Dictionary<int, Dictionary<string, bool>>? SettingPresets { get; init; }
     public Dictionary<string, string>? CrossGroupChildSettings { get; init; }
     public string? VersionCompatibilityMessage { get; init; }
