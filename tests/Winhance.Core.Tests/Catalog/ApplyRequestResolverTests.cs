@@ -253,7 +253,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Custom_detector_setting_with_effects_resolves()
     {
-        // A custom-detector setting whose states carry apply effects (system-tray / system-restore, Slice 5) is
+        // A custom-detector setting whose states carry apply effects (system-tray / system-restore) is
         // applied by the new engine: the resolver routes the enable request to the matching state's plan exactly
         // as ApplyPlanBuilder.Build would, instead of returning null.
         var setting = ToggleSetting() with

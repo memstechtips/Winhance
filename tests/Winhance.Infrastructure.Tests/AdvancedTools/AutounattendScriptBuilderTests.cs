@@ -441,7 +441,7 @@ public class AutounattendScriptBuilderTests
             null), Times.Once);
     }
     // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync (Setting dict) - Slice 7f pipeline pins
+    // BuildWinhancementsScriptAsync (Setting dict) pipeline pins
     // ---------------------------------------------------------------
 
     [Fact]
