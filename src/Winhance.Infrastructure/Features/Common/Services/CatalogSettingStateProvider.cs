@@ -115,7 +115,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 // resolved it from the reads and the overlay kept that. This hit the service dropdowns and delivery
                 // optimization live. Restore the value-match BASE: the label override when it resolves, else the
                 // value-match the UI actually consumed. The reconstructed reads are proven == old discovery's RawValues
-                // (CustomStateReconstructionEquivalenceTests), so this equals the old CurrentValue for every
+                // (the now-retired CustomStateReconstructionEquivalenceTests), so this equals the old CurrentValue for every
                 // catalog-paired selection.
                 var labelIndex = ResolveSelectionIndex(catalogSetting, r.StateLabel);
                 if (labelIndex != ComboBoxConstants.CustomStateIndex)
@@ -170,7 +170,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         }
 
         // Toggle: the switch position (a toggle's States are always the literal "Enabled"/"Disabled"; Control ==
-        // Toggle == the old InputType.Toggle/CheckBox, per ControlDerivationConformanceTests).
+        // Toggle == the old InputType.Toggle/CheckBox, per the now-retired ControlDerivationConformanceTests).
         if (catalogSetting.Control == ControlKind.Toggle)
             return r.StateLabel == "Enabled";
 

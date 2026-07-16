@@ -341,7 +341,7 @@ public class UpdateService(
         // The updates-policy-mode catalog Setting's States are authored one-per-option in option order, so
         // States[index] is the chosen mode; its Set encodes the same per-option writes the old ValueMappings did
         // (verified write-equivalent - every option maps all 22 ValueNames, and updates-policy-mode is green in
-        // SelectionApplyEquivalenceTests). The bespoke service/DLL/task orchestration around this call stays as-is.
+        // the now-retired SelectionApplyEquivalenceTests). The bespoke service/DLL/task orchestration around this call stays as-is.
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {

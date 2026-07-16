@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The apply-side inverse of the Phase 6.3 detection overlay: maps an OLD-model apply request
-/// (a <c>SettingDefinition</c> + enable/value/resetToDefault) to a NEW-engine apply plan
+/// (formerly a <c>SettingDefinition</c> + enable/value/resetToDefault) to a NEW-engine apply plan
 /// (<see cref="ApplyOp"/> list) for execution by <see cref="ApplyExecutor"/>, or returns <c>null</c> when the
 /// request is not (yet) representable in the new model so the caller falls back to the proven old apply. Pure.
 ///
@@ -61,7 +61,7 @@ public static class ApplyRequestResolver
         // Custom-detector RESET now routes through the general reset block below: an effects-based detector with a
         // WindowsDefault state (system-restore, and system-tray / DNS since the Slice 2 converter-gap fix gave their
         // IsRecommended/IsDefault options StateRoles) resolves to Build(WindowsDefault, reset:true) - proven equivalent
-        // to the old executor reset by CustomDetectorResetApplyEquivalenceTests. A detector with no WindowsDefault
+        // to the old executor reset at migration by the now-retired CustomDetectorResetApplyEquivalenceTests. A detector with no WindowsDefault
         // state hits the null return there and stays on the old apply, unchanged.
         // (updates-policy-mode is the one custom detector with a WindowsDefault state AND registry targets, but it is
         // special-handled - see SettingServicesExtensions - so it never reaches Resolve; if that registration is ever
@@ -95,7 +95,7 @@ public static class ApplyRequestResolver
         }
 
         // Render-kind drives the apply shape: the catalog Setting's derived Control (proven == the old
-        // InputType by ControlDerivationConformanceTests). CheckBox folds into Toggle.
+        // InputType at migration by the now-retired ControlDerivationConformanceTests). CheckBox folds into Toggle.
         switch (setting.Control)
         {
             case ControlKind.Action:

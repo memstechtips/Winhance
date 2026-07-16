@@ -6,7 +6,7 @@ namespace Winhance.Core.Features.Common.Localization;
 
 /// <summary>
 /// Pure, dependency-free builder for the localization-key strings a
-/// <c>SettingDefinition</c> resolves at runtime. The key formats here MUST stay
+/// setting resolves at runtime. The key formats here MUST stay
 /// byte-identical to the inline construction in
 /// <c>Winhance.UI.Features.Common.Services.SettingLocalizationService</c> — that service
 /// delegates to this class, and the integration tests reuse it to assert that every key a
@@ -25,8 +25,8 @@ public static class SettingLocalizationKeys
 
     // Catalog-Setting base (Slice C/D foundation): the catalog Id IS the canonical, alias-normalized id, so it
     // equals the def base LocalizationId ?? Id for every paired setting (proven by LocalizeDisplayReadSwapEquivalence
-    // Tests + locked here by SettingLocalizationKeysCatalogEquivalenceTests). Lets the key-builders run off a catalog
-    // Setting instead of a SettingDefinition; the def overloads stay live until the apply-cluster / loc-key port.
+    // Tests + locked here by the now-retired SettingLocalizationKeysCatalogEquivalenceTests). Lets the key-builders run off a catalog
+    // Setting instead of the old SettingDefinition; the def overloads were removed at the apply-cluster / loc-key port.
     private static string Base(Setting setting) => setting.Id;
 
     // ---- Catalog-Setting overloads (Slice C/D foundation; additive, keyed off the catalog Id which == the def base
@@ -79,15 +79,15 @@ public static class SettingLocalizationKeys
     }
 
     /// <summary>
-    /// Catalog-Setting overload of <c>ExpectedKeys(SettingDefinition)</c> (Slice C/D loc-key port):
+    /// Catalog-Setting overload of the old <c>ExpectedKeys(SettingDefinition)</c> (Slice C/D loc-key port):
     /// the COMPLETE set of localization keys this setting requests at runtime, reproducing the def version off
     /// the catalog homes. Name/Description always; group keys (compact + snake) when <c>Display.GroupName != null</c>;
     /// the option block (per-setting Custom override + <c>Common_CustomState</c> + per-state option-display/tooltip/
     /// warning) for a Selection setting - the catalog equivalent of the def's <c>ComboBox != null</c> (a Toggle,
     /// Slider, Action, or dynamic PowerPlan carries no enumerated option keys, matching def <c>ComboBox == null</c>).
     /// Per state: OptionDisplay only when the label is NOT itself a localization key; OptionTooltip/OptionWarning only
-    /// when the state carries a non-empty tooltip/warning. Set-equivalent to <c>ExpectedKeys(SettingDefinition)</c>
-    /// over the whole paired population (proven by SettingLocalizationKeysCatalogEquivalenceTests).
+    /// when the state carries a non-empty tooltip/warning. Set-equivalent to the old <c>ExpectedKeys(SettingDefinition)</c>
+    /// over the whole paired population (proven at migration by the now-retired SettingLocalizationKeysCatalogEquivalenceTests).
     /// </summary>
     public static IEnumerable<string> ExpectedKeys(Setting setting)
     {

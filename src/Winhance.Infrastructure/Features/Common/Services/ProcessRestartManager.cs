@@ -100,7 +100,7 @@ public class ProcessRestartManager(
 
     // Catalog-Setting equivalent: the def's separate RestartProcess / RestartService are unified into
     // ApplyBehavior.Restart (a single RestartTarget) - lossless because NO setting sets both (verified in
-    // source + pinned by RestartTargetCatalogEquivalenceTests).
+    // source + pinned at migration by the now-retired RestartTargetCatalogEquivalenceTests).
     internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
         IEnumerable<Setting> settings)
     {

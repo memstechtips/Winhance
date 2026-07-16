@@ -15,8 +15,8 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 /// catalog overload when the setting is catalog-paired (every production setting is) and falls back to the def
 /// overload for an unpaired setting, mirroring the emit's own catalog/def routing so a header is never emitted
 /// without content nor a content-bearing feature skipped. The two are proven equal over the whole population by
-/// MechanismPresenceEquivalenceTests (which also asserts zero unpaired), so the fallback is dead in production; the
-/// def overloads and the fallback are removed with SettingDefinition in Plan 4.
+/// the now-retired MechanismPresenceEquivalenceTests (which also asserts zero unpaired), so the fallback was dead in production; the
+/// def overloads and the fallback were removed with SettingDefinition at teardown.
 /// </summary>
 internal static class AutounattendMechanismPresence
 {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The machine capabilities a catalog membership filter needs - the catalog-model equivalent of the
-/// probes HardwareCompatibilityFilter reads from IHardwareDetectionService (battery / lid / brightness /
+/// probes the old HardwareCompatibilityFilter read from IHardwareDetectionService (battery / lid / brightness /
 /// hybrid-sleep).</summary>
 public readonly record struct HardwareCaps(bool HasBattery, bool HasLid, bool SupportsBrightness, bool SupportsHybridSleep);
 
@@ -11,10 +11,10 @@ public readonly record struct HardwareCaps(bool HasBattery, bool HasLid, bool Su
 /// HardwareCompatibilityFilter (hardware caps) decisions from <see cref="Setting.Availability"/>, so the settings
 /// registry can be sourced from the catalog instead of the old SettingDefinition providers. Does NOT include the
 /// powercfg-existence filter (machine-dependent + mutating - deferred to its own slice); callers that need existence
-/// still run PowerSettingsValidationService.</summary>
+/// still ran the old PowerSettingsValidationService.</summary>
 public static class CatalogMembershipFilter
 {
-    /// <summary>Mirrors HardwareCompatibilityFilter's five checks against Setting.Availability.Hardware.</summary>
+    /// <summary>Mirrors the old HardwareCompatibilityFilter's five checks against Setting.Availability.Hardware.</summary>
     public static bool PassesHardware(Availability a, HardwareCaps c)
     {
         foreach (var req in a.Hardware)

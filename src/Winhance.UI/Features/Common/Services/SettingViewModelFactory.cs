@@ -66,7 +66,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             // reproducing what the retired SettingLocalizationService.LocalizeSetting did off the def - this closes
             // the non-en display regression from the Phase 6.7 catalog-display cutover (names/descriptions/section
             // headers rendered raw English on non-en UI). Proven byte-identical to the old path by
-            // LocalizeDisplayReadSwapEquivalenceTests (loc-key base + raw fallback match over the whole population).
+            // the now-retired LocalizeDisplayReadSwapEquivalenceTests (loc-key base + raw fallback match over the whole population).
             Name = LocalizeOrFallback($"Setting_{setting.Id}_Name", setting.Display.Name) ?? setting.Display.Name,
             Description = LocalizeOrFallback($"Setting_{setting.Id}_Description", setting.Display.Description) ?? setting.Display.Description,
             GroupName = setting.Display.GroupName != null ? LocalizeGroupName(setting.Display.GroupName) : string.Empty,
@@ -201,7 +201,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                     && customSelIdx == ComboBoxConstants.CustomStateIndex)
                 {
                     // Slice 6: rebuild the captured custom-state from the new engine's typed fields instead of the
-                    // retired RawValues (CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
+                    // retired RawValues (the now-retired CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
                     var captured = CustomStateValueReconstructor.Build(setting, currentState)
                         .Where(kv => kv.Value != null)
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
@@ -297,7 +297,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     // Per-option warnings sourced from the catalog Setting's States (Slice B - retiring the old def's
     // ComboBoxOption.Warning read). Localized via the canonical Setting_{id}_OptionWarning_{i} key with the raw
     // state.Warning as the fallback - the SAME key + fallback the old SettingLocalizationService used off the def,
-    // so this is value-identical (OptionWarningReadSwapEquivalenceTests proves the raw values + loc-key base match
+    // so this is value-identical (the now-retired OptionWarningReadSwapEquivalenceTests proved the raw values + loc-key base match
     // over the whole population). Index-aligned with the options BuildCatalogSelectionOptions builds (one per State),
     // which is how the status banner indexes the list. Null for a stateless setting (e.g. the dynamic power-plan),
     // matching the old null for a setting with no ComboBox.
@@ -320,7 +320,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     // Reproduces the retired SettingLocalizationService.GetLocalizedGroupName branch-for-branch (Slice B2): try the
     // compacted group key (SettingGroup_{name without spaces/ampersands}); if it resolves use it, else fall back to
     // the snake-case key with the raw group name as the final fallback. Keyed off the group NAME (def-independent),
-    // identical to the old service given catalog Display.GroupName == def.GroupName (LocalizeDisplayReadSwapEquivalenceTests).
+    // identical to the old service given catalog Display.GroupName == def.GroupName (the now-retired LocalizeDisplayReadSwapEquivalenceTests).
     private string LocalizeGroupName(string groupName)
     {
         var compact = LocalizeOrFallback(SettingLocalizationKeys.GroupCompact(groupName), null);
@@ -356,7 +356,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     /// .ControlToInputType (private per-service transitional helpers): derives the VM-facing InputType from
     /// the catalog Setting's derived Control, replacing the def.InputType the loading bridge used to thread
     /// in (the factory's last def input). Transitional -- retires together with the VM's InputType at
-    /// teardown. Exact for the shipped population per ControlDerivationConformanceTests (derived Control
+    /// teardown. Exact for the shipped population per the now-retired ControlDerivationConformanceTests (derived Control
     /// matches the old InputType over every paired setting): PowerPlan settings were InputType.Selection,
     /// no setting is CheckBox.</summary>
     private static InputType ControlToInputType(ControlKind control) => control switch

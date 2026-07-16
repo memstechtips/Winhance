@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Reproduces PowerSettingsValidationService.FilterSettingsByExistenceAsync for the new catalog model,
+/// <summary>Reproduces the old PowerSettingsValidationService.FilterSettingsByExistenceAsync for the new catalog model,
 /// branch-for-branch: keep a setting unless it validates existence AND has powercfg targets whose GUIDs are all
 /// absent (after attempting to unhide via the EnablementKey), or a checked target is hardware-controlled. The
 /// enablement write is the constant "Attributes"=0 the old EnablementRegistrySetting wrote, reproduced via

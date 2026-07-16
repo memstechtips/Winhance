@@ -559,7 +559,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         string offText)
     {
         // Slice E5: dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path).
-        // Proven by ControlDerivationConformanceTests + ConfigBridgeReaderEquivalenceTests.
+        // Proven at migration by the now-retired ControlDerivationConformanceTests + ConfigBridgeReaderEquivalenceTests.
         // ControlKind.Toggle covers old Toggle + CheckBox (no setting is CheckBox).
         var control = setting.Control;
         switch (control)
@@ -708,7 +708,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
         // populated for the option object but are NOT read in this flow. NOTE: the badge flags map to catalog
         // roles - the once-divergent detector selections (system-tray, dns) had their role gap CLOSED by the
-        // converter-gap fix (RolesForOption; ConfigReviewReaderEquivalenceTests now asserts ZERO divergence),
+        // converter-gap fix (RolesForOption; the now-retired ConfigReviewReaderEquivalenceTests asserted ZERO divergence),
         // and the flags are unread in this flow regardless. The custom option label is hardcoded "Custom": the
         // retired def path consumed RAW un-localized defs whose CustomStateDisplayName was always null, so the
         // old "CustomStateDisplayName ?? Custom" was ALWAYS "Custom" here - byte-identical, not merely unobservable.

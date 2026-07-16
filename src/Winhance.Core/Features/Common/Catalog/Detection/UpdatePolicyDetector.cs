@@ -25,7 +25,7 @@ public sealed class UpdatePolicyDetector : IStateDetector
         _disabledLabel = disabledLabel;
     }
 
-    // Exposed so SettingStructuralComparer can verify the authored labels match the converter's (authored == Convert).
+    // Exposed so the retired SettingStructuralComparer could verify the authored labels match the converter's (authored == Convert).
     public string DefaultLabel => _defaultLabel;
     public string DeferLabel => _deferLabel;
     public string PausedLabel => _pausedLabel;

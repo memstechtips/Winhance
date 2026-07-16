@@ -58,7 +58,7 @@ public static class SettingServicesExtensions
         services.AddSingleton<IWallpaperService, WallpaperService>();
 
         // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
-        // the explorer refresh is now declarative via SettingDefinition.RestartProcess).
+        // the explorer refresh is now declarative via the catalog Setting's RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
 
         return services;

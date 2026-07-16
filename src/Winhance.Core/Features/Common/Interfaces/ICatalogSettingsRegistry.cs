@@ -7,7 +7,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 /// <summary>The catalog-sourced settings membership: which Settings exist per feature on THIS machine, filtered
 /// exactly as the old CompatibleSettingsRegistry (OS build + hardware caps + powercfg existence), composed from the
 /// proven pieces (SettingCatalog.ByFeature + CatalogMembershipFilter + CatalogPowerExistenceFilter). The additive
-/// root of the SettingDefinition retirement: consumers repoint onto this, then the old registry sourcing is deleted.
+/// root of the SettingDefinition retirement: consumers were repointed onto this, and the old registry sourcing was then deleted.
 /// Call InitializeAsync once before use (it probes the machine + resolves existence).</summary>
 public interface ICatalogSettingsRegistry
 {

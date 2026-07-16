@@ -155,8 +155,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgTarget and pass
         // through unchanged.
         // Slice 6: the gate + units read the catalog Setting - PowerCfgTarget presence (== the old
-        // PowerCfgSettings.Any gate, proven by ConfigBridgeReaderEquivalenceTests) and the proven
-        // GetPowerCfgDisplayUnits(Setting) overload (PowerCfgHelperCatalogEquivalenceTests).
+        // PowerCfgSettings.Any gate, proven at migration by the now-retired ConfigBridgeReaderEquivalenceTests) and the proven
+        // GetPowerCfgDisplayUnits(Setting) overload (the now-retired PowerCfgHelperCatalogEquivalenceTests).
         bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
@@ -287,7 +287,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
     // The config-import wave-ordering dependency set: the catalog Setting's aggregated Requires-Link
     // OtherIds (proven set-equal to the old def.Dependencies filter over the whole population by
-    // ConfigBridgeReaderEquivalenceTests). Since Slice 6 the paired setting IS the registry-returned
+    // the now-retired ConfigBridgeReaderEquivalenceTests). Since Slice 6 the paired setting IS the registry-returned
     // catalog object, so the old live-catalog Find re-pairing and the unpaired def fallback are gone.
     private static List<string> GetWaveDependencyIds(Setting setting)
         => setting.States
@@ -318,7 +318,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
             // Confirmation + input-kind dispatch read the registry-paired catalog Setting directly
             // (Apply.RequiresConfirmation / Control; proven == the old def reads over the whole population
-            // by ConfigBridgeReaderEquivalenceTests). Control in {Selection, PowerPlan} both route the
+            // by the now-retired ConfigBridgeReaderEquivalenceTests). Control in {Selection, PowerPlan} both route the
             // Selection value path: the bridge does NOT skip power-plan-selection (Control.PowerPlan).
             bool requiresConfirmation = setting.Apply.RequiresConfirmation;
             bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;

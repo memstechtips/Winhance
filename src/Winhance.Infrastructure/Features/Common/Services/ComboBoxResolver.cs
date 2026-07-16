@@ -14,10 +14,10 @@ public class ComboBoxResolver : IComboBoxResolver
 
 
     /// <summary>Catalog-<see cref="Setting"/> mirror of
-    /// <c>ResolveRawValuesToIndex(SettingDefinition, Dictionary{string, object?})</c>: resolves live
+    /// the old <c>ResolveRawValuesToIndex(SettingDefinition, Dictionary{string, object?})</c>: resolves live
     /// registry/powercfg readings to a selection option index reading the NEW model (States/Targets) instead of
     /// the def's ComboBox/RegistrySettings. Equivalence-proven == the def overload over the whole selection
-    /// population by ComboBoxResolverSettingEquivalenceTests. Additive; wired to nothing until the reader cutover.</summary>
+    /// population at migration by the now-retired ComboBoxResolverSettingEquivalenceTests; the live overload is now guarded by ComboBoxResolverSettingConformanceTests. Was additive until the reader cutover.</summary>
     public int ResolveRawValuesToIndex(Setting setting, Dictionary<string, object?> rawValues)
     {
         // (a) DetectedIndex from a custom detector (e.g. DnsServer) - catalog-agnostic, identical to the def method.

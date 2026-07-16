@@ -11,12 +11,12 @@ namespace Winhance.Infrastructure.Features.Common.Helpers;
 
 internal static class RecommendedSettingsResolver
 {
-    // ---- Catalog-Setting overloads (Slice C/D foundation; additive, proven == the SettingDefinition
-    // versions above by PowerCfgHelperCatalogEquivalenceTests). LIVE since the apply-cluster cutover:
+    // ---- Catalog-Setting overloads (Slice C/D foundation; proven == the now-removed SettingDefinition
+    // versions by the now-retired PowerCfgHelperCatalogEquivalenceTests). LIVE since the apply-cluster cutover:
     // SAS (Slice 4c) and the config bridge (Slice 6) consume them; the def versions stay only for the
     // remaining def-based readers until teardown. ----
 
-    // Catalog equivalent of GetPowerCfgDisplayUnits(SettingDefinition): the converter sets
+    // Catalog equivalent of the old GetPowerCfgDisplayUnits(SettingDefinition): the converter sets
     // Numeric.Units = def.NumericRange?.Units ?? pcs.Units (the combined value, for a NumericRange powercfg) and
     // PowerCfgTarget.Units = pcs.Units (the fallback for a Selection powercfg, which has no Numeric) - together
     // reproducing def.NumericRange?.Units ?? def.PowerCfgSettings?[0]?.Units ?? "".
@@ -26,7 +26,7 @@ internal static class RecommendedSettingsResolver
         return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
     }
 
-    // Catalog equivalent of FindOptionIndexForPowerCfgValue(SettingDefinition, int?): the converter builds one
+    // Catalog equivalent of the old FindOptionIndexForPowerCfgValue(SettingDefinition, int?): the converter builds one
     // State per ComboBox option (in order) whose Set[PowerCfgTarget.Key, i.e. "Power"] = StateValue.Of(the option's
     // ValueMappings["PowerCfgValue"]) - so the first State whose Set["Power"] matches the raw value is the same
     // index the def version returns from Options[i].ValueMappings["PowerCfgValue"]. Mirrors the live factory's
@@ -46,9 +46,9 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Catalog equivalent of GetRecommendedIndex(SettingDefinition): the converter builds one State per ComboBox
+    // Catalog equivalent of the old GetRecommendedIndex(SettingDefinition): the converter builds one State per ComboBox
     // option IN ORDER and maps opt.IsRecommended -> an UNCONDITIONAL StateRole(Recommended) on that State
-    // (SettingDefinitionConverter.ConvertSelection), so the first State carrying an unconditional Recommended role
+    // (the retired SettingDefinitionConverter.ConvertSelection), so the first State carrying an unconditional Recommended role
     // is the same index the def returns from the first Options[i].IsRecommended. Scoped to Selection - the def
     // reads ComboBox?.Options and returns null when there is none (Toggle/Slider/Action/PowerPlan). A powercfg
     // Selection's roles are CONTEXT-scoped (AC/DC), so the unconditional HasRole(Recommended) does not match them,
@@ -64,7 +64,7 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Catalog equivalent of GetDefaultIndex(SettingDefinition): as GetRecommendedIndex, but the WindowsDefault
+    // Catalog equivalent of the old GetDefaultIndex(SettingDefinition): as GetRecommendedIndex, but the WindowsDefault
     // role (converter maps opt.IsDefault -> StateRole(WindowsDefault)).
     internal static int? GetDefaultIndex(Setting setting)
     {
@@ -97,7 +97,7 @@ internal static class RecommendedSettingsResolver
     };
 
     // ---- Slice 2 catalog-Setting value/presence overloads (additive, wired to nothing yet; proven == the
-    // SettingDefinition versions above over the population by RecommendedResolverValueCatalogEquivalenceTests).
+    // now-removed SettingDefinition versions over the population, by the now-retired RecommendedResolverValueCatalogEquivalenceTests).
     // The apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) repoints onto these at Slice 3;
     // the def versions stay live until then. IsCompatibleWithCurrentOS has NO catalog overload - it is OBVIATED:
     // the catalog settings registry gates OS membership via CatalogMembershipFilter.IsAvailable, and a by-id
@@ -110,7 +110,7 @@ internal static class RecommendedSettingsResolver
     // Actions excluded, the else-branch population is NumericRange only (all powercfg / registry-free) where both
     // helpers return null, so they are dead-in-effect and simply drop out at the Slice 3 repoint. ----
 
-    // Catalog equivalent of HasRecommendedValue(SettingDefinition, WinBuild). The def unions three signals: a
+    // Catalog equivalent of the old HasRecommendedValue(SettingDefinition, WinBuild). The def unions three signals: a
     // recommended toggle state (it already delegates to CatalogToggleState), a powercfg recommended AC/DC value,
     // and a registry-selection IsRecommended option. Catalog homes: the toggle via the SAME build-aware
     // CatalogToggleState.GetRecommended; a powercfg slider's recommended via Numeric.Recommended; a selection's
@@ -129,7 +129,7 @@ internal static class RecommendedSettingsResolver
         return false;
     }
 
-    // Catalog equivalent of HasDefaultValue(SettingDefinition, WinBuild): as HasRecommendedValue but the
+    // Catalog equivalent of the old HasDefaultValue(SettingDefinition, WinBuild): as HasRecommendedValue but the
     // WindowsDefault role / Numeric.WindowsDefault. The toggle part is the SAME build-aware CatalogToggleState.GetDefault
     // the def hybrid already calls, so the merged (-win10) toggles - whose Windows default is OS-divergent and
     // build-scoped - agree on either OS with zero divergence.
@@ -143,7 +143,7 @@ internal static class RecommendedSettingsResolver
         return false;
     }
 
-    // Catalog equivalent of BuildPowerCfgApplyValue(SettingDefinition, bool). The def reads PowerCfgSettings[0]'s
+    // Catalog equivalent of the old BuildPowerCfgApplyValue(SettingDefinition, bool). The def reads PowerCfgSettings[0]'s
     // Recommended/Default AC/DC raw values, maps a Selection value to its option index via
     // FindOptionIndexForPowerCfgValue and a NumericRange value to display units. The catalog carries the same: a
     // powercfg Selection's recommended/default option is the state with a context-scoped role (Recommended /
@@ -219,9 +219,9 @@ internal static class RecommendedSettingsResolver
     // freshly-created power plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting. The def form is the
     // verbatim extraction of ApplyRecommendedSettingsToPlanAsync's inline branches (the old-logic reference); the
     // catalog form reads the same values off the Setting. Proven catalog == def over the whole Power population by
-    // PowerPlanRecommendedWriteEquivalenceTests; the service uses the catalog form. ----
+    // the now-retired PowerPlanRecommendedWriteEquivalenceTests; the service uses the catalog form. ----
 
-    /// <summary>Catalog equivalent of ComputePlanRecommendedWrite(SettingDefinition): the single PowerCfgTarget
+    /// <summary>Catalog equivalent of the old ComputePlanRecommendedWrite(SettingDefinition): the single PowerCfgTarget
     /// supplies the subgroup/setting GUIDs; the per-context recommended SYSTEM value is the Recommended-role
     /// state's Set["Power"] payload (Selection) or Numeric.Recommended converted from display back to system
     /// units (Slider - e.g. a Minutes slider over a Seconds powercfg value). AC/DC fall back to each other as the def branch 1.

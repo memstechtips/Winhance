@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.Common.Helpers;
 
 /// <summary>
 /// Centralized build/revision compatibility check used by every service that gates
-/// settings by Windows build. Mirrors the semantics of <c>WindowsCompatibilityFilter</c>:
+/// settings by Windows build. Mirrors the semantics of the old <c>WindowsCompatibilityFilter</c>:
 /// when a setting has both a major-build bound and a revision bound, the revision is
 /// only compared when the current major build equals the boundary.
 /// </summary>

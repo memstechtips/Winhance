@@ -8,7 +8,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// (WindowsCompatibilityFilter.DecorateSettingsWithCompatibilityMessages) byte-for-byte on the shipped
 /// population EXCEPT the 12 merged This PC alias-pair ids, whose merged catalog peer is ungated
 /// (Availability.Everywhere) so no message derives on either OS -- the intended merged-row behaviour,
-/// pinned as the exact expected divergence set in CompatibilityMessageEquivalenceTests
+/// pinned as the exact expected divergence set in the now-retired CompatibilityMessageEquivalenceTests
 /// (proven there over the rest of the population; each rule branch is pinned machine-independently
 /// by CompatibilityMessageConformanceTests).
 ///

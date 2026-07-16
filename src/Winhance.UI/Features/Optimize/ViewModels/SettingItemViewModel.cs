@@ -518,7 +518,7 @@ public partial class SettingItemViewModel : BaseViewModel
     // ───────── Selection quick-set buttons (single ComboBox) ─────────
 
     // Paired Setting: per-state roles drive recommended/default. States order == old option order (converter 1:1,
-    // proven by CatalogAuthoringEquivalenceTests), so the index matches. HasRole defaults to PowerContext.Always -
+    // proven by the now-retired CatalogAuthoringEquivalenceTests), so the index matches. HasRole defaults to PowerContext.Always -
     // standard selections match here; PowerCfg AC/DC-scoped roles do NOT (their recommended/default surface via the
     // AcSelection*/DcSelection* accessors), preserving the old null for PowerCfg settings.
     private static int? FindStateIndexWithRole(Setting setting, RoleKind kind)

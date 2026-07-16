@@ -10,7 +10,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// non-null RawValues the two consumers captured (for a Selection resolved to Custom) EXACTLY, per mechanism:
 /// <list type="bullet">
 ///   <item>registry -> the live per-target <see cref="SettingStateResult.Readings"/> (proven == the old RawValues
-///     registry keys by CustomStateReadingsEquivalenceTests, 423/423).</item>
+///     registry keys at migration by the now-retired CustomStateReadingsEquivalenceTests, 423/423).</item>
 ///   <item>powercfg -> <c>ACValue</c>/<c>DCValue</c>/<c>PowerCfgValue</c> rebuilt from the typed
 ///     <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>. Old discovery set all three
 ///     from the AC/DC reading (<c>PowerCfgValue == ACValue == acValue</c>), and the overlay already threads the SAME

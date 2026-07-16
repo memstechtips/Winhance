@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 /// as a PURE QUERY over (catalog x context x scope) - no mutable filter flag, no frozen per-scope index. Default
 /// scope is current-OS (OS-build gate + hardware + existence); includeOtherOsVersions relaxes ONLY the OS-build gate
 /// (the old CompatibleSettingsRegistry SetFilterEnabled(false) "show settings for other Windows versions" mode),
-/// keeping hardware + existence. Additive - no consumer yet; the old CompatibleSettingsRegistry stays authoritative
+/// keeping hardware + existence. Additive when written; the old CompatibleSettingsRegistry stayed authoritative
 /// until the coordinated consumer cutover.</summary>
 public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 {

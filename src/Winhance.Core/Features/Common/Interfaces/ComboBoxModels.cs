@@ -50,7 +50,7 @@ public class ComboBoxDisplayOption : INotifyPropertyChanged
     /// <summary>True if the source ComboBoxOption was flagged as Windows Default.</summary>
     public bool IsDefault { get; set; }
 
-    /// <summary>True when the source SettingDefinition is flagged IsSubjectivePreference.</summary>
+    /// <summary>True when the source setting is flagged IsSubjectivePreference.</summary>
     public bool IsSubjectivePreference { get; set; }
 
     public event PropertyChangedEventHandler? PropertyChanged;

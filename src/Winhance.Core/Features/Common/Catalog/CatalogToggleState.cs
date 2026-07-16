@@ -10,7 +10,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// so reading the role back off the catalog state is the exact inverse. WindowsDefault can be OS-divergent on a
 /// merged setting (the This PC folders default to shown on Windows 10, hidden on Windows 11), so the lookup is
 /// build-aware. A setting with no two-state Enabled/Disabled shape resolves to null - matching the old helper.
-/// Proven == the old helper over the whole paired population by RecommendedToggleStateConformanceTests.
+/// Proven == the old helper over the whole paired population at migration by the now-retired RecommendedToggleStateConformanceTests.
 /// </summary>
 public static class CatalogToggleState
 {

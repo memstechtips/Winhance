@@ -64,7 +64,7 @@ internal class FeatureRegistryScriptSection
                 // Slice E1b: presence gating reads the catalog Setting (Targets/Effects). It errs toward
                 // OVER-reporting so a header is emitted whenever the emit could produce content (content is
                 // never dropped by a skipped header): the catalog check is proven equal to the old def check
-                // over the whole population (MechanismPresenceEquivalenceTests). Slice 7e-6: the Setting
+                // over the whole population (the now-retired MechanismPresenceEquivalenceTests). Slice 7e-6: the Setting
                 // arrives in the dict - the internal SettingCatalog.Find re-pairing is gone.
                 bool hasRegistry = AutounattendMechanismPresence.HasRegistryInHive(setting, isHkcu);
                 bool hasTask = AutounattendMechanismPresence.HasScheduledTask(setting);
@@ -107,7 +107,7 @@ internal class FeatureRegistryScriptSection
                 // Skip settings that are powercfg-backed with no registry writes (already handled in the Power
                 // Settings section). Slice E1b: presence off the catalog Setting (PowerCfgTarget vs RegTarget/
                 // RegistryWriteEffect); proven equal to the old def-based check by
-                // MechanismPresenceEquivalenceTests.
+                // the now-retired MechanismPresenceEquivalenceTests.
                 bool powerCfgOnly = AutounattendMechanismPresence.HasPowerCfg(setting)
                     && !AutounattendMechanismPresence.HasRegistry(setting);
                 if (powerCfgOnly)
@@ -118,7 +118,7 @@ internal class FeatureRegistryScriptSection
                 bool actionHandledByCatalog = false;
 
                 // Slice 7e-3: dispatch off the catalog Control (Control == InputType over the whole population
-                // per ControlDerivationConformanceTests). Slice 7e-6: the setting IS the dict object - the
+                // per the now-retired ControlDerivationConformanceTests). Slice 7e-6: the setting IS the dict object - the
                 // per-branch SettingCatalog.Find re-pairings and the unpaired InputType/def-emitter fallbacks
                 // are gone (an unpaired id never enters the dict; the builder's def-dict shim skips it).
                 if (setting.Control == ControlKind.Toggle)
@@ -126,7 +126,7 @@ internal class FeatureRegistryScriptSection
                     // Phase 6.8 F2b/tail: every toggle routes through the catalog emitter
                     // (AppendToggleCommandsFromCatalog) with the live build threaded, so the OS-merged
                     // "This PC folder" toggles pick the build-appropriate target (Win11 HiddenByDefault vs
-                    // Win10 KeyExists) - proven per-OS by ScriptGenBuildGatedToggleEquivalenceTests. The
+                    // Win10 KeyExists) - proven per-OS at migration by the now-retired ScriptGenBuildGatedToggleEquivalenceTests. The
                     // RegContents tail is emitted explicitly (F2c, off the active state's RegContentEffects)
                     // - a no-op for toggles without RegContent effects. Slice 7e-6: the old OS-filtered-def
                     // fallback for a build-less call died with the def dict; a caller feeding NO build on a
@@ -145,7 +145,7 @@ internal class FeatureRegistryScriptSection
                     // (AppendActionCommandsFromCatalog guards IsSelected internally; an unselected Action has
                     // no "disabled" semantic, so nothing may be emitted for it). Registry writes AND scripts
                     // both come from the setting-level catalog Effects, byte-equivalent to the old def
-                    // emitters per ScriptGenActionEquivalenceTests. The shared script block below is skipped
+                    // emitters per the now-retired ScriptGenActionEquivalenceTests. The shared script block below is skipped
                     // for this item so its scripts are not double-emitted.
                     AppendActionCommandsFromCatalog(sb, setting, configItem, isHkcu, indent);
                     actionHandledByCatalog = true;
@@ -155,9 +155,9 @@ internal class FeatureRegistryScriptSection
                 // 7e-5: a Selection with NO SelectedIndex (a "Custom" value matching no preset option) routes
                 // to the custom-state emitter (AppendCustomStateScriptsFromCatalog, reading the un-baked
                 // Setting.CustomStateScripts - byte-equal to the old def emitter over every intent-expressing
-                // shape per ScriptGenCustomStateEquivalenceTests). Every other setting WITH states (toggle /
+                // shape per the now-retired ScriptGenCustomStateEquivalenceTests). Every other setting WITH states (toggle /
                 // selection-with-index) stays on AppendPowerShellScriptsFromCatalog (proven byte-equivalent by
-                // ScriptGenPowerShellEquivalenceTests). A setting with NO states (slider / power-plan; an
+                // the now-retired ScriptGenPowerShellEquivalenceTests). A setting with NO states (slider / power-plan; an
                 // Action set actionHandledByCatalog above) has no state scripts - emitting nothing matches the
                 // old emitter over its script-less def. AppendPowerShellScripts survives as the equivalence
                 // ORACLE only (ScriptGenPowerShell/Action/CustomState suites).
@@ -180,7 +180,7 @@ internal class FeatureRegistryScriptSection
                 {
                     // Phase 6.8 Slice E1a: the scheduled-task paths + description come from the catalog Setting
                     // (TaskTarget + Display.Description), proven command-equivalent by
-                    // ScriptGenScheduledTaskEquivalenceTests (which also asserts every scheduled-task setting
+                    // the now-retired ScriptGenScheduledTaskEquivalenceTests (which also asserts every scheduled-task setting
                     // is catalog-paired). Slice 7e-6: the Setting arrives in the dict (alias-normalized
                     // lookup); the internal SettingCatalog.Find re-pairing is gone.
                     var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
@@ -229,14 +229,14 @@ internal class FeatureRegistryScriptSection
 
     /// <summary>New-catalog mirror of <c>AppendPowerShellScripts</c> (Phase 6.8 F3). Emits byte-identical
     /// output, sourcing the script bodies from the catalog Setting's active <see cref="SettingState"/> ScriptEffects
-    /// instead of <c>SettingDefinition.PowerShellScripts</c> / the old ComboBox. The converter has already
+    /// instead of the old <c>SettingDefinition.PowerShellScripts</c> / the old ComboBox. The converter has already
     /// baked each option's preset ScriptVariables into <see cref="ScriptEffect.Script"/> and placed the correct
     /// Enabled/Disabled/None script on the right state, so only the runtime CustomStateValues pass is re-applied here.
     /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option) has no
     /// catalog state to resolve, so this emits nothing - that shape needs the UN-BAKED scripts. The production
     /// loop therefore routes Selection-without-index to <see cref="AppendCustomStateScriptsFromCatalog"/> (Slice
     /// 7e-5, reading Setting.CustomStateScripts) rather than here. Equivalence (for the routed-here cases) is
-    /// pinned by ScriptGenPowerShellEquivalenceTests.</summary>
+    /// pinned at migration by the now-retired ScriptGenPowerShellEquivalenceTests.</summary>
     internal void AppendPowerShellScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -315,21 +315,21 @@ internal class FeatureRegistryScriptSection
     /// <summary>Slice 7e-5: new-catalog home of the LAST def-reading script emit - the "Custom" Selection shape
     /// (no SelectedIndex: the persisted value matched no preset option, so no catalog state's baked ScriptEffects
     /// apply). Emits from <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the
-    /// UN-BAKED raw EnabledScripts + RunContext, byte-pinned to the old def.PowerShellScripts by
-    /// CustomStateScriptsConformanceTests) exactly as the old <c>AppendPowerShellScripts</c> served this
+    /// UN-BAKED raw EnabledScripts + RunContext, guarded by CatalogCustomStateScriptsConformanceTests -- the def-free
+    /// successor of the retired CustomStateScriptsConformanceTests that byte-compared them to the old def.PowerShellScripts) exactly as the old <c>AppendPowerShellScripts</c> served this
     /// shape: per-entry hive filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() ||
     /// IsSelected == true, then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge,
     /// null values skipped, ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive -
     /// there is no SelectedIndex, so no option ScriptVariables source exists), then the identical emit block.
     /// Byte-equal to the old emitter over every reachable custom shape (both hives) per
-    /// ScriptGenCustomStateEquivalenceTests.
+    /// the now-retired ScriptGenCustomStateEquivalenceTests.
     ///
     /// *** BOUNDED DELTA (deliberate, orchestrator-decided) ***: when useEnabled is FALSE (no CustomStateValues
     /// AND IsSelected != true) this emits NOTHING, where the old emitter fell through to the DisabledScript. That
     /// fall-through was incidental - a config item carrying NO index, NO custom values and NO selection expresses
     /// no intent, and emitting a Disabled/RESET script for it (e.g. resetting the user's DNS to automatic) is the
     /// riskier behavior. The delta is pinned deliberately (old emits the Disabled block, new emits nothing) by
-    /// ScriptGenCustomStateEquivalenceTests.BoundedDelta_NoIntentShape_OldEmitsDisabledScript_NewEmitsNothing.</summary>
+    /// the now-retired ScriptGenCustomStateEquivalenceTests.BoundedDelta_NoIntentShape_OldEmitsDisabledScript_NewEmitsNothing.</summary>
     internal void AppendCustomStateScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -410,8 +410,8 @@ internal class FeatureRegistryScriptSection
     /// old loop: the registry pass (AppendToggleCommandsFiltered, which for these settings hits only the plain
     /// Set-RegistryValue branch) runs before the script pass (AppendPowerShellScripts). Emits nothing unless the
     /// Action is selected (matching the old Action branch's IsSelected guard). The Action population is
-    /// RegistryWriteEffect/ScriptEffect-only (asserted by ScriptGenActionEquivalenceTests). Proven byte-equivalent by
-    /// ScriptGenActionEquivalenceTests.</summary>
+    /// RegistryWriteEffect/ScriptEffect-only (asserted by the now-retired ScriptGenActionEquivalenceTests). Proven byte-equivalent by
+    /// the now-retired ScriptGenActionEquivalenceTests.</summary>
     internal void AppendActionCommandsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -489,9 +489,9 @@ internal class FeatureRegistryScriptSection
     /// <summary>New-catalog mirror of <c>CollectScheduledTasks</c> (Phase 6.8 Slice E1a). Yields the same
     /// (TaskPath, /Enable|/Disable, Description) tuples, sourcing the task paths from the catalog Setting's
     /// <see cref="TaskTarget"/>s (one per scheduled task) and the description from <see cref="Display.Description"/>
-    /// instead of <c>SettingDefinition.ScheduledTaskSettings</c> / Description. A setting with no scheduled
+    /// instead of the old <c>SettingDefinition.ScheduledTaskSettings</c> / Description. A setting with no scheduled
     /// tasks has no TaskTargets, so this yields nothing. Proven command-equivalent by
-    /// ScriptGenScheduledTaskEquivalenceTests.</summary>
+    /// the now-retired ScriptGenScheduledTaskEquivalenceTests.</summary>
     internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem)
     {

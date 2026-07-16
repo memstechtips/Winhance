@@ -577,7 +577,7 @@ public class ConfigExportService : IConfigExportService
             // lowercased) instead of the old discovery's RawValues["ActivePowerPlanGuid"] (which carried the
             // OS-native case). powercfg GUIDs are case-insensitive, so this is a cosmetic case change on import.
             // The display NAME now reads the new engine's typed DynamicSelectionName (the active plan's raw OS name,
-            // proven == old RawValues["ActivePowerPlan"] by PowerPlanNameEquivalenceTests) - retires the RawValues read.
+            // proven == old RawValues["ActivePowerPlan"] by the now-retired PowerPlanNameEquivalenceTests) - retires the RawValues read.
             var guid = state.DynamicSelection;
             var name = state.DynamicSelectionName;
 
@@ -591,12 +591,12 @@ public class ConfigExportService : IConfigExportService
 
             // D4c: read the live custom-state registry values from the new engine's Readings (keyed identically by
             // ValueName ?? "KeyExists") instead of the legacy detection RawValues. Proven value-identical for every
-            // registry key by Migration/CustomStateReadingsEquivalenceTests (423/423).
+            // registry key by the now-retired Migration/CustomStateReadingsEquivalenceTests (423/423).
             if (state.Readings != null)
             {
                 // Slice E4, trimmed in 7d: source the custom-state registry KEYS from the catalog RegTargets
                 // (ValueName ?? "KeyExists"); the key SET is identical to the old def read (the converter
-                // groups mirrors by ValueName), proven by ConfigExportReaderEquivalenceTests.
+                // groups mirrors by ValueName), proven at migration by the now-retired ConfigExportReaderEquivalenceTests.
                 var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {
@@ -621,7 +621,7 @@ public class ConfigExportService : IConfigExportService
 
         // Slice E4, trimmed in 7d: resolve the powercfg AC/DC value to an option index off the catalog States'
         // Set["Power"] (== the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg builds
-        // one State per option), proven by ConfigExportReaderEquivalenceTests.
+        // one State per option), proven at migration by the now-retired ConfigExportReaderEquivalenceTests.
         for (int i = 0; i < setting.States.Count; i++)
         {
             if (setting.States[i].Set.TryGetValue("Power", out var sv) &&
