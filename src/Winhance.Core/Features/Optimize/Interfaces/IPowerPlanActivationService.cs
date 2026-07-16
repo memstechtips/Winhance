@@ -4,13 +4,12 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Optimize.Interfaces;
 
 /// <summary>
-/// Owns the power-plan activation orchestration extracted from PowerService (Phase 6.7 Slice 8b-1):
+/// Owns the power-plan activation orchestration extracted from PowerService:
 /// ensure a plan is installed (importing a predefined-but-not-installed plan), activate it, and keep
-/// the power SettingDefinitions cache used while populating a freshly-imported plan. Async-native and a
+/// the power-settings query cache used while populating a freshly-imported plan. Async-native and a
 /// leaf of IStateWriter (it holds no PowerService and no IStateWriter back-reference, so wiring it into
-/// WindowsStateWriter is DI-cycle-safe). The side-effects the old ApplyPowerPlanByGuidAsync ran AFTER a
-/// successful activation (the PowerPlanChangedEvent publish and the recommended re-apply) deliberately
-/// stay with the caller and move to their principled homes in Slice 8b-2 (D1/D2).
+/// WindowsStateWriter is DI-cycle-safe). The post-activation side-effects (the PowerPlanChangedEvent
+/// publish and the recommended re-apply) deliberately stay with the caller, not this service.
 /// </summary>
 public interface IPowerPlanActivationService
 {
@@ -18,7 +17,7 @@ public interface IPowerPlanActivationService
     /// Ensures the plan identified by <paramref name="powerPlanGuid"/> is installed and active, importing a
     /// predefined-but-not-installed plan first. Returns success plus the FINAL activated GUID, which can differ
     /// from the requested GUID when a plan is imported/duplicated under a new GUID, so the caller's
-    /// post-activation tail keys off the same GUID the old monolithic method did.
+    /// post-activation tail keys off the actually-activated GUID.
     /// </summary>
     Task<(bool Success, string ActivatedGuid)> EnsureActivatedAsync(string powerPlanGuid, string? planName = null);
 
@@ -34,7 +33,7 @@ public interface IPowerPlanActivationService
     Task<bool> SetActivePowerPlanAsync(string powerPlanGuid);
 
     /// <summary>
-    /// Clears the cached power SettingDefinitions (the old PowerService private InvalidateCache).
+    /// Clears the power-settings query cache.
     /// </summary>
     void InvalidateSettingsCache();
 }

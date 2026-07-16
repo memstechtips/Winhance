@@ -53,11 +53,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         _powerPlanChangedSubscription = _eventBus.SubscribeAsync<SettingAppliedEvent>(HandleSettingAppliedAsync);
     }
 
-    // Phase 6.7 Slice 8b-2b (D2): power-plan apply now flows through the apply funnel, which publishes the generic
-    // SettingAppliedEvent (the old PowerService special handler's PowerPlanChangedEvent is retired at 8c teardown).
-    // React only to the power-plan setting, so an unrelated setting apply does not trigger a power refresh. The base
-    // BaseSettingsFeatureViewModel also subscribes to SettingAppliedEvent, but only to update the applied setting's own
-    // VM state - this handler adds the power-plan-specific dropdown + dependent-state refresh.
+    // Power-plan apply flows through the apply funnel, which publishes the generic
+    // SettingAppliedEvent. React only to the power-plan setting, so an unrelated setting apply does not trigger
+    // a power refresh. The base BaseSettingsFeatureViewModel also subscribes to SettingAppliedEvent, but only to
+    // update the applied setting's own VM state - this handler adds the power-plan-specific dropdown +
+    // dependent-state refresh.
     private async Task HandleSettingAppliedAsync(SettingAppliedEvent evt)
     {
         if (evt.SettingId != SettingIds.PowerPlanSelection)
@@ -68,8 +68,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             // Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each setting's
             // UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
             // DynamicOptions/DynamicSelection (TryApplyDynamicPowerPlanOptions) AND refreshes the dependent power
-            // states (display/sleep timeouts differ per plan) - one pass replacing the old RefreshPowerPlanComboBoxAsync
-            // + a second state refresh. The delay lets the OS report the newly-active scheme + its powercfg values.
+            // states (display/sleep timeouts differ per plan). The delay lets the OS report the newly-active scheme + its powercfg values.
             await Task.Delay(700).ConfigureAwait(false);
             await RefreshSettingStatesAsync();
         }

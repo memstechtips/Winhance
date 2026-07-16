@@ -181,7 +181,7 @@ public partial class SettingItemViewModel : BaseViewModel
     // Pre-built message for cross-group child settings (built during initialization)
     public string? CrossGroupInfoMessage { get; set; }
 
-    // Windows-version compatibility warning text (set by the loading bridge from the old definition when the
+    // Windows-version compatibility warning text (set by the loading bridge when the
     // version filter is off). Surfaced as a Warning banner.
     public string? CompatibilityMessage { get; set; }
 
@@ -257,9 +257,9 @@ public partial class SettingItemViewModel : BaseViewModel
 
     /// <summary>
     /// AC-side recommended value for Separate PowerCfg NumericRange settings, in SYSTEM units.
-    /// Reconstructed from the new model's per-context Numeric target (display units -> system units),
-    /// so the unchanged call sites' ConvertFromSystemUnits re-derives the same display value. Null when
-    /// that mode carries no ContextValue (== old null).
+    /// Reconstructed from the per-context Numeric target (display units -> system units),
+    /// so the call sites' ConvertFromSystemUnits re-derives the same display value. Null when
+    /// that mode carries no ContextValue.
     /// </summary>
     public int? AcRecommendedValue =>
         PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.AC);
@@ -273,9 +273,9 @@ public partial class SettingItemViewModel : BaseViewModel
     public int? DcDefaultValue =>
         PairedNumericValue(Setting?.Numeric?.WindowsDefault, PowerContext.DC);
 
-    // Returns the new model's per-context numeric target reconstructed to SYSTEM units. Returns null when the
-    // setting is not numeric or the mode carries no matching ContextValue - the converter adds a ContextValue only
-    // when the matching per-mode value was set, so this preserves the old null for an absent AC/DC value.
+    // Returns the per-context numeric target reconstructed to SYSTEM units. Returns null when the
+    // setting is not numeric or the mode carries no matching ContextValue - a ContextValue is authored only
+    // when the matching per-mode value was set, so this returns null for an absent AC/DC value.
     private int? PairedNumericValue(IReadOnlyList<ContextValue>? values, PowerContext context)
     {
         if (Setting?.Numeric is null || values is null) return null;
@@ -453,21 +453,21 @@ public partial class SettingItemViewModel : BaseViewModel
     // ───────── Toggle quick-set buttons ─────────
     /// <summary>
     /// True if Recommended maps to the enabled state, false if disabled, null if no
-    /// recommendation is set. Derived from the recommended role on the new model's matching state.
+    /// recommendation is set. Derived from the recommended role on the matching state.
     /// </summary>
     public bool? ToggleRecommendedState =>
         Setting is { } s ? RoleToggleState(s, RoleKind.Recommended) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
-    /// Derived from the WindowsDefault role on the new model's matching state.
+    /// Derived from the WindowsDefault role on the matching state.
     /// </summary>
     public bool? ToggleDefaultState =>
         Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault) : null;
 
     // A toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role: the role-bearing
     // state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null). HasRole defaults to PowerContext.Always so
-    // PowerCfg AC/DC roles never match (preserving the old null there); a non-Enabled/Disabled role label (e.g. a
+    // PowerCfg AC/DC roles never match; a non-Enabled/Disabled role label (e.g. a
     // Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
     private static bool? RoleToggleState(Setting setting, RoleKind kind)
     {
@@ -517,10 +517,9 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // ───────── Selection quick-set buttons (single ComboBox) ─────────
 
-    // Paired Setting: per-state roles drive recommended/default. States order == old option order (converter 1:1,
-    // proven by the now-retired CatalogAuthoringEquivalenceTests), so the index matches. HasRole defaults to PowerContext.Always -
-    // standard selections match here; PowerCfg AC/DC-scoped roles do NOT (their recommended/default surface via the
-    // AcSelection*/DcSelection* accessors), preserving the old null for PowerCfg settings.
+    // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
+    // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
+    // roles do NOT (their recommended/default surface via the AcSelection*/DcSelection* accessors).
     private static int? FindStateIndexWithRole(Setting setting, RoleKind kind)
     {
         var states = setting.States;
@@ -529,10 +528,9 @@ public partial class SettingItemViewModel : BaseViewModel
         return null;
     }
 
-    // Context-scoped variant for AC/DC powercfg selections. States order == option order (converter 1:1), and
-    // ConvertPowerCfg tags the option whose PowerCfgValue == RecommendedValueAC/DefaultValueDC/... with
-    // HasRole(kind, AC/DC) - so this index equals the old FindPowerCfgOptionIndex(thatValue). Null when no state
-    // carries the role (== old FindPowerCfgOptionIndex(null)).
+    // Context-scoped variant for AC/DC powercfg selections. States order == option order, and the
+    // option whose PowerCfgValue == RecommendedValueAC/DefaultValueDC/... carries HasRole(kind, AC/DC).
+    // Null when no state carries the role.
     private static int? FindStateIndexWithRole(Setting setting, RoleKind kind, PowerContext context)
     {
         var states = setting.States;
@@ -932,7 +930,7 @@ public partial class SettingItemViewModel : BaseViewModel
     public bool IsNumericType => InputType == InputType.NumericRange;
     public bool IsActionType => InputType == InputType.Action;
     public bool IsCheckBoxType => InputType == InputType.CheckBox;
-    /// <summary>The UI parent this setting nests under: the new model's UiParentId. Null = top-level.
+    /// <summary>The UI parent this setting nests under: its UiParentId. Null = top-level.
     /// Single source for IsSubSetting and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
     public string? EffectiveUiParentId => Setting?.UiParentId;
 
@@ -958,7 +956,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public bool IsPowerPlanSetting => Setting?.OptionSource is not null;
 
-    // A powercfg setting carries exactly one PowerCfgTarget whose Mode is the old PowerModeSupport. Non-powercfg
+    // A powercfg setting carries exactly one PowerCfgTarget whose Mode is PowerModeSupport. Non-powercfg
     // settings have no PowerCfgTarget -> false.
     public bool SupportsSeparateACDC =>
         Setting?.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
@@ -1080,9 +1078,9 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Rebuilds the technical-details panel from the new <see cref="Setting"/> model + the VM's resolved
+    /// Rebuilds the technical-details panel from the <see cref="Setting"/> model + the VM's resolved
     /// current state (no live registry reads). Called after the factory finishes populating state and after
-    /// every system-state / event refresh. Phase 6.7 Slice 9 - replaces the old TooltipUpdatedEvent feed.
+    /// every system-state / event refresh.
     /// </summary>
     public void RefreshTechnicalDetails()
     {
@@ -1187,14 +1185,13 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     // Updates setting state from a fresh system state read (used during navigation refresh)
-    /// <summary>Phase 6.8 Cluster C: rebuilds the runtime (non-Builder) power-plan dropdown from the detection
+    /// <summary>Rebuilds the runtime (non-Builder) power-plan dropdown from the detection
     /// result's DynamicOptions/DynamicSelection, reconstructing the rich PowerPlanComboBoxOption Tag the bespoke
     /// PowerPlanComboBox control reads (status dot / [Active] badge / delete-by-GUID). Shared by SettingViewModelFactory
     /// (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is rebuilt identically from detection on
-    /// BOTH paths - this is what lets PowerOptimizationsViewModel.RefreshPowerPlanComboBoxAsync + its
-    /// IPowerPlanComboBoxService dependency retire (the dropdown is detection-driven, not combobox-service-driven).
+    /// BOTH paths - the dropdown is detection-driven, not combobox-service-driven.
     /// Returns true when it handled the dropdown (a power-plan Selection with DynamicOptions, not Builder mode); false so
-    /// the caller falls through to normal Selection handling. Builder mode keeps the factory's OLD index-valued dropdown
+    /// the caller falls through to normal Selection handling. Builder mode keeps the factory's index-valued dropdown
     /// (config-export BuilderEdit serialization), so this returns false there.</summary>
     public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
     {
@@ -1256,8 +1253,7 @@ public partial class SettingItemViewModel : BaseViewModel
                     break;
                 case InputType.Selection:
                     // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
-                    // the same way the factory builds it on load (Phase 6.8 Cluster C). This replaces the old
-                    // PowerOptimizationsViewModel.RefreshPowerPlanComboBoxAsync and fixes the latent clobber where the
+                    // the same way the factory builds it on load. This fixes the latent clobber where the
                     // generic `SelectedValue = state.CurrentValue` below set the wrong value for a power plan (its
                     // CurrentValue is not the active scheme GUID).
                     if (TryApplyDynamicPowerPlanOptions(state))
@@ -1299,8 +1295,8 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    // Maps a raw powercfg value (the AC or DC reading) to the new-model State index whose Set[powerKey] accepts it
-    // (the new-model equivalent of the old ComboBoxOption ValueMappings match). Returns null when no option matches.
+    // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it.
+    // Returns null when no option matches.
     private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
     {
         var states = setting.States;
@@ -1319,10 +1315,9 @@ public partial class SettingItemViewModel : BaseViewModel
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
-    // Inverse of ConvertFromSystemUnits, used only by the new-model numeric accessors (6d). The catalog
-    // stores per-context numeric targets in DISPLAY units (the converter pre-applied ConvertSystemToDisplay);
-    // the old PowerCfgSetting.*Value* were SYSTEM units and every call site applies ConvertFromSystemUnits.
-    // Reconstructing the system value here keeps all call sites unchanged. Units come from the same model the
+    // Inverse of ConvertFromSystemUnits, used only by the numeric accessors. The catalog stores per-context
+    // numeric targets in DISPLAY units, so reconstructing the system value here lets each call site's
+    // ConvertFromSystemUnits re-derive the same display value. Units come from the same model the
     // ContextValue was built with (Setting.Numeric.Units), so the display->system->display round trip is exact.
     private int ConvertToSystemUnits(int displayValue)
     {
@@ -1873,8 +1868,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
     /// <summary>
     /// Surfaces the Windows-version compatibility message as a Warning banner. Called by the factory for
-    /// non-Selection settings (Selection settings get it through UpdateStatusBanner's compat fallback);
-    /// mirrors the old InitializeCompatibilityBanner.
+    /// non-Selection settings (Selection settings get it through UpdateStatusBanner's compat fallback).
     /// </summary>
     public void ShowCompatibilityBanner()
     {
@@ -1933,8 +1927,8 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         else if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
         {
-            // Paired registry selection verdict: recommended/default come from the SELECTED state's Roles
-            // (States order 1:1 with options; equals the old per-state selection compare).
+            // Registry selection verdict: recommended/default come from the SELECTED state's Roles
+            // (States order 1:1 with options).
             if (SelectedValue is int selIdx && selIdx >= 0 && selIdx < Setting.States.Count)
             {
                 matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended))
@@ -1945,9 +1939,8 @@ public partial class SettingItemViewModel : BaseViewModel
             else { matchesRecommended = false; matchesDefault = false; }
         }
 
-        // PowerCfg verdict - all powercfg settings are Separate mode (proven invariant), so the old
-        // PowerCfgSettings foreach and the non-separate else are dead and dropped. SupportsSeparateACDC
-        // encodes a Separate PowerCfgTarget off the new model.
+        // PowerCfg verdict - all powercfg settings are Separate mode. SupportsSeparateACDC encodes a
+        // Separate PowerCfgTarget.
         if (SupportsSeparateACDC)
         {
             // On systems without a battery (desktops), DC values aren't writable by
@@ -1959,10 +1952,8 @@ public partial class SettingItemViewModel : BaseViewModel
             if (InputType == InputType.Selection)
             {
                 // AC/DC selection - compare the live AC/DC option index against the recommended/
-                // default index derived from the new model's context-scoped state roles (6c). For a
-                // paired setting these indices equal the old PowerCfgIndexMatchesValue verdict (state
-                // order == option order, 1:1; the role tags the option whose PowerCfgValue matched the
-                // per-mode value); the accessors fall back to the old PowerCfg value lookup when unpaired.
+                // default index derived from the context-scoped state roles (state order == option
+                // order, 1:1; the role tags the option whose PowerCfgValue matched the per-mode value).
                 // On battery-less systems DC isn't writable by PowerCfgApplier and the DC control isn't
                 // shown - skip DC comparisons or a system-state refresh would visibly flip the badge.
                 if (AcSelectionRecommendedIndex is int rai && AcValue != rai)
@@ -1977,8 +1968,8 @@ public partial class SettingItemViewModel : BaseViewModel
             else if (InputType == InputType.NumericRange)
             {
                 // AcNumericValue/DcNumericValue are in display units (e.g. Minutes). The accessors
-                // (6d) return SYSTEM units reconstructed from the new model, so the existing
-                // ConvertFromSystemUnits at the call site is unchanged and the compare is identical.
+                // return SYSTEM units, so the ConvertFromSystemUnits at the call site converts them
+                // to the same units before comparing.
                 if (AcRecommendedValue is int rac && AcNumericValue != ConvertFromSystemUnits(rac))
                     matchesRecommended = false;
                 if (considerDc && DcRecommendedValue is int rdc && DcNumericValue != ConvertFromSystemUnits(rdc))
@@ -2002,8 +1993,6 @@ public partial class SettingItemViewModel : BaseViewModel
         // the user can see at a glance which mode matches recommended/default and which is
         // custom. On battery-less systems (desktops) DC is hidden and not writable, so we
         // keep the single-pill behaviour that the rest of the catalog uses.
-        // SupportsSeparateACDC already encodes "has a Separate PowerCfgTarget" (6e, off the new model),
-        // so the old PowerCfgSettings[0].Separate clause is redundant.
         bool perModeBadges = SupportsSeparateACDC && HasBattery;
 
         if (perModeBadges)
@@ -2042,10 +2031,8 @@ public partial class SettingItemViewModel : BaseViewModel
         BadgeRow = row;
     }
 
-    // 6c/6d: per-mode pills read the new model via the AC/DC accessors (selection: AcSelectionRecommendedIndex
+    // Per-mode pills read via the AC/DC accessors (selection: AcSelectionRecommendedIndex
     // etc., off context-scoped state roles; numeric: AcRecommendedValue etc., reconstructed to system units).
-    // For a paired setting these reproduce the old pcfg.*Value* verdicts exactly; the accessors fall back to
-    // the old PowerCfg lookup when unpaired.
     private void AddAcDcRecommendedPills(List<BadgePillState> row)
     {
         bool isNumeric = InputType == InputType.NumericRange;
@@ -2092,7 +2079,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         // Custom (per-mode) lights when the current value matches neither Recommended nor Default on that
         // side, AND the setting has comparison data on that side. Selection also treats an out-of-range
-        // index as Custom. 6c/6d: data presence + verdicts read the new model via the AC/DC accessors.
+        // index as Custom.
         bool isNumeric = InputType == InputType.NumericRange;
         bool acHasData = isNumeric
             ? (AcRecommendedValue.HasValue || AcDefaultValue.HasValue)
@@ -2105,11 +2092,10 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (InputType == InputType.Selection)
         {
-            // Paired state count == option count (1:1). In production Setting is non-null (the VM is built from the
-            // paired catalog Setting; SettingsLoadingService skips VM creation when unpaired), so this is a no-op
-            // there - but this line is NOT data-gated, so null-guard it defensively rather than NRE (CS8602) on an
-            // unpaired Setting: no Setting -> zero options -> no out-of-range verdict (the AC/DC accessors below are
-            // already null-safe, so the pill logic stays sane).
+            // State count == option count (1:1). In production Setting is non-null (the VM is built from the
+            // catalog Setting), so this is a no-op there - but this line is NOT data-gated, so null-guard it
+            // defensively rather than NRE (CS8602) on a null Setting: no Setting -> zero options -> no
+            // out-of-range verdict (the AC/DC accessors below are already null-safe, so the pill logic stays sane).
             int optionCount = Setting?.States.Count ?? 0;
             bool hasOptions = optionCount > 0;
             if (acHasData)
@@ -2222,7 +2208,7 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Initializes HasBadgeData from the new Setting model: whether the paired setting has comparable
+    /// Initializes HasBadgeData from the Setting model: whether the setting has comparable
     /// recommended/default data (toggle/task state roles, selection state roles, or per-context powercfg values).
     /// </summary>
     private void InitializeHasBadgeData()

@@ -41,8 +41,8 @@ public class AutounattendScriptBuilder
     {
         WarnOnUnreachableNativePowerApiSettings(config, allSettings);
 
-        // The live build this autounattend is generated on. allSettings arrives OS-filtered (the old CompatibleSettingsRegistry
-        // leaves one variant of each OS-merged setting per machine), so threading the same build lets the new catalog
+        // The live build this autounattend is generated on. allSettings arrives OS-filtered (one variant of each
+        // OS-merged setting per machine), so threading the same build lets the catalog
         // emitter pick the OS-appropriate per-target mechanism for the build-gated "This PC folder" toggles.
         var currentBuild = new WinBuild(
             _windowsVersionService.GetWindowsBuildNumber(),
@@ -149,7 +149,7 @@ public class AutounattendScriptBuilder
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         // Config ids are alias-normalized so an old "-win10" item id still matches its merged catalog
-        // Setting's canonical Id (the dict values are canonical since Slice 7e-6).
+        // Setting's canonical Id.
         var selectedIds = new HashSet<string>(
             config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))
                 .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))),
@@ -161,12 +161,8 @@ public class AutounattendScriptBuilder
             {
                 if (!selectedIds.Contains(setting.Id)) continue;
 
-                // Slice E1b: native-power presence + the autounattend fallback are read off the catalog Setting
-                // (Targets/Effects); the catalog checks are proven equal to the old def-based checks over the whole
-                // population at migration by the now-retired MechanismPresenceEquivalenceTests. Slice 7e-6: the dict carries the paired catalog
-                // Settings themselves (an unpaired id never enters it - the def-dict shim skips it), so the
-                // internal SettingCatalog.Find re-pairing is gone. Native power is authored on only one setting
-                // (power-hibernation-enable), which is catalog-paired.
+                // Native-power presence + the autounattend fallback are read off the catalog Setting
+                // (Targets/Effects). Native power is authored on only one setting (power-hibernation-enable).
                 bool hasNativePower = AutounattendMechanismPresence.HasNativePower(setting);
                 if (!hasNativePower) continue;
 

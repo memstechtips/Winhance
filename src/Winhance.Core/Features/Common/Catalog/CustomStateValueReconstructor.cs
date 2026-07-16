@@ -4,36 +4,32 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Rebuilds the per-setting "custom-state value bag" the OLD discovery exposed as its untyped
-/// <c>RawValues</c> dictionary, from the NEW engine's typed fields - so the Builder/config-export and
-/// autounattend custom-state consumers keep working after old discovery + RawValues are retired. Reproduces the
-/// non-null RawValues the two consumers captured (for a Selection resolved to Custom) EXACTLY, per mechanism:
+/// <summary>Rebuilds the per-setting "custom-state value bag" (the untyped <c>RawValues</c> dictionary)
+/// from the typed state fields, so the Builder/config-export and autounattend custom-state consumers keep
+/// working. Builds the values the two consumers need (for a Selection resolved to Custom), per mechanism:
 /// <list type="bullet">
-///   <item>registry -> the live per-target <see cref="SettingStateResult.Readings"/> (proven == the old RawValues
-///     registry keys at migration by the now-retired CustomStateReadingsEquivalenceTests, 423/423).</item>
+///   <item>registry -> the live per-target <see cref="SettingStateResult.Readings"/>.</item>
 ///   <item>powercfg -> <c>ACValue</c>/<c>DCValue</c>/<c>PowerCfgValue</c> rebuilt from the typed
-///     <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>. Old discovery set all three
-///     from the AC/DC reading (<c>PowerCfgValue == ACValue == acValue</c>), and the overlay already threads the SAME
-///     AC/DC into RawValues, so this is value-identical.</item>
-///   <item>DNS / system-tray detector -> <c>DetectedIndex</c> = the resolved <see cref="SettingStateResult.CurrentValue"/>,
-///     which equals the old <c>DetectDnsServerIndex</c>/<c>DetectSystemTrayIndex</c> (same option index, incl. -1 Custom;
-///     detection equivalence proven by Dns/SystemTray EquivalenceTests).</item>
+///     <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>
+///     (<c>PowerCfgValue == ACValue ==</c> the AC reading).</item>
+///   <item>DNS / system-tray detector -> <c>DetectedIndex</c> = the resolved
+///     <see cref="SettingStateResult.CurrentValue"/> (the option index, incl. -1 Custom).</item>
 /// </list>
-/// Callers still apply their own <c>.Where(v =&gt; v != null)</c> filter, exactly as they did over RawValues.</summary>
+/// Callers still apply their own <c>.Where(v =&gt; v != null)</c> filter.</summary>
 public static class CustomStateValueReconstructor
 {
     public static IReadOnlyDictionary<string, object?> Build(Setting setting, SettingStateResult state)
     {
         // UNION the applicable mechanisms' keys (a setting is usually single-mechanism, but union is faithful even if
-        // one ever carried both registry + a detector - matching the old discovery, which layered all applicable keys).
+        // one ever carried both registry + a detector).
         var values = new Dictionary<string, object?>();
 
-        // Registry: the per-target readings ARE the old RawValues registry keys (D4-proven).
+        // Registry: the per-target readings become the bag's registry keys.
         if (state.Readings is { } readings)
             foreach (var kv in readings)
                 values[kv.Key] = kv.Value;
 
-        // Powercfg: old wrote ACValue=acValue, DCValue=dcValue, PowerCfgValue=acValue.
+        // Powercfg: write ACValue=acValue, DCValue=dcValue, PowerCfgValue=acValue.
         if (setting.Targets.OfType<PowerCfgTarget>().Any() && state.AcValue is int ac)
         {
             values["ACValue"] = ac;
@@ -41,7 +37,7 @@ public static class CustomStateValueReconstructor
             values["PowerCfgValue"] = ac;
         }
 
-        // DNS / system-tray: old stored the resolved DetectedIndex; the new engine resolves it as CurrentValue.
+        // DNS / system-tray: store the resolved CurrentValue as DetectedIndex.
         if (setting.Detector is DnsServerDetector or SystemTrayDetector && state.CurrentValue is int idx)
             values["DetectedIndex"] = idx;
 
