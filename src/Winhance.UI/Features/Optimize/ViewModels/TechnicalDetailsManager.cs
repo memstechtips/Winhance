@@ -419,7 +419,46 @@ internal sealed class TechnicalDetailsManager : IDisposable
                     break;
             }
         }
+
+        AddWallpaperRows(setting, rows);
         return rows;
+    }
+
+    // --- Wallpaper effects (theme-mode-windows Light/Dark, OS-divergent): one row per owning state,
+    // joining every OS variant path. Grouped-by-state presentation (panel-UX call, 2026-07-16).
+    private void AddWallpaperRows(Setting setting, List<TechnicalDetailRow> rows)
+    {
+        AddWallpaperRow(null, setting.Effects, rows);
+        foreach (var state in setting.States)
+            AddWallpaperRow(state, state.Effects, rows);
+    }
+
+    private void AddWallpaperRow(SettingState? state, IReadOnlyList<Effect> effects, List<TechnicalDetailRow> rows)
+    {
+        var wallpapers = effects.OfType<WallpaperEffect>().ToList();
+        if (wallpapers.Count == 0) return;
+
+        var primary = state is { Label: { Length: > 0 } stateLabel }
+            ? $"{_labels.EffectWallpaper} ({stateLabel})"
+            : _labels.EffectWallpaper;
+        var detail = string.Join("  |  ", wallpapers.Select(wp =>
+        {
+            var os = DescribeBuildRanges(wp.AppliesTo);
+            return os.Length == 0 ? wp.Path : $"{os}: {wp.Path}";
+        }));
+        rows.Add(InfoRow(primary, detail));
+    }
+
+    /// <summary>Human OS label for a wallpaper effect build scope: "Windows 11"/"Windows 10" for the two
+    /// standard ranges, a raw build-range otherwise, or "" when unconditional (every build).</summary>
+    private static string DescribeBuildRanges(IReadOnlyList<BuildRange> ranges) =>
+        ranges.Count == 0 ? string.Empty : string.Join(", ", ranges.Select(DescribeBuildRange));
+
+    private static string DescribeBuildRange(BuildRange range)
+    {
+        if (range == BuildRange.Windows11) return "Windows 11";
+        if (range == BuildRange.Windows10) return "Windows 10";
+        return $"builds {range.Min.Build}-{range.Max.Build}";
     }
 
     // --- Relationships: nested-under parent + the requires/enables links + the child settings a state drives.

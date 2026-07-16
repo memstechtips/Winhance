@@ -39,6 +39,7 @@ public record TechnicalDetailLabels
     // Effects section
     public string EffectRegistryWrite   { get; init; } = "Writes registry value";
     public string EffectNativePower     { get; init; } = "Native power write";
+    public string EffectWallpaper       { get; init; } = "Sets desktop wallpaper";
 
     // Relationships section
     public string RelRequires           { get; init; } = "Requires";
