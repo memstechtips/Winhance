@@ -50,8 +50,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         {
             _logService.Log(LogLevel.Info, "Starting autounattend.xml generation");
 
-            // Slice 7f: ensure the catalog registry is initialized (idempotent) - self-heals a degraded
-            // startup on every generator entry point (closes the 7d-ledgered Builder-export gap).
+            // Ensure the catalog registry is initialized (idempotent) - self-heals a degraded
+            // startup on every generator entry point.
             await _catalogSettingsRegistry.InitializeAsync();
 
             var apps = selectedWindowsApps
@@ -85,11 +85,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task<string> RenderConfigToXmlAsync(UnifiedConfigurationFile config, string outputPath)
     {
-        // Slice 7f: enumerate the catalog registry with the show-other-Windows-versions scope threaded
-        // explicitly (the 7a/7d pattern). The Setting dict binds the script builder's catalog overload
-        // directly - the def-dict pairing SHIM is deleted with this slice. Filter-OFF is delta-free on
-        // THIS path: the shim already alias-collapsed the old bypassed set onto the same canonical merged
-        // Settings that GetAll(true) returns.
+        // Enumerate the catalog registry with the show-other-Windows-versions scope threaded
+        // explicitly. The Setting dict binds the script builder's catalog overload directly.
         var allSettings = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         var scriptContent = await _scriptBuilder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -135,16 +132,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
     {
-        // Slice 7f: the old read branched on the registry's mutable SetFilterEnabled state; the
-        // show-other-Windows-versions scope is now threaded explicitly (the 7a/7d pattern). Same
-        // reviewer-bounded filter-OFF delta as ConfigExportService (7d): the old bypassed set carried the 6
-        // "-win10" This PC rows ALONGSIDE their 6 canonical merged rows, while GetAll(true) is
-        // canonical-only - so a filter-OFF generation drops the 6 duplicate alias items (their emitted
-        // state was identical: the script section alias-normalizes item ids onto the same merged Setting,
-        // so the old script simply wrote those registry values twice). One inert ordering delta on this
-        // path: the catalog registry's feature iteration ORDER differs from the old registry's, so the
-        // generated script's per-feature sections reorder (set-equal, independent writes; the
-        // Builder-config path takes its order from the config file and is unaffected).
+        // The show-other-Windows-versions scope is threaded explicitly onto the catalog registry read.
         var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         int totalOptimizeSettings = 0;
@@ -169,8 +157,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 continue;
             }
 
-            // Slice 6, trimmed in Slice 7f: read from the new-engine full-state provider via its catalog
-            // Setting overload (Slice 4bb-2), the drop-in for old discovery + overlay.
+            // Read state from the full-state provider via its catalog Setting overload.
             var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
@@ -184,13 +171,12 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     InputType = ControlToInputType(setting.Control)
                 };
 
-                // Slice E4, trimmed in Slice 7f: the loop variable IS the catalog Setting, so the dispatch
-                // reads it directly (Control / PowerCfgTarget.Mode). Selection maps to Control in {Selection,
-                // PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection path). The InputType
-                // persistence WRITE above STAYS and is LOAD-BEARING: ConfigMigrationService's import gates read the
-                // persisted field and it seeds the view-model InputType on config import - the exact
-                // ControlToInputType map keeps them correct. It retires with the legacy field at teardown.
-                // (7e-3 moved FeatureRegistryScriptSection's script-gen dispatch to Control, so it no longer reads it.)
+                // The loop variable IS the catalog Setting, so the dispatch reads it directly (Control /
+                // PowerCfgTarget.Mode). Selection maps to Control in {Selection, PowerPlan} (power-plan is
+                // Control.PowerPlan, exported via the Selection path). The InputType persistence WRITE above
+                // STAYS and is LOAD-BEARING: ConfigMigrationService's import gates read the persisted field
+                // and it seeds the view-model InputType on config import - the exact ControlToInputType map
+                // keeps them correct.
                 bool isToggle = setting.Control == ControlKind.Toggle;
                 bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
                 bool isPowerCfgSeparate = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
@@ -210,11 +196,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     }
                     else
                     {
-                        // D-S2: a Separate-mode powercfg Selection exports AC and DC indices distinctly (mirror
-                        // ConfigExportService's Selection AC/DC branch) instead of the dead CurrentValue-is-Dictionary
-                        // branch that dropped the AC/DC split and left only a single SelectedIndex. AcValue/DcValue are
-                        // the typed fields the catalog detection overlay populates (D1); this changes the generated
-                        // unattend to set AC and DC separately on install for these settings.
+                        // A Separate-mode powercfg Selection exports AC and DC indices distinctly (mirror
+                        // ConfigExportService's Selection AC/DC branch). AcValue/DcValue are the typed fields
+                        // the catalog detection overlay populates; the generated unattend sets AC and DC
+                        // separately on install for these settings.
                         bool hasAcDcPowerSettings = false;
 
                         if (isPowerCfgSeparate && state != null)
@@ -249,9 +234,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     setting.Id != SettingIds.PowerPlanSelection &&
                     state != null)
                 {
-                    // Slice 6, trimmed in Slice 7f: rebuild the custom-state bag from the new engine's typed
-                    // fields instead of the retired RawValues (the now-retired CustomStateReconstructionEquivalenceTests:
-                    // 105/105 == the old hybrid RawValues); the loop variable IS the catalog Setting.
+                    // Rebuild the custom-state bag from the typed fields; the loop variable IS the catalog Setting.
                     var custom = CustomStateValueReconstructor.Build(setting, state)
                         .Where(v => v.Value != null)
                         .ToDictionary(k => k.Key, v => v.Value!);
@@ -303,7 +286,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
         GetSelectionStateFromState(Setting setting, SettingStateResult? state)
     {
-        // Slice E4, trimmed in 7f: the "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
+        // The "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
         bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
         if (!isSelection)
             return (null, null, null, null);
@@ -313,11 +296,9 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         if (setting.Id == SettingIds.PowerPlanSelection)
         {
-            // D3: source the active-plan GUID from the new engine's DynamicSelection (the active scheme GUID,
-            // lowercased) instead of the old discovery's RawValues["ActivePowerPlanGuid"] (which carried the
-            // OS-native case). powercfg GUIDs are case-insensitive, so this is a cosmetic case change on import.
-            // The display NAME now reads the new engine's typed DynamicSelectionName (the active plan's raw OS name,
-            // proven == old RawValues["ActivePowerPlan"] by the now-retired PowerPlanNameEquivalenceTests) - retires the RawValues read.
+            // Source the active-plan GUID from DynamicSelection (the active scheme GUID, lowercased).
+            // powercfg GUIDs are case-insensitive. The display NAME reads the typed DynamicSelectionName
+            // (the active plan's raw OS name).
             var guid = state.DynamicSelection;
             var name = state.DynamicSelectionName;
 
@@ -329,15 +310,11 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         {
             var customValues = new Dictionary<string, object>();
 
-            // D4c: read the live custom-state registry values from the new engine's Readings (keyed identically by
-            // ValueName ?? "KeyExists") instead of the legacy detection RawValues. Proven value-identical for every
-            // registry key by the now-retired Migration/CustomStateReadingsEquivalenceTests (423/423). (This GetSelectionStateFromState
-            // custom-state result is discarded by the autounattend; the read is migrated to retire RawValues.)
+            // Read the live custom-state registry values from Readings (keyed by ValueName ?? "KeyExists").
+            // (This GetSelectionStateFromState custom-state result is discarded by the autounattend.)
             if (state.Readings != null)
             {
-                // Slice E4, trimmed in 7f: source the custom-state registry KEYS from the catalog RegTargets
-                // (ValueName ?? "KeyExists"); the key SET is identical to the old def read (the converter
-                // groups mirrors by ValueName), proven at migration by the now-retired ConfigExportReaderEquivalenceTests.
+                // Source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists").
                 var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {
@@ -354,7 +331,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         return (index, null, null, null);
     }
 
-    // D-S2: index resolver for a Separate-mode powercfg Selection's AC/DC values - verbatim mirror of
+    // Index resolver for a Separate-mode powercfg Selection's AC/DC values - verbatim mirror of
     // ConfigExportService.ResolveValueToIndex so both exporters resolve a raw powercfg value to its option
     // index identically (via the catalog States' Set["Power"] payload).
     private static int ResolveValueToIndex(Setting setting, object? value)
@@ -363,9 +340,8 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         var intValue = Convert.ToInt32(value);
 
-        // Slice E4, trimmed in 7f: resolve the powercfg AC/DC value to an option index off the catalog States'
-        // Set["Power"] (== the old option's ValueMappings["PowerCfgValue"], index-aligned - ConvertPowerCfg
-        // builds one State per option), proven at migration by the now-retired ConfigExportReaderEquivalenceTests.
+        // Resolve the powercfg AC/DC value to an option index off the catalog States' Set["Power"]
+        // (ConvertPowerCfg builds one State per option).
         for (int i = 0; i < setting.States.Count; i++)
         {
             if (setting.States[i].Set.TryGetValue("Power", out var sv) &&
@@ -378,11 +354,9 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         return 0;
     }
 
-    /// <summary>Twin of ConfigExportService.ControlToInputType (private per-service transitional helpers):
-    /// populates the PERSISTED config-file InputType field from the derived Control. The field is LOAD-BEARING
-    /// (ConfigMigrationService's import gates read it + it seeds the view-model InputType on config import), so
-    /// the twins retire together with the legacy field at teardown. Exact for the shipped population: PowerPlan
-    /// settings were InputType.Selection, no setting is CheckBox.</summary>
+    /// <summary>Twin of ConfigExportService.ControlToInputType: populates the PERSISTED config-file
+    /// InputType field from the derived Control. The field is LOAD-BEARING (ConfigMigrationService's import
+    /// gates read it + it seeds the view-model InputType on config import).</summary>
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

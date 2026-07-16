@@ -11,26 +11,17 @@ namespace Winhance.Infrastructure.Features.Common.Helpers;
 
 internal static class RecommendedSettingsResolver
 {
-    // ---- Catalog-Setting overloads (Slice C/D foundation; proven == the now-removed SettingDefinition
-    // versions by the now-retired PowerCfgHelperCatalogEquivalenceTests). LIVE since the apply-cluster cutover:
-    // SAS (Slice 4c) and the config bridge (Slice 6) consume them; the def versions stay only for the
-    // remaining def-based readers until teardown. ----
-
-    // Catalog equivalent of the old GetPowerCfgDisplayUnits(SettingDefinition): the converter sets
-    // Numeric.Units = def.NumericRange?.Units ?? pcs.Units (the combined value, for a NumericRange powercfg) and
-    // PowerCfgTarget.Units = pcs.Units (the fallback for a Selection powercfg, which has no Numeric) - together
-    // reproducing def.NumericRange?.Units ?? def.PowerCfgSettings?[0]?.Units ?? "".
+    // Returns the display units for a powercfg setting: Numeric.Units for a NumericRange (slider) powercfg,
+    // falling back to the PowerCfgTarget's Units for a Selection powercfg, which has no Numeric.
     internal static string GetPowerCfgDisplayUnits(Setting setting)
     {
         if (setting.Numeric?.Units is { } units) return units;
         return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
     }
 
-    // Catalog equivalent of the old FindOptionIndexForPowerCfgValue(SettingDefinition, int?): the converter builds one
-    // State per ComboBox option (in order) whose Set[PowerCfgTarget.Key, i.e. "Power"] = StateValue.Of(the option's
-    // ValueMappings["PowerCfgValue"]) - so the first State whose Set["Power"] matches the raw value is the same
-    // index the def version returns from Options[i].ValueMappings["PowerCfgValue"]. Mirrors the live factory's
-    // SettingViewModelFactory.FindStateIndexForPowerCfgValue.
+    // Returns the index of the first State whose Set[PowerCfgTarget.Key, i.e. "Power"] matches the raw
+    // powercfg value. Each State corresponds to a ComboBox option in order, its Set["Power"] holding that
+    // option's PowerCfgValue. Mirrors the live factory's SettingViewModelFactory.FindStateIndexForPowerCfgValue.
     internal static int? FindOptionIndexForPowerCfgValue(Setting setting, int? targetValue)
     {
         if (!targetValue.HasValue) return null;
@@ -46,16 +37,11 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Catalog equivalent of the old GetRecommendedIndex(SettingDefinition): the converter builds one State per ComboBox
-    // option IN ORDER and maps opt.IsRecommended -> an UNCONDITIONAL StateRole(Recommended) on that State
-    // (the retired SettingDefinitionConverter.ConvertSelection), so the first State carrying an unconditional Recommended role
-    // is the same index the def returns from the first Options[i].IsRecommended. Scoped to Selection - the def
-    // reads ComboBox?.Options and returns null when there is none (Toggle/Slider/Action/PowerPlan). A powercfg
-    // Selection's roles are CONTEXT-scoped (AC/DC), so the unconditional HasRole(Recommended) does not match them,
-    // matching the def (whose powercfg options carry no IsRecommended flag). No merged (-win10) setting is a
+    // Returns the index of the first State carrying an UNCONDITIONAL Recommended role. Scoped to Selection -
+    // returns null for Toggle/Slider/Action/PowerPlan. A powercfg Selection's roles are CONTEXT-scoped
+    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. No merged (-win10) setting is a
     // Selection (the 6 aliases are This PC toggles), so the Selection roles are unconditional and this is
-    // build-invariant. Proven == the def version over the whole population by RecommendedResolverIndexCatalog
-    // EquivalenceTests.
+    // build-invariant.
     internal static int? GetRecommendedIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
@@ -64,8 +50,7 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Catalog equivalent of the old GetDefaultIndex(SettingDefinition): as GetRecommendedIndex, but the WindowsDefault
-    // role (converter maps opt.IsDefault -> StateRole(WindowsDefault)).
+    // As GetRecommendedIndex, but matches the WindowsDefault role.
     internal static int? GetDefaultIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
@@ -87,8 +72,8 @@ internal static class RecommendedSettingsResolver
         };
     }
 
-    // Inverse of ConvertSystemToDisplayUnits (== the converter's ConvertSystemToDisplay): back to raw powercfg
-    // system units. minutes/hours multiply; everything else (seconds, milliseconds, percent) is 1:1.
+    // Inverse of ConvertSystemToDisplayUnits: back to raw powercfg system units. minutes/hours multiply;
+    // everything else (seconds, milliseconds, percent) is 1:1.
     internal static int ConvertDisplayToSystemUnits(int displayValue, string? units) => units?.ToLowerInvariant() switch
     {
         "minutes" => displayValue * 60,
@@ -96,29 +81,23 @@ internal static class RecommendedSettingsResolver
         _ => displayValue,
     };
 
-    // ---- Slice 2 catalog-Setting value/presence overloads (additive, wired to nothing yet; proven == the
-    // now-removed SettingDefinition versions over the population, by the now-retired RecommendedResolverValueCatalogEquivalenceTests).
-    // The apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) repoints onto these at Slice 3;
-    // the def versions stay live until then. IsCompatibleWithCurrentOS has NO catalog overload - it is OBVIATED:
-    // the catalog settings registry gates OS membership via CatalogMembershipFilter.IsAvailable, and a by-id
-    // consumer that still needs the OS check reads Setting.Availability.Allows(build) directly (the bare-model
-    // 1:1 of the old IsWindows10Only / IsWindows11Only / build-range gate) - no resolver helper is needed.
-    // GetRecommendedValueForSetting / GetDefaultValueForSetting get NO catalog overload: Marco resolved the fork
-    // (2026-07-08) by EXCLUDING Actions from Apply-Recommended (RecommendedSettingsApplier, mirroring the Bulk
-    // reset exclusion). Their only reachable non-null else-branch case was the Action start-menu-clean-11, whose
-    // RecommendedValue signal ConvertAction drops (an Action's write is a marker-less RegistryWriteEffect); with
-    // Actions excluded, the else-branch population is NumericRange only (all powercfg / registry-free) where both
-    // helpers return null, so they are dead-in-effect and simply drop out at the Slice 3 repoint. ----
+    // The value/presence helpers below carry the recommended/default state for the apply cluster
+    // (RecommendedSettingsApplier / BulkSettingsActionService). Two related helpers are deliberately absent:
+    //  - IsCompatibleWithCurrentOS has none: the catalog settings registry gates OS membership via
+    //    CatalogMembershipFilter.IsAvailable, and a by-id consumer that still needs the OS check reads
+    //    Setting.Availability.Allows(build) directly.
+    //  - GetRecommendedValueForSetting / GetDefaultValueForSetting have none: Marco decided (2026-07-08) to
+    //    EXCLUDE Actions from Apply-Recommended (RecommendedSettingsApplier, mirroring the Bulk reset exclusion).
+    //    With Actions excluded, the remaining population is NumericRange only (all powercfg / registry-free),
+    //    where both would return null - so neither helper is needed.
 
-    // Catalog equivalent of the old HasRecommendedValue(SettingDefinition, WinBuild). The def unions three signals: a
-    // recommended toggle state (it already delegates to CatalogToggleState), a powercfg recommended AC/DC value,
-    // and a registry-selection IsRecommended option. Catalog homes: the toggle via the SAME build-aware
-    // CatalogToggleState.GetRecommended; a powercfg slider's recommended via Numeric.Recommended; a selection's
-    // recommended (registry unconditional OR powercfg context-scoped) as a Recommended-kind role on some state.
-    // The role check is Selection-scoped so a merged toggle's build-scoped role can never be caught build-unaware
-    // here (selections are never merged). Powercfg present-vs-matching: the def counts a recommended AC/DC value
-    // even when it maps to no option, the catalog role is present only when it matched an option - equal for the
-    // real population (every recommended powercfg value is a selectable option), gated by the equivalence test.
+    // True when a setting has a recommended value, unioning three signals: a recommended toggle state (the
+    // build-aware CatalogToggleState.GetRecommended), a powercfg slider's recommended (Numeric.Recommended),
+    // or a selection's recommended (registry unconditional OR powercfg context-scoped) carried as a
+    // Recommended-kind role on some state. The role check is Selection-scoped so a merged toggle's
+    // build-scoped role can never be caught build-unaware here (selections are never merged). A powercfg
+    // recommended role is present only when its value matched a selectable option - which holds for the real
+    // population, where every recommended powercfg value is a selectable option.
     internal static bool HasRecommendedValue(Setting setting, WinBuild build)
     {
         if (CatalogToggleState.GetRecommended(setting, build) is not null) return true;
@@ -129,10 +108,9 @@ internal static class RecommendedSettingsResolver
         return false;
     }
 
-    // Catalog equivalent of the old HasDefaultValue(SettingDefinition, WinBuild): as HasRecommendedValue but the
-    // WindowsDefault role / Numeric.WindowsDefault. The toggle part is the SAME build-aware CatalogToggleState.GetDefault
-    // the def hybrid already calls, so the merged (-win10) toggles - whose Windows default is OS-divergent and
-    // build-scoped - agree on either OS with zero divergence.
+    // As HasRecommendedValue but the WindowsDefault role / Numeric.WindowsDefault. The toggle part uses the
+    // build-aware CatalogToggleState.GetDefault, so the merged (-win10) toggles - whose Windows default is
+    // OS-divergent and build-scoped - agree on either OS with zero divergence.
     internal static bool HasDefaultValue(Setting setting, WinBuild build)
     {
         if (CatalogToggleState.GetDefault(setting, build) is not null) return true;
@@ -143,14 +121,11 @@ internal static class RecommendedSettingsResolver
         return false;
     }
 
-    // Catalog equivalent of the old BuildPowerCfgApplyValue(SettingDefinition, bool). The def reads PowerCfgSettings[0]'s
-    // Recommended/Default AC/DC raw values, maps a Selection value to its option index via
-    // FindOptionIndexForPowerCfgValue and a NumericRange value to display units. The catalog carries the same: a
-    // powercfg Selection's recommended/default option is the state with a context-scoped role (Recommended /
-    // WindowsDefault, AC / DC) - and that index equals FindOptionIndexForPowerCfgValue(RecommendedValueAC) because
-    // the converter adds the role to exactly the option whose PowerCfgValue equals the per-mode value; a NumericRange's
-    // Numeric.Recommended / Numeric.WindowsDefault ContextValues are already in DISPLAY units (the converter pre-applied
-    // the same system->display conversion), so they are handed over directly. isSeparate comes from PowerCfgTarget.Mode.
+    // Builds the powercfg apply value. For a powercfg Selection, the recommended/default option is the state
+    // carrying a context-scoped role (Recommended / WindowsDefault, AC / DC); that index equals
+    // FindOptionIndexForPowerCfgValue for the per-mode value. For a NumericRange, the Numeric.Recommended /
+    // Numeric.WindowsDefault ContextValues are already in DISPLAY units, so they are handed over directly.
+    // isSeparate comes from PowerCfgTarget.Mode.
     internal static object? BuildPowerCfgApplyValue(Setting setting, bool useRecommended)
     {
         var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
@@ -197,9 +172,9 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Index of the first state carrying a role of the given kind in the given power context (a powercfg selection's
-    // per-mode Recommended / WindowsDefault marker). Equals FindOptionIndexForPowerCfgValue(setting, the per-mode
-    // value) - the converter adds the context role to exactly the option whose PowerCfgValue matches that value.
+    // Index of the first state carrying a role of the given kind in the given power context (a powercfg
+    // selection's per-mode Recommended / WindowsDefault marker). Equals FindOptionIndexForPowerCfgValue for
+    // the per-mode value.
     private static int? IndexOfContextRole(Setting setting, RoleKind kind, PowerContext context)
     {
         for (int i = 0; i < setting.States.Count; i++)
@@ -215,18 +190,13 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // ---- Slice 5 (PowerPlanActivationService port): the recommended AC/DC SYSTEM values the service writes to a
-    // freshly-created power plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting. The def form is the
-    // verbatim extraction of ApplyRecommendedSettingsToPlanAsync's inline branches (the old-logic reference); the
-    // catalog form reads the same values off the Setting. Proven catalog == def over the whole Power population by
-    // the now-retired PowerPlanRecommendedWriteEquivalenceTests; the service uses the catalog form. ----
+    // ---- The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created power
+    // plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting, read off the Setting. ----
 
-    /// <summary>Catalog equivalent of the old ComputePlanRecommendedWrite(SettingDefinition): the single PowerCfgTarget
-    /// supplies the subgroup/setting GUIDs; the per-context recommended SYSTEM value is the Recommended-role
-    /// state's Set["Power"] payload (Selection) or Numeric.Recommended converted from display back to system
-    /// units (Slider - e.g. a Minutes slider over a Seconds powercfg value). AC/DC fall back to each other as the def branch 1.
-    /// The def's dead branch 2 (every powercfg selection carries a RecommendedValueAC, so branch 1 always fires)
-    /// has no catalog form; the equivalence test proves catalog == def over the whole Power population.</summary>
+    /// <summary>The single PowerCfgTarget supplies the subgroup/setting GUIDs; the per-context recommended
+    /// SYSTEM value is the Recommended-role state's Set["Power"] payload (Selection) or Numeric.Recommended
+    /// converted from display back to system units (Slider - e.g. a Minutes slider over a Seconds powercfg
+    /// value). AC/DC fall back to each other.</summary>
     internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
     {
         var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
@@ -241,10 +211,10 @@ internal static class RecommendedSettingsResolver
         return (pcfg.SubgroupGuid, pcfg.SettingGuid, ac, dc);
     }
 
-    // The recommended SYSTEM powercfg value for one context: a Selection's Recommended-context-role state carries
-    // Set["Power"] = StateValue.Of(the option's PowerCfgValue), so its WritePayload IS the system value the def
-    // wrote from RecommendedValueAC/DC; a Slider's Numeric.Recommended is in DISPLAY units, inverted back to the
-    // raw SYSTEM value the write needs. Null when there is no recommended role/value in that context.
+    // The recommended SYSTEM powercfg value for one context: a Selection's Recommended-context-role state
+    // carries Set["Power"] = StateValue.Of(the option's PowerCfgValue), so its WritePayload IS the system
+    // value; a Slider's Numeric.Recommended is in DISPLAY units, inverted back to the raw SYSTEM value the
+    // write needs. Null when there is no recommended role/value in that context.
     private static int? RecommendedSystemValue(Setting setting, PowerCfgTarget pcfg, PowerContext context)
     {
         // State-based (Selection - or, defensively, any state-carrying powercfg setting): the recommended value
@@ -261,9 +231,9 @@ internal static class RecommendedSettingsResolver
         }
         if (setting.Numeric is { } numeric)
         {
-            // Numeric.Recommended is in DISPLAY units (the converter pre-applied system->display); the plan
-            // write needs the raw SYSTEM value, so invert it - e.g. power-harddisk-timeout is a Minutes slider
-            // over a Seconds powercfg value, so display 10 -> system 600.
+            // Numeric.Recommended is in DISPLAY units; the plan write needs the raw SYSTEM value, so invert
+            // it - e.g. power-harddisk-timeout is a Minutes slider over a Seconds powercfg value, so display
+            // 10 -> system 600.
             var display = ContextValueFor(numeric.Recommended, context);
             return display.HasValue ? ConvertDisplayToSystemUnits(display.Value, numeric.Units) : (int?)null;
         }

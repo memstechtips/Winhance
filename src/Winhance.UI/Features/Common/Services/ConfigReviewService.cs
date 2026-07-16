@@ -439,17 +439,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         try
         {
             // Get the catalog settings for this feature. Review always wants the compatibility filter ON,
-            // and GetByFeature's default scope is current-OS - so this is also immune to the old async
-            // forced-flag window (there is no flag to force and restore).
+            // and GetByFeature's default scope is current-OS.
             var settings = _catalogSettingsRegistry.GetByFeature(featureId);
             var settingMap = settings.ToDictionary(s => s.Id);
 
             // Batch-load current system states
             var settingList = settings.ToList();
-            // Slice 6, trimmed in Slice 7c: read state from the new-engine full-state provider via its catalog
-            // Setting overload (Slice 4bb-2). This service reads no RawValues, so the provider resolves the same
-            // CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings the overlay used to thread onto
-            // discovery.
+            // Read state from the full-state provider via its catalog Setting overload. This service reads no
+            // RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
             var batchStates = await _settingStateProvider.GetStatesAsync(settingList);
 
             foreach (var configItem in configItems)
@@ -546,9 +543,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         string onText,
         string offText)
     {
-        // Slice E5: dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path).
-        // Proven at migration by the now-retired ControlDerivationConformanceTests + ConfigBridgeReaderEquivalenceTests.
-        // ControlKind.Toggle covers old Toggle + CheckBox (no setting is CheckBox).
+        // Dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path).
+        // ControlKind.Toggle covers Toggle + CheckBox (no setting is CheckBox).
         var control = setting.Control;
         switch (control)
         {
@@ -572,16 +568,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 var comboResult = BuildComboBoxOptions(setting, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
-                // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
+                // Special handling: PowerPlan - compare by scheme GUID (locale-independent)
                 if (configItem.PowerPlanGuid != null)
                 {
-                    // D3-consistent: read the active scheme GUID from the new engine's DynamicSelection (the active
-                    // plan GUID, lowercased, threaded by the catalog detection overlay) instead of the old discovery
-                    // RawValues["ActivePowerPlanGuid"]. NormalizeGuid lowercases both sides, so the case swap is harmless.
+                    // Read the active scheme GUID from DynamicSelection (the active plan GUID, lowercased).
+                    // NormalizeGuid lowercases both sides for the comparison.
                     string? currentGuid = currentState.DynamicSelection;
 
-                    // The current plan NAME now reads the new engine's typed DynamicSelectionName (the active plan's raw
-                    // OS name, proven == old RawValues["ActivePowerPlan"]) instead of the old discovery RawValues.
+                    // The current plan NAME reads the typed DynamicSelectionName (the active plan's raw OS name).
                     string? currentPlanName = currentState.DynamicSelectionName;
                     string? configPlanName = configItem.PowerPlanName;
 
@@ -682,24 +676,18 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     }
 
     /// <summary>
-    /// Builds the combo box display options for a non-power-plan Selection from its catalog States, reproducing
-    /// ComboBoxSetupService.SetupFromComboBoxDisplayNames. The current index is read straight off
-    /// <paramref name="currentValue"/> (already the catalog-overlay-resolved option index); power-plan settings
-    /// are handled separately via the PowerPlanGuid branch and never reach this method.
+    /// Builds the combo box display options for a non-power-plan Selection from its catalog States. The
+    /// current index is read straight off <paramref name="currentValue"/> (already the resolved option index);
+    /// power-plan settings are handled separately via the PowerPlanGuid branch and never reach this method.
     /// </summary>
     private static ComboBoxSetupResult BuildComboBoxOptions(Setting setting, object? currentValue)
     {
         var result = new ComboBoxSetupResult();
 
-        // Slice E5: build the review combo-box options from the catalog Setting's States (one per option). Only
+        // Build the review combo-box options from the catalog Setting's States (one per option). Only
         // DisplayText (from State.Label) and SelectedValue are read by the review diff (ComputeEagerDiffAsync /
         // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
-        // populated for the option object but are NOT read in this flow. NOTE: the badge flags map to catalog
-        // roles - the once-divergent detector selections (system-tray, dns) had their role gap CLOSED by the
-        // converter-gap fix (RolesForOption; the now-retired ConfigReviewReaderEquivalenceTests asserted ZERO divergence),
-        // and the flags are unread in this flow regardless. The custom option label is hardcoded "Custom": the
-        // retired def path consumed RAW un-localized defs whose CustomStateDisplayName was always null, so the
-        // old "CustomStateDisplayName ?? Custom" was ALWAYS "Custom" here - byte-identical, not merely unobservable.
+        // populated for the option object but are NOT read in this flow. The custom option label is hardcoded "Custom".
         if (setting.States.Count == 0)
             return result; // e.g. power-plan-selection (dynamic options; handled by the PowerPlanGuid branch)
 

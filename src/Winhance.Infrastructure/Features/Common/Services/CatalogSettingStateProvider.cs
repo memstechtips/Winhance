@@ -10,15 +10,9 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 /// <summary>
-/// Phase 6.8 full-state provider: builds a complete typed <see cref="SettingStateResult"/> per catalog
-/// <see cref="Setting"/> from the NEW catalog detection engine ALONE (<see cref="ICatalogDetectionService.DetectAsync"/>),
-/// with no call to the old <c>SystemSettingsDiscoveryService.GetSettingStatesAsync</c>. It reproduces the field
-/// semantics of <c>CatalogDetectionStateOverlay.Apply</c>, except it produces the WHOLE result (the overlay layers
-/// onto an old-discovery base; this one builds from the <c>CatalogDetectionResult</c> alone).
-///
-/// Catalog-native since Slice 4bb-2; the def-based overload (which paired each def to its catalog Setting via
-/// SettingIdAliases normalization) was retired in Slice L6 once the last reader consumers moved onto catalog
-/// Settings. There is no untyped RawValues bag (option B): the registry readings live on
+/// Full-state provider: builds a complete typed <see cref="SettingStateResult"/> per catalog
+/// <see cref="Setting"/> from the catalog detection engine (<see cref="ICatalogDetectionService.DetectAsync"/>).
+/// There is no untyped RawValues bag: the registry readings live on
 /// <see cref="SettingStateResult.Readings"/> and the powercfg AC/DC on the typed <see cref="SettingStateResult.AcValue"/>/
 /// <see cref="SettingStateResult.DcValue"/> fields. Gated by <c>CatalogSettingStateProviderConformanceTests</c>.
 /// </summary>
@@ -33,10 +27,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         _comboBoxResolver = comboBoxResolver;
     }
 
-    /// <summary>Builds a complete <see cref="SettingStateResult"/> per catalog <see cref="Setting"/> (Slice 4bb-2;
-    /// the sole API since Slice L6 retired the def-based overload). A Setting is already the canonical merged
-    /// catalog entry, so there is no <c>SettingIdAliases</c> normalization or -win10 alias pairing to do. Dedupes
-    /// the detection input by Id defensively and keys each result by Setting.Id.</summary>
+    /// <summary>Builds a complete <see cref="SettingStateResult"/> per catalog <see cref="Setting"/>. A Setting
+    /// is already the canonical merged catalog entry, so there is no <c>SettingIdAliases</c> normalization or
+    /// -win10 alias pairing to do. Dedupes the detection input by Id defensively and keys each result by
+    /// Setting.Id.</summary>
     public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings)
     {
         var detectionInput = settings
@@ -56,23 +50,22 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         return results;
     }
 
-    /// <summary>Maps one new-engine <see cref="CatalogDetectionResult"/> onto a complete
-    /// <see cref="SettingStateResult"/>, reproducing <c>CatalogDetectionStateOverlay.Apply</c>'s field semantics but
-    /// built from the detection result alone. Branches on the catalog <see cref="ControlKind"/> (derived from the
-    /// setting shape), replacing the old <c>SettingDefinition.InputType</c>.</summary>
+    /// <summary>Maps one <see cref="CatalogDetectionResult"/> onto a complete
+    /// <see cref="SettingStateResult"/>. Branches on the catalog <see cref="ControlKind"/> (derived from the
+    /// setting shape).</summary>
     private SettingStateResult Map(Setting catalogSetting, CatalogDetectionResult? r)
     {
         if (r is null)
         {
-            // The engine produced no entry for this paired setting (it always populates one per input, so this is
-            // defensive); mirror the old discovery's per-setting failure shape.
+            // The engine produced no entry for this setting (it always populates one per input, so this is
+            // defensive).
             return new SettingStateResult { Success = false, ErrorMessage = "no detection result" };
         }
 
-        // Common fields for every input type (option B: no untyped RawValues - the registry readings are on Readings
-        // and the powercfg AC/DC on the typed AcValue/DcValue fields). A paired setting is Success by default - a
+        // Common fields for every input type (no untyped RawValues - the registry readings are on Readings
+        // and the powercfg AC/DC on the typed AcValue/DcValue fields). A setting is Success by default - a
         // legitimate Custom state has Detected=false but still reports Success=true, so Success must NOT track
-        // r.Detected. IsEnabled is derived from the NEW model alone (see DeriveIsEnabled).
+        // r.Detected. IsEnabled is derived from the model alone (see DeriveIsEnabled).
         var result = new SettingStateResult
         {
             Success = true,
@@ -83,10 +76,8 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             Readings = r.Readings,
         };
 
-        // The power-plan (a dynamic-option source) carries its options/selection on the result and resolves its
-        // CurrentValue exactly as the hybrid does: GetSettingStatesAsync treats it as a Selection, ResolveRawValuesToIndex
-        // early-returns 0 because the def has no ComboBox with ValueMappings, and the overlay's Selection branch is a
-        // no-op for the same reason - so the hybrid's CurrentValue is 0. Reproduce that literal 0 here.
+        // The power-plan (a dynamic-option source) carries its options/selection on the result; its CurrentValue
+        // resolves to the literal 0.
         if (catalogSetting.OptionSource is not null)
         {
             return result with
@@ -106,17 +97,12 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 return result;
 
             case ControlKind.Selection:
-                // Reproduce the OLD live pipeline's selection index EXACTLY. That value was old discovery's value-match
-                // (ComboBoxResolver.ResolveRawValuesToIndex over the reads), which the overlay's Selection branch
-                // OVERRODE only when the new engine's StateLabel was a verbatim option DisplayName and otherwise
-                // PRESERVED via `return old`. Resolving from the StateLabel ALONE (as this provider first did) maps a
-                // null / unmatched label to Custom - so any selection for which the new engine yields no resolved state
-                // label (StateDetectionEngine returns null) regressed to Custom, even though old discovery's value-match
-                // resolved it from the reads and the overlay kept that. This hit the service dropdowns and delivery
-                // optimization live. Restore the value-match BASE: the label override when it resolves, else the
-                // value-match the UI actually consumed. The reconstructed reads are proven == old discovery's RawValues
-                // (the now-retired CustomStateReconstructionEquivalenceTests), so this equals the old CurrentValue for every
-                // catalog-paired selection.
+                // Two-tier resolution: resolve the selection index from the StateLabel; when it resolves use it,
+                // else fall back to the value-match (ComboBoxResolver.ResolveRawValuesToIndex over the
+                // reconstructed reads). Resolving from the StateLabel ALONE maps a null / unmatched label to
+                // Custom - so any selection for which the engine yields no resolved state label
+                // (StateDetectionEngine returns null) would regress to Custom; the value-match fallback recovers
+                // it. This hit the service dropdowns and delivery optimization.
                 var labelIndex = ResolveSelectionIndex(catalogSetting, r.StateLabel);
                 if (labelIndex != ComboBoxConstants.CustomStateIndex)
                     return result with { CurrentValue = labelIndex };
@@ -125,8 +111,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 return result with { CurrentValue = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads) };
 
             case ControlKind.Slider:
-                // The slider's value IS the raw AC powercfg value index (r.Value), the same int the hybrid stored as
-                // RawValues["PowerCfgValue"] (the AC tuple member) and surfaced as CurrentValue. Both box int?/null.
+                // The slider's value IS the raw AC powercfg value index (r.Value); both box int?/null.
                 return result with { CurrentValue = r.Value };
 
             default:
@@ -135,24 +120,22 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         }
     }
 
-    /// <summary>Derives IsEnabled - the "this setting is NOT in the state/value Windows ships" verdict the old
-    /// discovery exposed via its <c>.Any</c>/<c>!= 0</c> heuristic - from the NEW model ALONE. Decided done-right on
-    /// 2026-07-01 (Marco): the Windows-grounded rule, anchored on the OBJECTIVE <see cref="RoleKind.WindowsDefault"/>
-    /// role/value (what Windows ships), NOT the subjective <see cref="RoleKind.Recommended"/> role (which shifts per
-    /// release and would mis-report a deliberately-changed setting). This replaces the old multi-target <c>.Any</c> lie
-    /// the migration exists to retire, so a live divergence from the old hybrid here is OLD's bug - the IsEnabled gate
-    /// is therefore a machine-independent model-conformance assertion (see CatalogSettingStateProviderConformanceTests), NOT the
-    /// live hybrid. Per input type:
+    /// <summary>Derives IsEnabled - the "this setting is NOT in the state/value Windows ships" verdict - from
+    /// the model. Decided done-right on 2026-07-01 (Marco): the Windows-grounded rule, anchored on the OBJECTIVE
+    /// <see cref="RoleKind.WindowsDefault"/> role/value (what Windows ships), NOT the subjective
+    /// <see cref="RoleKind.Recommended"/> role (which shifts per release and would mis-report a
+    /// deliberately-changed setting). The IsEnabled gate is a machine-independent model-conformance assertion
+    /// (see CatalogSettingStateProviderConformanceTests). Per input type:
     /// <list type="bullet">
     ///   <item>Numeric: the detected AC reading (system units, converted to display units) differs from the
     ///     WindowsDefault AC value. No reading / no WindowsDefault anchor -> false (cannot be "modified").</item>
     ///   <item>Toggle/CheckBox: the switch position = the literal "Enabled" state (a toggle's catalog States are always
-    ///     labelled "Enabled"/"Disabled" by the converter, never semantic; the 297 toggles gate-proved this).</item>
+    ///     labelled "Enabled"/"Disabled" by the converter, never semantic).</item>
     ///   <item>Selection: the detected state is NOT a WindowsDefault-role state, in the resolution context (AC for a
     ///     powercfg selection - detection resolves on AC; Always for a registry selection). A Custom/unrecognised read
     ///     (no matching state, no fallback) is non-default -> true.</item>
     ///   <item>Dynamic-option source (power plan) / Action / a selection with NO WindowsDefault anchor (the special
-    ///     dns/system-tray detectors, all outside this gate's population) -> false, deferred to a later increment.</item>
+    ///     dns/system-tray detectors, all outside this gate's population) -> false, deferred.</item>
     /// </list></summary>
     internal static bool DeriveIsEnabled(Setting catalogSetting, CatalogDetectionResult r)
     {
@@ -169,8 +152,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(rawAc, numeric.Units) != defAc.Value;
         }
 
-        // Toggle: the switch position (a toggle's States are always the literal "Enabled"/"Disabled"; Control ==
-        // Toggle == the old InputType.Toggle/CheckBox, per the now-retired ControlDerivationConformanceTests).
+        // Toggle: the switch position (a toggle's States are always the literal "Enabled"/"Disabled").
         if (catalogSetting.Control == ControlKind.Toggle)
             return r.StateLabel == "Enabled";
 
@@ -198,16 +180,12 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         return resolved is null || !IsWindowsDefaultState(resolved);
     }
 
-    /// <summary>Resolves a new-engine state label to the option index the selection view-model consumes: the first
+    /// <summary>Resolves a state label to the option index the selection view-model consumes: the first
     /// catalog <see cref="SettingState"/> whose <c>Label</c> equals the label (Ordinal), else
-    /// <see cref="ComboBoxConstants.CustomStateIndex"/> (-1) for a Custom / null / state-less selection. Reads the
-    /// catalog <c>States[i].Label</c> in place of the old <c>ComboBox.Options[i].DisplayName</c>; the converter builds
-    /// every selection state as <c>Label = opt.DisplayName</c> in option order, so this was byte-equivalent to the
-    /// old resolution. That def-vs-catalog proof died with the def at teardown (the catalog IS the option order
-    /// now); what survives is CatalogSettingStateProviderConformanceTests'
-    /// Every_selection_has_distinct_non_empty_state_labels, which pins the property this first-match lookup
-    /// actually depends on -- duplicate or blank Labels would silently resolve to the wrong option.
-    /// The new engine's StateLabel already IS a catalog State Label, so this is the natural match.</summary>
+    /// <see cref="ComboBoxConstants.CustomStateIndex"/> (-1) for a Custom / null / state-less selection.
+    /// CatalogSettingStateProviderConformanceTests' Every_selection_has_distinct_non_empty_state_labels pins
+    /// the property this first-match lookup depends on -- duplicate or blank Labels would silently resolve to
+    /// the wrong option. The StateLabel already IS a catalog State Label, so this is the natural match.</summary>
     private static int ResolveSelectionIndex(Setting setting, string? label)
     {
         if (label is not null)

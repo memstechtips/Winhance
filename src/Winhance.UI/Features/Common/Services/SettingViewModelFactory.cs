@@ -53,8 +53,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage)
     {
-        // Slice L4a: the def-threaded inputType parameter is gone -- derive the same value from the
-        // catalog Setting's Control so the dispatch below and config.InputType are unchanged.
+        // Derive the InputType from the catalog Setting's Control; it feeds the dispatch below and
+        // config.InputType.
         var inputType = ControlToInputType(setting.Control);
 
         var config = new SettingItemViewModelConfig
@@ -62,11 +62,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             Setting = setting,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            // Slice B2: localize the catalog Display fields via the canonical keys (raw Display fallback),
-            // reproducing what the retired SettingLocalizationService.LocalizeSetting did off the def - this closes
-            // the non-en display regression from the Phase 6.7 catalog-display cutover (names/descriptions/section
-            // headers rendered raw English on non-en UI). Proven byte-identical to the old path by
-            // the now-retired LocalizeDisplayReadSwapEquivalenceTests (loc-key base + raw fallback match over the whole population).
+            // Localize the catalog Display fields via the canonical keys (raw Display fallback).
             Name = LocalizeOrFallback($"Setting_{setting.Id}_Name", setting.Display.Name) ?? setting.Display.Name,
             Description = LocalizeOrFallback($"Setting_{setting.Id}_Description", setting.Display.Description) ?? setting.Display.Description,
             GroupName = setting.Display.GroupName != null ? LocalizeGroupName(setting.Display.GroupName) : string.Empty,
@@ -93,8 +89,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _newBadgeService,
             _viewModelDeps.ApplicationModeService);
 
-        // Cross-group promo banner text is precomputed by the loading bridge (which holds the old
-        // definition) and passed in, so the factory/VM stay off the old model.
+        // Cross-group promo banner text is precomputed by the loading bridge and passed in.
         viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
         viewModel.CompatibilityMessage = compatibilityMessage;
 
@@ -138,19 +133,15 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             }
         }
 
-        // Phase 6.7 Slice 7b-ui-3b / Phase 6.8 Cluster C: bind the runtime power-plan dropdown to the new GUID model.
-        // The detection overlay threads the runtime-sourced options + active scheme GUID into the result; the VM builds
-        // the dropdown directly off them (Value = scheme GUID; the custom PowerPlanComboBox reads the per-item Tag).
-        // This build now lives on the VM (TryApplyDynamicPowerPlanOptions) so the SAME code runs on initial load (here)
-        // and on refresh (UpdateStateFromSystemState) - the detection-driven path that retires the old
-        // RefreshPowerPlanComboBoxAsync / IPowerPlanComboBoxService. Returns false in Builder mode, which keeps the OLD
-        // index-valued dropdown below (config-export's index-based BuilderEdit serialization is unchanged).
+        // Bind the runtime power-plan dropdown to the GUID model. Detection threads the runtime-sourced
+        // options + active scheme GUID into the result; the VM builds the dropdown directly off them (Value =
+        // scheme GUID; the custom PowerPlanComboBox reads the per-item Tag). This build lives on the VM
+        // (TryApplyDynamicPowerPlanOptions) so the SAME code runs on initial load (here) and on refresh
+        // (UpdateStateFromSystemState). Returns false in Builder mode, which keeps the index-valued dropdown below.
         var powerPlanHandled = viewModel.TryApplyDynamicPowerPlanOptions(currentState);
 
-        // Builder mode keeps the OLD index-valued power-plan dropdown (config export's index-based BuilderEdit,
-        // 6.8 scope). The loading bridge precomputes the options via the old IComboBoxSetupService (it still holds the
-        // old definition) and passes the result here; mirror the old unpaired else branch - translate the
-        // PowerPlan_ loc keys, then select + banner off the result.
+        // Builder mode keeps the index-valued power-plan dropdown. The loading bridge precomputes the options
+        // and passes the result here; translate the PowerPlan_ loc keys, then select + banner off the result.
         if (inputType == InputType.Selection
             && setting.OptionSource is not null
             && _viewModelDeps.ApplicationModeService?.CurrentMode == WinhanceMode.Builder
@@ -178,10 +169,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
                 if (setting is { States.Count: > 0 })
                 {
-                    // New-model-native option build: the options come from Setting.States, localized via the
-                    // Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the fallback). The current index is
-                    // the detection-resolved CurrentValue (1:1 with States, -1 == Custom). Every selection is paired
-                    // now, so this is the only path (the old unpaired IComboBoxSetupService fallback is retired).
+                    // Option build: the options come from Setting.States, localized via the
+                    // Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the fallback). The current index
+                    // is the detection-resolved CurrentValue (1:1 with States, -1 == Custom).
                     int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
                     BuildCatalogSelectionOptions(setting, currentIndex, viewModel.ComboBoxOptions);
                     resolvedSelection = currentState.CurrentValue ?? currentIndex;
@@ -200,8 +190,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 if (viewModel.SelectedValue is int customSelIdx
                     && customSelIdx == ComboBoxConstants.CustomStateIndex)
                 {
-                    // Slice 6: rebuild the captured custom-state from the new engine's typed fields instead of the
-                    // retired RawValues (the now-retired CustomStateReconstructionEquivalenceTests: 105/105 == the old hybrid RawValues).
+                    // Rebuild the captured custom-state from the typed fields.
                     var captured = CustomStateValueReconstructor.Build(setting, currentState)
                         .Where(kv => kv.Value != null)
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
@@ -210,7 +199,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 }
 
                 // Resolve AC/DC Selection values AFTER ComboBox options are populated
-                // (ComboBox needs items before SelectedValue can match). New-model-native AC/DC index: match the
+                // (ComboBox needs items before SelectedValue can match). AC/DC index: match the
                 // typed AC/DC powercfg reading against each option's per-context State value (Set[powerKey]).
                 // -1 (Custom) on no match is unreachable (0 orphan / 0 duplicate powercfg option values).
                 if (viewModel.SupportsSeparateACDC
@@ -233,7 +222,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         else if (inputType != InputType.Selection)
         {
             // For non-Selection types, surface the Windows-version compatibility banner here (Selection types get
-            // it via UpdateStatusBanner's compat fallback). Mirrors the old InitializeCompatibilityBanner call site.
+            // it via UpdateStatusBanner's compat fallback).
             viewModel.ShowCompatibilityBanner();
         }
 
@@ -243,8 +232,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // Compute initial badge state after all values are populated
         viewModel.ComputeBadgeState();
 
-        // Build the technical-details panel from the new Setting model + the now-populated current state
-        // (Phase 6.7 Slice 9 - the panel is VM-driven, not TooltipUpdatedEvent-driven).
+        // Build the technical-details panel from the Setting model + the now-populated current state
+        // (the panel is VM-driven, not TooltipUpdatedEvent-driven).
         viewModel.RefreshTechnicalDetails();
 
         return viewModel;
@@ -257,12 +246,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     }
 
     /// <summary>
-    /// Builds a selection's combobox options from the new <see cref="Setting"/> model (Phase 6.7 P1):
+    /// Builds a selection's combobox options from the <see cref="Setting"/> model:
     /// one option per <see cref="SettingState"/>, localized via the canonical Setting_{id}_Option_{i}
     /// (and _OptionTooltip_{i}) keys with <c>state.Label</c> as the fallback, and the recommended/default
     /// flags derived from the state's roles. Appends the synthetic "Custom" option (Setting_{id}_Option_Custom
-    /// or the generic Common_CustomState) when the current index is the Custom sentinel. This replaces the old
-    /// IComboBoxSetupService for catalog-paired selections.
+    /// or the generic Common_CustomState) when the current index is the Custom sentinel.
     /// </summary>
     private void BuildCatalogSelectionOptions(Setting setting, int currentIndex, ObservableCollection<ComboBoxDisplayOption> options)
     {
@@ -270,7 +258,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];
-            // Mirror the old localizer: when the state Label is itself a shared localization key
+            // When the state Label is itself a shared localization key
             // (Template_* / ServiceOption_* / Setting_* / PowerPlan_*), look it up AS the key; otherwise
             // build the per-setting Setting_{id}_Option_{i} key. state.Label is the final raw fallback.
             var displayKey = SettingLocalizationKeys.IsLocalizationKey(state.Label)
@@ -294,13 +282,10 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
     }
 
-    // Per-option warnings sourced from the catalog Setting's States (Slice B - retiring the old def's
-    // ComboBoxOption.Warning read). Localized via the canonical Setting_{id}_OptionWarning_{i} key with the raw
-    // state.Warning as the fallback - the SAME key + fallback the old SettingLocalizationService used off the def,
-    // so this is value-identical (the now-retired OptionWarningReadSwapEquivalenceTests proved the raw values + loc-key base match
-    // over the whole population). Index-aligned with the options BuildCatalogSelectionOptions builds (one per State),
-    // which is how the status banner indexes the list. Null for a stateless setting (e.g. the dynamic power-plan),
-    // matching the old null for a setting with no ComboBox.
+    // Per-option warnings sourced from the catalog Setting's States. Localized via the canonical
+    // Setting_{id}_OptionWarning_{i} key with the raw state.Warning as the fallback. Index-aligned with the
+    // options BuildCatalogSelectionOptions builds (one per State), which is how the status banner indexes the
+    // list. Null for a stateless setting (e.g. the dynamic power-plan).
     private IReadOnlyList<string?>? BuildCatalogOptionWarnings(Setting setting)
     {
         if (setting.States.Count == 0)
@@ -317,10 +302,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return warnings;
     }
 
-    // Reproduces the retired SettingLocalizationService.GetLocalizedGroupName branch-for-branch (Slice B2): try the
-    // compacted group key (SettingGroup_{name without spaces/ampersands}); if it resolves use it, else fall back to
-    // the snake-case key with the raw group name as the final fallback. Keyed off the group NAME (def-independent),
-    // identical to the old service given catalog Display.GroupName == def.GroupName (the now-retired LocalizeDisplayReadSwapEquivalenceTests).
+    // Resolves the localized group name: try the compacted group key (SettingGroup_{name without
+    // spaces/ampersands}); if it resolves use it, else fall back to the snake-case key with the raw group name
+    // as the final fallback. Keyed off the group NAME.
     private string LocalizeGroupName(string groupName)
     {
         var compact = LocalizeOrFallback(SettingLocalizationKeys.GroupCompact(groupName), null);
@@ -337,9 +321,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return (s.Length >= 2 && s[0] == '[' && s[^1] == ']') ? fallback : s;
     }
 
-    // Maps a raw powercfg value (the AC or DC reading) to the new-model State index whose Set[powerKey]
-    // accepts it - the new-model equivalent of the old IComboBoxResolver's ValueMappings match for a
-    // separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).
+    // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it, for
+    // a separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).
     private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
     {
         var states = setting.States;
@@ -353,12 +336,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     }
 
     /// <summary>Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService
-    /// .ControlToInputType (private per-service transitional helpers): derives the VM-facing InputType from
-    /// the catalog Setting's derived Control, replacing the def.InputType the loading bridge used to thread
-    /// in (the factory's last def input). Transitional -- retires together with the VM's InputType at
-    /// teardown. Exact for the shipped population per the now-retired ControlDerivationConformanceTests (derived Control
-    /// matches the old InputType over every paired setting): PowerPlan settings were InputType.Selection,
-    /// no setting is CheckBox.</summary>
+    /// .ControlToInputType: derives the VM-facing InputType from the catalog Setting's derived Control.</summary>
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

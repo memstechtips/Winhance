@@ -71,32 +71,28 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Phase 6.8 F2b: byte-equivalent new-catalog mirror of AppendToggleCommandsFiltered's REGISTRY
-    /// emission. Sources the write decision from the catalog Setting's active SettingState (the "Enabled" state
-    /// when configItem.IsSelected is true, else the "Disabled" state) and its RegTargets instead of the old
-    /// SettingDefinition.RegistrySettings' EnabledValue/DisabledValue. A mirror RegTarget with N Paths reproduces
-    /// N old single-KeyPath RegistrySettings, so each path emits one command in order. The per-target write value
-    /// is the active state's StateValue.WritePayload, or null when that StateValue deletes (Absent/DeleteOnWrite)
-    /// or the state carries no entry for the target - matching the old GetWriteValue(EnabledValue/DisabledValue)
-    /// returning the first non-null entry or null. This method emits ONLY registry targets; the RegContents tail
-    /// is left to the call site. Proven at migration by the now-retired ScriptGenToggleEquivalenceTests.</summary>
+    /// <summary>Emits the registry writes for a toggle setting. Sources the write decision from the catalog
+    /// Setting's active SettingState (the "Enabled" state when configItem.IsSelected is true, else the
+    /// "Disabled" state) and its RegTargets. A RegTarget with N Paths emits one command per path, in order.
+    /// The per-target write value is the active state's StateValue.WritePayload, or null when that StateValue
+    /// deletes (Absent/DeleteOnWrite) or the state carries no entry for the target. This method emits ONLY
+    /// registry targets; the RegContents tail is left to the call site.</summary>
     public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem, bool isHkcu, string indent = "", Winhance.Core.Features.Common.Catalog.WinBuild? build = null)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
         var isEnabled = configItem.IsSelected;
 
-        // A toggle Setting has exactly two states, Label "Enabled" and "Disabled" (catalog authoring convention,
-        // asserted at migration across the toggle population by the now-retired ScriptGenToggleEquivalenceTests).
+        // A toggle Setting has exactly two states, Label "Enabled" and "Disabled" (catalog authoring convention).
         var state = catalogSetting.States.FirstOrDefault(s => s.Label == (isEnabled == true ? "Enabled" : "Disabled"));
         if (state == null)
             return;
 
         foreach (var rt in catalogSetting.Targets.OfType<RegTarget>())
         {
-            // Phase 6.8 script-gen tail: when a live build is threaded, drop targets not active on it (the OS-merged
-            // "This PC" toggles carry per-target AppliesTo Win10/Win11 ranges - emitting both would write both OS
-            // variants). Mirrors ApplyPlanBuilder's per-target gate. When build is null (e.g. a non-build-gated
-            // caller / a unit test feeding no build), no target is dropped - the prior emit-all behaviour.
+            // When a live build is threaded, drop targets not active on it (the OS-merged "This PC" toggles
+            // carry per-target AppliesTo Win10/Win11 ranges - emitting both would write both OS variants).
+            // Mirrors ApplyPlanBuilder's per-target gate. When build is null (e.g. a non-build-gated caller /
+            // a unit test feeding no build), no target is dropped.
             if (build is { } b && rt.AppliesTo.Count > 0 && !rt.AppliesTo.Any(r => r.Contains(b)))
                 continue;
 
@@ -122,8 +118,7 @@ internal class RegistryCommandEmitter
                 }
 
                 // The write value for this target from the active state: WritePayload unless the state deletes
-                // (Absent/DeleteOnWrite) or carries no entry for this target - both map to null, matching the old
-                // GetWriteValue(EnabledValue/DisabledValue) returning null.
+                // (Absent/DeleteOnWrite) or carries no entry for this target - both map to null.
                 state.Set.TryGetValue(rt.Key, out var sv);
                 object? writeValue = (sv != null && !sv.DeleteOnWrite) ? sv.WritePayload : null;
 
@@ -213,13 +208,9 @@ internal class RegistryCommandEmitter
            && s_hkcuHeaderRegex.IsMatch(content)
            && s_systemHiveHeaderRegex.IsMatch(content);
 
-    /// <summary>Phase 6.8 F2c: byte-equivalent new-catalog mirror of AppendRegContentCommands. Sources the .reg
-    /// content from the active SettingState's RegContentEffects (the "Enabled" state when isEnabled is true, else the
-    /// "Disabled" state) instead of the old SettingDefinition.RegContents' EnabledContent/DisabledContent. The converter's
-    /// BuildToggleEffects maps each non-empty RegContents[i].EnabledContent to the Enabled state's RegContentEffect
-    /// (DisabledContent to the Disabled state's) in order, so the Enabled state's RegContentEffects are exactly the old
-    /// method's non-empty EnabledContents in order (likewise Disabled). Each content is hive-routed, mixed-hive-rejected,
-    /// and emitted identically to the old block. Proven at migration by the now-retired ScriptGenRegContentEquivalenceTests.</summary>
+    /// <summary>Emits the .reg-content import commands for a toggle setting. Sources the .reg content from the
+    /// active SettingState's RegContentEffects (the "Enabled" state when isEnabled is true, else the "Disabled"
+    /// state). Each content is hive-routed and mixed-hive-rejected.</summary>
     public void AppendRegContentCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool? isEnabled, bool isHkcuPass, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -274,16 +265,12 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Phase 6.8 script-gen tail: byte-equivalent new-catalog mirror of the OLD Action REGISTRY emission
-    /// (AppendToggleCommandsFiltered's Pattern-4 plain Set-RegistryValue path, run when an Action is IsSelected).
-    /// Action settings carry SETTING-level Effects (no States/Targets); the retired SettingDefinitionConverter.ConvertAction mapped
-    /// each old RegistrySetting's single EnabledValue to a plain RegistryWriteEffect and REJECTS any non-plain write
-    /// (bit/byte/composite/per-subkey/key-existence) at convert time, so only the plain Set-RegistryValue path is
-    /// reachable here - matching the old emitter's Pattern-4 branch for these settings (the per-subkey/key-existence/
-    /// binary-byte branches never apply). Each write is hive-filtered by its Path. The caller guards IsSelected; this
-    /// method assumes the Action is selected. The Action population is RegistryWriteEffect/ScriptEffect-only (asserted
-    /// by the now-retired ScriptGenActionEquivalenceTests), so RegContent/NativePower effects are not emitted here. Proven by
-    /// the now-retired ScriptGenActionEquivalenceTests.</summary>
+    /// <summary>Emits the registry writes for an Action setting. Action settings carry SETTING-level Effects
+    /// (no States/Targets); an Action's effects are plain RegistryWriteEffects only, so only the plain
+    /// Set-RegistryValue path is reachable (no bit/byte/composite/per-subkey/key-existence writes). Each write
+    /// is hive-filtered by its Path. The caller guards IsSelected; this method assumes the Action is selected.
+    /// The Action population is RegistryWriteEffect/ScriptEffect-only, so RegContent/NativePower effects are not
+    /// emitted here.</summary>
     public void AppendActionRegistryCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool isHkcu, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -302,15 +289,10 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Emits a Selection setting's resolved value writes. Slice 7e-6: takes the PAIRED catalog Setting
-    /// (the section's dict now carries catalog Settings, so the internal alias-normalizing SettingCatalog.Find
-    /// re-pairing is gone) and is renamed from AppendSelectionCommandsFiltered - it no longer filters/reads defs.
-    /// The PowerPlanSelection skip stays (that id is emitted by the Power Settings section). Value resolution:
-    /// runtime CustomStateValues win; otherwise a SelectedIndex resolves through the catalog States' Set
-    /// (ResolveSelectionValuesFromCatalog - the now-retired ScriptGenSelectionResolveEquivalenceTests; the "any state carries
-    /// write-values" gate was the now-retired ScriptGenSelectionGateEquivalenceTests' gate A); a selection with neither logs a
-    /// warning and emits nothing. Emission routes through ApplyResolvedValuesFromCatalog
-    /// (the now-retired ScriptGenApplyResolvedEquivalenceTests).</summary>
+    /// <summary>Emits a Selection setting's resolved value writes. The PowerPlanSelection skip stays (that id
+    /// is emitted by the Power Settings section). Value resolution: runtime CustomStateValues win; otherwise a
+    /// SelectedIndex resolves through the catalog States' Set (ResolveSelectionValuesFromCatalog); a selection
+    /// with neither logs a warning and emits nothing. Emission routes through ApplyResolvedValuesFromCatalog.</summary>
     public void AppendSelectionCommands(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
@@ -336,22 +318,15 @@ internal class RegistryCommandEmitter
         ApplyResolvedValuesFromCatalog(sb, setting, valuesToApply, isHkcu, indent);
     }
 
-    /// <summary>Phase 6.8 F1: the new-catalog replacement for IComboBoxResolver.ResolveIndexToRawValues. Builds the
-    /// selected option's raw write-values dict from the catalog setting's States[index].Set - each Set entry keyed by
-    /// the matching Target's registry ValueName (or "KeyExists" when the RegTarget has no value name), or "PowerCfgValue"
-    /// for a PowerCfgTarget, valued by StateValue.WritePayload. The caller pairs the setting (SettingCatalog.Find)
-    /// and passes the catalog Setting in. Returns empty when the selected STATE carries no write-values (an empty
-    /// Set - the old "selected option has no ValueMappings" case, proven equivalent per index by
-    /// the now-retired ScriptGenSelectionGateEquivalenceTests gate B) or the index is out of range. Byte-equivalence with the old
-    /// IComboBoxResolver.ResolveIndexToRawValues for all paired selections is proven by
-    /// the now-retired ScriptGenSelectionResolveEquivalenceTests (103 settings, 0 mismatches).</summary>
+    /// <summary>Builds the selected option's raw write-values dict from the catalog setting's States[index].Set
+    /// - each Set entry keyed by the matching Target's registry ValueName (or "KeyExists" when the RegTarget has
+    /// no value name), or "PowerCfgValue" for a PowerCfgTarget, valued by StateValue.WritePayload. Returns empty
+    /// when the selected STATE carries no write-values (an empty Set) or the index is out of range.</summary>
     private static Dictionary<string, object> ResolveSelectionValuesFromCatalog(Winhance.Core.Features.Common.Catalog.Setting catalogSetting, int index)
     {
         var result = new Dictionary<string, object>();
 
-        // Faithful to ResolveIndexToRawValues: empty unless the SELECTED state carries write-values. A state's Set
-        // is non-empty exactly when its option carried ValueMappings (the converter builds Set from ValueMappings),
-        // so the old "options[index].ValueMappings == null" gate is the catalog "States[index].Set is empty" check.
+        // Empty unless the SELECTED state carries write-values (a non-empty Set).
         if (index < 0 || index >= catalogSetting.States.Count
             || catalogSetting.States[index].Set.Count == 0)
             return result;
@@ -372,10 +347,8 @@ internal class RegistryCommandEmitter
         return result;
     }
 
-    /// <summary>Phase 6.8 F2a: byte-equivalent new-catalog mirror of ApplyResolvedValues, reading the catalog Setting's
-    /// Display.Description + Targets (PowerCfgTarget/RegTarget) instead of the old setting's Description +
-    /// PowerCfgSettings/RegistrySettings. A mirror RegTarget with N Paths reproduces N old single-KeyPath
-    /// RegistrySettings, so each path emits one command in order. Proven at migration by the now-retired ScriptGenApplyResolvedEquivalenceTests.</summary>
+    /// <summary>Emits the resolved value writes, reading the catalog Setting's Display.Description + Targets
+    /// (PowerCfgTarget/RegTarget). A RegTarget with N Paths emits one command per path, in order.</summary>
     public void ApplyResolvedValuesFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, Dictionary<string, object> valuesToApply, bool isHkcu, string indent)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
