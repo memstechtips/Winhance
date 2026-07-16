@@ -10,7 +10,7 @@ public class CatalogRelationshipValidatorTests
     private static Setting S(string id, IReadOnlyList<Link>? links = null, string? uiParent = null,
         IReadOnlyDictionary<string, string>? controls = null)
     {
-        // Phase 6.6: Links live per-state. Host any test links on a state so the validator (which reads
+        // Links live per-state. Host any test links on a state so the validator (which reads
         // States.SelectMany(st => st.Links)) sees them; reuse the controls state if present.
         var states = new List<SettingState>();
         if (controls != null)

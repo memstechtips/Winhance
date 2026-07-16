@@ -11,22 +11,19 @@ namespace Winhance.Core.Tests.Catalog;
 /// no preset option, so no state's baked ScriptEffects apply). The emitter substitutes the config item's
 /// CustomStateValues into the placeholders at generation time.
 ///
-/// REPLACES the def-based CustomStateScriptsConformanceTests, which byte-compared these against
-/// def.PowerShellScripts. That comparison DIES WITH THE DEF -- and it mattered more than most: it was the ONLY
-/// enforcement of CustomStateScripts for gaming-touch-keyboard-service, which is precedence-corrected
-/// (CatalogDetectionModelConformanceTests.PrecedenceCorrectedIds) and therefore EXEMPT from the
-/// authored-vs-converter structural gate. Deleting it with the rest of the oracles would have dropped that
-/// setting's script payload to ZERO coverage.
+/// This is the ONLY enforcement of CustomStateScripts for gaming-touch-keyboard-service, which is
+/// precedence-corrected (CatalogDetectionModelConformanceTests.PrecedenceCorrectedIds) and therefore EXEMPT
+/// from the authored-vs-converter structural gate - without it that setting's script payload has ZERO coverage.
 ///
-/// The catalog is now the source of truth (the authored bodies were def-verified up to teardown and are
-/// Windows-validated), so what remains worth pinning is the DURABLE contract, which this asserts:
+/// The catalog is the source of truth (the authored bodies are Windows-validated), so what this pins is the
+/// DURABLE contract:
 ///   1. EXACTLY these 4 settings carry CustomStateScripts, with exactly these per-setting counts (5 entries).
 ///      A new script-bearing selection must therefore surface HERE, so its custom-state home gets authored.
 ///   2. Each script is non-empty and carries its authored RunContext.
 ///   3. THE LOAD-BEARING ONE: gaming-dns-server's scripts keep their placeholders INTACT ({{primary}},
 ///      {{secondary}}, {{dohtemplate}}) -- i.e. they are the RAW scripts, never an option-BAKED body. If someone
 ///      ever authored the baked form, custom-state generation would hard-code a preset DNS instead of writing the
-///      user's own custom values, silently. That is exactly the regression the old def-comparison caught, and it
+///      user's own custom values, silently. That is exactly the regression worth catching, and it
 ///      is fully checkable against the catalog alone.
 ///   4. The complement: no OTHER setting carries any.</summary>
 public class CatalogCustomStateScriptsConformanceTests

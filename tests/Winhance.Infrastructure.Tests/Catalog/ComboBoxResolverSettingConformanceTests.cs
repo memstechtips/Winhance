@@ -8,14 +8,11 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT, def-free conformance for the LIVE
+/// <summary>Machine-INDEPENDENT conformance for the LIVE
 /// <see cref="ComboBoxResolver.ResolveRawValuesToIndex(Setting, System.Collections.Generic.Dictionary{string, object?})"/>
-/// overload - the permanent guard left behind after the def-vs-Setting equivalence oracle
-/// (the retired ComboBoxResolverSettingEquivalenceTests) died with the old model at the SettingDefinition teardown.
-/// The overload resolves live registry/powercfg readings to a selection's option index, and is consumed in
+/// overload. The overload resolves live registry/powercfg readings to a selection's option index, and is consumed in
 /// production by <see cref="CatalogSettingStateProvider"/> as the value-match BASE under the detection overlay
-/// (the Phase 6.9 Custom-regression fix). With no old model left there is nothing to diverge FROM, so these facts
-/// pin the overload's contract against the catalog ALONE:
+/// (the Custom-regression fix). These facts pin the overload's contract against the catalog ALONE:
 ///  - ROUND-TRIP: feeding a selection state's own canonical write-values (<see cref="StateValue.WritePayload"/>,
 ///    exactly what apply writes for that state, re-keyed for powercfg) back through the resolver resolves to THAT
 ///    state's index (first-match) - i.e. detection inverts apply, for every shipped selection state.

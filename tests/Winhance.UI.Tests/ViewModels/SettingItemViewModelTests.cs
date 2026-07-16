@@ -183,7 +183,7 @@ public class SettingItemViewModelTests : IDisposable
         // Regression: a one-shot Action must not light up Recommended/Default/Custom state badges,
         // even when it carries recommended/default data (Win11 Clean Start Menu's
         // ConfigureStartPins did, which wrongly lit Recommended + Custom). Matches Win10 clean / taskbar clean.
-        // An Action carries no roled states in the new model (Control=Action), and InitializeHasBadgeData
+        // An Action carries no roled states (Control=Action), and InitializeHasBadgeData
         // short-circuits InputType.Action to HasBadgeData=false, so the badge row stays empty regardless.
         var setting = new Setting
         {
@@ -603,7 +603,7 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 99, DcValue = 10 });
 
-        sut.AcValue.Should().Be(ComboBoxConstants.CustomStateIndex); // 99 not in mappings -> Custom (new model)
+        sut.AcValue.Should().Be(ComboBoxConstants.CustomStateIndex); // 99 not in mappings -> Custom
         sut.DcValue.Should().Be(0); // 10 maps to index 0
     }
 
@@ -1018,9 +1018,8 @@ public class SettingItemViewModelTests : IDisposable
     public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOn_OnlyDefaultLit()
     {
         // privacy-tailored-experiences shape: a base registry with DefaultValue = 1 (Windows default ON)
-        // plus a group-policy enforcer reg. Under the role-collapsed model the converter derives the
-        // WindowsDefault role from the PRIMARY reg's DefaultValue = 1 (= ON), so toggle ON (IsSelected = true)
-        // matches Default and the Default badge lights. The old per-reg AND that dimmed it (Slice 5b/5c) is gone.
+        // plus a group-policy enforcer reg. The WindowsDefault role comes from the PRIMARY reg's
+        // DefaultValue = 1 (= ON), so toggle ON (IsSelected = true) matches Default and the Default badge lights.
         var sut = CreateSut(ToggleConfig(ToggleSetting("tailored-experiences-like", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = true;
         sut.ComputeBadgeState();
@@ -1162,10 +1161,9 @@ public class SettingItemViewModelTests : IDisposable
         }, opts => opts.WithStrictOrdering());
     }
 
-    // removed in P3b: BadgeRow_NumericRange_AtRecommended_OnlyRecommendedLit covered a registry single-spinner
-    // NumericRange -- a verified-nonexistent production shape (every NumericRange setting is powercfg; zero registry
-    // numerics). The new role-collapsed model no longer badges that dead single-spinner path, and no synthetic
-    // fixture builds it. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
+    // No single-spinner registry NumericRange badge test: that is a verified-nonexistent production shape
+    // (every NumericRange setting is powercfg; zero registry numerics), so the badge path is dead and no
+    // synthetic fixture builds it. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
 
     [Fact]
     public void BadgeRow_Definition_HasNoRecommendedAtAll_RecommendedPillAbsent()
@@ -1260,16 +1258,15 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     // ---------------------------------------------------------------------------------------------------
-    // Synthetic catalog-Setting fixtures (T5: the old def->Setting converter retired).
+    // Synthetic catalog-Setting fixtures.
     // The SettingItemViewModel reads the PASSED Setting (no live-catalog resolution), so hand-built synthetic
     // Settings carrying exactly the fields the VM reads are correct here -- simpler, non-vacuous, and immune to
-    // catalog edits. Each builder reproduces the shape the old converter produced for the
-    // equivalent old def, so the VM's badge/value behaviour is unchanged from the converter-based fixtures these replace.
+    // catalog edits.
     // ---------------------------------------------------------------------------------------------------
 
-    // A toggle Setting: Enabled/Disabled states carrying the Recommended/WindowsDefault roles the old converter
-    // derived (RolesFor) -- a role lands on the Enabled state when that role's toggle state is enabled, on the
-    // Disabled state when it is disabled. null = that role absent.
+    // A toggle Setting: Enabled/Disabled states carrying the Recommended/WindowsDefault roles -- a role lands
+    // on the Enabled state when that role's toggle state is enabled, on the Disabled state when it is
+    // disabled. null = that role absent.
     private static Setting ToggleSetting(string id, bool? recommendedEnabled, bool? defaultEnabled)
     {
         var enabled = new List<StateRole>();

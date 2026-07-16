@@ -6,9 +6,8 @@ namespace Winhance.Core.Tests.Constants;
 
 public class SettingIdsTests
 {
-    // The 3 def-provider parity facts (SettingIds.X == the old def's Id) were retired with the
-    // SettingDefinition teardown (Plan-4 T7b); the id contract is now pinned by the catalog authoring/
-    // conformance suites. These two def-free invariants survive.
+    // The def id-parity facts are gone; the id contract is now pinned by the catalog authoring/conformance
+    // suites. What remains here are two invariants: the constants are non-empty and distinct.
     [Fact]
     public void Constants_AreNonEmpty()
     {

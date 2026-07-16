@@ -13,9 +13,9 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Services;
 
 /// <summary>
-/// Phase 6.7 Slice 8c: power-plan APPLY was removed from PowerService (it runs through the catalog engine now), so
-/// PowerService's live surface is the corrupt-plan cleanup (CleanupCorruptWinhancePlanAsync, run by the new-engine
-/// detection) plus the GetActive/GetAvailable/Delete plan queries. TryApplySpecialSettingAsync is a dead stub.
+/// PowerService's live surface is the corrupt-plan cleanup (CleanupCorruptWinhancePlanAsync) plus the
+/// GetActive/GetAvailable/Delete plan queries; power-plan apply runs through the catalog engine, not here.
+/// TryApplySpecialSettingAsync is a dead stub.
 /// </summary>
 public class PowerServiceTests
 {
@@ -119,8 +119,8 @@ public class PowerServiceTests
     [Fact]
     public async Task TryApplySpecialSettingAsync_IsADeadStub_AlwaysReturnsFalse()
     {
-        // Slice 8c: PowerService is no longer an apply handler (power-plan apply runs through the catalog engine);
-        // the interface method remains only because PowerService is still a discovery handler, and it handles nothing.
+        // PowerService is not an apply handler (power-plan apply runs through the catalog engine); the interface
+        // method remains only because PowerService is still a discovery handler, and it handles nothing.
 
         var result = await _sut.TryApplySpecialSettingAsync(SettingIds.PowerPlanSelection, 0);
 

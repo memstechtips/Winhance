@@ -251,8 +251,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         await service.EnterReviewModeAsync(config);
 
         // A mid-entry failure (thrown from the review-mode service itself, after the config was
-        // filtered) must still tear the mode back down. The legacy-flag re-sync this fact used
-        // to pin retired with the old registry (L5 teardown).
+        // filtered) must still tear the mode back down.
         _mockConfigReviewModeService.Verify(s => s.ExitReviewMode(), Times.Once);
     }
 

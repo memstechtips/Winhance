@@ -37,7 +37,7 @@ public class ConfigLoadServiceTests
 
     // -------------------------------------------------------
     // DetectIncompatibleSettings
-    // Slice 7b: gating is the catalog Availability model over the LIVE SettingCatalog (static, not
+    // Gating is the catalog Availability model over the LIVE SettingCatalog (static, not
     // mockable), so fixtures use REAL catalog ids + mocked build numbers - machine-independent, since
     // Availability is authored data. Real ids used: privacy-timeline-suggestions (Windows10-gated,
     // "Timeline Suggestions"), start-recommended-section (Windows11-gated, "Recommended section"),
@@ -80,7 +80,7 @@ public class ConfigLoadServiceTests
         var service = CreateService();
         var result = service.DetectIncompatibleSettings(config);
 
-        // The name comes from the catalog Display.Name now (== the old def.Name for every paired setting)
+        // The name comes from the catalog Display.Name.
         result.Should().ContainSingle()
             .Which.Should().Be("Timeline Suggestions (Privacy)");
     }
@@ -203,8 +203,7 @@ public class ConfigLoadServiceTests
     [Fact]
     public void DetectIncompatibleSettings_UnknownId_IsSkippedSilently()
     {
-        // Pins the Slice 7b fallback removal: an id with no catalog peer is not a setting - it is
-        // neither flagged incompatible nor gated (the old bypassed-def flag fallback is gone).
+        // An id with no catalog peer is not a setting - it is neither flagged incompatible nor gated.
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new UnifiedConfigurationFile

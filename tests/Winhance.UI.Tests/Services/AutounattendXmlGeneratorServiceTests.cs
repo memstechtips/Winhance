@@ -175,7 +175,7 @@ public class AutounattendXmlGeneratorServiceTests
 
     // -------------------------------------------------------
     // GenerateFromCurrentSelectionsAsync - enumerates the catalog
-    // registry with the mode threaded (Slice 7f)
+    // registry with the mode threaded
     // -------------------------------------------------------
 
     [Fact]
@@ -202,7 +202,7 @@ public class AutounattendXmlGeneratorServiceTests
         }
 
         // GetAll runs twice: once in PopulateFeatureBasedSections and once in RenderConfigToXmlAsync
-        // (the dict handed to BuildWinhancementsScriptAsync). Pin the mode threading per the 7a recipe:
+        // (the dict handed to BuildWinhancementsScriptAsync). Pin the mode threading:
         // filter ON must enumerate the current-OS scope (includeOtherOsVersions: false).
         _mockCatalogSettingsRegistry.Verify(
             r => r.GetAll(false),

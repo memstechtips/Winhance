@@ -6,13 +6,13 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT conformance for <see cref="UpdatePolicyDetector"/> (Phase 6.9 Slice 6): over
-/// CONSTRUCTED contexts it asserts the detector resolves the update-policy state exactly as the old
-/// <c>UpdateService.GetCurrentUpdatePolicyIndexAsync</c> did (renamed DLLs -> Disabled; a live pause -> Paused;
-/// DeferFeatureUpdates==1 -> the deferred state; else the Windows default), including the precedence order. Uses the
-/// REAL catalog setting's attached detector, so it also proves the wiring (Detector present, labels match the States).
-/// Registry alone cannot read this setting (Disabled/Paused share NoAutoUpdate=1/AUOptions=1 and Disabled is a
-/// filesystem DLL rename), which is why the detector - not target matching - is the authority.</summary>
+/// <summary>Machine-INDEPENDENT conformance for <see cref="UpdatePolicyDetector"/>: over CONSTRUCTED
+/// contexts it asserts the detector resolves the update-policy state correctly (renamed DLLs -> Disabled;
+/// a live pause -> Paused; DeferFeatureUpdates==1 -> the deferred state; else the Windows default),
+/// including the precedence order. Uses the REAL catalog setting's attached detector, so it also proves
+/// the wiring (Detector present, labels match the States). Registry alone cannot read this setting
+/// (Disabled/Paused share NoAutoUpdate=1/AUOptions=1 and Disabled is a filesystem DLL rename), which is
+/// why the detector - not target matching - is the authority.</summary>
 public class UpdatePolicyDetectorConformanceTests
 {
     private const string Ux = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";

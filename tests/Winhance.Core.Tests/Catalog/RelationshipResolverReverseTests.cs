@@ -21,7 +21,7 @@ public class RelationshipResolverReverseTests
         {
             Id = id,
             Display = new() { Name = id, Description = id },
-            // Phase 6.6: Links live per-state - place them on the active/non-default states (mirrors the converter).
+            // Links live per-state - place them on the active/non-default states (mirrors the converter).
             States = links.Length == 0
                 ? states
                 : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),

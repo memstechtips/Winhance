@@ -92,7 +92,7 @@ public class SettingViewModelFactoryTests
     {
         var setting = CreateToggleSetting("TestSetting", "Test Name", "Test Description");
         var state = new SettingStateResult { Success = true };
-        // Slice B2: the factory now localizes Name/Description via the canonical Setting_{id}_* keys.
+        // The factory localizes Name/Description via the canonical Setting_{id}_* keys.
         _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Name")).Returns("Localized Name");
         _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Description")).Returns("Localized Description");
 
@@ -107,7 +107,7 @@ public class SettingViewModelFactoryTests
     {
         var setting = CreateToggleSetting("TestSetting", groupName: "Privacy Settings");
         var state = new SettingStateResult { Success = true };
-        // Slice B2: the factory now localizes GroupName via the compacted SettingGroup_ key (spaces/ampersands stripped).
+        // The factory localizes GroupName via the compacted SettingGroup_ key (spaces/ampersands stripped).
         _mockLocalizationService.Setup(l => l.GetString("SettingGroup_PrivacySettings")).Returns("Localized Group");
 
         var result = await _sut.CreateAsync(setting, state, null, null, null, null);
@@ -284,9 +284,8 @@ public class SettingViewModelFactoryTests
 
     // ── Helper methods ──
 
-    // Synthetic catalog Setting fixtures (T6: the old def->Setting converter retired). The factory reads the passed
-    // Setting; these hand-built Settings carry exactly the fields CreateAsync reads (Control -> InputType, Display,
-    // Availability, Numeric, States), reproducing the shape the old converter produced for the equivalent def.
+    // Synthetic catalog Setting fixtures. The factory reads the passed Setting; these hand-built Settings
+    // carry exactly the fields CreateAsync reads (Control -> InputType, Display, Availability, Numeric, States).
     private static Setting CreateToggleSetting(
         string id, string name = "Test", string description = "Test Description",
         string groupName = "", bool requiresAdvancedUnlock = false) =>

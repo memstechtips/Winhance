@@ -38,9 +38,9 @@ public class SettingApplicationServiceTests
         // "AC: x, DC: y" expectations. No-battery tests override this per-test.
         _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
 
-        // Default: every IStateWriter write SUCCEEDS, so a paired setting routed through the new ApplyExecutor
-        // reports OperationResult.Succeeded. The old ISettingOperationExecutor "black-box succeeds" fallback for
-        // unpaired ids is gone; tests asserting a failure use an unpaired (null-plan) id instead of a mock override.
+        // Default: every IStateWriter write SUCCEEDS, so a paired setting routed through the ApplyExecutor
+        // reports OperationResult.Succeeded. There is no fallback that makes an unpaired id succeed; tests
+        // asserting a failure use an unpaired (null-plan) id instead of a mock override.
         _mockStateWriter.SetReturnsDefault(true);
 
         // Default: GetString echoes the key back. A key-echo is NOT the "[{key}]" miss-marker, so by default
@@ -50,20 +50,20 @@ public class SettingApplicationServiceTests
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
 
-        // Default: a Windows 11 build. Build-agnostic settings (no Target.AppliesTo) are unaffected by this value,
-        // so every existing test is unchanged; build-gated tests override it per-test.
+        // Default: a Windows 11 build. Build-agnostic settings (no Target.AppliesTo) are unaffected by this
+        // value; build-gated tests override it per-test.
         _mockVersion.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
         _mockVersion.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
-        // Default: the new catalog detection engine resolves nothing. With an empty dictionary, currentStateOf
+        // Default: the catalog detection engine resolves nothing. With an empty dictionary, currentStateOf
         // returns null for every id, so the relationship resolvers fire no follow-on applies - paired settings
-        // with no live-state-dependent relationships stay a no-op (the existing funnel tests assert nothing extra).
+        // with no live-state-dependent relationships stay a no-op.
         _mockCatalogDetection
             .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
             .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
 
-        // Default: the full-state provider (paired before-state read at the change-history receipt) finds nothing,
-        // mirroring the old discovery default above so existing tests keep their "no before-state" expectations.
+        // Default: the full-state provider (paired before-state read at the change-history receipt) finds
+        // nothing, so there is no before-state by default.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
@@ -77,12 +77,11 @@ public class SettingApplicationServiceTests
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
     }
 
-    // Slice 4c: the catalog Setting the funnel resolves for an id. REAL catalog Setting for a paired id (so
+    // The catalog Setting the funnel resolves for an id. REAL catalog Setting for a paired id (so
     // Control/Id AND the change-history rendering are all live-catalog-correct); a fake TOGGLE-shaped Setting for
     // an unpaired test id (non-null so the not-found throw guard passes; the resolver then yields a null plan ->
     // Failed, which the unpaired-id tests assert). Rendering reads SettingCatalog.Find independently, so a fake
-    // id renders no receipt. Two Enabled/Disabled states => Control == Toggle, matching the old InputType.Toggle
-    // default the pre-4c fake def carried.
+    // id renders no receipt. Two Enabled/Disabled states => Control == Toggle.
     private static Setting CatalogOrFake(string id) =>
         SettingCatalog.Find(id) ?? new Setting
         {
@@ -100,8 +99,8 @@ public class SettingApplicationServiceTests
         _mockSettingsRegistry.Setup(r => r.GetById(settingId, It.IsAny<bool>())).Returns(CatalogOrFake(settingId));
     }
 
-    // Real catalog settings whose Control routes a given value shape through the new engine to a SUCCEEDING plan.
-    // Slice 4c: the registry mock's GetById returns the REAL catalog Setting for these ids (CatalogOrFake), so routing,
+    // Real catalog settings whose Control routes a given value shape through the engine to a SUCCEEDING plan.
+    // The registry mock's GetById returns the REAL catalog Setting for these ids (CatalogOrFake), so routing,
     // the Control gate, AND the change-history receipt rendering all read the live catalog Setting. Each test mocks the
     // REAL catalog state labels and picks raw/apply values against the real states. SkipValuePrerequisites isolates the
     // receipt from relationship cascades.
@@ -110,7 +109,7 @@ public class SettingApplicationServiceTests
     private const string PowerCfgPercentNumericId = "processor-min-state"; // powercfg-Separate numeric slider, "%" units
 
     // A real catalog plain-registry toggle (Enabled/Disabled states, a RegTarget). Applying it routes through the
-    // new engine to a plan the (defaulted-to-success) writer completes, so the funnel returns Success. GetById returns
+    // engine to a plan the (defaulted-to-success) writer completes, so the funnel returns Success. GetById returns
     // this real catalog toggle Setting (Control == Toggle) for the change-history receipt.
     private static string RealPairedToggleId() => SettingCatalog.All.First(s =>
         s.Detector is null && s.OptionSource is null && s.Numeric is null
@@ -121,8 +120,8 @@ public class SettingApplicationServiceTests
     public async Task ApplySettingAsync_PairedPlainToggle_RoutesThroughNewWriter_BypassingOldExecutor()
     {
         // A real catalog plain registry toggle (no custom detector / dynamic options / numeric, with both an Enabled
-        // and a Disabled state) applies through the new ApplyExecutor + IStateWriter. Unpaired/fake ids (the null-plan
-        // tests below) now resolve to null -> a logged OperationResult.Failed; there is no old-executor fallback.
+        // and a Disabled state) applies through the ApplyExecutor + IStateWriter. Unpaired/fake ids (the null-plan
+        // tests below) resolve to null -> a logged OperationResult.Failed.
         var paired = SettingCatalog.All.First(s =>
             s.Detector is null && s.OptionSource is null && s.Numeric is null
             && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
@@ -132,8 +131,8 @@ public class SettingApplicationServiceTests
         await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = paired.Id, Enable = true });
 
         _mockStateWriter.Invocations.Should().NotBeEmpty("the paired toggle must apply through the new writer");
-        // The new engine performs no restarts itself, so the funnel must still run process/service restarts
-        // (the old executor did this as its final step) - else a setting that restarts Explorer would not take effect.
+        // The engine performs no restarts itself, so the funnel must still run process/service restarts -
+        // else a setting that restarts Explorer would not take effect.
         _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<Setting>()), Times.Once);
     }
 
@@ -142,9 +141,9 @@ public class SettingApplicationServiceTests
     [InlineData(19045)] // Windows 10: only the KeyExists key-delete target is live; the Win11 write is gated out.
     public async Task ApplySettingAsync_MergedThisPcToggle_AppliesOnlyTheLiveBuildTarget(int buildNumber)
     {
-        // Phase 6.5: a merged This PC folder setting has two build-gated targets on the SAME key - a Windows-11
+        // A merged This PC folder setting has two build-gated targets on the SAME key - a Windows-11
         // HiddenByDefault DWORD write and a Windows-10 key existence/delete. The funnel must thread the live build
-        // so ApplyPlanBuilder emits ONLY this OS's target. (With build=null BOTH would fire - the latent 6.4 bug.)
+        // so ApplyPlanBuilder emits ONLY this OS's target. (With build=null BOTH would fire.)
         const string id = "explorer-customization-thispc-folder-desktop";
         SettingCatalog.All.Should().Contain(s => s.Id == id, "the merged This PC setting must exist for this test");
         SetupSettingInRegistry(id);
@@ -165,8 +164,8 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_PairedSetting_FiresForwardRequiresFollowOn()
     {
-        // Phase 6.6 Slice 2 (relationship go-live): applying a paired setting whose target state declares a Requires
-        // Link must, via RelationshipResolver.ResolveForward, recursively apply the prerequisite when it is not already
+        // Applying a paired setting whose target state declares a Requires Link must, via
+        // RelationshipResolver.ResolveForward, recursively apply the prerequisite when it is not already
         // met. Asserted by the prerequisite's SettingAppliedEvent being published (proof the follow-on apply ran).
         var owner = SettingCatalog.All.FirstOrDefault(s =>
             s.Detector is null && s.OptionSource is null
@@ -198,8 +197,8 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
-        // A paired plain toggle routes through the new engine; with the writer succeeding (ctor default), the apply
-        // succeeds. (Previously a fake id "succeeded" via the old ISettingOperationExecutor; that fallback is gone.)
+        // A paired plain toggle routes through the engine; with the writer succeeding (ctor default), the apply
+        // succeeds.
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
@@ -259,10 +258,10 @@ public class SettingApplicationServiceTests
         // Bug A "one restart per click": the primary Action apply and the recommended batch must
         // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
         // covering the primary action AND every recommended setting.
-        // Slice 3b: the recommended applier + the coalesced-restart flush are now catalog-Setting typed, and
-        // SAS builds the restart set from the primary's catalog Setting (renderSetting = Find(settingId)). Repoint
-        // the synthetic Action id onto a REAL catalog Action so renderSetting resolves and joins the flush set.
-        // Slice 4c: GetById now returns that same catalog Action Setting, whose Control == Action drives the branch.
+        // The recommended applier + the coalesced-restart flush are catalog-Setting typed, and SAS builds the
+        // restart set from the primary's catalog Setting (renderSetting = Find(settingId)). The test id must be a
+        // REAL catalog Action so renderSetting resolves and joins the flush set; GetById returns that same
+        // catalog Action Setting, whose Control == Action drives the branch.
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
@@ -300,8 +299,6 @@ public class SettingApplicationServiceTests
 
     // ---------------------------------------------------------------
     // Unpaired setting -> resolver returns null -> logged OperationResult.Failed
-    // (the old ISettingOperationExecutor fallback that used to make a fake id "succeed" is gone; the success
-    //  path is now the new engine, covered by ApplySettingAsync_ValidSetting_ReturnsSuccess)
     // ---------------------------------------------------------------
 
     [Fact]
@@ -434,8 +431,8 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_UnpairedSetting_Fails_DoesNotLogChangeHistory()
     {
-        // A failed apply (unpaired id -> null plan, no old-executor fallback) returns before the change-history
-        // receipt, so nothing is logged even though a before-state is available.
+        // A failed apply (unpaired id -> null plan) returns before the change-history receipt, so nothing is
+        // logged even though a before-state is available.
         SetupSettingInRegistry("fail-no-history");
 
         _mockSettingStateProvider
@@ -807,7 +804,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_FallbackRawValueWithNoMatchingOption_RendersCustomNotIndexedLabel()
     {
-        // Regression for the fallback-as-index bug (commit f9528147): a raw PowerCfg DC value that matches NO
+        // Regression for the fallback-as-index bug: a raw PowerCfg DC value that matches NO
         // option must render "Custom" -- NOT States[rawValue]. Rendering reads the REAL catalog
         // (power-display-timeout: Set["Power"] values 0,60,120,180,300,...; raw 1 matches none). Battery present.
         SetupSettingInRegistry(PowerCfgSelectionId);
@@ -878,10 +875,8 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 
-    // --- Phase 6.7 Slice 8b-2b (D1): the funnel re-applies Winhance-recommended power settings after a successful
-    //     switch TO the Winhance power plan (re-homed from the retired PowerService special-handler tail). The mocked
-    //     handler registry returns null, so the funnel always exercises the NEW engine path here, as it will in
-    //     production once the special-handler registration is removed. ---
+    // --- The funnel re-applies Winhance-recommended power settings after a successful switch TO the Winhance
+    //     power plan. The mocked handler registry returns null, so the funnel exercises the engine path here. ---
 
     [Fact]
     public async Task ApplySettingAsync_WinhancePowerPlanApplied_ReappliesRecommendedPowerSettings()

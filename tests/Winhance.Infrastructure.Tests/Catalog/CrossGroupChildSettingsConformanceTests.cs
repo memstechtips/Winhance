@@ -10,16 +10,13 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 /// cross-group child map - the ads/promotional master, with 8 entries and the known pairs; every other Setting
 /// carries null, never an empty dictionary.
 ///
-/// TEARDOWN NOTE: this file also held an oracle fact that compared the catalog map against the field authored on
-/// the old model. That comparison died with the old model at teardown; the pin below is catalog-only and permanent.
 /// Machine-independent: compiled objects only, no I/O. Run: dotnet test --filter CrossGroupChildSettingsConformance</summary>
 public class CrossGroupChildSettingsConformanceTests
 {
     private const string MasterId = "privacy-ads-promotional-master";
 
-    /// <summary>The teardown survivor: pins the catalog side alone, no old-model reference. Exactly one catalog
-    /// Setting carries a cross-group child map; it is the ads/promotional master, with 8 entries and the known
-    /// first/last pairs.</summary>
+    /// <summary>Exactly one catalog Setting carries a cross-group child map; it is the ads/promotional master,
+    /// with 8 entries and the known first/last pairs.</summary>
     [Fact]
     public void CrossGroupChildSettings_CatalogPinsTheOneCrossGroupMap()
     {

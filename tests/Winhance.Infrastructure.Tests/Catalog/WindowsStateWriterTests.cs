@@ -55,7 +55,7 @@ public class WindowsStateWriterTests
         _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
     }
 
-    // --- ActivatePowerPlan (Slice 8b-1): delegate to IPowerPlanActivationService.EnsureActivatedAsync
+    // --- ActivatePowerPlan: delegate to IPowerPlanActivationService.EnsureActivatedAsync
     //     (import-if-missing + activate + InvalidateCache); a cheap guard still rejects an invalid GUID. ---
 
     [Fact]
@@ -303,8 +303,6 @@ public class WindowsStateWriterTests
 
         _sut.SetTask(new TaskTarget("key", @"\MS\Win\Foo"), enabled: true).Should().BeFalse();
     }
-
-    // --- Slice 2b/2c placeholders throw loudly (unwired until Slice 4) ---
 
     // --- RunEffect: dispatch each effect to the right service (NativePowerEffect calls the static PowerProf
     //     P/Invoke directly, so it is review + apply-smoke gated, not unit-tested here). ---

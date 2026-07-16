@@ -22,8 +22,7 @@ public class RegistryCommandEmitterTests
     }
 
     // ---------------------------------------------------------------
-    // AppendSelectionCommands (Slice 7e-6: takes the paired catalog Setting; renamed from
-    // AppendSelectionCommandsFiltered)
+    // AppendSelectionCommands
     // ---------------------------------------------------------------
 
     [Fact]
@@ -47,7 +46,7 @@ public class RegistryCommandEmitterTests
     public void AppendSelectionCommands_WithCustomStateValues_AppliesValues()
     {
         var sb = new StringBuilder();
-        // Slice 7e-6: the caller passes the REAL catalog selection itself (registry DWORD target "Start";
+        // The caller passes the REAL catalog selection itself (registry DWORD target "Start";
         // custom value 3 is arbitrary - the emit path has no lock handling).
         var setting = SettingCatalog.Find("gaming-touch-keyboard-service")!;
         var configItem = new ConfigurationItem
@@ -121,10 +120,9 @@ public class RegistryCommandEmitterTests
     [Fact]
     public void AppendRegContentCommandsFromCatalog_MixedHiveContent_Throws()
     {
-        // Direct emitter-level coverage of the mixed-hive guard (7e-4b): the builder-level routing test
-        // was deleted because no paired catalog content can mix hives and unpaired ids now skip at the
-        // section gate - but the guard itself stays load-bearing for future authored content, and this
-        // method accepts caller-constructed Settings, so the throw is directly testable here.
+        // Direct emitter-level coverage of the mixed-hive guard. The guard stays load-bearing for future
+        // authored content, and this method accepts caller-constructed Settings, so the throw is directly
+        // testable here.
         var sb = new StringBuilder();
         var mixed = new Winhance.Core.Features.Common.Catalog.Setting
         {

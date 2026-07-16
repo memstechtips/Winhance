@@ -26,10 +26,9 @@ public class ConfigurationApplicationBridgeServiceTests
             _importState);
     }
 
-    // Synthetic catalog Settings: since Slice 6 the bridge reads the registry-returned Setting directly
-    // (no live-catalog re-pairing), so tests construct exactly the shape they exercise - the derived
-    // Control comes from the shape (2 Enabled/Disabled states = Toggle, 0 states = Action, other states =
-    // Selection, Numeric = Slider).
+    // Synthetic catalog Settings: the bridge reads the registry-returned Setting directly, so tests
+    // construct exactly the shape they exercise - the derived Control comes from the shape (2
+    // Enabled/Disabled states = Toggle, 0 states = Action, other states = Selection, Numeric = Slider).
     private static Setting CreateSetting(string id, ControlKind kind = ControlKind.Toggle, bool requiresConfirmation = false) => new()
     {
         Id = id,

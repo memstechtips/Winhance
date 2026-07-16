@@ -9,7 +9,7 @@ using Xunit;
 namespace Winhance.Core.Tests.Catalog;
 
 /// <summary>Tests the pure apply-request -> new-engine-plan bridge. It maps a plain toggle/check-box/selection/Action
-/// to an ApplyPlanBuilder plan via its SettingCatalog peer, and returns null (caller falls back to the old apply) for
+/// to an ApplyPlanBuilder plan via its SettingCatalog peer, and returns null (unreachable in production; the caller fails loudly) for
 /// unpaired / reset / numeric / custom-detector / non-index-selection requests.</summary>
 public class ApplyRequestResolverTests
 {
@@ -72,7 +72,7 @@ public class ApplyRequestResolverTests
         public string? Detect(Setting setting, IDetectionContext context) => null;
     }
 
-    // ---- Fallbacks (return null -> old apply) ----
+    // ---- Null returns (unreachable production shapes; the caller fails loudly) ----
 
     [Fact]
     public void Unpaired_def_returns_null()
@@ -87,8 +87,7 @@ public class ApplyRequestResolverTests
     {
         // A toggle with NO WindowsDefault-roled state carries no reset-specific overrides (ResetSet), so its
         // reset IS a normal apply of the requested default direction. The resolver falls through to the toggle
-        // resolution with reset:true threaded (a no-op here - no ResetSet). Proven reset-inert + apply-covered +
-        // ResetSet-free for the whole population by NoWindowsDefaultResetInertTests.
+        // resolution with reset:true threaded (a no-op here - no ResetSet).
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
@@ -99,7 +98,7 @@ public class ApplyRequestResolverTests
     public void Bare_custom_detector_setting_returns_null()
     {
         // A custom-detector setting whose states carry NO apply effects has nothing
-        // for the new engine to apply, so it falls back to the old apply. ToggleSetting()'s states are effect-less.
+        // to apply, so it returns null. ToggleSetting()'s states are effect-less.
         var setting = ToggleSetting() with { Detector = new FakeDetector() };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
@@ -109,10 +108,9 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Custom_detector_reset_with_windows_default_routes_to_new_engine()
     {
-        // A custom-detector setting WITH apply effects AND a WindowsDefault state (system-restore-style) now routes its
+        // A custom-detector setting WITH apply effects AND a WindowsDefault state (system-restore-style) routes its
         // RESET through the new engine: the reset block derives the WindowsDefault state and builds it with reset:true,
-        // exactly as ApplyPlanBuilder would - proven equivalent to the old executor reset by
-        // CustomDetectorResetApplyEquivalenceTests. The passed enable/value are ignored on a reset; the WindowsDefault
+        // exactly as ApplyPlanBuilder would. The passed enable/value are ignored on a reset; the WindowsDefault
         // direction is authoritative.
         var setting = ToggleSetting() with
         {
@@ -145,7 +143,7 @@ public class ApplyRequestResolverTests
     {
         // A custom-detector selection WITH effects but NO WindowsDefault state, reset with a NON-index value
         // (null): it falls through the reset block to the normal selection resolution, which returns null for a
-        // non-index value -> old apply. (A reset carrying a valid option index DOES route now - see
+        // non-index value -> returns null. (A reset carrying a valid option index DOES route now - see
         // Reset_no_windows_default_selection_index_falls_through.)
         var setting = SelectionSetting() with
         {
@@ -175,7 +173,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Dynamic_option_source_with_non_guid_value_returns_null()
     {
-        // A legacy int index needs an async index->GUID lookup the pure resolver can't do -> old apply.
+        // A legacy int index needs an async index->GUID lookup the pure resolver can't do -> returns null.
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: false, new[] { setting });
@@ -185,7 +183,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Dynamic_option_source_with_guid_string_builds_activate_op()
     {
-        // Live UI selection (Slice 7b-ui-3a): the stored value is the scheme GUID string.
+        // Live UI selection: the stored value is the scheme GUID string.
         var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: guid,
@@ -210,7 +208,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Numeric_non_dict_value_returns_null()
     {
-        // The new engine only handles the AC/DC display-units dictionary shape; a bare int falls back.
+        // Only the AC/DC display-units dictionary shape is handled; a bare int returns null.
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 5,
             resetToDefault: false, new[] { NumericSetting() });
         Assert.Null(plan);
@@ -257,7 +255,7 @@ public class ApplyRequestResolverTests
     {
         // A custom-detector setting whose states carry apply effects (system-tray / system-restore, Slice 5) is
         // applied by the new engine: the resolver routes the enable request to the matching state's plan exactly
-        // as ApplyPlanBuilder.Build would, instead of falling back to the old apply.
+        // as ApplyPlanBuilder.Build would, instead of returning null.
         var setting = ToggleSetting() with
         {
             Detector = new FakeDetector(),
@@ -386,7 +384,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Powercfg_selection_acdc_out_of_range_index_returns_null()
     {
-        // An out-of-range AC/DC index is not representable -> falls back to the old apply.
+        // An out-of-range AC/DC index is not representable -> returns null.
         var setting = PowerCfgSelectionSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 9),
             resetToDefault: false, new[] { setting });
@@ -397,7 +395,7 @@ public class ApplyRequestResolverTests
     public void Mixed_powercfg_and_registry_selection_acdc_returns_null()
     {
         // DEFENSIVE guard: a powercfg selection with a SIBLING RegTarget is not pure - BuildPowerCfgSelectionAcDc
-        // writes only the powercfg target and would DROP the registry writes, so it stays on the old apply. (Real
+        // writes only the powercfg target and would DROP the registry writes, so it returns null. (Real
         // powercfg selections never take this shape: their enablement registry is nested in PowerCfgTarget.EnablementKey,
         // out-of-band, so they DO route - see Powercfg_selection_with_enablement_key_routes.)
         var setting = new Setting
@@ -454,7 +452,7 @@ public class ApplyRequestResolverTests
     {
         // The old PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
         // given an AC/DC value throws NotSupportedException there). The new routing mirrors that gate: a non-Separate
-        // powercfg selection falls back to the old apply rather than writing both contexts. (No such setting exists
+        // powercfg selection returns null rather than writing both contexts. (No such setting exists
         // today - all catalog powercfg settings are Separate - this guards the invariant if one is ever added.)
         var setting = new Setting
         {
@@ -525,7 +523,7 @@ public class ApplyRequestResolverTests
     public void Registry_selection_custom_state_per_nic_returns_null()
     {
         // A per-network-interface registry selection is outside the proven plain-registry custom-state population,
-        // so it stays on the old apply.
+        // so it returns null.
         var setting = new Setting
         {
             Id = "t",
@@ -549,7 +547,7 @@ public class ApplyRequestResolverTests
     {
         // Edge-1: on Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
         // alias-normalizes it to the canonical MERGED catalog Setting and builds it with the live (Win10) build gate
-        // - the same path config-import already uses - instead of missing (unpaired) and falling to the old apply.
+        // - the same path config-import already uses - instead of missing (unpaired) and returning null.
         const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
         const string canonicalId = "explorer-customization-thispc-folder-desktop";
         var win10 = new WinBuild(19045);
@@ -582,7 +580,7 @@ public class ApplyRequestResolverTests
     public void Reset_no_windows_default_selection_index_falls_through()
     {
         // A no-WindowsDefault selection reset carrying a plain option index (a selection with no IsDefault
-        // option - what DNS / system-tray were before the Slice 2 converter-gap fix) applies that index -
+        // option, as DNS / system-tray were) applies that index -
         // reset:true threaded (a no-op without a ResetSet).
         var setting = SelectionSetting(); // OptA(0), OptB(1); no WindowsDefault state
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
@@ -607,7 +605,7 @@ public class ApplyRequestResolverTests
     public void Reset_stateless_action_returns_null()
     {
         // A stateless Action has no default STATE to apply on reset (BuildAction runs its one-shot effects, which
-        // is NOT a reset), so its reset is not representable and stays on the old apply.
+        // is NOT a reset), so its reset is not representable and returns null.
         var setting = new Setting
         {
             Id = "t",

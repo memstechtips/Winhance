@@ -317,7 +317,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithOptimizeFeatures_EmitsHklmRegistryEntries()
     {
-        // Slice 7e-6: the pipeline runs on the catalog Setting dict, so the fixture passes the REAL
+        // The pipeline runs on the catalog Setting dict, so the fixture passes the REAL
         // catalog HKLM registry toggle (security-remote-assistance, RegTarget fAllowToGetHelp) directly.
         var config = new UnifiedConfigurationFile
         {
@@ -361,7 +361,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithCustomizeFeatures_EmitsHkcuInUserBlock()
     {
-        // Slice 7e-6: the REAL catalog HKCU toggle (gaming-game-mode, RegTarget AutoGameModeEnabled under
+        // The REAL catalog HKCU toggle (gaming-game-mode, RegTarget AutoGameModeEnabled under
         // HKEY_CURRENT_USER) rides the Setting dict directly. The value name lands only in the HKCU pass,
         // i.e. inside the $UserCustomizations block.
         var config = new UnifiedConfigurationFile
@@ -447,10 +447,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_SettingDict_RealPowerSetting_EmitsCatalogPowerCfgTargets()
     {
-        // Slice 7f: the def-dict pairing SHIM is deleted - the UI caller feeds catalog Settings straight
-        // from the catalog registry, so an unpaired id can no longer enter the pipeline (the old
-        // unpaired-skip pin retired with the shim). This keeps the builder-level pipeline pin the shim fact
-        // carried: a REAL catalog power setting rides the Setting dict end-to-end and emits its catalog
+        // A REAL catalog power setting rides the Setting dict end-to-end and emits its catalog
         // PowerCfgTarget GUIDs with the bulk-query values.
         var config = new UnifiedConfigurationFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
@@ -474,7 +471,7 @@ public class AutounattendScriptBuilderTests
     public async Task BuildWinhancementsScriptAsync_SettingDict_AliasedConfigId_EmitsViaMergedCatalogSetting()
     {
         // A config exported on a Windows-10 machine carries the retired "-win10" This PC folder item id,
-        // while the Setting dict (fed straight from the catalog registry since 7f) carries only the MERGED
+        // while the Setting dict (fed straight from the catalog registry) carries only the MERGED
         // catalog setting under its canonical id. What this fact PINS red-on-mutation is the pipeline's
         // alias-NORMALIZED config-id lookup (the section normalizes configItem.Id onto the canonical
         // Setting) - so the toggle still emits, via the Win10 KeyExists target: the ctor's

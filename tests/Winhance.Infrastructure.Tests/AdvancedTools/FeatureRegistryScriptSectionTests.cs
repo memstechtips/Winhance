@@ -12,9 +12,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
-/// <summary>Slice 7e-6: AppendFeatureGroupRegistryEntries takes the catalog Setting dict (the def dict died with
-/// the flip; the builder's PUBLIC def-dict shim - pinned by AutounattendScriptBuilderTests - is the only place
-/// defs still enter the pipeline), so every fixture here passes REAL catalog Settings via SettingCatalog.Find.</summary>
+/// <summary>AppendFeatureGroupRegistryEntries takes the catalog Setting dict, so every fixture here passes
+/// REAL catalog Settings via SettingCatalog.Find.</summary>
 public class FeatureRegistryScriptSectionTests
 {
     private readonly Mock<ILogService> _logService = new();
@@ -85,7 +84,7 @@ public class FeatureRegistryScriptSectionTests
     {
         var sb = new StringBuilder();
         // The REAL catalog HKLM registry toggle (security-remote-assistance, RegTarget fAllowToGetHelp,
-        // HKLM DWORD) - since Slice 7e-6 the dict carries the catalog Setting itself.
+        // HKLM DWORD).
         var featureGroup = CreateFeatureGroup(FeatureIds.Privacy, new[]
         {
             new ConfigurationItem
@@ -165,7 +164,7 @@ public class FeatureRegistryScriptSectionTests
         var sb = new StringBuilder();
         // The REAL catalog registry selection (gaming-touch-keyboard-service, HKLM DWORD RegTarget "Start";
         // custom value 3 is arbitrary - the emit path has no lock handling). This no-index +
-        // CustomStateValues shape ALSO routes the script pass to the catalog custom-state emitter (7e-5),
+        // CustomStateValues shape ALSO routes the script pass to the catalog custom-state emitter,
         // so the setting's un-baked enabled script (the TextInputHost restore, RunContext.System) emits
         // into this HKLM-pass output alongside the registry write - the assertions below are
         // contains-checks and stay green; noted for byte-level readers.
@@ -196,7 +195,7 @@ public class FeatureRegistryScriptSectionTests
     public void AppendFeatureGroupRegistryEntries_WithScheduledTask_EmitsTaskBatch()
     {
         var sb = new StringBuilder();
-        // Slice E1a: the scheduled-task emit sources task paths + description from the catalog Setting
+        // The scheduled-task emit sources task paths + description from the catalog Setting
         // (TaskTarget + Display.Description) - the fixture is the REAL catalog scheduled-task setting.
         var featureGroup = CreateFeatureGroup("TestFeature", new[]
         {

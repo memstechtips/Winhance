@@ -4,9 +4,7 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Machine-independent RULE conformance for AvailabilityCompatibility.DeriveCompatibilityMessage on
-/// CONSTRUCTED Availability instances -- no defs, no old filter. Pins every derivation-rule branch so the helper
-/// stays honest after the Plan-4 teardown deletes the old-model equivalence oracle. This class SURVIVES
-/// teardown.</summary>
+/// CONSTRUCTED Availability instances. Pins every derivation-rule branch so the helper stays honest.</summary>
 public class CompatibilityMessageConformanceTests
 {
     private static readonly WinBuild Unbounded = new(int.MaxValue, int.MaxValue);
@@ -22,8 +20,8 @@ public class CompatibilityMessageConformanceTests
         Assert.Equal("Compatibility_Windows11Only",
             Derive(Avail(BuildRange.Windows11), new WinBuild(19045)));
 
-        // A Min ABOVE the boundary still reads as Windows-11-only on a Windows 10 machine: the old branch
-        // order fired IsWindows11Only before the build-bound branches, and every shipped build-bounded def is
+        // A Min ABOVE the boundary still reads as Windows-11-only on a Windows 10 machine: the branch order
+        // fires IsWindows11Only before the build-bound branches, and every shipped build-bounded case is
         // also IsWindows11Only.
         Assert.Equal("Compatibility_Windows11Only",
             Derive(Avail(new BuildRange(new WinBuild(26100), Unbounded)), new WinBuild(19045)));
@@ -74,8 +72,8 @@ public class CompatibilityMessageConformanceTests
         // Above the window on a Windows 11 machine (the taskbar-copilot shape).
         Assert.Equal("Compatibility_BuildRange|22621-26099", Derive(window, new WinBuild(26200)));
 
-        // Below the window but still a Windows 11 machine: the old model had no min/max bounds for a
-        // SupportedBuildRanges def, so the range text is the message on either side of the window.
+        // Below the window but still a Windows 11 machine: with no min/max bounds on a multi-window range,
+        // the range text is the message on either side of the window.
         Assert.Equal("Compatibility_BuildRange|22621-26099", Derive(window, new WinBuild(22000)));
     }
 

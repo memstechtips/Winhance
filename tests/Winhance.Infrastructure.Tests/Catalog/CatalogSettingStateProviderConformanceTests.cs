@@ -9,16 +9,11 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT conformance for the new-engine <see cref="CatalogSettingStateProvider"/> - the permanent
-/// guard left behind after old discovery + the equivalence oracle were retired (Phase 6.9 teardown). These construct
+/// <summary>Machine-INDEPENDENT conformance for the <see cref="CatalogSettingStateProvider"/>. These construct
 /// readings/detection results directly and assert against what Windows ships and the catalog model, never a live
-/// old-vs-new comparison. Covers: the Windows-grounded IsEnabled rule (the <c>IsEnabled_*</c> facts + the
+/// comparison. Covers: the Windows-grounded IsEnabled rule (the <c>IsEnabled_*</c> facts + the
 /// <c>Every_gate_*</c> structural invariants that keep the rule well-defined) and the selection value-match
-/// fallback (the Phase 6.9 Custom-regression guard). The win10-alias pairing fact retired with the def-based
-/// provider overload (Slice L6): the Setting overload does no pairing - a Setting is already the canonical
-/// merged catalog entry, and the -win10 defs have no catalog peer to feed it. At teardown the States-vs-option-
-/// DisplayNames oracle died with the old model, and the Every_gate_* populations were re-expressed over the
-/// catalog itself (see the gate-population predicates below) - their assertions are unchanged.
+/// fallback (the Custom-regression guard).
 ///
 /// Run: dotnet test --filter CatalogSettingStateProviderConformance</summary>
 public class CatalogSettingStateProviderConformanceTests
@@ -26,11 +21,11 @@ public class CatalogSettingStateProviderConformanceTests
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
     // ============================================================================================================
-    //  Gate-population predicates. Catalog-side translations of the IsPure* classifiers that used to live on the old
-    //  migration harness (IsPureRegistrySelection / IsPurePowerCfgSelection / IsPurePowerCfgNumeric), which died with
-    //  the old model at teardown. Faithful: "pure" == exactly one DETECTION mechanism and no custom detector.
-    //  NOTE a PowerCfgTarget's EnablementKey is a NESTED RegTarget, not a top-level Target, so OfType over Targets
-    //  never sees an enablement key - which is precisely what the old predicates meant by "no registry settings".
+    //  Gate-population predicates. Catalog-side translations of the IsPure* classifiers (IsPureRegistrySelection /
+    //  IsPurePowerCfgSelection / IsPurePowerCfgNumeric). Faithful: "pure" == exactly one DETECTION mechanism and no
+    //  custom detector. NOTE a PowerCfgTarget's EnablementKey is a NESTED RegTarget, not a top-level Target, so
+    //  OfType over Targets never sees an enablement key - which is precisely what these predicates mean by
+    //  "no registry settings".
     // ============================================================================================================
 
     private static bool IsPureRegistrySelection(Setting s) =>
@@ -55,8 +50,8 @@ public class CatalogSettingStateProviderConformanceTests
         && !s.Targets.OfType<TaskTarget>().Any();
 
     // ============================================================================================================
-    //  Machine-INDEPENDENT model-conformance for IsEnabled (the done-right, Windows-grounded "not in the Windows-
-    //  default state" rule). These construct readings and assert against what Windows ships - NOT a live hybrid.
+    //  Machine-INDEPENDENT model-conformance for IsEnabled (the Windows-grounded "not in the Windows-default
+    //  state" rule). These construct readings and assert against what Windows ships.
     // ============================================================================================================
 
     private static bool Derive(Setting s, string? stateLabel)
@@ -165,7 +160,7 @@ public class CatalogSettingStateProviderConformanceTests
             "Every gate-population numeric must carry a WindowsDefault(AC) value. Offenders: " + string.Join(", ", offenders));
     }
 
-    /// <summary>Regression (Phase 6.9): a selection for which the new engine yields NO resolved state label (null -
+    /// <summary>Regression: a selection for which the engine yields NO resolved state label (null -
     /// StateDetectionEngine found no match, or the label isn't a verbatim option DisplayName) must fall back to the
     /// value-match the live UI consumed (ResolveRawValuesToIndex over the reads), NOT collapse to the Custom index.
     /// The old pipeline resolved these via discovery's value-match and the overlay's Selection branch preserved it via
@@ -177,9 +172,6 @@ public class CatalogSettingStateProviderConformanceTests
     {
         // gaming-sysmain-service: option index 1 is Start=3 ("Manual"). The engine reports NO label (the regression
         // trigger) but the live reads say Start=3, so the value-match must land on index 1, never Custom (-1).
-        // L6 (def-overload retirement): re-homed onto the Setting overload - feed the paired catalog Setting
-        // directly (gaming-sysmain-service is unaliased, so Find resolves the same Setting the retired def
-        // overload paired to); the mocked detection and the assertions are unchanged.
         var sysmain = SettingCatalog.Find("gaming-sysmain-service");
         Assert.NotNull(sysmain);
 
@@ -205,13 +197,10 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
     }
 
-    /// <summary>The surviving, def-free half of the invariant ResolveSelectionIndex rests on. It resolves a state
-    /// label to an option index by taking the FIRST State whose Label matches (Ordinal) -- which is only
-    /// well-defined if a selection's Labels are DISTINCT and non-empty. The old oracle proved the stronger
-    /// `States[i].Label == ComboBox.Options[i].DisplayName, in option order`; that half is inherently def-dependent
-    /// and dies with the def (the catalog IS the option order now). This pins what remains checkable -- and it is
-    /// the part that actually matters: duplicate or blank Labels would make the first-match resolution ambiguous
-    /// and silently return the wrong option index.</summary>
+    /// <summary>The invariant ResolveSelectionIndex rests on. It resolves a state label to an option index by
+    /// taking the FIRST State whose Label matches (Ordinal) -- which is only well-defined if a selection's Labels
+    /// are DISTINCT and non-empty. This pins the part that matters: duplicate or blank Labels would make the
+    /// first-match resolution ambiguous and silently return the wrong option index.</summary>
     [Fact]
     public void Every_selection_has_distinct_non_empty_state_labels()
     {

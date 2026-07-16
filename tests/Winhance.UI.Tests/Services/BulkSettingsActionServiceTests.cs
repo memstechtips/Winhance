@@ -54,7 +54,7 @@ public class BulkSettingsActionServiceTests
     private BulkSettingsActionService CreateSut(params Setting[] settings)
     {
         foreach (var s in settings)
-            // The registry returns the catalog Setting directly (no converter): the round-trip reads its States + roles.
+            // The registry returns the catalog Setting directly: the round-trip reads its States + roles.
             _settingsRegistry.Setup(r => r.GetById(s.Id, It.IsAny<bool>())).Returns(s);
 
         _processRestartManager
@@ -80,7 +80,7 @@ public class BulkSettingsActionServiceTests
                 {
                     if (s.Control == ControlKind.Selection)
                     {
-                        // Find the Recommended-role state index (Slice 3b: catalog Setting, not ComboBox flags)
+                        // Find the Recommended-role state index.
                         int recIdx = -1;
                         for (int i = 0; i < s.States.Count; i++)
                             if (s.States[i].HasRole(RoleKind.Recommended)) { recIdx = i; break; }
@@ -112,8 +112,8 @@ public class BulkSettingsActionServiceTests
             _localizationService.Object);
     }
 
-    // A synthetic catalog Selection Setting: 3 states A/B/C carrying the Recommended/WindowsDefault roles the old
-    // converter derived from IsRecommended/IsDefault. The bulk service + round-trip badge read only Control + roles.
+    // A synthetic catalog Selection Setting: 3 states A/B/C carrying the Recommended/WindowsDefault roles.
+    // The bulk service + round-trip badge read only Control + roles.
     private static Setting MakeSelectionSetting(
         int? recommendedIndex,
         int defaultIndex,
