@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -40,9 +41,8 @@ internal class PowerSettingsScriptSection
         _logService = logService;
     }
 
-    public ConfigurationItem? FindPowerPlanSetting(
-        UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    // Slice 7e-6: the phantom def-dict param is dropped (the body never read it).
+    public ConfigurationItem? FindPowerPlanSetting(UnifiedConfigurationFile config)
     {
         if (!config.Optimize.Features.TryGetValue(FeatureIds.Power, out var powerSection))
             return null;
@@ -54,10 +54,10 @@ internal class PowerSettingsScriptSection
     public async Task<bool> AppendPowerSettingsSectionAsync(
         StringBuilder sb,
         UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings,
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
         string indent)
     {
-        var powerPlanSetting = FindPowerPlanSetting(config, allSettings);
+        var powerPlanSetting = FindPowerPlanSetting(config);
         var activePowerPlan = await _powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
         var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings).ConfigureAwait(false);
 
@@ -215,31 +215,38 @@ internal class PowerSettingsScriptSection
 
     private async Task<List<PowerSettingData>> ExtractPowerSettingsAsync(
         string activePowerPlanGuid,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         var powerSettings = new List<PowerSettingData>();
 
-        if (!allSettings.TryGetValue(FeatureIds.Power, out var settingDefinitions))
+        if (!allSettings.TryGetValue(FeatureIds.Power, out var settings))
             return powerSettings;
 
         bool hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
 
         var bulkQueryResults = await _powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 
-        foreach (var settingDef in settingDefinitions)
+        foreach (var catalogSetting in settings)
         {
-            if (settingDef.Id == SettingIds.PowerPlanSelection || settingDef.PowerCfgSettings?.Any() != true)
+            if (catalogSetting.Id == SettingIds.PowerPlanSelection)
                 continue;
 
-            if (settingDef.RequiresBattery && !hasBattery)
+            // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
+            // keyed by the (unchanged) powercfg SettingGuid. The now-retired PowerSettingsMetadataEquivalenceTests pinned the
+            // paired reads == the retired def fields. Slice 7e-6: the dict carries the paired catalog Settings
+            // themselves (the builder's def-dict shim pairs via alias-normalized Find and skips unpaired ids),
+            // so the internal Find and its unpaired-continue are gone.
+
+            var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
+            if (powerCfgTargets.Count == 0)
                 continue;
 
-            if (settingDef.RequiresBrightnessSupport)
+            if (catalogSetting.Availability.Hardware.Contains(HardwareRequirement.Battery) && !hasBattery)
                 continue;
 
-            foreach (var powerCfgSetting in settingDef.PowerCfgSettings)
+            foreach (var powerCfgTarget in powerCfgTargets)
             {
-                if (!bulkQueryResults.TryGetValue(powerCfgSetting.SettingGuid, out var values))
+                if (!bulkQueryResults.TryGetValue(powerCfgTarget.SettingGuid, out var values))
                     continue;
 
                 if (!values.acValue.HasValue || !values.dcValue.HasValue)
@@ -247,11 +254,11 @@ internal class PowerSettingsScriptSection
 
                 powerSettings.Add(new PowerSettingData
                 {
-                    SubgroupGuid = powerCfgSetting.SubgroupGuid,
-                    SettingGuid = powerCfgSetting.SettingGuid,
+                    SubgroupGuid = powerCfgTarget.SubgroupGuid,
+                    SettingGuid = powerCfgTarget.SettingGuid,
                     AcValue = values.acValue.Value,
                     DcValue = values.dcValue.Value,
-                    Description = settingDef.Description
+                    Description = catalogSetting.Display.Description
                 });
             }
         }

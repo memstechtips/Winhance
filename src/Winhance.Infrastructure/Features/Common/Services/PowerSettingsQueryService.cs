@@ -349,6 +349,20 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
+    /// <summary>Catalog overload: the coming CatalogPowerExistenceFilter has a PowerCfgTarget (subgroup + setting
+    /// GUID), not a PowerCfgSetting. Reuses the existing capability check; the transient PowerCfgSetting is an
+    /// argument-holder only (its RecommendedValue*/DefaultValue* are unused by the capability query).</summary>
+    public Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid)
+        => IsSettingHardwareControlledAsync(new PowerCfgSetting
+        {
+            SubgroupGuid = subgroupGuid,
+            SettingGuid = settingGuid,
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null,
+        });
+
     public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
     {
         var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting).ConfigureAwait(false);

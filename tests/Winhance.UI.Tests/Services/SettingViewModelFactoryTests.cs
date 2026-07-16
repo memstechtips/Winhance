@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -24,8 +24,6 @@ public class SettingViewModelFactoryTests
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<INewBadgeService> _mockNewBadgeService = new();
-    private readonly Mock<IComboBoxSetupService> _mockComboBoxSetupService = new();
-    private readonly Mock<IComboBoxResolver> _mockComboBoxResolver = new();
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
 
@@ -62,8 +60,6 @@ public class SettingViewModelFactoryTests
             _mockLocalizationService.Object,
             _mockUserPreferencesService.Object,
             _mockNewBadgeService.Object,
-            _mockComboBoxSetupService.Object,
-            _mockComboBoxResolver.Object,
             _mockEnricher.Object);
     }
 
@@ -75,7 +71,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.Should().NotBeNull();
     }
@@ -86,7 +82,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("MySetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SettingId.Should().Be("MySetting");
     }
@@ -96,22 +92,27 @@ public class SettingViewModelFactoryTests
     {
         var setting = CreateToggleSetting("TestSetting", "Test Name", "Test Description");
         var state = new SettingStateResult { Success = true };
+        // Slice B2: the factory now localizes Name/Description via the canonical Setting_{id}_* keys.
+        _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Name")).Returns("Localized Name");
+        _mockLocalizationService.Setup(l => l.GetString("Setting_TestSetting_Description")).Returns("Localized Description");
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
-        result.Name.Should().Be("Test Name");
-        result.Description.Should().Be("Test Description");
+        result.Name.Should().Be("Localized Name");
+        result.Description.Should().Be("Localized Description");
     }
 
     [Fact]
     public async Task CreateAsync_SetsGroupName()
     {
-        var setting = CreateToggleSetting("TestSetting") with { GroupName = "Privacy Settings" };
+        var setting = CreateToggleSetting("TestSetting", groupName: "Privacy Settings");
         var state = new SettingStateResult { Success = true };
+        // Slice B2: the factory now localizes GroupName via the compacted SettingGroup_ key (spaces/ampersands stripped).
+        _mockLocalizationService.Setup(l => l.GetString("SettingGroup_PrivacySettings")).Returns("Localized Group");
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
-        result.GroupName.Should().Be("Privacy Settings");
+        result.GroupName.Should().Be("Localized Group");
     }
 
     [Fact]
@@ -120,7 +121,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = true, Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsSelected.Should().BeTrue();
     }
@@ -131,7 +132,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { IsEnabled = false, Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsSelected.Should().BeFalse();
     }
@@ -141,14 +142,14 @@ public class SettingViewModelFactoryTests
     [Fact]
     public async Task CreateAsync_WhenRequiresAdvancedUnlock_SetsIsLocked()
     {
-        var setting = CreateToggleSetting("AdvancedSetting") with { RequiresAdvancedUnlock = true };
+        var setting = CreateToggleSetting("AdvancedSetting", requiresAdvancedUnlock: true);
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(false);
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsLocked.Should().BeTrue();
     }
@@ -156,14 +157,14 @@ public class SettingViewModelFactoryTests
     [Fact]
     public async Task CreateAsync_WhenAdvancedUnlocked_SetsIsLockedToFalse()
     {
-        var setting = CreateToggleSetting("AdvancedSetting") with { RequiresAdvancedUnlock = true };
+        var setting = CreateToggleSetting("AdvancedSetting", requiresAdvancedUnlock: true);
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
             .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
             .ReturnsAsync(true);
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.IsLocked.Should().BeFalse();
     }
@@ -176,7 +177,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 50, Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.MinValue.Should().Be(0);
         result.MaxValue.Should().Be(100);
@@ -189,7 +190,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateNumericRangeSetting("NumericSetting", 0, 100, "ms");
         var state = new SettingStateResult { CurrentValue = 42, Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.NumericValue.Should().Be(42);
     }
@@ -202,22 +203,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var comboBoxResult = new ComboBoxSetupResult
-        {
-            Options = new ObservableCollection<ComboBoxDisplayOption>
-            {
-                new ComboBoxDisplayOption("Option A", 0),
-                new ComboBoxDisplayOption("Option B", 1)
-            },
-            SelectedValue = 1,
-            Success = true
-        };
-
-        _mockComboBoxSetupService
-            .Setup(s => s.SetupComboBoxOptionsAsync(setting, It.IsAny<object?>()))
-            .ReturnsAsync(comboBoxResult);
-
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.ComboBoxOptions.Should().HaveCount(2);
     }
@@ -228,39 +214,9 @@ public class SettingViewModelFactoryTests
         var setting = CreateSelectionSetting("SelectionSetting");
         var state = new SettingStateResult { CurrentValue = 1, Success = true };
 
-        var comboBoxResult = new ComboBoxSetupResult
-        {
-            Options = new ObservableCollection<ComboBoxDisplayOption>
-            {
-                new ComboBoxDisplayOption("Option A", 0),
-                new ComboBoxDisplayOption("Option B", 1)
-            },
-            SelectedValue = 1,
-            Success = true
-        };
-
-        _mockComboBoxSetupService
-            .Setup(s => s.SetupComboBoxOptionsAsync(setting, It.IsAny<object?>()))
-            .ReturnsAsync(comboBoxResult);
-
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SelectedValue.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task CreateAsync_SelectionSetting_WhenSetupFails_LogsWarning()
-    {
-        var setting = CreateSelectionSetting("SelectionSetting");
-        var state = new SettingStateResult { CurrentValue = 1, Success = true };
-
-        _mockComboBoxSetupService
-            .Setup(s => s.SetupComboBoxOptionsAsync(setting, It.IsAny<object?>()))
-            .ThrowsAsync(new Exception("Setup failed"));
-
-        var result = await _sut.CreateAsync(setting, state, null);
-
-        _mockLogService.Verify(l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("SelectionSetting"))), Times.Once);
     }
 
     // ── Review diff ──
@@ -271,7 +227,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        await _sut.CreateAsync(setting, state, null);
+        await _sut.CreateAsync(setting, state, null, null, null, null);
 
         _mockEnricher.Verify(e => e.ApplyReviewDiff(It.IsAny<SettingItemViewModel>(), state), Times.Once);
     }
@@ -284,7 +240,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { CurrentValue = "SomeValue", Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.SelectedValue.Should().Be("SomeValue");
     }
@@ -298,7 +254,7 @@ public class SettingViewModelFactoryTests
         var state = new SettingStateResult { Success = true };
         var parentVm = new Mock<ISettingsFeatureViewModel>().Object;
 
-        var result = await _sut.CreateAsync(setting, state, parentVm);
+        var result = await _sut.CreateAsync(setting, state, parentVm, null, null, null);
 
         // The VM was created successfully with the parent reference
         result.Should().NotBeNull();
@@ -320,7 +276,7 @@ public class SettingViewModelFactoryTests
         var setting = CreateToggleSetting("TestSetting");
         var state = new SettingStateResult { Success = true };
 
-        var result = await _sut.CreateAsync(setting, state, null);
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
 
         result.OnText.Should().Be("Enabled");
         result.OffText.Should().Be("Disabled");
@@ -328,49 +284,41 @@ public class SettingViewModelFactoryTests
 
     // ── Helper methods ──
 
-    private static SettingDefinition CreateToggleSetting(
-        string id, string name = "Test", string description = "Test Description")
-    {
-        return new SettingDefinition
+    // Synthetic catalog Setting fixtures (T6: the old def->Setting converter retired). The factory reads the passed
+    // Setting; these hand-built Settings carry exactly the fields CreateAsync reads (Control -> InputType, Display,
+    // Availability, Numeric, States), reproducing the shape the old converter produced for the equivalent def.
+    private static Setting CreateToggleSetting(
+        string id, string name = "Test", string description = "Test Description",
+        string groupName = "", bool requiresAdvancedUnlock = false) =>
+        new Setting
         {
             Id = id,
-            Name = name,
-            Description = description,
-            InputType = InputType.Toggle,
-            GroupName = string.Empty,
-            Icon = "TestIcon",
-            IconPack = "Material"
-        };
-    }
-
-    private static SettingDefinition CreateNumericRangeSetting(
-        string id, int min, int max, string units)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = "Numeric",
-            Description = "Numeric setting",
-            InputType = InputType.NumericRange,
-            GroupName = string.Empty,
-            NumericRange = new NumericRangeMetadata
+            Display = new() { Name = name, Description = description, GroupName = groupName },
+            Availability = requiresAdvancedUnlock ? new Availability { RequiresAdvancedUnlock = true } : Availability.Everywhere,
+            States = new[]
             {
-                MinValue = min,
-                MaxValue = max,
-                Units = units
-            }
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" },
+            },
         };
-    }
 
-    private static SettingDefinition CreateSelectionSetting(string id)
-    {
-        return new SettingDefinition
+    private static Setting CreateNumericRangeSetting(string id, int min, int max, string units) =>
+        new Setting
         {
             Id = id,
-            Name = "Selection",
-            Description = "Selection setting",
-            InputType = InputType.Selection,
-            GroupName = string.Empty
+            Display = new() { Name = "Numeric", Description = "Numeric setting", GroupName = "" },
+            Numeric = new() { Min = min, Max = max, Units = units },
         };
-    }
+
+    private static Setting CreateSelectionSetting(string id) =>
+        new Setting
+        {
+            Id = id,
+            Display = new() { Name = "Selection", Description = "Selection setting", GroupName = "" },
+            States = new[]
+            {
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Option B" },
+            },
+        };
 }

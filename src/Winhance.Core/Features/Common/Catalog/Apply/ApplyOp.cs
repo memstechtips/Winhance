@@ -51,3 +51,9 @@ public sealed record PowerCfgSetOp(PowerCfgTarget Target, PowerContext Context, 
 
 /// <summary>Run one apply-only effect (script / .reg import / native power write).</summary>
 public sealed record EffectOp(Effect Effect) : ApplyOp;
+
+/// <summary>Activate a power scheme by GUID on the live system (the dynamic-option power-plan apply - the old
+/// PowerService SetActiveScheme). The writer activates an installed scheme directly; importing a predefined-but-not-
+/// installed plan before activating lands in Slice 8b's shared importer. Built by the resolver and routed through the
+/// new engine once Slice 8b removes the PowerService special-handler apply.</summary>
+public sealed record PowerPlanActivateOp(string Guid) : ApplyOp;

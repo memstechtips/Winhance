@@ -84,6 +84,12 @@ if (-not (Test-Path $icoPath)) {
 }", RunContext.System) },
                 },
             },
+            CustomStateScripts = new[] { new ScriptEffect(@"
+$icoPath = ""$env:SystemRoot\blank.ico""
+if (-not (Test-Path $icoPath)) {
+    $b64='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'
+    [IO.File]::WriteAllBytes($icoPath,[Convert]::FromBase64String($b64))
+}", RunContext.System) },
         },
         new()
         {
@@ -379,7 +385,6 @@ if (-not (Test-Path $icoPath)) {
                 Icon = FluentIcons.DocumentQuestionMark,
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions" }, "ExplorerCommandHandler", RegistryValueKind.String),
@@ -389,6 +394,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{4ac6c205-2853-4bf5-b47c-919a42a48a16}") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -463,7 +469,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\SFC" }, "MUIVerb", RegistryValueKind.String),
@@ -473,6 +478,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("SFC /SCANNOW") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -526,7 +532,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, "MUIVerb", RegistryValueKind.String),
@@ -540,6 +545,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["MUIVerb"] = Of("Repair Windows Image"),
@@ -577,7 +583,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK" }, "MUIVerb", RegistryValueKind.String),
@@ -587,6 +592,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("CHKDSK") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -643,7 +649,6 @@ if (-not (Test-Path $icoPath)) {
                 AddedInVersion = "25.04.09",
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with" }, "MUIVerb", RegistryValueKind.String),
@@ -653,6 +658,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("Edit or Run with") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -770,7 +776,6 @@ if (-not (Test-Path $icoPath)) {
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Between(26100, int.MaxValue) } },
-            Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu" }, "ExplorerCommandHandler", RegistryValueKind.String),
@@ -780,6 +785,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
@@ -1503,7 +1509,6 @@ if (-not (Test-Path $icoPath)) {
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[] { new Link("explorer-customization-show-file-ext", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("NeverShowExt", new[] { @"HKEY_CLASSES_ROOT\lnkfile" }, "NeverShowExt", RegistryValueKind.String),
@@ -1513,6 +1518,7 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[] { new Link("explorer-customization-show-file-ext", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["NeverShowExt"] = Absent },
                 },
                 new SettingState
@@ -2128,6 +2134,234 @@ if (Test-Path $appPathsKey) {
         },
         new()
         {
+            Id = "explorer-customization-thispc-folder-desktop",
+            Display = new()
+            {
+                Name = "Show Desktop in This PC",
+                Description = "Displays the Desktop folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Monitor,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-documents",
+            Display = new()
+            {
+                Name = "Show Documents in This PC",
+                Description = "Displays the Documents folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.FileDocument,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-downloads",
+            Display = new()
+            {
+                Name = "Show Downloads in This PC",
+                Description = "Displays the Downloads folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Download,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-music",
+            Display = new()
+            {
+                Name = "Show Music in This PC",
+                Description = "Displays the Music folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Music,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-pictures",
+            Display = new()
+            {
+                Name = "Show Pictures in This PC",
+                Description = "Displays the Pictures folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Image,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-thispc-folder-videos",
+            Display = new()
+            {
+                Name = "Show Videos in This PC",
+                Description = "Displays the Videos folder under This PC in File Explorer",
+                GroupName = "This PC Folders",
+                Icon = MaterialIcons.Video,
+                AddedInVersion = "26.06.01",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    // Windows 10 shows the This PC folders by default (namespace key present); Windows 11 hides
+                    // them (HiddenByDefault=1). The merged setting carries BOTH per-OS defaults as build-scoped
+                    // WindowsDefault roles so bulk "Reset to Defaults" resolves the correct one on the live OS.
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-customization-3d-objects",
             Display = new()
             {
@@ -2198,6 +2432,11 @@ if (Test-Path $appPathsKey) {
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2240,6 +2479,11 @@ if (Test-Path $appPathsKey) {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2318,16 +2562,6 @@ if (Test-Path $appPathsKey) {
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[]
-            {
-                new Link("explorer-customization-nav-saf-desktop", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-documents", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-downloads", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-music", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-pictures", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-saf-videos", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                new Link("explorer-customization-nav-show-libraries", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-            },
             Targets = new Target[]
             {
                 new RegTarget("NavPaneShowAllFolders", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "NavPaneShowAllFolders", RegistryValueKind.DWord),
@@ -2337,6 +2571,16 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Links = new[]
+                    {
+                        new Link("explorer-customization-nav-saf-desktop", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-documents", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-downloads", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-music", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-pictures", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-saf-videos", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                        new Link("explorer-customization-nav-show-libraries", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                    },
                     Set = new Dictionary<string, StateValue> { ["NavPaneShowAllFolders"] = Of(1) },
                 },
                 new SettingState
@@ -2387,6 +2631,11 @@ if (Test-Path $appPathsKey) {
                         ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2428,6 +2677,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2471,6 +2725,11 @@ if (Test-Path $appPathsKey) {
                         ["{374DE290-123F-4565-9164-39C4925E467B}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{374DE290-123F-4565-9164-39C4925E467B}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2512,6 +2771,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2555,6 +2819,11 @@ if (Test-Path $appPathsKey) {
                         ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
             },
         },
@@ -2596,6 +2865,11 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2640,6 +2914,11 @@ if (Test-Path $appPathsKey) {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{031E4825-7B94-4dc3-B131-E946B44C8DD5}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["{031E4825-7B94-4dc3-B131-E946B44C8DD5}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -3031,210 +3310,6 @@ if (Test-Path $appPathsKey) {
                         ["DisableAutoplay"] = Of(1),
                         ["NoDriveTypeAutoRun"] = Of(255),
                     },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-desktop",
-            Display = new()
-            {
-                Name = "Show Desktop in This PC",
-                Description = "Displays the Desktop folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Monitor,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-documents",
-            Display = new()
-            {
-                Name = "Show Documents in This PC",
-                Description = "Displays the Documents folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.FileDocument,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{D3162B92-9365-467A-956B-92703ACA08AF}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-downloads",
-            Display = new()
-            {
-                Name = "Show Downloads in This PC",
-                Description = "Displays the Downloads folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Download,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088E3905-0323-4B02-9826-5D99428E115F}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-music",
-            Display = new()
-            {
-                Name = "Show Music in This PC",
-                Description = "Displays the Music folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Music,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3DFDF296-DBEC-4FB4-81D1-6A3438BCF4DE}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-pictures",
-            Display = new()
-            {
-                Name = "Show Pictures in This PC",
-                Description = "Displays the Pictures folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Image,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24AD3AD4-A569-4530-98E1-AB02F9417AA8}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-thispc-folder-videos",
-            Display = new()
-            {
-                Name = "Show Videos in This PC",
-                Description = "Displays the Videos folder under This PC in File Explorer",
-                GroupName = "This PC Folders",
-                Icon = MaterialIcons.Video,
-                AddedInVersion = "26.06.01",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HiddenByDefault", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}", @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{F86FA3AB-70D2-4FC7-9C99-FCBF05467F3A}" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(0), ["KeyExists"] = Exists },
-                },
-                new SettingState
-                {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HiddenByDefault"] = Of(1), ["KeyExists"] = Absent },
                 },
             },
         },

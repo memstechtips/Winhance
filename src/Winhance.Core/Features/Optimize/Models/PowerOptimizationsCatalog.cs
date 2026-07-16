@@ -196,10 +196,6 @@ public static class PowerOptimizationsCatalog
                 Icon = MaterialIcons.PowerSleep,
                 IsSubjectivePreference = true,
             },
-            Links = new[]
-            {
-                new Link("start-power-hibernate-option", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-            },
             Targets = new Target[]
             {
                 new RegTarget("HibernateEnabled", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power" }, "HibernateEnabled", RegistryValueKind.DWord),
@@ -217,6 +213,10 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
+                    Links = new[]
+                    {
+                        new Link("start-power-hibernate-option", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                    },
                     Set = new Dictionary<string, StateValue> { ["HibernateEnabled"] = StateValue.Of(0) },
                     IsFallback = true,
                     Effects = new Effect[] { new NativePowerEffect(10, 0) },
@@ -262,17 +262,16 @@ public static class PowerOptimizationsCatalog
                 Hardware = new[] { HardwareRequirement.HybridSleepCapable },
                 ValidatesExistence = true,
             },
-            Links = new[]
-            {
-                new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
-            },
             UiParentId = "power-hibernation-enable",
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new Target[]
             {
                 new PowerCfgTarget("Power", "238c9fa8-0aad-41ed-83f4-97be242c8f20", "94ac6d29-73ce-41a6-809f-6363ba21b47e", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.OnOff, 0, 0, 1, 1),
+            States = PowerOptions.SelectionStates(PowerOptions.OnOff, 0, 0, 1, 1, new[]
+            {
+                new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
+            }),
         },
         new()
         {
@@ -283,10 +282,6 @@ public static class PowerOptimizationsCatalog
                 Description = "Hibernate system state during shutdown for faster boot times (does not affect restart)",
                 GroupName = "Sleep",
                 Icon = MaterialIcons.FlashAuto,
-            },
-            Links = new[]
-            {
-                new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
             },
             UiParentId = "power-hibernation-enable",
             Targets = new Target[]
@@ -305,6 +300,10 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
+                    Links = new[]
+                    {
+                        new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
+                    },
                     Set = new Dictionary<string, StateValue> { ["HiberbootEnabled"] = StateValue.Of(0) },
                     IsFallback = true,
                 },
@@ -320,10 +319,6 @@ public static class PowerOptimizationsCatalog
                 GroupName = "Sleep",
                 Icon = MaterialIcons.FlashRedEye,
                 IsSubjectivePreference = true,
-            },
-            Links = new[]
-            {
-                new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
             },
             UiParentId = "power-hibernation-enable",
             Targets = new Target[]
@@ -342,6 +337,10 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
+                    Links = new[]
+                    {
+                        new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
+                    },
                     Set = new Dictionary<string, StateValue> { ["ShowHibernateOption"] = StateValue.Of(0) },
                     IsFallback = true,
                 },
@@ -1160,10 +1159,6 @@ public static class PowerOptimizationsCatalog
                 Icon = MaterialIcons.EyeLock,
                 IsSubjectivePreference = true,
             },
-            Links = new[]
-            {
-                new Link("privacy-lock-screen", LinkKind.Requires, "Enabled"),
-            },
             Targets = new Target[]
             {
                 new RegTarget("ShowLockOption", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" }, "ShowLockOption", RegistryValueKind.DWord),
@@ -1180,6 +1175,10 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
+                    Links = new[]
+                    {
+                        new Link("privacy-lock-screen", LinkKind.Requires, "Enabled"),
+                    },
                     Set = new Dictionary<string, StateValue> { ["ShowLockOption"] = StateValue.Of(0) },
                     IsFallback = true,
                 },

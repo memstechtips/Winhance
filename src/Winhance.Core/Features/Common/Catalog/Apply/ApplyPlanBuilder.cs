@@ -11,11 +11,18 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// </summary>
 public static class ApplyPlanBuilder
 {
-    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null)
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null, bool reset = false)
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
             ?? throw new ArgumentException($"No state labelled '{stateLabel}' on setting '{setting.Id}'.", nameof(stateLabel));
+        return Build(setting, state, build, reset);
+    }
 
+    /// <summary>Build the apply plan for an EXPLICIT state (not looked up by label). The label overload above resolves
+    /// the state then delegates here; the custom-state path (<see cref="BuildRegistryCustomState"/>) synthesizes a
+    /// transient state and calls this directly.</summary>
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, SettingState state, WinBuild? build = null, bool reset = false)
+    {
         var ops = new List<ApplyOp>();
 
         // A setting that applies via a .reg import does NOT write its registry targets - those are detect-only;
@@ -32,8 +39,16 @@ public static class ApplyPlanBuilder
                 case RegTarget reg:
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
-                    if (!state.Set.TryGetValue(reg.Key, out var sv))
+                    // Reset-to-default (Phase 6.4b 3A): a state's ResetSet overrides its Set per target for the
+                    // reset write (the 18 [1,null] Explorer targets detect "1-or-absent" but DELETE on reset); a
+                    // target absent from ResetSet falls back to its normal Set write.
+                    StateValue sv;
+                    if (reset && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
+                        sv = resetSv;
+                    else if (!state.Set.TryGetValue(reg.Key, out var setSv))
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) - leave it alone
+                    else
+                        sv = setSv;
                     foreach (var path in reg.Paths)
                     {
                         if (reg.PerNetworkInterface || reg.PerMonitor)
@@ -111,6 +126,25 @@ public static class ApplyPlanBuilder
         return ops;
     }
 
+    /// <summary>Apply plan for a registry-selection CUSTOM state (config-import CustomStateValues: a "Custom" /
+    /// no-option state re-applied as raw per-ValueName registry values). Synthesizes a transient state whose Set maps
+    /// each RegTarget (whose ValueName is present in the dict) to a WRITE (Of) or a DELETE (Absent, for a null captured
+    /// value), then runs the normal per-target apply via <see cref="Build(Setting, SettingState, WinBuild?, bool)"/> -
+    /// mirroring the old executor's custom-state branch (per RegistrySetting: ApplySetting(rs, specificValue != null,
+    /// specificValue), skipping ValueNames absent from the dict). Only registry targets are written; the resolver gates
+    /// this to pure registry selections (no effects/tasks/powercfg), so the transient state carries no Effects.</summary>
+    public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues)
+    {
+        var set = new Dictionary<string, StateValue>();
+        foreach (var reg in setting.Targets.OfType<RegTarget>())
+        {
+            var valueName = reg.ValueName ?? "KeyExists";
+            if (customValues.TryGetValue(valueName, out var v))
+                set[reg.Key] = v is null ? StateValue.Absent : StateValue.Of(v);
+        }
+        return Build(setting, new SettingState { Label = "__custom__", Set = set });
+    }
+
     /// <summary>Turns "apply this Action" into write ops. An Action has no state - its setting-level Effects
     /// run on click. A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's enabled value-write
     /// emits (via a synthesized single-path target, so the harness renders both sides identically); every other
@@ -145,6 +179,29 @@ public static class ApplyPlanBuilder
         if (pc is null) return ops;
         foreach (var cv in values)
             ops.Add(new PowerCfgSetOp(pc, cv.Context, ConvertToSystem(cv.Value, setting.Numeric?.Units)));
+        return ops;
+    }
+
+    /// <summary>Apply plan for a separate-AC/DC powercfg SELECTION: writes the AC option's value to the AC context and
+    /// the DC option's value to the DC context (asymmetric), mirroring the old PowerCfgApplier's
+    /// GetValueFromIndex(acIndex) -> AC / GetValueFromIndex(dcIndex) -> DC. Each option's value is that state's
+    /// per-target Set payload - the same value Build(stateLabel) writes to BOTH contexts for the symmetric single-index
+    /// path. An index whose state has no value for the target emits no op for that context (defensive; valid config/UI
+    /// indices always resolve).</summary>
+    public static IReadOnlyList<ApplyOp> BuildPowerCfgSelectionAcDc(Setting setting, int acIndex, int dcIndex)
+    {
+        var ops = new List<ApplyOp>();
+        var pc = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pc is null) return ops;
+
+        int? OptionValue(int idx) =>
+            idx >= 0 && idx < setting.States.Count
+                && setting.States[idx].Set.TryGetValue(pc.Key, out var sv) && sv.WritePayload is { } payload
+                ? Convert.ToInt32(payload)
+                : (int?)null;
+
+        if (OptionValue(acIndex) is { } acValue) ops.Add(new PowerCfgSetOp(pc, PowerContext.AC, acValue));
+        if (OptionValue(dcIndex) is { } dcValue) ops.Add(new PowerCfgSetOp(pc, PowerContext.DC, dcValue));
         return ops;
     }
 

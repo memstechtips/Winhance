@@ -1,10 +1,8 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Localization;
-using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.IntegrationTests.Helpers;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,12 +17,12 @@ namespace Winhance.IntegrationTests.Localization;
 /// Two complementary checks:
 ///   (a) static string-literal keys passed to <c>GetString("...")</c> — these have NO fallback at
 ///       the call site, so a miss renders the raw <c>[Key]</c> string in the UI. HARD failure.
-///   (b) computed/catalog keys derived from the shipped <see cref="SettingDefinition"/>s via
-///       <see cref="SettingLocalizationKeys.ExpectedKeys"/>. The settings-localization service
+///   (b) computed/catalog keys derived from the shipped catalog <see cref="Setting"/>s via
+///       <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/>. The settings-localization service
 ///       resolves these through <c>GetStringOrFallback</c> (see
 ///       <c>Winhance.UI.Features.Common.Services.SettingLocalizationService</c>), so a missing key
 ///       is NOT a broken-UI bug — it silently falls back to the hardcoded English string baked into
-///       the <see cref="SettingDefinition"/>. Because of that, (b) HARD-asserts only the Name and
+///       the catalog <see cref="Setting"/>. Because of that, (b) HARD-asserts only the Name and
 ///       Description keys (the primary, always-shown UI strings, empirically 100% present today) and
 ///       REPORTS the remaining computed keys (options / custom-state / tooltips / warnings / groups)
 ///       as informational coverage rather than failing on the many intentional fallbacks.
@@ -58,30 +56,14 @@ public class LocalizationKeyReferenceTests
     }
 
     /// <summary>
-    /// The full settings catalog the app ships, enumerated directly from the public static
-    /// provider methods (the same ones <c>CompatibleSettingsRegistry.GetKnownFeatureProviders()</c>
-    /// wires up) — no DI, no reflection, no runtime registry needed.
+    /// The full settings catalog the app ships, enumerated from <see cref="SettingCatalog.All"/> (the unified
+    /// catalog Settings) - no DI, no reflection, no runtime registry needed. The old per-feature SettingDefinition
+    /// providers were the source before the catalog migration; the localization keys derive identically
+    /// (<c>Setting.Id</c> == the def base, and <c>ExpectedKeys(Setting)</c> is set-equivalent to
+    /// <c>ExpectedKeys(def)</c> over the whole paired population - proven by
+    /// <c>SettingLocalizationKeysCatalogEquivalenceTests</c>).
     /// </summary>
-    private static IReadOnlyList<SettingDefinition> AllSettings()
-    {
-        var groups = new[]
-        {
-            // Customize features
-            ExplorerCustomizations.GetExplorerCustomizations(),
-            StartMenuCustomizations.GetStartMenuCustomizations(),
-            TaskbarCustomizations.GetTaskbarCustomizations(),
-            WindowsThemeCustomizations.GetWindowsThemeCustomizations(),
-            // Optimize features
-            PowerOptimizations.GetPowerOptimizations(),
-            GamingAndPerformanceOptimizations.GetGamingAndPerformanceOptimizations(),
-            NotificationOptimizations.GetNotificationOptimizations(),
-            PrivacyAndSecurityOptimizations.GetPrivacyAndSecurityOptimizations(),
-            SoundOptimizations.GetSoundOptimizations(),
-            UpdateOptimizations.GetUpdateOptimizations(),
-        };
-
-        return groups.SelectMany(g => g.Settings).ToList();
-    }
+    private static IReadOnlyList<Setting> AllSettings() => SettingCatalog.All;
 
     private static IEnumerable<string> AllCsFiles() =>
         Directory.EnumerateFiles(SrcDir, "*.cs", SearchOption.AllDirectories);
@@ -135,7 +117,7 @@ public class LocalizationKeyReferenceTests
     /// en.json. These are the primary always-shown strings for each setting and are empirically
     /// 100% present today.
     ///
-    /// The OTHER keys in <see cref="SettingLocalizationKeys.ExpectedKeys"/> (per-option display,
+    /// The OTHER keys in <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/> (per-option display,
     /// tooltip, warning, the per-setting <c>_Option_Custom</c> override, and group keys) are
     /// deliberately NOT hard-asserted here: the service resolves all of them through
     /// <c>GetStringOrFallback</c>, so many are intentionally absent and fall back to the hardcoded
@@ -167,7 +149,7 @@ public class LocalizationKeyReferenceTests
 
     /// <summary>
     /// Informational coverage report for the fallback-eligible computed keys. NON-failing: it walks
-    /// the full catalog, collects <see cref="SettingLocalizationKeys.ExpectedKeys"/> for each
+    /// the full catalog, collects <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/> for each
     /// setting, and logs which are present / absent in en.json. Group keys use the any-of rule: a
     /// group counts as covered if the compact OR snake OR cross-group-info ("space → underscore"
     /// only — the third format built by <c>BuildCrossGroupInfoMessage</c>) variant exists.
@@ -180,8 +162,8 @@ public class LocalizationKeyReferenceTests
 
         // Group-key "any of" acceptable set, including the cross-group-info third format.
         var groupNames = settings
-            .Where(s => s.GroupName != null)
-            .Select(s => s.GroupName!)
+            .Where(s => s.Display.GroupName != null)
+            .Select(s => s.Display.GroupName!)
             .Distinct()
             .ToList();
 
@@ -279,8 +261,8 @@ public class LocalizationKeyReferenceTests
         {
             foreach (var key in SettingLocalizationKeys.ExpectedKeys(s))
                 referenced.Add(key);
-            if (s.GroupName != null)
-                referenced.Add($"SettingGroup_{s.GroupName.Replace(" ", "_")}");
+            if (s.Display.GroupName != null)
+                referenced.Add($"SettingGroup_{s.Display.GroupName.Replace(" ", "_")}");
         }
 
         var dead = enKeys

@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -18,9 +18,7 @@ namespace Winhance.UI.Features.Common.Services;
 /// </summary>
 public class StartupOrchestrator : IStartupOrchestrator
 {
-    private readonly ICompatibleSettingsRegistry _settingsRegistry;
-    private readonly IGlobalSettingsPreloader _settingsPreloader;
-    private readonly TooltipRefreshEventHandler _tooltipEventHandler;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IUserPreferencesService _preferencesService;
     private readonly IConfigurationService _configurationService;
     private readonly IScriptMigrationService _migrationService;
@@ -29,9 +27,7 @@ public class StartupOrchestrator : IStartupOrchestrator
     private readonly ILogService _logService;
 
     public StartupOrchestrator(
-        ICompatibleSettingsRegistry settingsRegistry,
-        IGlobalSettingsPreloader settingsPreloader,
-        TooltipRefreshEventHandler tooltipEventHandler,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         IUserPreferencesService preferencesService,
         IConfigurationService configurationService,
         IScriptMigrationService migrationService,
@@ -39,9 +35,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         INewBadgeService newBadgeService,
         ILogService logService)
     {
-        _settingsRegistry = settingsRegistry;
-        _settingsPreloader = settingsPreloader;
-        _tooltipEventHandler = tooltipEventHandler;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _preferencesService = preferencesService;
         _configurationService = configurationService;
         _migrationService = migrationService;
@@ -57,39 +51,45 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         bool isFirstLaunch = false;
 
-        // 1. Initialize settings registry
+        // 1. Initialize the catalog settings registry - the only settings membership since the
+        // L5 teardown removed the old CompatibleSettingsRegistry init.
         statusProgress.Report("Loading_InitializingSettings");
         StartupLogger.Log("StartupOrchestrator", "Phase 1: Initializing settings registry...");
         try
         {
-            await _settingsRegistry.InitializeAsync().ConfigureAwait(false);
-            await _settingsPreloader.PreloadAllSettingsAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 1: Settings registry initialized");
+            // Isolated try - a catalog-init failure must not abort the rest of startup; the
+            // registry's own EnsureInitialized guard then turns any use-before-init into a loud,
+            // accurate error rather than a silent empty-membership answer.
+            try
+            {
+                await _catalogSettingsRegistry.InitializeAsync().ConfigureAwait(false);
+                StartupLogger.Log("StartupOrchestrator", "Phase 1: Catalog settings registry initialized");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Failed to initialize catalog settings registry: {ex.Message}");
+            }
 
-        // Initialize new badge service (data-driven: uses the highest AddedInVersion
-        // across the loaded registry to detect effective upgrades, so dev builds
-        // behave identically to release builds).
-        try
-        {
-            var allAddedInVersions = CollectAddedInVersions(_settingsRegistry);
-            _newBadgeService.Initialize(allAddedInVersions);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"New badge service init failed: {ex.Message}");
-        }
-
-            // Initialize tooltip event handler (constructor subscribes to EventBus)
-            // Accessing the injected instance ensures it's constructed and subscribed.
-            _ = _tooltipEventHandler;
+            // Initialize new badge service (data-driven: uses the highest AddedInVersion
+            // across the loaded registry to detect effective upgrades, so dev builds
+            // behave identically to release builds).
+            try
+            {
+                var allAddedInVersions = CollectAddedInVersions();
+                _newBadgeService.Initialize(allAddedInVersions);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"New badge service init failed: {ex.Message}");
+            }
 
             // Pre-cache regedit icon for Technical Details panel
             RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 1: Settings registry FAILED: {ex.Message}");
-            _logService.LogWarning($"Failed to initialize settings registry: {ex.Message}");
+            StartupLogger.Log("StartupOrchestrator", $"Phase 1 FAILED: {ex.Message}");
+            _logService.LogWarning($"Startup phase 1 failed: {ex.Message}");
         }
 
         // 2. User backup config (first-run only)
@@ -168,31 +168,11 @@ public class StartupOrchestrator : IStartupOrchestrator
     }
 
     /// <summary>
-    /// Enumerates <c>AddedInVersion</c> across every setting in both the filtered
-    /// and bypassed maps of the registry. Duplicates are fine — the badge service
-    /// only cares about the maximum.
+    /// Enumerates <c>AddedInVersion</c> across every catalog setting - the badge service only cares about the
+    /// maximum, and the set is machine-independent: every old def pairs 1:1 to a catalog Setting (0 unpaired) and
+    /// Display.AddedInVersion == the old AddedInVersion (proven), so the newest version is identical to the old
+    /// filtered+bypassed union - without depending on registry readiness.
     /// </summary>
-    private static IEnumerable<string?> CollectAddedInVersions(ICompatibleSettingsRegistry registry)
-    {
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>>? filtered = null;
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>>? bypassed = null;
-
-        try { filtered = registry.GetAllFilteredSettings(); } catch { /* registry not ready */ }
-        try { bypassed = registry.GetAllBypassedSettings(); } catch { /* registry not ready */ }
-
-        var results = new List<string?>();
-        if (filtered is not null)
-        {
-            foreach (var kvp in filtered)
-                foreach (var s in kvp.Value)
-                    results.Add(s.AddedInVersion);
-        }
-        if (bypassed is not null)
-        {
-            foreach (var kvp in bypassed)
-                foreach (var s in kvp.Value)
-                    results.Add(s.AddedInVersion);
-        }
-        return results;
-    }
+    private static IEnumerable<string?> CollectAddedInVersions() =>
+        SettingCatalog.All.Select(s => s.Display.AddedInVersion);
 }

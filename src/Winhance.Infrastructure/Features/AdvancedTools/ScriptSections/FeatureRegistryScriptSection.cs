@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -29,59 +30,50 @@ internal class FeatureRegistryScriptSection
     public void AppendFeatureGroupRegistryEntries(
         StringBuilder sb,
         FeatureGroupSection featureGroup,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings,
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
         string groupName,
         bool isHkcu,
-        string indent)
+        string indent,
+        WinBuild? build = null)
     {
         foreach (var featureKvp in featureGroup.Features)
         {
             var featureId = featureKvp.Key;
             var configSection = featureKvp.Value;
 
-            if (!allSettings.TryGetValue(featureId, out var settingDefinitions))
+            if (!allSettings.TryGetValue(featureId, out var settings))
             {
-                _logService.Log(LogLevel.Warning, $"Could not find SettingDefinitions for feature: {featureId}");
+                _logService.Log(LogLevel.Warning, $"Could not find Settings for feature: {featureId}");
                 continue;
             }
 
             bool hasEntriesForCurrentHive = false;
             foreach (var configItem in configSection.Items)
             {
-                var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                if (settingDef == null) continue;
+                // Slice 7e-6: the dict carries the paired catalog Settings (keyed by canonical Id), so the
+                // per-item pairing is a lookup by the alias-NORMALIZED config id - an old config carrying a
+                // retired "-win10" id still reaches its merged catalog Setting, exactly as the old
+                // exact-match-def-then-Find composite resolved it on the machine whose OS-filtered def group
+                // carried the same variant. A miss (unknown id) contributes no presence - the established
+                // silent-skip.
+                var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                if (setting == null) continue;
 
-                if (settingDef.Id == SettingIds.PowerPlanSelection) continue;
+                if (setting.Id == SettingIds.PowerPlanSelection) continue;
 
-                foreach (var regSetting in settingDef.RegistrySettings)
-                {
-                    bool isHkcuEntry = regSetting.KeyPath.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
-                    if (isHkcuEntry == isHkcu)
-                    {
-                        hasEntriesForCurrentHive = true;
-                        break;
-                    }
-                }
+                // Slice E1b: presence gating reads the catalog Setting (Targets/Effects). It errs toward
+                // OVER-reporting so a header is emitted whenever the emit could produce content (content is
+                // never dropped by a skipped header): the catalog check is proven equal to the old def check
+                // over the whole population (the now-retired MechanismPresenceEquivalenceTests). Slice 7e-6: the Setting
+                // arrives in the dict - the internal SettingCatalog.Find re-pairing is gone.
+                bool hasRegistry = AutounattendMechanismPresence.HasRegistryInHive(setting, isHkcu);
+                bool hasTask = AutounattendMechanismPresence.HasScheduledTask(setting);
+                bool hasScript = AutounattendMechanismPresence.HasScriptInHive(setting, isHkcu);
 
-                if (!isHkcu && settingDef.ScheduledTaskSettings?.Count > 0)
-                {
+                if (hasRegistry || (!isHkcu && hasTask) || hasScript)
                     hasEntriesForCurrentHive = true;
-                }
 
-                if (settingDef.PowerShellScripts?.Count > 0)
-                {
-                    foreach (var ps in settingDef.PowerShellScripts)
-                    {
-                        bool psIsUser = ps.RunContext == RunContext.User;
-                        if (psIsUser == isHkcu)
-                        {
-                            hasEntriesForCurrentHive = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!isHkcu && settingDef.Id == "power-hibernation-enable")
+                if (!isHkcu && setting.Id == "power-hibernation-enable")
                 {
                     hasEntriesForCurrentHive = true;
                 }
@@ -103,133 +95,79 @@ internal class FeatureRegistryScriptSection
             // Process each setting in the feature
             foreach (var configItem in configSection.Items)
             {
-                var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                if (settingDef == null)
+                // Slice 7e-6: alias-normalized lookup of the paired catalog Setting in the dict (see the
+                // presence gate above).
+                var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                if (setting == null)
                 {
-                    _logService.Log(LogLevel.Warning, $"Could not find SettingDefinition for: {configItem.Id}");
+                    _logService.Log(LogLevel.Warning, $"Could not find catalog Setting for: {configItem.Id}");
                     continue;
                 }
 
-                // Skip settings that have PowerCfgSettings but no RegistrySettings (already handled in Power Settings section)
-                if (settingDef.PowerCfgSettings?.Any() == true && settingDef.RegistrySettings?.Any() != true)
+                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power
+                // Settings section). Slice E1b: presence off the catalog Setting (PowerCfgTarget vs RegTarget/
+                // RegistryWriteEffect); proven equal to the old def-based check by
+                // the now-retired MechanismPresenceEquivalenceTests.
+                bool powerCfgOnly = AutounattendMechanismPresence.HasPowerCfg(setting)
+                    && !AutounattendMechanismPresence.HasRegistry(setting);
+                if (powerCfgOnly)
                     continue;
 
-                // Apply the setting, but only output registry entries that match the current hive
-                if (configItem.InputType == InputType.Toggle)
+                // Set when an Action setting was emitted (registry + scripts) through the catalog Effects
+                // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
+                bool actionHandledByCatalog = false;
+
+                // Slice 7e-3: dispatch off the catalog Control (Control == InputType over the whole population
+                // per the now-retired ControlDerivationConformanceTests). Slice 7e-6: the setting IS the dict object - the
+                // per-branch SettingCatalog.Find re-pairings and the unpaired InputType/def-emitter fallbacks
+                // are gone (an unpaired id never enters the dict; the builder's def-dict shim skips it).
+                if (setting.Control == ControlKind.Toggle)
                 {
-                    _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    // Phase 6.8 F2b/tail: every toggle routes through the catalog emitter
+                    // (AppendToggleCommandsFromCatalog) with the live build threaded, so the OS-merged
+                    // "This PC folder" toggles pick the build-appropriate target (Win11 HiddenByDefault vs
+                    // Win10 KeyExists) - proven per-OS at migration by the now-retired ScriptGenBuildGatedToggleEquivalenceTests. The
+                    // RegContents tail is emitted explicitly (F2c, off the active state's RegContentEffects)
+                    // - a no-op for toggles without RegContent effects. Slice 7e-6: the old OS-filtered-def
+                    // fallback for a build-less call died with the def dict; a caller feeding NO build on a
+                    // build-gated toggle now gets the emitter's documented null-build behaviour (no target
+                    // dropped). Production always threads the live build.
+                    _registryEmitter.AppendToggleCommandsFromCatalog(sb, setting, configItem, isHkcu, indent, build);
+                    _registryEmitter.AppendRegContentCommandsFromCatalog(sb, setting, configItem.IsSelected, isHkcu, indent);
                 }
-                else if (configItem.InputType == InputType.Selection)
+                else if (setting.Control == ControlKind.Selection)
                 {
-                    _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
+                    _registryEmitter.AppendSelectionCommands(sb, setting, configItem, isHkcu, indent);
                 }
-                else if (configItem.InputType == InputType.Action)
+                else if (setting.Control == ControlKind.Action)
                 {
-                    // Action settings are one-shot "apply" — only emit when the user actually
-                    // selected them. Unlike Toggle, an unselected Action has no "disabled"
-                    // semantic; we must not emit a DisabledValue write (which would delete
-                    // the key the action would have set). Skip the registry emit when
-                    // IsSelected is false/null and let the PS-script block below also see
-                    // useEnabled=false (it already does the right thing by selecting the
-                    // null DisabledScript and emitting nothing).
-                    if (configItem.IsSelected == true)
-                    {
-                        _registryEmitter.AppendToggleCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
-                    }
+                    // Action settings are one-shot "apply" - only emit when the user actually selected them
+                    // (AppendActionCommandsFromCatalog guards IsSelected internally; an unselected Action has
+                    // no "disabled" semantic, so nothing may be emitted for it). Registry writes AND scripts
+                    // both come from the setting-level catalog Effects, byte-equivalent to the old def
+                    // emitters per the now-retired ScriptGenActionEquivalenceTests. The shared script block below is skipped
+                    // for this item so its scripts are not double-emitted.
+                    AppendActionCommandsFromCatalog(sb, setting, configItem, isHkcu, indent);
+                    actionHandledByCatalog = true;
                 }
 
-                // Emit PowerShell scripts whose RunContext matches the current pass.
-                if (settingDef.PowerShellScripts?.Count > 0)
+                // Emit PowerShell scripts whose RunContext matches the current pass. Catalog-always since Slice
+                // 7e-5: a Selection with NO SelectedIndex (a "Custom" value matching no preset option) routes
+                // to the custom-state emitter (AppendCustomStateScriptsFromCatalog, reading the un-baked
+                // Setting.CustomStateScripts - byte-equal to the old def emitter over every intent-expressing
+                // shape per the now-retired ScriptGenCustomStateEquivalenceTests). Every other setting WITH states (toggle /
+                // selection-with-index) stays on AppendPowerShellScriptsFromCatalog (proven byte-equivalent by
+                // the now-retired ScriptGenPowerShellEquivalenceTests). A setting with NO states (slider / power-plan; an
+                // Action set actionHandledByCatalog above) has no state scripts - emitting nothing matches the
+                // old emitter over its script-less def. AppendPowerShellScripts survives as the equivalence
+                // ORACLE only (ScriptGenPowerShell/Action/CustomState suites).
+                if (!actionHandledByCatalog)
                 {
-                    foreach (var scriptSetting in settingDef.PowerShellScripts)
-                    {
-                        bool scriptIsUser = scriptSetting.RunContext == RunContext.User;
-                        if (scriptIsUser != isHkcu)
-                        {
-                            continue;
-                        }
-
-                        // Custom state (user-entered values) always counts as "enabled" — the user
-                        // picking Custom DNS is expressing intent to configure, not to reset.
-                        bool hasCustomState = configItem.CustomStateValues?.Any() == true;
-                        var useEnabled = hasCustomState || configItem.IsSelected == true;
-
-                        if (!hasCustomState
-                            && settingDef.InputType == InputType.Selection
-                            && settingDef.ComboBox?.Options is { } selScriptOptions
-                            && configItem.SelectedIndex.HasValue
-                            && configItem.SelectedIndex.Value >= 0
-                            && configItem.SelectedIndex.Value < selScriptOptions.Count
-                            && selScriptOptions[configItem.SelectedIndex.Value].Script is { } scriptOption)
-                        {
-                            // A "None" option applies no script — emit nothing into the
-                            // autounattend for this selection (e.g. Custom / leave-alone).
-                            if (scriptOption == ScriptOption.None)
-                            {
-                                continue;
-                            }
-
-                            useEnabled = scriptOption == ScriptOption.Enabled;
-                        }
-
-                        var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
-
-                        // Placeholder substitution. Merge sources with CustomStateValues winning
-                        // so a user-entered "Custom" selection overrides any preset option.
-                        if (!string.IsNullOrEmpty(script))
-                        {
-                            var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                            if (settingDef.ComboBox?.Options is { } selVarOptions
-                                && configItem.SelectedIndex.HasValue
-                                && configItem.SelectedIndex.Value >= 0
-                                && configItem.SelectedIndex.Value < selVarOptions.Count
-                                && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
-                            {
-                                foreach (var kvp in variables)
-                                {
-                                    placeholders[kvp.Key] = kvp.Value;
-                                }
-                            }
-
-                            if (configItem.CustomStateValues is { } customValues)
-                            {
-                                foreach (var kvp in customValues)
-                                {
-                                    if (kvp.Value != null)
-                                    {
-                                        placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
-                                    }
-                                }
-                            }
-
-                            foreach (var kvp in placeholders)
-                            {
-                                script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(script))
-                        {
-                            var escapedDescription = EscapePowerShellString(settingDef.Description);
-                            sb.AppendLine();
-                            sb.AppendLine($"{indent}# PowerShell script for: {settingDef.Name}");
-                            sb.AppendLine($"{indent}try {{");
-                            foreach (var line in script.Split('\n'))
-                            {
-                                var trimmedLine = line.Trim();
-                                if (!string.IsNullOrEmpty(trimmedLine))
-                                {
-                                    sb.AppendLine($"{indent}    {trimmedLine}");
-                                }
-                            }
-                            sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
-                            sb.AppendLine($"{indent}}} catch {{");
-                            sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
-                            sb.AppendLine($"{indent}}}");
-                            sb.AppendLine();
-                        }
-                    }
+                    bool selectionWithoutIndex = setting.Control == ControlKind.Selection && !configItem.SelectedIndex.HasValue;
+                    if (selectionWithoutIndex)
+                        AppendCustomStateScriptsFromCatalog(sb, setting, configItem, isHkcu, indent);
+                    else if (setting.States.Count > 0)
+                        AppendPowerShellScriptsFromCatalog(sb, setting, configItem, isHkcu, indent);
                 }
 
             }
@@ -240,17 +178,18 @@ internal class FeatureRegistryScriptSection
 
                 foreach (var configItem in configSection.Items)
                 {
-                    var settingDef = settingDefinitions.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (settingDef?.ScheduledTaskSettings?.Count > 0)
+                    // Phase 6.8 Slice E1a: the scheduled-task paths + description come from the catalog Setting
+                    // (TaskTarget + Display.Description), proven command-equivalent by
+                    // the now-retired ScriptGenScheduledTaskEquivalenceTests (which also asserts every scheduled-task setting
+                    // is catalog-paired). Slice 7e-6: the Setting arrives in the dict (alias-normalized
+                    // lookup); the internal SettingCatalog.Find re-pairing is gone.
+                    var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
+                    if (setting != null)
                     {
-                        foreach (var taskSetting in settingDef.ScheduledTaskSettings)
-                        {
-                            var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
-                            scheduledTasksToApply.Add((taskSetting.TaskPath, action, settingDef.Description));
-                        }
+                        scheduledTasksToApply.AddRange(CollectScheduledTasksFromCatalog(setting, configItem));
                     }
 
-                    if (settingDef?.Id == "power-hibernation-enable")
+                    if (setting?.Id == "power-hibernation-enable")
                     {
                         var hibernateState = configItem.IsSelected == true ? "on" : "off";
                         sb.AppendLine();
@@ -288,7 +227,282 @@ internal class FeatureRegistryScriptSection
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
-    private void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
+    /// <summary>New-catalog mirror of <c>AppendPowerShellScripts</c> (Phase 6.8 F3). Emits byte-identical
+    /// output, sourcing the script bodies from the catalog Setting's active <see cref="SettingState"/> ScriptEffects
+    /// instead of the old <c>SettingDefinition.PowerShellScripts</c> / the old ComboBox. The converter has already
+    /// baked each option's preset ScriptVariables into <see cref="ScriptEffect.Script"/> and placed the correct
+    /// Enabled/Disabled/None script on the right state, so only the runtime CustomStateValues pass is re-applied here.
+    /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option) has no
+    /// catalog state to resolve, so this emits nothing - that shape needs the UN-BAKED scripts. The production
+    /// loop therefore routes Selection-without-index to <see cref="AppendCustomStateScriptsFromCatalog"/> (Slice
+    /// 7e-5, reading Setting.CustomStateScripts) rather than here. Equivalence (for the routed-here cases) is
+    /// pinned at migration by the now-retired ScriptGenPowerShellEquivalenceTests.</summary>
+    internal void AppendPowerShellScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Resolve the state whose ScriptEffects this pass should emit. A Selection keys off SelectedIndex; a
+        // toggle/action keys off the Enabled/Disabled state (Custom values count as "enabled", as in the old loop).
+        SettingState? activeState;
+        if (catalogSetting.Control == ControlKind.Selection
+            && configItem.SelectedIndex.HasValue
+            && configItem.SelectedIndex.Value >= 0
+            && configItem.SelectedIndex.Value < catalogSetting.States.Count)
+        {
+            activeState = catalogSetting.States[configItem.SelectedIndex.Value];
+        }
+        else
+        {
+            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Any() == true;
+            var targetLabel = useEnabled ? "Enabled" : "Disabled";
+            activeState = catalogSetting.States.FirstOrDefault(s => s.Label == targetLabel);
+        }
+
+        if (activeState is null)
+        {
+            return;
+        }
+
+        foreach (var scriptEffect in activeState.Effects.OfType<ScriptEffect>())
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+            {
+                continue;
+            }
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution only (the old code's SECOND placeholder pass). The option's
+            // preset ScriptVariables are already baked into ScriptEffect.Script by the converter.
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString() ?? string.Empty);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
+    }
+
+    /// <summary>Slice 7e-5: new-catalog home of the LAST def-reading script emit - the "Custom" Selection shape
+    /// (no SelectedIndex: the persisted value matched no preset option, so no catalog state's baked ScriptEffects
+    /// apply). Emits from <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the
+    /// UN-BAKED raw EnabledScripts + RunContext, guarded by CatalogCustomStateScriptsConformanceTests -- the def-free
+    /// successor of the retired CustomStateScriptsConformanceTests that byte-compared them to the old def.PowerShellScripts) exactly as the old <c>AppendPowerShellScripts</c> served this
+    /// shape: per-entry hive filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() ||
+    /// IsSelected == true, then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge,
+    /// null values skipped, ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive -
+    /// there is no SelectedIndex, so no option ScriptVariables source exists), then the identical emit block.
+    /// Byte-equal to the old emitter over every reachable custom shape (both hives) per
+    /// the now-retired ScriptGenCustomStateEquivalenceTests.
+    ///
+    /// *** BOUNDED DELTA (deliberate, orchestrator-decided) ***: when useEnabled is FALSE (no CustomStateValues
+    /// AND IsSelected != true) this emits NOTHING, where the old emitter fell through to the DisabledScript. That
+    /// fall-through was incidental - a config item carrying NO index, NO custom values and NO selection expresses
+    /// no intent, and emitting a Disabled/RESET script for it (e.g. resetting the user's DNS to automatic) is the
+    /// riskier behavior. The delta is pinned deliberately (old emits the Disabled block, new emits nothing) by
+    /// the now-retired ScriptGenCustomStateEquivalenceTests.BoundedDelta_NoIntentShape_OldEmitsDisabledScript_NewEmitsNothing.</summary>
+    internal void AppendCustomStateScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Custom state (user-entered values) always counts as "enabled" - the user picking Custom DNS is
+        // expressing intent to configure, not to reset. Same rule (and same loop-invariant evaluation) as the
+        // old emitter's hasCustomState/IsSelected path.
+        bool useEnabled = configItem.CustomStateValues?.Any() == true || configItem.IsSelected == true;
+
+        // The BOUNDED DELTA documented above: a no-intent shape emits nothing (old: DisabledScript fall-through).
+        if (!useEnabled)
+        {
+            return;
+        }
+
+        foreach (var scriptEffect in catalogSetting.CustomStateScripts)
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+            {
+                continue;
+            }
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution - the ONLY placeholder source on this path (no SelectedIndex
+            // means no preset option, so the old code's ScriptVariables merge source is structurally absent).
+            // Mirrors the old placeholders dictionary exactly: OrdinalIgnoreCase keys, null values skipped,
+            // ToString() ?? "", literal {{key}} Replace; unmatched placeholders survive (the DNS DoH script
+            // self-guards on a literal {{dohtemplate}}).
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
+                    }
+                }
+
+                foreach (var kvp in placeholders)
+                {
+                    script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
+    }
+
+    /// <summary>Phase 6.8 script-gen tail: new-catalog mirror of the OLD Action emission. An Action setting routes
+    /// through AppendToggleCommandsFiltered (registry, only when IsSelected) + AppendPowerShellScripts (scripts) in
+    /// the old loop; the catalog models it as SETTING-level Effects (no States/Targets). This emits the same bytes,
+    /// sourcing the registry writes from RegistryWriteEffects and the scripts from ScriptEffects. ORDER matches the
+    /// old loop: the registry pass (AppendToggleCommandsFiltered, which for these settings hits only the plain
+    /// Set-RegistryValue branch) runs before the script pass (AppendPowerShellScripts). Emits nothing unless the
+    /// Action is selected (matching the old Action branch's IsSelected guard). The Action population is
+    /// RegistryWriteEffect/ScriptEffect-only (asserted by the now-retired ScriptGenActionEquivalenceTests). Proven byte-equivalent by
+    /// the now-retired ScriptGenActionEquivalenceTests.</summary>
+    internal void AppendActionCommandsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        // Action one-shot: emit only when the user selected it (matches the old Action branch's IsSelected == true guard).
+        if (configItem.IsSelected != true)
+            return;
+
+        // Registry pass first (mirrors the old loop: AppendToggleCommandsFiltered runs before AppendPowerShellScripts).
+        _registryEmitter.AppendActionRegistryCommandsFromCatalog(sb, catalogSetting, isHkcu, indent);
+
+        // Script pass (mirrors AppendPowerShellScripts for an enabled Action). Setting-level ScriptEffects.
+        AppendActionScriptsFromCatalog(sb, catalogSetting, configItem, isHkcu, indent);
+    }
+
+    /// <summary>Emits the PowerShell-script blocks for an Action setting's setting-level ScriptEffects whose RunContext
+    /// matches the current hive pass. Byte-identical to <c>AppendPowerShellScripts</c> for an enabled Action:
+    /// the converter copies each old PowerShellScript.EnabledScript verbatim into a ScriptEffect, and an Action has no
+    /// ComboBox options, so the only placeholder pass that applies is the runtime CustomStateValues substitution
+    /// (mirroring the old code's CustomStateValues merge; an Action's ScriptVariables source does not exist).</summary>
+    internal void AppendActionScriptsFromCatalog(
+        StringBuilder sb,
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
+        ConfigurationItem configItem,
+        bool isHkcu,
+        string indent)
+    {
+        foreach (var scriptEffect in catalogSetting.Effects.OfType<ScriptEffect>())
+        {
+            // Same User->HKCU / System->HKLM mapping as the old PowerShellScripts loop.
+            if ((scriptEffect.Run == RunContext.User) != isHkcu)
+                continue;
+
+            var script = scriptEffect.Script;
+
+            // Runtime CustomStateValues substitution only (the old code's placeholder pass; an Action has no
+            // ComboBox-option ScriptVariables, so that source is absent).
+            if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
+            {
+                foreach (var kvp in customValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString() ?? string.Empty);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(script))
+            {
+                var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
+                sb.AppendLine();
+                sb.AppendLine($"{indent}# PowerShell script for: {catalogSetting.Display.Name}");
+                sb.AppendLine($"{indent}try {{");
+                foreach (var line in script.Split('\n'))
+                {
+                    var trimmedLine = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                    {
+                        sb.AppendLine($"{indent}    {trimmedLine}");
+                    }
+                }
+                sb.AppendLine($"{indent}    Write-Log \"{escapedDescription}\" \"SUCCESS\"");
+                sb.AppendLine($"{indent}}} catch {{");
+                sb.AppendLine($"{indent}    Write-Log \"Failed: {escapedDescription} - $($_.Exception.Message)\" \"ERROR\"");
+                sb.AppendLine($"{indent}}}");
+                sb.AppendLine();
+            }
+        }
+    }
+
+    /// <summary>New-catalog mirror of <c>CollectScheduledTasks</c> (Phase 6.8 Slice E1a). Yields the same
+    /// (TaskPath, /Enable|/Disable, Description) tuples, sourcing the task paths from the catalog Setting's
+    /// <see cref="TaskTarget"/>s (one per scheduled task) and the description from <see cref="Display.Description"/>
+    /// instead of the old <c>SettingDefinition.ScheduledTaskSettings</c> / Description. A setting with no scheduled
+    /// tasks has no TaskTargets, so this yields nothing. Proven command-equivalent by
+    /// the now-retired ScriptGenScheduledTaskEquivalenceTests.</summary>
+    internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(
+        Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem)
+    {
+        foreach (var taskTarget in catalogSetting.Targets.OfType<TaskTarget>())
+        {
+            var action = configItem.IsSelected == true ? "/Enable" : "/Disable";
+            yield return (taskTarget.TaskPath, action, catalogSetting.Display.Description);
+        }
+    }
+
+    internal void AppendScheduledTaskBatch(StringBuilder sb, List<(string TaskName, string Action, string Description)> tasks, string indent)
     {
         sb.AppendLine();
         sb.AppendLine($"{indent}$scheduledTasks = @(");

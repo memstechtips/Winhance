@@ -6,8 +6,6 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IPowerCfgApplier
 {
-    Task<OperationResult> ApplyPowerCfgSettingsAsync(SettingDefinition setting, bool enable, object? value);
-
     /// <summary>Writes one AC or DC value index for a powercfg setting on the ACTIVE scheme and commits it
     /// (PowerWriteAC/DCValueIndex then PowerSetActiveScheme). A DC write is skipped on a battery-less machine,
     /// mirroring the old ExecutePowerCfgSettings hasBattery gate. Returns false if the active scheme cannot be

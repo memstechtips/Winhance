@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using static Winhance.Core.Features.Common.Catalog.StateValue;
 
 namespace Winhance.Core.Features.Customize.Models;
@@ -631,10 +632,11 @@ public static class TaskbarCustomizationsCatalog
             Apply = new() { Restart = new RestartProcess("Explorer") },
             States = new[]
             {
-                new SettingState { Label = "Show all icons" },
-                new SettingState { Label = "Hide all icons" },
-                new SettingState { Label = "Custom" },
+                new SettingState { Label = "Show all icons", Roles = new[] { StateRole.Recommended }, Effects = new Effect[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 0 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }", RunContext.User) } },
+                new SettingState { Label = "Hide all icons", Effects = new Effect[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 1 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 0 -Type DWord }", RunContext.User) } },
+                new SettingState { Label = "Custom", Roles = new[] { StateRole.WindowsDefault } },
             },
+            CustomStateScripts = new[] { new ScriptEffect(@"Set-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\TrayNotify' -Name SystemTrayChevronVisibility -Value 0 -Type DWord -Force; Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' | ForEach-Object { Set-ItemProperty $_.PSPath -Name IsPromoted -Value 1 -Type DWord }", RunContext.User) },
             Detector = new SystemTrayDetector("Show all icons", "Hide all icons"),
         },
         new()
@@ -892,7 +894,6 @@ public static class TaskbarCustomizationsCatalog
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Apply = new() { Restart = new RestartProcess("Explorer") },
-            Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("TaskbarAcrylicOpacity", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarAcrylicOpacity", RegistryValueKind.DWord),
@@ -908,11 +909,13 @@ public static class TaskbarCustomizationsCatalog
                 new SettingState
                 {
                     Label = "Transparent",
+                    Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["TaskbarAcrylicOpacity"] = Of(0) },
                 },
                 new SettingState
                 {
                     Label = "Opaque",
+                    Links = new[] { new Link("theme-transparency", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["TaskbarAcrylicOpacity"] = Of(255) },
                 },
             },

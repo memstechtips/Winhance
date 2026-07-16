@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -15,7 +16,6 @@ public class ScriptBuilderTests
     private readonly Mock<IPowerSettingsQueryService> _powerSettingsQuery = new();
     private readonly Mock<IHardwareDetectionService> _hardwareDetection = new();
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IComboBoxResolver> _comboBoxResolver = new();
     private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
     private readonly AutounattendScriptBuilder _builder;
 
@@ -27,7 +27,6 @@ public class ScriptBuilderTests
             .Returns(Task.CompletedTask);
 
         _hardwareDetection.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        _hardwareDetection.Setup(h => h.HasLidAsync()).ReturnsAsync(false);
 
         _powerSettingsQuery
             .Setup(p => p.GetActivePowerPlanAsync())
@@ -45,8 +44,8 @@ public class ScriptBuilderTests
             _powerSettingsQuery.Object,
             _hardwareDetection.Object,
             _logService.Object,
-            _comboBoxResolver.Object,
-            _powerShellRunner.Object);
+            _powerShellRunner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public class ScriptBuilderTests
                 TestSettingFactory.CreateAppItem("app1", "Clipchamp",
                     appxPackageName: new[] { "Clipchamp.Clipchamp" })),
         };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -74,7 +73,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = TestSettingFactory.CreateFullConfig();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -91,7 +90,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = TestSettingFactory.CreateFullConfig();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -108,7 +107,7 @@ public class ScriptBuilderTests
     {
         // Arrange
         var config = new UnifiedConfigurationFile();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -124,8 +123,10 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithOptimizeFeatures_ContainsRegistryCommands()
     {
-        // Arrange — config with an Optimize toggle that has registry settings
-        var toggleItem = TestSettingFactory.CreateToggleItem("privacy1", "Disable Telemetry", true);
+        // Arrange - an Optimize toggle. Slice 7e-6: the pipeline runs on the catalog Setting dict, so the
+        // fixture passes the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp)
+        // directly; the emit reads the CATALOG RegTarget and state values.
+        var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
         var config = new UnifiedConfigurationFile
         {
             Optimize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
@@ -134,30 +135,9 @@ public class ScriptBuilderTests
             }),
         };
 
-        // Provide matching SettingDefinitions with real registry settings
-        var settingDef = new SettingDefinition
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "privacy1",
-            Name = "Disable Telemetry",
-            Description = "Disables telemetry",
-            RegistrySettings = new[]
-            {
-                new RegistrySetting
-                {
-                    KeyPath = @"HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
-                    ValueName = "AllowTelemetry",
-                    RecommendedValue = 0,
-                    DefaultValue = 1,
-                    EnabledValue = [0],
-                    DisabledValue = [1],
-                    ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                    IsPrimary = true,
-                },
-            },
-        };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["Privacy"] = new[] { settingDef },
+            ["Privacy"] = new[] { SettingCatalog.Find("security-remote-assistance")! },
         };
 
         // Act
@@ -165,19 +145,22 @@ public class ScriptBuilderTests
 
         // Assert
         script.Should().Contain("Set-RegistryValue");
-        script.Should().Contain("AllowTelemetry");
+        script.Should().Contain("fAllowToGetHelp");
     }
 
     [Fact]
     public async Task Build_WithPowerSettings_ContainsPowerCfgCommands()
     {
-        // Arrange
-        var powerItem = TestSettingFactory.CreateSelectionItem("power1", "Sleep Timeout",
+        // Arrange - the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
+        // subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e,
+        // no hardware gate) rides the Setting dict directly (Slice 7e-6); the emit reads the catalog
+        // PowerCfgTarget GUIDs and takes the AC/DC values from the bulk query mock.
+        var powerItem = TestSettingFactory.CreateSelectionItem("power-display-timeout", "Turn off the display",
             selectedIndex: 1,
             powerSettings: new Dictionary<string, object>
             {
-                ["SubgroupGuid"] = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
-                ["SettingGuid"] = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
+                ["SubgroupGuid"] = "7516b95f-f776-4464-8c53-06167f40cc99",
+                ["SettingGuid"] = "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e",
                 ["AcValue"] = 1800,
                 ["DcValue"] = 900,
             });
@@ -189,42 +172,25 @@ public class ScriptBuilderTests
             }),
         };
 
-        var powerSettingDef = new SettingDefinition
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "power1",
-            Name = "Sleep Timeout",
-            Description = "Sleep timeout setting",
-            InputType = InputType.Selection,
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "238c9fa8-0aad-41ed-83f4-97be242c8f20",
-                    SettingGuid = "29f6c1db-86da-48c5-9fdb-f2b67b1f44da",
-                    DefaultValueAC = 0,
-                    DefaultValueDC = 0,
-                    RecommendedValueAC = 1800,
-                    RecommendedValueDC = 900,
-                },
-            },
-        };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["Power"] = new[] { powerSettingDef },
+            ["Power"] = new[] { SettingCatalog.Find("power-display-timeout")! },
         };
 
-        // Set up mock to return AC/DC values for the setting GUID
+        // Set up mock to return AC/DC values for the catalog setting GUID
         _powerSettingsQuery
             .Setup(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                ["29f6c1db-86da-48c5-9fdb-f2b67b1f44da"] = (1800, 900),
+                ["3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e"] = (1800, 900),
             });
 
         // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
+        // Assert - the emitted entry carries the catalog PowerCfgTarget GUIDs
         script.Should().Contain("powercfg");
+        script.Should().Contain("7516b95f-f776-4464-8c53-06167f40cc99");
+        script.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
     }
 }

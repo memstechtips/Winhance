@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -21,10 +22,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 {
     private bool _disposed;
     private readonly ILogService _logService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
-    private readonly IComboBoxSetupService _comboBoxSetupService;
-    private readonly IComboBoxResolver _comboBoxResolver;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
@@ -44,18 +43,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public ConfigReviewService(
         ILogService logService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
-        ISystemSettingsDiscoveryService discoveryService,
-        IComboBoxSetupService comboBoxSetupService,
-        IComboBoxResolver comboBoxResolver,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        ICatalogSettingStateProvider settingStateProvider,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService)
     {
         _logService = logService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
-        _discoveryService = discoveryService;
-        _comboBoxSetupService = comboBoxSetupService;
-        _comboBoxResolver = comboBoxResolver;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _settingStateProvider = settingStateProvider;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
 
@@ -443,34 +438,23 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         try
         {
-            // Get setting definitions for this feature
-            var settingDefinitions = _compatibleSettingsRegistry.GetFilteredSettings(featureId);
-            var settingDefMap = settingDefinitions.ToDictionary(s => s.Id);
+            // Get the catalog settings for this feature. Review always wants the compatibility filter ON,
+            // and GetByFeature's default scope is current-OS - so this is also immune to the old async
+            // forced-flag window (there is no flag to force and restore).
+            var settings = _catalogSettingsRegistry.GetByFeature(featureId);
+            var settingMap = settings.ToDictionary(s => s.Id);
 
             // Batch-load current system states
-            var batchStates = await _discoveryService.GetSettingStatesAsync(settingDefinitions.ToList());
-
-            // Resolve combo box values for Selection-type settings
-            foreach (var setting in settingDefinitions.Where(s => s.InputType == InputType.Selection))
-            {
-                if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
-                {
-                    try
-                    {
-                        var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
-                        batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning,
-                            $"[ConfigReviewService] Failed to resolve combo box for '{setting.Id}': {ex.Message}");
-                    }
-                }
-            }
+            var settingList = settings.ToList();
+            // Slice 6, trimmed in Slice 7c: read state from the new-engine full-state provider via its catalog
+            // Setting overload (Slice 4bb-2). This service reads no RawValues, so the provider resolves the same
+            // CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings the overlay used to thread onto
+            // discovery.
+            var batchStates = await _settingStateProvider.GetStatesAsync(settingList);
 
             foreach (var configItem in configItems)
             {
-                if (!settingDefMap.TryGetValue(configItem.Id, out var settingDef))
+                if (!settingMap.TryGetValue(configItem.Id, out var setting))
                     continue;
 
                 var currentState = batchStates.TryGetValue(configItem.Id, out var state)
@@ -488,14 +472,14 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                 // Compute diff
                 var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
-                    settingDef, configItem, currentState, onText, offText).ConfigureAwait(false);
+                    setting, configItem, currentState, onText, offText).ConfigureAwait(false);
 
                 if (hasDiff || isActionSetting)
                 {
                     var diff = new ConfigReviewDiff
                     {
                         SettingId = configItem.Id,
-                        SettingName = settingDef.Name,
+                        SettingName = setting.Display.Name,
                         FeatureModuleId = featureId,
                         CurrentValueDisplay = currentDisplay,
                         ConfigValueDisplay = configDisplay,
@@ -504,7 +488,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         ConfigItem = configItem,
                         IsApproved = false,
                         IsReviewed = false,
-                        InputType = settingDef.InputType,
                         IsActionSetting = isActionSetting,
                     };
 
@@ -552,21 +535,24 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     }
 
     /// <summary>
-    /// Computes diff between current system state and config value for a setting definition.
-    /// Works with SettingDefinition + SettingStateResult (no ViewModel required).
+    /// Computes diff between current system state and config value for a catalog setting.
+    /// Works with the catalog Setting + SettingStateResult (no ViewModel required).
     /// Returns display strings, plus raw keys for re-localization on language change.
     /// </summary>
     private async Task<(bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey)> ComputeEagerDiffAsync(
-        SettingDefinition settingDef,
+        Setting setting,
         ConfigurationItem configItem,
         SettingStateResult currentState,
         string onText,
         string offText)
     {
-        switch (settingDef.InputType)
+        // Slice E5: dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path).
+        // Proven at migration by the now-retired ControlDerivationConformanceTests + ConfigBridgeReaderEquivalenceTests.
+        // ControlKind.Toggle covers old Toggle + CheckBox (no setting is CheckBox).
+        var control = setting.Control;
+        switch (control)
         {
-            case InputType.Toggle:
-            case InputType.CheckBox:
+            case ControlKind.Toggle:
             {
                 var currentBool = currentState.IsEnabled;
                 var configBool = configItem.IsSelected ?? false;
@@ -579,22 +565,24 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 return (false, string.Empty, string.Empty, null, null);
             }
 
-            case InputType.Selection:
+            case ControlKind.Selection:
+            case ControlKind.PowerPlan:
             {
                 // Resolve the current index via combo box setup for accurate display
-                var comboResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
+                var comboResult = BuildComboBoxOptions(setting, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
                 // Special handling: PowerPlan - compare by GUID from RawValues (locale-independent)
                 if (configItem.PowerPlanGuid != null)
                 {
-                    // Get current active plan GUID directly from raw discovery values
-                    string? currentGuid = null;
-                    if (currentState.RawValues?.TryGetValue("ActivePowerPlanGuid", out var rawGuid) == true)
-                        currentGuid = rawGuid?.ToString();
+                    // D3-consistent: read the active scheme GUID from the new engine's DynamicSelection (the active
+                    // plan GUID, lowercased, threaded by the catalog detection overlay) instead of the old discovery
+                    // RawValues["ActivePowerPlanGuid"]. NormalizeGuid lowercases both sides, so the case swap is harmless.
+                    string? currentGuid = currentState.DynamicSelection;
 
-                    string? currentPlanName = currentState.RawValues?.TryGetValue("ActivePowerPlan", out var rawName) == true
-                        ? rawName?.ToString() : null;
+                    // The current plan NAME now reads the new engine's typed DynamicSelectionName (the active plan's raw
+                    // OS name, proven == old RawValues["ActivePowerPlan"]) instead of the old discovery RawValues.
+                    string? currentPlanName = currentState.DynamicSelectionName;
                     string? configPlanName = configItem.PowerPlanName;
 
                     _logService.Log(LogLevel.Debug,
@@ -648,7 +636,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         ? comboResult.Options[currentIndex].DisplayText : null;
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)
-                        : await GetComboBoxDisplayNameFromDefAsync(settingDef, currentIndex, currentState).ConfigureAwait(false);
+                        : await GetComboBoxDisplayNameFromCatalogAsync(setting, currentIndex, currentState).ConfigureAwait(false);
                     var configDisplayName = configItem.PowerPlanName ?? "Custom";
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName, currentRawKey, configDisplayName);
@@ -674,7 +662,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 return (false, string.Empty, string.Empty, null, null);
             }
 
-            case InputType.NumericRange:
+            case ControlKind.Slider:
             {
                 var currentVal = currentState.CurrentValue is int cv ? cv : 0;
                 if (configItem.PowerSettings != null)
@@ -694,16 +682,62 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     }
 
     /// <summary>
-    /// Gets a display name for a combo box index using the setting definition's combo box setup.
+    /// Builds the combo box display options for a non-power-plan Selection from its catalog States, reproducing
+    /// ComboBoxSetupService.SetupFromComboBoxDisplayNames. The current index is read straight off
+    /// <paramref name="currentValue"/> (already the catalog-overlay-resolved option index); power-plan settings
+    /// are handled separately via the PowerPlanGuid branch and never reach this method.
     /// </summary>
-    private async Task<string> GetComboBoxDisplayNameFromDefAsync(
-        SettingDefinition settingDef,
+    private static ComboBoxSetupResult BuildComboBoxOptions(Setting setting, object? currentValue)
+    {
+        var result = new ComboBoxSetupResult();
+
+        // Slice E5: build the review combo-box options from the catalog Setting's States (one per option). Only
+        // DisplayText (from State.Label) and SelectedValue are read by the review diff (ComputeEagerDiffAsync /
+        // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
+        // populated for the option object but are NOT read in this flow. NOTE: the badge flags map to catalog
+        // roles - the once-divergent detector selections (system-tray, dns) had their role gap CLOSED by the
+        // converter-gap fix (RolesForOption; the now-retired ConfigReviewReaderEquivalenceTests asserted ZERO divergence),
+        // and the flags are unread in this flow regardless. The custom option label is hardcoded "Custom": the
+        // retired def path consumed RAW un-localized defs whose CustomStateDisplayName was always null, so the
+        // old "CustomStateDisplayName ?? Custom" was ALWAYS "Custom" here - byte-identical, not merely unobservable.
+        if (setting.States.Count == 0)
+            return result; // e.g. power-plan-selection (dynamic options; handled by the PowerPlanGuid branch)
+
+        int currentIndex = currentValue is int idx ? idx : 0;
+        var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
+        var states = setting.States;
+
+        for (int i = 0; i < states.Count; i++)
+        {
+            result.Options.Add(new ComboBoxDisplayOption(states[i].Label, i, states[i].Tooltip)
+            {
+                IsRecommended = states[i].HasRole(RoleKind.Recommended),
+                IsDefault = states[i].HasRole(RoleKind.WindowsDefault),
+                IsSubjectivePreference = setting.Display.IsSubjectivePreference,
+            });
+        }
+
+        if (isCustomState)
+        {
+            result.Options.Add(new ComboBoxDisplayOption("Custom", ComboBoxConstants.CustomStateIndex, null));
+        }
+
+        result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
+        result.Success = true;
+        return result;
+    }
+
+    /// <summary>
+    /// Gets a display name for a combo box index using the catalog Setting's combo box setup.
+    /// </summary>
+    private async Task<string> GetComboBoxDisplayNameFromCatalogAsync(
+        Setting setting,
         int index,
         SettingStateResult currentState)
     {
         try
         {
-            var result = await _comboBoxSetupService.SetupComboBoxOptionsAsync(settingDef, currentState.CurrentValue).ConfigureAwait(false);
+            var result = BuildComboBoxOptions(setting, currentState.CurrentValue);
             if (index >= 0 && index < result.Options.Count)
             {
                 return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());
@@ -719,7 +753,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Warning,
-                $"[ConfigReviewService] Failed to get combo box display name for '{settingDef.Id}' index {index}: {ex.Message}");
+                $"[ConfigReviewService] Failed to get combo box display name for '{setting.Id}' index {index}: {ex.Message}");
         }
         return index >= 0 ? index.ToString() : "Unknown";
     }
@@ -779,7 +813,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         if (string.IsNullOrEmpty(guid)) return null;
         var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanDefinitions.BuiltInPowerPlans.FirstOrDefault(
+        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
             p => NormalizeGuid(p.Guid) == normalizedGuid);
         return predefined?.LocalizationKey;
     }
@@ -790,7 +824,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private static PredefinedPowerPlan? ResolveToPredefinedPlan(string? guid, string? name)
     {
-        var plans = PowerPlanDefinitions.BuiltInPowerPlans;
+        var plans = PowerPlanCatalog.BuiltInPowerPlans;
 
         // 1. Try GUID match first (most reliable, locale-independent)
         if (!string.IsNullOrEmpty(guid))
@@ -823,7 +857,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (string.IsNullOrEmpty(guid)) return null;
 
         var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanDefinitions.BuiltInPowerPlans.FirstOrDefault(
+        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
             p => NormalizeGuid(p.Guid) == normalizedGuid);
 
         if (predefined == null) return null;

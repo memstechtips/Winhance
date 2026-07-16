@@ -1,11 +1,8 @@
 using System.Collections.ObjectModel;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -13,39 +10,42 @@ namespace Winhance.UI.Features.Common.Services;
 
 public class SettingsLoadingService : ISettingsLoadingService
 {
-    private readonly ISystemSettingsDiscoveryService _discoveryService;
-    private readonly IEventBus _eventBus;
+    private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
-    private readonly IComboBoxResolver _comboBoxResolver;
-    private readonly ISettingPreparationPipeline _preparationPipeline;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilterService;
+    private readonly IWindowsVersionService _windowsVersionService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
-    private readonly IDetectionShadowRunner _shadowRunner;
-    private readonly ICatalogDetectionService _catalogDetectionService;
+    private readonly ISettingLocalizationService _settingLocalizationService;
+    private readonly ILocalizationService _localization;
+    private readonly IApplicationModeService _applicationModeService;
 
     public SettingsLoadingService(
-        ISystemSettingsDiscoveryService discoveryService,
-        IEventBus eventBus,
+        ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
         IInitializationService initializationService,
-        IComboBoxResolver comboBoxResolver,
-        ISettingPreparationPipeline preparationPipeline,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilterService,
+        IWindowsVersionService windowsVersionService,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
-        IDetectionShadowRunner shadowRunner,
-        ICatalogDetectionService catalogDetectionService)
+        ISettingLocalizationService settingLocalizationService,
+        ILocalizationService localization,
+        IApplicationModeService applicationModeService)
     {
-        _discoveryService = discoveryService;
-        _eventBus = eventBus;
+        _settingStateProvider = settingStateProvider;
         _logService = logService;
         _initializationService = initializationService;
-        _comboBoxResolver = comboBoxResolver;
-        _preparationPipeline = preparationPipeline;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilterService = windowsVersionFilterService;
+        _windowsVersionService = windowsVersionService;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
-        _shadowRunner = shadowRunner;
-        _catalogDetectionService = catalogDetectionService;
+        _settingLocalizationService = settingLocalizationService;
+        _localization = localization;
+        _applicationModeService = applicationModeService;
     }
 
     public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
@@ -58,7 +58,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
             _initializationService.StartFeatureInitialization(featureModuleId);
 
-            var settingsList = _preparationPipeline.PrepareSettings(featureModuleId);
+            var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled);
 
             var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
@@ -67,20 +67,16 @@ public class SettingsLoadingService : ISettingsLoadingService
                 Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            var batchStates = await _discoveryService.GetSettingStatesAsync(settingsList);
+            // Slice 6: the new-engine full-state provider IS the old-discovery+overlay result, so it replaces both
+            // and retires the observe-only shadow. Custom-state now comes from the typed fields
+            // (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
+            var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
 
-            // Resolve combo box values for Selection type settings
-            await ResolveComboBoxStatesAsync(settingsList, batchStates);
+            // L4b: the compatibility message is derived from the catalog Availability against the live build
+            // (AvailabilityCompatibility reproduces the retired def decoration); read the build once per load.
+            var liveBuild = LiveBuild();
 
-            // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled). Runs
-            // after combo-box resolution so the selection baseline is the same value the UI consumes.
-            await _shadowRunner.RunAsync(settingsList, batchStates);
-
-            // Detection cutover: the new catalog engine decides each setting's primary state (toggle on/off,
-            // selection option). Auxiliary data (RawValues, TooltipData, AC/DC) stays as the old discovery read it.
-            await OverlayCatalogStatesAsync(settingsList, batchStates);
-
-            // Create ViewModels for all settings (skip settings whose backing resource doesn't exist)
+            // Create ViewModels for all settings (skip any whose state the detection provider could not resolve -- Success == false)
             foreach (var setting in settingsList)
             {
                 if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)
@@ -90,19 +86,24 @@ public class SettingsLoadingService : ISettingsLoadingService
                 }
 
                 var currentState = batchStates.TryGetValue(setting.Id, out var s) ? s : new SettingStateResult();
-                var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel);
+
+                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+
+                // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
+                // G1b: build it here from the new engine's DynamicOptions (the same runtime options the live GUID-valued
+                // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads -
+                // retiring the old IComboBoxSetupService precompute. The factory's builder block localizes the
+                // PowerPlan_ DisplayText, so this service passes the raw loc key.
+                ComboBoxSetupResult? builderComboBoxOptions =
+                    (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.OptionSource is not null)
+                        ? BuildBuilderPowerPlanOptions(currentState)
+                        : null;
+
+                var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)));
                 viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
                 settingViewModels.Add(viewModel);
             }
 
-            // Publish tooltip updates from the already-read state data (no second registry read)
-            foreach (var kvp in batchStates)
-            {
-                if (kvp.Value.TooltipData != null)
-                {
-                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
-                }
-            }
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
             _initializationService.CompleteFeatureInitialization(featureModuleId);
 
@@ -120,83 +121,115 @@ public class SettingsLoadingService : ISettingsLoadingService
         IEnumerable<SettingItemViewModel> settings)
     {
         var settingsList = settings.ToList();
-        var definitions = settingsList
-            .Where(s => s.SettingDefinition != null)
-            .Select(s => s.SettingDefinition!)
+
+        // The VM no longer carries its setting model (Phase 6.7 Slice 11). Re-source the catalog Settings for this
+        // refresh from the catalog registry, keyed by each VM's owning feature module and filtered to the VMs
+        // on screen - the same registry + scope as the initial load, so the settings are identical.
+        var wantedIds = new HashSet<string>(settingsList.Select(s => s.SettingId));
+        var catalogSettings = settingsList
+            .Select(s => s.ParentFeatureViewModel?.ModuleId)
+            .Where(m => !string.IsNullOrEmpty(m))
+            .Distinct()
+            .SelectMany(m => _catalogSettingsRegistry.GetByFeature(m!, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled))
+            .Where(c => wantedIds.Contains(c.Id))
+            .GroupBy(c => c.Id)
+            .Select(g => g.First())
             .ToList();
 
-        if (definitions.Count == 0)
+        if (catalogSettings.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
-        var batchStates = await _discoveryService.GetSettingStatesAsync(definitions);
-
-        // Resolve combo box values for Selection type settings
-        await ResolveComboBoxStatesAsync(definitions, batchStates);
-
-        // Observe-only shadow of the new catalog detection engine (no-op unless explicitly enabled).
-        await _shadowRunner.RunAsync(definitions, batchStates);
-
-        // Detection cutover: the new catalog engine decides each setting's primary state.
-        await OverlayCatalogStatesAsync(definitions, batchStates);
+        // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
+        var batchStates = await _settingStateProvider.GetStatesAsync(catalogSettings);
 
         return batchStates;
     }
 
-    /// <summary>
-    /// Overlays the new catalog detection engine's authoritative primary state (a toggle's on/off, a selection's
-    /// chosen option index) onto the batch states the UI consumes, for every setting that has a catalog peer. The
-    /// old result's auxiliary data (RawValues, TooltipData, the AC/DC split) is preserved, and unpaired settings keep
-    /// their old state. Any failure is logged and leaves the old states in place, so detection never hard-fails a page.
-    /// </summary>
-    private async Task OverlayCatalogStatesAsync(
-        IReadOnlyList<SettingDefinition> definitions,
-        Dictionary<string, SettingStateResult> batchStates)
+    // Slice B2/L4b: the compatibility message arrives raw from the catalog derivation
+    // (AvailabilityCompatibility.DeriveCompatibilityMessage; format: "Compatibility_Key|Arg1|Arg2..."). Localize it
+    // here before passing it to the factory - lifted verbatim from the retired LocalizeSetting. A non-Compatibility_
+    // message (incl. null) is returned unchanged, exactly as the old service left it.
+    private string? LocalizeCompatibilityMessage(string? message)
     {
-        try
+        if (message is { } compatKey && compatKey.StartsWith("Compatibility_"))
         {
-            var ids = new HashSet<string>(definitions.Select(d => d.Id));
-            var pairedSettings = SettingCatalog.All.Where(s => ids.Contains(s.Id)).ToList();
-            if (pairedSettings.Count == 0)
-                return;
-
-            var newResults = await _catalogDetectionService.DetectAsync(pairedSettings);
-
-            foreach (var def in definitions)
+            var parts = compatKey.Split('|');
+            var key = parts[0];
+            if (parts.Length > 1)
             {
-                if (!batchStates.TryGetValue(def.Id, out var oldState))
-                    continue;
-                newResults.TryGetValue(def.Id, out var newResult);
-                batchStates[def.Id] = CatalogDetectionStateOverlay.Apply(def, oldState, newResult);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning,
-                $"[SettingsLoadingService] Catalog detection overlay failed (keeping old states): {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Resolves combo box values for all Selection-type settings in the batch.
-    /// </summary>
-    private async Task ResolveComboBoxStatesAsync(
-        IEnumerable<SettingDefinition> settings,
-        Dictionary<string, SettingStateResult> batchStates)
-    {
-        foreach (var setting in settings.Where(s => s.InputType == InputType.Selection))
-        {
-            if (batchStates.TryGetValue(setting.Id, out var state) && state.RawValues != null)
-            {
+                var args = parts.Skip(1).ToArray();
                 try
                 {
-                    var resolvedValue = await _comboBoxResolver.ResolveCurrentValueAsync(setting, state.RawValues as Dictionary<string, object?>);
-                    batchStates[setting.Id] = state with { CurrentValue = resolvedValue };
+                    var format = _localization.GetString(key);
+                    return string.Format(format, args);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    _logService.Log(LogLevel.Warning, $"Failed to resolve combo box value for '{setting.Id}': {ex.Message}");
+                    return _localization.GetString(key);
                 }
             }
+            return _localization.GetString(key);
         }
+        return message;
+    }
+
+    /// <summary>The live Windows build for compatibility-message derivation. Read ONCE per load (cached in a
+    /// local before the VM loop), not per setting.</summary>
+    private WinBuild LiveBuild() =>
+        new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
+
+    /// <summary>
+    /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from the
+    /// new engine's runtime options, retiring the old IComboBoxSetupService precompute. Faithful to
+    /// PowerPlanComboBoxService.SetupPowerPlanComboBoxAsync: PowerPlanOptions.Build (which produces these DynamicOptions)
+    /// reproduces the old GetPowerPlanOptionsAsync option set + OrderBy(label) sort, so each option's list index equals
+    /// the old option Index. The rich PowerPlanComboBoxOption Tag mirrors
+    /// SettingItemViewModel.TryApplyDynamicPowerPlanOptions (the live dropdown the bespoke PowerPlanComboBox control
+    /// already reads): ExistsOnSystem/IsActive drive the control visuals, SystemPlan.Guid is the delete target, and the
+    /// option's DisplayName (the raw PowerPlan_ loc key) is re-localized by the delete dialog; SystemPlan.Name is not
+    /// consumed. DisplayText stays the raw loc key - the factory's builder block localizes it. Returns an empty (but
+    /// non-null) result when there are no runtime options, matching the old service's empty-result contract.
+    /// </summary>
+    private static ComboBoxSetupResult BuildBuilderPowerPlanOptions(SettingStateResult state)
+    {
+        var result = new ComboBoxSetupResult { Success = true };
+        if (state.DynamicOptions is not { } dynamicOptions)
+            return result;
+
+        int activeIndex = 0;
+        bool foundActive = false;
+        for (int i = 0; i < dynamicOptions.Count; i++)
+        {
+            var opt = dynamicOptions[i];
+            var isActive = state.DynamicSelection != null
+                && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
+            // FIRST match wins, matching the old GetCurrentPowerPlanIndexAsync's `return i` (each option's Tag still
+            // carries its own per-option isActive below).
+            if (isActive && !foundActive)
+            {
+                activeIndex = i;
+                foundActive = true;
+            }
+
+            var tag = new PowerPlanComboBoxOption
+            {
+                DisplayName = opt.Label,
+                ExistsOnSystem = opt.ExistsOnSystem,
+                IsActive = isActive,
+                SystemPlan = opt.ExistsOnSystem
+                    ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = opt.Label, IsActive = isActive }
+                    : null,
+            };
+
+            // Value = the option index (BuilderEdit serializes the int index); DisplayText = the raw PowerPlan_ loc key.
+            result.Options.Add(new ComboBoxDisplayOption(
+                opt.Label,
+                i,
+                opt.ExistsOnSystem ? "Installed on system" : "Not installed",
+                tag));
+        }
+
+        result.SelectedValue = activeIndex;
+        return result;
     }
 }

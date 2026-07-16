@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
+using Winhance.Core.Features.Optimize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -21,6 +22,7 @@ public sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerCfgApplier _powerCfg;
     private readonly IPowerShellRunner _powerShell;
     private readonly IRegImportService _regImport;
+    private readonly IPowerPlanActivationService _activation;
     private readonly ILogService _log;
 
     public WindowsStateWriter(
@@ -29,6 +31,7 @@ public sealed class WindowsStateWriter : IStateWriter
         IPowerCfgApplier powerCfg,
         IPowerShellRunner powerShell,
         IRegImportService regImport,
+        IPowerPlanActivationService activation,
         ILogService log)
     {
         _reg = reg;
@@ -36,6 +39,7 @@ public sealed class WindowsStateWriter : IStateWriter
         _powerCfg = powerCfg;
         _powerShell = powerShell;
         _regImport = regImport;
+        _activation = activation;
         _log = log;
     }
 
@@ -186,5 +190,25 @@ public sealed class WindowsStateWriter : IStateWriter
                 // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).
                 return true;
         }
+    }
+
+    // --- Power plan (dynamic-option) activation ---
+
+    public bool ActivatePowerPlan(string guid)
+    {
+        // Slice 8b-1: delegate to the extracted IPowerPlanActivationService, which reproduces the old
+        // PowerService.ApplyPowerPlanByGuidAsync detection+activation body (import-if-missing for a
+        // predefined-but-not-installed plan, then activate, then InvalidateCache) - replacing 8a's
+        // activate-installed-only stub. A cheap guard still rejects an empty/unparseable GUID up front
+        // (preserving 8a's defensive behaviour and keeping EnsureActivatedAsync's empty-GUID throw off the
+        // sync-over-async boundary). Sync-over-async at the writer boundary; NOT reached at runtime until 8b-2
+        // flips the resolver + removes the PowerService special handler.
+        if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out _))
+        {
+            _log.Log(LogLevel.Error, $"[WindowsStateWriter] ActivatePowerPlan: invalid GUID '{guid}'");
+            return false;
+        }
+
+        return _activation.EnsureActivatedAsync(guid).GetAwaiter().GetResult().Success;
     }
 }

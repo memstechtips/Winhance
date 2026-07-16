@@ -1,0 +1,120 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
+
+namespace Winhance.Infrastructure.Features.Common.Services;
+
+/// <summary>Composes the proven membership pieces into a catalog-sourced registry. Holds the machine CONTEXT (build,
+/// hardware caps, and the powercfg-existence-passed id set) resolved once in InitializeAsync, and answers membership
+/// as a PURE QUERY over (catalog x context x scope) - no mutable filter flag, no frozen per-scope index. Default
+/// scope is current-OS (OS-build gate + hardware + existence); includeOtherOsVersions relaxes ONLY the OS-build gate
+/// (the old CompatibleSettingsRegistry SetFilterEnabled(false) "show settings for other Windows versions" mode),
+/// keeping hardware + existence. Additive when written; the old CompatibleSettingsRegistry stayed authoritative
+/// until the coordinated consumer cutover.</summary>
+public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
+{
+    private readonly IWindowsVersionService _version;
+    private readonly IHardwareDetectionService _hardware;
+    private readonly ICatalogPowerExistenceFilter _existence;
+
+    private WinBuild _build;
+    private HardwareCaps _caps;
+    private HashSet<string> _existencePassed = new();
+    private Dictionary<string, string> _featureById = new();
+    private bool _initialized;
+
+    public CatalogSettingsRegistry(IWindowsVersionService version, IHardwareDetectionService hardware, ICatalogPowerExistenceFilter existence)
+    {
+        _version = version;
+        _hardware = hardware;
+        _existence = existence;
+    }
+
+    public async Task InitializeAsync()
+    {
+        if (_initialized) return;
+
+        _build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
+        _caps = new HardwareCaps(
+            await _hardware.HasBatteryAsync().ConfigureAwait(false),
+            await _hardware.SupportsHybridSleepAsync().ConfigureAwait(false));
+
+        // Resolve powercfg existence ONCE over the OS-version-INDEPENDENT candidate set (hardware-passing settings
+        // that validate existence). Existence is machine-state (GUID presence), orthogonal to the OS-build gate, so
+        // one resolution serves BOTH scopes and matches the old registry's bypass-set existence pass. FilterAsync
+        // keeps a setting that passed (or does not require) existence; cache the surviving ids.
+        var candidates = SettingCatalog.All
+            .Where(s => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, _caps) && s.Availability.ValidatesExistence)
+            .ToList();
+        _existencePassed = candidates.Count > 0
+            ? (await _existence.FilterAsync(candidates).ConfigureAwait(false)).Select(s => s.Id).ToHashSet()
+            : new HashSet<string>();
+
+        // The owning feature is scope-independent (a setting belongs to exactly one feature regardless of the gate).
+        var featureById = new Dictionary<string, string>();
+        foreach (var (featureId, settings) in SettingCatalog.ByFeature)
+            foreach (var s in settings)
+                featureById[s.Id] = featureId;
+        _featureById = featureById;
+
+        _initialized = true;
+    }
+
+    /// <summary>Membership as a pure query over the cached context + scope. Default (includeOtherOsVersions=false) is
+    /// current-OS: OS-build gate AND hardware AND existence. includeOtherOsVersions=true relaxes ONLY the OS-build
+    /// gate; hardware + existence still apply.</summary>
+    private bool IsMember(Setting s, bool includeOtherOsVersions)
+    {
+        var osHwOk = includeOtherOsVersions
+            ? CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, _caps)
+            : CatalogMembershipFilter.IsAvailable(s, _build, _caps);
+        if (!osHwOk) return false;
+        return !s.Availability.ValidatesExistence || _existencePassed.Contains(s.Id);
+    }
+
+    /// <summary>Guards the pure-query surface: the machine CONTEXT must be resolved (InitializeAsync) before any
+    /// membership query, exactly as the old CompatibleSettingsRegistry threw on uninitialized use. Without this an
+    /// uninitialized registry answers over a default (0,0) build + empty existence set, silently hiding every
+    /// build-gated / powercfg setting - which surfaces downstream as a misleading "Setting not found" on apply
+    /// rather than the real "registry not initialized" cause. Every live consumer queries post-startup, so this
+    /// never fires in practice; it converts a swallowed-init failure into a loud, accurate error.</summary>
+    private void EnsureInitialized()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("CatalogSettingsRegistry not initialized. Call InitializeAsync first.");
+    }
+
+    public IReadOnlyList<Setting> GetByFeature(string featureId, bool includeOtherOsVersions = false)
+    {
+        EnsureInitialized();
+        return SettingCatalog.ByFeature.TryGetValue(featureId, out var settings)
+            ? settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList()
+            : Array.Empty<Setting>();
+    }
+
+    public Setting? GetById(string settingId, bool includeOtherOsVersions = false)
+    {
+        EnsureInitialized();
+        return SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, includeOtherOsVersions)
+            ? s
+            : null;
+    }
+
+    public string? GetFeatureIdForSetting(string settingId)
+    {
+        EnsureInitialized();
+        return _featureById.TryGetValue(SettingIdAliases.Normalize(settingId), out var f) ? f : null;
+    }
+
+    public IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(bool includeOtherOsVersions = false)
+    {
+        EnsureInitialized();
+        var result = new Dictionary<string, IReadOnlyList<Setting>>();
+        foreach (var (featureId, settings) in SettingCatalog.ByFeature)
+            result[featureId] = settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList();
+        return result;
+    }
+}

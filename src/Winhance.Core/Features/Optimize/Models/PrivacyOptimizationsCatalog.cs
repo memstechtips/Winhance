@@ -392,6 +392,17 @@ public static class PrivacyOptimizationsCatalog
                 Description = "Controls all advertising, suggestions, and promotional content throughout Windows",
                 GroupName = "Content Delivery & Advertising",
                 Icon = MaterialIcons.AdvertisementsOff,
+                CrossGroupChildSettings = new Dictionary<string, string>
+                {
+                    ["privacy-rotating-lock-screen"] = "Setting_privacy-ads-promotional-master_Child_Spotlight",
+                    ["privacy-lock-screen-overlay"] = "Setting_privacy-ads-promotional-master_Child_FunFactsTips",
+                    ["privacy-settings-content"] = "Setting_privacy-ads-promotional-master_Child_SuggestedContent",
+                    ["privacy-timeline-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TimelineSuggestions",
+                    ["notifications-welcome-experience"] = "Setting_privacy-ads-promotional-master_Child_WelcomeExperience",
+                    ["notifications-tips-suggestions"] = "Setting_privacy-ads-promotional-master_Child_TipsSuggestions",
+                    ["notifications-system-pane-suggestions"] = "Setting_privacy-ads-promotional-master_Child_NotificationCenterSuggestions",
+                    ["start-show-suggestions"] = "Setting_privacy-ads-promotional-master_Child_StartSuggestions",
+                },
             },
             Targets = new Target[]
             {
@@ -757,6 +768,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, "Show") },
                     Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(1) },
                 },
                 new SettingState
@@ -936,6 +948,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, "Show") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["SubscribedContent-338393Enabled"] = Absent,
@@ -1192,7 +1205,6 @@ public static class PrivacyOptimizationsCatalog
                 GroupName = "Diagnostics & Feedback",
                 Icon = FluentIcons.PenSparkle,
             },
-            Links = new[] { new Link("privacy-diagnostics", LinkKind.Requires, "Enabled") },
             Targets = new Target[]
             {
                 new RegTarget("Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Input\TIPC" }, "Enabled", RegistryValueKind.DWord),
@@ -1215,6 +1227,7 @@ public static class PrivacyOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("privacy-diagnostics", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(0),

@@ -16,6 +16,14 @@ public static class UpdateOptimizationsCatalog
         new()
         {
             Id = "updates-policy-mode",
+            // Detection is not registry-expressible (Disabled and Paused both write NoAutoUpdate=1/AUOptions=1, and
+            // Disabled is enforced by a filesystem DLL rename), so a custom detector reproduces the old UpdateService
+            // special-handler precedence. Labels must equal the States below.
+            Detector = new UpdatePolicyDetector(
+                "Normal (Windows Default)",
+                "Security Updates Only (Recommended)",
+                "Paused for a long time (Unpause in Settings)",
+                "Disabled (NOT Recommended, Security Risk)"),
             Display = new()
             {
                 Name = "Windows Update Policy",
@@ -54,6 +62,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Normal (Windows Default)",
+                    Tooltip = "Windows default behavior - automatic updates enabled",
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -84,6 +93,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Security Updates Only (Recommended)",
+                    Tooltip = "Only install critical security updates, defer feature updates by 1 year",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -114,6 +124,8 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Paused for a long time (Unpause in Settings)",
+                    Tooltip = "Pause all updates until 2051 - manually unpause in Windows Settings when needed",
+                    Warning = "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk.",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
@@ -143,6 +155,8 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled (NOT Recommended, Security Risk)",
+                    Tooltip = "Completely disable Windows Update services and block all updates - NOT RECOMMENDED",
+                    Warning = "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk.",
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),

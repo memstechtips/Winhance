@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -10,18 +11,19 @@ using Winhance.Infrastructure.Features.Common.Helpers; // RecommendedSettingsRes
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class RecommendedSettingsApplier(
-    ICompatibleSettingsRegistry compatibleSettingsRegistry,
+    ICatalogSettingsRegistry catalogSettingsRegistry,
     IWindowsVersionService versionService,
     IProcessRestartManager processRestartManager,
     ILogService logService) : IRecommendedSettingsApplier
 {
-    public async Task<IReadOnlyList<SettingDefinition>> ApplyRecommendedToSettingsAsync(
-        IReadOnlyList<SettingDefinition> settings,
+    public async Task<IReadOnlyList<Setting>> ApplyRecommendedToSettingsAsync(
+        IReadOnlyList<Setting> settings,
         ISettingApplicationService apply,
         IProgress<TaskProgressDetail>? progress = null)
     {
-        var appliedForRestart = new List<SettingDefinition>(settings.Count);
+        var appliedForRestart = new List<Setting>(settings.Count);
         int total = settings.Count;
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
 
         // Suppress per-setting restarts; the CALLER flushes the coalesced restart.
         using (processRestartManager.SuppressRestarts())
@@ -29,27 +31,37 @@ public class RecommendedSettingsApplier(
             for (int i = 0; i < total; i++)
             {
                 var setting = settings[i];
+
+                // A one-shot Action is not a stateful setting to bulk-recommend (mirrors
+                // BulkSettingsActionService's reset-loop exclusion; Marco 2026-07-03 / 2026-07-08).
+                // The setting IS the catalog Setting now, so Control is the render-kind. An Action carries no
+                // recommendable state (the else branch's BuildPowerCfgApplyValue also returns null for it);
+                // this guard is the explicit exclusion.
+                if (setting.Control == ControlKind.Action)
+                    continue;
+
                 try
                 {
                     progress?.Report(new TaskProgressDetail
                     {
                         Progress = (double)i / total * 100,
-                        StatusText = $"Applying recommended: {setting.Name}",
+                        StatusText = $"Applying recommended: {setting.Display.Name}",
                         QueueCurrent = i + 1,
                         QueueTotal = total,
                         IsActive = true
                     });
 
-                    if (setting.InputType == InputType.Toggle)
+                    if (setting.Control == ControlKind.Toggle)
                     {
-                        var toggleState = SettingDefinitionToggleState.GetRecommendedToggleState(setting);
-                        if (toggleState is not bool enableValue) continue; // no recommendation
+                        // Slice 3b: setting IS the catalog Setting; read the recommended toggle state directly
+                        // from its Recommended role (build-aware). No re-pairing needed.
+                        if (CatalogToggleState.GetRecommended(setting, currentBuild) is not bool enableValue) continue; // no recommendation
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id, Enable = enableValue, SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
-                    else if (setting.InputType == InputType.Selection)
+                    else if (setting.Control == ControlKind.Selection)
                     {
                         var powerCfgValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                         if (powerCfgValue != null)
@@ -71,8 +83,10 @@ public class RecommendedSettingsApplier(
                     }
                     else
                     {
-                        var valueToApply = RecommendedSettingsResolver.GetRecommendedValueForSetting(setting)
-                            ?? RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
+                        // else-branch population is powercfg NumericRange only (Actions excluded above);
+                        // GetRecommendedValueForSetting was dead-in-effect here (registry-free) and has no
+                        // catalog overload, so it collapses to BuildPowerCfgApplyValue.
+                        var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                         if (valueToApply == null) continue; // nothing recommended
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
@@ -93,15 +107,16 @@ public class RecommendedSettingsApplier(
         return appliedForRestart;
     }
 
-    public async Task<IReadOnlyList<SettingDefinition>> ApplyRecommendedForFeatureAsync(
+    public async Task<IReadOnlyList<Setting>> ApplyRecommendedForFeatureAsync(
         string triggerSettingId, ISettingApplicationService apply)
     {
-        var featureId = compatibleSettingsRegistry.GetFeatureIdForSetting(triggerSettingId)
+        var featureId = catalogSettingsRegistry.GetFeatureIdForSetting(triggerSettingId)
             ?? throw new InvalidOperationException($"Setting '{triggerSettingId}' has no feature mapping");
 
-        var osInfo = RecommendedSettingsResolver.BuildOSInfo(versionService);
-        var settings = compatibleSettingsRegistry.GetFilteredSettings(featureId)
-            .Where(s => s.Id != triggerSettingId && RecommendedSettingsResolver.IsCompatibleWithCurrentOS(s, osInfo))
+        // The catalog registry is current-OS scoped (OS build + hardware + existence), so it already
+        // excludes OS-incompatible settings - the old .Where(IsCompatibleWithCurrentOS) re-filter is obviated.
+        var settings = catalogSettingsRegistry.GetByFeature(featureId)
+            .Where(s => s.Id != triggerSettingId)
             .ToList();
 
         logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Applying recommended for feature '{featureId}' ({settings.Count} candidate settings)");

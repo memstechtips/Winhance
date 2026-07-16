@@ -1,20 +1,23 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IProcessRestartManager
 {
-    Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting);
+    /// <summary>Catalog-Setting overload of the single-setting restart: reads the unified ApplyBehavior.Restart
+    /// (RestartProcess / RestartService), equivalent to the def's separate RestartProcess/RestartService because no
+    /// setting sets both (the now-retired RestartTargetCatalogEquivalenceTests). SAS repointed its single-setting restart onto this
+    /// after it ported off the old SettingDefinition; the def overload was removed at teardown.</summary>
+    Task HandleProcessAndServiceRestartsAsync(Setting setting);
 
-    /// <summary>
-    /// Coalesces restarts across a batch of applied settings: each distinct
-    /// RestartProcess / RestartService is triggered exactly once, regardless of
-    /// how many settings in the batch declared it. Call this AFTER the batch,
-    /// outside any SuppressRestarts scope.
-    /// </summary>
-    Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings);
+    /// <summary>Catalog-Setting overload of the batch flush: reads the unified ApplyBehavior.Restart. The
+    /// apply-cluster (RecommendedSettingsApplier / BulkSettingsActionService) uses this once it deals in
+    /// Setting; the old SettingDefinition overload was removed at teardown. Equivalent because no
+    /// setting sets both a process and a service restart (the now-retired RestartTargetCatalogEquivalenceTests).</summary>
+    Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings);
 
     /// <summary>
     /// Suppresses all process/service restarts until the returned scope is disposed.

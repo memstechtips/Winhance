@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Optimize.Services;
@@ -14,6 +15,7 @@ public class UpdateServiceTests
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
+    private readonly Mock<IStateWriter> _mockStateWriter = new();
     private readonly UpdateService _service;
 
     public UpdateServiceTests()
@@ -23,7 +25,8 @@ public class UpdateServiceTests
             _mockRegistryService.Object,
             _mockProcessExecutor.Object,
             _mockPowerShellRunner.Object,
-            _mockFileSystemService.Object);
+            _mockFileSystemService.Object,
+            _mockStateWriter.Object);
     }
 
     #region TryApplySpecialSettingAsync
@@ -32,15 +35,9 @@ public class UpdateServiceTests
     public async Task TryApplySpecialSettingAsync_NonUpdatesPolicyMode_ReturnsFalse()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "some-other-setting",
-            Name = "Other",
-            Description = "Not updates policy"
-        };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting, 0);
+        var result = await _service.TryApplySpecialSettingAsync("some-other-setting", 0);
 
         // Assert
         result.Should().BeFalse();
@@ -50,15 +47,9 @@ public class UpdateServiceTests
     public async Task TryApplySpecialSettingAsync_UpdatesPolicyMode_NonIntValue_ReturnsFalse()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         // Act
-        var result = await _service.TryApplySpecialSettingAsync(setting, "not-an-int");
+        var result = await _service.TryApplySpecialSettingAsync("updates-policy-mode", "not-an-int");
 
         // Assert
         result.Should().BeFalse();
@@ -72,15 +63,9 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_NonIntValue_ThrowsArgumentException()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         // Act
-        var act = () => _service.ApplyUpdatesPolicyModeAsync(setting, "invalid");
+        var act = () => _service.ApplyUpdatesPolicyModeAsync("invalid");
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
@@ -91,17 +76,11 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_InvalidIndex_ThrowsArgumentException()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
 
         // Act
-        var act = () => _service.ApplyUpdatesPolicyModeAsync(setting, 99);
+        var act = () => _service.ApplyUpdatesPolicyModeAsync(99);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
@@ -112,12 +91,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_NormalMode_EnablesServicesAndTasks()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
@@ -125,7 +98,7 @@ public class UpdateServiceTests
             .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
 
         // Act
-        await _service.ApplyUpdatesPolicyModeAsync(setting, 0);
+        await _service.ApplyUpdatesPolicyModeAsync(0);
 
         // Assert — verify services were enabled (sc config and net start commands)
         _mockProcessExecutor.Verify(
@@ -137,12 +110,6 @@ public class UpdateServiceTests
     public async Task ApplyUpdatesPolicyModeAsync_SecurityOnlyMode_AppliesRegistrySettings()
     {
         // Arrange
-        var setting = new SettingDefinition
-        {
-            Id = "updates-policy-mode",
-            Name = "Policy",
-            Description = "Policy mode"
-        };
 
         SetupProcessExecutor();
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
@@ -150,7 +117,7 @@ public class UpdateServiceTests
             .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
 
         // Act
-        await _service.ApplyUpdatesPolicyModeAsync(setting, 1);
+        await _service.ApplyUpdatesPolicyModeAsync(1);
 
         // Assert — verify process commands were executed for enabling services
         _mockProcessExecutor.Verify(
@@ -260,61 +227,6 @@ public class UpdateServiceTests
 
         // Assert
         result.Should().Be(0);
-    }
-
-    #endregion
-
-    #region DiscoverSpecialSettingsAsync
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_NoMatchingSetting_ReturnsEmptyDictionary()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "unrelated-setting",
-                Name = "Unrelated",
-                Description = "Not updates policy"
-            }
-        };
-
-        // Act
-        var result = await _service.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task DiscoverSpecialSettingsAsync_WithUpdatesPolicyMode_ReturnsPolicyIndex()
-    {
-        // Arrange
-        var settings = new List<SettingDefinition>
-        {
-            new SettingDefinition
-            {
-                Id = "updates-policy-mode",
-                Name = "Policy Mode",
-                Description = "Updates policy"
-            }
-        };
-
-        // Set up for normal mode (index 0)
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
-            .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-        _mockRegistryService.Setup(r => r.GetValue(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((object?)null);
-
-        // Act
-        var result = await _service.DiscoverSpecialSettingsAsync(settings);
-
-        // Assert
-        result.Should().ContainKey("updates-policy-mode");
-        result["updates-policy-mode"].Should().ContainKey("CurrentPolicyIndex");
-        result["updates-policy-mode"]["CurrentPolicyIndex"].Should().Be(0);
     }
 
     #endregion

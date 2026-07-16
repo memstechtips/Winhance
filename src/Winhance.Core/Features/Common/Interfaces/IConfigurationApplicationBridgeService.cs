@@ -9,5 +9,5 @@ public interface IConfigurationApplicationBridgeService
     Task<bool> ApplyConfigurationSectionAsync(
         ConfigSection section,
         string sectionName,
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null);
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null);
 }

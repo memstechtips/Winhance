@@ -20,7 +20,6 @@ public class PowerOptimizationsViewModelTests
     private readonly Mock<IDialogService> _mockDialogService;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IApplicationModeService> _mockApplicationModeService;
-    private readonly Mock<IPowerPlanComboBoxService> _mockPowerPlanComboBoxService;
     private readonly Mock<IPowerService> _mockPowerService;
 
     public PowerOptimizationsViewModelTests()
@@ -32,7 +31,6 @@ public class PowerOptimizationsViewModelTests
         _mockDialogService = new Mock<IDialogService>();
         _mockEventBus = new Mock<IEventBus>();
         _mockApplicationModeService = new Mock<IApplicationModeService>();
-        _mockPowerPlanComboBoxService = new Mock<IPowerPlanComboBoxService>();
         _mockPowerService = new Mock<IPowerService>();
 
         // Set up localization to return the key itself by default
@@ -59,7 +57,6 @@ public class PowerOptimizationsViewModelTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
     }
@@ -314,7 +311,6 @@ public class PowerOptimizationsViewModelTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
@@ -334,7 +330,6 @@ public class PowerOptimizationsViewModelTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
@@ -354,7 +349,6 @@ public class PowerOptimizationsViewModelTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
@@ -374,7 +368,6 @@ public class PowerOptimizationsViewModelTests
             null!,
             _mockDialogService.Object,
             _mockEventBus.Object,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
@@ -394,7 +387,6 @@ public class PowerOptimizationsViewModelTests
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             null!,
-            _mockPowerPlanComboBoxService.Object,
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 

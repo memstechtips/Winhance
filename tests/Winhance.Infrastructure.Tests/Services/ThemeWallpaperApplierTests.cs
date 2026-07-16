@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -16,84 +17,60 @@ public class ThemeWallpaperApplierTests
 {
     private readonly Mock<IWallpaperService> _wallpaper = new();
     private readonly Mock<IWindowsVersionService> _version = new();
-    private readonly Mock<IWindowsRegistryService> _registry = new();
+    private readonly Mock<IStateWriter> _stateWriter = new();
     private readonly Mock<ILogService> _log = new();
     private readonly Mock<IFileSystemService> _fs = new();
     private readonly ThemeWallpaperApplier _sut;
 
     public ThemeWallpaperApplierTests()
     {
+        _stateWriter
+            .Setup(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()))
+            .Returns(true);
         _sut = new ThemeWallpaperApplier(
-            _wallpaper.Object, _version.Object, _registry.Object, _log.Object, _fs.Object);
+            _wallpaper.Object, _version.Object, _stateWriter.Object, _log.Object, _fs.Object);
     }
 
     [Fact]
     public async Task TryApply_NonThemeSettingId_ReturnsFalse()
     {
-        var setting = new SettingDefinition { Id = "not-theme", Name = "not-theme", Description = "not-theme" };
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting, 0);
+        var result = await _sut.TryApplySpecialSettingAsync("not-theme", 0);
 
         result.Should().BeFalse();
-        _registry.VerifyNoOtherCalls();
+        _stateWriter.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task TryApply_NonIntValue_ReturnsFalse()
     {
-        var setting = new SettingDefinition { Id = SettingIds.ThemeModeWindows, Name = "Theme", Description = "Theme" };
 
-        var result = await _sut.TryApplySpecialSettingAsync(setting, "dark");
+        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, "dark");
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public async Task TryApply_DarkMode_WritesZeroToRegistry()
+    public async Task TryApply_DarkMode_WritesZeroToBothThemeKeys()
     {
-        var regSetting = new RegistrySetting
-        {
-            KeyPath = @"HKCU\Software\Test",
-            ValueName = "Test",
-            RecommendedValue = 0,
-            DefaultValue = 1,
-            ValueType = RegistryValueKind.DWord,
-        };
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting> { regSetting }
-        };
+        // The handler now ignores the passed def's RegistrySettings and applies the catalog
+        // theme-mode-windows "Dark Mode" state through the new engine (Phase 6.4b): both
+        // AppsUseLightTheme + SystemUsesLightTheme are written 0 via the state writer.
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1);  // 1 = Dark
+        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1);  // 1 = Dark
 
-        _registry.Verify(r => r.ApplySetting(regSetting, true, 0), Times.Once);
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
+            It.Is<object>(v => v.Equals(0))), Times.Exactly(2));
     }
 
     [Fact]
-    public async Task TryApply_LightMode_WritesOneToRegistry()
+    public async Task TryApply_LightMode_WritesOneToBothThemeKeys()
     {
-        var regSetting = new RegistrySetting
-        {
-            KeyPath = @"HKCU\Software\Test",
-            ValueName = "Test",
-            RecommendedValue = 0,
-            DefaultValue = 1,
-            ValueType = RegistryValueKind.DWord,
-        };
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting> { regSetting }
-        };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 0);  // 0 = Light
+        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 0);  // 0 = Light
 
-        _registry.Verify(r => r.ApplySetting(regSetting, true, 1), Times.Once);
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
+            It.Is<object>(v => v.Equals(1))), Times.Exactly(2));
     }
 
     [Fact]
@@ -101,15 +78,8 @@ public class ThemeWallpaperApplierTests
     {
         _version.Setup(v => v.IsWindows11()).Returns(true);
         _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting>()
-        };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: true);
+        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: true);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Once);
     }
@@ -117,15 +87,8 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_WithoutAdditionalContext_DoesNotApplyWallpaper()
     {
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting>()
-        };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: false);
+        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: false);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }
@@ -135,15 +98,8 @@ public class ThemeWallpaperApplierTests
     {
         _version.Setup(v => v.IsWindows11()).Returns(true);
         _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-        var setting = new SettingDefinition
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Name = "Theme",
-            Description = "Theme",
-            RegistrySettings = new List<RegistrySetting>()
-        };
 
-        await _sut.TryApplySpecialSettingAsync(setting, 1, additionalContext: true);
+        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: true);
 
         _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }

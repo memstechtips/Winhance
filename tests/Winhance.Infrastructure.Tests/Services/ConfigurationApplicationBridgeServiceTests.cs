@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -11,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class ConfigurationApplicationBridgeServiceTests
 {
     private readonly Mock<ISettingApplicationService> _mockSettingApp = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly ConfigImportState _importState = new();
     private readonly ConfigurationApplicationBridgeService _service;
@@ -25,34 +26,45 @@ public class ConfigurationApplicationBridgeServiceTests
             _importState);
     }
 
-    private static SettingDefinition CreateSetting(string id, InputType inputType = InputType.Toggle, bool requiresConfirmation = false) => new()
+    // Synthetic catalog Settings: since Slice 6 the bridge reads the registry-returned Setting directly
+    // (no live-catalog re-pairing), so tests construct exactly the shape they exercise - the derived
+    // Control comes from the shape (2 Enabled/Disabled states = Toggle, 0 states = Action, other states =
+    // Selection, Numeric = Slider).
+    private static Setting CreateSetting(string id, ControlKind kind = ControlKind.Toggle, bool requiresConfirmation = false) => new()
     {
         Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = inputType,
-        RequiresConfirmation = requiresConfirmation,
+        Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+        States = kind switch
+        {
+            ControlKind.Toggle => new[]
+            {
+                new SettingState { Label = "Enabled" },
+                new SettingState { Label = "Disabled" },
+            },
+            ControlKind.Selection => new[]
+            {
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Option B" },
+                new SettingState { Label = "Option C" },
+            },
+            _ => System.Array.Empty<SettingState>(),
+        },
+        Numeric = kind == ControlKind.Slider ? new Numeric { Min = 0, Max = 3600 } : null,
+        Apply = new ApplyBehavior { RequiresConfirmation = requiresConfirmation },
     };
 
-    private static SettingDefinition CreatePowerCfgNumericRangeSetting(string id, string units) => new()
+    private static Setting CreatePowerCfgNumericRangeSetting(string id, string units) => new()
     {
         Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        InputType = InputType.NumericRange,
-        PowerCfgSettings = new List<PowerCfgSetting>
+        Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+        Numeric = new Numeric { Min = 0, Max = 3600, Units = units },
+        Targets = new Target[]
         {
-            new()
-            {
-                SubgroupGuid = "00000000-0000-0000-0000-000000000000",
-                SettingGuid = "00000000-0000-0000-0000-000000000000",
-                PowerModeSupport = PowerModeSupport.Separate,
-                Units = units,
-                RecommendedValueAC = null,
-                RecommendedValueDC = null,
-                DefaultValueAC = null,
-                DefaultValueDC = null,
-            }
+            new PowerCfgTarget(
+                "Power",
+                "00000000-0000-0000-0000-000000000000",
+                "00000000-0000-0000-0000-000000000000",
+                PowerModeSupport.Separate),
         },
     };
 
@@ -63,15 +75,12 @@ public class ConfigurationApplicationBridgeServiceTests
         IsSelected = isSelected,
     };
 
-    private void SetupRegistryWithSettings(params SettingDefinition[] settings)
+    private void SetupRegistryWithSettings(params Setting[] settings)
     {
-        var dict = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            ["TestFeature"] = settings
-        };
+        var byId = settings.ToDictionary(s => s.Id);
         _mockRegistry
-            .Setup(x => x.GetAllFilteredSettings())
-            .Returns(dict);
+            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns((string id, bool _) => byId.TryGetValue(id, out var s) ? s : null);
     }
 
     [Fact]
@@ -199,12 +208,11 @@ public class ConfigurationApplicationBridgeServiceTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         bool handlerCalled = false;
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> handler =
-            (id, value, def) =>
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> handler =
+            (id, value) =>
             {
                 handlerCalled = true;
                 id.Should().Be("confirm-setting");
-                def.RequiresConfirmation.Should().BeTrue();
                 return Task.FromResult((confirmed: true, checkboxResult: false));
             };
 
@@ -234,8 +242,8 @@ public class ConfigurationApplicationBridgeServiceTests
             }
         };
 
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> handler =
-            (id, value, def) => Task.FromResult((confirmed: false, checkboxResult: false));
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> handler =
+            (id, value) => Task.FromResult((confirmed: false, checkboxResult: false));
 
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", handler);
@@ -315,10 +323,10 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SettingNotInRegistry_SkippedAsOsIncompatible()
     {
-        // Arrange - registry has no settings matching the item
+        // Arrange - the catalog registry resolves no Setting for the item's id
         _mockRegistry
-            .Setup(x => x.GetAllFilteredSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns((Setting?)null);
 
         var section = new ConfigSection
         {
@@ -341,7 +349,7 @@ public class ConfigurationApplicationBridgeServiceTests
     public async Task ApplyConfigurationSectionAsync_SelectedActionSetting_AppliesViaCatalogPath()
     {
         // Arrange
-        var setting = CreateSetting("act-sel", inputType: InputType.Action);
+        var setting = CreateSetting("act-sel", kind: ControlKind.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
@@ -371,7 +379,7 @@ public class ConfigurationApplicationBridgeServiceTests
     public async Task ApplyConfigurationSectionAsync_UnselectedActionSetting_IsSkipped()
     {
         // Arrange
-        var setting = CreateSetting("act-sel", inputType: InputType.Action);
+        var setting = CreateSetting("act-sel", kind: ControlKind.Action);
         SetupRegistryWithSettings(setting);
 
         var section = new ConfigSection
@@ -395,7 +403,7 @@ public class ConfigurationApplicationBridgeServiceTests
     public async Task ApplyConfigurationSectionAsync_SelectionSetting_PassesSelectedIndex()
     {
         // Arrange
-        var setting = CreateSetting("select-setting", inputType: InputType.Selection);
+        var setting = CreateSetting("select-setting", kind: ControlKind.Selection);
         SetupRegistryWithSettings(setting);
 
         var item = new ConfigurationItem
@@ -448,8 +456,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>> handler =
-            (id, value, def) => Task.FromResult((confirmed: true, checkboxResult: true));
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> handler =
+            (id, value) => Task.FromResult((confirmed: true, checkboxResult: true));
 
         // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", handler);
@@ -498,24 +506,28 @@ public class ConfigurationApplicationBridgeServiceTests
         var setting1 = CreateSetting("setting-1");
         var setting2 = CreateSetting("setting-2") with
         {
-            Dependencies = new List<SettingDependency>
+            States = new[]
             {
-                new()
+                new SettingState
                 {
-                    DependencyType = SettingDependencyType.RequiresEnabled,
-                    DependentSettingId = "setting-2",
-                    RequiredSettingId = "setting-1",
-                }
-            }
+                    Label = "Enabled",
+                    Links = new[] { new Link("setting-1", LinkKind.Requires, "Enabled") },
+                },
+                new SettingState { Label = "Disabled" },
+            },
         };
         SetupRegistryWithSettings(setting1, setting2);
 
+        // The dependent is listed BEFORE its prerequisite: BuildDependencyWaves adds a prerequisite
+        // to processedIds within the same pass, so an in-order prerequisite would coalesce both items
+        // into ONE wave and the mocked synchronous applies would reproduce list order vacuously.
+        // Reversed, the Requires-Link is what forces wave 2 AND flips the apply order.
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>
             {
-                CreateItem("setting-1"),
                 CreateItem("setting-2"),
+                CreateItem("setting-1"),
             }
         };
 
@@ -531,8 +543,11 @@ public class ConfigurationApplicationBridgeServiceTests
         // Assert
         result.Should().BeTrue();
         applyOrder.Should().ContainInOrder("setting-1", "setting-2");
+        // Pin the wave COUNT: with the Requires-Link ignored both items would share one wave and the
+        // mocked synchronous applies would still produce the same order, so ContainInOrder alone is
+        // not enough - "2 parallel wave(s)" proves the dependency actually split the waves.
         _mockLog.Verify(
-            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("parallel wave(s)")), null),
+            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("2 parallel wave(s)")), null),
             Times.Once);
     }
 
@@ -584,8 +599,8 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_NonPowerNumericRange_PassesValueUnchanged()
     {
-        // Arrange - a NumericRange setting with NO PowerCfgSettings must not be unit-converted.
-        var setting = CreateSetting("plain-numeric", inputType: InputType.NumericRange);
+        // Arrange - a Slider setting with NO PowerCfgTarget must not be unit-converted.
+        var setting = CreateSetting("plain-numeric", kind: ControlKind.Slider);
         SetupRegistryWithSettings(setting);
 
         var item = new ConfigurationItem
@@ -627,7 +642,7 @@ public class ConfigurationApplicationBridgeServiceTests
     {
         // Arrange - a section carrying an individual PowerCfg item alongside the plan selection
         var powerItemSetting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
-        var planSetting = CreateSetting("power-plan-selection", inputType: InputType.Selection);
+        var planSetting = CreateSetting("power-plan-selection", kind: ControlKind.Selection);
         SetupRegistryWithSettings(powerItemSetting, planSetting);
 
         var section = new ConfigSection

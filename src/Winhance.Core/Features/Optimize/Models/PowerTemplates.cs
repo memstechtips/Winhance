@@ -3,7 +3,7 @@ using Winhance.Core.Features.Common.Models;
 namespace Winhance.Core.Features.Optimize.Models;
 
 // Flags intentionally omitted on all templates below — every PowerTemplates consumer in
-// PowerOptimizations.cs is a PowerCfg-backed Selection whose Recommended/Default state lives on
+// the old PowerOptimizations.cs def file was a PowerCfg-backed Selection whose Recommended/Default state lived on
 // PowerRecommendation (per-mode AC/DC) + PowerCfgSetting.RecommendedValueAC/DC / DefaultValueAC/DC,
 // not on ComboBoxOption.IsRecommended / IsDefault. Single-flag options can't encode distinct
 // AC/DC recommendations; see SettingCatalogValidatorTests for the PowerCfg-backed exemption.

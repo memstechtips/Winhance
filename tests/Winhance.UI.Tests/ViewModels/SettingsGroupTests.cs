@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -49,17 +50,9 @@ public class SettingsGroupTests : IDisposable
         string groupName = "Group",
         bool isVisible = true)
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = settingId,
-            Name = name,
-            Description = description,
-            InputType = InputType.Toggle,
-        };
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDef,
+            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = description } },
             SettingId = settingId,
             Name = name,
             Description = description,

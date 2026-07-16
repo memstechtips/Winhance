@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.Win32;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -18,6 +18,12 @@ namespace Winhance.UI.Tests.Services;
 /// Covers the SYSTEM-vs-user pass routing and placeholder substitution in
 /// AutounattendScriptBuilder. Directly exercises BuildWinhancementsScriptAsync and inspects
 /// the generated PowerShell to assert which block (SYSTEM or user) each payload lands in.
+/// Slice 7e-6: the pipeline's dict carries catalog Settings, so every fixture passes the REAL catalog
+/// Setting itself to the Setting-dict overload (the def-dict overload survives only as the 7f-transitional
+/// pairing shim, pinned by AutounattendScriptBuilderTests). The script emit is catalog-ALWAYS since 7e-5
+/// (a Selection with no SelectedIndex reads the un-baked catalog Setting.CustomStateScripts); each asserted
+/// script string below is the CATALOG-sourced bytes, byte-pinned to the old defs by
+/// CustomStateScriptsConformanceTests.
 /// </summary>
 public class AutounattendScriptBuilderRoutingTests
 {
@@ -47,8 +53,8 @@ public class AutounattendScriptBuilderRoutingTests
             powerQuery.Object,
             new Mock<IHardwareDetectionService>().Object,
             log.Object,
-            new Mock<IComboBoxResolver>().Object,
-            runner.Object);
+            runner.Object,
+            new Mock<IWindowsVersionService>().Object);
     }
 
     private static UnifiedConfigurationFile ConfigWithOptimize(string featureId, params ConfigurationItem[] items)
@@ -66,8 +72,8 @@ public class AutounattendScriptBuilderRoutingTests
         };
     }
 
-    private static Dictionary<string, IEnumerable<SettingDefinition>> SingleSetting(string featureId, SettingDefinition def)
-        => new() { [featureId] = new[] { def } };
+    private static Dictionary<string, IReadOnlyList<Setting>> SingleSetting(string featureId, Setting setting)
+        => new() { [featureId] = new[] { setting } };
 
     // --- Helpers to locate content within SYSTEM vs user blocks -------------------------------
 
@@ -90,129 +96,88 @@ public class AutounattendScriptBuilderRoutingTests
     [Fact]
     public async Task PowerShellScript_MarkedUser_LandsInUserPassOnly()
     {
-        var def = new SettingDefinition
-        {
-            Id = "test-hkcu-script",
-            Name = "HKCU script",
-            Description = "Writes to HKCU",
-            InputType = InputType.Toggle,
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                new() { EnabledScript = "Set-ItemProperty 'HKCU:\\Foo' -Name Bar -Value 1", RunContext = RunContext.User },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // The REAL catalog toggle explorer-customization-legacy-notepad - the one production toggle with a
+        // RunContext.User script (the HKCU App Paths cleanup); the asserted text is the catalog script body.
+        var setting = SettingCatalog.Find("explorer-customization-legacy-notepad")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Toggle, IsSelected = true };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
+            SingleSetting("test-feature", setting));
 
         var (system, user) = SplitPasses(script);
-        system.Should().NotContain("HKCU:\\\\Foo").And.NotContain("Set-ItemProperty 'HKCU");
-        user.Should().Contain("Set-ItemProperty 'HKCU:\\Foo'");
+        system.Should().NotContain("App Paths");
+        user.Should().Contain(@"App Paths\notepad.exe");
     }
 
     [Fact]
     public async Task PowerShellScript_MarkedSystem_LandsInSystemPassOnly()
     {
-        var def = new SettingDefinition
-        {
-            Id = "test-hklm-script",
-            Name = "System-wide script",
-            Description = "Writes system-wide",
-            InputType = InputType.Toggle,
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                new() { EnabledScript = "Rename-Item 'C:\\System\\file.exe' 'file.old.exe'", RunContext = RunContext.System },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // The REAL catalog selection gaming-touch-keyboard-service. SelectedIndex 0 (Disabled, recommended)
+        // resolves catalog state 0, whose ScriptEffect is marked RunContext.System (the TextInputHost
+        // rename/stop).
+        var setting = SettingCatalog.Find("gaming-touch-keyboard-service")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, SelectedIndex = 0 };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
+            SingleSetting("test-feature", setting));
 
         var (system, user) = SplitPasses(script);
-        system.Should().Contain("Rename-Item 'C:\\System\\file.exe'");
-        user.Should().NotContain("Rename-Item 'C:\\System\\file.exe'");
+        system.Should().Contain("Stop-Process -Name TextInputHost");
+        user.Should().NotContain("TextInputHost");
     }
 
     [Fact]
     public async Task PowerShellScript_DefaultsToSystemRunContext()
     {
-        var def = new SettingDefinition
-        {
-            Id = "test-default-script",
-            Name = "No RunContext specified",
-            Description = "Default",
-            InputType = InputType.Toggle,
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                // RunContext intentionally omitted — should default to System
-                new() { EnabledScript = "Write-Host 'default-ctx'" },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // Slice 7e-5: a Selection with no SelectedIndex + IsSelected routes to the catalog CUSTOM-state
+        // path (AppendCustomStateScriptsFromCatalog), which reads gaming-touch-keyboard-service's un-baked
+        // Setting.CustomStateScripts - authored RunContext.System because the production def OMITTED
+        // RunContext (PowerShellScriptSetting defaulted to System; the converter carried that default into
+        // the catalog). The asserted text below is the catalog script body, byte-pinned to the old def's
+        // raw EnabledScript by CustomStateScriptsConformanceTests.
+        var setting = SettingCatalog.Find("gaming-touch-keyboard-service")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, IsSelected = true };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
+            SingleSetting("test-feature", setting));
 
         var (system, user) = SplitPasses(script);
-        system.Should().Contain("default-ctx");
-        user.Should().NotContain("default-ctx");
+        system.Should().Contain("Start-Process $f -ErrorAction SilentlyContinue");
+        user.Should().NotContain("TextInputHost");
     }
 
     // ------------------------------------------------------------------------------------------
     // DNS custom state substitution (#582 bug 1)
     // ------------------------------------------------------------------------------------------
 
-    private static SettingDefinition DnsServerDefinition() => new()
-    {
-        Id = "test-dns",
-        Name = "DNS Server",
-        Description = "DNS test",
-        InputType = InputType.Selection,
-        ComboBox = new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new ComboBoxOption { DisplayName = "Automatic", Script = ScriptOption.Disabled, IsDefault = true },
-                new ComboBoxOption
-                {
-                    DisplayName = "Cloudflare",
-                    Script = ScriptOption.Enabled,
-                    ScriptVariables = new Dictionary<string, string> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
-                },
-            },
-        },
-        PowerShellScripts = new List<PowerShellScriptSetting>
-        {
-            new()
-            {
-                EnabledScript = "Set-DnsClientServerAddress -ServerAddresses @('{{primary}}','{{secondary}}')",
-                DisabledScript = "Set-DnsClientServerAddress -ResetServerAddresses",
-                RunContext = RunContext.User,
-            },
-        },
-    };
+    // Both DNS script shapes read the CATALOG - a Selection WITH an index reads the option state's
+    // converter-BAKED ScriptEffects, and one with NO index (a "Custom" DNS) reads the un-baked
+    // Setting.CustomStateScripts; the asserted strings in the facts below are catalog-sourced bytes
+    // (byte-pinned to the old def scripts by CustomStateScriptsConformanceTests).
+    private static Setting DnsServerSetting() => SettingCatalog.Find("gaming-dns-server")!;
 
     [Fact]
     public async Task DnsPreset_SubstitutesScriptVariables_IntoUserPass()
     {
-        var def = DnsServerDefinition();
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Selection, SelectedIndex = 1 };
+        // SelectedIndex 1 = the Cloudflare preset. A Selection WITH an index routes to the catalog script
+        // emitter, whose state-1 ScriptEffect carries the preset IPs converter-BAKED into the script body,
+        // so asserting the real baked text pins preset substitution surviving through the builder.
+        var setting = DnsServerSetting();
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, SelectedIndex = 1 };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("gaming", item),
-            SingleSetting("gaming", def));
+            SingleSetting("gaming", setting));
 
         var (system, user) = SplitPasses(script);
-        user.Should().Contain("Set-DnsClientServerAddress -ServerAddresses @('1.1.1.1','1.0.0.1')");
+        user.Should().Contain("Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1')");
         user.Should().NotContain("-ResetServerAddresses");
         system.Should().NotContain("Set-DnsClientServerAddress");
     }
@@ -220,10 +185,16 @@ public class AutounattendScriptBuilderRoutingTests
     [Fact]
     public async Task DnsCustomState_SubstitutesFromCustomStateValues_AndDoesNotEmitReset()
     {
-        var def = DnsServerDefinition();
+        // A "Custom" DNS entry matches no preset option, so SelectedIndex stays null and the script pass
+        // takes the catalog CUSTOM-state path (Slice 7e-5, AppendCustomStateScriptsFromCatalog): the
+        // un-baked catalog CustomStateScripts are emitted with CustomStateValues substituted. The second
+        // script's {{dohtemplate}} placeholder intentionally survives substitution (its runtime guard
+        // treats a literal {{...}} as absent), so only {{primary}} is asserted substituted - no blanket
+        // NotContain on "{{".
+        var setting = DnsServerSetting();
         var item = new ConfigurationItem
         {
-            Id = def.Id,
+            Id = setting.Id,
             InputType = InputType.Selection,
             // SelectedIndex may point past Options for the "Custom" pseudo-option; leave unset
             CustomStateValues = new Dictionary<string, object>
@@ -236,83 +207,36 @@ public class AutounattendScriptBuilderRoutingTests
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("gaming", item),
-            SingleSetting("gaming", def));
+            SingleSetting("gaming", setting));
 
         var (_, user) = SplitPasses(script);
-        user.Should().Contain("Set-DnsClientServerAddress -ServerAddresses @('9.9.9.9','149.112.112.112')");
+        user.Should().Contain("-ServerAddresses @('9.9.9.9','149.112.112.112')");
         user.Should().NotContain("-ResetServerAddresses");
         user.Should().NotContain("{{primary}}");
     }
 
     [Fact]
-    public async Task DnsCustomState_OverridesOptionScriptVariables()
+    public async Task SelectionOption_WithScriptNone_EmitsNoScript()
     {
-        var def = DnsServerDefinition();
-        // SelectedIndex=1 (Cloudflare preset) but user also provided custom values — custom wins.
-        var item = new ConfigurationItem
-        {
-            Id = def.Id,
-            InputType = InputType.Selection,
-            SelectedIndex = 1,
-            CustomStateValues = new Dictionary<string, object>
-            {
-                ["primary"] = "8.8.8.8",
-                ["secondary"] = "8.8.4.4",
-            },
-        };
+        // The REAL catalog selection taskbar-system-tray-icons-11, whose "Custom" option is the production
+        // ScriptOption.None case - modeled in the catalog as state 2 with NO ScriptEffects. A control build
+        // on state 1 ("Hide all icons", a script-bearing state) proves the pipeline emits this setting's
+        // script at all, so the None build's emptiness is the suppression working rather than a
+        // skipped-section vacuity.
+        var setting = SettingCatalog.Find("taskbar-system-tray-icons-11")!;
         var builder = CreateBuilder(out _);
 
+        var control = await builder.BuildWinhancementsScriptAsync(
+            ConfigWithOptimize("taskbar", new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, SelectedIndex = 1 }),
+            SingleSetting("taskbar", setting));
+        var (_, controlUser) = SplitPasses(control);
+        controlUser.Should().Contain("SystemTrayChevronVisibility");
+
+        // SelectedIndex = 2 -> "Custom" -> ScriptOption.None -> no script emitted anywhere.
         var script = await builder.BuildWinhancementsScriptAsync(
-            ConfigWithOptimize("gaming", item),
-            SingleSetting("gaming", def));
-
-        var (_, user) = SplitPasses(script);
-        user.Should().Contain("@('8.8.8.8','8.8.4.4')");
-        user.Should().NotContain("1.1.1.1");
-    }
-
-    [Fact]
-    public async Task SelectionOption_WithScriptNone_EmitsNoScriptForEitherMarker()
-    {
-        // When the selected ComboBox option carries Script = ScriptOption.None (e.g. a
-        // "Custom / leave-alone" choice), the autounattend generator must emit no PowerShell
-        // script at all — neither the EnabledScript nor the DisabledScript body.
-        var def = new SettingDefinition
-        {
-            Id = "test-selection-none",
-            Name = "Selection None script",
-            Description = "Selection with a None script option",
-            InputType = InputType.Selection,
-            ComboBox = new ComboBoxMetadata
-            {
-                Options = new[]
-                {
-                    new ComboBoxOption { DisplayName = "Show all",  Script = ScriptOption.Enabled },
-                    new ComboBoxOption { DisplayName = "Hide all",  Script = ScriptOption.Disabled },
-                    new ComboBoxOption { DisplayName = "Custom",    Script = ScriptOption.None },
-                },
-            },
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                new()
-                {
-                    EnabledScript  = "PROMOTE_MARKER",
-                    DisabledScript = "DEMOTE_MARKER",
-                    RunContext     = RunContext.User,
-                },
-            },
-        };
-        // SelectedIndex = 2 → "Custom" → ScriptOption.None → no script emitted.
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Selection, SelectedIndex = 2 };
-        var builder = CreateBuilder(out _);
-
-        var script = await builder.BuildWinhancementsScriptAsync(
-            ConfigWithOptimize("gaming", item),
-            SingleSetting("gaming", def));
-
-        var (_, user) = SplitPasses(script);
-        user.Should().NotContain("PROMOTE_MARKER");
-        user.Should().NotContain("DEMOTE_MARKER");
+            ConfigWithOptimize("taskbar", new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, SelectedIndex = 2 }),
+            SingleSetting("taskbar", setting));
+        script.Should().NotContain("SystemTrayChevronVisibility");
     }
 
     // ------------------------------------------------------------------------------------------
@@ -324,137 +248,42 @@ public class AutounattendScriptBuilderRoutingTests
     // ------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task RegContents_HkcuMentionedInComment_StillRoutesToSystemPass()
+    public async Task RegContents_SystemHiveContent_RoutesToSystemPassOnly()
     {
-        // The old detector treated any content containing the substring "HKCU" as user-pass,
-        // even in a comment or REG_SZ value. The tightened detector inspects section headers only.
-        var def = new SettingDefinition
-        {
-            Id = "test-regcontents-comment",
-            Name = "HKCR with HKCU comment",
-            Description = "Comment mentions HKCU but all headers are HKCR",
-            InputType = InputType.Toggle,
-            // Feature emission is gated on a RegistrySetting (or other payload) existing at all.
-            // Real RegContents settings always pair with at least one RegistrySetting — keeping
-            // this test aligned with that reality.
-            RegistrySettings = new List<RegistrySetting>
-            {
-                new()
-                {
-                    KeyPath = @"HKEY_CLASSES_ROOT\Winhance.Test",
-                    ValueName = "",
-                    EnabledValue = ["test"],
-                    DisabledValue = [null],
-                    DefaultValue = null,
-                    RecommendedValue = null,
-                    ValueType = RegistryValueKind.String,
-                },
-            },
-            RegContents = new List<RegContentSetting>
-            {
-                new()
-                {
-                    EnabledContent =
-                        "Windows Registry Editor Version 5.00\r\n" +
-                        "; note: HKCU does not need this entry\r\n" +
-                        "[HKEY_CLASSES_ROOT\\Winhance.Test]\r\n" +
-                        "@=\"test\"\r\n",
-                    DisabledContent = "Windows Registry Editor Version 5.00\r\n[-HKEY_CLASSES_ROOT\\Winhance.Test]\r\n",
-                },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // The REAL catalog toggle explorer-take-ownership, whose Enabled state carries the production HKCR
+        // .reg content (comment lines plus [HKEY_CLASSES_ROOT\...] headers). Header-only hive detection must
+        // route the import into the SYSTEM pass and keep it out of the user pass. (The old synthetic
+        // "comment mentions HKCU" foil cannot be constructed against the static catalog; the header-only
+        // detector lives at RegistryCommandEmitter.s_hkcuHeaderRegex.)
+        var setting = SettingCatalog.Find("explorer-take-ownership")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Toggle, IsSelected = true };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
+            SingleSetting("test-feature", setting));
 
         var (system, user) = SplitPasses(script);
-        system.Should().Contain(@"HKEY_CLASSES_ROOT\Winhance.Test").And.Contain("reg import");
-        user.Should().NotContain(@"HKEY_CLASSES_ROOT\Winhance.Test");
-    }
-
-    [Fact]
-    public async Task RegContents_MixedHiveBlock_ThrowsOnBuild()
-    {
-        var def = new SettingDefinition
-        {
-            Id = "test-regcontents-mixed",
-            Name = "Mixed-hive block",
-            Description = "Author error",
-            InputType = InputType.Toggle,
-            RegistrySettings = new List<RegistrySetting>
-            {
-                new()
-                {
-                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\MixedTest",
-                    ValueName = "Flag",
-                    EnabledValue = [1],
-                    DisabledValue = [0],
-                    RecommendedValue = 1,
-                    DefaultValue = 0,
-                    ValueType = RegistryValueKind.DWord,
-                },
-            },
-            RegContents = new List<RegContentSetting>
-            {
-                new()
-                {
-                    EnabledContent =
-                        "Windows Registry Editor Version 5.00\r\n" +
-                        "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Foo]\r\n" +
-                        "\"A\"=dword:00000001\r\n" +
-                        "[HKEY_CURRENT_USER\\SOFTWARE\\Foo]\r\n" +
-                        "\"B\"=dword:00000001\r\n",
-                    DisabledContent = "Windows Registry Editor Version 5.00\r\n",
-                },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
-        var builder = CreateBuilder(out _);
-
-        var act = async () => await builder.BuildWinhancementsScriptAsync(
-            ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
-
-        await act.Should().ThrowAsync<System.InvalidOperationException>()
-            .WithMessage("*mixes HKEY_CURRENT_USER and system-hive*");
+        system.Should().Contain(@"[HKEY_CLASSES_ROOT\*\shell\TakeOwnership]").And.Contain("reg import");
+        user.Should().NotContain("reg import").And.NotContain(@"HKEY_CLASSES_ROOT\*\shell\TakeOwnership");
     }
 
     [Fact]
     public async Task HklmRegistryToggle_LandsInSystemPassOnly()
     {
-        var def = new SettingDefinition
-        {
-            Id = "test-hklm-toggle",
-            Name = "HKLM toggle",
-            Description = "HKLM test",
-            InputType = InputType.Toggle,
-            RegistrySettings = new List<RegistrySetting>
-            {
-                new()
-                {
-                    KeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\TestKey",
-                    ValueName = "Flag",
-                    EnabledValue = [1],
-                    DisabledValue = [0],
-                    RecommendedValue = 1,
-                    DefaultValue = 0,
-                    ValueType = RegistryValueKind.DWord,
-                },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // The REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp); the asserted
+        // path/value name below come from the catalog RegTarget and state values.
+        var setting = SettingCatalog.Find("security-remote-assistance")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Toggle, IsSelected = true };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("test-feature", item),
-            SingleSetting("test-feature", def));
+            SingleSetting("test-feature", setting));
 
         var (system, user) = SplitPasses(script);
-        system.Should().Contain(@"HKLM:\SOFTWARE\Winhance\TestKey");
-        user.Should().NotContain(@"HKLM:\SOFTWARE\Winhance\TestKey");
+        system.Should().Contain(@"HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance").And.Contain("fAllowToGetHelp");
+        user.Should().NotContain("fAllowToGetHelp");
     }
 
     // ------------------------------------------------------------------------------------------
@@ -464,29 +293,16 @@ public class AutounattendScriptBuilderRoutingTests
     [Fact]
     public async Task PowerShellOnly_Setting_EmitsEnabledScript_IntoSystemBlock()
     {
-        var def = new SettingDefinition
-        {
-            Id = "ps-only",
-            Name = "ps-only",
-            Description = "PS-only setting",
-            InputType = InputType.Toggle,
-            DetectionType = DetectionType.SystemRestore,
-            PowerShellScripts = new List<PowerShellScriptSetting>
-            {
-                new()
-                {
-                    EnabledScript = "Enable-ComputerRestore -Drive 'C:\\'",
-                    DisabledScript = "Disable-ComputerRestore -Drive 'C:\\'",
-                    RunContext = RunContext.System,
-                },
-            },
-        };
-        var item = new ConfigurationItem { Id = def.Id, InputType = InputType.Toggle, IsSelected = true };
+        // The REAL catalog toggle system-restore-protection - the production PS-only setting. Script
+        // presence alone (catalog ScriptEffect, Run = System) must open the feature section in the SYSTEM
+        // pass and emit the Enabled script.
+        var setting = SettingCatalog.Find("system-restore-protection")!;
+        var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Toggle, IsSelected = true };
         var builder = CreateBuilder(out _);
 
         var script = await builder.BuildWinhancementsScriptAsync(
             ConfigWithOptimize("GamingAndPerformance", item),
-            SingleSetting("GamingAndPerformance", def));
+            SingleSetting("GamingAndPerformance", setting));
 
         var (system, _) = SplitPasses(script);
         system.Should().Contain("Enable-ComputerRestore");

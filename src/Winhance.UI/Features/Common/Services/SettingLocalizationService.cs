@@ -3,198 +3,34 @@ using System.Collections.Generic;
 using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
+// Slice B2: the vestigial LocalizeSetting (+ its GetLocalized* / Localize* / GetStringOrFallback helpers) was
+// retired. Display localization (Name/Description/GroupName, options, tooltips, warnings) now happens on the
+// catalog path in SettingViewModelFactory via the canonical Setting_{id}_* keys. This service now only builds
+// the cross-group info banner.
 public class SettingLocalizationService : ISettingLocalizationService
 {
     private readonly ILocalizationService _localization;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
+    private readonly IWindowsVersionFilterService _windowsVersionFilter;
 
     public SettingLocalizationService(
         ILocalizationService localization,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry)
+        ICatalogSettingsRegistry catalogSettingsRegistry,
+        IWindowsVersionFilterService windowsVersionFilter)
     {
         _localization = localization;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
+        _windowsVersionFilter = windowsVersionFilter;
     }
 
-    public SettingDefinition LocalizeSetting(SettingDefinition setting)
+    public string? BuildCrossGroupInfoMessage(Setting setting)
     {
-        var localized = setting with
-        {
-            Name = GetLocalizedName(setting),
-            Description = GetLocalizedDescription(setting),
-            GroupName = setting.GroupName != null ? GetLocalizedGroupName(setting.GroupName) : null
-        };
-
-        if (setting.ComboBox != null)
-        {
-            var comboBox = setting.ComboBox;
-
-            var localizedComboBox = comboBox with
-            {
-                Options = LocalizeComboBoxOptions(setting),
-                CustomStateDisplayName = GetLocalizedCustomState(setting)
-            };
-
-            localized = localized with { ComboBox = localizedComboBox };
-        }
-
-        if (setting.NumericRange?.Units != null)
-        {
-            localized = localized with
-            {
-                NumericRange = setting.NumericRange with
-                {
-                    Units = LocalizeUnits(setting.NumericRange.Units)
-                }
-            };
-        }
-
-        // Handle compatibility messages (format: Key|Arg1|Arg2...)
-        if (setting.VersionCompatibilityMessage is { } compatKey && compatKey.StartsWith("Compatibility_"))
-        {
-            var parts = compatKey.Split('|');
-            var key = parts[0];
-
-            if (parts.Length > 1)
-            {
-                var args = parts.Skip(1).ToArray();
-                try
-                {
-                    var format = _localization.GetString(key);
-                    localized = localized with { VersionCompatibilityMessage = string.Format(format, args) };
-                }
-                catch
-                {
-                    localized = localized with { VersionCompatibilityMessage = _localization.GetString(key) };
-                }
-            }
-            else
-            {
-                localized = localized with { VersionCompatibilityMessage = _localization.GetString(key) };
-            }
-        }
-
-        return localized;
-    }
-
-    private string GetLocalizedName(SettingDefinition setting)
-    {
-        var key = SettingLocalizationKeys.Name(setting);
-        return GetStringOrFallback(key, setting.Name);
-    }
-
-    private string GetLocalizedDescription(SettingDefinition setting)
-    {
-        var key = SettingLocalizationKeys.Description(setting);
-        return GetStringOrFallback(key, setting.Description);
-    }
-
-    private string GetLocalizedGroupName(string groupName)
-    {
-        // Try the compacted format first (e.g. "PrivacySecurity")
-        var key = SettingLocalizationKeys.GroupCompact(groupName);
-        var localized = _localization.GetString(key);
-
-        if (!localized.StartsWith("[") || !localized.EndsWith("]"))
-        {
-            return localized;
-        }
-
-        // Try the snake case format (e.g. "Content_Delivery_Advertising")
-        var keySnake = SettingLocalizationKeys.GroupSnake(groupName);
-        return GetStringOrFallback(keySnake, groupName);
-    }
-
-    private string GetLocalizedCustomState(SettingDefinition setting)
-    {
-        // Per-setting override key takes precedence (e.g. "Custom (User Defined)" on UAC slider).
-        var perSettingKey = SettingLocalizationKeys.OptionCustom(setting);
-        var perSetting = _localization.GetString(perSettingKey);
-        if (!perSetting.StartsWith("[") || !perSetting.EndsWith("]"))
-        {
-            return perSetting;
-        }
-        // Generic localized fallback used by every Selection setting on state mismatch.
-        return GetStringOrFallback(SettingLocalizationKeys.CommonCustomState, setting.ComboBox?.CustomStateDisplayName ?? "Custom");
-    }
-
-    private IReadOnlyList<Winhance.Core.Features.Common.Models.ComboBoxOption> LocalizeComboBoxOptions(SettingDefinition setting)
-    {
-        var originalOptions = setting.ComboBox?.Options;
-        if (originalOptions == null || originalOptions.Count == 0)
-            return Array.Empty<Winhance.Core.Features.Common.Models.ComboBoxOption>();
-
-        var localized = new List<Winhance.Core.Features.Common.Models.ComboBoxOption>(originalOptions.Count);
-        for (int i = 0; i < originalOptions.Count; i++)
-        {
-            var original = originalOptions[i];
-
-            var displayKey = SettingLocalizationKeys.IsLocalizationKey(original.DisplayName)
-                ? original.DisplayName
-                : SettingLocalizationKeys.OptionDisplay(setting, i);
-            var localizedDisplay = GetStringOrFallback(displayKey, original.DisplayName);
-
-            string? localizedTooltip = original.Tooltip;
-            if (!string.IsNullOrEmpty(original.Tooltip))
-            {
-                var tooltipKey = SettingLocalizationKeys.OptionTooltip(setting, i);
-                localizedTooltip = GetStringOrFallback(tooltipKey, original.Tooltip);
-            }
-
-            string? localizedWarning = original.Warning;
-            if (!string.IsNullOrEmpty(original.Warning))
-            {
-                var warningKey = SettingLocalizationKeys.OptionWarning(setting, i);
-                localizedWarning = GetStringOrFallback(warningKey, original.Warning);
-            }
-
-            (string Title, string Message)? localizedConfirmation = original.Confirmation;
-            if (original.Confirmation is { } confirmation)
-            {
-                var title = GetStringOrFallback(confirmation.Title, confirmation.Title);
-                var message = GetStringOrFallback(confirmation.Message, confirmation.Message);
-                localizedConfirmation = (title, message);
-            }
-
-            localized.Add(original with
-            {
-                DisplayName = localizedDisplay,
-                Tooltip = localizedTooltip,
-                Warning = localizedWarning,
-                Confirmation = localizedConfirmation,
-            });
-        }
-
-        return localized;
-    }
-
-    private string LocalizeUnits(string units)
-    {
-        var key = units switch
-        {
-            "Minutes" => "Common_Unit_Minutes",
-            "Milliseconds" => "Common_Unit_Milliseconds",
-            "%" => "%",
-            _ => null
-        };
-
-        return key != null ? GetStringOrFallback(key, units) : units;
-    }
-
-    private string GetStringOrFallback(string key, string fallback)
-    {
-        var localized = _localization.GetString(key);
-        return localized.StartsWith("[") && localized.EndsWith("]") ? fallback : localized;
-    }
-
-    public string? BuildCrossGroupInfoMessage(SettingDefinition setting)
-    {
-        var crossGroupSettings = setting.CrossGroupChildSettings;
+        var crossGroupSettings = setting.Display.CrossGroupChildSettings;
         if (crossGroupSettings == null || crossGroupSettings.Count == 0)
         {
             return null;
@@ -207,16 +43,18 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             try
             {
-                var featureId = _compatibleSettingsRegistry.GetFeatureIdForSetting(childSettingId);
-                if (featureId == null) continue;
-
-                var filteredSettings = _compatibleSettingsRegistry.GetFilteredSettings(featureId);
-                var childSetting = filteredSettings.FirstOrDefault(s => s.Id == childSettingId);
+                // Slice 7a: one catalog GetById reproduces the old two-step resolve (feature-index hop +
+                // filtered-list scan) - both old skip conditions were exactly "id not in the mode-scoped
+                // membership", which GetById's null covers. The show-other-Windows-versions mode is threaded
+                // explicitly (the old registry read it from its mutable SetFilterEnabled state); none of the
+                // authored cross-group child ids is alias-affected, so Normalize is identity here.
+                var childSetting = _catalogSettingsRegistry.GetById(
+                    childSettingId, includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
                 if (childSetting == null) continue;
 
                 var featureName = GetFeatureName(childSettingId);
-                var groupNameKey = $"SettingGroup_{childSetting.GroupName?.Replace(" ", "_")}";
+                var groupNameKey = $"SettingGroup_{childSetting.Display.GroupName?.Replace(" ", "_")}";
                 var localizedGroupName = _localization.GetString(groupNameKey);
                 var groupKey = $"{featureName} ({localizedGroupName})";
 

@@ -8,6 +8,8 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Native;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Xunit;
 
@@ -27,12 +29,13 @@ public class WindowsStateWriterTests
     private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
     private readonly Mock<IPowerShellRunner> _powerShell = new(MockBehavior.Strict);
     private readonly Mock<IRegImportService> _regImport = new(MockBehavior.Strict);
+    private readonly Mock<IPowerPlanActivationService> _activation = new();
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
-        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _powerShell.Object, _regImport.Object, _log.Object);
+        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _powerShell.Object, _regImport.Object, _activation.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -50,6 +53,42 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.CreateKey(Path), Times.Once);
         _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    // --- ActivatePowerPlan (Slice 8b-1): delegate to IPowerPlanActivationService.EnsureActivatedAsync
+    //     (import-if-missing + activate + InvalidateCache); a cheap guard still rejects an invalid GUID. ---
+
+    [Fact]
+    public void ActivatePowerPlan_DelegatesToActivationService_AndReturnsTrueOnSuccess()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((true, guid.ToString()));
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeTrue();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_OnInvalidGuid()
+    {
+        // The cheap up-front guard rejects an unparseable GUID without reaching the activation service.
+        _sut.ActivatePowerPlan("not-a-guid").Should().BeFalse();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_WhenActivationServiceReportsFailure()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((false, guid.ToString()));
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeFalse();
     }
 
     [Fact]

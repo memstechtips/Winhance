@@ -26,7 +26,9 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
     private bool _powerPrefetched;
     private string? _activePlanGuid;
+    private string? _activePlanName;
     private bool _planPrefetched;
+    private IReadOnlyList<DynamicOption> _installedPlans = System.Array.Empty<DynamicOption>();
 
     public SystemDetectionContext(
         IWindowsRegistryService reg,
@@ -82,6 +84,22 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 
+    /// <summary>Mirrors UpdateService.AreCriticalDllsRenamed: the update-policy Disabled state is enforced by renaming
+    /// the two critical DLLs to "_BAK" backups, so it reads as "a _BAK backup exists AND the live DLL is gone". A thin
+    /// direct filesystem read (like the network/registry reads above) - the throwaway/test contexts inherit the false
+    /// default from IDetectionContext, so only this live context touches disk.</summary>
+    public bool CriticalUpdateDllsRenamed()
+    {
+        foreach (var dll in new[] { "WaaSMedicSvc.dll", "wuaueng.dll" })
+        {
+            var dllPath = $@"C:\Windows\System32\{dll}";
+            var backupPath = $@"C:\Windows\System32\{System.IO.Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+            if (System.IO.File.Exists(backupPath) && !System.IO.File.Exists(dllPath))
+                return true;
+        }
+        return false;
+    }
+
     public bool? ScheduledTaskEnabled(string taskPath)
     {
         if (_taskCache.TryGetValue(taskPath, out var enabled))
@@ -117,6 +135,22 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
         return _activePlanGuid;
     }
 
+    public string? ActivePowerPlanName()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "[SystemDetectionContext] Active power plan name read before a pre-fetch; returning null.");
+        return _activePlanName;
+    }
+
+    public IReadOnlyList<DynamicOption> InstalledPowerPlans()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "[SystemDetectionContext] Installed power plans read before a pre-fetch; returning none.");
+        return _installedPlans;
+    }
+
     public async Task PrefetchAsync(IReadOnlyCollection<Setting> settings)
     {
         var build = CurrentBuild;
@@ -145,12 +179,23 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _powerPrefetched = true;
         }
 
-        // Active power plan: read once when a setting selects the power plan (its options are runtime-sourced).
+        // Active power plan + the installed plans (the runtime-sourced options): read once when a setting selects
+        // the power plan. Both the active GUID and each option's GUID are lowercased so a dynamic-option setting can
+        // match the current selection to an option Value directly (no index round-trip).
         bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.OptionSource is PowerPlanOptionSource);
         if (needsPlan)
         {
             var plan = await _power.GetActivePowerPlanAsync().ConfigureAwait(false);
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
+
+            var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
+            // Faithful port of the old PowerPlanComboBoxService dropdown list (predefined plans incl. not-installed,
+            // localized labels, custom plans, sorted) in the new GUID-valued shape.
+            _installedPlans = PowerPlanOptions.Build(plans);
+            // The active plan's RAW OS name - same source + selection as the old discovery's RawValues["ActivePowerPlan"]
+            // (SystemSettingsDiscoveryService: availablePlans.FirstOrDefault(IsActive).Name).
+            _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
+
             _planPrefetched = true;
         }
     }

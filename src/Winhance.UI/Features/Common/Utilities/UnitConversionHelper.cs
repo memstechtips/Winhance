@@ -25,4 +25,22 @@ internal static class UnitConversionHelper
             _ => systemValue
         };
     }
+
+    /// <summary>
+    /// Inverse of <see cref="ConvertFromSystemUnits"/>: converts a display-units value back to the raw
+    /// powercfg system value. Minutes/hours multiply; milliseconds and everything else are 1:1, so
+    /// ConvertFromSystemUnits(ConvertToSystemUnits(x)) == x for any units. Used by the new-model numeric
+    /// accessors, whose catalog ContextValues are stored in display units, to hand call sites a system
+    /// value the existing ConvertFromSystemUnits then re-derives unchanged.
+    /// </summary>
+    public static int ConvertToSystemUnits(int displayValue, string? displayUnits)
+    {
+        return displayUnits?.ToLowerInvariant() switch
+        {
+            "minutes" => displayValue * 60,        // powercfg stores time in seconds
+            "hours" => displayValue * 3600,
+            "milliseconds" => displayValue,
+            _ => displayValue
+        };
+    }
 }

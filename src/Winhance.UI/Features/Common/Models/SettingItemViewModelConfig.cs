@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -10,7 +11,7 @@ namespace Winhance.UI.Features.Common.Models;
 /// </summary>
 public record SettingItemViewModelConfig
 {
-    public required SettingDefinition SettingDefinition { get; init; }
+    public required Setting Setting { get; init; }
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; init; }
     public required string SettingId { get; init; }
     public required string Name { get; init; }
@@ -23,4 +24,8 @@ public record SettingItemViewModelConfig
     public string OnText { get; init; } = "On";
     public string OffText { get; init; } = "Off";
     public string ActionButtonText { get; init; } = "Apply";
+
+    /// <summary>Per-selection-option warning text, index-aligned with the options
+    /// (null entries = no warning). Drives the option-warning status banner.</summary>
+    public IReadOnlyList<string?>? OptionWarnings { get; init; }
 }

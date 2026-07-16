@@ -11,16 +11,13 @@ namespace Winhance.UI.Features.Common.Services;
 public class SettingViewModelEnricher : ISettingViewModelEnricher
 {
     private readonly IHardwareDetectionService _hardwareDetectionService;
-    private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly ISettingReviewDiffApplier _reviewDiffApplier;
 
     public SettingViewModelEnricher(
         IHardwareDetectionService hardwareDetectionService,
-        ISettingLocalizationService settingLocalizationService,
         ISettingReviewDiffApplier reviewDiffApplier)
     {
         _hardwareDetectionService = hardwareDetectionService;
-        _settingLocalizationService = settingLocalizationService;
         _reviewDiffApplier = reviewDiffApplier;
     }
 
@@ -28,12 +25,6 @@ public class SettingViewModelEnricher : ISettingViewModelEnricher
     public async Task DetectBatteryAsync(SettingItemViewModel viewModel)
     {
         viewModel.HasBattery = await _hardwareDetectionService.HasBatteryAsync();
-    }
-
-    /// <inheritdoc />
-    public void SetCrossGroupInfoMessage(SettingItemViewModel viewModel, SettingDefinition setting)
-    {
-        viewModel.CrossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
     }
 
     /// <inheritdoc />

@@ -17,7 +17,15 @@ public class RelationshipResolverReverseTests
         };
 
     private static Setting S(string id, IReadOnlyList<SettingState> states, params Link[] links) =>
-        new() { Id = id, Display = new() { Name = id, Description = id }, States = states, Links = links };
+        new()
+        {
+            Id = id,
+            Display = new() { Name = id, Description = id },
+            // Phase 6.6: Links live per-state - place them on the active/non-default states (mirrors the converter).
+            States = links.Length == 0
+                ? states
+                : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),
+        };
 
     // ---- reverse cascade ----
 
@@ -28,7 +36,7 @@ public class RelationshipResolverReverseTests
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
             id => id == "a" ? "On" : "Off");
-        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off");
+        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off" && x.IsReset);
     }
 
     [Fact]
@@ -68,7 +76,7 @@ public class RelationshipResolverReverseTests
         // both children currently Off -> matches "Deny"; parent currently "Allow"
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id == "p" ? "Allow" : "Off");
-        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny");
+        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny" && !x.IsReset);
     }
 
     [Fact]

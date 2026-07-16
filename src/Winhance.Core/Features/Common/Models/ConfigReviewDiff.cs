@@ -1,5 +1,3 @@
-using Winhance.Core.Features.Common.Enums;
-
 namespace Winhance.Core.Features.Common.Models;
 
 /// <summary>
@@ -53,11 +51,6 @@ public sealed record ConfigReviewDiff
     /// Only meaningful when IsReviewed is true.
     /// </summary>
     public bool IsApproved { get; init; } = false;
-
-    /// <summary>
-    /// The input type of this setting (Toggle, Selection, NumericRange, etc.).
-    /// </summary>
-    public InputType InputType { get; init; }
 
     /// <summary>
     /// Whether this is a special action setting (e.g., taskbar-clean, start-menu-clean)

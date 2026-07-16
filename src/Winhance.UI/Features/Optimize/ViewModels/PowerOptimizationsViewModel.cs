@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -12,7 +13,6 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
 {
     private readonly IDialogService _dialogService;
-    private readonly IPowerPlanComboBoxService _powerPlanComboBoxService;
     private readonly IPowerService _powerService;
     private ISubscriptionToken? _powerPlanChangedSubscription;
 
@@ -29,13 +29,11 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         IEventBus eventBus,
-        IPowerPlanComboBoxService powerPlanComboBoxService,
         IPowerService powerService,
         IApplicationModeService applicationModeService)
         : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _dialogService = dialogService;
-        _powerPlanComboBoxService = powerPlanComboBoxService;
         _powerService = powerService;
 
         DeletePowerPlanCommand = new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlanAsync(plan));
@@ -43,97 +41,41 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
     public override async Task LoadSettingsAsync()
     {
+        // Self-heal a corrupt/ghost "Winhance Power Plan" (a scheme with the Winhance GUID but a wrong name) BEFORE the
+        // base load runs detection and builds the dropdown, so a corrupt plan is never shown. Scoped to the power page's
+        // interactive load - a no-op unless a corrupt plan exists - so the mutation never runs during config
+        // review/export/autounattend or apply-relationship detection (which share the state provider but not this VM).
+        await _powerService.CleanupCorruptWinhancePlanAsync();
+
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
-        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<PowerPlanChangedEvent>(HandlePowerPlanChangedAsync);
+        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<SettingAppliedEvent>(HandleSettingAppliedAsync);
     }
 
-    private async Task HandlePowerPlanChangedAsync(PowerPlanChangedEvent evt)
+    // Phase 6.7 Slice 8b-2b (D2): power-plan apply now flows through the apply funnel, which publishes the generic
+    // SettingAppliedEvent (the old PowerService special handler's PowerPlanChangedEvent is retired at 8c teardown).
+    // React only to the power-plan setting, so an unrelated setting apply does not trigger a power refresh. The base
+    // BaseSettingsFeatureViewModel also subscribes to SettingAppliedEvent, but only to update the applied setting's own
+    // VM state - this handler adds the power-plan-specific dropdown + dependent-state refresh.
+    private async Task HandleSettingAppliedAsync(SettingAppliedEvent evt)
     {
+        if (evt.SettingId != SettingIds.PowerPlanSelection)
+            return;
+
         try
         {
-            await Task.Delay(200).ConfigureAwait(false);
-            await RefreshPowerPlanComboBoxAsync();
-
-            // Refresh all setting states to pick up the new plan's PowerCfg values
-            // (display timeout, sleep timeout, etc. differ between plans)
-            await Task.Delay(500).ConfigureAwait(false);
+            // Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each setting's
+            // UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
+            // DynamicOptions/DynamicSelection (TryApplyDynamicPowerPlanOptions) AND refreshes the dependent power
+            // states (display/sleep timeouts differ per plan) - one pass replacing the old RefreshPowerPlanComboBoxAsync
+            // + a second state refresh. The delay lets the OS report the newly-active scheme + its powercfg values.
+            await Task.Delay(700).ConfigureAwait(false);
             await RefreshSettingStatesAsync();
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error handling power plan change: {ex.Message}");
-        }
-    }
-
-    public async Task RefreshPowerPlanComboBoxAsync()
-    {
-        try
-        {
-            var powerPlanSetting = Settings.FirstOrDefault(s =>
-                s.SettingDefinition?.Recommendation?.LoadDynamicOptions == true);
-
-            if (powerPlanSetting == null) return;
-
-            // Invalidate the cache to ensure we get fresh data from the OS
-            _powerPlanComboBoxService.InvalidateCache();
-
-            var options = await _powerPlanComboBoxService.GetPowerPlanOptionsAsync();
-            var activePlan = await _powerService.GetActivePowerPlanAsync();
-
-            int currentIndex = 0;
-            if (activePlan != null)
-            {
-                for (int i = 0; i < options.Count; i++)
-                {
-                    if (options[i].ExistsOnSystem && options[i].SystemPlan != null &&
-                        string.Equals(options[i].SystemPlan!.Guid, activePlan.Guid, StringComparison.OrdinalIgnoreCase))
-                    {
-                        currentIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            // Build the new ComboBoxDisplayOption list before touching the UI
-            var newItems = new List<ComboBoxDisplayOption>(options.Count);
-            for (int i = 0; i < options.Count; i++)
-            {
-                var displayName = options[i].DisplayName;
-                if (displayName.StartsWith("PowerPlan_"))
-                {
-                    displayName = _localizationService.GetString(displayName);
-                }
-
-                newItems.Add(new ComboBoxDisplayOption(
-                    displayName,
-                    options[i].Index,
-                    options[i].ExistsOnSystem ? "Installed on system" : "Not installed",
-                    options[i]));
-            }
-
-            // Await the UI update to ensure it completes before returning
-            await _dispatcherService.RunOnUIThreadAsync(() =>
-            {
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] Starting refresh, currentIndex={currentIndex}, current SelectedValue={powerPlanSetting.SelectedValue}");
-
-                powerPlanSetting.ComboBoxOptions.Clear();
-
-                foreach (var item in newItems)
-                {
-                    powerPlanSetting.ComboBoxOptions.Add(item);
-                }
-
-                _logService.LogDebug($"[RefreshPowerPlanComboBox] After repopulate ({newItems.Count} items), setting SelectedValue to {currentIndex}");
-                powerPlanSetting.SelectedValue = currentIndex;
-
-                return Task.CompletedTask;
-            });
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Failed to refresh power plan combo box: {ex.Message}");
         }
     }
 
@@ -181,7 +123,10 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
             if (success)
             {
-                await RefreshPowerPlanComboBoxAsync();
+                // Re-detect so the dropdown rebuilds from the fresh plan list (DeletePowerPlanAsync already invalidated
+                // the power-plan cache, so the re-read excludes the deleted plan). No-op in Builder mode, which keeps
+                // authored values until Builder exit reloads from live state - consistent with RefreshSettingStatesAsync.
+                await RefreshSettingStatesAsync();
                 _logService.Log(LogLevel.Info, $"Successfully deleted power plan: {displayName}");
             }
             else

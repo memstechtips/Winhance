@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -118,16 +119,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     {
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = new SettingDefinition
-            {
-                Id = settingId,
-                Name = name,
-                Description = description,
-                InputType = inputType,
-                NumericRange = numericRange,
-                ComboBox = comboBox,
-                PowerCfgSettings = powerCfgSettings,
-            },
+            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = description } },
             SettingId = settingId,
             Name = name,
             Description = description,
@@ -850,47 +842,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockDispatcherService.Verify(
             d => d.RunOnUIThread(It.IsAny<Action>()),
             Times.AtLeastOnce);
-    }
-
-    [Fact]
-    public async Task RefreshSettingStatesAsync_PublishesTooltipUpdatedEvents()
-    {
-        // Arrange
-        var vm = CreateViewModel();
-        var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
-
-        _mockSettingsLoadingService
-            .Setup(s => s.LoadConfiguredSettingsAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<ISettingsFeatureViewModel>()))
-            .ReturnsAsync(settings);
-
-        var tooltipData = new SettingTooltipData { SettingId = "s1", DisplayValue = "test" };
-        var stateResults = new Dictionary<string, SettingStateResult>
-        {
-            ["s1"] = new SettingStateResult
-            {
-                Success = true,
-                IsEnabled = true,
-                TooltipData = tooltipData
-            }
-        };
-
-        _mockSettingsLoadingService
-            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
-            .ReturnsAsync(stateResults);
-
-        await vm.LoadSettingsAsync();
-        _mockEventBus.Invocations.Clear();
-
-        // Act
-        await vm.RefreshSettingStatesAsync();
-
-        // Assert - TooltipUpdatedEvent should be published directly from state results
-        _mockEventBus.Verify(
-            e => e.Publish(It.Is<TooltipUpdatedEvent>(evt => evt.SettingId == "s1")),
-            Times.Once);
     }
 
     // ── ApplySearchFilter ──

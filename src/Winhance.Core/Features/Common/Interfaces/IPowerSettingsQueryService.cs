@@ -10,5 +10,6 @@ public interface IPowerSettingsQueryService
     Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting);
     Task<Dictionary<string, (int? acValue, int? dcValue)>> GetAllPowerSettingsACDCAsync(string powerPlanGuid = "SCHEME_CURRENT");
     Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting);
+    Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid);
     void InvalidateCache();
 }

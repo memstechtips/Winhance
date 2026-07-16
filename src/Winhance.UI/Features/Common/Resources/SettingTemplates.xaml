@@ -396,6 +396,29 @@
                                                         <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
                                                     </StackPanel>
                                                 </Border>
+                                                <!-- Option row (Selection/Toggle option->value table) -->
+                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
+                                                              VerticalAlignment="Center" Margin="0,0,6,0"
+                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
+                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
+                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
+                                                               Text="{x:Bind OptionLabel}"/>
+                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                </StackPanel>
                                             </Grid>
                                             </ContentControl>
                                         </DataTemplate>
@@ -801,6 +824,29 @@
                                                         <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
                                                     </StackPanel>
                                                 </Border>
+                                                <!-- Option row (Selection/Toggle option->value table) -->
+                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
+                                                              VerticalAlignment="Center" Margin="0,0,6,0"
+                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
+                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
+                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
+                                                               Text="{x:Bind OptionLabel}"/>
+                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                </StackPanel>
                                             </Grid>
                                             </ContentControl>
                                         </DataTemplate>
@@ -1141,6 +1187,29 @@
                                                                         <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
                                                                     </StackPanel>
                                                                 </Border>
+                                                                <!-- Option row (Selection/Toggle option->value table) -->
+                                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
+                                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
+                                                                              VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
+                                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
+                                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
+                                                                               Text="{x:Bind OptionLabel}"/>
+                                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
+                                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
+                                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                                    </TextBlock>
+                                                                </Grid>
+                                                                <!-- Info row (Targets / Effects / Relationships) -->
+                                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
+                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
+                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
+                                                                </StackPanel>
                                                             </Grid>
                                                             </ContentControl>
                                                         </DataTemplate>

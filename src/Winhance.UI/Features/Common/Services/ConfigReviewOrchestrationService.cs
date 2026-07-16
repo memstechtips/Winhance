@@ -3,7 +3,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -22,7 +21,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IConfigAppSelectionService _configAppSelectionService;
     private readonly IConfigApplicationExecutionService _configExecutionService;
     private readonly IConfigLoadService _configLoadService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
@@ -40,7 +38,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IConfigAppSelectionService configAppSelectionService,
         IConfigApplicationExecutionService configExecutionService,
         IConfigLoadService configLoadService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
@@ -57,7 +54,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _configAppSelectionService = configAppSelectionService;
         _configExecutionService = configExecutionService;
         _configLoadService = configLoadService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
@@ -140,9 +136,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
-            // Force filter ON before computing diffs so version-filtered settings
-            // don't generate phantom diffs when the user had the filter toggled off
-            _compatibleSettingsRegistry.SetFilterEnabled(true);
+            // Review-entry filter forcing is carried solely by the async ForceFilterOn chain
+            // (MainWindowViewModel forces the filter on when the review bar flips). The brief
+            // mid-entry window before that chain lands is the accepted, self-healing 7a window.
 
             // Enter review mode on the service (eagerly computes diffs and fires events)
             await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);

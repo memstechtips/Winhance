@@ -325,4 +325,77 @@ public class ConfigMigrationServiceTests
         action.Should().NotThrow();
         item.InputType.Should().Be(InputType.Toggle);
     }
+
+    [Theory]
+    [InlineData("explorer-customization-thispc-folder-desktop-win10", "explorer-customization-thispc-folder-desktop")]
+    [InlineData("explorer-customization-thispc-folder-documents-win10", "explorer-customization-thispc-folder-documents")]
+    [InlineData("explorer-customization-thispc-folder-downloads-win10", "explorer-customization-thispc-folder-downloads")]
+    [InlineData("explorer-customization-thispc-folder-music-win10", "explorer-customization-thispc-folder-music")]
+    [InlineData("explorer-customization-thispc-folder-pictures-win10", "explorer-customization-thispc-folder-pictures")]
+    [InlineData("explorer-customization-thispc-folder-videos-win10", "explorer-customization-thispc-folder-videos")]
+    public void MigrateConfig_RetiredWin10ThisPcId_NormalizedToCanonical(string retired, string canonical)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = retired,
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be(canonical);
+    }
+
+    [Fact]
+    public void MigrateConfig_AlreadyCanonicalThisPcId_IdUnchanged()
+    {
+        var item = new ConfigurationItem
+        {
+            Id = "explorer-customization-thispc-folder-desktop",
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be("explorer-customization-thispc-folder-desktop");
+    }
+
+    [Fact]
+    public void MigrateConfig_AliasNormalization_AppliesInOptimizeSection()
+    {
+        // Normalization lives in MigrateSection, so it applies to every section, not just Customize.
+        var item = new ConfigurationItem
+        {
+            Id = "explorer-customization-thispc-folder-videos-win10",
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = false,
+        };
+
+        var config = new UnifiedConfigurationFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["SomeFeature"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem> { item },
+                    },
+                },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be("explorer-customization-thispc-folder-videos");
+    }
 }

@@ -1,455 +1,51 @@
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
 namespace Winhance.UI.Tests.Services;
 
+// Slice B2: LocalizeSetting (+ its GetLocalized* / Localize* helpers) was retired; display localization moved to
+// SettingViewModelFactory on the catalog path (covered by LocalizeDisplayReadSwapEquivalenceTests +
+// SettingViewModelFactoryTests). This service now only builds the cross-group info banner, so only those tests remain.
 public class SettingLocalizationServiceTests
 {
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _compatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
+    private readonly Mock<IWindowsVersionFilterService> _windowsVersionFilter = new();
 
     public SettingLocalizationServiceTests()
     {
         // Default: return the key wrapped in brackets to indicate "not found"
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => $"[{k}]");
+        // Default: filter ON (the normal mode) -> the service passes includeOtherOsVersions: false
+        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
     }
 
     private SettingLocalizationService CreateSut() => new(
         _localizationService.Object,
-        _compatibleSettingsRegistry.Object);
+        _catalogSettingsRegistry.Object,
+        _windowsVersionFilter.Object);
 
-    private SettingDefinition CreateTestSetting(
+    // L2b: the service takes the catalog Setting now (the cross-group map lives on Display per Slice L2).
+    private static Setting CreateTestSetting(
         string id = "test-setting",
-        string name = "Test Setting",
-        string description = "Test Description",
-        string? groupName = "TestGroup",
-        ComboBoxMetadata? comboBox = null,
-        NumericRangeMetadata? numericRange = null,
-        string? versionCompatibilityMessage = null,
         Dictionary<string, string>? crossGroupChildSettings = null) => new()
     {
         Id = id,
-        Name = name,
-        Description = description,
-        GroupName = groupName,
-        ComboBox = comboBox,
-        NumericRange = numericRange,
-        VersionCompatibilityMessage = versionCompatibilityMessage,
-        CrossGroupChildSettings = crossGroupChildSettings
+        Display = new Display
+        {
+            Name = "Test Setting",
+            Description = "Test Description",
+            GroupName = "TestGroup",
+            CrossGroupChildSettings = crossGroupChildSettings,
+        },
     };
-
-    // --- LocalizeSetting: Name ---
-
-    [Fact]
-    public void LocalizeSetting_WhenNameKeyExists_ReturnsLocalizedName()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Name"))
-            .Returns("Localized Name");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting();
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.Name.Should().Be("Localized Name");
-    }
-
-    [Fact]
-    public void LocalizeSetting_WhenNameKeyMissing_ReturnsFallbackName()
-    {
-        // Default returns [key], which triggers fallback
-        var sut = CreateSut();
-        var setting = CreateTestSetting(name: "Original Name");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.Name.Should().Be("Original Name");
-    }
-
-    // --- LocalizeSetting: Description ---
-
-    [Fact]
-    public void LocalizeSetting_WhenDescriptionKeyExists_ReturnsLocalizedDescription()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Description"))
-            .Returns("Localized Description");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting();
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.Description.Should().Be("Localized Description");
-    }
-
-    [Fact]
-    public void LocalizeSetting_WhenDescriptionKeyMissing_ReturnsFallbackDescription()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(description: "Original Description");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.Description.Should().Be("Original Description");
-    }
-
-    // --- LocalizeSetting: GroupName ---
-
-    [Fact]
-    public void LocalizeSetting_WhenGroupNameKeyExists_ReturnsLocalizedGroupName()
-    {
-        _localizationService.Setup(l => l.GetString("SettingGroup_TestGroup"))
-            .Returns("Localized Group");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(groupName: "TestGroup");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.GroupName.Should().Be("Localized Group");
-    }
-
-    [Fact]
-    public void LocalizeSetting_WhenGroupNameIsNull_ReturnsNull()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(groupName: null);
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.GroupName.Should().BeNull();
-    }
-
-    [Fact]
-    public void LocalizeSetting_GroupNameWithSpacesAndAmpersand_TriesCompactedFormat()
-    {
-        _localizationService.Setup(l => l.GetString("SettingGroup_PrivacySecurity"))
-            .Returns("Privacy & Security Localized");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(groupName: "Privacy & Security");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.GroupName.Should().Be("Privacy & Security Localized");
-    }
-
-    [Fact]
-    public void LocalizeSetting_GroupName_FallsBackToSnakeCaseFormat()
-    {
-        // Compacted format returns [key] (not found)
-        _localizationService.Setup(l => l.GetString("SettingGroup_PrivacySecurity"))
-            .Returns("[SettingGroup_PrivacySecurity]");
-        // Snake case format found
-        _localizationService.Setup(l => l.GetString("SettingGroup_Privacy_Security"))
-            .Returns("Privacy Security Snake");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(groupName: "Privacy & Security");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.GroupName.Should().Be("Privacy Security Snake");
-    }
-
-    [Fact]
-    public void LocalizeSetting_GroupName_WhenBothFormatsMissing_ReturnsFallback()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(groupName: "Unknown Group");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.GroupName.Should().Be("Unknown Group");
-    }
-
-    // --- LocalizeSetting: No typed metadata ---
-
-    [Fact]
-    public void LocalizeSetting_WhenNoTypedMetadata_ReturnsSettingWithoutMetadataChanges()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting();
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().BeNull();
-        result.NumericRange.Should().BeNull();
-    }
-
-    // --- ComboBoxDisplayNames ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesComboBoxDisplayNames()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Option_0"))
-            .Returns("Localized Option A");
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Option_1"))
-            .Returns("Localized Option B");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B" }
-            }
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![0].DisplayName.Should().Be("Localized Option A");
-        result.ComboBox.Options![1].DisplayName.Should().Be("Localized Option B");
-    }
-
-    [Fact]
-    public void LocalizeSetting_ComboBoxNames_WhenLocalizationKeyUsed_UsesKeyDirectly()
-    {
-        _localizationService.Setup(l => l.GetString("Template_MyOption"))
-            .Returns("Template Localized");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Template_MyOption" }
-            }
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![0].DisplayName.Should().Be("Template Localized");
-    }
-
-    // --- CustomStateDisplayName ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesCustomStateDisplayName()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Option_Custom"))
-            .Returns("Localized Custom State");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" }
-            },
-            CustomStateDisplayName = "Original State"
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.CustomStateDisplayName.Should().Be("Localized Custom State");
-    }
-
-    // --- Units ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesMinutesUnits()
-    {
-        _localizationService.Setup(l => l.GetString("Common_Unit_Minutes"))
-            .Returns("min");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
-        {
-            MinValue = 0,
-            MaxValue = 100,
-            Units = "Minutes"
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.NumericRange.Should().NotBeNull();
-        result.NumericRange!.Units.Should().Be("min");
-    }
-
-    [Fact]
-    public void LocalizeSetting_LocalizesMillisecondsUnits()
-    {
-        _localizationService.Setup(l => l.GetString("Common_Unit_Milliseconds"))
-            .Returns("ms");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
-        {
-            MinValue = 0,
-            MaxValue = 1000,
-            Units = "Milliseconds"
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.NumericRange.Should().NotBeNull();
-        result.NumericRange!.Units.Should().Be("ms");
-    }
-
-    [Fact]
-    public void LocalizeSetting_PercentUnits_ReturnsSameValue()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
-        {
-            MinValue = 0,
-            MaxValue = 100,
-            Units = "%"
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.NumericRange.Should().NotBeNull();
-        result.NumericRange!.Units.Should().Be("%");
-    }
-
-    [Fact]
-    public void LocalizeSetting_UnknownUnits_ReturnsSameValue()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(numericRange: new NumericRangeMetadata
-        {
-            MinValue = 0,
-            MaxValue = 100,
-            Units = "Pixels"
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.NumericRange.Should().NotBeNull();
-        result.NumericRange!.Units.Should().Be("Pixels");
-    }
-
-    // --- OptionWarnings (Dictionary<int, string>) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionWarnings()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionWarning_1"))
-            .Returns("Localized Warning");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A" },
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option B", Warning = "Original Warning" }
-            }
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![1].Warning.Should().Be("Localized Warning");
-    }
-
-    // --- OptionTooltips (string[]) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionTooltips()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_OptionTooltip_0"))
-            .Returns("Localized Tooltip");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Option A", Tooltip = "Original Tooltip" }
-            }
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![0].Tooltip.Should().Be("Localized Tooltip");
-    }
-
-    // --- OptionConfirmations (Dictionary<int, (string, string)>) ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesOptionConfirmations()
-    {
-        _localizationService.Setup(l => l.GetString("OldTitle"))
-            .Returns("Localized Title");
-        _localizationService.Setup(l => l.GetString("OldMessage"))
-            .Returns("Localized Message");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(comboBox: new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption
-                {
-                    DisplayName = "Option A",
-                    Confirmation = ("OldTitle", "OldMessage")
-                }
-            }
-        });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![0].Confirmation.Should().NotBeNull();
-        result.ComboBox.Options![0].Confirmation!.Value.Title.Should().Be("Localized Title");
-        result.ComboBox.Options![0].Confirmation!.Value.Message.Should().Be("Localized Message");
-    }
-
-    // --- VersionCompatibilityMessage ---
-
-    [Fact]
-    public void LocalizeSetting_LocalizesVersionCompatibilityMessage_SimpleKey()
-    {
-        _localizationService.Setup(l => l.GetString("Compatibility_NotSupported"))
-            .Returns("This setting is not supported");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(versionCompatibilityMessage: "Compatibility_NotSupported");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.VersionCompatibilityMessage.Should().Be("This setting is not supported");
-    }
-
-    [Fact]
-    public void LocalizeSetting_LocalizesVersionCompatibilityMessage_WithArgs()
-    {
-        _localizationService.Setup(l => l.GetString("Compatibility_RequiresVersion"))
-            .Returns("Requires version {0} or higher");
-
-        var sut = CreateSut();
-        var setting = CreateTestSetting(versionCompatibilityMessage: "Compatibility_RequiresVersion|22H2");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.VersionCompatibilityMessage.Should().Be("Requires version 22H2 or higher");
-    }
-
-    [Fact]
-    public void LocalizeSetting_VersionCompatibilityMessage_NonCompatibilityKey_NotLocalized()
-    {
-        var sut = CreateSut();
-        var setting = CreateTestSetting(versionCompatibilityMessage: "Some raw message");
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.VersionCompatibilityMessage.Should().Be("Some raw message");
-    }
 
     // --- BuildCrossGroupInfoMessage ---
 
@@ -483,18 +79,18 @@ public class SettingLocalizationServiceTests
             ["privacy-child1"] = "Setting_Child1_Name"
         };
 
-        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("privacy-child1"))
-            .Returns("Privacy");
-
-        var childSetting = new SettingDefinition
+        var childSetting = new Setting
         {
             Id = "privacy-child1",
-            Name = "Child Setting 1",
-            Description = "Child desc",
-            GroupName = "Privacy_Group"
+            Display = new Display
+            {
+                Name = "Child Setting 1",
+                Description = "Child desc",
+                GroupName = "Privacy_Group",
+            },
         };
-        _compatibleSettingsRegistry.Setup(r => r.GetFilteredSettings("Privacy"))
-            .Returns(new[] { childSetting });
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<bool>()))
+            .Returns(childSetting);
 
         _localizationService.Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
             .Returns("Warning Header");
@@ -513,18 +109,23 @@ public class SettingLocalizationServiceTests
         result.Should().NotBeNull();
         result.Should().Contain("Warning Header");
         result.Should().Contain("Localized Child");
+        // Pin the group-key construction (feature name + localized group) so a wrong Display field read fails.
+        result.Should().Contain("Privacy & Security (Privacy Group Localized)");
+        // Pin the mode threading: filter ON must query the current-OS scope (includeOtherOsVersions: false).
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", false), Times.Once);
     }
 
     [Fact]
-    public void BuildCrossGroupInfoMessage_WhenFeatureIdNotFound_SkipsSetting()
+    public void BuildCrossGroupInfoMessage_WhenChildNotResolved_SkipsSetting()
     {
         var crossGroupSettings = new Dictionary<string, string>
         {
             ["unknown-child1"] = "Setting_Unknown_Name"
         };
 
-        _compatibleSettingsRegistry.Setup(r => r.GetFeatureIdForSetting("unknown-child1"))
-            .Returns((string?)null);
+        // An id outside the mode-scoped catalog membership resolves to null (was: feature-index miss)
+        _catalogSettingsRegistry.Setup(r => r.GetById("unknown-child1", It.IsAny<bool>()))
+            .Returns((Setting?)null);
 
         var sut = CreateSut();
         var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
@@ -534,55 +135,37 @@ public class SettingLocalizationServiceTests
         result.Should().BeNull();
     }
 
-    // --- WSearch-style: DisplayName IS a localization key AND Warning is set ---
-
     [Fact]
-    public void LocalizeSetting_ComboBoxOption_WithServiceOptionDisplayName_PreservesWarning()
+    public void BuildCrossGroupInfoMessage_WhenFilterOff_QueriesOtherOsScope()
     {
-        // Mirrors WSearch: DisplayName = "ServiceOption_Disabled" (localization key), Warning set.
-        _localizationService.Setup(l => l.GetString("ServiceOption_Disabled"))
-            .Returns("Disabled");
-        // No Setting_{id}_OptionWarning_{i} key -> fallback to raw Warning string.
+        var crossGroupSettings = new Dictionary<string, string>
+        {
+            ["privacy-child1"] = "Setting_Child1_Name"
+        };
 
-        var sut = CreateSut();
-        var setting = CreateTestSetting(id: "gaming-windows-search-service",
-            comboBox: new ComboBoxMetadata
+        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+
+        var childSetting = new Setting
+        {
+            Id = "privacy-child1",
+            Display = new Display
             {
-                Options = new[]
-                {
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption
-                    {
-                        DisplayName = "ServiceOption_Disabled",
-                        Warning = "WARNING: Disabling WSearch breaks Outlook search."
-                    },
-                    new Winhance.Core.Features.Common.Models.ComboBoxOption
-                    {
-                        DisplayName = "ServiceOption_ManualRecommended"
-                    }
-                }
-            });
-
-        var result = sut.LocalizeSetting(setting);
-
-        result.ComboBox.Should().NotBeNull();
-        result.ComboBox!.Options![0].DisplayName.Should().Be("Disabled");
-        result.ComboBox.Options[0].Warning.Should().Be("WARNING: Disabling WSearch breaks Outlook search.");
-    }
-
-    // --- Immutability of original setting ---
-
-    [Fact]
-    public void LocalizeSetting_DoesNotModifyOriginalSetting()
-    {
-        _localizationService.Setup(l => l.GetString("Setting_test-setting_Name"))
-            .Returns("Localized Name");
+                Name = "Child Setting 1",
+                Description = "Child desc",
+                GroupName = "Privacy_Group",
+            },
+        };
+        // Strict on the scope arg: only includeOtherOsVersions: true resolves - a false arg returns
+        // null and fails NotBeNull, so the !IsFilterEnabled threading is load-bearing here.
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", true))
+            .Returns(childSetting);
 
         var sut = CreateSut();
-        var setting = CreateTestSetting(name: "Original");
+        var setting = CreateTestSetting(crossGroupChildSettings: crossGroupSettings);
 
-        var result = sut.LocalizeSetting(setting);
+        var result = sut.BuildCrossGroupInfoMessage(setting);
 
-        setting.Name.Should().Be("Original");
-        result.Name.Should().Be("Localized Name");
+        result.Should().NotBeNull();
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", true), Times.Once);
     }
 }

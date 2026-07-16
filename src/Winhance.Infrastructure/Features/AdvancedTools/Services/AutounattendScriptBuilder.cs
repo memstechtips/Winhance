@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,6 +13,7 @@ public class AutounattendScriptBuilder
 {
     private readonly ILogService _logService;
     private readonly IPowerShellRunner _powerShellRunner;
+    private readonly IWindowsVersionService _windowsVersionService;
     private readonly FeatureRegistryScriptSection _featureRegistrySection;
     private readonly PowerSettingsScriptSection _powerSettingsSection;
     private readonly AppRemovalScriptSection _appRemovalSection;
@@ -20,13 +22,14 @@ public class AutounattendScriptBuilder
         IPowerSettingsQueryService powerSettingsQueryService,
         IHardwareDetectionService hardwareDetectionService,
         ILogService logService,
-        IComboBoxResolver comboBoxResolver,
-        IPowerShellRunner powerShellRunner)
+        IPowerShellRunner powerShellRunner,
+        IWindowsVersionService windowsVersionService)
     {
         _logService = logService;
         _powerShellRunner = powerShellRunner;
+        _windowsVersionService = windowsVersionService;
 
-        var registryEmitter = new RegistryCommandEmitter(comboBoxResolver, logService);
+        var registryEmitter = new RegistryCommandEmitter(logService);
         _featureRegistrySection = new FeatureRegistryScriptSection(registryEmitter, logService);
         _powerSettingsSection = new PowerSettingsScriptSection(powerSettingsQueryService, hardwareDetectionService, logService);
         _appRemovalSection = new AppRemovalScriptSection();
@@ -34,9 +37,16 @@ public class AutounattendScriptBuilder
 
     public async Task<string> BuildWinhancementsScriptAsync(
         UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         WarnOnUnreachableNativePowerApiSettings(config, allSettings);
+
+        // The live build this autounattend is generated on. allSettings arrives OS-filtered (the old CompatibleSettingsRegistry
+        // leaves one variant of each OS-merged setting per machine), so threading the same build lets the new catalog
+        // emitter pick the OS-appropriate per-target mechanism for the build-gated "This PC folder" toggles.
+        var currentBuild = new WinBuild(
+            _windowsVersionService.GetWindowsBuildNumber(),
+            _windowsVersionService.GetWindowsBuildRevision());
 
         var sb = new StringBuilder();
 
@@ -65,13 +75,13 @@ public class AutounattendScriptBuilder
         // 2c. HKLM registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2d. HKLM registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2e. Clean Start Menu Layout (always included)
@@ -94,13 +104,13 @@ public class AutounattendScriptBuilder
         // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ");
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3c. User-specific custom script placeholder
@@ -136,33 +146,43 @@ public class AutounattendScriptBuilder
     /// </summary>
     private void WarnOnUnreachableNativePowerApiSettings(
         UnifiedConfigurationFile config,
-        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
+        // Config ids are alias-normalized so an old "-win10" item id still matches its merged catalog
+        // Setting's canonical Id (the dict values are canonical since Slice 7e-6).
         var selectedIds = new HashSet<string>(
-            config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))
-                .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))),
+            config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))
+                .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))),
             StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in allSettings)
         {
-            foreach (var settingDef in group.Value)
+            foreach (var setting in group.Value)
             {
-                if (!selectedIds.Contains(settingDef.Id)) continue;
-                if (settingDef.NativePowerApiSettings?.Count is not > 0) continue;
+                if (!selectedIds.Contains(setting.Id)) continue;
+
+                // Slice E1b: native-power presence + the autounattend fallback are read off the catalog Setting
+                // (Targets/Effects); the catalog checks are proven equal to the old def-based checks over the whole
+                // population at migration by the now-retired MechanismPresenceEquivalenceTests. Slice 7e-6: the dict carries the paired catalog
+                // Settings themselves (an unpaired id never enters it - the def-dict shim skips it), so the
+                // internal SettingCatalog.Find re-pairing is gone. Native power is authored on only one setting
+                // (power-hibernation-enable), which is catalog-paired.
+                bool hasNativePower = AutounattendMechanismPresence.HasNativePower(setting);
+                if (!hasNativePower) continue;
 
                 bool hasAutounattendFallback =
-                    settingDef.RegistrySettings?.Count > 0
-                    || settingDef.PowerCfgSettings?.Any() == true
-                    || settingDef.PowerShellScripts?.Count > 0
-                    || settingDef.RegContents?.Count > 0
-                    || settingDef.ScheduledTaskSettings?.Count > 0
-                    || settingDef.Id == "power-hibernation-enable";
+                    AutounattendMechanismPresence.HasRegistry(setting)
+                    || AutounattendMechanismPresence.HasPowerCfg(setting)
+                    || AutounattendMechanismPresence.HasScript(setting)
+                    || AutounattendMechanismPresence.HasRegContent(setting)
+                    || AutounattendMechanismPresence.HasScheduledTask(setting)
+                    || setting.Id == "power-hibernation-enable";
 
                 if (!hasAutounattendFallback)
                 {
                     _logService.Log(
                         LogLevel.Warning,
-                        $"Setting '{settingDef.Id}' is applied only via NativePowerApiSettings, " +
+                        $"Setting '{setting.Id}' is applied only via NativePowerApiSettings, " +
                         $"which has no autounattend emitter. It will be silently skipped during " +
                         $"unattend install. Add a RegistrySettings or PowerCfgSettings fallback.");
                 }

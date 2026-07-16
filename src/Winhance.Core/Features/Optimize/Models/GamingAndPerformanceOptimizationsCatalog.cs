@@ -173,6 +173,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Force Deny",
+                    Warning = "WARNING: Force Deny removes background app permissions from Windows Settings entirely. Apps requiring background access (Teams, Zoom, WhatsApp, etc.) may not function correctly.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["LetAppsRunInBackground"] = Of(2) },
                 },
@@ -970,16 +971,102 @@ public static class GamingAndPerformanceOptimizationsCatalog
             },
             States = new[]
             {
-                new SettingState { Label = "Setting_gaming-dns-server_Option_0" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_1" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_2" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_3" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_4" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_5" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_6" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_7" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_8" },
-                new SettingState { Label = "Setting_gaming-dns-server_Option_9" },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_0",
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_1",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_2",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.2','1.0.0.2') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_3",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.3','1.0.0.3') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_4",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_5",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_6",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('208.67.222.222','208.67.220.220') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=208.67.222.222 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=208.67.220.220 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_7",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://cloudflare-dns.com/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_8",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.google/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Setting_gaming-dns-server_Option_9",
+                    Effects = new Effect[]
+                    {
+                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
+                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.quad9.net/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                    },
+                },
+            },
+            CustomStateScripts = new[]
+            {
+                new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }", RunContext.User),
+                new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
             },
             Detector = new DnsServerDetector("Setting_gaming-dns-server_Option_0", new Dictionary<string, string>
             {
@@ -1050,7 +1137,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             Apply = new() { RequiresReboot = true },
-            Links = new[] { new Link("gaming-virtualization-based-security", LinkKind.Requires, "Enabled") },
             UiParentId = "gaming-virtualization-based-security",
             Targets = new Target[]
             {
@@ -1076,6 +1162,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("gaming-virtualization-based-security", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(0),
@@ -1230,6 +1317,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled (Recommended for SSD)",
+                    Warning = "WARNING: Disabling SysMain on systems with a traditional hard drive (HDD) can noticeably reduce responsiveness and slow app launches. Recommended only for SSD-only systems.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
@@ -1257,7 +1345,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Download,
                 IsSubjectivePreference = true,
             },
-            Links = new[] { new Link("gaming-sysmain-service", LinkKind.Requires, "Enabled") },
             UiParentId = "gaming-sysmain-service",
             Targets = new Target[] { new RegTarget("EnablePrefetcher", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" }, "EnablePrefetcher", RegistryValueKind.DWord) },
             States = new[]
@@ -1273,6 +1360,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
+                    Links = new[] { new Link("gaming-sysmain-service", LinkKind.Requires, "Enabled") },
                     Set = new Dictionary<string, StateValue> { ["EnablePrefetcher"] = Of(0) },
                 },
             },
@@ -1295,6 +1383,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "WARNING: Disabling WSearch stops file content indexing. Outlook search, Start Menu search, and File Explorer search will become slow or return no results until re-enabled.",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -1397,11 +1486,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
+                    Warning = "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light.",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
@@ -2147,6 +2238,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Disabling will prevent Xbox Game Pass and Microsoft Store games from working",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2313,6 +2405,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     },
                 },
             },
+            CustomStateScripts = new[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
         },
         new()
         {
@@ -2333,6 +2426,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
+                    Warning = "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber).",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2880,21 +2974,25 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration") },
+            Targets = new Target[]
+            {
+                new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration"),
+                new TaskTarget("Task2", @"\Microsoft\Windows\WindowsAI\RecallPipeline"),
+            },
             States = new[]
             {
                 new SettingState
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(true) },
+                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(true), ["Task2"] = Of(true) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(false) },
+                    Set = new Dictionary<string, StateValue> { ["Task"] = Of(false), ["Task2"] = Of(false) },
                 },
             },
         },
@@ -3665,10 +3763,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Effects = new Effect[] { new ScriptEffect(@"Enable-ComputerRestore -Drive 'C:\'", RunContext.System) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Effects = new Effect[] { new ScriptEffect(@"Disable-ComputerRestore -Drive 'C:\'", RunContext.System) },
                 },
             },
             Detector = new SystemRestoreDetector("Enabled", "Disabled"),

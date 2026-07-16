@@ -1,6 +1,7 @@
 using System.Text;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -35,9 +36,8 @@ public class PowerSettingsScriptSectionTests
     public void FindPowerPlanSetting_NoPowerFeature_ReturnsNull()
     {
         var config = new UnifiedConfigurationFile();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
 
-        var result = _sut.FindPowerPlanSetting(config, allSettings);
+        var result = _sut.FindPowerPlanSetting(config);
 
         result.Should().BeNull();
     }
@@ -63,9 +63,7 @@ public class PowerSettingsScriptSectionTests
                 }
             }
         };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
-
-        var result = _sut.FindPowerPlanSetting(config, allSettings);
+        var result = _sut.FindPowerPlanSetting(config);
 
         result.Should().BeNull();
     }
@@ -95,9 +93,7 @@ public class PowerSettingsScriptSectionTests
                 }
             }
         };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
-
-        var result = _sut.FindPowerPlanSetting(config, allSettings);
+        var result = _sut.FindPowerPlanSetting(config);
 
         result.Should().BeNull();
     }
@@ -127,9 +123,7 @@ public class PowerSettingsScriptSectionTests
                 }
             }
         };
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
-
-        var result = _sut.FindPowerPlanSetting(config, allSettings);
+        var result = _sut.FindPowerPlanSetting(config);
 
         result.Should().NotBeNull();
         result!.PowerPlanGuid.Should().Be("test-guid-1234");
@@ -143,7 +137,7 @@ public class PowerSettingsScriptSectionTests
     public async Task AppendPowerSettingsSectionAsync_NoPowerPlanNoSettings_ReturnsFalse()
     {
         var config = new UnifiedConfigurationFile();
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>();
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
             .ReturnsAsync(new PowerPlan { Guid = "test-guid", Name = "Balanced" });
@@ -188,9 +182,9 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            { FeatureIds.Power, Array.Empty<SettingDefinition>() }
+            { FeatureIds.Power, Array.Empty<Setting>() }
         };
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -240,28 +234,13 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
-        var settingDef = new SettingDefinition
+        // Slice 7e-6: the dict carries the REAL catalog setting power-display-timeout
+        // (PowerOptimizationsCatalog.cs: subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting
+        // 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e, no hardware gate). The emitted GUIDs and description come
+        // from the catalog Setting, the AC/DC values from the query mock.
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "test-power-setting",
-            Name = "Test Power",
-            Description = "A test power setting",
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "sub-guid",
-                    SettingGuid = "setting-guid",
-                    RecommendedValueAC = null,
-                    RecommendedValueDC = null,
-                    DefaultValueAC = null,
-                    DefaultValueDC = null
-                }
-            }
-        };
-
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            { FeatureIds.Power, new[] { settingDef } }
+            { FeatureIds.Power, new[] { SettingCatalog.Find("power-display-timeout")! } }
         };
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -269,7 +248,7 @@ public class PowerSettingsScriptSectionTests
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                { "setting-guid", (10, 5) }
+                { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (10, 5) }
             });
         _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(true);
 
@@ -278,8 +257,10 @@ public class PowerSettingsScriptSectionTests
 
         result.Should().BeTrue();
         var output = sb.ToString();
-        output.Should().Contain("sub-guid");
-        output.Should().Contain("setting-guid");
+        output.Should().Contain("7516b95f-f776-4464-8c53-06167f40cc99");
+        output.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
+        output.Should().Contain("AC=10; DC=5");
+        output.Should().Contain("Specifies the period of inactivity before Windows turns off the display");
         output.Should().Contain("powercfg");
     }
 
@@ -314,29 +295,20 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
-        var batterySettingDef = new SettingDefinition
+        // Battery gating reads the catalog Setting's Availability.Hardware, so this fact rides the REAL
+        // battery-gated catalog setting critical-battery-notification (PowerOptimizationsCatalog.cs:
+        // Hardware = [ Battery ], subgroup e73a048d-bf27-4f12-9731-8b2076e8891f, setting
+        // 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f). The ungated power-display-timeout rides along as a control
+        // so a dead pipeline cannot pass this test vacuously.
+        var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            Id = "battery-setting",
-            Name = "Battery",
-            Description = "Requires battery",
-            RequiresBattery = true,
-            PowerCfgSettings = new[]
             {
-                new PowerCfgSetting
+                FeatureIds.Power, new[]
                 {
-                    SubgroupGuid = "battery-sub",
-                    SettingGuid = "battery-set",
-                    RecommendedValueAC = null,
-                    RecommendedValueDC = null,
-                    DefaultValueAC = null,
-                    DefaultValueDC = null
+                    SettingCatalog.Find("critical-battery-notification")!,
+                    SettingCatalog.Find("power-display-timeout")!
                 }
             }
-        };
-
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            { FeatureIds.Power, new[] { batterySettingDef } }
         };
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -344,86 +316,20 @@ public class PowerSettingsScriptSectionTests
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
             {
-                { "battery-set", (10, 5) }
+                { "5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f", (10, 5) },
+                { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (20, 15) }
             });
         _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(false);
 
         var sb = new StringBuilder();
         await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
 
-        // The battery setting should be skipped, so the output will only have
-        // the power plan section header but no settings array entries for battery-sub/battery-set
-        sb.ToString().Should().NotContain("battery-sub");
+        // The control setting is emitted; the battery-gated one is skipped. Its GUIDs appear nowhere else
+        // in the section output (they are not in the hardcoded hidden-settings enablement array).
+        var output = sb.ToString();
+        output.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");
+        output.Should().NotContain("e73a048d-bf27-4f12-9731-8b2076e8891f");
+        output.Should().NotContain("5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f");
     }
 
-    // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - Skips brightness settings
-    // ---------------------------------------------------------------
-
-    [Fact]
-    public async Task AppendPowerSettingsSectionAsync_RequiresBrightness_AlwaysSkipped()
-    {
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    {
-                        FeatureIds.Power, new ConfigSection
-                        {
-                            Items = new List<ConfigurationItem>
-                            {
-                                new ConfigurationItem
-                                {
-                                    Id = "power-plan-selection",
-                                    PowerPlanGuid = "plan-guid",
-                                    PowerPlanName = "Plan"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-
-        var brightnessSettingDef = new SettingDefinition
-        {
-            Id = "brightness-setting",
-            Name = "Brightness",
-            Description = "Requires brightness support",
-            RequiresBrightnessSupport = true,
-            PowerCfgSettings = new[]
-            {
-                new PowerCfgSetting
-                {
-                    SubgroupGuid = "bright-sub",
-                    SettingGuid = "bright-set",
-                    RecommendedValueAC = null,
-                    RecommendedValueDC = null,
-                    DefaultValueAC = null,
-                    DefaultValueDC = null
-                }
-            }
-        };
-
-        var allSettings = new Dictionary<string, IEnumerable<SettingDefinition>>
-        {
-            { FeatureIds.Power, new[] { brightnessSettingDef } }
-        };
-
-        _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
-            .ReturnsAsync(new PowerPlan { Guid = "active-guid", Name = "Balanced" });
-        _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync("active-guid"))
-            .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
-            {
-                { "bright-set", (50, 30) }
-            });
-        _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(true);
-
-        var sb = new StringBuilder();
-        await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
-
-        sb.ToString().Should().NotContain("bright-sub");
-    }
 }

@@ -3,10 +3,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Events;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Extensions.DI;
 
@@ -29,8 +30,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IInteractiveUserService, InteractiveUserService>();
         services.AddSingleton<ISystemInfoProvider, SystemInfoProvider>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
-        // Dependency Manager
-        services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
 
         // Windows Services
         services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
@@ -51,17 +50,16 @@ public static class InfrastructureServicesExtensions
         // Initialization Service
         services.AddSingleton<IInitializationService, Winhance.Core.Features.Common.Services.InitializationService>();
 
-        // Settings Registry
-        services.AddSingleton<IGlobalSettingsRegistry, Winhance.Core.Features.Common.Services.GlobalSettingsRegistry>();
-
-        // Global Settings Preloader (registers bypassed settings in the global registry)
-        services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
-
         // File System Service
         services.AddSingleton<IFileSystemService, FileSystemService>();
 
         // Power Scheme Operations (P/Invoke wrapper for plan-level power operations)
         services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
+
+        // Power-plan activation orchestration (Phase 6.7 Slice 8b-1: extracted from PowerService; six leaf
+        // deps, no PowerService/IStateWriter reference so it is DI-cycle-safe). Consumed by PowerService's
+        // apply shells and by WindowsStateWriter.ActivatePowerPlan.
+        services.AddSingleton<IPowerPlanActivationService, PowerPlanActivationService>();
 
         // Explorer Window Manager (open/focus folders in Explorer)
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
@@ -79,54 +77,42 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
             Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
 
-        // Settings Discovery and Application
-        // SystemSettingsDiscoveryService depends on ISpecialDiscoveryRegistry.
-        // The UI composition root re-registers that registry (in AddSettingServices)
-        // with the real handler set (PowerService, UpdateService); because that runs
-        // after AddInfrastructureServices, the richer registration wins in the app.
-        // TryAdd here provides an empty default so the infrastructure container is
-        // self-contained when composed on its own (e.g. integration smoke tests).
-        services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
-            new SpecialDiscoveryRegistry([]));
-        // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
-        // dispatcher registry, re-registered by the UI composition root with the real
-        // handler set. Same TryAdd-default rationale as ISpecialDiscoveryRegistry above.
+        // Settings Application
+        // SettingApplicationService depends on the ISpecialSettingHandlerRegistry dispatcher registry, re-registered
+        // by the UI composition root with the real handler set. Same TryAdd-default rationale as above.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
-            new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>()));
-        services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
+            new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
-        services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
-        services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
         // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
         // context to hold its own pre-fetched async reads.
         services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
-        // Catalog detection batch driver + the observe-only parallel-run shadow (logs old-vs-new divergences).
+        // Catalog detection batch driver.
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
-        services.AddSingleton<IDetectionShadowRunner, DetectionShadowRunner>();
+        // Phase 6.9 full-state provider (new-engine drop-in for GetSettingStatesAsync + overlay); Slice 6 repoints
+        // the old-discovery callers onto it one at a time.
+        services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
         // Catalog apply: the live IStateWriter that executes apply plans against the real system (Phase 6.4),
         // plus the OTS-aware .reg-import effect runner it delegates to.
         services.AddSingleton<IRegImportService, RegImportService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
 
-        // ComboBox Services
-        services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
+        // ComboBox Services (IComboBoxSetupService/ComboBoxSetupService retired - Phase 6.8 teardown; every consumer
+        // now builds the combobox options directly off the new catalog model. Resolver/PowerPlan stay - still consumed
+        // by the teardown-scope old apply layer.)
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
-        services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
 
         // Settings Compatibility
-        services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
-        services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
-        services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
         services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();
 
         // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
-        services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
+        services.AddSingleton<ICatalogPowerExistenceFilter, CatalogPowerExistenceFilter>();
+        services.AddSingleton<ICatalogSettingsRegistry, CatalogSettingsRegistry>();
 
         // System Services
         services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
@@ -143,10 +129,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<TaskProgressService>();
         services.AddSingleton<ITaskProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
         services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
-
-        // Tooltip Services
-        services.AddSingleton<ITooltipDataService, TooltipDataService>();
-        services.AddSingleton<TooltipRefreshEventHandler>();
 
         // Configuration Application Bridge (for config import/export)
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();

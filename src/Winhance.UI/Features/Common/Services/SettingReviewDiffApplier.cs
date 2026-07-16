@@ -124,8 +124,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 CurrentValueDisplay = currentDisplay,
                 ConfigValueDisplay = configDisplay,
                 ConfigItem = configItem,
-                IsApproved = false,
-                InputType = viewModel.InputType
+                IsApproved = false
             };
             _configReviewDiffService.RegisterDiff(diff);
 

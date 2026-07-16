@@ -11,8 +11,7 @@ namespace Winhance.UI.Tests.Services;
 public class ConfigurationServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
-    private readonly Mock<IGlobalSettingsPreloader> _mockSettingsPreloader = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
     private readonly Mock<IConfigExportService> _mockConfigExportService = new();
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
     private readonly Mock<IConfigApplicationExecutionService> _mockConfigExecutionService = new();
@@ -22,8 +21,6 @@ public class ConfigurationServiceTests
 
     public ConfigurationServiceTests()
     {
-        _mockCompatibleSettingsRegistry.Setup(r => r.IsInitialized).Returns(true);
-
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -33,8 +30,7 @@ public class ConfigurationServiceTests
     {
         return new ConfigurationService(
             _mockLogService.Object,
-            _mockCompatibleSettingsRegistry.Object,
-            _mockSettingsPreloader.Object,
+            _mockCatalogSettingsRegistry.Object,
             _mockConfigExportService.Object,
             _mockConfigLoadService.Object,
             _mockConfigExecutionService.Object,
@@ -96,6 +92,9 @@ public class ConfigurationServiceTests
         await service.ImportConfigurationAsync();
 
         _mockConfigLoadService.Verify(l => l.LoadAndValidateConfigurationFromFileAsync(), Times.Once);
+        // L5: the import entry point ensure-inits the CATALOG registry (idempotent InitializeAsync) --
+        // the degraded-startup self-heal (7d/7f precedent). Red if the ensure-init call is dropped.
+        _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
     }
 
     [Fact]
