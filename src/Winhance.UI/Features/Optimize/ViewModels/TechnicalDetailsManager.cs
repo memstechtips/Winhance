@@ -99,6 +99,10 @@ internal sealed class TechnicalDetailsManager : IDisposable
             if (optionRows.Count > 0)
                 sections.Add(new TechnicalDetailSection(DetailRowType.Option, _labels.SectionOptions, true, optionRows));
 
+            var powerPlanRows = BuildPowerPlanRows(setting, snap);
+            if (powerPlanRows.Count > 0)
+                sections.Add(new TechnicalDetailSection(DetailRowType.Info, _labels.SectionPowerPlans, true, powerPlanRows));
+
             var registryRows = BuildRegistryRows(setting, snap);
             if (registryRows.Count > 0)
                 sections.Add(new TechnicalDetailSection(DetailRowType.Registry, _labels.SectionRegistry, false, registryRows));
@@ -179,6 +183,37 @@ internal sealed class TechnicalDetailsManager : IDisposable
                 CurrentLabelText = _labels.Current
             });
         }
+        return rows;
+    }
+
+    // --- Power Plans: for a ControlKind.PowerPlan setting (power-plan-selection) whose options are produced
+    // at runtime (PowerPlanOptionSource), document each offered scheme - name + GUID + installed + which is
+    // active. Sourced from the VM snapshot ComboBoxDisplayOptions, whose RUNTIME Value is the scheme GUID
+    // (string) and Tag is a PowerPlanComboBoxOption (ExistsOnSystem/IsActive). Builder mode instead uses the
+    // int dropdown index as Value and a raw PowerPlan_ loc-key DisplayText (config-authoring, no live GUID),
+    // so its index-valued options are skipped: this section is runtime documentation and renders nothing in
+    // Builder mode - matching the setting rendering nothing there today.
+    private List<TechnicalDetailRow> BuildPowerPlanRows(Setting setting, TechnicalDetailsSnapshot snap)
+    {
+        var rows = new List<TechnicalDetailRow>();
+        if (setting.Control != ControlKind.PowerPlan) return rows;
+
+        foreach (var opt in snap.Options)
+        {
+            // Only the runtime dropdown carries the scheme GUID as a string Value; skip the Builder-mode
+            // index-valued options (they have no live GUID and a raw loc-key label).
+            if (opt.Value is not string guid || guid.Length == 0) continue;
+
+            var tag = opt.Tag as Winhance.Core.Features.Common.Models.PowerPlanComboBoxOption;
+            var primary = tag?.IsActive == true
+                ? $"{opt.DisplayText} [{_labels.PowerPlanActive}]"
+                : opt.DisplayText;
+            var installed = tag?.ExistsOnSystem == true ? _labels.PowerPlanInstalled : _labels.PowerPlanNotInstalled;
+            rows.Add(InfoRow(primary, $"{guid}  |  {installed}"));
+        }
+
+        if (rows.Count > 0)
+            rows.Add(InfoRow(_labels.PowerPlanApplyNote, string.Empty));
         return rows;
     }
 

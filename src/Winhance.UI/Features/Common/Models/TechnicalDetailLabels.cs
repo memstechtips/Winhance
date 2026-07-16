@@ -63,4 +63,11 @@ public record TechnicalDetailLabels
     // PowerConfig labels
     public string PowerCfgSubgroup { get; init; } = "Subgroup";
     public string PowerCfgSetting  { get; init; } = "Setting";
+
+    // Power Plans section (ControlKind.PowerPlan settings)
+    public string SectionPowerPlans     { get; init; } = "Power Plans";
+    public string PowerPlanActive       { get; init; } = "Active";
+    public string PowerPlanInstalled    { get; init; } = "Installed on system";
+    public string PowerPlanNotInstalled { get; init; } = "Not installed";
+    public string PowerPlanApplyNote    { get; init; } = "Applying selects this scheme (creates it if not installed).";
 }
