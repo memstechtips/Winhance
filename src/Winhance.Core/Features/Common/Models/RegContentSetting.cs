@@ -1,8 +1,0 @@
-namespace Winhance.Core.Features.Common.Models;
-
-public sealed record RegContentSetting
-{
-    public required string EnabledContent { get; init; }
-    public required string DisabledContent { get; init; }
-    public bool RequiresElevation { get; init; } = true;
-}
