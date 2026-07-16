@@ -389,10 +389,10 @@ public class ConfigExportService : IConfigExportService
                 // Slice E4, trimmed in Slice 7d: the loop variable IS the catalog Setting, so the export dispatch
                 // reads it directly (Control / PowerCfgTarget.Mode). Selection maps to Control in {Selection,
                 // PowerPlan} (power-plan is Control.PowerPlan, exported via the Selection path). The InputType
-                // persistence WRITE above STAYS and is LOAD-BEARING: FeatureRegistryScriptSection dispatches its
-                // PRIMARY Toggle/Action script-gen paths off the persisted configItem.InputType, and
-                // ConfigMigrationService gates its Toggle->Selection import migrations on it - the exact
-                // ControlToInputType map keeps those readers correct. It retires only when script-gen ports.
+                // persistence WRITE above STAYS and is LOAD-BEARING: ConfigMigrationService gates its
+                // Toggle->Selection import migrations on the persisted configItem.InputType, and it seeds the
+                // view-model InputType on config import (SettingItemViewModel) - the exact ControlToInputType map
+                // keeps those readers correct. (7e-3 moved script-gen dispatch to Control, so FeatureRegistryScriptSection no longer reads it.)
                 bool isToggle = setting.Control == ControlKind.Toggle;
                 bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
                 bool isNumericRange = setting.Control == ControlKind.Slider;
@@ -634,11 +634,11 @@ public class ConfigExportService : IConfigExportService
         return 0;
     }
 
-    /// <summary>Twin of ConfigReviewService.ControlToInputType (private per-service transitional helpers):
-    /// populates the PERSISTED config-file InputType field from the derived Control. The field is LOAD-BEARING
-    /// (FeatureRegistryScriptSection Toggle/Action dispatch + ConfigMigrationService import gates read it), so it
-    /// outlives this slice until script-gen ports. Exact for the shipped population: PowerPlan settings were
-    /// InputType.Selection, no setting is CheckBox.</summary>
+    /// <summary>Twin of AutounattendXmlGeneratorService.ControlToInputType (private per-service transitional
+    /// helper): populates the PERSISTED config-file InputType field from the derived Control. The field is
+    /// LOAD-BEARING - ConfigMigrationService's Toggle->Selection import gates read it and it seeds the view-model
+    /// InputType on config import - so it outlives this slice until the legacy-config-import path retires. Exact
+    /// for the shipped population: PowerPlan settings were InputType.Selection, no setting is CheckBox.</summary>
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

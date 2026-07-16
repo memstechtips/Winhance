@@ -446,8 +446,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
                 SettingName = "S1",
                 FeatureModuleId = "Privacy",
                 IsReviewed = true,
-                IsApproved = true,
-                InputType = InputType.Toggle
+                IsApproved = true
             }
         };
 
@@ -496,8 +495,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
                 SettingId = "s1",
                 FeatureModuleId = "Privacy",
                 IsReviewed = true,
-                IsApproved = true,
-                InputType = InputType.Toggle
+                IsApproved = true
             }
         };
 
@@ -612,8 +610,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
                 SettingId = "s1",
                 FeatureModuleId = "Privacy",
                 IsReviewed = true,
-                IsApproved = true,
-                InputType = InputType.Toggle
+                IsApproved = true
             }
         };
 
@@ -661,8 +658,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
                 SettingId = "s1",
                 FeatureModuleId = "Privacy",
                 IsReviewed = true,
-                IsApproved = true,
-                InputType = InputType.Toggle
+                IsApproved = true
             }
         };
 

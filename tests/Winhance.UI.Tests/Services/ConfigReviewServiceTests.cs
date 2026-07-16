@@ -612,8 +612,8 @@ public class ConfigReviewServiceTests : IDisposable
         await service.EnterReviewModeAsync(config);
 
         // Register diffs so badge queries return non-zero values
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy" });
 
         // Verify state exists before exit
         service.GetFeatureDiffCount("Privacy").Should().Be(2);
@@ -653,8 +653,7 @@ public class ConfigReviewServiceTests : IDisposable
             SettingName = "Test",
             FeatureModuleId = "Privacy",
             CurrentValueDisplay = "Off",
-            ConfigValueDisplay = "On",
-            InputType = InputType.Toggle
+            ConfigValueDisplay = "On"
         };
         service.RegisterDiff(diff);
 
@@ -674,8 +673,7 @@ public class ConfigReviewServiceTests : IDisposable
         {
             SettingId = "test",
             SettingName = "Test",
-            FeatureModuleId = "Privacy",
-            InputType = InputType.Toggle
+            FeatureModuleId = "Privacy"
         });
 
         bool eventFired = false;
@@ -706,20 +704,17 @@ public class ConfigReviewServiceTests : IDisposable
         service.RegisterDiff(new ConfigReviewDiff
         {
             SettingId = "approved",
-            FeatureModuleId = "Privacy",
-            InputType = InputType.Toggle
+            FeatureModuleId = "Privacy"
         });
         service.RegisterDiff(new ConfigReviewDiff
         {
             SettingId = "rejected",
-            FeatureModuleId = "Privacy",
-            InputType = InputType.Toggle
+            FeatureModuleId = "Privacy"
         });
         service.RegisterDiff(new ConfigReviewDiff
         {
             SettingId = "unreviewed",
-            FeatureModuleId = "Privacy",
-            InputType = InputType.Toggle
+            FeatureModuleId = "Privacy"
         });
 
         service.SetSettingApproval("approved", true);
@@ -741,8 +736,7 @@ public class ConfigReviewServiceTests : IDisposable
         var diff = new ConfigReviewDiff
         {
             SettingId = "new-diff",
-            FeatureModuleId = "Privacy",
-            InputType = InputType.Toggle
+            FeatureModuleId = "Privacy"
         };
 
         service.RegisterDiff(diff);
@@ -760,16 +754,14 @@ public class ConfigReviewServiceTests : IDisposable
         {
             SettingId = "test",
             FeatureModuleId = "Privacy",
-            CurrentValueDisplay = "Old",
-            InputType = InputType.Toggle
+            CurrentValueDisplay = "Old"
         });
 
         service.RegisterDiff(new ConfigReviewDiff
         {
             SettingId = "test",
             FeatureModuleId = "Privacy",
-            CurrentValueDisplay = "New",
-            InputType = InputType.Toggle
+            CurrentValueDisplay = "New"
         });
 
         service.TotalChanges.Should().Be(1);
@@ -785,9 +777,9 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "P", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "P", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s3", FeatureModuleId = "P", InputType = InputType.Toggle });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "P" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "P" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s3", FeatureModuleId = "P" });
 
         service.SetSettingApproval("s1", true);
         service.SetSettingApproval("s2", false);
@@ -868,9 +860,9 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s3", FeatureModuleId = "Power", InputType = InputType.Toggle });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s3", FeatureModuleId = "Power" });
 
         service.GetFeatureDiffCount("Privacy").Should().Be(2);
         service.GetFeatureDiffCount("Power").Should().Be(1);
@@ -882,8 +874,8 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
-        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy", InputType = InputType.Toggle });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy" });
 
         service.SetSettingApproval("s1", true); // Reviewed
 

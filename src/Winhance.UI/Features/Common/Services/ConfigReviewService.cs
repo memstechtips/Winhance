@@ -488,7 +488,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         ConfigItem = configItem,
                         IsApproved = false,
                         IsReviewed = false,
-                        InputType = ControlToInputType(setting.Control),
                         IsActionSetting = isActionSetting,
                     };
 
@@ -534,17 +533,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             ?? "Apply the default {0} wallpaper?";
         return string.Format(format, themeName);
     }
-
-    /// <summary>Reverse of the retired InputTypeToControl fallback: populates ConfigReviewDiff.InputType (a
-    /// legacy-typed field with no known reader - teardown candidate) from the derived Control. Exact for the
-    /// shipped population: PowerPlan settings were InputType.Selection, no setting is CheckBox.</summary>
-    private static InputType ControlToInputType(ControlKind control) => control switch
-    {
-        ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,
-        ControlKind.Slider => InputType.NumericRange,
-        ControlKind.Action => InputType.Action,
-        _ => InputType.Toggle,
-    };
 
     /// <summary>
     /// Computes diff between current system state and config value for a catalog setting.
