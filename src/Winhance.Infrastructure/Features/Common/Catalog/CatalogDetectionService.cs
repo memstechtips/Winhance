@@ -10,8 +10,7 @@ namespace Winhance.Infrastructure.Features.Common.Catalog;
 
 /// <summary>Drives <see cref="CatalogDiscovery"/> over a batch of settings using a fresh, pre-fetched detection
 /// context. Each setting's detection is isolated in a try/catch so one failure cannot abort the batch. The result
-/// is the new engine's normalized view (state label or numeric value) keyed by Setting.Id; mapping it into the
-/// UI's SettingStateResult is a later cutover step.</summary>
+/// is the normalized view (state label or numeric value) keyed by Setting.Id.</summary>
 public sealed class CatalogDetectionService : ICatalogDetectionService
 {
     private readonly ISystemDetectionContextFactory _contextFactory;
@@ -76,11 +75,10 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         return results;
     }
 
-    /// <summary>Builds the live per-registry-target readings for <paramref name="setting"/>, reproducing the old
-    /// discovery's RawValues exactly (SystemSettingsDiscoveryService): group the RegTargets by
+    /// <summary>Builds the live per-registry-target readings for <paramref name="setting"/>: group the RegTargets by
     /// <c>ValueName ?? "KeyExists"</c>, read each group's paths HKLM-first and keep the first non-null reading
-    /// (REG_BINARY reduced via <see cref="Reduce"/>, key existence as a bool), so the config-export custom-state path
-    /// reads identical values off the new engine. Null when the setting has no registry targets.</summary>
+    /// (REG_BINARY reduced via <see cref="Reduce"/>, key existence as a bool). These feed the config-export
+    /// custom-state path. Null when the setting has no registry targets.</summary>
     private static IReadOnlyDictionary<string, object?>? BuildReadings(Setting setting, IDetectionContext context)
     {
         var regTargets = setting.Targets.OfType<RegTarget>().ToList();
@@ -93,8 +91,8 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
             object? finalValue = null;
             bool found = false;
 
-            // One old RegistrySetting == one (target, path); a mirror RegTarget folds its Paths into this flat list.
-            // Order HKLM-first and keep the first non-null reading, matching the old discovery's per-group fold.
+            // A mirror RegTarget folds its Paths into this flat list. Order HKLM-first and keep the first
+            // non-null reading.
             var reads = group
                 .SelectMany(rt => rt.Paths.Select(path => (Target: rt, Path: path)))
                 .OrderByDescending(x => x.Path.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase));
@@ -120,9 +118,9 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         return readings;
     }
 
-    /// <summary>Applies the same REG_BINARY reduction the old discovery did when building RawValues: a bitmask test
-    /// reduces to a bool, a single-byte edit to that byte (null when the blob is too short); everything else passes
-    /// through. CompositeStringKey / per-NIC are intentionally NOT reduced - the old RawValues stored the raw value.</summary>
+    /// <summary>REG_BINARY reduction: a bitmask test reduces to a bool, a single-byte edit to that byte (null when
+    /// the blob is too short); everything else passes through. CompositeStringKey / per-NIC are intentionally NOT
+    /// reduced - the raw value is stored.</summary>
     private static object? Reduce(RegTarget target, object? raw)
     {
         if (raw is byte[] blob)

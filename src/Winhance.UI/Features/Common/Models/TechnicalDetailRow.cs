@@ -12,9 +12,9 @@ public enum DetailRowType
     RegContent,
     Dependency,
     // One option of a Selection/Toggle setting: which choice writes which value (the "docs inside the app"
-    // option->value table). Phase 6.7 Slice 9. Sourced from Setting.States, not the old SettingTooltipData.
+    // option->value table). Sourced from Setting.States.
     Option,
-    // A generic two-part docs line (primary + secondary text). Phase 6.7 Slice 9b - used by the Targets,
+    // A generic two-part docs line (primary + secondary text). Used by the Targets,
     // Effects, and Relationships sections so they share one DataTemplate.
     Info
 }

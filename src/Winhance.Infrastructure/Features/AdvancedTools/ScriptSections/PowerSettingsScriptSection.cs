@@ -41,7 +41,6 @@ internal class PowerSettingsScriptSection
         _logService = logService;
     }
 
-    // Slice 7e-6: the phantom def-dict param is dropped (the body never read it).
     public ConfigurationItem? FindPowerPlanSetting(UnifiedConfigurationFile config)
     {
         if (!config.Optimize.Features.TryGetValue(FeatureIds.Power, out var powerSection))
@@ -232,10 +231,7 @@ internal class PowerSettingsScriptSection
                 continue;
 
             // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
-            // keyed by the (unchanged) powercfg SettingGuid. The now-retired PowerSettingsMetadataEquivalenceTests pinned the
-            // paired reads == the retired def fields. Slice 7e-6: the dict carries the paired catalog Settings
-            // themselves (the builder's def-dict shim pairs via alias-normalized Find and skips unpaired ids),
-            // so the internal Find and its unpaired-continue are gone.
+            // keyed by the powercfg SettingGuid.
 
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
             if (powerCfgTargets.Count == 0)

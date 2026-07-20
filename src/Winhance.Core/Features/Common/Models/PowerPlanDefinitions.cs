@@ -7,7 +7,6 @@ public sealed record PredefinedPowerPlan(string Name, string Description, string
 public sealed record PowerPlanComboBoxOption
 {
     public string DisplayName { get; init; } = string.Empty;
-    public PredefinedPowerPlan? PredefinedPlan { get; init; }
     public PowerPlan? SystemPlan { get; init; }
     public bool ExistsOnSystem { get; init; }
     public bool IsActive { get; init; }

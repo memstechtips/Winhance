@@ -6,10 +6,8 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Imports .reg content via reg.exe, OTS-aware. A faithful copy of the old SettingOperationExecutor
-/// reg-import dance (write a temp .reg file, run reg.exe import - as the interactive user under OTS) so the new
-/// catalog effect-runner imports identically. Both copies run during the cutover; the old inline copy in
-/// SettingOperationExecutor is retired at teardown, leaving this as the sole implementation.</summary>
+/// <summary>Imports .reg content via reg.exe, OTS-aware (write a temp .reg file, run reg.exe import - as the
+/// interactive user under OTS).</summary>
 [SupportedOSPlatform("windows")]
 public class RegImportService(
     IInteractiveUserService interactiveUserService,

@@ -41,17 +41,15 @@ public class ProcessRestartManager(
     /// <inheritdoc />
     public Task HandleProcessAndServiceRestartsAsync(Setting setting)
     {
-        // The catalog Setting unifies the def's separate RestartProcess/RestartService into one
-        // ApplyBehavior.Restart RestartTarget (lossless - no setting sets both; RestartTargetCatalogEquivalence
-        // Tests). Reuse the proven CollectRestartTargets extraction (0/1 process, 0/1 service), then run the
-        // identical restart logic the def overload runs.
+        // The Setting's ApplyBehavior.Restart unifies process/service restarts into one RestartTarget (no
+        // setting sets both). Reuse the CollectRestartTargets extraction (0/1 process, 0/1 service), then run
+        // the shared restart logic.
         var (processes, services) = CollectRestartTargets(new[] { setting });
         return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id);
     }
 
-    // Shared restart logic for both single-setting overloads. Behaviour-identical to the old
-    // HandleProcessAndServiceRestartsAsync(SettingDefinition) body (process/service handled independently),
-    // just parameterised by the extracted (process, service, id) so the catalog Setting overload can reuse it.
+    // Shared restart logic (process/service handled independently), parameterised by the extracted
+    // (process, service, id).
     private async Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId)
     {
         if (_suppressCount > 0)
@@ -98,9 +96,8 @@ public class ProcessRestartManager(
         await FlushSetsAsync(processes, services).ConfigureAwait(false);
     }
 
-    // Catalog-Setting equivalent: the def's separate RestartProcess / RestartService are unified into
-    // ApplyBehavior.Restart (a single RestartTarget) - lossless because NO setting sets both (verified in
-    // source + pinned at migration by the now-retired RestartTargetCatalogEquivalenceTests).
+    // Reads process / service restarts from ApplyBehavior.Restart (a single RestartTarget) - no setting
+    // sets both.
     internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
         IEnumerable<Setting> settings)
     {

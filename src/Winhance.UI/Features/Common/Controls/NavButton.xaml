@@ -82,18 +82,6 @@
                    Visibility="{x:Bind BadgeVisibility, Mode=OneWay}"
                    Value="{x:Bind BadgeValue, Mode=OneWay}"/>
 
-        <!-- Loading Overlay -->
-        <Border x:Name="LoadingOverlay"
-                Background="#80000000"
-                CornerRadius="10"
-                Visibility="{x:Bind LoadingVisibility, Mode=OneWay}">
-            <ProgressRing IsActive="{x:Bind IsLoading, Mode=OneWay}"
-                          Width="24"
-                          Height="24"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"/>
-        </Border>
-
         <!-- Locked Overlay -->
         <Grid Visibility="{x:Bind LockedVisibility, Mode=OneWay}"
               HorizontalAlignment="Center"

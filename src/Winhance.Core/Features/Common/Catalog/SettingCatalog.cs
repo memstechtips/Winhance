@@ -6,7 +6,7 @@ using Winhance.Core.Features.Optimize.Models;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The full live Setting catalog: every authored area's settings concatenated into one list. The single
-/// source of truth the new detection and apply engines enumerate.</summary>
+/// source of truth the detection and apply engines enumerate.</summary>
 public static class SettingCatalog
 {
     public static IReadOnlyList<Setting> All { get; } = new[]
@@ -23,9 +23,8 @@ public static class SettingCatalog
         PowerOptimizationsCatalog.All,
     }.SelectMany(x => x).ToArray();
 
-    /// <summary>The catalog partitioned by feature module (Explorer/Power/...), mirroring the old
-    /// CompatibleSettingsRegistry.GetKnownFeatureProviders partition. Each *Catalog.cs declares its own
-    /// FeatureId const; this is the catalog-sourced replacement for the old per-feature SettingDefinition groups.</summary>
+    /// <summary>The catalog partitioned by feature module (Explorer/Power/...). Each *Catalog.cs declares its own
+    /// FeatureId const.</summary>
     public static IReadOnlyDictionary<string, IReadOnlyList<Setting>> ByFeature { get; } =
         new Dictionary<string, IReadOnlyList<Setting>>
         {
@@ -44,7 +43,7 @@ public static class SettingCatalog
     /// <summary>Every setting by its (canonical) Id - the O(1) pairing index.</summary>
     public static IReadOnlyDictionary<string, Setting> ById { get; } = All.ToDictionary(s => s.Id);
 
-    /// <summary>The pairing primitive for the SettingDefinition retirement: given a setting id (canonical OR a
+    /// <summary>The pairing primitive: given a setting id (canonical OR a
     /// retired -win10 alias), return its catalog Setting, or null if unpaired. Mirrors the live UI pairing
     /// (SettingsLoadingService uses SettingIdAliases.Normalize then looks up SettingCatalog.All by Id).</summary>
     public static Setting? Find(string settingId) =>

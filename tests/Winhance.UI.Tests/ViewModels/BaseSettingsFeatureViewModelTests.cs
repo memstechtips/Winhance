@@ -112,10 +112,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         InputType inputType = InputType.Toggle,
         bool isSelected = false,
         int numericValue = 0,
-        object? selectedValue = null,
-        NumericRangeMetadata? numericRange = null,
-        ComboBoxMetadata? comboBox = null,
-        IReadOnlyList<PowerCfgSetting>? powerCfgSettings = null)
+        object? selectedValue = null)
     {
         var config = new SettingItemViewModelConfig
         {
@@ -1277,19 +1274,10 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     public async Task LoadSettingsAsync_WithSelectionSettings_PopulatesSelectedValueAndComboBoxOptions()
     {
         var vm = CreateViewModel();
-        var comboBox = new ComboBoxMetadata
-        {
-            Options = new[]
-            {
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Low" },
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "Medium" },
-                new Winhance.Core.Features.Common.Models.ComboBoxOption { DisplayName = "High" }
-            }
-        };
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("sel1", "Selection Setting", inputType: InputType.Selection,
-                selectedValue: 1, comboBox: comboBox)
+                selectedValue: 1)
         };
 
         _mockSettingsLoadingService
@@ -1309,11 +1297,10 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     public async Task LoadSettingsAsync_WithNumericRangeSettings_PopulatesNumericValueAndBounds()
     {
         var vm = CreateViewModel();
-        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" };
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("num1", "Numeric Setting", inputType: InputType.NumericRange,
-                numericValue: 30, numericRange: numericRange)
+                numericValue: 30)
         };
 
         _mockSettingsLoadingService
@@ -1337,8 +1324,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         {
             CreateSettingItem("toggle1", "Toggle", inputType: InputType.Toggle, isSelected: true),
             CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 2),
-            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange, numericValue: 45,
-                numericRange: new NumericRangeMetadata { MinValue = 0, MaxValue = 100 }),
+            CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange, numericValue: 45),
             CreateSettingItem("action1", "Action", inputType: InputType.Action)
         };
 
@@ -1425,11 +1411,10 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     public async Task RefreshSettingStatesAsync_NumericRangeSetting_UpdatesNumericValueFromNewState()
     {
         var vm = CreateViewModel();
-        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 120, Units = "Minutes" };
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
-                numericValue: 10, numericRange: numericRange)
+                numericValue: 10)
         };
 
         _mockSettingsLoadingService
@@ -1525,13 +1510,12 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     public async Task FullLifecycle_LoadThenRefreshWithSameValues_PreservesAllTypes()
     {
         var vm = CreateViewModel();
-        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 60 };
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("t1", "Toggle", isSelected: true),
             CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 1),
             CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
-                numericValue: 42, numericRange: numericRange)
+                numericValue: 42)
         };
 
         _mockSettingsLoadingService
@@ -1563,13 +1547,12 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
     public async Task FullLifecycle_LoadThenRefreshWithChangedValues_UpdatesAllTypes()
     {
         var vm = CreateViewModel();
-        var numericRange = new NumericRangeMetadata { MinValue = 0, MaxValue = 100 };
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("t1", "Toggle", isSelected: false),
             CreateSettingItem("sel1", "Selection", inputType: InputType.Selection, selectedValue: 0),
             CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
-                numericValue: 10, numericRange: numericRange)
+                numericValue: 10)
         };
 
         _mockSettingsLoadingService

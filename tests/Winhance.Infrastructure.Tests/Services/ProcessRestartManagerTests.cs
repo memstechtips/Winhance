@@ -29,8 +29,8 @@ public class ProcessRestartManagerTests
     }
 
     // ---------------------------------------------------------------
-    // Slice 4a: the catalog-Setting overload behaves identically to the SettingDefinition overload -
-    // it extracts (process, service) from ApplyBehavior.Restart and runs the same restart logic.
+    // The catalog-Setting overload extracts (process, service) from ApplyBehavior.Restart and runs the
+    // restart logic.
     // ---------------------------------------------------------------
 
     private static Setting CreateCatalogSetting(string id, RestartTarget? restart = null) => new()

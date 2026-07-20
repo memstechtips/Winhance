@@ -33,12 +33,10 @@ public static class SettingServicesExtensions
             .AddSoftwareAppServices();
 
         // Id-keyed dispatcher registries — settingId → handler mapping.
-        // Phase 6.7 Slice 8b-2b (THE FLIP): power-plan-selection is NO LONGER registered as an apply handler, so the
-        // apply funnel falls through to the new catalog engine (ApplyRequestResolver -> PowerPlanActivateOp ->
-        // WindowsStateWriter.ActivatePowerPlan -> IPowerPlanActivationService.EnsureActivatedAsync). PowerService stays
-        // registered in the DISCOVERY registry below (detection still uses it). The recommended-power cascade the old
-        // handler ran moved to the funnel (D1); the dropdown-refresh moved to SettingAppliedEvent (D2). The now-unreached
-        // PowerService.TryApplySpecialSettingAsync + shells are retired at 8c teardown.
+        // power-plan-selection is NOT registered as an apply handler, so the apply funnel falls through to the
+        // catalog engine (ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan ->
+        // IPowerPlanActivationService.EnsureActivatedAsync). PowerService stays registered in the DISCOVERY
+        // registry below (detection still uses it).
         services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
             {
@@ -58,7 +56,7 @@ public static class SettingServicesExtensions
         services.AddSingleton<IWallpaperService, WallpaperService>();
 
         // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
-        // the explorer refresh is now declarative via the catalog Setting's RestartProcess).
+        // the explorer refresh is declarative via the Setting's RestartProcess).
         services.AddSingleton<ThemeWallpaperApplier>();
 
         return services;
@@ -69,9 +67,8 @@ public static class SettingServicesExtensions
     /// </summary>
     public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
     {
-        // Register PowerService (keeps factory - IPowerService forwards to the concrete). Phase 6.7 Slice 8c: after the
-        // power-plan apply teardown, PowerService only does detection + GetActive/GetAvailable/Delete, so it now takes
-        // just its three live dependencies.
+        // Register PowerService (keeps factory - IPowerService forwards to the concrete). PowerService only does
+        // detection + GetActive/GetAvailable/Delete, so it takes just its three live dependencies.
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),

@@ -15,13 +15,10 @@ public class PowerCfgApplier(
 
     public async Task<bool> WriteValueIndexAsync(PowerCfgTarget target, PowerContext context, int value)
     {
-        // Per-(target, context) write that mirrors the old batch powercfg apply for a single context: a DC write is
-        // skipped on a battery-less machine; the active scheme is resolved, the value index written, and the scheme
-        // committed by re-activating it. The new apply engine emits one PowerCfgSetOp per context, so the writer
-        // calls this once per context (AC then DC) - the resulting on-disk state matches the old batch apply
-        // (the old single end-of-batch commit vs this per-call commit re-activates the same scheme; no functional
-        // difference). The value-differs short-circuit the old apply used only gated its change counter; writing
-        // the same value again is a no-op on disk, so it is omitted here.
+        // Per-(target, context) write for a single context: a DC write is skipped on a battery-less machine; the
+        // active scheme is resolved, the value index written, and the scheme committed by re-activating it. The
+        // apply engine emits one PowerCfgSetOp per context, so the writer calls this once per context (AC then
+        // DC). Writing the same value again is a no-op on disk, so it is omitted here.
         if (context == PowerContext.DC && !await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false))
         {
             logService.Log(LogLevel.Debug, $"[PowerCfgApplier] Skipping DC write for {target.SettingGuid} - no battery present");

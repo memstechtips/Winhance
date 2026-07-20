@@ -40,8 +40,8 @@ public class ConfigurationService : IConfigurationService
     }
 
     // Idempotent catalog-registry init on the import entry points. Closes the import path's
-    // degraded-startup gap the same way Slice 7f closed the generator's: if the Phase-1 init
-    // failed, the import self-heals here instead of surfacing a use-before-init error downstream.
+    // degraded-startup gap: if the Phase-1 init failed, the import self-heals here instead of
+    // surfacing a use-before-init error downstream.
     private Task EnsureRegistryInitializedAsync()
         => _catalogSettingsRegistry.InitializeAsync();
 
@@ -89,19 +89,6 @@ public class ConfigurationService : IConfigurationService
             await _configExecutionService.ExecuteConfigImportAsync(config, importOptions);
         else
             await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
-    }
-
-    public async Task ImportRecommendedConfigurationAsync()
-    {
-        _logService.Log(LogLevel.Info, "Starting recommended configuration import");
-
-        await EnsureRegistryInitializedAsync();
-
-        var config = await _configLoadService.LoadRecommendedConfigurationAsync();
-        if (config == null) return;
-
-        // Recommended config always enters review mode so users can see what will change
-        await _configReviewOrchestrationService.EnterReviewModeAsync(config);
     }
 
     public async Task CreateUserBackupConfigAsync()

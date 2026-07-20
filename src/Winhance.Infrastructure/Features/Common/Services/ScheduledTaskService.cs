@@ -162,22 +162,6 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }).ConfigureAwait(false);
     }
 
-    public async Task<OperationResult> CreateUserLogonTaskAsync(string taskName, string command, string username, bool deleteAfterRun = true)
-    {
-        return await Task.Run(async () =>
-        {
-            try
-            {
-                return await RegisterTaskInternal(taskName, null, username, TaskTriggerType.Logon, command).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logService.LogError($"Error creating user logon task: {taskName}", ex);
-                return OperationResult.Failed(ex.Message, ex);
-            }
-        }).ConfigureAwait(false);
-    }
-
     private async Task<OperationResult> RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
     {
         dynamic? taskService = null;

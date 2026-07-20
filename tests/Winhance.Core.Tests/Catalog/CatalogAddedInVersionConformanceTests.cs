@@ -6,10 +6,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Contributor typo guard - the def-free replacement for the retired
-/// NewBadgeServiceTests.AllAddedInVersions_InBuiltRegistry_ParseViaSystemVersion (which enumerated the OLD def
-/// registry, deleted at the SettingDefinition teardown, Plan-4 T7c). Every catalog Setting's
-/// <see cref="Display.AddedInVersion"/> - the string that drives the NEW badge via INewBadgeService - must parse as
+/// <summary>Contributor typo guard. Every catalog Setting's
+/// <see cref="Display.AddedInVersion"/> - the string that drives the badge via INewBadgeService - must parse as
 /// a System.Version (format YY.MM.DD, optional leading 'v'), or a contributor typo silently breaks the badge with no
 /// other test catching it (CatalogValidator does not check this). Iterates the live catalog; machine-independent.</summary>
 public class CatalogAddedInVersionConformanceTests

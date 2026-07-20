@@ -57,11 +57,7 @@ public class LocalizationKeyReferenceTests
 
     /// <summary>
     /// The full settings catalog the app ships, enumerated from <see cref="SettingCatalog.All"/> (the unified
-    /// catalog Settings) - no DI, no reflection, no runtime registry needed. The old per-feature SettingDefinition
-    /// providers were the source before the catalog migration; the localization keys derive identically
-    /// (<c>Setting.Id</c> == the def base, and <c>ExpectedKeys(Setting)</c> is set-equivalent to
-    /// <c>ExpectedKeys(def)</c> over the whole paired population - proven by
-    /// <c>SettingLocalizationKeysCatalogEquivalenceTests</c>).
+    /// catalog Settings) - no DI, no reflection, no runtime registry needed.
     /// </summary>
     private static IReadOnlyList<Setting> AllSettings() => SettingCatalog.All;
 

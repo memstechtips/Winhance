@@ -21,7 +21,7 @@ public class RelationshipResolverTests
         {
             Id = id,
             Display = new() { Name = id, Description = id },
-            // Links moved per-state (Phase 6.6): place them on the active/non-default states, mirroring the converter.
+            // Links live per-state: place them on the active/non-default states, mirroring the converter.
             States = links.Length == 0
                 ? states
                 : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),
@@ -59,7 +59,7 @@ public class RelationshipResolverTests
     [Fact]
     public void Default_on_owner_fires_requires_from_its_windowsdefault_state()
     {
-        // Phase 6.6 regression: a default-ON setting whose ACTIVE state IS its WindowsDefault must still fire its
+        // Regression: a default-ON setting whose ACTIVE state IS its WindowsDefault must still fire its
         // prerequisite when applied. Proves the old "skip forward triggers on the WindowsDefault state" is gone.
         var onDefault = new SettingState
         {

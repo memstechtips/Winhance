@@ -17,11 +17,6 @@ public interface ITaskProgressService
     bool IsTaskRunning { get; }
 
     /// <summary>
-    /// Gets the current progress value (0-100).
-    /// </summary>
-    int CurrentProgress { get; }
-
-    /// <summary>
     /// Gets the current status text.
     /// </summary>
     string CurrentStatusText { get; }

@@ -34,9 +34,9 @@ public sealed class ThemeWallpaperApplier(
         logService.Log(LogLevel.Info,
             $"[ThemeWallpaperApplier] Applying theme mode - Index: {selectionIndex}, ApplyWallpaper: {additionalContext}");
 
-        // Light = 0, Dark = 1. Apply the matching catalog state through the new engine (Phase 6.4b): the
-        // theme-mode-windows Setting's "Light Mode"/"Dark Mode" states write the same AppsUseLightTheme +
-        // SystemUsesLightTheme DWORDs the old per-RegistrySetting ApplySetting did (Light -> 1, Dark -> 0 on both).
+        // Light = 0, Dark = 1. Apply the matching catalog state: the theme-mode-windows Setting's
+        // "Light Mode"/"Dark Mode" states write the AppsUseLightTheme + SystemUsesLightTheme DWORDs
+        // (Light -> 1, Dark -> 0 on both).
         var stateLabel = selectionIndex == 1 ? "Dark Mode" : "Light Mode";
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.ThemeModeWindows);
         if (catalogSetting != null)
@@ -57,9 +57,8 @@ public sealed class ThemeWallpaperApplier(
         {
             try
             {
-                // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect
-                // (Plan-5): pick the effect whose AppliesTo admits the live build. Single source of truth,
-                // replacing the retired WallpaperDefaults helper.
+                // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect:
+                // pick the effect whose AppliesTo admits the live build.
                 var themeState = catalogSetting?.States.FirstOrDefault(s => s.Label == stateLabel);
                 var liveBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
                 var wallpaperPath = themeState?.Effects

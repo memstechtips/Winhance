@@ -230,8 +230,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
                 ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
                 ApplyThemeWallpaper = approvedDiffs.Any(d => d.SettingId == SettingIds.ThemeModeWindows && d.IsActionApproved),
-                ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
-                ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
+                ApplyCleanTaskbar = approvedSettingIds.Contains(SettingIds.TaskbarClean),
+                ApplyCleanStartMenu = approvedSettingIds.Contains(SettingIds.StartMenuCleanWin10) || approvedSettingIds.Contains(SettingIds.StartMenuCleanWin11),
             };
 
             // Ensure action settings add their parent feature sections even if no regular settings approved

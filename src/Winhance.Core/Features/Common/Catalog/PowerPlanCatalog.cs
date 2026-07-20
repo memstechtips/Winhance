@@ -7,11 +7,9 @@ namespace Winhance.Core.Features.Common.Catalog;
 /// PowerPlan_* localization key shown in the dropdown, and the canonical scheme GUID -- plus the fixed
 /// Winhance Power Plan GUID and its identity check.
 ///
-/// This is CATALOG REFERENCE DATA, and this is its permanent home: the new engine consumes it as the SPINE
-/// of the power-plan dropdown (PowerPlanOptions.Build joins these against the machine's installed schemes,
-/// fed by PowerPlanOptionSource via SystemDetectionContext, so an offered-but-not-installed plan still appears
-/// and is created on selection). It lived inside the old PowerOptimizations def file only by accident of
-/// history; it was never SettingDefinition data, and it is moved here VERBATIM at the def teardown.
+/// This is CATALOG REFERENCE DATA: the engine consumes it as the SPINE of the power-plan dropdown
+/// (PowerPlanOptions.Build joins these against the machine's installed schemes, fed by PowerPlanOptionSource
+/// via SystemDetectionContext, so an offered-but-not-installed plan still appears and is created on selection).
 ///
 /// (Named PowerPlanCatalog, not PowerPlanDefinitions: Common/Models/PowerPlanDefinitions.cs already holds the
 /// PredefinedPowerPlan / PowerPlanComboBoxOption records, and this sits beside SettingCatalog.)</summary>
@@ -31,7 +29,7 @@ public static class PowerPlanCatalog
 
     /// <summary>True when the GUID or friendly name identifies the Winhance Power Plan. Same check as PowerService's
     /// private IsWinhancePowerPlan; lifted to a shared helper so the apply funnel can gate the recommended-power
-    /// re-apply after a power-plan activation (Phase 6.7 Slice 8b-2b) without duplicating the magic GUID.</summary>
+    /// re-apply after a power-plan activation without duplicating the magic GUID.</summary>
     public static bool IsWinhancePowerPlan(string? guid, string? name = null) =>
         string.Equals(guid, WinhancePowerPlanGuid, System.StringComparison.OrdinalIgnoreCase) ||
         string.Equals(name?.Trim(), "Winhance Power Plan", System.StringComparison.OrdinalIgnoreCase);

@@ -282,16 +282,12 @@ public class ConfigLoadService : IConfigLoadService
             {
                 foreach (var configItem in feature.Value.Items)
                 {
-                    // Slice 7b: gating reads ONLY the catalog Availability model (the source of truth). The old
-                    // bypassed-def flag fallback is gone - every InputType-bearing def id is catalog-paired
-                    // (0 unpaired, completeness-proven). The only def-resolvable ids with no EXACT catalog match
-                    // are the 6 merged "-win10" aliases: file/backup loads normalize them upstream
-                    // (ConfigMigrationService), and the embedded Recommended/Win10-defaults configs carry them
+                    // Gating reads ONLY the catalog Availability model (the source of truth). The only
+                    // ids with no EXACT catalog match are the 6 merged "-win10" aliases: file/backup loads normalize them
+                    // upstream (ConfigMigrationService), and the embedded Recommended/Win10-defaults configs carry them
                     // with values byte-identical to their canonical peers, which the import bridge applies via
                     // its alias-normalizing GetById (an idempotent duplicate, matching pre-existing Win10
-                    // behaviour). So an id with no catalog peer is skipped silently. The name reads Display.Name
-                    // (== the old def.Name for every paired setting per the display equivalence; the old code
-                    // already fell back to it).
+                    // behaviour). So an id with no catalog peer is skipped silently. The name reads Display.Name.
                     var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
                     if (newSetting != null && !newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
                     {
@@ -337,10 +333,9 @@ public class ConfigLoadService : IConfigLoadService
 
             foreach (var item in feature.Value.Items)
             {
-                // Slice 7b: paired catalog setting -> gate via the Availability model; unknown id -> keep
-                // (unchanged). The old bypassed-def flag fallback is gone (0 unpaired; the raw "-win10" alias
-                // ids in the embedded configs flow to the import bridge, whose alias-normalizing GetById
-                // applies them onto the merged setting - see the DetectIncompatibleSettings comment).
+                // Known catalog setting -> gate via the Availability model; unknown id -> keep. The raw "-win10"
+                // alias ids in the embedded configs flow to the import bridge, whose alias-normalizing GetById
+                // applies them onto the merged setting - see the DetectIncompatibleSettings comment.
                 var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == item.Id);
                 if (newSetting != null)
                 {

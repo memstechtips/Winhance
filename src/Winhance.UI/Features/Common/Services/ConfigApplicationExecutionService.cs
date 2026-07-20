@@ -389,10 +389,10 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 if (settingId == SettingIds.ThemeModeWindows)
                     return Task.FromResult((true, options?.ApplyThemeWallpaper ?? false));
 
-                if (settingId == "taskbar-clean")
+                if (settingId == SettingIds.TaskbarClean)
                     return Task.FromResult((true, options?.ApplyCleanTaskbar ?? false));
 
-                if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
+                if (settingId == SettingIds.StartMenuCleanWin10 || settingId == SettingIds.StartMenuCleanWin11)
                     return Task.FromResult((true, options?.ApplyCleanStartMenu ?? false));
 
                 return Task.FromResult((true, true));
@@ -549,7 +549,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         {
             items.Add(new ConfigurationItem
             {
-                Id = "taskbar-clean",
+                Id = SettingIds.TaskbarClean,
                 Name = "Clean Taskbar",
                 IsSelected = true,
                 InputType = InputType.Toggle
@@ -558,7 +558,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
         {
-            var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
+            var settingId = _windowsVersionService.IsWindows11() ? SettingIds.StartMenuCleanWin11 : SettingIds.StartMenuCleanWin10;
             items.Add(new ConfigurationItem
             {
                 Id = settingId,

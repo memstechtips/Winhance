@@ -27,8 +27,7 @@ public class UpdateService(
         return false;
     }
 
-    // Slice 4b: id-decoupled. Every mode re-resolves the updates-policy-mode catalog Setting internally, so the
-    // SettingDefinition is no longer threaded through.
+    // Every mode re-resolves the updates-policy-mode Setting internally.
     public async Task ApplyUpdatesPolicyModeAsync(object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)
@@ -334,14 +333,11 @@ public class UpdateService(
 
     private void ApplyRegistrySettingsForIndex(int index)
     {
-        // Slice 4b: the bounds check reads the catalog States (the old def-ComboBox.Options check was redundant -
-        // States are authored one-per-option, so the same length), so this no longer needs the SettingDefinition.
-        // Phase 6.4b: apply the registry block through the NEW catalog engine instead of the old
-        // WindowsRegistryService.ApplySetting (a teardown-deleted method on the teardown-deleted RegistrySetting).
-        // The updates-policy-mode catalog Setting's States are authored one-per-option in option order, so
-        // States[index] is the chosen mode; its Set encodes the same per-option writes the old ValueMappings did
-        // (verified write-equivalent - every option maps all 22 ValueNames, and updates-policy-mode is green in
-        // the now-retired SelectionApplyEquivalenceTests). The bespoke service/DLL/task orchestration around this call stays as-is.
+        // The bounds check reads the States (authored one-per-option, so the length matches the option count).
+        // Apply the registry block through the apply engine (ApplyPlanBuilder + ApplyExecutor). The
+        // updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
+        // the chosen mode; its Set encodes that mode's per-option registry writes. The bespoke service/DLL/task
+        // orchestration around this call stays as-is.
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {

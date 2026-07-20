@@ -101,54 +101,6 @@ public class IsoServiceTests
 
     #endregion
 
-    #region CleanupWorkingDirectoryAsync
-
-    [Fact]
-    public async Task CleanupWorkingDirectoryAsync_DirectoryDoesNotExist_ReturnsTrue()
-    {
-        // Arrange
-        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(false);
-
-        // Act
-        var result = await _service.CleanupWorkingDirectoryAsync(@"C:\work");
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task CleanupWorkingDirectoryAsync_DirectoryExists_DeletesAndReturnsTrue()
-    {
-        // Arrange
-        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
-
-        // Act
-        var result = await _service.CleanupWorkingDirectoryAsync(@"C:\work");
-
-        // Assert
-        result.Should().BeTrue();
-        _mockFileSystem.Verify(
-            fs => fs.DeleteDirectory(@"C:\work", true),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CleanupWorkingDirectoryAsync_DeleteThrows_ReturnsFalse()
-    {
-        // Arrange
-        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystem.Setup(fs => fs.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()))
-            .Throws(new UnauthorizedAccessException("Access denied"));
-
-        // Act
-        var result = await _service.CleanupWorkingDirectoryAsync(@"C:\work");
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    #endregion
-
     #region CreateIsoAsync
 
     [Theory]

@@ -8,10 +8,9 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
-// Slice B2: the vestigial LocalizeSetting (+ its GetLocalized* / Localize* / GetStringOrFallback helpers) was
-// retired. Display localization (Name/Description/GroupName, options, tooltips, warnings) now happens on the
-// catalog path in SettingViewModelFactory via the canonical Setting_{id}_* keys. This service now only builds
-// the cross-group info banner.
+// Display localization (Name/Description/GroupName, options, tooltips, warnings) happens in
+// SettingViewModelFactory via the canonical Setting_{id}_* keys. This service only builds the
+// cross-group info banner.
 public class SettingLocalizationService : ISettingLocalizationService
 {
     private readonly ILocalizationService _localization;
@@ -43,11 +42,10 @@ public class SettingLocalizationService : ISettingLocalizationService
         {
             try
             {
-                // Slice 7a: one catalog GetById reproduces the old two-step resolve (feature-index hop +
-                // filtered-list scan) - both old skip conditions were exactly "id not in the mode-scoped
-                // membership", which GetById's null covers. The show-other-Windows-versions mode is threaded
-                // explicitly (the old registry read it from its mutable SetFilterEnabled state); none of the
-                // authored cross-group child ids is alias-affected, so Normalize is identity here.
+                // One catalog GetById resolves the child setting; a null means the id is not in the
+                // mode-scoped membership (the skip condition). The show-other-Windows-versions mode is threaded
+                // explicitly; none of the authored cross-group child ids is alias-affected, so Normalize is
+                // identity here.
                 var childSetting = _catalogSettingsRegistry.GetById(
                     childSettingId, includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 

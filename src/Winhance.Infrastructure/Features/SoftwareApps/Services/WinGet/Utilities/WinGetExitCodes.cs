@@ -24,7 +24,6 @@ public static class WinGetExitCodes
     public const int UpdateNotApplicable = unchecked((int)0x8A15002A);
     public const int PackageNotInstalled = unchecked((int)0x8A150013);
     public const int FailedToOpenAllSources = unchecked((int)0x8A15004B);
-    public const int SourceDatabaseCorrupt = unchecked((int)0x87AF000B);
     public const int ManifestError = unchecked((int)0x8A15000B);
     public const int OperationCancelled = unchecked((int)0x8A15002B);
 

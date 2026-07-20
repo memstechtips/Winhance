@@ -19,16 +19,15 @@ public sealed record SettingState
     /// <see cref="Set"/> writes. Present = for each target key listed, the reset write is THIS
     /// <see cref="StateValue"/> (e.g. <see cref="StateValue.Absent"/> to DELETE) instead of the detect/normal-apply
     /// <see cref="Set"/> value; target keys NOT in ResetSet fall back to <see cref="Set"/>. This lets a state DETECT
-    /// "1-or-absent" yet on reset DELETE - the divergence the old apply expressed via <c>DisabledValue[1] == null</c>
-    /// (GetParentDisableValue). Only the WindowsDefault state needs one, and only for the targets whose reset write
-    /// differs from their normal Set write.</summary>
+    /// "1-or-absent" yet on reset DELETE. Only the WindowsDefault state needs one, and only for the targets whose
+    /// reset write differs from their normal Set write.</summary>
     public IReadOnlyDictionary<string, StateValue>? ResetSet { get; init; }
 
     public IReadOnlyList<Effect> Effects { get; init; } = System.Array.Empty<Effect>();
 
     /// <summary>
     /// Catch-all: the engine resolves here when NO other state's Set matches the live readings, instead of
-    /// returning Custom. Replaces the old <c>ResolveUnmatchedToDefault</c>. Needed for settings whose default
+    /// returning Custom. Needed for settings whose default
     /// is "any unrecognised value" rather than an enumerable value or absence (e.g. a REG_BINARY blob whose
     /// default content varies between installs). Exactly one state per setting may set this (validator-enforced).
     /// A fallback state may still carry a <c>Set</c> (its representative known value); if that Set
@@ -37,11 +36,11 @@ public sealed record SettingState
     public bool IsFallback { get; init; }
 
     /// <summary>When this selection state is active, the child settings it drives and the state each must
-    /// be in (childId → required state label). Replaces the old preset map. Null = controls nothing.</summary>
+    /// be in (childId -> required state label). Null = controls nothing.</summary>
     public IReadOnlyDictionary<string, string>? Controls { get; init; }
 
     /// <summary>Forward relationships triggered by APPLYING this state: the prerequisites it Requires and the
-    /// settings it Enables (the per-state home of what used to be the setting-level Links). Applying this state
+    /// settings it Enables. Applying this state
     /// fires them; a deactivation/off state simply declares none - so there is no role-based skip, and a default-ON
     /// owner's active (WindowsDefault) state can still fire its prerequisites. Empty = none.</summary>
     public IReadOnlyList<Link> Links { get; init; } = System.Array.Empty<Link>();

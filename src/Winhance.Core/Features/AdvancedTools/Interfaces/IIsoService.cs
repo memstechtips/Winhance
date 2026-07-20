@@ -20,6 +20,4 @@ public interface IIsoService
         string outputPath,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
-
-    Task<bool> CleanupWorkingDirectoryAsync(string workingDirectory);
 }

@@ -32,7 +32,7 @@ public class RecommendedSettingsApplierTests
             .Setup(p => p.SuppressRestarts())
             .Returns(Mock.Of<IDisposable>());
 
-        // Slice 3b: the applied list is catalog Settings, so the flush overload takes IEnumerable<Setting>.
+        // The applied list is catalog Settings, so the flush overload takes IEnumerable<Setting>.
         _mockProcessRestartManager
             .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()))
             .Returns(Task.CompletedTask);
@@ -48,9 +48,9 @@ public class RecommendedSettingsApplierTests
             _mockLog.Object);
     }
 
-    // Slice 3b: the applier consumes catalog Settings DIRECTLY (the SettingCatalog.Find re-pairing is gone),
-    // reading Control + the Recommended role + the resolver's Setting overloads. Tests construct synthetic
-    // Settings with exactly the shape/roles they exercise - no real catalog id is needed anymore.
+    // The applier consumes catalog Settings DIRECTLY, reading Control + the Recommended role + the
+    // resolver's Setting overloads. Tests construct synthetic Settings with exactly the shape/roles they
+    // exercise - no real catalog id is needed.
 
     private static Display Disp(string id) => new() { Name = $"Setting {id}", Description = $"Description for {id}" };
 

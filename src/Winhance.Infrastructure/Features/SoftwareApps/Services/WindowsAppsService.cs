@@ -255,15 +255,14 @@ public class WindowsAppsService(
     {
         try
         {
-            // Slice L3: pair via the catalog (UpdatesPolicyMode is not aliased; Find resolves the same
-            // Setting the retired def overload paired to internally), binding the Setting-list GetStatesAsync.
+            // Resolve UpdatesPolicyMode from the catalog (not aliased), binding the Setting-list GetStatesAsync.
             var policySetting = SettingCatalog.Find(SettingIds.UpdatesPolicyMode);
             if (policySetting == null)
                 return false;
 
-            // Phase 6.9 Slice 6: read the update-policy state from the new-engine full-state provider. UpdatePolicyDetector
-            // reproduces the old UpdateService precedence (renamed DLLs -> Disabled = index 3), so this recovery check is
-            // faithful - the DLL-rename signal is preserved, unlike a registry-only read.
+            // Read the update-policy state from the full-state provider. UpdatePolicyDetector applies the
+            // precedence where renamed DLLs -> Disabled = index 3, so the DLL-rename signal is preserved,
+            // unlike a registry-only read.
             var states = await settingStateProvider.GetStatesAsync(new[] { policySetting }).ConfigureAwait(false);
             if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
             {

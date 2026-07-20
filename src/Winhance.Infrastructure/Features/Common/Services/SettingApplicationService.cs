@@ -57,8 +57,7 @@ public class SettingApplicationService(
     }
 
     // The live Windows build, threaded into ApplyRequestResolver.Resolve / ResolveTargetLabel to gate
-    // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses. (The old bypassed-registry
-    // OS-compatibility path this comment used to mention was removed with CompatibleSettingsRegistry at teardown.)
+    // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses.
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
@@ -66,10 +65,10 @@ public class SettingApplicationService(
     /// the request to a plan and <see cref="ApplyExecutor"/> runs it against the live <see cref="IStateWriter"/>.
     /// Resolve is TOTAL for every reachable request shape (proven by ResolveTotalityAuditTests), so a null plan can
     /// only be an un-audited/unreachable shape - it is logged and returned as a failed OperationResult rather than
-    /// silently applied (the old ISettingOperationExecutor fallback was removed once the engine covered every shape).</summary>
+    /// silently applied.</summary>
     private async Task<OperationResult> ApplyOperationsAsync(Setting setting, bool enable, object? value, bool resetToDefault)
     {
-        // Phase 6.5: pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
+        // Pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
         // (Target.AppliesTo). Without it the build gate is skipped and a build-gated/merged setting (e.g. the
         // This PC folder settings - a Windows-11 HiddenByDefault write AND a Windows-10 key-delete on the SAME
         // key) would apply BOTH per-OS mechanisms. Settings with no build-gated targets (AppliesTo empty) are
@@ -78,8 +77,7 @@ public class SettingApplicationService(
         if (plan is null)
         {
             // Resolve is total for every reachable request shape (ResolveTotalityAuditTests), so a null here is an
-            // un-audited/unreachable shape. The old ISettingOperationExecutor fallback is gone, so fail loudly with a
-            // logged result rather than dereferencing a null plan.
+            // un-audited/unreachable shape. Fail loudly with a logged result rather than dereferencing a null plan.
             var nullPlanMessage = $"No apply plan resolved for '{setting.Id}' (enable={enable}, resetToDefault={resetToDefault}) - unaudited request shape";
             logService.Log(LogLevel.Warning, $"[SettingApplicationService] {nullPlanMessage}");
             return OperationResult.Failed(nullPlanMessage);
@@ -87,11 +85,9 @@ public class SettingApplicationService(
 
         var result = ApplyExecutor.Execute(plan, stateWriter);
 
-        // The new apply engine performs no process/service restarts, but the old executor did as its final,
-        // unconditional step (SettingOperationExecutor's HandleProcessAndServiceRestartsAsync). Mirror it so a paired
-        // setting that restarts Explorer/a service on apply still takes visual effect. This respects an active
-        // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart - identical to
-        // how the old executor's call behaved under suppression.
+        // The apply engine performs no process/service restarts, so run them here explicitly - so a setting
+        // that restarts Explorer/a service on apply still takes visual effect. This respects an active
+        // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart.
         await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
         if (result.AllSucceeded)
@@ -120,19 +116,16 @@ public class SettingApplicationService(
 
         // The catalog registry's GetById alias-normalizes the id (a retired "-win10" This PC alias resolves to its
         // canonical merged Setting) and OS-scopes membership, but a merged setting is OS-portable (Availability
-        // Everywhere + build-gated targets), so it resolves DIRECTLY here on either OS - obviating the old cross-OS
-        // GetByIdBypassed fallback. A genuinely OS-incompatible or non-catalog id returns null and falls through to
-        // the throw (as before: the old GetByIdBypassed also kept the hardware/existence gates, so it threw too).
+        // Everywhere + build-gated targets), so it resolves DIRECTLY here on either OS. A genuinely
+        // OS-incompatible or non-catalog id returns null and falls through to the throw.
         var setting = settingsRegistry.GetById(settingId);
         if (setting == null)
             throw new ArgumentException($"Setting '{settingId}' not found in registry");
 
-        // Phase 6.6 Slice 2: a setting is "paired" when the new catalog holds a peer for it. Paired settings run
-        // their relationships through the NEW RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the
-        // main apply). The OLD dependency-resolver / inline-preset fallback for unpaired settings has been
-        // deleted: it was proven a no-op (the only exact-match-unpaired settings are the 6 dependency-free
-        // -win10 aliases; OldDependencyPathsAreDeadTests guards the invariant), so an unpaired setting simply
-        // runs no relationship pass.
+        // A setting is "paired" when the catalog holds a peer for it. Paired settings run their relationships
+        // through the RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the main apply); an
+        // unpaired setting runs no relationship pass. The only exact-match-unpaired settings are the 6
+        // dependency-free -win10 aliases.
         bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
 
         // Pair the id to its catalog Setting for the change-history rendering methods (LogChangeHistory /
@@ -154,11 +147,9 @@ public class SettingApplicationService(
             var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
             try
             {
-                // The full-state provider (new engine) reads the complete before-state incl. the typed AC/DC,
-                // consistent with the after-state and the live UI. Old discovery has been retired: the provider covers
-                // every setting (completeness-proven, 0 unpaired), so the old paired?provider:discovery fallback is gone.
-                // A genuinely unpaired setting returns Success=false here, leaving beforeDisplay null - a cosmetic
-                // change-history gap that cannot arise for a real setting.
+                // The full-state provider reads the complete before-state incl. the typed AC/DC, consistent with
+                // the after-state and the live UI. A genuinely unpaired setting returns Success=false here, leaving
+                // beforeDisplay null - a cosmetic change-history gap that cannot arise for a real setting.
                 var states = await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false);
                 if (renderSetting != null && states.TryGetValue(settingId, out var state) && state.Success)
                 {
@@ -194,10 +185,9 @@ public class SettingApplicationService(
             using (processRestartManager.SuppressRestarts())
             {
                 operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-                // SettingDefinition retirement (Slice 3b): the recommended applier now returns catalog Settings,
-                // so the coalesced restart set is built from Settings. The primary Action's restart targets come
-                // from its catalog Setting (renderSetting = Find(settingId)); the 3a Setting-taking flush overload
-                // reads the unified ApplyBehavior.Restart, proven == the old def RestartProcess/RestartService.
+                // The recommended applier returns catalog Settings, so the coalesced restart set is built from
+                // Settings. The primary Action's restart targets come from its catalog Setting (renderSetting =
+                // Find(settingId)); the Setting-taking flush overload reads the unified ApplyBehavior.Restart.
                 if (renderSetting != null) toRestart.Add(renderSetting);
 
                 var recApplied = await recommendedSettingsApplier
@@ -211,9 +201,9 @@ public class SettingApplicationService(
             operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
         }
 
-        // Phase 6.6 Slice 2: paired settings run ALL their relationships (forward Requires/Enables/Controls, reverse
-        // parent-sync, reverse cascade-disable) through the new engine here, AFTER the main apply. A paired setting
-        // with no relationships makes this a harmless no-op.
+        // Paired settings run ALL their relationships (forward Requires/Enables/Controls, reverse parent-sync,
+        // reverse cascade-disable) here, AFTER the main apply. A paired setting with no relationships makes this
+        // a harmless no-op.
         if (!skipValuePrerequisites && paired)
         {
             var catalogSetting = SettingCatalog.All.First(s => s.Id == settingId);
@@ -225,13 +215,11 @@ public class SettingApplicationService(
         // have succeeded and listeners need to re-read actual system state.
         eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
 
-        // Phase 6.7 Slice 8b-2b (D1): re-home the Winhance-plan recommended-power cascade the PowerService special
-        // handler used to run in its tail. With the special-handler registration removed, power-plan apply now flows
-        // through the new engine (resolver -> PowerPlanActivateOp -> writer); after a SUCCESSFUL switch TO the Winhance
-        // plan, re-apply the recommended power settings for the feature - the same machinery the Action-recommended
-        // branch uses. ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot loop on power-plan.
-        // Skipped during a config import that supplies its own individual power values (the import is the source of
-        // truth), mirroring the old PowerService gate.
+        // After a SUCCESSFUL switch TO the Winhance plan (resolver -> PowerPlanActivateOp -> writer), re-apply
+        // the recommended power settings for the feature - the same machinery the Action-recommended branch
+        // uses. ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot loop on power-plan.
+        // Skipped during a config import that supplies its own individual power values (the import is the
+        // source of truth).
         if (settingId == SettingIds.PowerPlanSelection
             && operationResult.Success
             && IsWinhancePowerPlanValue(value)
@@ -256,7 +244,7 @@ public class SettingApplicationService(
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
-    /// <summary>Phase 6.7 Slice 8b-2b (D1): true when a power-plan apply value identifies the Winhance Power Plan.
+    /// <summary>True when a power-plan apply value identifies the Winhance Power Plan.
     /// The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary
     /// (ConfigurationApplicationBridgeService). Both forms route through the shared
     /// <see cref="PowerPlanCatalog.IsWinhancePowerPlan"/> check.</summary>
@@ -270,7 +258,7 @@ public class SettingApplicationService(
     };
 
     /// <summary>
-    /// Phase 6.6 Slice 2: the state label the catalog setting was just moved into, derived the same way
+    /// The state label the catalog setting was just moved into, derived the same way
     /// <see cref="ApplyRequestResolver"/> derives the apply label. Toggle/CheckBox -> "Enabled"/"Disabled";
     /// Selection -> the catalog state label at the applied option index; resetToDefault -> the WindowsDefault
     /// state's label. Returns null when the label cannot be derived (non-index selection value, or no
@@ -297,11 +285,11 @@ public class SettingApplicationService(
     }
 
     /// <summary>
-    /// Phase 6.6 Slice 2: runs a paired setting's relationships through the new <see cref="RelationshipResolver"/>
+    /// Runs a paired setting's relationships through the <see cref="RelationshipResolver"/>
     /// engine AFTER the main apply. Resolves forward (Requires/Enables + the target state's Controls), reverse
     /// parent-sync, and reverse cascade-disable, then applies each follow-on as a LEAF
     /// (SkipValuePrerequisites = true) so it triggers no further cascade. A shared visited set + self-skip
-    /// prevents loops. Current state is read once from the new detection engine and served synchronously to the
+    /// prevents loops. Current state is read once from the detection engine and served synchronously to the
     /// pure resolvers.
     /// </summary>
     private async Task ApplyCatalogRelationshipsAsync(Setting setting, string? targetLabel)
@@ -357,14 +345,14 @@ public class SettingApplicationService(
     }
 
     /// <summary>
-    /// Phase 6.6 Slice 2: maps a relationship <c>ApplyAction</c> (target id + desired state label) into an
+    /// Maps a relationship <c>ApplyAction</c> (target id + desired state label) into an
     /// <see cref="ApplySettingRequest"/>. The follow-on is always a LEAF (SkipValuePrerequisites = true) so it
-    /// performs no further cascade - matching the old auto-enable / preset-child behaviour. A two-state
+    /// performs no further cascade. A two-state
     /// Enabled/Disabled target maps the label to Enable; a selection maps the label to the option index (the
     /// state index, which equals the ComboBox option index by construction). Returns null (logged) when the
     /// target setting is missing or has no state with that label, so a bad relationship is skipped, never thrown.
     /// A reverse-cascade action passes <paramref name="isReset"/> = true, so the follow-on applies with
-    /// ResetToDefault = true (deleting a [1,null] target via its ResetSet, matching the old DependencyManager cascade).
+    /// ResetToDefault = true (deleting a [1,null] target via its ResetSet).
     /// </summary>
     private ApplySettingRequest? ToRequest(string targetId, string label, bool isReset)
     {
@@ -478,8 +466,8 @@ public class SettingApplicationService(
     {
         switch (setting.Control)
         {
-            // A power-plan setting rendered its dict/index shapes via the OLD InputType.Selection branch, so
-            // its catalog Control (PowerPlan) routes here alongside Selection.
+            // A power-plan setting's catalog Control (PowerPlan) routes here alongside Selection (same
+            // dict/index shapes).
             case ControlKind.Selection:
             case ControlKind.PowerPlan:
                 // UI / recommended path: a single selected option index.
@@ -547,7 +535,7 @@ public class SettingApplicationService(
     /// </summary>
     private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
-        // Read AC/DC from the new engine's typed fields (threaded onto the before-state at the provider read).
+        // Read AC/DC from the typed fields (threaded onto the before-state at the provider read).
         // These are SYSTEM PowerCfg values (an enum/code), not option indices.
         int? acInt = state.AcValue;
         int? dcInt = state.DcValue;

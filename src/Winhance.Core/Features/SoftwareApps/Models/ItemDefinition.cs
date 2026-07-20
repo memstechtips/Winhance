@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 
@@ -8,7 +7,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 public record ItemDefinition : BaseDefinition
 {
     // Immutable definition properties
-    public new InputType InputType { get; init; } = InputType.CheckBox;
     public string[]? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
     public string? MsStoreId { get; init; }

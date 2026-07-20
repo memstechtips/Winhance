@@ -11,8 +11,8 @@ namespace Winhance.Core.Tests.Catalog;
 /// Machine-INDEPENDENT model-conformance gate for the registry precedence audit. Each case runs a real
 /// <see cref="SettingCatalog"/> setting (by Id) through <see cref="CatalogDiscovery.DetectState"/> over a
 /// CONSTRUCTED set of readings (clean / recommended-applied / group-policy-present / mirror-split), asserting it
-/// resolves to the value Windows would show. Unlike the live old-vs-new harness (a divergence finder tied to one
-/// machine's current registry), this pins the effective-value model across the states a single machine never shows -
+/// resolves to the value Windows would show. This pins the effective-value model across the states a single
+/// machine never shows -
 /// especially the clean/default state, where an untagged absent mirror is a real bug. Where these intentionally
 /// differ from the old app's `.Any` detection, the old app is the bug (it reports enabled when any one target is in
 /// its enabled state, treating an absent mirror hive as "enabled"); the model reads the highest-precedence present
@@ -28,12 +28,8 @@ public class CatalogDetectionModelConformanceTests
     /// Of(v).OrAbsent() on the deciding key. Where they differ, THE OLD APP IS THE BUG -- their correctness is
     /// pinned by the facts in THIS class, over constructed readings, on any machine.
     ///
-    /// This list moved here at the SettingDefinition teardown. It used to live on
-    /// CatalogAuthoringEquivalenceTests (which excluded these ids from its authored-vs-converter structural gate)
-    /// and on ComboBoxResolverSettingEquivalenceTests (which bounded the divergence to exactly these ids) -- BOTH
-    /// are old-model oracles that die with the def. But the CONCEPT is still LIVE and is cited by SHIPPING code
-    /// (ComboBoxResolver's value-match fallback documents its by-design divergence by naming this list), so the
-    /// list needs a home that outlives the oracles rather than being deleted with them.</summary>
+    /// The CONCEPT is LIVE and is cited by SHIPPING code (ComboBoxResolver's value-match fallback documents its
+    /// by-design divergence by naming this list), so the list needs a durable home.</summary>
     public static readonly IReadOnlyList<string> PrecedenceCorrectedIds = new[]
     {
         "privacy-advertising-id", "privacy-diagnostics", "privacy-lock-screen-overlay",
@@ -245,16 +241,15 @@ public class CatalogDetectionModelConformanceTests
     }
 
     // ============================================================================================================
-    //  Apply-engine invariant guarding the new powercfg writer (Phase 6.4 Slice 2b)
+    //  Apply-engine invariant guarding the powercfg writer
     // ============================================================================================================
 
     /// <summary>ApplyPlanBuilder emits one PowerCfgSetOp per context (AC then DC) for EVERY powercfg target, and
-    /// WindowsStateWriter writes each unconditionally (battery-gating only the DC write). That reproduces the old
-    /// apply EXACTLY for PowerModeSupport.Separate (old ExecutePowerCfgSettings also writes AC always + DC if
-    /// battery). An ACOnly/DCOnly setting, however, would have the old apply SKIP the other context - so the new
-    /// engine would write a context the old apply never touched. Guard the assumption: if a future powercfg setting
-    /// is not Separate, this fails loud, signalling that ApplyPlanBuilder must learn to honour PowerCfgTarget.Mode
-    /// (skip DC for ACOnly, skip AC for DCOnly) before that setting can apply through the new engine.</summary>
+    /// WindowsStateWriter writes each unconditionally (battery-gating only the DC write). That is correct for
+    /// PowerModeSupport.Separate (both contexts are meant to be written). An ACOnly/DCOnly setting, however, would
+    /// need the other context SKIPPED - writing it would touch a context that setting does not use. Guard the
+    /// assumption: if a future powercfg setting is not Separate, this fails loud, signalling that ApplyPlanBuilder
+    /// must learn to honour PowerCfgTarget.Mode (skip DC for ACOnly, skip AC for DCOnly) before it can apply.</summary>
     [Fact]
     public void EveryPowerCfgTarget_IsSeparateMode()
     {

@@ -372,32 +372,6 @@ public class IsoService : IIsoService
         }
     }
 
-    public async Task<bool> CleanupWorkingDirectoryAsync(string workingDirectory)
-    {
-        try
-        {
-            if (!_fileSystemService.DirectoryExists(workingDirectory))
-            {
-                return true;
-            }
-
-            _logService.LogInformation($"Cleaning up working directory: {workingDirectory}");
-
-            await Task.Run(() =>
-            {
-                _fileSystemService.DeleteDirectory(workingDirectory, recursive: true);
-            }).ConfigureAwait(false);
-
-            _logService.LogInformation("Working directory cleaned up successfully");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error cleaning up working directory: {ex.Message}", ex);
-            return false;
-        }
-    }
-
     private void CopyDirectory(string sourceDir, string destDir, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

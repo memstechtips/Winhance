@@ -151,30 +151,6 @@ public class WindowsRegistryServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetBatchValues_ReturnsAllQueried()
-    {
-        // Arrange
-        var path = TestPath("BatchTest");
-        _service.SetValue(path, "A", 1, RegistryValueKind.DWord);
-        _service.SetValue(path, "B", "hello", RegistryValueKind.String);
-        _service.SetValue(path, "C", 99, RegistryValueKind.DWord);
-
-        var queries = new (string keyPath, string? valueName)[]
-        {
-            (path, "A"),
-            (path, "B"),
-            (path, "C"),
-        };
-
-        // Act
-        var results = _service.GetBatchValues(queries);
-
-        // Assert
-        results.Should().HaveCount(3);
-        results.Values.Should().AllSatisfy(v => v.Should().NotBeNull());
-    }
-
-    [Fact]
     public void ValueExists_AfterSet_ReturnsTrue()
     {
         // Arrange

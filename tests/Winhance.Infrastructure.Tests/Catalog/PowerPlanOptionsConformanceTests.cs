@@ -7,16 +7,9 @@ using Xunit;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>Machine-independent conformance for the power-plan dropdown built by
-/// <see cref="PowerPlanOptions.Build"/> -- the LIVE new-engine source of the power-plan options
-/// (SystemDetectionContext -> PowerPlanOptionSource -> the UI dropdown).
-///
-/// REPLACES PowerPlanOptionsEquivalenceTests, which proved Build() == the OLD
-/// PowerPlanComboBoxService.GetPowerPlanOptionsAsync. That service is deleted at the SettingDefinition
-/// teardown (it was DI-registered but never resolved -- a dead legacy path), and an oracle built ON the
-/// old thing cannot outlive it. The six scenarios below are carried over VERBATIM as inputs; only the
-/// expectation changed -- from "whatever the old service returned" to the explicit contract, which is the
-/// durable form. Without this file the dropdown's CONTENT would have zero coverage
-/// (SystemDetectionContextTests only asserts the context DELEGATES to Build).
+/// <see cref="PowerPlanOptions.Build"/> -- the LIVE source of the power-plan options
+/// (SystemDetectionContext -> PowerPlanOptionSource -> the UI dropdown). Without this file the dropdown's
+/// CONTENT would have zero coverage (SystemDetectionContextTests only asserts the context DELEGATES to Build).
 ///
 /// The pinned contract: every predefined plan is offered even when NOT installed (ExistsOnSystem=false,
 /// valued by its canonical GUID -- selecting it imports/creates the plan); an installed plan is matched by

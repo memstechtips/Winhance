@@ -27,9 +27,6 @@ internal static class TextScaleHelper
     /// <summary>True when the user has bumped text scale above 100%.</summary>
     public static bool IsScaled => _factor > 1.0 + 0.001;
 
-    /// <summary>Multiplies the given base dimension by the current text-scale factor.</summary>
-    public static double Scale(double baseValue) => baseValue * _factor;
-
     private static double ReadFactor()
     {
         try

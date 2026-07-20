@@ -26,10 +26,10 @@ public class PowerService(
 {
 
     /// <summary>
-    /// Phase 6.7 Slice 8c: power-plan apply now runs through the catalog engine (the funnel routes it via
+    /// Power-plan apply runs through the catalog engine (the funnel routes it via
     /// ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan), so PowerService is no
     /// longer registered as an apply handler. This <see cref="ISpecialSettingHandler"/> entry point is a dead stub
-    /// that always returns false; PowerService's live surface is now the corrupt-plan cleanup + the plan queries.
+    /// that always returns false; PowerService's live surface is the corrupt-plan cleanup + the plan queries.
     /// </summary>
     public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
@@ -37,10 +37,9 @@ public class PowerService(
     /// <summary>
     /// Detects and removes ghost/corrupt Winhance power plan entries that have the
     /// correct GUID but wrong name (e.g., "Unknown Power Plan"). These entries are
-    /// visible to PowerEnumerate but are not functional plans. Called by the new-engine
+    /// visible to PowerEnumerate but are not functional plans. Called by the
     /// detection (SystemDetectionContext.PrefetchAsync) before the power-plan dropdown is
-    /// populated, so a corrupt plan is never shown - the analog of the old discovery's
-    /// "clean up before ComboBox setup". Never throws.
+    /// populated, so a corrupt plan is never shown. Never throws.
     /// </summary>
     public async Task CleanupCorruptWinhancePlanAsync()
     {

@@ -6,8 +6,8 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Turns "apply state &lt;label&gt; of &lt;setting&gt;" into an ordered list of declarative write ops - the
-/// forward direction of target-by-state. Pure; no I/O. Registry/task/effects are handled here; powercfg
-/// apply is handled by the dedicated power work and throws here if encountered.
+/// forward direction of target-by-state. Pure; no I/O. Registry, scheduled-task, powercfg, and per-state
+/// effect targets are all handled here (a powercfg target emits a PowerCfgSetOp per AC/DC context).
 /// </summary>
 public static class ApplyPlanBuilder
 {
@@ -26,7 +26,7 @@ public static class ApplyPlanBuilder
         var ops = new List<ApplyOp>();
 
         // A setting that applies via a .reg import does NOT write its registry targets - those are detect-only;
-        // the import is the apply. Mirrors the old apply, which skips registry writes when RegContents is present.
+        // the import is the apply.
         bool appliesViaRegContent = setting.States.Any(s => s.Effects.OfType<RegContentEffect>().Any());
 
         foreach (var target in setting.Targets)
@@ -39,9 +39,9 @@ public static class ApplyPlanBuilder
                 case RegTarget reg:
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
-                    // Reset-to-default (Phase 6.4b 3A): a state's ResetSet overrides its Set per target for the
-                    // reset write (the 18 [1,null] Explorer targets detect "1-or-absent" but DELETE on reset); a
-                    // target absent from ResetSet falls back to its normal Set write.
+                    // Reset-to-default: a state's ResetSet overrides its Set per target for the reset write (the
+                    // 18 [1,null] Explorer targets detect "1-or-absent" but DELETE on reset); a target absent from
+                    // ResetSet falls back to its normal Set write.
                     StateValue sv;
                     if (reset && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
                         sv = resetSv;
@@ -53,8 +53,8 @@ public static class ApplyPlanBuilder
                     {
                         if (reg.PerNetworkInterface || reg.PerMonitor)
                         {
-                            // Expand-and-write-each: the old apply enumerates the parent key's sub-keys and applies
-                            // the same write to each. Enumeration is deferred to the writer; emit the per-sub-key intent.
+                            // Expand-and-write-each: enumerate the parent key's sub-keys and apply the same write to
+                            // each. Enumeration is deferred to the writer; emit the per-sub-key intent.
                             if (sv.DeleteOnWrite)
                                 ops.Add(new RegistryPerSubkeyDeleteOp(reg, path));
                             else if (sv.WritePayload is { } subPayload)
@@ -81,8 +81,7 @@ public static class ApplyPlanBuilder
                         else
                         {
                             // Plain value path. A lockable target (LockWhenValue set) is unlocked before the write
-                            // and re-locked after, but only when the written value is the protective LockWhenValue
-                            // (mirrors the old apply's unlock-before / lock-after-on-the-disabled-value ACL dance).
+                            // and re-locked after, but only when the written value is the protective LockWhenValue.
                             if (reg.LockWhenValue is not null)
                                 ops.Add(new RegistryUnlockKeyOp(reg, path));
                             if (sv.DeleteOnWrite)
@@ -129,10 +128,9 @@ public static class ApplyPlanBuilder
     /// <summary>Apply plan for a registry-selection CUSTOM state (config-import CustomStateValues: a "Custom" /
     /// no-option state re-applied as raw per-ValueName registry values). Synthesizes a transient state whose Set maps
     /// each RegTarget (whose ValueName is present in the dict) to a WRITE (Of) or a DELETE (Absent, for a null captured
-    /// value), then runs the normal per-target apply via <see cref="Build(Setting, SettingState, WinBuild?, bool)"/> -
-    /// mirroring the old executor's custom-state branch (per RegistrySetting: ApplySetting(rs, specificValue != null,
-    /// specificValue), skipping ValueNames absent from the dict). Only registry targets are written; the resolver gates
-    /// this to pure registry selections (no effects/tasks/powercfg), so the transient state carries no Effects.</summary>
+    /// value), then runs the normal per-target apply via <see cref="Build(Setting, SettingState, WinBuild?, bool)"/>.
+    /// Only registry targets are written; the resolver gates this to pure registry selections (no
+    /// effects/tasks/powercfg), so the transient state carries no Effects.</summary>
     public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues)
     {
         var set = new Dictionary<string, StateValue>();
@@ -171,7 +169,7 @@ public static class ApplyPlanBuilder
     }
 
     /// <summary>Apply plan for a numeric (slider) setting: one PowerCfgSetOp per context value, the display value
-    /// converted to system units (the inverse of the converter's system->display, matching the old apply).</summary>
+    /// converted to system units (the inverse of the converter's system->display).</summary>
     public static IReadOnlyList<ApplyOp> BuildPowerCfgNumeric(Setting setting, IReadOnlyList<ContextValue> values)
     {
         var ops = new List<ApplyOp>();
@@ -183,8 +181,7 @@ public static class ApplyPlanBuilder
     }
 
     /// <summary>Apply plan for a separate-AC/DC powercfg SELECTION: writes the AC option's value to the AC context and
-    /// the DC option's value to the DC context (asymmetric), mirroring the old PowerCfgApplier's
-    /// GetValueFromIndex(acIndex) -> AC / GetValueFromIndex(dcIndex) -> DC. Each option's value is that state's
+    /// the DC option's value to the DC context (asymmetric). Each option's value is that state's
     /// per-target Set payload - the same value Build(stateLabel) writes to BOTH contexts for the symmetric single-index
     /// path. An index whose state has no value for the target emits no op for that context (defensive; valid config/UI
     /// indices always resolve).</summary>

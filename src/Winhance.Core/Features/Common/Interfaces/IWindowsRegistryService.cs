@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -13,16 +12,8 @@ public interface IWindowsRegistryService
     bool KeyExists(string keyPath);
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
-    bool IsSettingApplied(RegistrySetting setting);
-    bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists);
 
-    /// <param name="useDefaultValue">When true, uses DisabledValue[1] (parent cascade value) instead of DisabledValue[0]. If no second element exists, falls back to normal behavior.</param>
-    bool ApplySetting(RegistrySetting setting, bool enable, object? specificValue = null, bool useDefaultValue = false);
-
-    Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries);
-
-    // --- Apply primitives (exposed for the new catalog IStateWriter; the old ApplySetting calls the same methods,
-    //     so its byte-for-byte behaviour is unchanged). Extract-refactor: see WindowsStateWriter.
+    // --- Apply primitives, exposed for the catalog IStateWriter (see WindowsStateWriter).
 
     /// <summary>Creates the registry key (and parents) if it does not already exist; true if it exists afterwards.</summary>
     bool CreateKey(string keyPath);

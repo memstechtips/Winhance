@@ -232,43 +232,6 @@ public class ConfigurationServiceTests
     }
 
     // -------------------------------------------------------
-    // ImportRecommendedConfigurationAsync
-    // -------------------------------------------------------
-
-    [Fact]
-    public async Task ImportRecommendedConfigurationAsync_LoadsAndEntersReviewMode()
-    {
-        var config = new UnifiedConfigurationFile();
-
-        _mockConfigLoadService
-            .Setup(l => l.LoadRecommendedConfigurationAsync())
-            .ReturnsAsync(config);
-
-        var service = CreateService();
-        await service.ImportRecommendedConfigurationAsync();
-
-        _mockConfigLoadService.Verify(l => l.LoadRecommendedConfigurationAsync(), Times.Once);
-        _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(config),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task ImportRecommendedConfigurationAsync_WhenConfigIsNull_DoesNotEnterReviewMode()
-    {
-        _mockConfigLoadService
-            .Setup(l => l.LoadRecommendedConfigurationAsync())
-            .ReturnsAsync((UnifiedConfigurationFile?)null);
-
-        var service = CreateService();
-        await service.ImportRecommendedConfigurationAsync();
-
-        _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<UnifiedConfigurationFile>()),
-            Times.Never);
-    }
-
-    // -------------------------------------------------------
     // CreateUserBackupConfigAsync
     // -------------------------------------------------------
 

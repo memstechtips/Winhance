@@ -53,8 +53,7 @@ public class ThemeWallpaperApplierTests
     [Fact]
     public async Task TryApply_DarkMode_WritesZeroToBothThemeKeys()
     {
-        // The handler now ignores the passed def's RegistrySettings and applies the catalog
-        // theme-mode-windows "Dark Mode" state through the new engine (Phase 6.4b): both
+        // The handler applies the catalog theme-mode-windows "Dark Mode" state: both
         // AppsUseLightTheme + SystemUsesLightTheme are written 0 via the state writer.
 
         await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1);  // 1 = Dark

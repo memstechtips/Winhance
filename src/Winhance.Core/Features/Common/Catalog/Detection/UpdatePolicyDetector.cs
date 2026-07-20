@@ -25,12 +25,6 @@ public sealed class UpdatePolicyDetector : IStateDetector
         _disabledLabel = disabledLabel;
     }
 
-    // Exposed so the retired SettingStructuralComparer could verify the authored labels match the converter's (authored == Convert).
-    public string DefaultLabel => _defaultLabel;
-    public string DeferLabel => _deferLabel;
-    public string PausedLabel => _pausedLabel;
-    public string DisabledLabel => _disabledLabel;
-
     public string? Detect(Setting setting, IDetectionContext context)
     {
         // Precedence mirrors UpdateService.GetCurrentUpdatePolicyIndexAsync exactly (index 3 -> 2 -> 1 -> 0).

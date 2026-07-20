@@ -17,52 +17,6 @@ public class InitializationServiceTests
     }
 
     [Fact]
-    public void IsGloballyInitializing_Initially_ReturnsFalse()
-    {
-        _service.IsGloballyInitializing.Should().BeFalse();
-    }
-
-    [Fact]
-    public void StartFeatureInitialization_SetsIsGloballyInitializing()
-    {
-        _service.StartFeatureInitialization("Feature1");
-
-        _service.IsGloballyInitializing.Should().BeTrue();
-    }
-
-    [Fact]
-    public void CompleteFeatureInitialization_SingleFeature_ClearsIsGloballyInitializing()
-    {
-        _service.StartFeatureInitialization("Feature1");
-        _service.CompleteFeatureInitialization("Feature1");
-
-        _service.IsGloballyInitializing.Should().BeFalse();
-    }
-
-    [Fact]
-    public void MultipleFeatures_OnlyCompletesWhenAllDone()
-    {
-        _service.StartFeatureInitialization("Feature1");
-        _service.StartFeatureInitialization("Feature2");
-
-        _service.CompleteFeatureInitialization("Feature1");
-        _service.IsGloballyInitializing.Should().BeTrue();
-
-        _service.CompleteFeatureInitialization("Feature2");
-        _service.IsGloballyInitializing.Should().BeFalse();
-    }
-
-    [Fact]
-    public void StartFeatureInitialization_DuplicateAdd_StillWorksCorrectly()
-    {
-        _service.StartFeatureInitialization("Feature1");
-        _service.StartFeatureInitialization("Feature1"); // HashSet ignores duplicate
-
-        _service.CompleteFeatureInitialization("Feature1");
-        _service.IsGloballyInitializing.Should().BeFalse();
-    }
-
-    [Fact]
     public void CompleteFeatureInitialization_NonExistentFeature_DoesNotThrow()
     {
         var action = () => _service.CompleteFeatureInitialization("NonExistent");

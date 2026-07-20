@@ -15,9 +15,8 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 
 /// <summary>
 /// Immutable snapshot of a setting's current live state, passed by the view-model when it asks the
-/// technical-details panel to rebuild. Phase 6.7 Slice 9: the panel is fed from the new <see cref="Setting"/>
-/// model + this snapshot (the VM's already-resolved current state) instead of the old SettingTooltipData /
-/// live registry reads. No live reads happen here.
+/// technical-details panel to rebuild. The panel is fed from the <see cref="Setting"/> model + this
+/// snapshot (the VM's already-resolved current state). No live reads happen here.
 /// </summary>
 internal sealed record TechnicalDetailsSnapshot(
     InputType InputType,
@@ -33,11 +32,10 @@ internal sealed record TechnicalDetailsSnapshot(
     IReadOnlyList<ComboBoxDisplayOption> Options);
 
 /// <summary>
-/// Builds the technical-details panel ("docs inside the app") from the new <see cref="Setting"/> model:
+/// Builds the technical-details panel ("docs inside the app") from the <see cref="Setting"/> model:
 /// an option->value table (which choice writes which value, with role + current markers), the registry
 /// target locations, the power (AC/DC, display units) section, scheduled tasks, and per-state script /
-/// reg-content effects. Driven directly by the view-model via <see cref="Update"/> (Phase 6.7 Slice 9 -
-/// replaces the old TooltipUpdatedEvent subscription). Owns the regedit-launch command.
+/// reg-content effects. Driven directly by the view-model via <see cref="Update"/>. Owns the regedit-launch command.
 /// </summary>
 internal sealed class TechnicalDetailsManager : IDisposable
 {
@@ -71,7 +69,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
         // eventBus is no longer used: the panel is driven directly by the view-model via Update(), not by a
-        // TooltipUpdatedEvent subscription (Phase 6.7 Slice 9). The param stays to avoid a ctor-call change.
+        // TooltipUpdatedEvent subscription. The param stays to avoid a ctor-call change.
         _ = eventBus;
     }
 
@@ -88,7 +86,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         {
             if (setting is null)
             {
-                // Unpaired setting (no catalog peer yet): nothing to document from the new model.
+                // Unpaired setting: nothing to document.
                 _setSections(Array.Empty<TechnicalDetailSection>());
                 return;
             }
@@ -267,7 +265,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     // --- Power (powercfg) section: GUIDs + units + Current/Recommended/Default per AC/DC, in DISPLAY units
     // for a numeric (slider) power setting, or the raw option value for a selection power setting.
-    // NOTE: the new PowerCfgTarget carries no friendly GUID aliases (the old PowerCfgSetting did) -> the
+    // NOTE: PowerCfgTarget carries no friendly GUID aliases -> the
     // alias columns are left blank; the raw subgroup/setting GUIDs are still shown.
     private List<TechnicalDetailRow> BuildPowerRows(Setting setting, TechnicalDetailsSnapshot snap)
     {
@@ -678,6 +676,6 @@ internal sealed class TechnicalDetailsManager : IDisposable
 
     public void Dispose()
     {
-        // No subscriptions to release (the panel is VM-driven as of Phase 6.7 Slice 9).
+        // No subscriptions to release (the panel is VM-driven).
     }
 }

@@ -18,12 +18,9 @@ namespace Winhance.UI.Tests.Services;
 /// Covers the SYSTEM-vs-user pass routing and placeholder substitution in
 /// AutounattendScriptBuilder. Directly exercises BuildWinhancementsScriptAsync and inspects
 /// the generated PowerShell to assert which block (SYSTEM or user) each payload lands in.
-/// Slice 7e-6: the pipeline's dict carries catalog Settings, so every fixture passes the REAL catalog
-/// Setting itself to the Setting-dict overload (the def-dict overload survives only as the 7f-transitional
-/// pairing shim, pinned by AutounattendScriptBuilderTests). The script emit is catalog-ALWAYS since 7e-5
-/// (a Selection with no SelectedIndex reads the un-baked catalog Setting.CustomStateScripts); each asserted
-/// script string below is the CATALOG-sourced bytes, byte-pinned to the old defs by
-/// CustomStateScriptsConformanceTests.
+/// The fixtures pass the REAL catalog Setting to the Setting-dict overload. A Selection with no
+/// SelectedIndex reads the un-baked catalog Setting.CustomStateScripts; each asserted script string
+/// below is the CATALOG-sourced bytes.
 /// </summary>
 public class AutounattendScriptBuilderRoutingTests
 {
@@ -133,12 +130,10 @@ public class AutounattendScriptBuilderRoutingTests
     [Fact]
     public async Task PowerShellScript_DefaultsToSystemRunContext()
     {
-        // Slice 7e-5: a Selection with no SelectedIndex + IsSelected routes to the catalog CUSTOM-state
-        // path (AppendCustomStateScriptsFromCatalog), which reads gaming-touch-keyboard-service's un-baked
-        // Setting.CustomStateScripts - authored RunContext.System because the production def OMITTED
-        // RunContext (PowerShellScriptSetting defaulted to System; the converter carried that default into
-        // the catalog). The asserted text below is the catalog script body, byte-pinned to the old def's
-        // raw EnabledScript by CustomStateScriptsConformanceTests.
+        // A Selection with no SelectedIndex + IsSelected routes to the catalog CUSTOM-state path
+        // (AppendCustomStateScriptsFromCatalog), which reads gaming-touch-keyboard-service's un-baked
+        // Setting.CustomStateScripts - authored RunContext.System. The asserted text below is the catalog
+        // script body.
         var setting = SettingCatalog.Find("gaming-touch-keyboard-service")!;
         var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Selection, IsSelected = true };
         var builder = CreateBuilder(out _);
@@ -158,8 +153,7 @@ public class AutounattendScriptBuilderRoutingTests
 
     // Both DNS script shapes read the CATALOG - a Selection WITH an index reads the option state's
     // converter-BAKED ScriptEffects, and one with NO index (a "Custom" DNS) reads the un-baked
-    // Setting.CustomStateScripts; the asserted strings in the facts below are catalog-sourced bytes
-    // (byte-pinned to the old def scripts by CustomStateScriptsConformanceTests).
+    // Setting.CustomStateScripts; the asserted strings in the facts below are catalog-sourced bytes.
     private static Setting DnsServerSetting() => SettingCatalog.Find("gaming-dns-server")!;
 
     [Fact]
@@ -186,7 +180,7 @@ public class AutounattendScriptBuilderRoutingTests
     public async Task DnsCustomState_SubstitutesFromCustomStateValues_AndDoesNotEmitReset()
     {
         // A "Custom" DNS entry matches no preset option, so SelectedIndex stays null and the script pass
-        // takes the catalog CUSTOM-state path (Slice 7e-5, AppendCustomStateScriptsFromCatalog): the
+        // takes the catalog CUSTOM-state path (AppendCustomStateScriptsFromCatalog): the
         // un-baked catalog CustomStateScripts are emitted with CustomStateValues substituted. The second
         // script's {{dohtemplate}} placeholder intentionally survives substitution (its runtime guard
         // treats a literal {{...}} as absent), so only {{primary}} is asserted substituted - no blanket
@@ -252,9 +246,8 @@ public class AutounattendScriptBuilderRoutingTests
     {
         // The REAL catalog toggle explorer-take-ownership, whose Enabled state carries the production HKCR
         // .reg content (comment lines plus [HKEY_CLASSES_ROOT\...] headers). Header-only hive detection must
-        // route the import into the SYSTEM pass and keep it out of the user pass. (The old synthetic
-        // "comment mentions HKCU" foil cannot be constructed against the static catalog; the header-only
-        // detector lives at RegistryCommandEmitter.s_hkcuHeaderRegex.)
+        // route the import into the SYSTEM pass and keep it out of the user pass. (The header-only detector
+        // lives at RegistryCommandEmitter.s_hkcuHeaderRegex.)
         var setting = SettingCatalog.Find("explorer-take-ownership")!;
         var item = new ConfigurationItem { Id = setting.Id, InputType = InputType.Toggle, IsSelected = true };
         var builder = CreateBuilder(out _);

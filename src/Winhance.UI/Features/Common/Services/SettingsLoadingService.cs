@@ -67,13 +67,12 @@ public class SettingsLoadingService : ISettingsLoadingService
                 Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            // Slice 6: the new-engine full-state provider IS the old-discovery+overlay result, so it replaces both
-            // and retires the observe-only shadow. Custom-state now comes from the typed fields
-            // (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
+            // The full-state provider returns each setting's resolved state. Custom-state comes from the typed
+            // fields (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
             var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
 
-            // L4b: the compatibility message is derived from the catalog Availability against the live build
-            // (AvailabilityCompatibility reproduces the retired def decoration); read the build once per load.
+            // The compatibility message is derived from the catalog Availability against the live build;
+            // read the build once per load.
             var liveBuild = LiveBuild();
 
             // Create ViewModels for all settings (skip any whose state the detection provider could not resolve -- Success == false)
@@ -90,10 +89,9 @@ public class SettingsLoadingService : ISettingsLoadingService
                 var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
                 // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
-                // G1b: build it here from the new engine's DynamicOptions (the same runtime options the live GUID-valued
-                // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads -
-                // retiring the old IComboBoxSetupService precompute. The factory's builder block localizes the
-                // PowerPlan_ DisplayText, so this service passes the raw loc key.
+                // Build it here from the DynamicOptions (the same runtime options the live GUID-valued
+                // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
+                // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
                 ComboBoxSetupResult? builderComboBoxOptions =
                     (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.OptionSource is not null)
                         ? BuildBuilderPowerPlanOptions(currentState)
@@ -122,7 +120,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     {
         var settingsList = settings.ToList();
 
-        // The VM no longer carries its setting model (Phase 6.7 Slice 11). Re-source the catalog Settings for this
+        // The VM no longer carries its setting model. Re-source the catalog Settings for this
         // refresh from the catalog registry, keyed by each VM's owning feature module and filtered to the VMs
         // on screen - the same registry + scope as the initial load, so the settings are identical.
         var wantedIds = new HashSet<string>(settingsList.Select(s => s.SettingId));
@@ -139,16 +137,16 @@ public class SettingsLoadingService : ISettingsLoadingService
         if (catalogSettings.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
-        // Slice 6: read from the new-engine full-state provider (drop-in for old discovery + overlay).
+        // Read from the full-state provider.
         var batchStates = await _settingStateProvider.GetStatesAsync(catalogSettings);
 
         return batchStates;
     }
 
-    // Slice B2/L4b: the compatibility message arrives raw from the catalog derivation
+    // The compatibility message arrives raw from the catalog derivation
     // (AvailabilityCompatibility.DeriveCompatibilityMessage; format: "Compatibility_Key|Arg1|Arg2..."). Localize it
-    // here before passing it to the factory - lifted verbatim from the retired LocalizeSetting. A non-Compatibility_
-    // message (incl. null) is returned unchanged, exactly as the old service left it.
+    // here before passing it to the factory. A non-Compatibility_
+    // message (incl. null) is returned unchanged.
     private string? LocalizeCompatibilityMessage(string? message)
     {
         if (message is { } compatKey && compatKey.StartsWith("Compatibility_"))
@@ -179,16 +177,14 @@ public class SettingsLoadingService : ISettingsLoadingService
         new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
 
     /// <summary>
-    /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from the
-    /// new engine's runtime options, retiring the old IComboBoxSetupService precompute. Faithful to
-    /// PowerPlanComboBoxService.SetupPowerPlanComboBoxAsync: PowerPlanOptions.Build (which produces these DynamicOptions)
-    /// reproduces the old GetPowerPlanOptionsAsync option set + OrderBy(label) sort, so each option's list index equals
-    /// the old option Index. The rich PowerPlanComboBoxOption Tag mirrors
+    /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from
+    /// the runtime options. PowerPlanOptions.Build (which produces these DynamicOptions) sorts by OrderBy(label),
+    /// so each option's list index is its BuilderEdit index. The rich PowerPlanComboBoxOption Tag mirrors
     /// SettingItemViewModel.TryApplyDynamicPowerPlanOptions (the live dropdown the bespoke PowerPlanComboBox control
     /// already reads): ExistsOnSystem/IsActive drive the control visuals, SystemPlan.Guid is the delete target, and the
     /// option's DisplayName (the raw PowerPlan_ loc key) is re-localized by the delete dialog; SystemPlan.Name is not
     /// consumed. DisplayText stays the raw loc key - the factory's builder block localizes it. Returns an empty (but
-    /// non-null) result when there are no runtime options, matching the old service's empty-result contract.
+    /// non-null) result when there are no runtime options.
     /// </summary>
     private static ComboBoxSetupResult BuildBuilderPowerPlanOptions(SettingStateResult state)
     {
@@ -203,8 +199,8 @@ public class SettingsLoadingService : ISettingsLoadingService
             var opt = dynamicOptions[i];
             var isActive = state.DynamicSelection != null
                 && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
-            // FIRST match wins, matching the old GetCurrentPowerPlanIndexAsync's `return i` (each option's Tag still
-            // carries its own per-option isActive below).
+            // FIRST match wins (each option's Tag still carries its own per-option isActive
+            // below).
             if (isActive && !foundActive)
             {
                 activeIndex = i;

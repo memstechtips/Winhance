@@ -2,15 +2,12 @@ using System.Collections.Generic;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>The machine capabilities a catalog membership filter needs - the catalog-model equivalent of the
-/// probes the old HardwareCompatibilityFilter read from IHardwareDetectionService (battery / hybrid-sleep).</summary>
+/// <summary>The machine capabilities a catalog membership filter needs (battery / hybrid-sleep).</summary>
 public readonly record struct HardwareCaps(bool HasBattery, bool SupportsHybridSleep);
 
-/// <summary>Pure catalog-membership gating: reproduces the old WindowsCompatibilityFilter (OS build) +
-/// HardwareCompatibilityFilter (hardware caps) decisions from <see cref="Setting.Availability"/>, so the settings
-/// registry can be sourced from the catalog instead of the old SettingDefinition providers. Does NOT include the
-/// powercfg-existence filter (machine-dependent + mutating - deferred to its own slice); callers that need existence
-/// still ran the old PowerSettingsValidationService.</summary>
+/// <summary>Pure catalog-membership gating: computes the OS-build + hardware-caps decisions from
+/// <see cref="Setting.Availability"/>. Does NOT include the powercfg-existence filter (machine-dependent +
+/// mutating), which is applied separately.</summary>
 public static class CatalogMembershipFilter
 {
     /// <summary>Checks the setting's Availability.Hardware requirements against the machine caps. Only the two
@@ -36,8 +33,7 @@ public static class CatalogMembershipFilter
 
     /// <summary>Membership when the OS-build gate is RELAXED - the "show settings for other Windows
     /// versions" scope. The hardware gate still applies (and existence, applied separately by the registry);
-    /// only the build range is ignored. The catalog-model equivalent of the old registry's OS-version-bypassed
-    /// set (FilterSettingsByWindowsVersion applyFilter:false decorates but does not remove).</summary>
+    /// only the build range is ignored.</summary>
     public static bool IsAvailableIgnoringOsBuild(Setting s, HardwareCaps caps) =>
         PassesHardware(s.Availability, caps);
 }

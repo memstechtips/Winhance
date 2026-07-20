@@ -307,19 +307,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Sets the loading state for a specific navigation button.
-    /// </summary>
-    /// <param name="tag">The navigation tag of the button.</param>
-    /// <param name="isLoading">Whether the button should show loading state.</param>
-    public void SetButtonLoading(string tag, bool isLoading)
-    {
-        if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
-        {
-            button.IsLoading = isLoading;
-        }
-    }
-
-    /// <summary>
     /// Sets the locked state for a specific navigation button.
     /// When locked, the button is dimmed, shows a lock icon, and blocks clicks.
     /// </summary>

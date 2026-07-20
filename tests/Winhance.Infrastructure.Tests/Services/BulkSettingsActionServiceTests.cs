@@ -35,7 +35,7 @@ public class BulkSettingsActionServiceTests
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed. Slice 3b: the reset loop builds
+        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed. The reset loop builds
         // its restart set from catalog Settings, so the flush overload takes IEnumerable<Setting>.
         _mockProcessRestartManager
             .Setup(p => p.SuppressRestarts())
@@ -44,7 +44,7 @@ public class BulkSettingsActionServiceTests
             .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()))
             .Returns(Task.CompletedTask);
 
-        // Default: ApplyRecommendedToSettingsAsync (now catalog-Setting typed) returns empty list
+        // Default: ApplyRecommendedToSettingsAsync returns empty list
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
                 It.IsAny<IReadOnlyList<Setting>>(),
@@ -71,9 +71,8 @@ public class BulkSettingsActionServiceTests
             _mockLocalizationService.Object);
     }
 
-    // Slice 3b: the reset loop + affected-count + ResolveSettingsAsync all read catalog Settings DIRECTLY (the
-    // registry now returns Setting, the SettingCatalog.Find re-pairing is gone). Tests construct synthetic
-    // Settings with exactly the roles they exercise - no real catalog id is needed.
+    // The reset loop + affected-count + ResolveSettingsAsync all read catalog Settings DIRECTLY. Tests
+    // construct synthetic Settings with exactly the roles they exercise - no real catalog id is needed.
 
     private static Display Disp(string id) => new() { Name = $"Setting {id}", Description = $"Description for {id}" };
 
@@ -163,7 +162,7 @@ public class BulkSettingsActionServiceTests
 
     // ---------------------------------------------------------------
     // Test 2: OS-incompatible settings are excluded before delegating.
-    //         Slice 3b: the OS gate moved to the catalog registry, which
+    //         The OS gate lives in the catalog registry, which
     //         returns null for an OS-incompatible id (GetById), so
     //         ResolveSettingsAsync's null-skip drops it.
     // ---------------------------------------------------------------
@@ -392,12 +391,9 @@ public class BulkSettingsActionServiceTests
 
     // ---------------------------------------------------------------
     // Test 9: bulk reset must NOT call ApplySettingAsync for a PowerPlan setting. power-plan-selection's
-    //         DERIVED Control is PowerPlan (OptionSource != null), not the old InputType.Selection. OLD: it
-    //         matched the Selection branch, found no static default, and fell through WITHOUT applying (but
-    //         still counted via the post-chain applied++). The un-gated reset else branch would instead apply
-    //         it UNCONDITIONALLY (a null-plan Failed reset + spurious event). The Slider gate restores the old
-    //         no-apply; the fall-through applied++ keeps the count identical. The Times.Never is the guard -
-    //         it fails RED against the un-gated else (which called ApplySettingAsync).
+    //         DERIVED Control is PowerPlan (OptionSource != null): it finds no static default and falls
+    //         through WITHOUT applying, but is still counted via the post-chain applied++. Applying it would
+    //         mean a null-plan Failed reset + a spurious event, so the Times.Never below is the regression guard.
     // ---------------------------------------------------------------
 
     [Fact]
@@ -413,16 +409,15 @@ public class BulkSettingsActionServiceTests
 
         var applied = await _service.ResetToDefaultsAsync(new[] { "power-plan-selection" });
 
-        // Counted by the post-chain applied++ fall-through, same as the old Selection-branch skip.
+        // Counted by the post-chain applied++ fall-through.
         applied.Should().Be(1);
-        // The regression guard: no spurious apply (the un-gated else would have called this once).
+        // The regression guard: no spurious apply.
         _mockAppService.Verify(
             s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
     }
 
-    // A Slider (NumericRange) still reaches the reset else branch - guards that the Slider gate did not
-    // exclude the real NumericRange population. A no-powercfg Slider resets with a null value, exactly as
-    // the old NumericRange else branch did (unconditional apply).
+    // A Slider (NumericRange) still reaches the reset else branch and resets with a null value
+    // (unconditional apply) - guards that the PowerPlan gate above did not also exclude real Sliders.
     [Fact]
     public async Task ResetToDefaultsAsync_SliderSetting_ReachesElseBranch()
     {

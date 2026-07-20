@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Tests the retired-id -> canonical-id alias used on config import (Phase 6.5). The 6 "-win10" This PC
+/// <summary>Tests the retired-id -> canonical-id alias used on config import. The 6 "-win10" This PC
 /// folder ids must map to their canonical catalog peers; everything else passes through unchanged. Also asserts the
 /// invariant that every alias TARGET exists in the live catalog and every SOURCE does not (i.e. is genuinely
 /// retired/merged) so the map can't silently rot.</summary>

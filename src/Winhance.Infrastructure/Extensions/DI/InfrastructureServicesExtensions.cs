@@ -56,9 +56,8 @@ public static class InfrastructureServicesExtensions
         // Power Scheme Operations (P/Invoke wrapper for plan-level power operations)
         services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
 
-        // Power-plan activation orchestration (Phase 6.7 Slice 8b-1: extracted from PowerService; six leaf
-        // deps, no PowerService/IStateWriter reference so it is DI-cycle-safe). Consumed by PowerService's
-        // apply shells and by WindowsStateWriter.ActivatePowerPlan.
+        // Power-plan activation orchestration (six leaf deps, no PowerService/IStateWriter reference so it
+        // is DI-cycle-safe). Consumed by WindowsStateWriter.ActivatePowerPlan.
         services.AddSingleton<IPowerPlanActivationService, PowerPlanActivationService>();
 
         // Explorer Window Manager (open/focus folders in Explorer)
@@ -78,8 +77,8 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
 
         // Settings Application
-        // SettingApplicationService depends on the ISpecialSettingHandlerRegistry dispatcher registry, re-registered
-        // by the UI composition root with the real handler set. Same TryAdd-default rationale as above.
+        // SettingApplicationService depends on the ISpecialSettingHandlerRegistry dispatcher registry; TryAdd
+        // registers an empty default here so the UI composition root's real handler-set registration wins.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
@@ -88,22 +87,19 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
-        // Catalog detection context (new unified engine): a factory, because each detection batch needs a fresh
+        // Catalog detection context: a factory, because each detection batch needs a fresh
         // context to hold its own pre-fetched async reads.
         services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
         // Catalog detection batch driver.
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
-        // Phase 6.9 full-state provider (new-engine drop-in for GetSettingStatesAsync + overlay); Slice 6 repoints
-        // the old-discovery callers onto it one at a time.
+        // Full-state provider for GetSettingStatesAsync + overlay.
         services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
-        // Catalog apply: the live IStateWriter that executes apply plans against the real system (Phase 6.4),
-        // plus the OTS-aware .reg-import effect runner it delegates to.
+        // Catalog apply: the live IStateWriter that executes apply plans against the real system, plus the
+        // OTS-aware .reg-import effect runner it delegates to.
         services.AddSingleton<IRegImportService, RegImportService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
 
-        // ComboBox Services (IComboBoxSetupService/ComboBoxSetupService retired - Phase 6.8 teardown; every consumer
-        // now builds the combobox options directly off the new catalog model. Resolver/PowerPlan stay - still consumed
-        // by the teardown-scope old apply layer.)
+        // ComboBox Services: consumers build the combobox options directly off the catalog model.
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
 
         // Settings Compatibility

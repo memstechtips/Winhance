@@ -234,7 +234,7 @@ public class PowerSettingsScriptSectionTests
             }
         };
 
-        // Slice 7e-6: the dict carries the REAL catalog setting power-display-timeout
+        // The dict carries the REAL catalog setting power-display-timeout
         // (PowerOptimizationsCatalog.cs: subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting
         // 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e, no hardware gate). The emitted GUIDs and description come
         // from the catalog Setting, the AC/DC values from the query mock.

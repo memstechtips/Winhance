@@ -77,10 +77,10 @@ public static class PowerOptions
     public static readonly (string Label, int Value)[] WirelessPower =
         new (string Label, int Value)[] { ("Template_WirelessPower_Option_0", 0), ("Template_WirelessPower_Option_1", 1), ("Template_WirelessPower_Option_2", 2), ("Template_WirelessPower_Option_3", 3) };
 
-    /// <summary>Builds the per-option selection states for a powercfg selection, mirroring
-    /// the retired SettingDefinitionConverter.ConvertPowerCfg: one state per option carrying the option's
-    /// PowerCfgValue under the "Power" key, with context-scoped roles (Recommended/WindowsDefault per
-    /// AC and DC) derived from the per-mode recommended/default VALUES, in a fixed role order.</summary>
+    /// <summary>Builds the per-option selection states for a powercfg selection: one state per option
+    /// carrying the option's PowerCfgValue under the "Power" key, with context-scoped roles
+    /// (Recommended/WindowsDefault per AC and DC) derived from the per-mode recommended/default VALUES,
+    /// in a fixed role order.</summary>
     public static IReadOnlyList<SettingState> SelectionStates(
         (string Label, int Value)[] options, int? recAC, int? recDC, int? defAC, int? defDC,
         IReadOnlyList<Link>? links = null)
@@ -99,9 +99,8 @@ public static class PowerOptions
                 Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(value) },
                 Roles = roles,
             };
-            // Forward Links (Phase 6.6) ride on every non-WindowsDefault state, matching
-            // the retired SettingDefinitionConverter.WithLinks (HasRole defaults to PowerContext.Always, so a
-            // context-scoped WindowsDefault role does not suppress the link).
+            // Forward Links ride on every non-WindowsDefault state (HasRole defaults to PowerContext.Always,
+            // so a context-scoped WindowsDefault role does not suppress the link).
             if (links is { Count: > 0 } && !state.HasRole(RoleKind.WindowsDefault))
                 state = state with { Links = links };
             states.Add(state);

@@ -123,7 +123,7 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithOptimizeFeatures_ContainsRegistryCommands()
     {
-        // Arrange - an Optimize toggle. Slice 7e-6: the pipeline runs on the catalog Setting dict, so the
+        // Arrange - an Optimize toggle. The pipeline runs on the catalog Setting dict, so the
         // fixture passes the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp)
         // directly; the emit reads the CATALOG RegTarget and state values.
         var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
@@ -153,7 +153,7 @@ public class ScriptBuilderTests
     {
         // Arrange - the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
         // subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e,
-        // no hardware gate) rides the Setting dict directly (Slice 7e-6); the emit reads the catalog
+        // no hardware gate) rides the Setting dict directly; the emit reads the catalog
         // PowerCfgTarget GUIDs and takes the AC/DC values from the bulk query mock.
         var powerItem = TestSettingFactory.CreateSelectionItem("power-display-timeout", "Turn off the display",
             selectedIndex: 1,

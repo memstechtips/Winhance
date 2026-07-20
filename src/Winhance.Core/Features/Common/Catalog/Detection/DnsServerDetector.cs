@@ -16,9 +16,6 @@ public sealed class DnsServerDetector : IStateDetector
         _primaryIpToLabel = primaryIpToLabel;
     }
 
-    public string AutomaticLabel => _automaticLabel;
-    public IReadOnlyDictionary<string, string> PrimaryIpToLabel => _primaryIpToLabel;
-
     public string? Detect(Setting setting, IDetectionContext context)
     {
         var primary = context.PrimaryDnsV4OfActiveAdapter();

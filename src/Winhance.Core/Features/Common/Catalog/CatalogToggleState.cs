@@ -3,14 +3,11 @@ using System.Linq;
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
-/// Catalog-model replacement for the old <c>SettingDefinitionToggleState</c> recommended/default resolution of a
-/// TOGGLE setting, resolved for a live build. The converter assigned the catalog toggle states their
-/// Recommended / WindowsDefault roles FROM SettingDefinitionToggleState (SettingDefinitionConverter.RolesFor:
-/// the "Enabled" state carries the role when the old toggle bool is true, the "Disabled" state when it is false),
-/// so reading the role back off the catalog state is the exact inverse. WindowsDefault can be OS-divergent on a
-/// merged setting (the This PC folders default to shown on Windows 10, hidden on Windows 11), so the lookup is
-/// build-aware. A setting with no two-state Enabled/Disabled shape resolves to null - matching the old helper.
-/// Proven == the old helper over the whole paired population at migration by the now-retired RecommendedToggleStateConformanceTests.
+/// Resolves the recommended/default toggle state of a TOGGLE setting for a live build. The "Enabled" state
+/// carries the Recommended / WindowsDefault role when the toggle should be on, the "Disabled" state when it
+/// should be off, so reading the role back off the state gives the bool. WindowsDefault can be OS-divergent
+/// on a merged setting (the This PC folders default to shown on Windows 10, hidden on Windows 11), so the
+/// lookup is build-aware. A setting with no two-state Enabled/Disabled shape resolves to null.
 /// </summary>
 public static class CatalogToggleState
 {
