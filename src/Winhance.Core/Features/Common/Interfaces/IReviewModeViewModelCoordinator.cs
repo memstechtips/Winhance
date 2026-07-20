@@ -30,9 +30,6 @@ public interface IReviewModeViewModelCoordinator
     /// <summary>Gets IDs of currently selected external apps for preservation across review mode transitions.</summary>
     List<string> GetSelectedExternalAppIds();
 
-    /// <summary>Clears all external app selections.</summary>
-    void ClearExternalAppSelections();
-
     /// <summary>
     /// Reapplies review diffs to all existing loaded SettingItemViewModels.
     /// Called when re-entering review mode while singleton VMs still have settings loaded.

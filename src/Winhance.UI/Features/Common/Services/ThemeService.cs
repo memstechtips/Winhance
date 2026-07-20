@@ -146,30 +146,6 @@ public class ThemeService : IThemeService
         }
     }
 
-    private async Task<WinhanceTheme> LoadThemePreferenceAsync()
-    {
-        try
-        {
-            var themeString = await _userPreferences.GetPreferenceAsync<string>("Theme", string.Empty);
-
-            if (string.IsNullOrEmpty(themeString))
-            {
-                return WinhanceTheme.System; // Default to following Windows
-            }
-
-            if (Enum.TryParse<WinhanceTheme>(themeString, out var theme))
-            {
-                return theme;
-            }
-        }
-        catch
-        {
-            // Fall through to default
-        }
-
-        return WinhanceTheme.System;
-    }
-
     private bool IsWindowsDarkTheme()
     {
         if (_interactiveUserService.IsOtsElevation)

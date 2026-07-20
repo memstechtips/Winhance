@@ -67,12 +67,6 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
             .ToList();
     }
 
-    public void ClearExternalAppSelections()
-    {
-        foreach (var item in _externalAppsVM.Items)
-            item.IsSelected = false;
-    }
-
     public void ReapplyReviewDiffsToExistingSettings()
     {
         // Must run on UI thread because this modifies ObservableProperty values

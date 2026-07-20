@@ -271,29 +271,6 @@ public class ReviewModeViewModelCoordinatorTests
         result.Should().Contain("ext1");
     }
 
-    // --- ClearExternalAppSelections ---
-
-    [Fact]
-    public async Task ClearExternalAppSelections_ClearsAllSelections()
-    {
-        _externalAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(new[]
-            {
-                CreateTestItem("ext1"),
-                CreateTestItem("ext2")
-            });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["ext1"] = false, ["ext2"] = false });
-
-        var (sut, _, extVm, _) = CreateSutWithVms();
-        await extVm.LoadAppsAndCheckInstallationStatusAsync();
-        foreach (var item in extVm.Items) item.IsSelected = true;
-
-        sut.ClearExternalAppSelections();
-
-        extVm.Items.Should().OnlyContain(i => !i.IsSelected);
-    }
-
     // --- RemoveWindowsAppsAsync ---
 
     [Fact]

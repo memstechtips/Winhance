@@ -574,7 +574,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockConfigAppSelectionService.Verify(
             s => s.ClearWindowsAppsSelectionAsync(),
             Times.Never);
-        _mockVmCoordinator.Verify(v => v.ClearExternalAppSelections(), Times.Never);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
     }
 

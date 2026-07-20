@@ -137,47 +137,6 @@ public class SettingItemViewModelTests : IDisposable
     // ── Property Binding / Computed Properties ──
 
     [Fact]
-    public void IsToggleType_ReturnsTrueForToggleInputType()
-    {
-        var sut = CreateSut();
-
-        sut.IsToggleType.Should().BeTrue();
-        sut.IsSelectionType.Should().BeFalse();
-        sut.IsNumericType.Should().BeFalse();
-        sut.IsActionType.Should().BeFalse();
-        sut.IsCheckBoxType.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsSelectionType_ReturnsTrueForSelectionInputType()
-    {
-        var config = _defaultConfig with { InputType = InputType.Selection };
-        var sut = CreateSut(config);
-
-        sut.IsSelectionType.Should().BeTrue();
-        sut.IsToggleType.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsNumericType_ReturnsTrueForNumericRangeInputType()
-    {
-        var config = _defaultConfig with { InputType = InputType.NumericRange };
-        var sut = CreateSut(config);
-
-        sut.IsNumericType.Should().BeTrue();
-        sut.IsToggleType.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsActionType_ReturnsTrueForActionInputType()
-    {
-        var config = _defaultConfig with { InputType = InputType.Action };
-        var sut = CreateSut(config);
-
-        sut.IsActionType.Should().BeTrue();
-    }
-
-    [Fact]
     public void Action_WithRecommendedRegistryValue_ShowsNoStateBadges()
     {
         // Regression: a one-shot Action must not light up Recommended/Default/Custom state badges,
@@ -201,15 +160,6 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.HasBadgeData.Should().BeFalse();
         sut.BadgeRow.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void IsCheckBoxType_ReturnsTrueForCheckBoxInputType()
-    {
-        var config = _defaultConfig with { InputType = InputType.CheckBox };
-        var sut = CreateSut(config);
-
-        sut.IsCheckBoxType.Should().BeTrue();
     }
 
     [Theory]

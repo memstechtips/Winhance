@@ -925,11 +925,6 @@ public partial class SettingItemViewModel : BaseViewModel
     /// serialization to emit the custom value without re-reading the system. Null otherwise.
     /// </summary>
     public Dictionary<string, object>? CapturedCustomStateValues { get; set; }
-    public bool IsToggleType => InputType == InputType.Toggle;
-    public bool IsSelectionType => InputType == InputType.Selection;
-    public bool IsNumericType => InputType == InputType.NumericRange;
-    public bool IsActionType => InputType == InputType.Action;
-    public bool IsCheckBoxType => InputType == InputType.CheckBox;
     /// <summary>The UI parent this setting nests under: its UiParentId. Null = top-level.
     /// Single source for IsSubSetting and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
     public string? EffectiveUiParentId => Setting?.UiParentId;
