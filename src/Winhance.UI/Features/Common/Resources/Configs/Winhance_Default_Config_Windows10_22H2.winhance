@@ -915,8 +915,8 @@
           {
             "Id": "taskbar-extended-hover-time",
             "Name": "Taskbar Auto-Hide Hover Delay",
-            "IsSelected": false,
-            "InputType": 1
+            "InputType": 1,
+            "SelectedIndex": 5
           },
           { "Id": "taskbar-copilot-companion", "Name": "Copilot Companion Button", "IsSelected": true, "InputType": 0 },
           { "Id": "taskbar-copilot-pwa-pin", "Name": "Copilot PWA Pin", "IsSelected": true, "InputType": 0 },
