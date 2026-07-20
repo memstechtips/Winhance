@@ -1157,12 +1157,6 @@
             "SelectedIndex": 1
           },
           {
-            "Id": "start-show-all-pins-by-default",
-            "Name": "Show all pins by default",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "start-show-recently-added-apps",
             "Name": "Show recently added apps",
             "IsSelected": false,
@@ -1364,8 +1358,8 @@
           {
             "Id": "taskbar-extended-hover-time",
             "Name": "Taskbar Auto-Hide Hover Delay",
-            "IsSelected": false,
-            "InputType": 1
+            "InputType": 1,
+            "SelectedIndex": 5
           }
         ]
       },
@@ -2175,6 +2169,18 @@
       "Power": {
         "IsIncluded": true,
         "Items": [
+          { "Id": "internet-explorer-javascript-timer", "Name": "JavaScript Timer Frequency", "InputType": 1, "PowerSettings": { "ACIndex": 0, "DCIndex": 0 } },
+          { "Id": "intel-graphics-power-plan", "Name": "Intel(R) Graphics Power Plan", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 1 } },
+          { "Id": "lid-close-action", "Name": "Lid close action", "InputType": 1, "PowerSettings": { "ACIndex": 1, "DCIndex": 1 } },
+          { "Id": "critical-battery-notification", "Name": "Critical battery notification", "InputType": 1, "PowerSettings": { "ACIndex": 1, "DCIndex": 1 } },
+          { "Id": "critical-battery-action", "Name": "Critical battery action", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 2 } },
+          { "Id": "low-battery-level", "Name": "Low battery level", "InputType": 2, "PowerSettings": { "ACValue": 10, "DCValue": 10 } },
+          { "Id": "critical-battery-level", "Name": "Critical battery level", "InputType": 2, "PowerSettings": { "ACValue": 5, "DCValue": 5 } },
+          { "Id": "low-battery-notification", "Name": "Low battery notification", "InputType": 1, "PowerSettings": { "ACIndex": 1, "DCIndex": 1 } },
+          { "Id": "low-battery-action", "Name": "Low battery action", "InputType": 1, "PowerSettings": { "ACIndex": 0, "DCIndex": 0 } },
+          { "Id": "reserve-battery-level", "Name": "Reserve battery level", "InputType": 2, "PowerSettings": { "ACValue": 7, "DCValue": 7 } },
+          { "Id": "ati-powerplay-setting", "Name": "ATI PowerPlay Setting", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 1 } },
+          { "Id": "switchable-graphics-gpu-preference", "Name": "GPU Preference", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 1 } },
           {
             "Id": "power-plan-selection",
             "Name": "Power Plan",
@@ -2287,7 +2293,7 @@
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
-              "DCIndex": 0
+              "DCIndex": 1
             }
           },
           {

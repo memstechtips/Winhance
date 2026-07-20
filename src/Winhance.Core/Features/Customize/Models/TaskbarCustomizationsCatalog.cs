@@ -199,7 +199,6 @@ public static class TaskbarCustomizationsCatalog
                 new SettingState
                 {
                     Label = "1ms (Instant)",
-                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["ExtendedUIHoverTime"] = Of(1) },
                 },
                 new SettingState
@@ -225,7 +224,7 @@ public static class TaskbarCustomizationsCatalog
                 new SettingState
                 {
                     Label = "400ms (Default)",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["ExtendedUIHoverTime"] = Of(400).OrAbsent() },
                 },
             },
