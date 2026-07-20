@@ -534,12 +534,4 @@ public class PowerPlanActivationService(
         }
     }
 
-    public void InvalidateSettingsCache()
-    {
-        lock (_cacheLock)
-        {
-            _cachedSettings = null;
-        }
-    }
-
 }

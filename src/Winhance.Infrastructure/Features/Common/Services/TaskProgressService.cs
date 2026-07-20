@@ -43,11 +43,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     public bool IsTaskRunning => _isTaskRunning;
 
     /// <summary>
-    /// Gets the current progress value (0-100).
-    /// </summary>
-    public int CurrentProgress => _currentProgress;
-
-    /// <summary>
     /// Gets the current status text.
     /// </summary>
     public string CurrentStatusText => _currentStatusText;

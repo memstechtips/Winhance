@@ -485,49 +485,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         return (rootKey, parts[1]);
     }
 
-    public Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries)
-    {
-        var results = new Dictionary<string, object?>();
-        var queriesByHive = queries.GroupBy(q => GetHiveFromPath(q.keyPath));
-
-        foreach (var hiveGroup in queriesByHive)
-        {
-            var rootKey = hiveGroup.Key;
-
-            foreach (var (keyPath, valueName) in hiveGroup)
-            {
-                try
-                {
-                    var (_, subKeyPath) = ParseKeyPath(keyPath);
-                    using var subKey = rootKey.OpenSubKey(subKeyPath, false);
-
-                    var resultKey = valueName == null
-                        ? $"{keyPath}\\__KEY_EXISTS__"
-                        : $"{keyPath}\\{valueName}";
-
-                    if (valueName == null)
-                    {
-                        results[resultKey] = subKey != null;
-                    }
-                    else
-                    {
-                        results[resultKey] = subKey?.GetValue(valueName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logService.LogDebug($"[WindowsRegistryService] Failed to get batch value for '{keyPath}\\{valueName}': {ex.Message}");
-                    var resultKey = valueName == null
-                        ? $"{keyPath}\\__KEY_EXISTS__"
-                        : $"{keyPath}\\{valueName}";
-                    results[resultKey] = null;
-                }
-            }
-        }
-
-        return results;
-    }
-
     private RegistryKey GetHiveFromPath(string keyPath)
     {
         var parts = keyPath.Split('\\', 2);

@@ -266,25 +266,6 @@ public class ScheduledTaskServiceTests
         await action.Should().NotThrowAsync();
     }
 
-    // --- CreateUserLogonTaskAsync ---
-
-    [Fact]
-    public async Task CreateUserLogonTaskAsync_ComFailure_ReturnsFailedResult()
-    {
-        var result = await _service.CreateUserLogonTaskAsync("TestTask", "powershell.exe -Command echo hello", "DOMAIN\\User");
-
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task CreateUserLogonTaskAsync_DoesNotThrow()
-    {
-        var action = () => _service.CreateUserLogonTaskAsync("TestTask", "command", "user");
-
-        await action.Should().NotThrowAsync();
-    }
-
     // --- SplitTaskPath (tested indirectly via public methods) ---
     // SplitTaskPath is private static, but its logic is exercised through EnableTaskAsync/DisableTaskAsync/IsTaskEnabledAsync.
 

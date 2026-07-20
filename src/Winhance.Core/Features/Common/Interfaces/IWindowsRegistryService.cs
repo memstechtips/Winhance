@@ -12,7 +12,6 @@ public interface IWindowsRegistryService
     bool KeyExists(string keyPath);
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
-    Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries);
 
     // --- Apply primitives, exposed for the catalog IStateWriter (see WindowsStateWriter).
 

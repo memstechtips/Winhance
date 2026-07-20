@@ -65,19 +65,4 @@ public class WindowsVersionService : IWindowsVersionService
         }
     }
 
-    public bool IsWindowsServer()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
-            var productName = key?.GetValue("ProductName")?.ToString() ?? "";
-            return productName.IndexOf("Server", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError("Error detecting Windows Server", ex);
-            return false;
-        }
-    }
-
 }

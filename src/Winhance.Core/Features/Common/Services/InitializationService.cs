@@ -14,17 +14,6 @@ public class InitializationService : IInitializationService
         _logService = logService;
     }
 
-    public bool IsGloballyInitializing
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _initializingFeatures.Count > 0;
-            }
-        }
-    }
-
     public void StartFeatureInitialization(string featureName)
     {
         lock (_lock)

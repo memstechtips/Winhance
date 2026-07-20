@@ -33,7 +33,6 @@ public class TaskProgressServiceTests
     public void Constructor_InitializesWithDefaultState()
     {
         _sut.IsTaskRunning.Should().BeFalse();
-        _sut.CurrentProgress.Should().Be(0);
         _sut.CurrentStatusText.Should().BeEmpty();
         _sut.IsIndeterminate.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeNull();
@@ -48,7 +47,6 @@ public class TaskProgressServiceTests
 
         _sut.IsTaskRunning.Should().BeTrue();
         _sut.CurrentStatusText.Should().Be("Apply Settings");
-        _sut.CurrentProgress.Should().Be(0);
         cts.Should().NotBeNull();
         cts.IsCancellationRequested.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeSameAs(cts);
@@ -95,7 +93,6 @@ public class TaskProgressServiceTests
 
         _sut.UpdateProgress(50, "Halfway");
 
-        _sut.CurrentProgress.Should().Be(50);
         _sut.CurrentStatusText.Should().Be("Halfway");
     }
 
@@ -106,7 +103,6 @@ public class TaskProgressServiceTests
         var act = () => _sut.UpdateProgress(50, "Status");
 
         act.Should().NotThrow();
-        _sut.CurrentProgress.Should().Be(0);
     }
 
     [Theory]
@@ -129,7 +125,6 @@ public class TaskProgressServiceTests
         _sut.UpdateProgress(25);
 
         _sut.CurrentStatusText.Should().Be("Initial");
-        _sut.CurrentProgress.Should().Be(25);
     }
 
     // ── CompleteTask ──
@@ -143,7 +138,6 @@ public class TaskProgressServiceTests
         _sut.CompleteTask();
 
         _sut.IsTaskRunning.Should().BeFalse();
-        _sut.CurrentProgress.Should().Be(100);
         _sut.IsIndeterminate.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeNull();
     }
@@ -263,7 +257,6 @@ public class TaskProgressServiceTests
         var act = () => _sut.UpdateDetailedProgress(detail);
 
         act.Should().NotThrow();
-        _sut.CurrentProgress.Should().Be(0);
     }
 
     [Fact]

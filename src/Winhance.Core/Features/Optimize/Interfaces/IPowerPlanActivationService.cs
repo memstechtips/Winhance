@@ -31,9 +31,4 @@ public interface IPowerPlanActivationService
     /// power-settings query cache on success.
     /// </summary>
     Task<bool> SetActivePowerPlanAsync(string powerPlanGuid);
-
-    /// <summary>
-    /// Clears the power-settings query cache.
-    /// </summary>
-    void InvalidateSettingsCache();
 }
