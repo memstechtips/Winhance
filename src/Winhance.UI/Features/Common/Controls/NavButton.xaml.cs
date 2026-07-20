@@ -16,7 +16,7 @@ namespace Winhance.UI.Features.Common.Controls;
 
 /// <summary>
 /// Custom navigation button with icon-over-text layout, selection indicator,
-/// loading overlay, and compact mode support.
+/// and compact mode support.
 /// </summary>
 public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 {
@@ -60,13 +60,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(bool),
             typeof(NavButton),
             new PropertyMetadata(false, OnIsSelectedChanged));
-
-    public static readonly DependencyProperty IsLoadingProperty =
-        DependencyProperty.Register(
-            nameof(IsLoading),
-            typeof(bool),
-            typeof(NavButton),
-            new PropertyMetadata(false, OnIsLoadingChanged));
 
     public static readonly DependencyProperty IsLockedProperty =
         DependencyProperty.Register(
@@ -146,15 +139,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Whether the button is in a loading state (shows spinner, blocks clicks).
-    /// </summary>
-    public bool IsLoading
-    {
-        get => (bool)GetValue(IsLoadingProperty);
-        set => SetValue(IsLoadingProperty, value);
-    }
-
-    /// <summary>
     /// Whether the button is locked (reduced opacity, blocks clicks, shows lock icon).
     /// Used to disable navigation to certain pages during config review mode.
     /// </summary>
@@ -210,7 +194,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public double IconSize => IsCompact ? CompactIconSize : ExpandedIconSize;
     public Visibility TextVisibility => IsCompact ? Visibility.Collapsed : Visibility.Visible;
     public Visibility IndicatorVisibility => IsSelected ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility LoadingVisibility => IsLoading ? Visibility.Visible : Visibility.Collapsed;
     public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
     public double ContentOpacity => IsLocked ? 0.4 : 1.0;
 
@@ -240,7 +223,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (IsLoading || IsLocked) return;
+        if (IsLocked) return;
 
         if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Space)
         {
@@ -255,7 +238,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     // Lets the automation peer route Narrator's Invoke through the same gates as pointer / keyboard.
     internal void InvokeFromAutomation()
     {
-        if (IsLoading || IsLocked) return;
+        if (IsLocked) return;
         Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
     }
 
@@ -278,15 +261,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         if (d is NavButton button)
         {
             button.NotifyPropertyChanged(nameof(IndicatorVisibility));
-            button.UpdateVisualState();
-        }
-    }
-
-    private static void OnIsLoadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(LoadingVisibility));
             button.UpdateVisualState();
         }
     }
@@ -387,8 +361,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Block interaction when loading or locked
-        if (IsLoading || IsLocked) return;
+        // Block interaction when locked
+        if (IsLocked) return;
 
         RootGrid.CapturePointer(e.Pointer);
     }
@@ -397,8 +371,8 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     {
         RootGrid.ReleasePointerCapture(e.Pointer);
 
-        // Block interaction when loading or locked
-        if (IsLoading || IsLocked) return;
+        // Block interaction when locked
+        if (IsLocked) return;
 
         // Only fire click if pointer is still over the button
         if (_isPointerOver)
@@ -419,7 +393,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             // Selected state: use tertiary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
         }
-        else if ((_isPointerOver || _isFocused) && !IsLoading && !IsLocked)
+        else if ((_isPointerOver || _isFocused) && !IsLocked)
         {
             // Hover/Focus state: use secondary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
