@@ -1166,7 +1166,7 @@ public class SettingItemViewModelTests : IDisposable
     // synthetic fixture builds it. PowerCfg-numeric badge coverage stays in BadgeRow_AcDcSeparate_*.
 
     [Fact]
-    public void BadgeRow_Definition_HasNoRecommendedAtAll_RecommendedPillAbsent()
+    public void BadgeRow_Setting_HasNoRecommendedAtAll_RecommendedPillAbsent()
     {
         var sut = CreateSut(SelectionConfig(SelectionSetting("no-rec",
             new[] { ("A", false, true), ("B", false, true) }, subjective: true)));

@@ -117,7 +117,7 @@ public class SettingApplicationServiceTests
         && s.Targets.OfType<RegTarget>().Any()).Id;
 
     [Fact]
-    public async Task ApplySettingAsync_PairedPlainToggle_RoutesThroughNewWriter_BypassingOldExecutor()
+    public async Task ApplySettingAsync_PairedPlainToggle_RoutesThroughStateWriter()
     {
         // A real catalog plain registry toggle (no custom detector / dynamic options / numeric, with both an Enabled
         // and a Disabled state) applies through the ApplyExecutor + IStateWriter. Unpaired/fake ids (the null-plan
@@ -130,7 +130,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = paired.Id, Enable = true });
 
-        _mockStateWriter.Invocations.Should().NotBeEmpty("the paired toggle must apply through the new writer");
+        _mockStateWriter.Invocations.Should().NotBeEmpty("the paired toggle must apply through the state writer");
         // The engine performs no restarts itself, so the funnel must still run process/service restarts -
         // else a setting that restarts Explorer would not take effect.
         _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<Setting>()), Times.Once);

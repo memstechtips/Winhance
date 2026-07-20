@@ -228,12 +228,12 @@ internal class RegistryCommandEmitter
             // Reject mixed-hive blocks: the emitter routes to a single pass per block, so a block
             // containing both HKCU and HKLM/HKCR/HKU/HKCC headers would silently lose half its
             // content under the hive filter below. Authors must split such content into separate
-            // RegContentSetting entries.
+            // RegContentEffect entries.
             if (RegContentMixesHives(content))
             {
                 throw new InvalidOperationException(
-                    $"RegContentSetting for '{catalogSetting.Id}' mixes HKEY_CURRENT_USER and system-hive " +
-                    $"section headers in a single block. Split it into one RegContentSetting per hive " +
+                    $"RegContentEffect for '{catalogSetting.Id}' mixes HKEY_CURRENT_USER and system-hive " +
+                    $"section headers in a single block. Split it into one RegContentEffect per hive " +
                     $"so each can be routed to the correct autounattend pass.");
             }
 
