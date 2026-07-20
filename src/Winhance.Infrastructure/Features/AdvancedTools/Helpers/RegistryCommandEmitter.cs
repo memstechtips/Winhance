@@ -21,8 +21,6 @@ internal class RegistryCommandEmitter
 {
     private readonly ILogService _logService;
 
-    private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
-
     public RegistryCommandEmitter(ILogService logService)
     {
         _logService = logService;
