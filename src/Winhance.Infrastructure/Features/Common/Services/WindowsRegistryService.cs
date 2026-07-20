@@ -14,18 +14,6 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 [SupportedOSPlatform("windows")]
 public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
 {
-    private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
-
-    /// <summary>
-    /// Gets the value to write when a parent cascades a disable to this setting.
-    /// If DisabledValue has a second element, use it (even if null, which means delete).
-    /// Otherwise, fall back to the normal first-non-null disabled value.
-    /// This allows settings to declare e.g. DisabledValue = [1, null] where:
-    ///   - Index 0 (1): written when the user explicitly disables the setting
-    ///   - Index 1 (null): written when the parent cascades a disable (deletes the value)
-    /// </summary>
-    private static object? GetParentDisableValue(object?[]? disabledValues) =>
-        disabledValues?.Length > 1 ? disabledValues[1] : GetWriteValue(disabledValues);
 
     public bool CreateKey(string keyPath)
     {
@@ -243,24 +231,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    private byte? GetBinaryByte(string keyPath, string valueName, int byteIndex)
-    {
-        try
-        {
-            var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is byte[] currentBytes && currentBytes.Length > byteIndex)
-            {
-                return currentBytes[byteIndex];
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get binary byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
-            return null;
-        }
-    }
-
     public bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
     {
         try
@@ -292,23 +262,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
-            return false;
-        }
-    }
-
-    private bool IsBitSet(string keyPath, string valueName, int byteIndex, byte bitMask)
-    {
-        try
-        {
-            var currentByte = GetBinaryByte(keyPath, valueName, byteIndex);
-            if (!currentByte.HasValue)
-                return false;
-
-            return (currentByte.Value & bitMask) == bitMask;
-        }
-        catch (Exception ex)
-        {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check bit in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -596,28 +549,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             "HKEY_USERS" or "HKU" => Registry.Users,
             "HKEY_CURRENT_CONFIG" or "HKCC" => Registry.CurrentConfig,
             _ => throw new ArgumentException($"Unrecognized registry hive: '{hive}' in path '{keyPath}'"),
-        };
-    }
-
-    private static bool CompareValues(object? current, object? desired)
-    {
-        return current switch
-        {
-            null => desired == null,
-            bool b when desired is int d => (b ? 1 : 0) == d,
-            byte b when desired is int d => b == d,
-            byte b when desired is byte d => b == d,
-            int i when desired is int d => i == d,
-            int i when desired is long d => i == d,
-            int i when desired is byte d => i == d,
-            long l when desired is long d => l == d,
-            long l when desired is int d => l == d,
-            string s when desired is string ds => s.Equals(
-                ds,
-                StringComparison.OrdinalIgnoreCase
-            ),
-            byte[] ba when desired is byte[] dba => ba.SequenceEqual(dba),
-            _ => current.Equals(desired),
         };
     }
 }
