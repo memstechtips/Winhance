@@ -449,9 +449,30 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             // RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
             var batchStates = await _settingStateProvider.GetStatesAsync(settingList);
 
+            // Mirror the settings-page render predicate so the review never counts/diffs a setting the user
+            // cannot see (which would leave the review uncompleteable). The page skips a setting whose live
+            // state the provider could not resolve (SettingsLoadingService: !state.Success) and drops an
+            // orphaned sub-setting whose UiParentId parent is not itself rendered (a sub-setting lives only
+            // inside its parent's expander). Both sides use the same strict GetByFeature scope, so only these
+            // two exclusions differ. UiParentId nesting is one level in the catalog.
+            var detectedIds = new HashSet<string>(
+                settingList
+                    .Where(s => !(batchStates.TryGetValue(s.Id, out var st) && !st.Success))
+                    .Select(s => s.Id));
+            var renderedIds = new HashSet<string>(
+                settingList
+                    .Where(s => detectedIds.Contains(s.Id)
+                        && (string.IsNullOrEmpty(s.UiParentId) || detectedIds.Contains(s.UiParentId)))
+                    .Select(s => s.Id));
+
             foreach (var configItem in configItems)
             {
                 if (!settingMap.TryGetValue(configItem.Id, out var setting))
+                    continue;
+
+                // Skip settings the settings page will not render (failed detection / orphaned sub-setting)
+                // so nothing uncompleteable is counted toward the review completion gate.
+                if (!renderedIds.Contains(setting.Id))
                     continue;
 
                 var currentState = batchStates.TryGetValue(configItem.Id, out var state)
