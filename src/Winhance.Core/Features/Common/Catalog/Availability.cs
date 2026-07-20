@@ -21,8 +21,6 @@ public sealed record BuildRange(WinBuild Min, WinBuild Max)
     public bool Contains(WinBuild b) => b >= Min && b <= Max;
     public static readonly BuildRange Windows10 = new(new(0), new(21999, int.MaxValue));
     public static readonly BuildRange Windows11 = new(new(22000), new(int.MaxValue, int.MaxValue));
-    public static BuildRange From(int build, int rev = 0) => new(new(build, rev), new(int.MaxValue, int.MaxValue));
-    public static BuildRange Upto(int build, int rev = int.MaxValue) => new(new(0), new(build, rev));
     public static BuildRange Between(int min, int max) => new(new(min), new(max, int.MaxValue));
 }
 
