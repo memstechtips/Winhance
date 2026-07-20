@@ -36,9 +36,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private static readonly HashSet<string> ActionSettingIds = new()
     {
         SettingIds.ThemeModeWindows,
-        "taskbar-clean",
-        "start-menu-clean-10",
-        "start-menu-clean-11"
+        SettingIds.TaskbarClean,
+        SettingIds.StartMenuCleanWin10,
+        SettingIds.StartMenuCleanWin11
     };
 
     public ConfigReviewService(
@@ -483,9 +483,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 bool isActionSetting = ActionSettingIds.Contains(configItem.Id);
 
                 // For start-menu-clean, only register the one matching the current Windows version
-                if (configItem.Id == "start-menu-clean-10" && _windowsVersionService.IsWindows11())
+                if (configItem.Id == SettingIds.StartMenuCleanWin10 && _windowsVersionService.IsWindows11())
                     continue;
-                if (configItem.Id == "start-menu-clean-11" && !_windowsVersionService.IsWindows11())
+                if (configItem.Id == SettingIds.StartMenuCleanWin11 && !_windowsVersionService.IsWindows11())
                     continue;
 
                 // Compute diff
@@ -534,9 +534,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return configItem.Id switch
         {
             SettingIds.ThemeModeWindows => GetThemeWallpaperMessage(configItem),
-            "taskbar-clean" => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
+            SettingIds.TaskbarClean => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
                 ?? "Clean the taskbar as part of this configuration?",
-            "start-menu-clean-10" or "start-menu-clean-11" =>
+            SettingIds.StartMenuCleanWin10 or SettingIds.StartMenuCleanWin11 =>
                 _localizationService.GetString("Review_Mode_Action_CleanStartMenu")
                 ?? "Clean the start menu as part of this configuration?",
             _ => string.Empty

@@ -49,7 +49,6 @@ public class OperationResultGenericTests
         result.Result.Should().Be(42);
         result.ErrorMessage.Should().BeNull();
         result.Exception.Should().BeNull();
-        result.RequiresConfirmation.Should().BeFalse();
         result.InfoMessage.Should().BeNull();
     }
 
@@ -101,16 +100,6 @@ public class OperationResultGenericTests
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Be("User cancelled");
-    }
-
-    [Fact]
-    public void ConfirmationRequired_ReturnsConfirmationResult()
-    {
-        var result = OperationResult<bool>.ConfirmationRequired("Are you sure?");
-
-        result.Success.Should().BeFalse();
-        result.RequiresConfirmation.Should().BeTrue();
-        result.ErrorMessage.Should().Be("Are you sure?");
     }
 
     [Fact]
