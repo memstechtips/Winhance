@@ -32,11 +32,6 @@ public sealed record ConfigReviewDiff
     public string ConfigValueDisplay { get; init; } = string.Empty;
 
     /// <summary>
-    /// The actual config value to apply (index, bool, etc.).
-    /// </summary>
-    public object? ConfigValue { get; init; }
-
-    /// <summary>
     /// The original ConfigurationItem from the config file.
     /// </summary>
     public ConfigurationItem? ConfigItem { get; init; }

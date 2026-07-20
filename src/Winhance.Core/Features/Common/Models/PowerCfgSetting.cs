@@ -11,7 +11,6 @@ public enum PowerModeSupport
 
 public sealed record PowerCfgSetting
 {
-    public string? SubgroupGUIDAlias { get; init; }
     public string SettingGUIDAlias { get; init; } = string.Empty;
     public string SubgroupGuid { get; init; } = string.Empty;
     public string SettingGuid { get; init; } = string.Empty;
