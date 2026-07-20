@@ -91,19 +91,6 @@ public class ConfigurationService : IConfigurationService
             await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
     }
 
-    public async Task ImportRecommendedConfigurationAsync()
-    {
-        _logService.Log(LogLevel.Info, "Starting recommended configuration import");
-
-        await EnsureRegistryInitializedAsync();
-
-        var config = await _configLoadService.LoadRecommendedConfigurationAsync();
-        if (config == null) return;
-
-        // Recommended config always enters review mode so users can see what will change
-        await _configReviewOrchestrationService.EnterReviewModeAsync(config);
-    }
-
     public async Task CreateUserBackupConfigAsync()
     {
         await _configExportService.CreateUserBackupConfigAsync();
