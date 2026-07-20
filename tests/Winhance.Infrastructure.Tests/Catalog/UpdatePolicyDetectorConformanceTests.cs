@@ -92,9 +92,9 @@ public class UpdatePolicyDetectorConformanceTests
     public void Detector_is_wired_and_its_labels_match_the_catalog_states()
     {
         Assert.NotNull(UpdatePolicy.Detector);
-        var detector = Assert.IsType<UpdatePolicyDetector>(UpdatePolicy.Detector);
+        Assert.IsType<UpdatePolicyDetector>(UpdatePolicy.Detector);
         var stateLabels = UpdatePolicy.States.Select(s => s.Label).ToHashSet(StringComparer.Ordinal);
-        foreach (var label in new[] { detector.DefaultLabel, detector.DeferLabel, detector.PausedLabel, detector.DisabledLabel })
+        foreach (var label in new[] { DefaultLabel, DeferLabel, PausedLabel, DisabledLabel })
             Assert.Contains(label, stateLabels);
     }
 }
