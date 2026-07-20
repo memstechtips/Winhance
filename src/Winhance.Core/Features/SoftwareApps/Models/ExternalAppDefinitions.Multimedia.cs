@@ -302,6 +302,18 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["irzyxa.Volume2Portable"],
                         ChocoPackageId = "volume2",
                         WebsiteUrl = "https://github.com/irzyxa/Volume2",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-eartrumpet",
+                        Name = "EarTrumpet",
+                        Description = "Volume control for Windows",
+                        GroupName = "Multimedia (Audio & Video)",
+                        AppxPackageName = ["40459File-New-Project.EarTrumpet"],
+                        WinGetPackageId = ["File-New-Project.EarTrumpet"],
+                        ChocoPackageId = "eartrumpet",
+                        MsStoreId = "9NBLGGH516XP",
+                        WebsiteUrl = "https://eartrumpet.app/",
                     }
                 }
             };
