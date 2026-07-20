@@ -484,28 +484,4 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
         return (rootKey, parts[1]);
     }
-
-    private RegistryKey GetHiveFromPath(string keyPath)
-    {
-        var parts = keyPath.Split('\\', 2);
-        var hive = parts[0].ToUpperInvariant();
-
-        // OTS: redirect HKCU to HKU
-        if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
-            && interactiveUserService.IsOtsElevation
-            && interactiveUserService.InteractiveUserSid != null)
-        {
-            return Registry.Users;
-        }
-
-        return hive switch
-        {
-            "HKEY_CURRENT_USER" or "HKCU" => Registry.CurrentUser,
-            "HKEY_LOCAL_MACHINE" or "HKLM" => Registry.LocalMachine,
-            "HKEY_CLASSES_ROOT" or "HKCR" => Registry.ClassesRoot,
-            "HKEY_USERS" or "HKU" => Registry.Users,
-            "HKEY_CURRENT_CONFIG" or "HKCC" => Registry.CurrentConfig,
-            _ => throw new ArgumentException($"Unrecognized registry hive: '{hive}' in path '{keyPath}'"),
-        };
-    }
 }

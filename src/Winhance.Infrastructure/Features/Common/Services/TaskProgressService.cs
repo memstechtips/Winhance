@@ -16,7 +16,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     private const int MaxTerminalOutputLines = 10_000;
 
     private readonly ILogService _logService;
-    private int _currentProgress;
     private string _currentStatusText;
     private bool _isTaskRunning;
     private bool _isIndeterminate;
@@ -69,7 +68,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     public TaskProgressService(ILogService logService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _currentProgress = 0;
         _currentStatusText = string.Empty;
         _isTaskRunning = false;
         _isIndeterminate = false;
@@ -92,7 +90,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         }
 
         _cancellationSource = new CancellationTokenSource();
-        _currentProgress = 0;
         _currentStatusText = taskName;
         _isTaskRunning = true;
         _isIndeterminate = isIndeterminate;
@@ -138,7 +135,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             );
         }
 
-        _currentProgress = progressPercentage;
         if (!string.IsNullOrEmpty(statusText))
         {
             _currentStatusText = statusText;
@@ -182,8 +178,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
                     "Progress must be between 0 and 100."
                 );
             }
-
-            _currentProgress = (int)detail.Progress.Value;
         }
 
         if (!string.IsNullOrEmpty(detail.StatusText))
@@ -246,8 +240,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         {
             return;
         }
-
-        _currentProgress = 100;
 
         _isTaskRunning = false;
         _isIndeterminate = false;
@@ -335,7 +327,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _isTaskRunning = true;
         _activeScriptSlotCount = scriptNames.Length;
         _scriptSlotNames = scriptNames;
-        _currentProgress = 0;
         _currentStatusText = string.Empty;
         _logMessages.Clear();
         _terminalOutputLines.Clear();
