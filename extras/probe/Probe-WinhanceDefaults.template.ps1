@@ -543,6 +543,75 @@ foreach ($setting in $settings) {
 }
 
 # =============================================================================================
+# PowerCfg DEFAULTS -- read-only. The DEFAULT AC/DC index for each built-in power setting is static
+# data in the SYSTEM hive under
+#   HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\<subgroup>\<setting>\DefaultPowerSchemes\<scheme>
+# with ACSettingIndex / DCSettingIndex per scheme. This is the true shipped default WITHOUT the write
+# that unhiding a hidden setting would need, so v1's powercfg-skip does not apply to reading defaults.
+# Control\Power is readable by a standard user, so no elevation.
+# =============================================================================================
+
+function Read-PowerCfgDefaults {
+    param([string] $Subgroup, [string] $Setting)
+
+    $result = [ordered]@{ status = 'KeyMissing'; schemes = @(); error = $null }
+    try {
+        $base = Get-BaseKey 'HKEY_LOCAL_MACHINE'
+        if ($null -eq $base) { $result.error = 'no HKLM base key'; $result.status = 'Error'; return $result }
+
+        $sub = $Subgroup.Trim('{', '}')
+        $set = $Setting.Trim('{', '}')
+        $path = "SYSTEM\CurrentControlSet\Control\Power\PowerSettings\$sub\$set\DefaultPowerSchemes"
+        $key = $base.OpenSubKey($path, $false)
+        if ($null -eq $key) { return $result }  # KeyMissing -- setting not present on this machine
+
+        try {
+            $schemeEntries = @()
+            foreach ($schemeName in @($key.GetSubKeyNames())) {
+                $sk = $key.OpenSubKey($schemeName, $false)
+                if ($null -eq $sk) { continue }
+                try {
+                    # $null -eq means absent, not 0. A REG_DWORD arrives as Int32, so [int] never overflows;
+                    # the "never" sentinel 0xFFFFFFFF reads as -1 here, which is exactly how Winhance reads it.
+                    $ac = $sk.GetValue('ACSettingIndex', $null)
+                    $dc = $sk.GetValue('DCSettingIndex', $null)
+                    $schemeEntries += [ordered]@{
+                        scheme = [string]$schemeName
+                        ac     = $(if ($null -eq $ac) { $null } else { [int]$ac })
+                        dc     = $(if ($null -eq $dc) { $null } else { [int]$dc })
+                    }
+                } finally { $sk.Close() }
+            }
+            $result.schemes = $schemeEntries
+            $result.status = if ($schemeEntries.Count -gt 0) { 'Present' } else { 'NoSchemes' }
+        } finally { $key.Close() }
+    } catch {
+        $result.status = 'Error'
+        $result.error = [string]$_.Exception.Message
+    }
+    return $result
+}
+
+$powerCfgDefaults = @()
+foreach ($setting in $settings) {
+    foreach ($target in @($setting.targets)) {
+        if ($target.kind -ne 'PowerCfg') { continue }
+        $d = Read-PowerCfgDefaults ([string]$target.subgroupGuid) ([string]$target.settingGuid)
+        $powerCfgDefaults += [ordered]@{
+            settingId    = [string]$setting.id
+            key          = [string]$target.key
+            subgroupGuid = [string]$target.subgroupGuid
+            settingGuid  = [string]$target.settingGuid
+            mode         = [string]$target.mode
+            units        = [string]$target.units
+            status       = [string]$d.status
+            schemes      = $d.schemes
+            error        = $d.error
+        }
+    }
+}
+
+# =============================================================================================
 # Headline finding: which settings' WindowsDefault state reads ABSENT here while that state's
 # StateValue does NOT accept absence. Those are the ones whose detection cannot be right on a
 # clean install. No value comparison is involved -- this is purely presence -- so it cannot be
@@ -664,11 +733,12 @@ foreach ($setting in $settings) {
 $document = [ordered]@{
     probeSchemaVersion = $ProbeSchemaVersion
     manifestSchema     = $manifest.schemaVersion
-    manifestGeneratedUtc = [string]$manifest.generatedUtc
+    catalogHash        = [string]$manifest.catalogHash   # ties this result to the exact catalog revision it was run against
     machine            = $machine
     counts             = $counts
     settings           = $results
     scheduledTasks     = $taskResults
+    powerCfgDefaults   = $powerCfgDefaults
     absentWindowsDefaultSuspects = $suspects
 }
 
@@ -732,7 +802,9 @@ Write-Host ('  KeyPresent  : {0}   (key-existence target, key is there)' -f $cou
 Write-Host ('  ValueAbsent : {0}   (key exists, value is NOT written)' -f $counts.ValueAbsent)
 Write-Host ('  KeyMissing  : {0}   (parent key does not exist)' -f $counts.KeyMissing)
 Write-Host ('  Error       : {0}' -f $counts.Error)
-Write-Host ('  NotProbed   : {0}   (powercfg / scheduled task)' -f $counts.NotProbed)
+Write-Host ('  NotProbed   : {0}   (powercfg / scheduled task registry targets)' -f $counts.NotProbed)
+$pcWith = @($powerCfgDefaults | Where-Object { $_.status -eq 'Present' }).Count
+Write-Host ('  PowerCfg    : {0} of {1} powercfg settings had readable AC/DC defaults in the SYSTEM hive' -f $pcWith, $powerCfgDefaults.Count)
 Write-Host ''
 Write-Host 'Headline finding' -ForegroundColor Cyan
 Write-Host ('  {0} settings have a WindowsDefault state that does NOT accept absence,' -f $suspectSettingIds.Count)

@@ -25,8 +25,13 @@ actually happening for a given setting can only be answered by reading a real cl
 | File | What it is |
 |---|---|
 | `Probe-WinhanceDefaults.template.ps1` | The probe source. **Edit this one.** |
-| `catalog-probe-manifest.json` | Full `SettingCatalog` dump — targets, states, roles, `OrAbsent` flags. |
+| `catalog-probe-manifest.json` | Full `SettingCatalog` dump — targets, states, roles, `OrAbsent` flags, `catalogHash`. |
 | `Probe-WinhanceDefaults.ps1` | **Generated.** The template with the manifest embedded. Do not hand-edit. |
+| `reconcile-defaults.py` | Step 2: replays the detection engine over a probe file and classifies each setting `(a)`/`(b)`/`(c)` vs its `WindowsDefault` role. Read-only. Run: `reconcile-defaults.py catalog-probe-manifest.json <probe1.json> [probe2.json ...]`. |
+
+The probe output also carries `catalogHash` (ties a returned file to the exact catalog revision) and
+`powerCfgDefaults` (each powercfg setting's default AC/DC indices per scheme, read read-only from the SYSTEM
+hive `DefaultPowerSchemes` — no unhide-write, so v1's powercfg-skip doesn't apply to reading *defaults*).
 
 ## Regenerating
 
