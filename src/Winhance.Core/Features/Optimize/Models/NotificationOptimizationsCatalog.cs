@@ -173,7 +173,7 @@ public static class NotificationOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowNotificationIcon"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["ShowNotificationIcon"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -390,7 +390,7 @@ public static class NotificationOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {

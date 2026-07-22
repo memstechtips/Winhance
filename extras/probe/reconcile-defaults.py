@@ -79,7 +79,9 @@ def _conv_value(v):
 # ----- StateValue.Matches ------------------------------------------------------------------------
 
 def sv_matches(sv, current, present, force_absent=False):
-    if force_absent or not present:
+    # force_absent simulates .OrAbsent() on this state: C# only flips AcceptsAbsent, so it must
+    # ONLY relax the absent branch - a present reading still has to match the accepted values.
+    if not present:
         return sv["acceptsAbsent"] or force_absent
     if sv["acceptsAnyPresent"]:
         return True
@@ -367,7 +369,11 @@ def main(argv):
 
     def conclusion_of(rows):
         cs = {r["conclusion"] for r in rows}
-        # build-scoped settings can legitimately differ per machine; report the worst.
+        # A present value matching a NON-default state on ANY machine contradicts the role, so it
+        # VETOES an absence-driven (a) verdict from another machine - .OrAbsent() on a wrong role
+        # makes detection worse. Mixed evidence is its own bucket, never silently ranked.
+        if any(c.startswith("a-") for c in cs) and "b-role-review" in cs:
+            return "mixed-evidence"
         order = ["a-fallback-different", "b-role-review", "a-shows-custom", "other-custom", "c-correct"]
         for o in order:
             if o in cs:
@@ -383,6 +389,7 @@ def main(argv):
         return 0
 
     labels = {
+        "mixed-evidence":       "MIXED EVIDENCE - absence on one machine, role-contradicting value on another (review, no auto-fix)",
         "a-fallback-different": "(a) DETECTION BUG - silently mislabels as a different state (.OrAbsent fix)",
         "a-shows-custom":       "(a) detection gap - falls through to Custom (.OrAbsent fix)",
         "b-role-review":        "(b) ROLE REVIEW - a present value matched a NON-default state",
@@ -393,7 +400,7 @@ def main(argv):
     print(f"analysable settings: {len(by_id)}")
     print("skipped: " + ", ".join(f"{k}={v}" for k, v in sorted(skipped.items())))
     print()
-    for key in ["a-fallback-different", "a-shows-custom", "b-role-review", "other-custom", "c-correct"]:
+    for key in ["mixed-evidence", "a-fallback-different", "a-shows-custom", "b-role-review", "other-custom", "c-correct"]:
         rows = buckets.get(key, [])
         print(f"== {labels[key]}: {len(rows)}")
         if key == "c-correct":

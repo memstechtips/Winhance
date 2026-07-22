@@ -545,7 +545,7 @@ foreach ($setting in $settings) {
 # =============================================================================================
 # PowerCfg DEFAULTS -- read-only. The DEFAULT AC/DC index for each built-in power setting is static
 # data in the SYSTEM hive under
-#   HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\<subgroup>\<setting>\DefaultPowerSchemes\<scheme>
+#   HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\<subgroup>\<setting>\DefaultPowerSchemeValues\<scheme>
 # with ACSettingIndex / DCSettingIndex per scheme. This is the true shipped default WITHOUT the write
 # that unhiding a hidden setting would need, so v1's powercfg-skip does not apply to reading defaults.
 # Control\Power is readable by a standard user, so no elevation.
@@ -561,7 +561,7 @@ function Read-PowerCfgDefaults {
 
         $sub = $Subgroup.Trim('{', '}')
         $set = $Setting.Trim('{', '}')
-        $path = "SYSTEM\CurrentControlSet\Control\Power\PowerSettings\$sub\$set\DefaultPowerSchemes"
+        $path = "SYSTEM\CurrentControlSet\Control\Power\PowerSettings\$sub\$set\DefaultPowerSchemeValues"
         $key = $base.OpenSubKey($path, $false)
         if ($null -eq $key) { return $result }  # KeyMissing -- setting not present on this machine
 

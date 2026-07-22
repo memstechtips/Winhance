@@ -354,14 +354,15 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(3) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -1197,8 +1198,8 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["GameDVR_Enabled"] = Of(1),
-                        ["AppCaptureEnabled"] = Of(1),
-                        ["AllowGameDVR"] = Of(1),
+                        ["AppCaptureEnabled"] = Of(1).OrAbsent(),
+                        ["AllowGameDVR"] = Of(1).OrAbsent(),
                     },
                 },
                 new SettingState

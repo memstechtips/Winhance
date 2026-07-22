@@ -147,7 +147,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["{645FF040-5081-101B-9F08-00AA002F954E}"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["{645FF040-5081-101B-9F08-00AA002F954E}"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -842,7 +842,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["AmbientLightingEnabled"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["AmbientLightingEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -907,7 +907,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["LegacyDefaultPrinterMode"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["LegacyDefaultPrinterMode"] = OneOf(0, -1) },
                 },
                 new SettingState
                 {
@@ -1902,14 +1902,15 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -2538,15 +2539,14 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -3297,7 +3297,7 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["DisableAutoplay"] = Absent,
+                        ["DisableAutoplay"] = Of(0).OrAbsent(),
                         ["NoDriveTypeAutoRun"] = Absent,
                     },
                 },

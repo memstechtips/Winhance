@@ -87,9 +87,11 @@ public class CatalogSettingStateProviderConformanceTests
     [Fact]
     public void IsEnabled_numeric_percent_is_modified_from_the_default_value()
     {
-        // WindowsDefault AC = 0 (%). "%" converts system->display 1:1.
+        // WindowsDefault AC = 5 (%), per the shipped Balanced scheme in the image SYSTEM hives.
+        // "%" converts system->display 1:1.
         var s = Catalog["processor-min-state"];
-        Assert.False(DeriveNumeric(s, 0));      // at the Windows default -> not enabled
+        Assert.False(DeriveNumeric(s, 5));      // at the Windows default -> not enabled
+        Assert.True(DeriveNumeric(s, 0));       // 0% != 5 -> modified -> enabled
         Assert.True(DeriveNumeric(s, 100));     // 100% -> enabled
         Assert.False(DeriveNumeric(s, null));   // no reading -> cannot be modified -> not enabled
     }
