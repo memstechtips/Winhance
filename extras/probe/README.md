@@ -28,6 +28,7 @@ actually happening for a given setting can only be answered by reading a real cl
 | `catalog-probe-manifest.json` | Full `SettingCatalog` dump — targets, states, roles, `OrAbsent` flags, `catalogHash`. |
 | `Probe-WinhanceDefaults.ps1` | **Generated.** The template with the manifest embedded. Do not hand-edit. |
 | `reconcile-defaults.py` | Step 2: replays the detection engine over a probe file and classifies each setting `(a)`/`(b)`/`(c)` vs its `WindowsDefault` role. Read-only. Run: `reconcile-defaults.py catalog-probe-manifest.json <probe1.json> [probe2.json ...]`. |
+| `image-probe.py` | Offline counterpart to the live probe: reads every catalog registry target from an extracted WIM edition index (NTUSER.DAT + SOFTWARE + SYSTEM via hivex) and emits live-probe-shaped JSON with `"source": "image"`. Run: `image-probe.py catalog-probe-manifest.json <hive-dir> <out.json> --iso X --index N`. See `docs/2026-07-22-image-defaults-comparison.md`. |
 
 The probe output also carries `catalogHash` (ties a returned file to the exact catalog revision) and
 `powerCfgDefaults` (each powercfg setting's default AC/DC indices per scheme, read read-only from the SYSTEM
