@@ -34,6 +34,9 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IApplicationModeService? _applicationModeService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
+    // Live Windows build (from config), for build-aware default/badge resolution of merged Selections
+    // (e.g. theme-mode-windows). Set once in the ctor before the initial badge computation.
+    private readonly WinBuild _build;
     private volatile bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
     private object? _pendingValue;
@@ -456,23 +459,23 @@ public partial class SettingItemViewModel : BaseViewModel
     /// recommendation is set. Derived from the recommended role on the matching state.
     /// </summary>
     public bool? ToggleRecommendedState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended, _build) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
     /// Derived from the WindowsDefault role on the matching state.
     /// </summary>
     public bool? ToggleDefaultState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault, _build) : null;
 
     // A toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role: the role-bearing
     // state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null). HasRole defaults to PowerContext.Always so
     // PowerCfg AC/DC roles never match; a non-Enabled/Disabled role label (e.g. a
     // Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
-    private static bool? RoleToggleState(Setting setting, RoleKind kind)
+    private static bool? RoleToggleState(Setting setting, RoleKind kind, WinBuild build)
     {
         foreach (var st in setting.States)
-            if (st.HasRole(kind))
+            if (st.HasRole(kind, build))
                 return st.Label switch { "Enabled" => true, "Disabled" => false, _ => (bool?)null };
         return null;
     }
@@ -520,11 +523,11 @@ public partial class SettingItemViewModel : BaseViewModel
     // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
     // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
     // roles do NOT (their recommended/default surface via the AcSelection*/DcSelection* accessors).
-    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind)
+    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind, WinBuild build)
     {
         var states = setting.States;
         for (int i = 0; i < states.Count; i++)
-            if (states[i].HasRole(kind)) return i;
+            if (states[i].HasRole(kind, build)) return i;
         return null;
     }
 
@@ -540,9 +543,9 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public int? SelectionRecommendedIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : null;
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, _build) : null;
     public int? SelectionDefaultIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault) : null;
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, _build) : null;
 
     private string? OptionDisplayText(int? index)
     {
@@ -992,6 +995,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Unpack config data
         Setting = config.Setting;
+        _build = config.Build;
         OptionWarnings = config.OptionWarnings;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
         SettingId = config.SettingId;
@@ -1036,6 +1040,7 @@ public partial class SettingItemViewModel : BaseViewModel
             regeditLauncher,
             eventBus,
             _localizationService,
+            _build,
             new TechnicalDetailLabels
             {
                 Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",
@@ -1264,7 +1269,17 @@ public partial class SettingItemViewModel : BaseViewModel
                     }
                     else if (state.CurrentValue != null)
                     {
+                        // Keep the synthetic "Custom" option in sync with the re-detected index: append it when the
+                        // reading resolves to Custom and none exists (else the ComboBox binds a -1 with no matching
+                        // item and renders BLANK - mirrors the factory's load-time append), and drop it once the
+                        // reading is a real option (mirrors HandleValueChangedAsync). The whole method already runs
+                        // under _isUpdatingFromEvent, guarding these programmatic control updates.
+                        bool isCustomIndex = state.CurrentValue is int ci && ci == ComboBoxConstants.CustomStateIndex;
+                        if (isCustomIndex)
+                            EnsureCustomOption();
                         SelectedValue = state.CurrentValue;
+                        if (!isCustomIndex)
+                            RemoveCustomOption();
                     }
                     break;
                 case InputType.NumericRange:
@@ -1288,6 +1303,36 @@ public partial class SettingItemViewModel : BaseViewModel
             ComputeBadgeState();
             RefreshTechnicalDetails();
         }
+    }
+
+    // Mirrors SettingViewModelFactory.BuildCatalogSelectionOptions' synthetic "Custom" option: appends one option
+    // whose Value is the Custom sentinel when a re-detect resolves outside the known options and none exists yet,
+    // so the ComboBox has an item to bind the -1 selection to instead of rendering blank.
+    private void EnsureCustomOption()
+    {
+        if (ComboBoxOptions.Any(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex))
+            return;
+        ComboBoxOptions.Add(new ComboBoxDisplayOption(LocalizeCustomOptionLabel(), ComboBoxConstants.CustomStateIndex, null));
+    }
+
+    // Mirrors HandleValueChangedAsync: removes the synthetic "Custom" option once a real option index is selected.
+    private void RemoveCustomOption()
+    {
+        var customOption = ComboBoxOptions.FirstOrDefault(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
+        if (customOption != null)
+            ComboBoxOptions.Remove(customOption);
+    }
+
+    // The localized "Custom" option label, mirroring SettingViewModelFactory's resolution:
+    // Setting_{id}_Option_Custom, then the generic Common_CustomState, then the literal "Custom".
+    private string LocalizeCustomOptionLabel()
+    {
+        string? Localized(string key)
+        {
+            var text = _localizationService.GetString(key);
+            return (text.Length >= 2 && text[0] == '[' && text[^1] == ']') ? null : text;
+        }
+        return Localized($"Setting_{SettingId}_Option_Custom") ?? Localized("Common_CustomState") ?? "Custom";
     }
 
     // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it.
@@ -1926,10 +1971,10 @@ public partial class SettingItemViewModel : BaseViewModel
             // (States order 1:1 with options).
             if (SelectedValue is int selIdx && selIdx >= 0 && selIdx < Setting.States.Count)
             {
-                matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended))
-                    && Setting.States[selIdx].HasRole(RoleKind.Recommended);
-                matchesDefault = Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault))
-                    && Setting.States[selIdx].HasRole(RoleKind.WindowsDefault);
+                matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build))
+                    && Setting.States[selIdx].HasRole(RoleKind.Recommended, _build);
+                matchesDefault = Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build))
+                    && Setting.States[selIdx].HasRole(RoleKind.WindowsDefault, _build);
             }
             else { matchesRecommended = false; matchesDefault = false; }
         }
@@ -2142,7 +2187,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike) return ToggleRecommendedState.HasValue;
         if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
-            return Setting.States.Any(st => st.HasRole(RoleKind.Recommended));
+            return Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build));
         return AcRecommendedValue.HasValue || AcSelectionRecommendedIndex.HasValue
             || DcRecommendedValue.HasValue || DcSelectionRecommendedIndex.HasValue;
     }
@@ -2153,7 +2198,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike) return ToggleDefaultState.HasValue;
         if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
-            return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault));
+            return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build));
         return AcDefaultValue.HasValue || AcSelectionDefaultIndex.HasValue
             || DcDefaultValue.HasValue || DcSelectionDefaultIndex.HasValue;
     }
@@ -2223,7 +2268,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         bool hasToggleData = isToggleLike && (ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue);
         bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting
-            && Setting.States.Any(st => st.HasRole(RoleKind.Recommended) || st.HasRole(RoleKind.WindowsDefault));
+            && Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build) || st.HasRole(RoleKind.WindowsDefault, _build));
         bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
             || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue
             || DcRecommendedValue.HasValue || DcDefaultValue.HasValue

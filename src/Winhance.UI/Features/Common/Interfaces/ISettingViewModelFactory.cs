@@ -19,5 +19,6 @@ public interface ISettingViewModelFactory
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
-        string? compatibilityMessage);
+        string? compatibilityMessage,
+        WinBuild build = default);
 }

@@ -87,6 +87,19 @@ public sealed class WindowsStateWriter : IStateWriter
         return _reg.ModifyBinaryByte(path, target.ValueName!, byteIndex, value);
     }
 
+    public bool SetRegistryStringFlag(RegTarget target, string path, int flagMask, int absentBase, bool set)
+    {
+        // Flag branch: read-modify-write of a decimal-string flags value, preserving unrelated bits.
+        // An absent or unparseable current value starts from the OS-default base rather than 0.
+        if (!_reg.CreateKey(path))
+            return false;
+        long flags = _reg.GetValue(path, target.ValueName!) is string raw && long.TryParse(raw, out var parsed)
+            ? parsed
+            : absentBase;
+        flags = set ? flags | (uint)flagMask : flags & ~(long)flagMask;
+        return _reg.SetValue(path, target.ValueName!, flags.ToString(), target.Type);
+    }
+
     public bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue)
     {
         // SetCompositeSubValue does its own CreateKey + re-read-merge-write per call.

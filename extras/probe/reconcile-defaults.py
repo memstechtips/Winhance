@@ -108,6 +108,15 @@ def reading_for_registry(trec, mtarget):
 
     raw = _conv_value(trec["effectiveValue"])
 
+    sfm = mtarget.get("stringFlagMask")
+    if sfm is not None:
+        if isinstance(raw, str):
+            try:
+                return (((int(raw) & sfm) == sfm), True)
+            except ValueError:
+                return (None, False)
+        return (None, False)
+
     bit, bidx, bonly, comp = (mtarget["bitMask"], mtarget["byteIndex"],
                               mtarget["byteOnly"], mtarget["compositeStringKey"])
 
@@ -308,6 +317,10 @@ def analyse(manifest, probes):
             continue
 
         for probe in probes:
+            if setting["id"] not in probe["_settings_by_id"]:
+                # setting added to the catalog after this probe was captured
+                skipped["not-in-probe"] = skipped.get("not-in-probe", 0) + 1
+                continue
             build, rev = probe["_build"], probe["_ubr"]
             wd = set(wd_labels_for_build(setting, build, rev))
             if not wd:

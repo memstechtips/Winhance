@@ -120,6 +120,24 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void String_flag_target_emits_a_flag_set_op_keyed_off_the_payload()
+    {
+        var reg = Reg("Flags", "Flags", @"HKCU\MouseKeys") with { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(true) } },
+            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(false) } });
+
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryStringFlagSetOp>());
+        Assert.Equal(0x04, on.FlagMask);
+        Assert.Equal(62, on.AbsentBase);
+        Assert.True(on.Set);
+        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+
+        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryStringFlagSetOp>()).Set);
+    }
+
+    [Fact]
     public void ByteOnly_target_emits_a_byte_set_op_with_the_payload_byte()
     {
         var reg = Reg("Settings", "Settings", @"HKCU\StuckRects3") with { ByteIndex = 8, ByteOnly = true };

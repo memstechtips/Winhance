@@ -43,6 +43,24 @@ public class RegTargetReaderTests
     }
 
     [Fact]
+    public void String_flag_mask_reduces_to_the_bit_state()
+    {
+        var t = new RegTarget("K", new[] { @"HKCU\A" }, "Flags", RegistryValueKind.String)
+        { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
+
+        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "62"));
+        Assert.True(present);
+        Assert.Equal(true, val);      // default 62 has MKF_HOTKEYACTIVE set
+
+        (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "130"));
+        Assert.True(present);
+        Assert.Equal(false, val);     // 130 lacks the bit
+
+        (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "not-a-number"));
+        Assert.False(present);        // unparseable reads as absent, never as a guess
+    }
+
+    [Fact]
     public void Absent_everywhere_is_not_present()
     {
         var t = Reg(new[] { @"HKLM\A", @"HKCU\B" });

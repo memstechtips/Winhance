@@ -35,7 +35,7 @@ public class RelationshipResolverReverseTests
         // dependent "a" requires "b" in "On"; a is currently active ("On"); b just moved to "Off"
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
-            id => id == "a" ? "On" : "Off");
+            id => id == "a" ? "On" : "Off", default);
         Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off" && x.IsReset);
     }
 
@@ -44,7 +44,7 @@ public class RelationshipResolverReverseTests
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         // b moved to "On" - still satisfies the requirement
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On"));
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On", default));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class RelationshipResolverReverseTests
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         // requirement broken (b=Off) but a is already at its default "Off"
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => "Off"));
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => "Off", default));
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class RelationshipResolverReverseTests
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) },
             new Link("b", LinkKind.Requires, "On") { ReverseCascade = false });
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => id == "a" ? "On" : "Off"));
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => id == "a" ? "On" : "Off", default));
     }
 
     // ---- reverse sync ----

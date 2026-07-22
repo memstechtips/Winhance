@@ -39,9 +39,10 @@ internal static class RecommendedSettingsResolver
 
     // Returns the index of the first State carrying an UNCONDITIONAL Recommended role. Scoped to Selection -
     // returns null for Toggle/Slider/Action/PowerPlan. A powercfg Selection's roles are CONTEXT-scoped
-    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. No merged (-win10) setting is a
-    // Selection (the 6 aliases are This PC toggles), so the Selection roles are unconditional and this is
-    // build-invariant.
+    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. A merged Selection now exists
+    // (theme-mode-windows merges the per-OS theme defaults into one build-gated Selection), but its build-scoped
+    // role is the WindowsDefault, not the Recommended, so this Recommended lookup stays correct build-unaware; the
+    // OS-divergent WindowsDefault is resolved via the build-aware GetDefaultIndex overload below.
     internal static int? GetRecommendedIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
@@ -50,12 +51,27 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // As GetRecommendedIndex, but matches the WindowsDefault role.
+    // As GetRecommendedIndex, but matches the WindowsDefault role. Build-UNAWARE: matches only an unconditional
+    // WindowsDefault role, so a merged Selection whose Windows default is build-scoped (theme-mode-windows: Light is
+    // the Windows 11 default, with no Windows 10 default) resolves to null here. Use the build-aware overload below
+    // for the LIVE-build default.
     internal static int? GetDefaultIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
         for (int i = 0; i < setting.States.Count; i++)
             if (setting.States[i].HasRole(RoleKind.WindowsDefault)) return i;
+        return null;
+    }
+
+    // Build-aware GetDefaultIndex: matches a state's unconditional WindowsDefault role OR one whose build scope
+    // admits `build`. A merged Selection (theme-mode-windows) declares Light as the Windows 11 WindowsDefault via a
+    // build-scoped role invisible to the unaware overload, so the bulk reset skipped it; this resolves the state
+    // that is default on the live build (Light on Windows 11; none on Windows 10).
+    internal static int? GetDefaultIndex(Setting setting, WinBuild build)
+    {
+        if (setting.Control != ControlKind.Selection) return null;
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].HasRole(RoleKind.WindowsDefault, build)) return i;
         return null;
     }
 
@@ -116,7 +132,7 @@ internal static class RecommendedSettingsResolver
         if (CatalogToggleState.GetDefault(setting, build) is not null) return true;
         if (setting.Numeric is { } numeric && numeric.WindowsDefault.Count > 0) return true;
         if (setting.Control == ControlKind.Selection
-            && setting.States.Any(s => s.Roles.Any(r => r.Kind == RoleKind.WindowsDefault)))
+            && setting.States.Any(s => s.HasRole(RoleKind.WindowsDefault, build)))
             return true;
         return false;
     }

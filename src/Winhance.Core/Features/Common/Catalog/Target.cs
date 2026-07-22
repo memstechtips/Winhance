@@ -26,6 +26,8 @@ public sealed record RegTarget(
     public byte? BitMask { get; init; }                 // bit-within-byte
     public bool ByteOnly { get; init; }                 // single-byte edit, preserve rest
     public string? CompositeStringKey { get; init; }    // packed-string sub-key
+    public int? StringFlagMask { get; init; }           // decimal-string flags: bit test/edit
+    public int StringFlagAbsentBase { get; init; }      // flags assumed when the value is absent (OS default)
     public bool PerNetworkInterface { get; init; }      // "all subkeys must match" read semantics
     public bool PerMonitor { get; init; }
 }

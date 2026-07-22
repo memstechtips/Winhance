@@ -133,7 +133,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["PreventDeviceEncryption"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["PreventDeviceEncryption"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -194,7 +194,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["MaintenanceDisabled"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["MaintenanceDisabled"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -225,7 +225,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Disabled"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["Disabled"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -548,13 +548,12 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["FeatureManagementEnabled"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["FeatureManagementEnabled"] = Of(0) },
                 },
@@ -673,7 +672,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["PreInstalledAppsEverEnabled"] = Absent },
+                    Set = new Dictionary<string, StateValue> { ["PreInstalledAppsEverEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -842,7 +841,7 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(1).OrAbsent(),
@@ -853,7 +852,7 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
@@ -1171,7 +1170,7 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["ShowedToastAtLevel"] = Of(3).OrAbsent(),
@@ -1183,14 +1182,14 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["ShowedToastAtLevel"] = Of(1),
-                        ["AllowTelemetry"] = Of(0),
-                        ["MaxTelemetryAllowed"] = Of(0),
-                        ["AITEnable"] = Of(0),
+                        ["ShowedToastAtLevel"] = Of(1).OrAbsent(),
+                        ["AllowTelemetry"] = OneOf(0, 1),
+                        ["MaxTelemetryAllowed"] = OneOf(0, 1),
+                        ["AITEnable"] = Of(0).OrAbsent(),
                     },
                 },
             },
@@ -1218,8 +1217,8 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["Enabled"] = Of(1),
-                        ["Value"] = Of(1),
+                        ["Enabled"] = Of(1).OrAbsent(),
+                        ["Value"] = Of(1).OrAbsent(),
                     },
                 },
                 new SettingState
@@ -1231,7 +1230,7 @@ public static class PrivacyOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(0),
-                        ["Value"] = Of(0),
+                        ["Value"] = Of(0).OrAbsent(),
                     },
                 },
             },
@@ -1259,7 +1258,7 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["TailoredExperiencesWithDiagnosticDataEnabled"] = Of(1),
+                        ["TailoredExperiencesWithDiagnosticDataEnabled"] = OneOf(1, 2),
                         ["DisableTailoredExperiencesWithDiagnosticData"] = Of(0),
                     },
                 },
@@ -1555,7 +1554,7 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Value"] = Of("Allow").OrAbsent(),
@@ -1565,7 +1564,7 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
@@ -1752,13 +1751,13 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["TurnOffWindowsCopilot"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["TurnOffWindowsCopilot"] = Of(1) },
                 },
@@ -2115,13 +2114,13 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["IsCopilotAvailable"] = Absent },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["IsCopilotAvailable"] = Of(0) },
                 },
@@ -2148,13 +2147,13 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["IsUserEligible"] = Absent },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["IsUserEligible"] = Of(0) },
                 },
@@ -2269,7 +2268,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Value"] = Of("Allow").OrAbsent() },
+                    Set = new Dictionary<string, StateValue> { ["Value"] = OneOf("Allow", "Prompt").OrAbsent() },
                 },
                 new SettingState
                 {
@@ -2467,7 +2466,7 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["InsightsEnabled"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["InsightsEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {

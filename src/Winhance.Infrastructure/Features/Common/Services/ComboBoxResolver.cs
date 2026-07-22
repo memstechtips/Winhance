@@ -11,7 +11,12 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class ComboBoxResolver : IComboBoxResolver
 {
+    private readonly IWindowsVersionService _versionService;
 
+    public ComboBoxResolver(IWindowsVersionService versionService)
+    {
+        _versionService = versionService;
+    }
 
     /// <summary>Resolves live registry/powercfg readings to a selection option index, reading
     /// States/Targets. Guarded by ComboBoxResolverSettingConformanceTests.</summary>
@@ -101,10 +106,16 @@ public class ComboBoxResolver : IComboBoxResolver
         bool allBackingValuesAbsent = anyBacking && allBackingAbsent;
 
         if (allBackingValuesAbsent || states.Any(s => s.IsFallback))
+        {
+            // Build-aware for the Always-context default so a merged Selection whose Windows default is build-scoped
+            // (theme-mode-windows) resolves to the live build's default option instead of Custom. The AC-context
+            // check stays context-based (power roles are never build-scoped).
+            var build = new WinBuild(_versionService.GetWindowsBuildNumber(), _versionService.GetWindowsBuildRevision());
             for (int i = 0; i < states.Count; i++)
-                if (states[i].HasRole(RoleKind.WindowsDefault, PowerContext.Always)
+                if (states[i].HasRole(RoleKind.WindowsDefault, build, PowerContext.Always)
                     || states[i].HasRole(RoleKind.WindowsDefault, PowerContext.AC))
                     return i;
+        }
 
         // (h) Custom.
         return ComboBoxConstants.CustomStateIndex;

@@ -19,6 +19,7 @@ public class ApplyExecutorTests
         public bool LockKey(RegTarget t, string path) { Calls.Add($"LK {path}"); return true; }
         public bool SetRegistryBit(RegTarget t, string path, int byteIndex, byte bitMask, bool set) { Calls.Add($"B {path}[{byteIndex}] 0x{bitMask:X2}={set}"); return !FailRegistryWrites; }
         public bool SetRegistryByte(RegTarget t, string path, int byteIndex, byte value) { Calls.Add($"Y {path}[{byteIndex}]=0x{value:X2}"); return !FailRegistryWrites; }
+        public bool SetRegistryStringFlag(RegTarget t, string path, int flagMask, int absentBase, bool set) { Calls.Add($"F {path} 0x{flagMask:X2}={set}"); return !FailRegistryWrites; }
         public bool SetRegistryComposite(RegTarget t, string path, string compositeKey, string? subValue) { Calls.Add($"C {path}[{compositeKey}]={subValue ?? "<del>"}"); return !FailRegistryWrites; }
         public bool WriteRegistryPerSubkey(RegTarget t, string parentPath, object value) { Calls.Add($"PW {parentPath}={value}"); return !FailRegistryWrites; }
         public bool DeleteRegistryPerSubkey(RegTarget t, string parentPath) { Calls.Add($"PD {parentPath}"); return !FailRegistryWrites; }

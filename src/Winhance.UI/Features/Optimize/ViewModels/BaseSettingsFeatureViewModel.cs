@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Dispatching;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
@@ -35,6 +37,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _builderModeExitedSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
+
+    // Related-card refresh coalescing (Item B): a burst of relationship applies is drained once by a ~300ms
+    // UI-thread debounce timer. The pending set is guarded (mutated off the UI thread in QueueRelatedRefresh,
+    // drained on the UI thread in OnRelatedRefreshTick); the timer is created and driven only on the UI thread.
+    private readonly object _relatedRefreshLock = new();
+    private readonly HashSet<SettingItemViewModel> _pendingRelatedRefresh = new();
+    private DispatcherQueueTimer? _relatedRefreshTimer;
 
     [ObservableProperty]
     public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
@@ -134,29 +143,168 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (!_settingsById.TryGetValue(evt.SettingId, out var setting))
+        // Exact-id verbatim path (unchanged): when the applied setting lives on THIS feature, update its own card
+        // and its children's ParentIsEnabled directly from the event payload. The master-ads flow relies on this.
+        if (_settingsById.TryGetValue(evt.SettingId, out var setting))
+        {
+            _dispatcherService.RunOnUIThread(() =>
+            {
+                setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+
+                // Update children's ParentIsEnabled if this setting has any children
+                if (_childrenByParentId.TryGetValue(evt.SettingId, out var children))
+                {
+                    bool parentEnabled = setting.InputType switch
+                    {
+                        InputType.Toggle => setting.IsSelected,
+                        InputType.Selection => setting.SelectedValue is int index && index != 0,
+                        _ => setting.IsSelected
+                    };
+
+                    foreach (var child in children)
+                    {
+                        child.ParentIsEnabled = parentEnabled;
+                    }
+                }
+            });
+        }
+
+        // Related-card refresh: re-detect any loaded VM that shares a registry surface with, or is in the UiParent
+        // family of, the applied setting - even when the applied setting lives on a DIFFERENT feature (so this runs
+        // regardless of the exact-id lookup above). Re-detection publishes no events, so there is no feedback loop.
+        QueueRelatedRefresh(evt.SettingId);
+    }
+
+    // Coalesces re-detection of the settings related to an applied one. The applied setting is resolved from the
+    // static catalog (alias-normalized like CatalogSettingsRegistry) so a cross-feature apply still finds its
+    // relations. A gesture can publish 1 root + N relationship-leaf events, so the pending VM set is drained once
+    // by the ~300ms debounce timer rather than per event.
+    private void QueueRelatedRefresh(string appliedSettingId)
+    {
+        var applied = SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(appliedSettingId), out var a) ? a : null;
+        if (applied is null)
             return;
 
-        _dispatcherService.RunOnUIThread(() =>
+        var byId = _settingsById; // volatile snapshot; the dictionary is swapped wholesale, never mutated in place
+        var related = new List<SettingItemViewModel>();
+        foreach (var vm in byId.Values)
         {
-            setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+            var candidate = vm.Setting;
+            if (candidate is null || candidate.Id == applied.Id)
+                continue;
+            if (SharesRegistrySurface(applied, candidate) || IsUiParentFamily(applied, candidate))
+                related.Add(vm);
+        }
 
-            // Update children's ParentIsEnabled if this setting has any children
-            if (_childrenByParentId.TryGetValue(evt.SettingId, out var children))
+        if (related.Count == 0)
+            return;
+
+        lock (_relatedRefreshLock)
+        {
+            foreach (var vm in related)
+                _pendingRelatedRefresh.Add(vm);
+        }
+
+        _dispatcherService.RunOnUIThread(ArmRelatedRefreshTimer);
+    }
+
+    // UI thread. Creates the debounce timer lazily (its Tick fires on the UI thread) and restarts the ~300ms
+    // interval on every event, so a burst of relationship-leaf applies re-detects the union exactly once.
+    private void ArmRelatedRefreshTimer()
+    {
+        if (_relatedRefreshTimer is null)
+        {
+            var queue = DispatcherQueue.GetForCurrentThread();
+            if (queue is null)
+                return; // no UI dispatcher on this thread - cannot schedule (never happens on the real UI thread)
+            _relatedRefreshTimer = queue.CreateTimer();
+            _relatedRefreshTimer.Interval = TimeSpan.FromMilliseconds(300);
+            _relatedRefreshTimer.IsRepeating = false;
+            _relatedRefreshTimer.Tick += (_, _) => OnRelatedRefreshTick();
+        }
+        _relatedRefreshTimer.Stop();
+        _relatedRefreshTimer.Start();
+    }
+
+    // UI thread (timer Tick). Drains the pending set and re-detects it as one subset. Respects the same Builder-mode
+    // guard as RefreshSettingStatesAsync: Builder authors un-applied state, so a live re-read there would clobber it.
+    private void OnRelatedRefreshTick()
+    {
+        List<SettingItemViewModel> subset;
+        lock (_relatedRefreshLock)
+        {
+            subset = _pendingRelatedRefresh.ToList();
+            _pendingRelatedRefresh.Clear();
+        }
+
+        if (subset.Count == 0 || _applicationModeService.CurrentMode == WinhanceMode.Builder)
+            return;
+
+        RefreshRelatedStatesAsync(subset).FireAndForget(_logService);
+    }
+
+    // Re-reads the given subset's live state via the existing lightweight primitive and applies each result on the
+    // UI thread - the body of RefreshSettingStatesAsync scoped to a subset. Swallow-logs failures.
+    private async Task RefreshRelatedStatesAsync(IReadOnlyList<SettingItemViewModel> subset)
+    {
+        try
+        {
+            var states = await _settingsLoadingService.RefreshSettingStatesAsync(subset);
+
+            _dispatcherService.RunOnUIThread(() =>
             {
-                bool parentEnabled = setting.InputType switch
+                foreach (var vm in subset)
                 {
-                    InputType.Toggle => setting.IsSelected,
-                    InputType.Selection => setting.SelectedValue is int index && index != 0,
-                    _ => setting.IsSelected
-                };
-
-                foreach (var child in children)
-                {
-                    child.ParentIsEnabled = parentEnabled;
+                    if (states.TryGetValue(vm.SettingId, out var state))
+                        vm.UpdateStateFromSystemState(state);
                 }
-            }
-        });
+            });
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Related-card refresh failed: {ex.Message}");
+        }
+    }
+
+    // (a) Registry-surface overlap: the applied setting WROTE some (path, valueName) pairs (its ApplyOnly targets
+    // are included - they are written), and the candidate READS an overlapping pair, so the candidate's card is now
+    // stale. Every entry of Paths (a mirror list) is compared, case-insensitive on path and valueName.
+    private static bool SharesRegistrySurface(Setting applied, Setting candidate)
+    {
+        var appliedPairs = RegistrySurfacePairs(applied);
+        if (appliedPairs.Count == 0)
+            return false;
+        foreach (var pair in RegistrySurfacePairs(candidate))
+            if (appliedPairs.Contains(pair))
+                return true;
+        return false;
+    }
+
+    // A null valueName (key-existence) is its own token so it only matches another null, never a named value.
+    private const string KeyExistenceToken = "\0__keyexists__";
+
+    private static HashSet<(string, string)> RegistrySurfacePairs(Setting setting)
+    {
+        var pairs = new HashSet<(string, string)>();
+        foreach (var reg in setting.Targets.OfType<RegTarget>())
+        {
+            var value = reg.ValueName is null ? KeyExistenceToken : reg.ValueName.ToLowerInvariant();
+            foreach (var path in reg.Paths)
+                pairs.Add((path.ToLowerInvariant(), value));
+        }
+        return pairs;
+    }
+
+    // (b) UiParent family: the candidate is a sibling under the applied setting's (non-null) UiParent, the applied
+    // setting's parent, or a child whose UiParentId is the applied setting.
+    private static bool IsUiParentFamily(Setting applied, Setting candidate)
+    {
+        if (!string.IsNullOrEmpty(applied.UiParentId)
+            && (candidate.UiParentId == applied.UiParentId || candidate.Id == applied.UiParentId))
+            return true;
+        if (!string.IsNullOrEmpty(candidate.UiParentId) && candidate.UiParentId == applied.Id)
+            return true;
+        return false;
     }
 
     protected abstract string GetDisplayNameKey();
@@ -548,6 +696,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _builderModeExitedSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
+
+            _relatedRefreshTimer?.Stop();
+            _relatedRefreshTimer = null;
 
             if (Settings != null)
             {

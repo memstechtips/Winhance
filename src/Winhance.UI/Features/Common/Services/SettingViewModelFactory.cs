@@ -51,7 +51,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
-        string? compatibilityMessage)
+        string? compatibilityMessage,
+        WinBuild build = default)
     {
         // Derive the InputType from the catalog Setting's Control; it feeds the dispatch below and
         // config.InputType.
@@ -60,6 +61,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         var config = new SettingItemViewModelConfig
         {
             Setting = setting,
+            Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
             // Localize the catalog Display fields via the canonical keys (raw Display fallback).

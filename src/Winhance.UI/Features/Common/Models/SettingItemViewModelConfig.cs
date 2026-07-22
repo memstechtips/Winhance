@@ -12,6 +12,12 @@ namespace Winhance.UI.Features.Common.Models;
 public record SettingItemViewModelConfig
 {
     public required Setting Setting { get; init; }
+
+    /// <summary>The live Windows build, read once per load in SettingsLoadingService. Threaded onto the VM so its
+    /// build-aware default/badge resolution (a merged Selection's OS-divergent WindowsDefault, e.g. theme-mode-windows)
+    /// picks the state that is default on THIS OS. Defaults to build 0 (Windows 10 range) when unset.</summary>
+    public WinBuild Build { get; init; }
+
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; init; }
     public required string SettingId { get; init; }
     public required string Name { get; init; }

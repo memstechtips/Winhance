@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Win32;
+using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -25,6 +27,16 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 /// Run: dotnet test --filter ComboBoxResolverSettingConformance</summary>
 public class ComboBoxResolverSettingConformanceTests
 {
+    // A ComboBoxResolver needs a version service for the build-aware WindowsDefault fallback. These conformance
+    // facts exercise unconditional-default selections, so any build works; stub a Windows 11 build.
+    private static IWindowsVersionService StubVersion()
+    {
+        var m = new Mock<IWindowsVersionService>();
+        m.Setup(v => v.GetWindowsBuildNumber()).Returns(22631);
+        m.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        return m.Object;
+    }
+
     // A PowerCfgTarget's Set key re-keys to "PowerCfgValue" in the live readings; a RegTarget's key IS the reading
     // key. Mirrors ComboBoxResolver.ReadKeyForTarget (private) - the read-key mapping, not the resolver's logic.
     private static string ReadKeyForTarget(Setting setting, string targetKey) =>
@@ -52,7 +64,7 @@ public class ComboBoxResolverSettingConformanceTests
     [Fact]
     public void Canonical_state_reads_round_trip_to_that_state_index()
     {
-        var resolver = new ComboBoxResolver();
+        var resolver = new ComboBoxResolver(StubVersion());
         var selections = SettingCatalog.All.Where(s => s.Control == ControlKind.Selection).ToList();
 
         var mismatches = new List<string>();
@@ -93,7 +105,7 @@ public class ComboBoxResolverSettingConformanceTests
     [Fact]
     public void Detector_selections_with_empty_set_states_resolve_to_index_zero()
     {
-        var resolver = new ComboBoxResolver();
+        var resolver = new ComboBoxResolver(StubVersion());
         var detectorSelections = SettingCatalog.All
             .Where(s => s.Control == ControlKind.Selection && s.States.Count > 0 && s.States.All(st => st.Set.Count == 0))
             .ToList();
@@ -112,7 +124,7 @@ public class ComboBoxResolverSettingConformanceTests
     [Fact]
     public void DetectedIndex_reading_short_circuits_to_that_index()
     {
-        var resolver = new ComboBoxResolver();
+        var resolver = new ComboBoxResolver(StubVersion());
         var anySelection = SettingCatalog.All.First(s => s.Control == ControlKind.Selection);
         // A custom-detector DetectedIndex overrides value-matching for any setting.
         Assert.Equal(3, resolver.ResolveRawValuesToIndex(anySelection,
@@ -122,7 +134,7 @@ public class ComboBoxResolverSettingConformanceTests
     [Fact]
     public void All_backing_absent_resolves_to_the_windows_default_option()
     {
-        var resolver = new ComboBoxResolver();
+        var resolver = new ComboBoxResolver(StubVersion());
         // A synthetic 3-option single-key registry selection (Control derives to Selection): options A/B/C write
         // Val=1/2/3, option C is the WindowsDefault, and no state uses OrAbsent -> an all-absent reading hits the
         // allBackingValuesAbsent fallback (ComboBoxResolver.cs:194-245) and resolves to the WindowsDefault index.
@@ -141,7 +153,7 @@ public class ComboBoxResolverSettingConformanceTests
     [Fact]
     public void An_IsFallback_state_catches_an_unmatched_reading_as_the_windows_default()
     {
-        var resolver = new ComboBoxResolver();
+        var resolver = new ComboBoxResolver(StubVersion());
         // Same shape, but option C is ALSO the IsFallback catch-all -> even a present, unmatched reading resolves
         // to it (the old ResolveUnmatchedToDefault behaviour; ComboBoxResolver.cs:241).
         var setting = MakeRegSelection(windowsDefaultIndex: 2, fallbackIndex: 2);

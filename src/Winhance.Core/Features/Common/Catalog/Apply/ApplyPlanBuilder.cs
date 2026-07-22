@@ -78,6 +78,12 @@ public static class ApplyPlanBuilder
                             byte value = sv.WritePayload is { } yp ? Convert.ToByte(yp) : (byte)0;
                             ops.Add(new RegistryByteSetOp(reg, path, byteIndex, value));
                         }
+                        else if (reg.StringFlagMask is { } flagMask)
+                        {
+                            // Surgical flag edit within a decimal-string flags value: payload truthiness = flag state.
+                            bool setFlag = sv.WritePayload is { } fp && Convert.ToBoolean(fp);
+                            ops.Add(new RegistryStringFlagSetOp(reg, path, flagMask, reg.StringFlagAbsentBase, setFlag));
+                        }
                         else
                         {
                             // Plain value path. A lockable target (LockWhenValue set) is unlocked before the write

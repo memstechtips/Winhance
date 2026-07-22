@@ -2552,6 +2552,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.FileDocumentCheck,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser") },
             States = new[]
             {
@@ -2580,6 +2581,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.DatabaseSync,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\ProgramDataUpdater") },
             States = new[]
             {
@@ -2608,6 +2610,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.ChartLine,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator") },
             States = new[]
             {
@@ -2636,6 +2639,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Usb,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip") },
             States = new[]
             {
@@ -2664,6 +2668,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Harddisk,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector") },
             States = new[]
             {
@@ -2692,6 +2697,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.MessageAlert,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClient") },
             States = new[]
             {
@@ -2720,6 +2726,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Download,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload") },
             States = new[]
             {
@@ -2748,6 +2755,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.AlertOctagon,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Windows Error Reporting\QueueReporting") },
             States = new[]
             {
@@ -2776,6 +2784,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.ChartBar,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\PI\Sqm-Tasks") },
             States = new[]
             {
@@ -2804,6 +2813,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.BackupRestore,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\MareBackup") },
             States = new[]
             {
@@ -2832,6 +2842,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.RocketLaunch,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\StartupAppTask") },
             States = new[]
             {
@@ -2860,6 +2871,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.MapOutline,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Maps\MapsUpdateTask") },
             States = new[]
             {
@@ -2888,6 +2900,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.HarddiskPlus,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Autochk\Proxy") },
             States = new[]
             {
@@ -2917,6 +2930,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.AccountSupervisor,
                 IsSubjectivePreference = true,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Shell\FamilySafetyMonitor") },
             States = new[]
             {
@@ -2945,6 +2959,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.LightningBolt,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem") },
             States = new[]
             {
@@ -2974,7 +2989,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Robot,
                 AddedInVersion = "26.04.10",
             },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 }, ValidatesExistence = true },
             Targets = new Target[]
             {
                 new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration"),
@@ -3008,6 +3023,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.CalendarClock,
                 AddedInVersion = "26.04.10",
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Office\Office Actions Server") },
             States = new[]
             {
@@ -3700,21 +3716,24 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MouseVariant,
                 IsSubjectivePreference = true,
             },
-            Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys" }, "Flags", RegistryValueKind.String) },
+            // Flags is a decimal-string bitmask; 0x04 = MKF_HOTKEYACTIVE. Fresh installs ship "62"
+            // (bit set), so detection tests the bit and apply edits ONLY the bit, preserving the
+            // user's other MouseKeys options (the old fixed "126"/"130" writes clobbered them).
+            Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys" }, "Flags", RegistryValueKind.String) { StringFlagMask = 0x04, StringFlagAbsentBase = 62 } },
             States = new[]
             {
                 new SettingState
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of("126") },
+                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of(true).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of("130") },
+                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of(false) },
                 },
             },
         },

@@ -54,11 +54,14 @@ public class CatalogSettingStateProviderConformanceTests
     //  state" rule). These construct readings and assert against what Windows ships.
     // ============================================================================================================
 
-    private static bool Derive(Setting s, string? stateLabel)
-        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { StateLabel = stateLabel });
+    private static readonly WinBuild Win10 = new(19045);
+    private static readonly WinBuild Win11 = new(26200);
+
+    private static bool Derive(Setting s, string? stateLabel, WinBuild? build = null)
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { StateLabel = stateLabel }, build ?? Win11);
 
     private static bool DeriveNumeric(Setting s, int? acReadingSystemUnits)
-        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { Value = acReadingSystemUnits });
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { Value = acReadingSystemUnits }, Win11);
 
     [Fact]
     public void IsEnabled_registry_selection_is_modified_from_windows_default()
@@ -131,16 +134,35 @@ public class CatalogSettingStateProviderConformanceTests
         var offenders = new List<string>();
         foreach (var s in population)
         {
-            int windowsDefaults = s.States.Count(st =>
-                st.HasRole(RoleKind.WindowsDefault, PowerContext.Always) ||
-                st.HasRole(RoleKind.WindowsDefault, PowerContext.AC));
-            if (windowsDefaults != 1)
-                offenders.Add($"{s.Id}={windowsDefaults}");
+            // Per-build counting: an OS-divergent selection may legitimately anchor DIFFERENT states per build,
+            // or have NO anchor on one build (theme-mode-windows on Win10, whose true default is the
+            // apps-light/system-dark mix - not a representable state; DeriveIsEnabled defers there). What must
+            // never happen: two anchors live on the same build (ambiguous), or no anchor on ANY build (the
+            // dropped-anchor trap this fact originally pinned).
+            int CountFor(WinBuild b) => s.States.Count(st =>
+                st.HasRole(RoleKind.WindowsDefault, b, PowerContext.Always) ||
+                st.HasRole(RoleKind.WindowsDefault, b, PowerContext.AC));
+            int w10 = CountFor(Win10), w11 = CountFor(Win11);
+            if (w10 > 1 || w11 > 1 || (w10 == 0 && w11 == 0))
+                offenders.Add($"{s.Id}=w10:{w10},w11:{w11}");
         }
 
         Assert.True(offenders.Count == 0,
-            "Every gate-population selection must carry exactly one Windows-default anchor state for the DeriveIsEnabled " +
-            "invariant to be well-defined. Offenders (id=count): " + string.Join(", ", offenders));
+            "Every gate-population selection must carry at most one Windows-default anchor per build, and at least " +
+            "one on some build, for the DeriveIsEnabled invariant to be well-defined. Offenders: " + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void Os_divergent_selection_resolves_its_anchor_per_build()
+    {
+        // theme-mode-windows: Light Mode is the Windows default ONLY on Win11; Win10's true default is the
+        // apps-light/system-dark mix (not a representable state), so IsEnabled defers there.
+        var s = Catalog["theme-mode-windows"];
+        Assert.False(Derive(s, "Light Mode", Win11));   // at the Win11 default -> not enabled
+        Assert.True(Derive(s, "Dark Mode", Win11));     // non-default -> enabled
+        Assert.True(Derive(s, null, Win11));            // Custom -> enabled
+        Assert.False(Derive(s, "Light Mode", Win10));   // no Win10 anchor -> deferred
+        Assert.False(Derive(s, null, Win10));           // no Win10 anchor -> deferred
     }
 
     [Fact]
@@ -190,7 +212,10 @@ public class CatalogSettingStateProviderConformanceTests
                 },
             });
 
-        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver());
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
 
         var states = await provider.GetStatesAsync(new[] { sysmain! });
 

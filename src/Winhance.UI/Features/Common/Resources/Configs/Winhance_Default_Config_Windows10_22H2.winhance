@@ -936,6 +936,18 @@
             }
           },
           {
+            "Id": "theme-mode-apps",
+            "Name": "Apps Use Light Theme",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "theme-mode-system",
+            "Name": "Windows Uses Light Theme",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "theme-transparency",
             "Name": "Transparency effects",
             "IsSelected": true,

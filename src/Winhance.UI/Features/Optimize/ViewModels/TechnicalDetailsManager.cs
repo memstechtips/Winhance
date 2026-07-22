@@ -45,6 +45,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private readonly IDispatcherService _dispatcherService;
     private readonly IRegeditLauncher? _regeditLauncher;
     private readonly ILocalizationService _localizationService;
+    private readonly WinBuild _build;
     private readonly TechnicalDetailLabels _labels;
 
     public IRelayCommand<string> OpenRegeditCommand { get; }
@@ -57,6 +58,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         IRegeditLauncher? regeditLauncher,
         IEventBus? eventBus,
         ILocalizationService localizationService,
+        WinBuild build,
         TechnicalDetailLabels? labels = null)
     {
         _getSettingId = getSettingId;
@@ -65,6 +67,7 @@ internal sealed class TechnicalDetailsManager : IDisposable
         _dispatcherService = dispatcherService;
         _regeditLauncher = regeditLauncher;
         _localizationService = localizationService;
+        _build = build;
         _labels = labels ?? new TechnicalDetailLabels();
 
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
@@ -583,15 +586,18 @@ internal sealed class TechnicalDetailsManager : IDisposable
     private static SettingState? StateAtIndex(Setting setting, int index) =>
         index >= 0 && index < setting.States.Count ? setting.States[index] : null;
 
-    private static SettingState? RoleState(Setting setting, RoleKind kind, PowerContext context) =>
-        setting.States.FirstOrDefault(s => s.HasRole(kind, context));
+    // Build-aware (for the Always-context registry/task rows, so a merged Selection's OS-divergent WindowsDefault
+    // resolves to the live build's state). The AC/DC power rows call this too, but power roles are never
+    // build-scoped, so the build-aware overload is a semantics-preserving superset there.
+    private SettingState? RoleState(Setting setting, RoleKind kind, PowerContext context) =>
+        setting.States.FirstOrDefault(s => s.HasRole(kind, _build, context));
 
     /// <summary>The localized role marker for a state in a given context ("Recommended"/"Default"/both/"").</summary>
     private string FormatRole(SettingState state, PowerContext context)
     {
         var parts = new List<string>(2);
-        if (state.HasRole(RoleKind.Recommended, context)) parts.Add(_labels.Recommended);
-        if (state.HasRole(RoleKind.WindowsDefault, context)) parts.Add(_labels.Default);
+        if (state.HasRole(RoleKind.Recommended, _build, context)) parts.Add(_labels.Recommended);
+        if (state.HasRole(RoleKind.WindowsDefault, _build, context)) parts.Add(_labels.Default);
         return string.Join(", ", parts);
     }
 

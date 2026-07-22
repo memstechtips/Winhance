@@ -263,6 +263,8 @@ public class CatalogProbeManifestGeneratorTests
                 else w.WriteNumber("lockWhenValue", reg.LockWhenValue.Value);
                 if (reg.ByteIndex is null) w.WriteNull("byteIndex"); else w.WriteNumber("byteIndex", reg.ByteIndex.Value);
                 if (reg.BitMask is null) w.WriteNull("bitMask"); else w.WriteNumber("bitMask", reg.BitMask.Value);
+                if (reg.StringFlagMask is null) w.WriteNull("stringFlagMask"); else w.WriteNumber("stringFlagMask", reg.StringFlagMask.Value);
+                w.WriteNumber("stringFlagAbsentBase", reg.StringFlagAbsentBase);
                 w.WriteBoolean("byteOnly", reg.ByteOnly);
                 if (reg.CompositeStringKey is null) w.WriteNull("compositeStringKey");
                 else w.WriteString("compositeStringKey", reg.CompositeStringKey);

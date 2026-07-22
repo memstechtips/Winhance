@@ -50,7 +50,7 @@ public static class RelationshipResolver
     /// </summary>
     public static IReadOnlyList<ApplyAction> ResolveReverseCascade(
         string changedSettingId, string newStateLabel,
-        IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
+        IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf, WinBuild build)
     {
         var actions = new List<ApplyAction>();
 
@@ -71,7 +71,7 @@ public static class RelationshipResolver
             if (!broken)
                 continue;
 
-            var defaultState = dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault))?.Label;
+            var defaultState = dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
             if (defaultState != null && currentStateOf(dependent.Id) != defaultState)
                 actions.Add(new ApplyAction(dependent.Id, defaultState, IsReset: true));
         }

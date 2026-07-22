@@ -318,7 +318,7 @@ public class SettingApplicationService(
 
         var fwd = RelationshipResolver.ResolveForward(setting, targetLabel, currentStateOf);
         var sync = RelationshipResolver.ResolveReverseSync(setting.Id, SettingCatalog.All, currentStateOf);
-        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, SettingCatalog.All, currentStateOf);
+        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, SettingCatalog.All, currentStateOf, CurrentBuild());
 
         // Self-skip + visited loop guard. Seed with the setting being applied so a relationship pointing back at
         // it is never re-applied.
