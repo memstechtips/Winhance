@@ -1257,13 +1257,12 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(1) },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(0) },
                 },
@@ -1390,14 +1389,15 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -2415,28 +2415,30 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(1).OrAbsent(),
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(0).OrAbsent(),
                         ["HiddenByDefault"] = Of(0).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["System.IsPinnedToNameSpaceTree"] = Absent,
+                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2463,28 +2465,30 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(1).OrAbsent(),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(0).OrAbsent(),
                         ["HiddenByDefault"] = Of(0).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["System.IsPinnedToNameSpaceTree"] = Absent,
+                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },

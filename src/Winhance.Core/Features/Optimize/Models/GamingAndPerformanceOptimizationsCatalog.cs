@@ -561,13 +561,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["GPU Priority"] = Of(8) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["GPU Priority"] = Of(2) },
                 },
@@ -1527,13 +1526,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Automatic",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2).OrAbsent() },
                 },
             },
@@ -1813,12 +1812,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_DisabledRecommended",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Manual",
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
@@ -1878,13 +1878,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
@@ -2079,12 +2079,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Automatic",
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2) },
                 },
             },
@@ -2878,13 +2879,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["Task"] = Of(true) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["Task"] = Of(false) },
                 },
@@ -3340,15 +3340,14 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -3517,13 +3516,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("2") },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("0") },
                 },

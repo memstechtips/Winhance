@@ -279,6 +279,7 @@ public static class PrivacyOptimizationsCatalog
                 AddedInVersion = "26.04.01",
                 IsSubjectivePreference = true,
             },
+            Availability = new() { Builds = new[] { BuildRange.Between(22621, int.MaxValue) } },
             Targets = new Target[]
             {
                 new RegTarget("VerifiedAndReputablePolicyState", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy" }, "VerifiedAndReputablePolicyState", RegistryValueKind.DWord),

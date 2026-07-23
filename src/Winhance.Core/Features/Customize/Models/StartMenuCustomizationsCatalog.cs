@@ -259,15 +259,14 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowFrequentList"] = Of(1).OrAbsent() },
+                    Set = new Dictionary<string, StateValue> { ["ShowFrequentList"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowFrequentList"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["ShowFrequentList"] = Of(0).OrAbsent() },
                 },
             },
         },

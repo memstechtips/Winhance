@@ -358,15 +358,14 @@ public static class NotificationOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Enabled"] = Of(1).OrAbsent() },
+                    Set = new Dictionary<string, StateValue> { ["Enabled"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Enabled"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["Enabled"] = Of(0).OrAbsent() },
                 },
             },
         },
