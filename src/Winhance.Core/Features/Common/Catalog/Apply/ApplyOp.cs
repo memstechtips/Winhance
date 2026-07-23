@@ -29,6 +29,10 @@ public sealed record RegistryBitSetOp(RegTarget Target, string Path, int ByteInd
 /// edit, via ModifyBinaryByte).</summary>
 public sealed record RegistryByteSetOp(RegTarget Target, string Path, int ByteIndex, byte Value) : ApplyOp;
 
+/// <summary>Set or clear flag bits within a decimal-string flags value (e.g. accessibility Flags),
+/// preserving the other bits via read-modify-write; an absent value starts from the OS-default base.</summary>
+public sealed record RegistryStringFlagSetOp(RegTarget Target, string Path, int FlagMask, int AbsentBase, bool Set) : ApplyOp;
+
 /// <summary>Set (or, when <see cref="SubValue"/> is null, remove) one sub-key inside a packed ";"-delimited
 /// "key=value" REG_SZ value, preserving the other sub-keys (the read-merge-write for a
 /// CompositeStringKey setting).</summary>

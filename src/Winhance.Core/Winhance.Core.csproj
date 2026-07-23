@@ -16,8 +16,8 @@
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10"/>
     <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
          transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
-         GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
+         GHSA-w3x6-4m5h-cxqf CVE-2026-26171, GHSA-g8r8-53c2-pm3f CVE-2026-47304). 10.0.10 is the patched floor (fixes the <= 10.0.9 range); latest 10.x. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2"/>
   </ItemGroup>
 </Project>

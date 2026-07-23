@@ -147,7 +147,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["{645FF040-5081-101B-9F08-00AA002F954E}"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["{645FF040-5081-101B-9F08-00AA002F954E}"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -842,7 +842,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["AmbientLightingEnabled"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["AmbientLightingEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
@@ -907,7 +907,7 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["LegacyDefaultPrinterMode"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["LegacyDefaultPrinterMode"] = OneOf(0, -1) },
                 },
                 new SettingState
                 {
@@ -1257,13 +1257,12 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(1) },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["ShowTypeOverlay"] = Of(0) },
                 },
@@ -1390,14 +1389,15 @@ if (-not (Test-Path $icoPath)) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["FullPath"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -1429,7 +1429,10 @@ if (-not (Test-Path $icoPath)) {
                     Label = "Disabled",
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Hidden"] = Of(0) },
+                    // Clean installs ship Hidden=2 (Explorer's Folder Options "don't show" write, all three
+                    // clean-install fixtures); 0 is the legacy Winhance write. Both hide (Explorer shows
+                    // only on Hidden=1). Write payload stays 0 (first value).
+                    Set = new Dictionary<string, StateValue> { ["Hidden"] = OneOf(0, 2) },
                 },
             },
         },
@@ -1902,14 +1905,15 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["ShowEncryptCompressedColor"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -2414,28 +2418,30 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(1).OrAbsent(),
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(0).OrAbsent(),
                         ["HiddenByDefault"] = Of(0).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["System.IsPinnedToNameSpaceTree"] = Absent,
+                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{f874310e-b6b7-47dc-bc84-b9e6b38f5903}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2462,28 +2468,30 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(1).OrAbsent(),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(0).OrAbsent(),
                         ["HiddenByDefault"] = Of(0).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["System.IsPinnedToNameSpaceTree"] = Absent,
+                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
+                        ["HiddenByDefault"] = Absent,
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["System.IsPinnedToNameSpaceTree"] = Of(0),
                         ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2538,15 +2546,14 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["NavPaneExpandToCurrentFolder"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -3043,7 +3050,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "M/d/yyyy",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("M/d/yyyy").OrAbsent() },
                 },
                 new SettingState
@@ -3147,7 +3153,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = ". (Period)",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of(".").OrAbsent() },
                 },
                 new SettingState
@@ -3221,7 +3226,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Metric",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["iMeasure"] = Of("0").OrAbsent() },
                 },
                 new SettingState
@@ -3253,7 +3257,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = ". (Period)",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of(".").OrAbsent() },
                 },
                 new SettingState
@@ -3297,7 +3300,7 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["DisableAutoplay"] = Absent,
+                        ["DisableAutoplay"] = Of(0).OrAbsent(),
                         ["NoDriveTypeAutoRun"] = Absent,
                     },
                 },

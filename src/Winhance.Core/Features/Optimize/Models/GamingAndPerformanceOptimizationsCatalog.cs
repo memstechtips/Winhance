@@ -354,14 +354,15 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(3) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
+                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -383,7 +384,10 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Programs",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Win32PrioritySeparation"] = Of(38) },
+                    // Clean installs ship Win32PrioritySeparation=2 (all three clean-install fixtures),
+                    // which System Properties renders as "Programs"; 0x26 (38) is the dialog's own write
+                    // when Programs is picked. Both mean Programs. Write payload stays 38 (first value).
+                    Set = new Dictionary<string, StateValue> { ["Win32PrioritySeparation"] = OneOf(38, 2) },
                 },
                 new SettingState
                 {
@@ -560,13 +564,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["GPU Priority"] = Of(8) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["GPU Priority"] = Of(2) },
                 },
@@ -724,20 +727,35 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Graphics",
                 Icon = MaterialIcons.MonitorScreenshot,
             },
-            Targets = new Target[] { new RegTarget("GameDVR_FSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_FSEBehaviorMode", RegistryValueKind.DWord) },
+            Targets = new Target[]
+            {
+                new RegTarget("GameDVR_FSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_FSEBehaviorMode", RegistryValueKind.DWord),
+                new RegTarget("GameDVR_HonorUserFSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_HonorUserFSEBehaviorMode", RegistryValueKind.DWord),
+            },
             States = new[]
             {
                 new SettingState
                 {
+                    // Windows only honors GameDVR_FSEBehaviorMode when GameDVR_HonorUserFSEBehaviorMode is 1.
+                    // Clean installs ship FSEBehaviorMode=2 with Honor=0 (verified 2026-07-23), so the Honor
+                    // flag is the deciding signal: 0/absent = optimizations active (the Windows default).
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["GameDVR_FSEBehaviorMode"] = Of(0) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["GameDVR_FSEBehaviorMode"] = OneOf(2, 0).OrAbsent(),
+                        ["GameDVR_HonorUserFSEBehaviorMode"] = Of(0).OrAbsent(),
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["GameDVR_FSEBehaviorMode"] = Of(2) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["GameDVR_FSEBehaviorMode"] = Of(2),
+                        ["GameDVR_HonorUserFSEBehaviorMode"] = Of(1),
+                    },
                 },
             },
         },
@@ -1197,8 +1215,8 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["GameDVR_Enabled"] = Of(1),
-                        ["AppCaptureEnabled"] = Of(1),
-                        ["AllowGameDVR"] = Of(1),
+                        ["AppCaptureEnabled"] = Of(1).OrAbsent(),
+                        ["AllowGameDVR"] = Of(1).OrAbsent(),
                     },
                 },
                 new SettingState
@@ -1526,13 +1544,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Automatic",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2).OrAbsent() },
                 },
             },
@@ -1812,12 +1830,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_DisabledRecommended",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Manual",
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
@@ -1877,13 +1896,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
@@ -2078,12 +2097,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "ServiceOption_Automatic",
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2) },
                 },
             },
@@ -2551,6 +2571,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.FileDocumentCheck,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser") },
             States = new[]
             {
@@ -2579,6 +2600,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.DatabaseSync,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\ProgramDataUpdater") },
             States = new[]
             {
@@ -2607,6 +2629,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.ChartLine,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator") },
             States = new[]
             {
@@ -2635,6 +2658,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Usb,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip") },
             States = new[]
             {
@@ -2663,6 +2687,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Harddisk,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector") },
             States = new[]
             {
@@ -2691,6 +2716,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.MessageAlert,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClient") },
             States = new[]
             {
@@ -2719,6 +2745,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.Download,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload") },
             States = new[]
             {
@@ -2747,6 +2774,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.AlertOctagon,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Windows Error Reporting\QueueReporting") },
             States = new[]
             {
@@ -2775,6 +2803,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.ChartBar,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\PI\Sqm-Tasks") },
             States = new[]
             {
@@ -2803,6 +2832,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.BackupRestore,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\MareBackup") },
             States = new[]
             {
@@ -2831,6 +2861,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.RocketLaunch,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\StartupAppTask") },
             States = new[]
             {
@@ -2859,19 +2890,19 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.MapOutline,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Maps\MapsUpdateTask") },
             States = new[]
             {
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["Task"] = Of(true) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["Task"] = Of(false) },
                 },
@@ -2887,6 +2918,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.HarddiskPlus,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Autochk\Proxy") },
             States = new[]
             {
@@ -2916,6 +2948,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.AccountSupervisor,
                 IsSubjectivePreference = true,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Shell\FamilySafetyMonitor") },
             States = new[]
             {
@@ -2944,6 +2977,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Scheduled Tasks",
                 Icon = MaterialIcons.LightningBolt,
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem") },
             States = new[]
             {
@@ -2973,7 +3007,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Robot,
                 AddedInVersion = "26.04.10",
             },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 }, ValidatesExistence = true },
             Targets = new Target[]
             {
                 new TaskTarget("Task", @"\Microsoft\Windows\WindowsAI\RecallConfiguration"),
@@ -3007,6 +3041,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.CalendarClock,
                 AddedInVersion = "26.04.10",
             },
+            Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Office\Office Actions Server") },
             States = new[]
             {
@@ -3323,15 +3358,14 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -3500,13 +3534,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("2") },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("0") },
                 },
@@ -3699,21 +3732,24 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MouseVariant,
                 IsSubjectivePreference = true,
             },
-            Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys" }, "Flags", RegistryValueKind.String) },
+            // Flags is a decimal-string bitmask; 0x04 = MKF_HOTKEYACTIVE. Fresh installs ship "62"
+            // (bit set), so detection tests the bit and apply edits ONLY the bit, preserving the
+            // user's other MouseKeys options (the old fixed "126"/"130" writes clobbered them).
+            Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys" }, "Flags", RegistryValueKind.String) { StringFlagMask = 0x04, StringFlagAbsentBase = 62 } },
             States = new[]
             {
                 new SettingState
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of("126") },
+                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of(true).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of("130") },
+                    Set = new Dictionary<string, StateValue> { ["Flags"] = Of(false) },
                 },
             },
         },

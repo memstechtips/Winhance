@@ -128,4 +128,42 @@ public class CatalogDiscoveryPrecedenceTests
         Assert.Equal("On", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 1 })));
         Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 0 })));
     }
+
+    [Fact]
+    public void Present_but_unmatched_value_reads_custom_despite_fallback()
+    {
+        // Enabled=5 is PRESENT but matches neither Of(1).OrAbsent() nor Of(0): detection is honest and
+        // reports Custom (null) instead of falling to the IsFallback state.
+        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 5 });
+        Assert.Null(CatalogDiscovery.DetectState(AdSetting(), ctx));
+    }
+
+    [Fact]
+    public void Absent_unmatched_value_still_falls_to_fallback()
+    {
+        // Absence is what fallbacks are for: deciding value absent + no state pattern matching absence
+        // -> the IsFallback label, not Custom.
+        var setting = new Setting
+        {
+            Id = "s",
+            Display = new() { Name = "s", Description = "s" },
+            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "V", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
+                new SettingState { Label = "Off", IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
+            },
+        };
+
+        Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new())));
+    }
+
+    [Fact]
+    public void Present_value_matching_fallbacks_own_pattern_reads_fallback()
+    {
+        // Matched != fell through: a present value that matches the IsFallback state's OWN pattern
+        // (Enabled=1 vs Of(1).OrAbsent()) returns that state via the normal match, never Custom.
+        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
+        Assert.Equal("Enabled", CatalogDiscovery.DetectState(AdSetting(), ctx));
+    }
 }

@@ -70,11 +70,13 @@ public static class CatalogDiscovery
 
     /// <summary>Resolves a registry setting's state by precedence: a present group-policy target wins; else the
     /// first present target; else the first target (so its absence handling still applies). The chosen target's
-    /// value decides which state matches, so a binary toggle never reports Custom - it falls to the IsFallback
-    /// state when nothing matches. Mirrors how the old app read these (any single authoritative key decides)
-    /// without its bug of letting a stray lower-precedence key win. A setting whose default state is "key absent"
-    /// carries that absence on the deciding key's StateValue (Absent / Of(v).OrAbsent()), so a clean machine
-    /// resolves to its default through the normal match, not a role-based guess.</summary>
+    /// value decides which state matches. When nothing matches: a PRESENT deciding value is a value Winhance
+    /// doesn't recognize, so the setting honestly reports Custom (null); an ABSENT deciding value falls to the
+    /// IsFallback state (absence is what fallbacks are for). Mirrors how the old app read these (any single
+    /// authoritative key decides) without its bug of letting a stray lower-precedence key win. A setting whose
+    /// default state is "key absent" carries that absence on the deciding key's StateValue (Absent /
+    /// Of(v).OrAbsent()), so a clean machine resolves to its default through the normal match, not a
+    /// role-based guess.</summary>
     private static string? DetectByPrecedence(
         IReadOnlyList<SettingState> states, IStateReadings readings, IReadOnlyList<RegTarget> regTargets)
     {
@@ -102,7 +104,9 @@ public static class CatalogDiscovery
             }
         }
 
-        return fallback?.Label;
+        // Nothing matched. A present deciding value that no state recognizes is genuinely Custom (null);
+        // an absent deciding value still falls to the IsFallback state.
+        return Present(deciding.Key) ? null : fallback?.Label;
     }
 
     /// <summary>The raw current value of a numeric (slider) setting for the given context, or null when not

@@ -98,7 +98,7 @@ public class BulkSettingsActionService(
                     }
                     else
                     {
-                        var defaultIndex = RecommendedSettingsResolver.GetDefaultIndex(setting);
+                        var defaultIndex = RecommendedSettingsResolver.GetDefaultIndex(setting, currentBuild);
                         if (defaultIndex is int idx)
                         {
                             await settingApplicationService.ApplySettingAsync(new ApplySettingRequest

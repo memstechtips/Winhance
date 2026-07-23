@@ -59,6 +59,14 @@ public static class RegTargetReader
             return (null, false); // sub-key not present -> absent
         }
 
+        // Decimal-string flags bit test -> bool (e.g. accessibility Flags "62")
+        if (target.StringFlagMask is { } flagMask && raw is string flagStr)
+        {
+            if (long.TryParse(flagStr, out var flags))
+                return ((flags & flagMask) == flagMask, true);
+            return (null, false);
+        }
+
         // REG_BINARY bit test -> bool
         if (target.BitMask is { } mask && target.ByteIndex is { } maskIdx && raw is byte[] maskBlob)
         {

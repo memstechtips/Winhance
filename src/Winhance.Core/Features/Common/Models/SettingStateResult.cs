@@ -10,6 +10,11 @@ public sealed record SettingStateResult
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
 
+    /// <summary>Detection ran and could not place the setting on any known state: a toggle whose deciding
+    /// value matches no state, or a selection resolved to the Custom index. A parallel signal to
+    /// <see cref="IsEnabled"/> (the boolean modified-verdict), never a replacement for it. Defaults to false.</summary>
+    public bool IsCustomState { get; init; }
+
     /// <summary>Raw AC/DC powercfg values for a separate-mode power setting, so the UI
     /// reads AC/DC from a typed field. Null for non-powercfg settings.</summary>
     public int? AcValue { get; init; }

@@ -243,8 +243,13 @@ public class DialogService : IDialogService
                     : confirmationRequest.Title,
                 Content = contentPanel,
                 PrimaryButtonText = confirmationRequest.ConfirmButtonText,
+                SecondaryButtonText = confirmationRequest.SecondaryButtonText,
                 CloseButtonText = confirmationRequest.CancelButtonText,
-                DefaultButton = ContentDialogButton.Primary
+                // A three-button dialog defaults Enter to Cancel (the safe choice); the classic
+                // two-button shape keeps Primary, as before.
+                DefaultButton = confirmationRequest.SecondaryButtonText is null
+                    ? ContentDialogButton.Primary
+                    : ContentDialogButton.Close
             };
             ConfigureDialog(dialog);
 
@@ -252,6 +257,7 @@ public class DialogService : IDialogService
             return new ConfirmationResponse
             {
                 Confirmed = result == ContentDialogResult.Primary,
+                SecondaryChosen = result == ContentDialogResult.Secondary,
                 CheckboxChecked = checkBox?.IsChecked == true
             };
         }, new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });

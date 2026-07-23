@@ -126,6 +126,10 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             return item.SelectedIndex.Value;
         }
 
+        _logService.Log(LogLevel.Warning,
+            $"Config item '{item.Id}' is a selection but carries no resolvable value " +
+            "(no SelectedIndex, PowerSettings, or CustomStateValues); defaulting to option index 0. " +
+            "This usually means a stale toggle-era config entry for a setting that is now a selection.");
         return 0;
     }
 

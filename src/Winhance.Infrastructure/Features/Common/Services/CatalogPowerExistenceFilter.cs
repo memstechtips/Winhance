@@ -7,7 +7,9 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Reproduces the old PowerSettingsValidationService.FilterSettingsByExistenceAsync for the new catalog model,
+/// <summary>Existence gate for settings whose mechanism may not exist on this machine: powercfg GUIDs
+/// (with unhide-via-EnablementKey) and scheduled tasks (registered or not). Originally reproduced the old
+/// PowerSettingsValidationService.FilterSettingsByExistenceAsync for the new catalog model,
 /// branch-for-branch: keep a setting unless it validates existence AND has powercfg targets whose GUIDs are all
 /// absent (after attempting to unhide via the EnablementKey), or a checked target is hardware-controlled. The
 /// enablement write is the constant "Attributes"=0 the old EnablementRegistrySetting wrote, reproduced via
@@ -20,12 +22,14 @@ public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
     private const string Scheme = "SCHEME_CURRENT";
     private readonly IPowerSettingsQueryService _query;
     private readonly IWindowsRegistryService _registry;
+    private readonly IScheduledTaskService _tasks;
     private readonly ILogService _log;
 
-    public CatalogPowerExistenceFilter(IPowerSettingsQueryService query, IWindowsRegistryService registry, ILogService log)
+    public CatalogPowerExistenceFilter(IPowerSettingsQueryService query, IWindowsRegistryService registry, IScheduledTaskService tasks, ILogService log)
     {
         _query = query;
         _registry = registry;
+        _tasks = tasks;
         _log = log;
     }
 
@@ -33,24 +37,25 @@ public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
     {
         var bulk = await _query.GetAllPowerSettingsACDCAsync(Scheme).ConfigureAwait(false);
         if (bulk.Count == 0)
-        {
-            _log.Log(LogLevel.Warning, "[CatalogPowerExistenceFilter] Could not get bulk power settings, skipping validation");
-            return settings;
-        }
+            _log.Log(LogLevel.Warning, "[CatalogPowerExistenceFilter] Could not get bulk power settings; powercfg existence checks are skipped");
 
         var result = new List<Setting>();
         foreach (var setting in settings)
         {
             var targets = setting.Targets.OfType<PowerCfgTarget>().ToList();
-            if (!setting.Availability.ValidatesExistence || targets.Count == 0)
+            var taskTargets = setting.Targets.OfType<TaskTarget>().ToList();
+            if (!setting.Availability.ValidatesExistence || (targets.Count == 0 && taskTargets.Count == 0))
             {
                 result.Add(setting);
                 continue;
             }
 
-            var hasValid = false;
+            // When the bulk powercfg query failed, powercfg existence is inconclusive - keep those
+            // settings rather than hiding them on a probe failure. Task existence is independent.
+            var hasValid = targets.Count > 0 && bulk.Count == 0;
             foreach (var t in targets)
             {
+                if (hasValid) break;
                 if (bulk.ContainsKey(t.SettingGuid)) { hasValid = true; break; }
 
                 if (t.EnablementKey is { } ek && ek.ValueName is { } valueName)
@@ -67,6 +72,15 @@ public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
                         if (updated.ContainsKey(t.SettingGuid)) { hasValid = true; break; }
                     }
                 }
+            }
+
+            // A scheduled task exists when the OS can answer its enabled state at all (null = the
+            // task is not registered on this system, e.g. removed on this build or app not installed).
+            foreach (var t in taskTargets)
+            {
+                if (hasValid) break;
+                if (await _tasks.IsTaskEnabledAsync(t.TaskPath).ConfigureAwait(false) is not null)
+                    hasValid = true;
             }
 
             if (!hasValid)

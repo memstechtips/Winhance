@@ -34,6 +34,9 @@ public partial class SettingItemViewModel : BaseViewModel
     private readonly IApplicationModeService? _applicationModeService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
+    // Live Windows build (from config), for build-aware default/badge resolution of merged Selections
+    // (e.g. theme-mode-windows). Set once in the ctor before the initial badge computation.
+    private readonly WinBuild _build;
     private volatile bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
     private object? _pendingValue;
@@ -66,6 +69,13 @@ public partial class SettingItemViewModel : BaseViewModel
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
+
+    /// <summary>Detection could not place this setting on any known state (an unrecognized value).
+    /// For a toggle this renders the neutral overlay + Enabled/Disabled/Cancel dialog flow; for a
+    /// selection it drives the info adornment beside the ComboBox. Cleared when the user picks a real
+    /// state and the apply succeeds, or a refresh resolves a known state.</summary>
+    [ObservableProperty]
+    public partial bool IsCustomState { get; set; }
 
     [ObservableProperty]
     public partial bool IsApplying { get; set; }
@@ -456,23 +466,23 @@ public partial class SettingItemViewModel : BaseViewModel
     /// recommendation is set. Derived from the recommended role on the matching state.
     /// </summary>
     public bool? ToggleRecommendedState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended, _build) : null;
 
     /// <summary>
     /// True if Default maps to the enabled state, false if disabled, null if not derivable.
     /// Derived from the WindowsDefault role on the matching state.
     /// </summary>
     public bool? ToggleDefaultState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault) : null;
+        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault, _build) : null;
 
     // A toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role: the role-bearing
     // state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null). HasRole defaults to PowerContext.Always so
     // PowerCfg AC/DC roles never match; a non-Enabled/Disabled role label (e.g. a
     // Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
-    private static bool? RoleToggleState(Setting setting, RoleKind kind)
+    private static bool? RoleToggleState(Setting setting, RoleKind kind, WinBuild build)
     {
         foreach (var st in setting.States)
-            if (st.HasRole(kind))
+            if (st.HasRole(kind, build))
                 return st.Label switch { "Enabled" => true, "Disabled" => false, _ => (bool?)null };
         return null;
     }
@@ -503,7 +513,11 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (ToggleRecommendedState is bool v)
-                HandleToggleAsync(v).FireAndForget(_logService);
+                // fromCustomState while Custom: bypass the newValue==IsSelected guard (a Custom toggle
+                // sits at IsSelected=false, so a Disabled target would be silently swallowed - no write,
+                // no feedback) and clear the overlay on success. Quick-set is an explicit state pick,
+                // so no dialog (same reasoning as the Custom dialog flow's no-double-confirm).
+                HandleToggleAsync(v, fromCustomState: IsCustomState).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToRecommendedCommand;
 
@@ -511,7 +525,8 @@ public partial class SettingItemViewModel : BaseViewModel
         new RelayCommand(() =>
         {
             if (ToggleDefaultState is bool v)
-                HandleToggleAsync(v, resetToDefault: true).FireAndForget(_logService);
+                // fromCustomState while Custom: see SetToggleToRecommendedCommand.
+                HandleToggleAsync(v, resetToDefault: true, fromCustomState: IsCustomState).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToDefaultCommand;
 
@@ -520,11 +535,11 @@ public partial class SettingItemViewModel : BaseViewModel
     // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
     // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
     // roles do NOT (their recommended/default surface via the AcSelection*/DcSelection* accessors).
-    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind)
+    private static int? FindStateIndexWithRole(Setting setting, RoleKind kind, WinBuild build)
     {
         var states = setting.States;
         for (int i = 0; i < states.Count; i++)
-            if (states[i].HasRole(kind)) return i;
+            if (states[i].HasRole(kind, build)) return i;
         return null;
     }
 
@@ -540,9 +555,9 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public int? SelectionRecommendedIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended) : null;
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, _build) : null;
     public int? SelectionDefaultIndex =>
-        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault) : null;
+        Setting is { } s ? FindStateIndexWithRole(s, RoleKind.WindowsDefault, _build) : null;
 
     private string? OptionDisplayText(int? index)
     {
@@ -959,6 +974,15 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool IsPowerCfgSetting =>
         Setting?.Targets.OfType<PowerCfgTarget>().Any() == true;
 
+    /// <summary>The localized "Custom" state text - the toggle overlay's tooltip/automation name and
+    /// the a11y state announcement (SettingsCardItem.GetSettingStateText).</summary>
+    public string CustomStateText =>
+        _localizationService.GetString("Common_CustomState") ?? "Custom";
+
+    /// <summary>Tooltip for the selection Custom info adornment (the selection Custom banner string).</summary>
+    public string CustomStateSelectionTooltip =>
+        _localizationService.GetString("Common_CustomBanner_Selection") ?? string.Empty;
+
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
     public string OnBatteryText =>
@@ -992,6 +1016,7 @@ public partial class SettingItemViewModel : BaseViewModel
 
         // Unpack config data
         Setting = config.Setting;
+        _build = config.Build;
         OptionWarnings = config.OptionWarnings;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
         SettingId = config.SettingId;
@@ -1002,6 +1027,7 @@ public partial class SettingItemViewModel : BaseViewModel
         IconPack = config.IconPack;
         InputType = config.InputType;
         IsSelected = config.IsSelected;
+        IsCustomState = config.IsCustomState;
         OnText = config.OnText;
         OffText = config.OffText;
         ActionButtonText = config.ActionButtonText;
@@ -1036,6 +1062,7 @@ public partial class SettingItemViewModel : BaseViewModel
             regeditLauncher,
             eventBus,
             _localizationService,
+            _build,
             new TechnicalDetailLabels
             {
                 Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",
@@ -1116,6 +1143,16 @@ public partial class SettingItemViewModel : BaseViewModel
             if (InputType == InputType.Toggle || InputType == InputType.CheckBox)
             {
                 IsSelected = isEnabled;
+                // An EXTERNAL apply (config import, bulk apply, relationship refresh) just wrote a known
+                // state - the toggle is no longer Custom. Guarded with !IsApplying: the service publishes
+                // SettingAppliedEvent even on partial FAILURE, and for a self-apply the event bounce is
+                // enqueued to the dispatcher before the apply continuation resumes (EventBus.Publish runs
+                // inline inside ApplySettingAsync; RunOnUIThread enqueues from the background thread), so
+                // it lands here while IsApplying is still true. During a self-apply the VM's own
+                // success/failure path owns the flag - an unguarded clear would wipe the overlay a failed
+                // Custom-dialog apply deliberately keeps.
+                if (!IsApplying)
+                    IsCustomState = false;
             }
             else if (InputType == InputType.Selection)
             {
@@ -1130,10 +1167,18 @@ public partial class SettingItemViewModel : BaseViewModel
                     // system-state refresh would visibly correct the VM and flip the badge.
                     if (HasBattery && selDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcIdx))
                         DcValue = dcIdx;
+                    // The external AC/DC apply landed on known option indices - no longer Custom
+                    // (same self-apply guard as the toggle branch above).
+                    if (!IsApplying)
+                        IsCustomState = false;
                 }
                 else if (value != null)
                 {
                     SelectedValue = value;
+                    // A real option index means the selection is no longer Custom (mirrors the toggle
+                    // branch, same self-apply guard). A Custom sentinel or non-index payload leaves it.
+                    if (!IsApplying && value is int realIdx && realIdx != ComboBoxConstants.CustomStateIndex)
+                        IsCustomState = false;
                 }
             }
             else if (InputType == InputType.NumericRange)
@@ -1156,6 +1201,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
+            UpdateCustomStateBanner();
             RefreshTechnicalDetails();
         }
     }
@@ -1245,6 +1291,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 case InputType.Toggle:
                 case InputType.CheckBox:
                     IsSelected = state.IsEnabled;
+                    IsCustomState = state.IsCustomState;
                     break;
                 case InputType.Selection:
                     // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
@@ -1253,6 +1300,9 @@ public partial class SettingItemViewModel : BaseViewModel
                     // CurrentValue is not the active scheme GUID).
                     if (TryApplyDynamicPowerPlanOptions(state))
                         break;
+
+                    // The detection result's flag is the source of truth on refresh (mirrors the factory load).
+                    IsCustomState = state.IsCustomState;
 
                     if (SupportsSeparateACDC && Setting is { States.Count: > 0 } sel
                         && sel.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
@@ -1264,7 +1314,17 @@ public partial class SettingItemViewModel : BaseViewModel
                     }
                     else if (state.CurrentValue != null)
                     {
+                        // Keep the synthetic "Custom" option in sync with the re-detected index: append it when the
+                        // reading resolves to Custom and none exists (else the ComboBox binds a -1 with no matching
+                        // item and renders BLANK - mirrors the factory's load-time append), and drop it once the
+                        // reading is a real option (mirrors HandleValueChangedAsync). The whole method already runs
+                        // under _isUpdatingFromEvent, guarding these programmatic control updates.
+                        bool isCustomIndex = state.CurrentValue is int ci && ci == ComboBoxConstants.CustomStateIndex;
+                        if (isCustomIndex)
+                            EnsureCustomOption();
                         SelectedValue = state.CurrentValue;
+                        if (!isCustomIndex)
+                            RemoveCustomOption();
                     }
                     break;
                 case InputType.NumericRange:
@@ -1286,8 +1346,39 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
+            UpdateCustomStateBanner();
             RefreshTechnicalDetails();
         }
+    }
+
+    // Mirrors SettingViewModelFactory.BuildCatalogSelectionOptions' synthetic "Custom" option: appends one option
+    // whose Value is the Custom sentinel when a re-detect resolves outside the known options and none exists yet,
+    // so the ComboBox has an item to bind the -1 selection to instead of rendering blank.
+    private void EnsureCustomOption()
+    {
+        if (ComboBoxOptions.Any(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex))
+            return;
+        ComboBoxOptions.Add(new ComboBoxDisplayOption(LocalizeCustomOptionLabel(), ComboBoxConstants.CustomStateIndex, null));
+    }
+
+    // Mirrors HandleValueChangedAsync: removes the synthetic "Custom" option once a real option index is selected.
+    private void RemoveCustomOption()
+    {
+        var customOption = ComboBoxOptions.FirstOrDefault(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
+        if (customOption != null)
+            ComboBoxOptions.Remove(customOption);
+    }
+
+    // The localized "Custom" option label, mirroring SettingViewModelFactory's resolution:
+    // Setting_{id}_Option_Custom, then the generic Common_CustomState, then the literal "Custom".
+    private string LocalizeCustomOptionLabel()
+    {
+        string? Localized(string key)
+        {
+            var text = _localizationService.GetString(key);
+            return (text.Length >= 2 && text[0] == '[' && text[^1] == ']') ? null : text;
+        }
+        return Localized($"Setting_{SettingId}_Option_Custom") ?? Localized("Common_CustomState") ?? "Custom";
     }
 
     // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it.
@@ -1326,6 +1417,13 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (sender is ToggleSwitch toggle)
             HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
+    }
+
+    /// <summary>Click handler for the neutral Custom-state toggle overlay (SettingsCardItem's toggle
+    /// template renders it instead of the ToggleSwitch while IsCustomState).</summary>
+    public void OnCustomToggleClicked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        HandleCustomToggleClickAsync().FireAndForget(_logService);
     }
 
     public void OnCheckBoxClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -1434,17 +1532,24 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #region Apply Logic
 
-    private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false)
+    private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false, bool fromCustomState = false)
     {
         if (IsApplying || _isUpdatingFromEvent) return;
 
-        if (newValue == IsSelected) return;
+        // A Custom-state pick bypasses the equality guard: a Custom toggle sits at IsSelected=false,
+        // so picking Disabled (false) would otherwise be swallowed here.
+        if (!fromCustomState && newValue == IsSelected) return;
 
         if (IsBuilderMode)
         {
             // Builder mode: record the desired state only — never apply to the system,
             // never confirm, never show a restart banner.
             IsSelected = newValue;
+            if (fromCustomState)
+            {
+                IsCustomState = false;
+                UpdateCustomStateBanner();
+            }
             _hasChangedThisSession = true;
             ComputeBadgeState();
             _applicationModeService?.RecordBuilderEdit(new BuilderEdit
@@ -1458,11 +1563,17 @@ public partial class SettingItemViewModel : BaseViewModel
 
         try
         {
-            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(newValue);
-            if (!confirmed)
+            bool checkboxChecked = false;
+            if (!fromCustomState)
             {
-                OnPropertyChanged(nameof(IsSelected));
-                return;
+                // The Custom-state dialog already confirmed intent - never double-confirm.
+                var (confirmed, cb) = await HandleConfirmationIfNeededAsync(newValue);
+                if (!confirmed)
+                {
+                    OnPropertyChanged(nameof(IsSelected));
+                    return;
+                }
+                checkboxChecked = cb;
             }
 
             IsApplying = true;
@@ -1478,6 +1589,12 @@ public partial class SettingItemViewModel : BaseViewModel
             }
 
             IsSelected = newValue;
+            if (fromCustomState)
+            {
+                // On failure/exception the flag stays true (value untouched, overlay stays).
+                IsCustomState = false;
+                UpdateCustomStateBanner();
+            }
             _hasChangedThisSession = true;
             ComputeBadgeState();
             ShowRestartBannerIfNeeded();
@@ -1492,6 +1609,31 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             IsApplying = false;
         }
+    }
+
+    /// <summary>The Custom-state dialog flow: title = the setting's display name, message explains the
+    /// unrecognized value, buttons Enabled / Disabled / Cancel with Cancel as the default (safe Enter).
+    /// Cancel keeps the unrecognized value and the Custom rendering. A pick applies EXACTLY once via
+    /// HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed. Only
+    /// reachable from Custom - afterwards the toggle renders and behaves normally.</summary>
+    private async Task HandleCustomToggleClickAsync()
+    {
+        if (IsApplying || !IsCustomState) return;
+
+        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = Name,
+            Message = _localizationService.GetString("Common_CustomDialog_Message") ?? string.Empty,
+            ConfirmButtonText = _localizationService.GetString("Common_CustomDialog_Enabled") ?? "Enabled",
+            SecondaryButtonText = _localizationService.GetString("Common_CustomDialog_Disabled") ?? "Disabled",
+            CancelButtonText = _localizationService.GetString("Button_Cancel") ?? "Cancel",
+        });
+
+        if (r.Confirmed)
+            await HandleToggleAsync(true, fromCustomState: true);
+        else if (r.SecondaryChosen)
+            await HandleToggleAsync(false, fromCustomState: true);
+        // Cancel: keep the unrecognized value and the Custom rendering.
     }
 
     private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
@@ -1527,6 +1669,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 NumericValue = builderIntValue;
                 if (builderIntValue != ComboBoxConstants.CustomStateIndex)
                 {
+                    IsCustomState = false;
                     var customOption = ComboBoxOptions.FirstOrDefault(
                         o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
                     if (customOption != null)
@@ -1588,6 +1731,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 // Remove the Custom option once the user picks a defined value
                 if (intValue != ComboBoxConstants.CustomStateIndex)
                 {
+                    IsCustomState = false;
                     var customOption = ComboBoxOptions.FirstOrDefault(
                         o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
                     if (customOption != null)
@@ -1638,7 +1782,10 @@ public partial class SettingItemViewModel : BaseViewModel
 
         if (IsBuilderMode)
         {
-            // Builder mode: AcValue/DcValue are already set by the caller; just record.
+            // Builder mode: AcValue/DcValue are already set by the caller; just record. A pick of known
+            // indices also clears a loaded Custom state (mirrors the toggle builder branch).
+            IsCustomState = false;
+            UpdateCustomStateBanner();
             _hasChangedThisSession = true;
             ComputeBadgeState();
             return;
@@ -1660,6 +1807,10 @@ public partial class SettingItemViewModel : BaseViewModel
             }
 
             _hasChangedThisSession = true;
+            // A successful AC/DC apply landed on known option indices - clear a loaded Custom state and
+            // its "Select an option" banner (mirrors the toggle/selection apply paths).
+            IsCustomState = false;
+            UpdateCustomStateBanner();
             ComputeBadgeState();
             ShowRestartBannerIfNeeded();
         }
@@ -1859,6 +2010,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         var banner = _statusBannerManager.ComputeBannerForValue(value, OptionWarnings, CrossGroupInfoMessage, ComboBoxOptions.Count, CompatibilityMessage);
         if (banner.HasValue) ApplyBanner(banner.Value);
+        UpdateCustomStateBanner();
     }
 
     /// <summary>
@@ -1898,6 +2050,26 @@ public partial class SettingItemViewModel : BaseViewModel
         StatusBannerSeverity = state.Severity;
     }
 
+    /// <summary>Shows the Informational Custom-state banner while <see cref="IsCustomState"/> and no
+    /// Warning/Error banner is active (compatibility, restart, option-warning and cross-group banners
+    /// outrank it), and clears it - only it - once Custom clears. Called from the load/refresh paths,
+    /// UpdateStatusBanner, and the Custom dialog flow.</summary>
+    internal void UpdateCustomStateBanner()
+    {
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        var custom = _statusBannerManager.GetCustomStateBanner(isToggleLike);
+        if (IsCustomState)
+        {
+            if (!string.IsNullOrEmpty(StatusBannerMessage) && StatusBannerSeverity != InfoBarSeverity.Informational)
+                return;
+            ApplyBanner(custom);
+        }
+        else if (!string.IsNullOrEmpty(StatusBannerMessage) && StatusBannerMessage == custom.Message)
+        {
+            ApplyBanner(SettingStatusBannerManager.BannerState.Clear);
+        }
+    }
+
     #endregion
 
     #region InfoBadge State Computation
@@ -1917,8 +2089,18 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike)
         {
-            if (ToggleRecommendedState is bool r && r != IsSelected) matchesRecommended = false;
-            if (ToggleDefaultState is bool d && d != IsSelected) matchesDefault = false;
+            if (IsCustomState)
+            {
+                // A Custom toggle sits on no known state - it matches nothing (mirrors the selection
+                // out-of-range verdict below).
+                matchesRecommended = false;
+                matchesDefault = false;
+            }
+            else
+            {
+                if (ToggleRecommendedState is bool r && r != IsSelected) matchesRecommended = false;
+                if (ToggleDefaultState is bool d && d != IsSelected) matchesDefault = false;
+            }
         }
         else if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
         {
@@ -1926,10 +2108,10 @@ public partial class SettingItemViewModel : BaseViewModel
             // (States order 1:1 with options).
             if (SelectedValue is int selIdx && selIdx >= 0 && selIdx < Setting.States.Count)
             {
-                matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended))
-                    && Setting.States[selIdx].HasRole(RoleKind.Recommended);
-                matchesDefault = Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault))
-                    && Setting.States[selIdx].HasRole(RoleKind.WindowsDefault);
+                matchesRecommended = Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build))
+                    && Setting.States[selIdx].HasRole(RoleKind.Recommended, _build);
+                matchesDefault = Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build))
+                    && Setting.States[selIdx].HasRole(RoleKind.WindowsDefault, _build);
             }
             else { matchesRecommended = false; matchesDefault = false; }
         }
@@ -2015,6 +2197,7 @@ public partial class SettingItemViewModel : BaseViewModel
             bool isCustom = InputType switch
             {
                 InputType.Selection => !IsKnownSelectionValue(),
+                InputType.Toggle or InputType.CheckBox => IsCustomState,
                 InputType.NumericRange => (HasAnyRecommendedData() || HasAnyDefaultData())
                     && !matchesRecommended && !matchesDefault,
                 _ => false
@@ -2142,7 +2325,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike) return ToggleRecommendedState.HasValue;
         if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
-            return Setting.States.Any(st => st.HasRole(RoleKind.Recommended));
+            return Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build));
         return AcRecommendedValue.HasValue || AcSelectionRecommendedIndex.HasValue
             || DcRecommendedValue.HasValue || DcSelectionRecommendedIndex.HasValue;
     }
@@ -2153,7 +2336,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike) return ToggleDefaultState.HasValue;
         if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
-            return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault));
+            return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build));
         return AcDefaultValue.HasValue || AcSelectionDefaultIndex.HasValue
             || DcDefaultValue.HasValue || DcSelectionDefaultIndex.HasValue;
     }
@@ -2223,7 +2406,7 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         bool hasToggleData = isToggleLike && (ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue);
         bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting
-            && Setting.States.Any(st => st.HasRole(RoleKind.Recommended) || st.HasRole(RoleKind.WindowsDefault));
+            && Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build) || st.HasRole(RoleKind.WindowsDefault, _build));
         bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
             || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue
             || DcRecommendedValue.HasValue || DcDefaultValue.HasValue

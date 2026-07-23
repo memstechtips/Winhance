@@ -51,7 +51,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
         ComboBoxSetupResult? builderComboBoxOptions,
-        string? compatibilityMessage)
+        string? compatibilityMessage,
+        WinBuild build = default)
     {
         // Derive the InputType from the catalog Setting's Control; it feeds the dispatch below and
         // config.InputType.
@@ -60,6 +61,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         var config = new SettingItemViewModelConfig
         {
             Setting = setting,
+            Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
             // Localize the catalog Display fields via the canonical keys (raw Display fallback).
@@ -70,6 +72,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
+            IsCustomState = currentState.IsCustomState,
             OnText = _localizationService.GetString("Common_On") ?? "On",
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
@@ -231,6 +234,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
         // Compute initial badge state after all values are populated
         viewModel.ComputeBadgeState();
+
+        // Initial Custom-state banner (Informational; a compatibility Warning applied above outranks it).
+        viewModel.UpdateCustomStateBanner();
 
         // Build the technical-details panel from the Setting model + the now-populated current state
         // (the panel is VM-driven, not TooltipUpdatedEvent-driven).

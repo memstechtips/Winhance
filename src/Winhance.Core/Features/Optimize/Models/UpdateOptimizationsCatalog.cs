@@ -306,15 +306,14 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["IsExpedited"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["IsExpedited"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["IsExpedited"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -430,15 +429,14 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["AllowAutoWindowsUpdateDownloadOverMeteredNetwork"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["AllowAutoWindowsUpdateDownloadOverMeteredNetwork"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["AllowAutoWindowsUpdateDownloadOverMeteredNetwork"] = Of(0).OrAbsent() },
                 },
             },
         },

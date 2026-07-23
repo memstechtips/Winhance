@@ -43,4 +43,11 @@ public sealed record ConfirmationRequest
     /// Gets the text for the cancel (close) button. Defaults to "Cancel".
     /// </summary>
     public string CancelButtonText { get; init; } = "Cancel";
+
+    /// <summary>
+    /// Gets the optional text for a secondary button. When null (the default) the dialog keeps its
+    /// two-button confirm/cancel shape; when set, a third button appears and Enter defaults to
+    /// Cancel (the safe choice) instead of the primary button.
+    /// </summary>
+    public string? SecondaryButtonText { get; init; }
 }

@@ -34,7 +34,6 @@ public static class SoundOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["DisableStartupSound"] = Of(0).OrAbsent(),
@@ -44,12 +43,12 @@ public static class SoundOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["DisableStartupSound"] = Of(1),
-                        ["UserSetting_DisableStartupSound"] = Of(1),
+                        ["UserSetting_DisableStartupSound"] = Of(1).OrAbsent(),
                     },
                 },
             },

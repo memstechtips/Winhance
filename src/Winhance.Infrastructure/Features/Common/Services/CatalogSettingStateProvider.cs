@@ -20,11 +20,13 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 {
     private readonly ICatalogDetectionService _detection;
     private readonly IComboBoxResolver _comboBoxResolver;
+    private readonly IWindowsVersionService _version;
 
-    public CatalogSettingStateProvider(ICatalogDetectionService detection, IComboBoxResolver comboBoxResolver)
+    public CatalogSettingStateProvider(ICatalogDetectionService detection, IComboBoxResolver comboBoxResolver, IWindowsVersionService version)
     {
         _detection = detection;
         _comboBoxResolver = comboBoxResolver;
+        _version = version;
     }
 
     /// <summary>Builds a complete <see cref="SettingStateResult"/> per catalog <see cref="Setting"/>. A Setting
@@ -70,7 +72,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         {
             Success = true,
             ErrorMessage = null,
-            IsEnabled = DeriveIsEnabled(catalogSetting, r),
+            IsEnabled = DeriveIsEnabled(catalogSetting, r, new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision())),
             AcValue = r.AcValue,
             DcValue = r.DcValue,
             Readings = r.Readings,
@@ -93,8 +95,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         {
             case ControlKind.Toggle:
                 // IsEnabled (the switch position) is already derived from the resolved "Enabled"/"Disabled" label;
-                // a toggle carries no CurrentValue.
-                return result;
+                // a toggle carries no CurrentValue. A null StateLabel means detection ran and could not place the
+                // toggle on any known state (the service catch-all's Detected=false also lands here with a null
+                // label - "can't place it" is honest either way) -> Custom.
+                return result with { IsCustomState = r.StateLabel is null };
 
             case ControlKind.Selection:
                 // Two-tier resolution: resolve the selection index from the StateLabel; when it resolves use it,
@@ -108,7 +112,14 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                     return result with { CurrentValue = labelIndex };
                 var reads = CustomStateValueReconstructor.Build(catalogSetting, result)
                     .ToDictionary(kv => kv.Key, kv => kv.Value);
-                return result with { CurrentValue = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads) };
+                var valueMatchIndex = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads);
+                // Custom exactly when the RESOLVED index is the Custom index - label resolution and the
+                // value-match fallback both failed to place the selection on a known option.
+                return result with
+                {
+                    CurrentValue = valueMatchIndex,
+                    IsCustomState = valueMatchIndex == ComboBoxConstants.CustomStateIndex,
+                };
 
             case ControlKind.Slider:
                 // The slider's value IS the raw AC powercfg value index (r.Value); both box int?/null.
@@ -137,7 +148,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     ///   <item>Dynamic-option source (power plan) / Action / a selection with NO WindowsDefault anchor (the special
     ///     dns/system-tray detectors, all outside this gate's population) -> false, deferred.</item>
     /// </list></summary>
-    internal static bool DeriveIsEnabled(Setting catalogSetting, CatalogDetectionResult r)
+    internal static bool DeriveIsEnabled(Setting catalogSetting, CatalogDetectionResult r, WinBuild build)
     {
         // Numeric (stateless slider): modified from the Windows-default AC value. r.Value is the raw AC powercfg
         // reading in SYSTEM units; Numeric.WindowsDefault is in DISPLAY units (the converter pre-applied the same
@@ -160,15 +171,19 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         if (catalogSetting.OptionSource is not null || catalogSetting.Control == ControlKind.Action)
             return false;
 
-        // Selection: NOT in the Windows-default option, in the resolution context. HasRole defaults to
-        // PowerContext.Always; a powercfg default role is context-scoped (AC/DC) so check AC explicitly - detection
-        // resolves a powercfg selection on AC. A registry-selection state never carries an AC role and a powercfg
-        // state never carries an Always role, so the OR selects the right anchor for either kind.
-        static bool IsWindowsDefaultState(SettingState s) =>
-            s.HasRole(RoleKind.WindowsDefault, PowerContext.Always) ||
-            s.HasRole(RoleKind.WindowsDefault, PowerContext.AC);
+        // Selection: NOT in the Windows-default option, in the resolution context, on the LIVE build (an
+        // OS-divergent selection resolves its anchor per build, mirroring the reset resolver). HasRole's
+        // build-aware overload admits unconditional roles too; a powercfg default role is context-scoped (AC/DC)
+        // so check AC explicitly - detection resolves a powercfg selection on AC. A registry-selection state
+        // never carries an AC role and a powercfg state never carries an Always role, so the OR selects the
+        // right anchor for either kind.
+        bool IsWindowsDefaultState(SettingState s) =>
+            s.HasRole(RoleKind.WindowsDefault, build, PowerContext.Always) ||
+            s.HasRole(RoleKind.WindowsDefault, build, PowerContext.AC);
 
-        // No state is a Windows default (the special dns/system-tray detectors) -> no anchor -> defer (false).
+        // No state is a Windows default ON THIS BUILD (the special dns/system-tray detectors, or an OS-divergent
+        // selection whose true default is not a representable state here, e.g. theme-mode-windows on Windows 10,
+        // where the shipped default is the apps-light/system-dark mix) -> no anchor -> defer (false).
         if (!catalogSetting.States.Any(IsWindowsDefaultState))
             return false;
 
