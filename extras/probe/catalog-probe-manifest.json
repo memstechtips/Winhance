@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "c05774003264fab64ccd98ec7d4ddd298979f33346c9aedf7acb12d5581604d8",
+  "catalogHash": "beb5a75722a5ffbacf7c5509032dfc6f5304ef38de22c3ffd94657f8d0d7b70b",
   "settingCount": 414,
   "settings": [
     {
@@ -20060,6 +20060,29 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "GameDVR_HonorUserFSEBehaviorMode",
+          "joinKey": "GameDVR_HonorUserFSEBehaviorMode",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\System\\GameConfigStore"
+          ],
+          "valueName": "GameDVR_HonorUserFSEBehaviorMode",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
@@ -20080,7 +20103,17 @@
           ],
           "set": {
             "GameDVR_FSEBehaviorMode": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2,
+                0
+              ],
+              "writePayload": 2
+            },
+            "GameDVR_HonorUserFSEBehaviorMode": {
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -20104,6 +20137,15 @@
                 2
               ],
               "writePayload": 2
+            },
+            "GameDVR_HonorUserFSEBehaviorMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
             }
           },
           "resetSet": null

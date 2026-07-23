@@ -161,6 +161,7 @@ def build_readings(setting, probe, tasks_by_key):
     reg_read_targets = []
     all_registry = True
     has_unprobed_powercfg = False
+    missing_target = False
 
     for mt in setting["targets"]:
         if not build_in_ranges(mt["appliesTo"], build, revision):
@@ -169,6 +170,11 @@ def build_readings(setting, probe, tasks_by_key):
         active_keys.add(jk)
         kind = mt["kind"]
         if kind == "Registry":
+            if jk not in trec_by_key:
+                # target added to the catalog after this probe was captured -> the probe cannot
+                # attest this setting anymore; the caller skips it as not-in-probe
+                missing_target = True
+                continue
             val, pres = reading_for_registry(trec_by_key[jk], mt)
             if pres is None:                     # NotProbed registry target (shouldn't happen) -> skip setting
                 has_unprobed_powercfg = True
@@ -185,6 +191,7 @@ def build_readings(setting, probe, tasks_by_key):
             all_registry = False
 
     return readings, {
+        "missing_target": missing_target,
         "has_unprobed_powercfg": has_unprobed_powercfg,
         "active_keys": active_keys,
         "reg_read_targets": reg_read_targets,
@@ -328,6 +335,9 @@ def analyse(manifest, probes):
                 continue
 
             readings, flags = build_readings(setting, probe, probe["_tasks"])
+            if flags["missing_target"]:
+                skipped["not-in-probe"] = skipped.get("not-in-probe", 0) + 1
+                continue
             if flags["has_unprobed_powercfg"]:
                 skipped["awaiting-powercfg"] = skipped.get("awaiting-powercfg", 0) + 1
                 continue

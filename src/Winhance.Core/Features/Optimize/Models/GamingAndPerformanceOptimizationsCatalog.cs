@@ -724,20 +724,35 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = "Graphics",
                 Icon = MaterialIcons.MonitorScreenshot,
             },
-            Targets = new Target[] { new RegTarget("GameDVR_FSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_FSEBehaviorMode", RegistryValueKind.DWord) },
+            Targets = new Target[]
+            {
+                new RegTarget("GameDVR_FSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_FSEBehaviorMode", RegistryValueKind.DWord),
+                new RegTarget("GameDVR_HonorUserFSEBehaviorMode", new[] { @"HKEY_CURRENT_USER\System\GameConfigStore" }, "GameDVR_HonorUserFSEBehaviorMode", RegistryValueKind.DWord),
+            },
             States = new[]
             {
                 new SettingState
                 {
+                    // Windows only honors GameDVR_FSEBehaviorMode when GameDVR_HonorUserFSEBehaviorMode is 1.
+                    // Clean installs ship FSEBehaviorMode=2 with Honor=0 (verified 2026-07-23), so the Honor
+                    // flag is the deciding signal: 0/absent = optimizations active (the Windows default).
                     Label = "Enabled",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["GameDVR_FSEBehaviorMode"] = Of(0) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["GameDVR_FSEBehaviorMode"] = OneOf(2, 0).OrAbsent(),
+                        ["GameDVR_HonorUserFSEBehaviorMode"] = Of(0).OrAbsent(),
+                    },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["GameDVR_FSEBehaviorMode"] = Of(2) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["GameDVR_FSEBehaviorMode"] = Of(2),
+                        ["GameDVR_HonorUserFSEBehaviorMode"] = Of(1),
+                    },
                 },
             },
         },
