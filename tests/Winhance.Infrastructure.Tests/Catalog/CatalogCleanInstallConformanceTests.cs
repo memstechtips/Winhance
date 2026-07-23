@@ -65,7 +65,6 @@ public class CatalogCleanInstallConformanceTests
         ["gaming-virtualization-based-security"] = "hardware-conditional: this laptop has VBS off",
         ["gaming-performance-search-webview2"] = "held (a): see Win10 fixture",
         ["privacy-speech-recognition"] = "held (a): see Win10 fixture",
-        ["gaming-xbox-game-dvr"] = "this machine's GameDVR value combination (GameDVR_Enabled=0, siblings absent) matches neither state - falls to the fallback (held)",
         ["privacy-advertising-id"] = "privacy band: WindowsDefault is the EXPRESS state (decision 11b.2); this fixture is privacy-DECLINED, diverging by design",
         ["privacy-improve-inking-typing"] = "privacy band: declined fixture vs express default (by design)",
         ["privacy-tailored-experiences"] = "privacy band: declined fixture vs express default (by design)",
