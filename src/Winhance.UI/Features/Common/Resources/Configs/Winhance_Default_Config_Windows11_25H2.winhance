@@ -51,7 +51,7 @@
       },
       {
         "Id": "windows-app-alarms-clock",
-        "Name": "Alarms & Clock",
+        "Name": "Alarms \u0026 Clock",
         "IsSelected": true,
         "InputType": 0,
         "AppxPackageName": [
@@ -241,7 +241,7 @@
       },
       {
         "Id": "windows-app-todo",
-        "Name": "To Do: Lists, Tasks & Reminders",
+        "Name": "To Do: Lists, Tasks \u0026 Reminders",
         "IsSelected": true,
         "InputType": 0,
         "AppxPackageName": [
@@ -282,56 +282,95 @@
         "Name": "Windows AI Experience",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["MicrosoftWindows.Client.AIX"]
+        "AppxPackageName": [
+          "MicrosoftWindows.Client.AIX"
+        ]
       },
       {
         "Id": "windows-app-client-copilot",
         "Name": "Windows Copilot Client",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["MicrosoftWindows.Client.CoPilot"]
+        "AppxPackageName": [
+          "MicrosoftWindows.Client.CoPilot"
+        ]
       },
       {
         "Id": "windows-app-edge-game-assist",
         "Name": "Edge Game Assist",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["Microsoft.Edge.GameAssist"]
+        "AppxPackageName": [
+          "Microsoft.Edge.GameAssist"
+        ]
       },
       {
         "Id": "windows-app-office-actions-server",
         "Name": "Office Actions Server",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["Microsoft.Office.ActionsServer"]
+        "AppxPackageName": [
+          "Microsoft.Office.ActionsServer"
+        ]
       },
       {
         "Id": "windows-app-ai-manager",
         "Name": "AI Manager",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["aimgr"]
+        "AppxPackageName": [
+          "aimgr"
+        ]
       },
       {
         "Id": "windows-app-writing-assistant",
         "Name": "Writing Assistant",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["Microsoft.WritingAssistant"]
+        "AppxPackageName": [
+          "Microsoft.WritingAssistant"
+        ]
       },
       {
         "Id": "windows-app-ai-workloads",
         "Name": "AI Workload Packages",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["WindowsWorkload.OnnxRuntimeGenAI","WindowsWorkload.SemanticTextSimilarity","WindowsWorkload.ImageSearch","WindowsWorkload.ContentExtraction","WindowsWorkload.ScreenRegionDetection","WindowsWorkload.TextRecognition","WindowsWorkload.ImageContentModeration","WindowsWorkload.ScreenSemanticsOCR","WindowsWorkload.ImageSuperResolution","WindowsWorkload.ObjectErase","WindowsWorkload.ImageDescriptor","WindowsWorkload.PortraitBlur","WindowsWorkload.TextToSpeech","WindowsWorkload.SpeechToText","WindowsWorkload.ImageSegmentation","WindowsWorkload.CreativeFilter","WindowsWorkload.StudioEffects","WindowsWorkload.SubtitleTranslation","WindowsWorkload.Summarization","WindowsWorkload.RewriteTextSuggestion"]
+        "AppxPackageName": [
+          "WindowsWorkload.OnnxRuntimeGenAI",
+          "WindowsWorkload.SemanticTextSimilarity",
+          "WindowsWorkload.ImageSearch",
+          "WindowsWorkload.ContentExtraction",
+          "WindowsWorkload.ScreenRegionDetection",
+          "WindowsWorkload.TextRecognition",
+          "WindowsWorkload.ImageContentModeration",
+          "WindowsWorkload.ScreenSemanticsOCR",
+          "WindowsWorkload.ImageSuperResolution",
+          "WindowsWorkload.ObjectErase",
+          "WindowsWorkload.ImageDescriptor",
+          "WindowsWorkload.PortraitBlur",
+          "WindowsWorkload.TextToSpeech",
+          "WindowsWorkload.SpeechToText",
+          "WindowsWorkload.ImageSegmentation",
+          "WindowsWorkload.CreativeFilter",
+          "WindowsWorkload.StudioEffects",
+          "WindowsWorkload.SubtitleTranslation",
+          "WindowsWorkload.Summarization",
+          "WindowsWorkload.RewriteTextSuggestion"
+        ]
       },
       {
         "Id": "windows-app-copilot-plus-pc",
-        "Name": "Copilot+ PC AI Packages",
+        "Name": "Copilot\u002B PC AI Packages",
         "IsSelected": false,
         "InputType": 0,
-        "AppxPackageName": ["MicrosoftWindows.Voiess","MicrosoftWindows.Speion","MicrosoftWindows.Livtop","MicrosoftWindows.InpApp","MicrosoftWindows.Filons"]
+        "AppxPackageName": [
+          "MicrosoftWindows.Voiess",
+          "MicrosoftWindows.Speion",
+          "MicrosoftWindows.Livtop",
+          "MicrosoftWindows.InpApp",
+          "MicrosoftWindows.Filons"
+        ]
       },
       {
         "Id": "windows-app-edge",
@@ -418,42 +457,6 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "explorer-customization-thispc-folder-desktop",
-            "Name": "Show Desktop in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-thispc-folder-documents",
-            "Name": "Show Documents in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-thispc-folder-downloads",
-            "Name": "Show Downloads in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-thispc-folder-music",
-            "Name": "Show Music in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-thispc-folder-pictures",
-            "Name": "Show Pictures in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-thispc-folder-videos",
-            "Name": "Show Videos in This PC",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-desktop-icon-this-pc",
             "Name": "Show This PC on desktop",
             "IsSelected": false,
@@ -467,7 +470,7 @@
           },
           {
             "Id": "explorer-customization-desktop-icon-users-files",
-            "Name": "Show User's Files on desktop",
+            "Name": "Show User\u0027s Files on desktop",
             "IsSelected": false,
             "InputType": 0
           },
@@ -491,49 +494,49 @@
           },
           {
             "Id": "explorer-take-ownership",
-            "Name": "Add 'Take Ownership' to Context Menu",
+            "Name": "Add \u0027Take Ownership\u0027 to Context Menu",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-toggle-extensions",
-            "Name": "Add 'Show/Hide Extensions' to Context Menu",
+            "Name": "Add \u0027Show/Hide Extensions\u0027 to Context Menu",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-windows-terminal",
-            "Name": "Show 'Open in Windows Terminal' in Context Menu",
+            "Name": "Show \u0027Open in Windows Terminal\u0027 in Context Menu",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-sfc",
-            "Name": "Add 'SFC /SCANNOW' to Context Menu",
+            "Name": "Add \u0027SFC /SCANNOW\u0027 to Context Menu",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-dism",
-            "Name": "Add 'Repair Windows Image' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-ps1-edit-run",
-            "Name": "Add 'Edit or Run with' to PS1 Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-compress-to",
-            "Name": "Add 'Compress To' to Context Menu",
+            "Name": "Add \u0027Repair Windows Image\u0027 to Context Menu",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-chkdsk",
-            "Name": "Add 'CHKDSK' to Context Menu",
+            "Name": "Add \u0027CHKDSK\u0027 to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-ps1-edit-run",
+            "Name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-compress-to",
+            "Name": "Add \u0027Compress To\u0027 to Context Menu",
             "IsSelected": false,
             "InputType": 0
           },
@@ -592,12 +595,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-netplwiz-auto-login",
-            "Name": "Show Auto-Login Option in User Accounts",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-show-thumbnails",
             "Name": "Always show icons, never thumbnails",
             "IsSelected": false,
@@ -641,7 +638,7 @@
           },
           {
             "Id": "explorer-customization-show-hidden-files",
-            "Name": "Show hidden files, folders & drives",
+            "Name": "Show hidden files, folders \u0026 drives",
             "IsSelected": false,
             "InputType": 0
           },
@@ -672,7 +669,7 @@
           {
             "Id": "explorer-customization-legacy-notepad",
             "Name": "Use Legacy Notepad for text files",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -754,9 +751,39 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "explorer-customization-duplicate-removable-drives",
-            "Name": "Show Duplicate Removable Drives",
-            "IsSelected": true,
+            "Id": "explorer-customization-thispc-folder-desktop",
+            "Name": "Show Desktop in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-documents",
+            "Name": "Show Documents in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-downloads",
+            "Name": "Show Downloads in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-music",
+            "Name": "Show Music in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-pictures",
+            "Name": "Show Pictures in This PC",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-thispc-folder-videos",
+            "Name": "Show Videos in This PC",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -827,8 +854,14 @@
           },
           {
             "Id": "explorer-customization-nav-show-libraries",
-            "Name": "Show libraries",
+            "Name": "Show Libraries",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-duplicate-removable-drives",
+            "Name": "Show Duplicate Removable Drives",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -838,16 +871,10 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-number-decimal",
-            "Name": "Number Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-currency-decimal",
-            "Name": "Currency Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
+            "Id": "explorer-customization-netplwiz-auto-login",
+            "Name": "Show Auto-Login Option in User Accounts",
+            "IsSelected": false,
+            "InputType": 0
           },
           {
             "Id": "explorer-customization-short-date",
@@ -862,14 +889,26 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "explorer-customization-measurement-system",
-            "Name": "Measurement System",
+            "Id": "explorer-customization-number-decimal",
+            "Name": "Number Decimal Symbol",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-list-separator",
             "Name": "List Separator",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-measurement-system",
+            "Name": "Measurement System",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-currency-decimal",
+            "Name": "Currency Decimal Symbol",
             "InputType": 1,
             "SelectedIndex": 0
           },
@@ -885,27 +924,16 @@
         "IsIncluded": true,
         "Items": [
           {
-            "Id": "start-menu-clean-11",
-            "Name": "Clean Start Menu",
-            "InputType": 3
-          },
-          {
-            "Id": "start-recommended-section",
-            "Name": "Recommended section",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
             "Id": "start-all-apps-view",
             "Name": "All apps view",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
-            "Id": "start-show-all-pins-by-default",
-            "Name": "Show all pins by default",
-            "IsSelected": false,
-            "InputType": 0
+            "Id": "start-recommended-section",
+            "Name": "Recommended section",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "start-show-recently-added-apps",
@@ -949,11 +977,6 @@
         "IsIncluded": true,
         "Items": [
           {
-            "Id": "taskbar-clean",
-            "Name": "Clean Taskbar",
-            "InputType": 3
-          },
-          {
             "Id": "taskbar-search-box-11",
             "Name": "Search in taskbar",
             "InputType": 1,
@@ -970,6 +993,12 @@
             "Name": "Automatically hide the taskbar",
             "IsSelected": false,
             "InputType": 0
+          },
+          {
+            "Id": "taskbar-extended-hover-time",
+            "Name": "Taskbar Auto-Hide Hover Delay",
+            "InputType": 1,
+            "SelectedIndex": 5
           },
           {
             "Id": "taskbar-badges",
@@ -1023,7 +1052,7 @@
             "Id": "taskbar-button-size",
             "Name": "Show smaller taskbar buttons",
             "InputType": 1,
-            "SelectedIndex": 0
+            "SelectedIndex": 1
           },
           {
             "Id": "taskbar-system-tray-icons-11",
@@ -1037,9 +1066,24 @@
             "IsSelected": true,
             "InputType": 0
           },
-          { "Id": "taskbar-copilot-companion", "Name": "Copilot Companion Button", "IsSelected": true, "InputType": 0 },
-          { "Id": "taskbar-copilot-pwa-pin", "Name": "Copilot PWA Pin", "IsSelected": true, "InputType": 0 },
-          { "Id": "taskbar-recall-pin", "Name": "Recall Pin", "IsSelected": true, "InputType": 0 },
+          {
+            "Id": "taskbar-copilot-companion",
+            "Name": "Copilot Companion Button",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-copilot-pwa-pin",
+            "Name": "Copilot PWA Pin",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-recall-pin",
+            "Name": "Recall Pin",
+            "IsSelected": true,
+            "InputType": 0
+          },
           {
             "Id": "taskbar-widgets",
             "Name": "Show Widgets",
@@ -1048,15 +1092,9 @@
           },
           {
             "Id": "taskbar-end-task",
-            "Name": "Enable 'End Task' in Taskbar",
+            "Name": "Enable \u0027End Task\u0027 in Taskbar",
             "IsSelected": false,
             "InputType": 0
-          },
-          {
-            "Id": "taskbar-extended-hover-time",
-            "Name": "Taskbar Auto-Hide Hover Delay",
-            "InputType": 1,
-            "SelectedIndex": 5
           }
         ]
       },
@@ -1153,13 +1191,13 @@
           },
           {
             "Id": "gaming-performance-explorer-menu-show-delay",
-            "Name": "Enable Menu Show Delay",
-            "IsSelected": false,
+            "Name": "Menu Show Delay",
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-explorer-alt-tab-filter",
-            "Name": "Alt+Tab Filter",
+            "Name": "Alt\u002BTab Filter",
             "IsSelected": false,
             "InputType": 0
           },
@@ -1214,7 +1252,7 @@
           {
             "Id": "gaming-directx-vrr-optimizations",
             "Name": "Variable Refresh Rate",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1242,6 +1280,12 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-auto-color-management",
+            "Name": "Automatically manage color for apps",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-disable-mpo",
             "Name": "Multi-Plane Overlay (MPO)",
             "IsSelected": true,
@@ -1260,12 +1304,6 @@
             "InputType": 0
           },
           {
-            "Id": "gaming-auto-color-management",
-            "Name": "Automatically manage color for apps",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "gaming-network-throttling",
             "Name": "Network Throttling",
             "IsSelected": true,
@@ -1273,7 +1311,7 @@
           },
           {
             "Id": "gaming-nagle-algorithm",
-            "Name": "Enable Nagle's Algorithm",
+            "Name": "Nagle\u0027s Algorithm",
             "IsSelected": true,
             "InputType": 0
           },
@@ -1336,12 +1374,6 @@
             "Name": "Windows Search Indexing Service",
             "InputType": 1,
             "SelectedIndex": 2
-          },
-          {
-            "Id": "gaming-telephony-service",
-            "Name": "Telephony Service",
-            "InputType": 1,
-            "SelectedIndex": 1
           },
           {
             "Id": "gaming-print-spooler-service",
@@ -1521,7 +1553,13 @@
             "Id": "gaming-touch-keyboard-service",
             "Name": "Touch Keyboard and Handwriting Panel Service",
             "InputType": 1,
-            "SelectedIndex": 0
+            "SelectedIndex": 1
+          },
+          {
+            "Id": "gaming-telephony-service",
+            "Name": "Telephony Service",
+            "InputType": 1,
+            "SelectedIndex": 1
           },
           {
             "Id": "gaming-sensor-monitoring-service",
@@ -1536,15 +1574,21 @@
             "SelectedIndex": 1
           },
           {
+            "Id": "gaming-ai-fabric-service",
+            "Name": "Windows AI Fabric Service",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
             "Id": "gaming-task-compatibility-appraiser",
             "Name": "Microsoft Compatibility Appraiser Task",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-program-data-updater",
             "Name": "Program Data Updater Task",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1625,9 +1669,18 @@
             "IsSelected": true,
             "InputType": 0
           },
-          { "Id": "gaming-ai-fabric-service", "Name": "Windows AI Fabric Service", "InputType": 1, "SelectedIndex": 2 },
-          { "Id": "gaming-task-windows-ai", "Name": "Windows AI Tasks", "IsSelected": true, "InputType": 0 },
-          { "Id": "gaming-task-office-actions-server", "Name": "Office Actions Server Task", "IsSelected": true, "InputType": 0 },
+          {
+            "Id": "gaming-task-windows-ai",
+            "Name": "Windows AI Tasks",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "gaming-task-office-actions-server",
+            "Name": "Office Actions Server Task",
+            "IsSelected": true,
+            "InputType": 0
+          },
           {
             "Id": "visual-effects-mode",
             "Name": "Visual Effects",
@@ -1738,13 +1791,13 @@
           },
           {
             "Id": "gaming-narrator-hotkey",
-            "Name": "Narrator Win+Ctrl+Enter Hotkey",
+            "Name": "Narrator Win\u002BCtrl\u002BEnter Hotkey",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-stickykeys-hotkey",
-            "Name": "StickyKeys Hotkey (Shift×5)",
+            "Name": "StickyKeys Hotkey (Shift\u00D75)",
             "IsSelected": true,
             "InputType": 0
           },
@@ -1762,13 +1815,13 @@
           },
           {
             "Id": "accessibility-mousekeys-hotkey",
-            "Name": "MouseKeys Hotkey (Alt+Shift+NumLock)",
-            "IsSelected": false,
+            "Name": "MouseKeys Hotkey (Alt\u002BShift\u002BNumLock)",
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-highcontrast-hotkey",
-            "Name": "High Contrast Hotkey (Alt+Shift+PrtScn)",
+            "Name": "High Contrast Hotkey (Alt\u002BShift\u002BPrtScn)",
             "IsSelected": true,
             "InputType": 0
           },
@@ -1810,7 +1863,7 @@
           {
             "Id": "notifications-show-bell-icon",
             "Name": "Show notification bell icon",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1852,7 +1905,7 @@
           {
             "Id": "notifications-app-location-request",
             "Name": "Notify when apps request location",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1879,19 +1932,12 @@
         "IsIncluded": true,
         "Items": [
           {
-            "Id": "power-plan-selection",
-            "Name": "Power Plan",
-            "InputType": 1,
-            "PowerPlanGuid": "381b4222-f694-41f0-9685-ff5bb260df2e",
-            "PowerPlanName": "Balanced"
-          },
-          {
             "Id": "power-display-timeout",
             "Name": "Turn off the display",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 0,
-              "DCIndex": 3
+              "ACIndex": 5,
+              "DCIndex": 4
             }
           },
           {
@@ -1908,8 +1954,8 @@
             "Name": "JavaScript Timer Frequency",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 0,
-              "DCIndex": 1
+              "ACIndex": 1,
+              "DCIndex": 0
             }
           },
           {
@@ -1935,8 +1981,8 @@
             "Name": "Put the computer to sleep",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 6,
-              "DCIndex": 5
+              "ACIndex": 9,
+              "DCIndex": 6
             }
           },
           {
@@ -1945,13 +1991,13 @@
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
-              "DCIndex": 1
+              "DCIndex": 0
             }
           },
           {
             "Id": "power-hibernation-enable",
             "Name": "Hibernation",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1981,7 +2027,7 @@
           {
             "Id": "start-power-hibernate-option",
             "Name": "Show Hibernate Option",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1998,8 +2044,8 @@
             "Name": "USB selective suspend setting",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 0,
-              "DCIndex": 0
+              "ACIndex": 1,
+              "DCIndex": 1
             }
           },
           {
@@ -2009,6 +2055,15 @@
             "PowerSettings": {
               "ACIndex": 2,
               "DCIndex": 2
+            }
+          },
+          {
+            "Id": "intel-graphics-power-plan",
+            "Name": "Intel(R) Graphics Power Plan",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
             }
           },
           {
@@ -2030,6 +2085,15 @@
             }
           },
           {
+            "Id": "lid-close-action",
+            "Name": "Lid close action",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
             "Id": "pci-link-state-power-management",
             "Name": "Link State Power Management",
             "InputType": 1,
@@ -2043,7 +2107,7 @@
             "Name": "Minimum processor state",
             "InputType": 2,
             "PowerSettings": {
-              "ACValue": 0,
+              "ACValue": 5,
               "DCValue": 5
             }
           },
@@ -2079,7 +2143,7 @@
             "Name": "Processor Performance Increase Policy",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 2,
+              "ACIndex": 0,
               "DCIndex": 0
             }
           },
@@ -2088,7 +2152,7 @@
             "Name": "Processor Performance Decrease Policy",
             "InputType": 1,
             "PowerSettings": {
-              "ACIndex": 1,
+              "ACIndex": 0,
               "DCIndex": 0
             }
           },
@@ -2115,7 +2179,7 @@
             "Name": "Processor Energy Performance Preference",
             "InputType": 2,
             "PowerSettings": {
-              "ACValue": 25,
+              "ACValue": 33,
               "DCValue": 50
             }
           },
@@ -2124,7 +2188,7 @@
             "Name": "Processor Performance Increase Threshold",
             "InputType": 2,
             "PowerSettings": {
-              "ACValue": 30,
+              "ACValue": 60,
               "DCValue": 90
             }
           },
@@ -2133,7 +2197,7 @@
             "Name": "Processor Performance Decrease Threshold",
             "InputType": 2,
             "PowerSettings": {
-              "ACValue": 10,
+              "ACValue": 20,
               "DCValue": 30
             }
           },
@@ -2167,6 +2231,96 @@
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "critical-battery-notification",
+            "Name": "Critical battery notification",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "critical-battery-action",
+            "Name": "Critical battery action",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "low-battery-level",
+            "Name": "Low battery level",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 10,
+              "DCValue": 10
+            }
+          },
+          {
+            "Id": "critical-battery-level",
+            "Name": "Critical battery level",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 5,
+              "DCValue": 5
+            }
+          },
+          {
+            "Id": "low-battery-notification",
+            "Name": "Low battery notification",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "low-battery-action",
+            "Name": "Low battery action",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 0
+            }
+          },
+          {
+            "Id": "reserve-battery-level",
+            "Name": "Reserve battery level",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 7,
+              "DCValue": 7
+            }
+          },
+          {
+            "Id": "amd-power-slider-overlay",
+            "Name": "Overlay",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 2,
+              "DCIndex": 2
+            }
+          },
+          {
+            "Id": "ati-powerplay-setting",
+            "Name": "ATI PowerPlay Setting",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
+              "DCIndex": 1
+            }
+          },
+          {
+            "Id": "switchable-graphics-gpu-preference",
+            "Name": "GPU Preference",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 1,
               "DCIndex": 1
             }
           },
@@ -2206,21 +2360,15 @@
             "InputType": 0
           },
           {
-            "Id": "security-wifi-sense",
-            "Name": "WiFi-Sense",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "security-automatic-maintenance",
             "Name": "Automatic Maintenance",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-error-reporting",
             "Name": "Windows Error Reporting",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2322,7 +2470,7 @@
           {
             "Id": "privacy-advertising-id",
             "Name": "Let apps show me personalized ads by using my advertising ID",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -2352,7 +2500,7 @@
           {
             "Id": "privacy-speech-recognition",
             "Name": "Online Speech Recognition",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2376,19 +2524,19 @@
           {
             "Id": "privacy-diagnostics",
             "Name": "Send Diagnostic Data",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-improve-inking-typing",
             "Name": "Improve inking and typing",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-tailored-experiences",
             "Name": "Tailored Experiences",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2463,48 +2611,258 @@
             "IsSelected": true,
             "InputType": 0
           },
-          { "Id": "privacy-turn-off-copilot", "Name": "Windows Copilot", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-ai-data-analysis", "Name": "AI Data Analysis", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-block-recall-enablement", "Name": "Recall Enablement", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-recall-snapshots", "Name": "Recall Saving Snapshots", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-click-to-do", "Name": "Click to Do", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-settings-agent", "Name": "AI Settings Agent", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-agent-connectors", "Name": "AI Agent Connectors", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-agent-workspaces", "Name": "AI Agent Workspaces", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-remote-agent-connectors", "Name": "Remote AI Agent Connectors", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-copilot-hardware-key", "Name": "Copilot Hardware Key", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-copilot-runtime", "Name": "Copilot Runtime", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-copilot-unavailable", "Name": "Copilot Availability", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-bing-chat", "Name": "Bing Chat Eligibility", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-deny-generative-ai-access", "Name": "Generative AI Access", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-deny-system-ai-models", "Name": "System AI Models Access", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-deny-copilot-microphone", "Name": "Copilot Microphone Access", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-paint-ai-image-creator", "Name": "Paint AI Image Creator", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-paint-ai-cocreator", "Name": "Paint AI Cocreator", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-paint-generative-fill", "Name": "Paint Generative Fill", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-paint-generative-erase", "Name": "Paint Generative Erase", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-paint-remove-background", "Name": "Paint Remove Background", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-input-insights", "Name": "Input Insights", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-copilot-nudges", "Name": "Copilot Nudges", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-disable-consumer-ai-content", "Name": "AI Consumer Content", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-copilot-cdp-page-context", "Name": "Edge Copilot CDP Page Context", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-copilot-page-context", "Name": "Edge Copilot Page Context", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-copilot-sidebar", "Name": "Edge Copilot Sidebar", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-entra-copilot", "Name": "Edge Entra Copilot Page Context", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-m365-copilot-icon", "Name": "Edge M365 Copilot Chat Icon", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-ai-history-search", "Name": "Edge AI History Search", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-inline-compose", "Name": "Edge Inline AI Compose", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-local-ai-model", "Name": "Edge Local AI Model Settings", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-builtin-ai-apis", "Name": "Edge Built-in AI APIs", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-ai-themes", "Name": "Edge AI Generated Themes", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-devtools-ai", "Name": "Edge DevTools AI", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-edge-share-history-copilot", "Name": "Edge Share History with Copilot", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-office-ai-training", "Name": "Office AI Training", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-office-connected-services", "Name": "Office Connected Services", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-word-copilot", "Name": "Word Copilot", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-excel-copilot", "Name": "Excel Copilot", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-onenote-copilot", "Name": "OneNote Copilot", "IsSelected": true, "InputType": 0 },
-          { "Id": "privacy-office-content-safety-ai", "Name": "Office AI Content Safety", "IsSelected": true, "InputType": 0 }
+          {
+            "Id": "privacy-turn-off-copilot",
+            "Name": "Windows Copilot",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-ai-data-analysis",
+            "Name": "AI Data Analysis",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-block-recall-enablement",
+            "Name": "Recall Enablement",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-recall-snapshots",
+            "Name": "Recall Saving Snapshots",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-click-to-do",
+            "Name": "Click to Do",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-settings-agent",
+            "Name": "AI Settings Agent",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-agent-connectors",
+            "Name": "AI Agent Connectors",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-agent-workspaces",
+            "Name": "AI Agent Workspaces",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-remote-agent-connectors",
+            "Name": "Remote AI Agent Connectors",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-copilot-hardware-key",
+            "Name": "Copilot Hardware Key",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-copilot-runtime",
+            "Name": "Copilot Runtime",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-copilot-unavailable",
+            "Name": "Copilot Availability",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-bing-chat",
+            "Name": "Bing Chat Eligibility",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-deny-generative-ai-access",
+            "Name": "Generative AI Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-deny-system-ai-models",
+            "Name": "System AI Models Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-deny-copilot-microphone",
+            "Name": "Copilot Microphone Access",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-paint-ai-image-creator",
+            "Name": "Paint AI Image Creator",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-paint-ai-cocreator",
+            "Name": "Paint AI Cocreator",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-paint-generative-fill",
+            "Name": "Paint Generative Fill",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-paint-generative-erase",
+            "Name": "Paint Generative Erase",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-paint-remove-background",
+            "Name": "Paint Remove Background",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-input-insights",
+            "Name": "Input Insights",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-copilot-nudges",
+            "Name": "Copilot Nudges",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-disable-consumer-ai-content",
+            "Name": "AI Consumer Content",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-copilot-cdp-page-context",
+            "Name": "Edge Copilot CDP Page Context",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-copilot-page-context",
+            "Name": "Edge Copilot Page Context",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-copilot-sidebar",
+            "Name": "Edge Copilot Sidebar",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-entra-copilot",
+            "Name": "Edge Entra Copilot Page Context",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-m365-copilot-icon",
+            "Name": "Edge M365 Copilot Chat Icon",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-ai-history-search",
+            "Name": "Edge AI History Search",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-inline-compose",
+            "Name": "Edge Inline AI Compose",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-local-ai-model",
+            "Name": "Edge Local AI Model Settings",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-builtin-ai-apis",
+            "Name": "Edge Built-in AI APIs",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-ai-themes",
+            "Name": "Edge AI Generated Themes",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-devtools-ai",
+            "Name": "Edge DevTools AI",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-edge-share-history-copilot",
+            "Name": "Edge Share History with Copilot",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-office-ai-training",
+            "Name": "Office AI Training",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-office-connected-services",
+            "Name": "Office Connected Services",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-word-copilot",
+            "Name": "Word Copilot",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-excel-copilot",
+            "Name": "Excel Copilot",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-onenote-copilot",
+            "Name": "OneNote Copilot",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-office-content-safety-ai",
+            "Name": "Office AI Content Safety",
+            "IsSelected": true,
+            "InputType": 0
+          }
         ]
       },
       "Sound": {
@@ -2513,7 +2871,7 @@
           {
             "Id": "sound-startup",
             "Name": "Startup Sound During Boot",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -2571,7 +2929,7 @@
           },
           {
             "Id": "updates-latest-updates",
-            "Name": "Get the latest updates as soon as they're available",
+            "Name": "Get the latest updates as soon as they\u0027re available",
             "IsSelected": true,
             "InputType": 0
           },
