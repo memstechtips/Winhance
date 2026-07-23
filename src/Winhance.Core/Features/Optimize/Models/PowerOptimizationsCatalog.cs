@@ -46,7 +46,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "7516b95f-f776-4464-8c53-06167f40cc99", "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.TimeIntervals, 0, 300, 600, 300),
+            States = PowerOptions.SelectionStates(PowerOptions.TimeIntervals, 900, 300, 600, 300),
         },
         new()
         {
@@ -96,7 +96,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "02f815b5-a5cf-4c84-bf20-649d1f75d3d8", "4c793e7d-a264-42e1-87d3-7a0d2f523ccd", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.JavaScriptTimers, 0, 0, 1, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.JavaScriptTimers, 1, 0, 1, 0),
         },
         new()
         {
@@ -118,7 +118,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "0d7dbae2-4294-402a-ba8e-26777e8488cd", "309dce9b-bef4-4119-9921-a851fb12f0f4", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.Slideshow, 1, 1, 0, 1),
+            States = PowerOptions.SelectionStates(PowerOptions.Slideshow, 0, 1, 0, 1),
         },
         new()
         {
@@ -183,7 +183,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "238c9fa8-0aad-41ed-83f4-97be242c8f20", "bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.WakeTimers, 0, 0, 1, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.WakeTimers, 1, 0, 1, 0),
         },
         new()
         {
@@ -268,7 +268,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "238c9fa8-0aad-41ed-83f4-97be242c8f20", "94ac6d29-73ce-41a6-809f-6363ba21b47e", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.OnOff, 0, 0, 1, 1, new[]
+            States = PowerOptions.SelectionStates(PowerOptions.OnOff, 1, 1, 1, 1, new[]
             {
                 new Link("power-hibernation-enable", LinkKind.Requires, "Enabled"),
             }),
@@ -369,7 +369,7 @@ public static class PowerOptimizationsCatalog
                 Min = 0,
                 Max = 100000,
                 Units = "Milliseconds",
-                Recommended = new[] { new ContextValue(PowerContext.AC, 0), new ContextValue(PowerContext.DC, 1000) },
+                Recommended = new[] { new ContextValue(PowerContext.AC, 50), new ContextValue(PowerContext.DC, 50) },
                 WindowsDefault = new[] { new ContextValue(PowerContext.AC, 50), new ContextValue(PowerContext.DC, 50) },
             },
         },
@@ -456,7 +456,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "4f971e89-eebd-4455-a8de-9e59040e7347", "7648efa3-dd9c-4e3e-b566-50f929386280", PowerModeSupport.Separate) { EnablementKey = new RegTarget("Attributes", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347\7648efa3-dd9c-4e3e-b566-50f929386280" }, "Attributes", RegistryValueKind.DWord) },
             },
-            States = PowerOptions.SelectionStates(PowerOptions.PowerButtonActions, 0, 0, 3, 3),
+            States = PowerOptions.SelectionStates(PowerOptions.PowerButtonActions, 3, 3, 3, 3),
         },
         new()
         {
@@ -478,7 +478,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "4f971e89-eebd-4455-a8de-9e59040e7347", "96996bc0-ad50-47ec-923b-6f41874dd9eb", PowerModeSupport.Separate) { EnablementKey = new RegTarget("Attributes", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347\96996bc0-ad50-47ec-923b-6f41874dd9eb" }, "Attributes", RegistryValueKind.DWord) },
             },
-            States = PowerOptions.SelectionStates(PowerOptions.PowerButtonActions, 0, 0, 1, 1),
+            States = PowerOptions.SelectionStates(PowerOptions.PowerButtonActions, 1, 1, 1, 1),
         },
         new()
         {
@@ -600,7 +600,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "54533251-82be-4824-96c1-47b60b740d00", "94d3a615-a899-4ac5-ae2b-e4d8f634367f", PowerModeSupport.Separate) { EnablementKey = new RegTarget("Attributes", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\94d3a615-a899-4ac5-ae2b-e4d8f634367f" }, "Attributes", RegistryValueKind.DWord) },
             },
-            States = PowerOptions.SelectionStates(PowerOptions.CoolingPolicy, 1, 1, 1, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.CoolingPolicy, 1, 0, 1, 0),
         },
         new()
         {
@@ -622,7 +622,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "54533251-82be-4824-96c1-47b60b740d00", "be337238-0d82-4146-a960-4f3749d470c7", PowerModeSupport.Separate) { EnablementKey = new RegTarget("Attributes", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\be337238-0d82-4146-a960-4f3749d470c7" }, "Attributes", RegistryValueKind.DWord) },
             },
-            States = PowerOptions.SelectionStates(PowerOptions.ProcessorBoostMode, 2, 1, 2, 2),
+            States = PowerOptions.SelectionStates(PowerOptions.ProcessorBoostMode, 2, 2, 2, 2),
         },
         new()
         {
@@ -666,7 +666,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "54533251-82be-4824-96c1-47b60b740d00", "40fbefc7-2e9d-4d25-a185-0cfd8574bac6", PowerModeSupport.Separate) { EnablementKey = new RegTarget("Attributes", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\40fbefc7-2e9d-4d25-a185-0cfd8574bac6" }, "Attributes", RegistryValueKind.DWord) },
             },
-            States = PowerOptions.SelectionStates(PowerOptions.PerformanceDecreasePolicy, 1, 2, 0, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.PerformanceDecreasePolicy, 1, 0, 0, 0),
         },
         new()
         {
@@ -693,7 +693,7 @@ public static class PowerOptimizationsCatalog
                 Min = 0,
                 Max = 100,
                 Units = "%",
-                Recommended = new[] { new ContextValue(PowerContext.AC, 0), new ContextValue(PowerContext.DC, 0) },
+                Recommended = new[] { new ContextValue(PowerContext.AC, 100), new ContextValue(PowerContext.DC, 10) },
                 WindowsDefault = new[] { new ContextValue(PowerContext.AC, 100), new ContextValue(PowerContext.DC, 10) },
             },
         },
@@ -780,7 +780,7 @@ public static class PowerOptimizationsCatalog
                 Min = 0,
                 Max = 100,
                 Units = "%",
-                Recommended = new[] { new ContextValue(PowerContext.AC, 10), new ContextValue(PowerContext.DC, 30) },
+                Recommended = new[] { new ContextValue(PowerContext.AC, 30), new ContextValue(PowerContext.DC, 90) },
                 WindowsDefault = new[] { new ContextValue(PowerContext.AC, 60), new ContextValue(PowerContext.DC, 90) },
             },
         },
@@ -809,7 +809,7 @@ public static class PowerOptimizationsCatalog
                 Min = 0,
                 Max = 100,
                 Units = "%",
-                Recommended = new[] { new ContextValue(PowerContext.AC, 8), new ContextValue(PowerContext.DC, 20) },
+                Recommended = new[] { new ContextValue(PowerContext.AC, 10), new ContextValue(PowerContext.DC, 30) },
                 WindowsDefault = new[] { new ContextValue(PowerContext.AC, 20), new ContextValue(PowerContext.DC, 30) },
             },
         },
@@ -863,7 +863,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "9596fb26-9850-41fd-ac3e-f7c3c00afd4b", "03680956-93bc-4294-bba6-4e0f09bb717f", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.MediaSharing, 1, 1, 1, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.MediaSharing, 1, 0, 1, 0),
         },
         new()
         {
@@ -884,7 +884,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "9596fb26-9850-41fd-ac3e-f7c3c00afd4b", "10778347-1370-4ee0-8bbd-33bdacaade49", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.VideoQualityBias, 1, 1, 1, 0),
+            States = PowerOptions.SelectionStates(PowerOptions.VideoQualityBias, 1, 0, 1, 0),
         },
         new()
         {
@@ -905,7 +905,7 @@ public static class PowerOptimizationsCatalog
             {
                 new PowerCfgTarget("Power", "9596fb26-9850-41fd-ac3e-f7c3c00afd4b", "34c7b99f-9a6d-4b3c-8dc7-b6693b78cef4", PowerModeSupport.Separate),
             },
-            States = PowerOptions.SelectionStates(PowerOptions.VideoPlayback, 0, 0, 0, 1),
+            States = PowerOptions.SelectionStates(PowerOptions.VideoPlayback, 0, 1, 0, 1),
         },
         new()
         {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "fcac0e92aeb6823df66b5899e8fd2c692199e056cdebc9bd55d585d992da31b4",
+  "catalogHash": "4bf07cc60c11af245a5efef5433bec7c97e49fc72545b6bcb53f694676bbe979",
   "settingCount": 414,
   "settings": [
     {
@@ -38759,13 +38759,7 @@
         {
           "label": "Template_TimeIntervals_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -38884,7 +38878,13 @@
         {
           "label": "Template_TimeIntervals_Option_6",
           "isFallback": false,
-          "roles": [],
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            }
+          ],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -39148,11 +39148,6 @@
           "roles": [
             {
               "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
               "context": "DC",
               "appliesTo": []
             },
@@ -39179,6 +39174,11 @@
           "label": "Template_JavaScriptTimers_Option_1",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "AC",
@@ -39237,6 +39237,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "AC",
               "appliesTo": []
@@ -39259,11 +39264,6 @@
           "label": "Template_Slideshow_Option_1",
           "isFallback": false,
           "roles": [
-            {
-              "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
             {
               "kind": "Recommended",
               "context": "DC",
@@ -39781,11 +39781,6 @@
           "roles": [
             {
               "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
               "context": "DC",
               "appliesTo": []
             },
@@ -39812,6 +39807,11 @@
           "label": "Template_WakeTimers_Option_1",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "AC",
@@ -40304,18 +40304,7 @@
         {
           "label": "Template_OnOff_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -40333,6 +40322,16 @@
           "label": "Template_OnOff_Option_1",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "AC",
@@ -40561,11 +40560,11 @@
         "recommended": [
           {
             "context": "AC",
-            "value": 0
+            "value": 50
           },
           {
             "context": "DC",
-            "value": 1000
+            "value": 50
           }
         ],
         "windowsDefault": [
@@ -40972,18 +40971,7 @@
         {
           "label": "Template_PowerButtonActions_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -41035,6 +41023,16 @@
           "label": "Template_PowerButtonActions_Option_3",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "AC",
@@ -41120,18 +41118,7 @@
         {
           "label": "Template_PowerButtonActions_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -41149,6 +41136,16 @@
           "label": "Template_PowerButtonActions_Option_1",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "AC",
@@ -41624,6 +41621,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "DC",
               "appliesTo": []
@@ -41649,11 +41651,6 @@
             {
               "kind": "Recommended",
               "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
               "appliesTo": []
             },
             {
@@ -41736,13 +41733,7 @@
         {
           "label": "Template_ProcessorBoostMode_Option_1",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -41763,6 +41754,11 @@
             {
               "kind": "Recommended",
               "context": "AC",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "DC",
               "appliesTo": []
             },
             {
@@ -42034,6 +42030,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "AC",
               "appliesTo": []
@@ -42083,13 +42084,7 @@
         {
           "label": "Template_PerformanceDecreasePolicy_Option_2",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Power": {
               "acceptsAbsent": false,
@@ -42128,11 +42123,11 @@
         "recommended": [
           {
             "context": "AC",
-            "value": 0
+            "value": 100
           },
           {
             "context": "DC",
-            "value": 0
+            "value": 10
           }
         ],
         "windowsDefault": [
@@ -42320,11 +42315,11 @@
         "recommended": [
           {
             "context": "AC",
-            "value": 10
+            "value": 30
           },
           {
             "context": "DC",
-            "value": 30
+            "value": 90
           }
         ],
         "windowsDefault": [
@@ -42384,11 +42379,11 @@
         "recommended": [
           {
             "context": "AC",
-            "value": 8
+            "value": 10
           },
           {
             "context": "DC",
-            "value": 20
+            "value": 30
           }
         ],
         "windowsDefault": [
@@ -42552,6 +42547,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "DC",
               "appliesTo": []
@@ -42577,11 +42577,6 @@
             {
               "kind": "Recommended",
               "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
               "appliesTo": []
             },
             {
@@ -42642,6 +42637,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "DC",
               "appliesTo": []
@@ -42667,11 +42667,6 @@
             {
               "kind": "Recommended",
               "context": "AC",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "DC",
               "appliesTo": []
             },
             {
@@ -42737,11 +42732,6 @@
               "appliesTo": []
             },
             {
-              "kind": "Recommended",
-              "context": "DC",
-              "appliesTo": []
-            },
-            {
               "kind": "WindowsDefault",
               "context": "AC",
               "appliesTo": []
@@ -42764,6 +42754,11 @@
           "label": "Template_VideoPlayback_Option_1",
           "isFallback": false,
           "roles": [
+            {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
             {
               "kind": "WindowsDefault",
               "context": "DC",
