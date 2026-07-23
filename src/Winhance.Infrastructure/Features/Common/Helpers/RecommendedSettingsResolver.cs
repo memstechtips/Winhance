@@ -42,7 +42,7 @@ internal static class RecommendedSettingsResolver
     // (AC/DC), so the unconditional HasRole(Recommended) does not match them. A merged Selection now exists
     // (theme-mode-windows merges the per-OS theme defaults into one build-gated Selection), but its build-scoped
     // role is the WindowsDefault, not the Recommended, so this Recommended lookup stays correct build-unaware; the
-    // OS-divergent WindowsDefault is resolved via the build-aware GetDefaultIndex overload below.
+    // OS-divergent WindowsDefault is resolved via the build-aware GetDefaultIndex below.
     internal static int? GetRecommendedIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
@@ -51,22 +51,10 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // As GetRecommendedIndex, but matches the WindowsDefault role. Build-UNAWARE: matches only an unconditional
-    // WindowsDefault role, so a merged Selection whose Windows default is build-scoped (theme-mode-windows: Light is
-    // the Windows 11 default, with no Windows 10 default) resolves to null here. Use the build-aware overload below
-    // for the LIVE-build default.
-    internal static int? GetDefaultIndex(Setting setting)
-    {
-        if (setting.Control != ControlKind.Selection) return null;
-        for (int i = 0; i < setting.States.Count; i++)
-            if (setting.States[i].HasRole(RoleKind.WindowsDefault)) return i;
-        return null;
-    }
-
-    // Build-aware GetDefaultIndex: matches a state's unconditional WindowsDefault role OR one whose build scope
+    // Build-aware default lookup: matches a state's unconditional WindowsDefault role OR one whose build scope
     // admits `build`. A merged Selection (theme-mode-windows) declares Light as the Windows 11 WindowsDefault via a
-    // build-scoped role invisible to the unaware overload, so the bulk reset skipped it; this resolves the state
-    // that is default on the live build (Light on Windows 11; none on Windows 10).
+    // build-scoped role that an unconditional-only lookup would miss; this resolves the state that is default on
+    // the live build (Light on Windows 11; none on Windows 10).
     internal static int? GetDefaultIndex(Setting setting, WinBuild build)
     {
         if (setting.Control != ControlKind.Selection) return null;

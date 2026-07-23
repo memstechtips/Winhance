@@ -268,13 +268,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     // (a) Registry-surface overlap: the applied setting WROTE some (path, valueName) pairs (its ApplyOnly targets
     // are included - they are written), and the candidate READS an overlapping pair, so the candidate's card is now
-    // stale. Every entry of Paths (a mirror list) is compared, case-insensitive on path and valueName.
+    // stale. The candidate side EXCLUDES its own ApplyOnly targets - written on apply but never read on detect, so
+    // overlap through them cannot stale the card. Every entry of Paths (a mirror list) is compared,
+    // case-insensitive on path and valueName.
     private static bool SharesRegistrySurface(Setting applied, Setting candidate)
     {
-        var appliedPairs = RegistrySurfacePairs(applied);
+        var appliedPairs = RegistrySurfacePairs(applied, includeApplyOnly: true);
         if (appliedPairs.Count == 0)
             return false;
-        foreach (var pair in RegistrySurfacePairs(candidate))
+        foreach (var pair in RegistrySurfacePairs(candidate, includeApplyOnly: false))
             if (appliedPairs.Contains(pair))
                 return true;
         return false;
@@ -283,11 +285,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // A null valueName (key-existence) is its own token so it only matches another null, never a named value.
     private const string KeyExistenceToken = "\0__keyexists__";
 
-    private static HashSet<(string, string)> RegistrySurfacePairs(Setting setting)
+    private static HashSet<(string, string)> RegistrySurfacePairs(Setting setting, bool includeApplyOnly)
     {
         var pairs = new HashSet<(string, string)>();
         foreach (var reg in setting.Targets.OfType<RegTarget>())
         {
+            if (!includeApplyOnly && reg.ApplyOnly)
+                continue;
             var value = reg.ValueName is null ? KeyExistenceToken : reg.ValueName.ToLowerInvariant();
             foreach (var path in reg.Paths)
                 pairs.Add((path.ToLowerInvariant(), value));
