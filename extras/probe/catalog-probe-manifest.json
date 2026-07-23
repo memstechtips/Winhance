@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "beb5a75722a5ffbacf7c5509032dfc6f5304ef38de22c3ffd94657f8d0d7b70b",
+  "catalogHash": "fcac0e92aeb6823df66b5899e8fd2c692199e056cdebc9bd55d585d992da31b4",
   "settingCount": 414,
   "settings": [
     {
@@ -3814,7 +3814,8 @@
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
-                0
+                0,
+                2
               ],
               "writePayload": 0
             }
@@ -8534,13 +8535,7 @@
         {
           "label": "M/d/yyyy",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "sShortDate": {
               "acceptsAbsent": true,
@@ -8838,13 +8833,7 @@
         {
           "label": ". (Period)",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "sDecimal": {
               "acceptsAbsent": true,
@@ -9040,13 +9029,7 @@
         {
           "label": "Metric",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "iMeasure": {
               "acceptsAbsent": true,
@@ -9124,13 +9107,7 @@
         {
           "label": ". (Period)",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "sMonDecimalSep": {
               "acceptsAbsent": true,
@@ -18957,7 +18934,8 @@
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
-                38
+                38,
+                2
               ],
               "writePayload": 38
             }

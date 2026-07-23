@@ -49,9 +49,6 @@ public class CatalogCleanInstallConformanceTests
 
     private static readonly IReadOnlyDictionary<string, string> Win10VmExpected = new Dictionary<string, string>
     {
-        ["explorer-customization-currency-decimal"] = "locale: en-ZA materializes ',' at OOBE; catalog authors the en-US format (B3 locale class, deferred design item)",
-        ["explorer-customization-number-decimal"] = "locale: en-ZA materializes ',' (B3 locale class)",
-        ["explorer-customization-short-date"] = "locale: en-ZA materializes yyyy/MM/dd (B3 locale class)",
         ["gaming-memory-integrity"] = "hardware-conditional: VBS values absent on incapable/VM hardware; capable hardware writes Enabled=1 (held, no OrAbsent)",
         ["gaming-virtualization-based-security"] = "hardware-conditional: same as memory-integrity",
         ["gaming-performance-search-webview2"] = "held (a): value absent on every probed machine, role unconfirmed by any observation",
@@ -60,7 +57,6 @@ public class CatalogCleanInstallConformanceTests
 
     private static readonly IReadOnlyDictionary<string, string> GoldLaptopExpected = new Dictionary<string, string>
     {
-        ["explorer-customization-measurement-system"] = "locale: en-US ships iMeasure=1 (Imperial); catalog default is authored Metric (B3 locale class)",
         ["gaming-memory-integrity"] = "hardware-conditional: this laptop has VBS off",
         ["gaming-virtualization-based-security"] = "hardware-conditional: this laptop has VBS off",
         ["gaming-performance-search-webview2"] = "held (a): see Win10 fixture",
@@ -73,9 +69,6 @@ public class CatalogCleanInstallConformanceTests
 
     private static readonly IReadOnlyDictionary<string, string> PostUpdateVmExpected = new Dictionary<string, string>
     {
-        ["explorer-customization-currency-decimal"] = "locale: en-ZA (B3 locale class)",
-        ["explorer-customization-number-decimal"] = "locale: en-ZA (B3 locale class)",
-        ["explorer-customization-short-date"] = "locale: en-ZA (B3 locale class)",
         ["gaming-memory-integrity"] = "hardware-conditional: VM, VBS off",
         ["gaming-virtualization-based-security"] = "hardware-conditional: VM, VBS off",
         ["gaming-performance-search-webview2"] = "held (a): see Win10 fixture",

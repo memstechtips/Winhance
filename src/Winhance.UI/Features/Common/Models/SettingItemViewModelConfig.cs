@@ -27,6 +27,11 @@ public record SettingItemViewModelConfig
     public string IconPack { get; init; } = "Material";
     public required InputType InputType { get; init; }
     public bool IsSelected { get; init; }
+
+    /// <summary>Detection ran and could not place the setting on any known state (see
+    /// <c>SettingStateResult.IsCustomState</c>). Renders the toggle's neutral Custom overlay or the
+    /// selection's info adornment.</summary>
+    public bool IsCustomState { get; init; }
     public string OnText { get; init; } = "On";
     public string OffText { get; init; } = "Off";
     public string ActionButtonText { get; init; } = "Apply";

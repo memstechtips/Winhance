@@ -1429,7 +1429,10 @@ if (-not (Test-Path $icoPath)) {
                     Label = "Disabled",
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Hidden"] = Of(0) },
+                    // Clean installs ship Hidden=2 (Explorer's Folder Options "don't show" write, all three
+                    // clean-install fixtures); 0 is the legacy Winhance write. Both hide (Explorer shows
+                    // only on Hidden=1). Write payload stays 0 (first value).
+                    Set = new Dictionary<string, StateValue> { ["Hidden"] = OneOf(0, 2) },
                 },
             },
         },
@@ -3047,7 +3050,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "M/d/yyyy",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("M/d/yyyy").OrAbsent() },
                 },
                 new SettingState
@@ -3151,7 +3153,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = ". (Period)",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of(".").OrAbsent() },
                 },
                 new SettingState
@@ -3225,7 +3226,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = "Metric",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["iMeasure"] = Of("0").OrAbsent() },
                 },
                 new SettingState
@@ -3257,7 +3257,6 @@ if (Test-Path $appPathsKey) {
                 new SettingState
                 {
                     Label = ". (Period)",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of(".").OrAbsent() },
                 },
                 new SettingState

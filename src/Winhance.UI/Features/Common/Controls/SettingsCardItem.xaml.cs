@@ -111,6 +111,8 @@ public sealed partial class SettingsCardItem : UserControl
     {
         return vm.InputType switch
         {
+            // A Custom-state toggle is on no known state - announce "Custom", not On/Off.
+            InputType.Toggle or InputType.CheckBox when vm.IsCustomState => vm.CustomStateText,
             InputType.Toggle or InputType.CheckBox => vm.IsSelected ? vm.OnText : vm.OffText,
             InputType.Selection => vm.ComboBoxOptions
                 ?.FirstOrDefault(o => Equals(o.Value, vm.SelectedValue))?.DisplayText

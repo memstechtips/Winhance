@@ -95,8 +95,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         {
             case ControlKind.Toggle:
                 // IsEnabled (the switch position) is already derived from the resolved "Enabled"/"Disabled" label;
-                // a toggle carries no CurrentValue.
-                return result;
+                // a toggle carries no CurrentValue. A null StateLabel means detection ran and could not place the
+                // toggle on any known state (the service catch-all's Detected=false also lands here with a null
+                // label - "can't place it" is honest either way) -> Custom.
+                return result with { IsCustomState = r.StateLabel is null };
 
             case ControlKind.Selection:
                 // Two-tier resolution: resolve the selection index from the StateLabel; when it resolves use it,
@@ -110,7 +112,14 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                     return result with { CurrentValue = labelIndex };
                 var reads = CustomStateValueReconstructor.Build(catalogSetting, result)
                     .ToDictionary(kv => kv.Key, kv => kv.Value);
-                return result with { CurrentValue = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads) };
+                var valueMatchIndex = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads);
+                // Custom exactly when the RESOLVED index is the Custom index - label resolution and the
+                // value-match fallback both failed to place the selection on a known option.
+                return result with
+                {
+                    CurrentValue = valueMatchIndex,
+                    IsCustomState = valueMatchIndex == ComboBoxConstants.CustomStateIndex,
+                };
 
             case ControlKind.Slider:
                 // The slider's value IS the raw AC powercfg value index (r.Value); both box int?/null.

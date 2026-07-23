@@ -384,7 +384,10 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Programs",
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["Win32PrioritySeparation"] = Of(38) },
+                    // Clean installs ship Win32PrioritySeparation=2 (all three clean-install fixtures),
+                    // which System Properties renders as "Programs"; 0x26 (38) is the dialog's own write
+                    // when Programs is picked. Both mean Programs. Write payload stays 38 (first value).
+                    Set = new Dictionary<string, StateValue> { ["Win32PrioritySeparation"] = OneOf(38, 2) },
                 },
                 new SettingState
                 {

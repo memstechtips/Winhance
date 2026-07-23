@@ -72,6 +72,15 @@ internal sealed class SettingStatusBannerManager
             InfoBarSeverity.Warning);
     }
 
+    /// <summary>Informational banner for a Custom-state setting (detection found a value Winhance does
+    /// not recognize). Warning/Error banners (compatibility, restart, option warnings, the cross-group
+    /// Custom warning above) outrank it - the VM applies this only when no higher-severity banner is
+    /// showing (SettingItemViewModel.UpdateCustomStateBanner).</summary>
+    public BannerState GetCustomStateBanner(bool isToggleLike)
+        => new(
+            _localizationService.GetString(isToggleLike ? "Common_CustomBanner_Toggle" : "Common_CustomBanner_Selection"),
+            InfoBarSeverity.Informational);
+
     private BannerState ComputeCrossGroupBanner(int selectedIndex, string crossGroupInfoMessage, int optionCount)
     {
         if (optionCount == 0)

@@ -47,12 +47,42 @@
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
                 </StackPanel>
-                <ToggleSwitch
-                    IsOn="{x:Bind IsSelected, Mode=OneWay}"
-                    Toggled="{x:Bind OnToggleSwitchToggled}"
-                    OnContent="{x:Bind OnText}"
-                    OffContent="{x:Bind OffText}"
-                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                <Grid VerticalAlignment="Center">
+                    <ToggleSwitch
+                        IsOn="{x:Bind IsSelected, Mode=OneWay}"
+                        Toggled="{x:Bind OnToggleSwitchToggled}"
+                        OnContent="{x:Bind OnText}"
+                        OffContent="{x:Bind OffText}"
+                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                    <!-- Neutral Custom-state overlay: muted track, knob parked centre, info glyph on the
+                         knob. Deliberately NOT a third selectable position (no accent color). Clicking
+                         opens the Enabled/Disabled/Cancel dialog (OnCustomToggleClicked). -->
+                    <Button
+                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Click="{x:Bind OnCustomToggleClicked}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="2"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        ToolTipService.ToolTip="{x:Bind CustomStateText}"
+                        AutomationProperties.Name="{x:Bind CustomStateText}">
+                        <Border Width="40" Height="20" CornerRadius="10"
+                                Background="{ThemeResource ControlFillColorDisabledBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <Grid>
+                                <Ellipse Width="14" Height="14"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         Fill="{ThemeResource ControlStrongFillColorDefaultBrush}"/>
+                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="10"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}"/>
+                            </Grid>
+                        </Border>
+                    </Button>
+                </Grid>
             </StackPanel>
         </DataTemplate>
 
@@ -86,6 +116,12 @@
                     SelectedValuePath="Value"
                     DisplayMemberPath="DisplayText"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                <!-- Custom-state info adornment: the selection sits on a value Winhance doesn't recognize. -->
+                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="16"
+                          VerticalAlignment="Center"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip}"
+                          Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </DataTemplate>
 
