@@ -59,21 +59,34 @@
                     <!-- Neutral Custom-state overlay: a track-only stand-in for the ToggleSwitch, drawn
                          2px larger than the stock 40x20 track (Marco's sizing feedback), with the
                          QuestionCircle color icon as the knob - the same icon the Custom banner and the
-                         selection adornment use. No text label, and the button chrome is cleared
+                         selection adornment use - plus a short language-neutral "?" label in the
+                         On/Off-content slot for column uniformity. Button chrome is cleared
                          (hover/pressed backgrounds transparent) so it reads as a toggle control, not a
-                         pressable button. Deliberately NOT a third selectable position (no accent
-                         color). Clicking opens the Enabled/Disabled/Cancel dialog
-                         (OnCustomToggleClicked). -->
+                         pressable button; MinWidth matches the stock ToggleSwitch (154) so the track
+                         aligns with the real toggles and the whole control area is clickable. The knob
+                         grows slightly on pointer-over (code-behind storyboards, mirroring the native
+                         ToggleSwitch); PointerExited, PointerCanceled and PointerCaptureLost all shrink
+                         it back so it cannot stick enlarged. The tooltip is the SAME string as the
+                         Custom banner (Common_CustomBanner_Toggle via CustomStateToggleTooltip) so the
+                         two can never drift; the automation name stays the Custom STATE text.
+                         Deliberately NOT a third selectable position (no accent color). Clicking opens
+                         the Enabled/Disabled/Cancel dialog (OnCustomToggleClicked). -->
                     <Button
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Click="{x:Bind OnCustomToggleClicked}"
+                        PointerEntered="OnCustomOverlayPointerEntered"
+                        PointerExited="OnCustomOverlayPointerExited"
+                        PointerCanceled="OnCustomOverlayPointerExited"
+                        PointerCaptureLost="OnCustomOverlayPointerExited"
                         Background="Transparent"
                         BorderThickness="0"
                         Padding="0"
+                        MinWidth="154"
                         MinHeight="32"
                         HorizontalAlignment="Left"
+                        HorizontalContentAlignment="Left"
                         VerticalAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind CustomStateText}"
+                        ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip}"
                         AutomationProperties.Name="{x:Bind CustomStateText}">
                         <Button.Resources>
                             <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
@@ -81,13 +94,21 @@
                             <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
                             <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
                         </Button.Resources>
-                        <Border Width="42" Height="22" CornerRadius="11"
-                                Background="{ThemeResource ControlFillColorDisabledBrush}"
-                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1">
-                            <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="42" Height="22" CornerRadius="11"
+                                    Background="{ThemeResource ControlFillColorDisabledBrush}"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1">
+                                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                        RenderTransformOrigin="0.5,0.5">
+                                    <fluentIcons:FluentIcon.RenderTransform>
+                                        <CompositeTransform/>
+                                    </fluentIcons:FluentIcon.RenderTransform>
+                                </fluentIcons:FluentIcon>
+                            </Border>
+                            <TextBlock Text="{x:Bind CustomStateShortLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Button>
                 </Grid>
             </StackPanel>

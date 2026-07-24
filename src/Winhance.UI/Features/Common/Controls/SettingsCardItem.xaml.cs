@@ -1,8 +1,12 @@
+using System;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -120,6 +124,57 @@ public sealed partial class SettingsCardItem : UserControl
             InputType.NumericRange => vm.NumericValue.ToString(),
             _ => "applied"
         };
+    }
+
+    /// <summary>Mirrors the native ToggleSwitch's slight knob-grow on pointer-over for the
+    /// Custom-state overlay: scales the QuestionCircle knob icon to 1.15 over ~100ms. The icon is
+    /// resolved from the sender Button's content tree - x:Name inside a DataTemplate is not reachable
+    /// via UserControl.FindName.</summary>
+    private void OnCustomOverlayPointerEntered(object sender, PointerRoutedEventArgs e)
+        => AnimateCustomOverlayKnob(sender, 1.15);
+
+    /// <summary>Shrinks the knob back to 1.0. Wired to PointerExited AND PointerCanceled AND
+    /// PointerCaptureLost so the knob can never stick enlarged.</summary>
+    private void OnCustomOverlayPointerExited(object sender, PointerRoutedEventArgs e)
+        => AnimateCustomOverlayKnob(sender, 1.0);
+
+    private static void AnimateCustomOverlayKnob(object sender, double scale)
+    {
+        if (sender is not Button button)
+            return;
+
+        var icon = FindDescendant<FluentIcons.WinUI.FluentIcon>(button);
+        if (icon?.RenderTransform is not CompositeTransform transform)
+            return;
+
+        var duration = new Duration(TimeSpan.FromMilliseconds(100));
+        var storyboard = new Storyboard();
+        foreach (var property in new[] { "ScaleX", "ScaleY" })
+        {
+            // EnableDependentAnimation: a storyboard targeting the CompositeTransform object directly
+            // is classified as a dependent animation; without the flag it silently does nothing.
+            var animation = new DoubleAnimation { To = scale, Duration = duration, EnableDependentAnimation = true };
+            Storyboard.SetTarget(animation, transform);
+            Storyboard.SetTargetProperty(animation, property);
+            storyboard.Children.Add(animation);
+        }
+        storyboard.Begin();
+    }
+
+    // Same walk as WindowsAppsHelpContent.FindDescendant (kept private per file convention).
+    private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+    {
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T found)
+                return found;
+            var descendant = FindDescendant<T>(child);
+            if (descendant != null)
+                return descendant;
+        }
+        return null;
     }
 
     /// <summary>

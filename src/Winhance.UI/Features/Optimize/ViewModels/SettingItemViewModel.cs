@@ -990,6 +990,16 @@ public partial class SettingItemViewModel : BaseViewModel
     public string CustomStateSelectionTooltip =>
         _localizationService.GetString("Common_CustomBanner_Selection") ?? string.Empty;
 
+    /// <summary>Short language-neutral label ("?" via Common_CustomState_ShortLabel, overridable per
+    /// language) shown in the overlay's On/Off-content slot for column uniformity with real toggles.</summary>
+    public string CustomStateShortLabel =>
+        _localizationService.GetString("Common_CustomState_ShortLabel") ?? "?";
+
+    /// <summary>Tooltip for the toggle Custom overlay - the SAME string the toggle Custom banner shows
+    /// (Common_CustomBanner_Toggle), so tooltip and banner can never drift.</summary>
+    public string CustomStateToggleTooltip =>
+        _localizationService.GetString("Common_CustomBanner_Toggle") ?? string.Empty;
+
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
     public string OnBatteryText =>
