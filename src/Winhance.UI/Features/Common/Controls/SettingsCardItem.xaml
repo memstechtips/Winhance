@@ -83,8 +83,8 @@
                         Padding="0"
                         MinWidth="154"
                         MinHeight="32"
-                        HorizontalAlignment="Left"
-                        HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Right"
+                        HorizontalContentAlignment="Right"
                         VerticalAlignment="Center"
                         ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip}"
                         AutomationProperties.Name="{x:Bind CustomStateText}">
@@ -94,7 +94,10 @@
                             <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
                             <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
                         </Button.Resources>
+                        <!-- Same order as the real toggles in this app: label LEFT, track flush at the
+                             card's right edge (see docs screenshot 2026-07-24). -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind CustomStateShortLabel}" Margin="0,0,12,0" VerticalAlignment="Center"/>
                             <Border Width="42" Height="22" CornerRadius="11"
                                     Background="{ThemeResource ControlFillColorDisabledBrush}"
                                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
@@ -107,7 +110,6 @@
                                     </fluentIcons:FluentIcon.RenderTransform>
                                 </fluentIcons:FluentIcon>
                             </Border>
-                            <TextBlock Text="{x:Bind CustomStateShortLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </Grid>
