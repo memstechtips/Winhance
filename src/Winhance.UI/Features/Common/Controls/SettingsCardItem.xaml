@@ -56,12 +56,13 @@
                         OffContent="{x:Bind OffText}"
                         AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                    <!-- Neutral Custom-state overlay, matching a real ToggleSwitch's footprint (track +
-                         content text; WinUI ToggleSwitch MinWidth=154): the muted track holds the
-                         QuestionCircle color icon as the knob (the same icon the Custom banner and the
-                         selection adornment use), and the localized "Custom" text sits where the
-                         ToggleSwitch's On/Off content renders. Deliberately NOT a third selectable
-                         position (no accent color). Clicking opens the Enabled/Disabled/Cancel dialog
+                    <!-- Neutral Custom-state overlay: a track-only stand-in for the ToggleSwitch, drawn
+                         2px larger than the stock 40x20 track (Marco's sizing feedback), with the
+                         QuestionCircle color icon as the knob - the same icon the Custom banner and the
+                         selection adornment use. No text label, and the button chrome is cleared
+                         (hover/pressed backgrounds transparent) so it reads as a toggle control, not a
+                         pressable button. Deliberately NOT a third selectable position (no accent
+                         color). Clicking opens the Enabled/Disabled/Cancel dialog
                          (OnCustomToggleClicked). -->
                     <Button
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -69,23 +70,24 @@
                         Background="Transparent"
                         BorderThickness="0"
                         Padding="0"
-                        MinWidth="154"
                         MinHeight="32"
                         HorizontalAlignment="Left"
-                        HorizontalContentAlignment="Left"
                         VerticalAlignment="Center"
                         ToolTipService.ToolTip="{x:Bind CustomStateText}"
                         AutomationProperties.Name="{x:Bind CustomStateText}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border Width="40" Height="20" CornerRadius="10"
-                                    Background="{ThemeResource ControlFillColorDisabledBrush}"
-                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                    BorderThickness="1">
-                                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="{x:Bind CustomStateText}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                        </Button.Resources>
+                        <Border Width="42" Height="22" CornerRadius="11"
+                                Background="{ThemeResource ControlFillColorDisabledBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                     </Button>
                 </Grid>
             </StackPanel>
