@@ -6,6 +6,7 @@
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:interfaces="using:Winhance.Core.Features.Common.Interfaces"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
@@ -55,32 +56,36 @@
                         OffContent="{x:Bind OffText}"
                         AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                    <!-- Neutral Custom-state overlay: muted track, knob parked centre, info glyph on the
-                         knob. Deliberately NOT a third selectable position (no accent color). Clicking
-                         opens the Enabled/Disabled/Cancel dialog (OnCustomToggleClicked). -->
+                    <!-- Neutral Custom-state overlay, matching a real ToggleSwitch's footprint (track +
+                         content text; WinUI ToggleSwitch MinWidth=154): the muted track holds the
+                         QuestionCircle color icon as the knob (the same icon the Custom banner and the
+                         selection adornment use), and the localized "Custom" text sits where the
+                         ToggleSwitch's On/Off content renders. Deliberately NOT a third selectable
+                         position (no accent color). Clicking opens the Enabled/Disabled/Cancel dialog
+                         (OnCustomToggleClicked). -->
                     <Button
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Click="{x:Bind OnCustomToggleClicked}"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="2"
+                        Padding="0"
+                        MinWidth="154"
+                        MinHeight="32"
                         HorizontalAlignment="Left"
+                        HorizontalContentAlignment="Left"
                         VerticalAlignment="Center"
                         ToolTipService.ToolTip="{x:Bind CustomStateText}"
                         AutomationProperties.Name="{x:Bind CustomStateText}">
-                        <Border Width="40" Height="20" CornerRadius="10"
-                                Background="{ThemeResource ControlFillColorDisabledBrush}"
-                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1">
-                            <Grid>
-                                <Ellipse Width="14" Height="14"
-                                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                                         Fill="{ThemeResource ControlStrongFillColorDefaultBrush}"/>
-                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="10"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}"/>
-                            </Grid>
-                        </Border>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="40" Height="20" CornerRadius="10"
+                                    Background="{ThemeResource ControlFillColorDisabledBrush}"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1">
+                                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{x:Bind CustomStateText}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Button>
                 </Grid>
             </StackPanel>
@@ -116,12 +121,12 @@
                     SelectedValuePath="Value"
                     DisplayMemberPath="DisplayText"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                <!-- Custom-state info adornment: the selection sits on a value Winhance doesn't recognize. -->
-                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="16"
-                          VerticalAlignment="Center"
-                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                          ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip}"
-                          Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <!-- Custom-state info adornment: the selection sits on a value Winhance doesn't recognize.
+                     Same QuestionCircle color icon as the toggle overlay knob and the Custom banner. -->
+                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                                        VerticalAlignment="Center"
+                                        ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip}"
+                                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </DataTemplate>
 

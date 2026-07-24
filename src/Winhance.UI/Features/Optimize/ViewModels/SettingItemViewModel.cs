@@ -89,6 +89,13 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial InfoBarSeverity StatusBannerSeverity { get; set; }
 
+    /// <summary>Icon override for the status banner: the QuestionCircle color icon while the Custom
+    /// banner shows (coherent with the toggle overlay knob / selection adornment), null otherwise -
+    /// InfoBar treats a null IconSource as "use the severity's native icon", which Warning/Error
+    /// banners must keep. Set ONLY by ApplyBanner (the single banner funnel).</summary>
+    [ObservableProperty]
+    public partial IconSource? StatusBannerIconSource { get; set; }
+
     public bool HasStatusBanner => !string.IsNullOrEmpty(StatusBannerMessage);
 
     partial void OnStatusBannerMessageChanged(string? value)
@@ -2048,6 +2055,14 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         StatusBannerMessage = state.Message;
         StatusBannerSeverity = state.Severity;
+        // Fully qualified: this VM's own string `Icon` property shadows the FluentIcons.Common.Icon enum.
+        StatusBannerIconSource = state.IsCustomState
+            ? new FluentIcons.WinUI.FluentIconSource
+            {
+                Icon = FluentIcons.Common.Icon.QuestionCircle,
+                IconVariant = FluentIcons.Common.IconVariant.Color,
+            }
+            : null;
     }
 
     /// <summary>Shows the Informational Custom-state banner while <see cref="IsCustomState"/> and no

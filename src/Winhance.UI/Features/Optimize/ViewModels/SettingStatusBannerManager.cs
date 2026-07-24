@@ -14,7 +14,10 @@ internal sealed class SettingStatusBannerManager
 {
     private readonly ILocalizationService _localizationService;
 
-    internal readonly record struct BannerState(string? Message, InfoBarSeverity Severity)
+    /// <summary>IsCustomState marks the Custom-state banner so the VM can give it the QuestionCircle
+    /// color icon (matching the toggle overlay knob / selection adornment); every other banner keeps
+    /// InfoBar's native severity icon.</summary>
+    internal readonly record struct BannerState(string? Message, InfoBarSeverity Severity, bool IsCustomState = false)
     {
         public static BannerState Clear => new(null, InfoBarSeverity.Informational);
     }
@@ -79,7 +82,8 @@ internal sealed class SettingStatusBannerManager
     public BannerState GetCustomStateBanner(bool isToggleLike)
         => new(
             _localizationService.GetString(isToggleLike ? "Common_CustomBanner_Toggle" : "Common_CustomBanner_Selection"),
-            InfoBarSeverity.Informational);
+            InfoBarSeverity.Informational,
+            IsCustomState: true);
 
     private BannerState ComputeCrossGroupBanner(int selectedIndex, string crossGroupInfoMessage, int optionCount)
     {
