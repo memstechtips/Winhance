@@ -49,28 +49,40 @@
                     </Button>
                 </StackPanel>
                 <Grid VerticalAlignment="Center">
+                    <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this
+                         column its width, so the Quick-Set buttons land in the same place on a Custom row as
+                         on a normal one. It used to be Collapsed-swapped for the overlay, and the overlay's
+                         hard-coded MinWidth="154" is far wider than a ToggleSwitch actually renders (~72px),
+                         which shoved the Quick-Set buttons ~80px left on Custom rows (docs/Winhance.png).
+                         In the Custom state the switch stays in layout but goes invisible (Opacity 0) and
+                         drops out of hit-testing, the tab order and the automation tree, so the overlay
+                         drawn on top of it is the only thing a pointer, the keyboard or Narrator can reach. -->
                     <ToggleSwitch
                         IsOn="{x:Bind IsSelected, Mode=OneWay}"
                         Toggled="{x:Bind OnToggleSwitchToggled}"
                         OnContent="{x:Bind OnText}"
                         OffContent="{x:Bind OffText}"
                         AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
-                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                        Opacity="{x:Bind ToggleOpacityFor(IsCustomState), Mode=OneWay}"
+                        IsHitTestVisible="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
+                        IsTabStop="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
+                        AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(IsCustomState), Mode=OneWay}"/>
                     <!-- Neutral Custom-state overlay: a track-only stand-in for the ToggleSwitch, drawn
                          2px larger than the stock 40x20 track (Marco's sizing feedback), with the
                          QuestionCircle color icon as the knob - the same icon the Custom banner and the
                          selection adornment use - plus a short language-neutral "?" label in the
                          On/Off-content slot for column uniformity. Button chrome is cleared
                          (hover/pressed backgrounds transparent) so it reads as a toggle control, not a
-                         pressable button; MinWidth matches the stock ToggleSwitch (154) so the track
-                         aligns with the real toggles and the whole control area is clickable. The knob
-                         grows slightly on pointer-over (code-behind storyboards, mirroring the native
-                         ToggleSwitch); PointerExited, PointerCanceled and PointerCaptureLost all shrink
-                         it back so it cannot stick enlarged. The tooltip is the SAME string as the
-                         Custom banner (Common_CustomBanner_Toggle via CustomStateToggleTooltip) so the
-                         two can never drift; the automation name stays the Custom STATE text.
-                         Deliberately NOT a third selectable position (no accent color). Clicking opens
-                         the Enabled/Disabled/Cancel dialog (OnCustomToggleClicked). -->
+                         pressable button. It carries NO size of its own: it stretches over the invisible
+                         ToggleSwitch behind it, so the overlay's footprint IS the toggle's footprint and
+                         the whole control area stays clickable. The knob grows slightly on pointer-over
+                         (code-behind storyboards, mirroring the native ToggleSwitch); PointerExited,
+                         PointerCanceled and PointerCaptureLost all shrink it back so it cannot stick
+                         enlarged. The tooltip is the SAME string as the Custom banner
+                         (Common_CustomBanner_Toggle via CustomStateToggleTooltip) so the two can never
+                         drift; the automation name stays the Custom STATE text. Deliberately NOT a third
+                         selectable position (no accent color). Clicking opens the Enabled/Disabled/Cancel
+                         dialog (OnCustomToggleClicked). -->
                     <Button
                         Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Click="{x:Bind OnCustomToggleClicked}"
@@ -81,11 +93,10 @@
                         Background="Transparent"
                         BorderThickness="0"
                         Padding="0"
-                        MinWidth="154"
-                        MinHeight="32"
-                        HorizontalAlignment="Right"
+                        HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Right"
-                        VerticalAlignment="Center"
+                        VerticalAlignment="Stretch"
+                        VerticalContentAlignment="Center"
                         ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip}"
                         AutomationProperties.Name="{x:Bind CustomStateText}">
                         <Button.Resources>

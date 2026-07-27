@@ -1000,6 +1000,21 @@ public partial class SettingItemViewModel : BaseViewModel
     public string CustomStateToggleTooltip =>
         _localizationService.GetString("Common_CustomBanner_Toggle") ?? string.Empty;
 
+    // The Custom toggle overlay does not replace the ToggleSwitch, it covers it. The switch is always
+    // measured so the toggle column is one width on every row (that is what keeps the Quick-Set buttons
+    // aligned); in the Custom state it is simply made invisible and inert underneath the overlay. Both
+    // helpers are consumed with x:Bind function-call syntax in SettingsCardItem.xaml and re-evaluate when
+    // IsCustomState raises PropertyChanged.
+
+    /// <summary>Opacity of the real ToggleSwitch: invisible (0) while the Custom overlay is drawn on top
+    /// of it, fully opaque (1) otherwise. Never Collapsed - it must keep occupying its space.</summary>
+    public double ToggleOpacityFor(bool isCustomState) => isCustomState ? 0d : 1d;
+
+    /// <summary>Keeps the invisible ToggleSwitch out of the automation tree while Custom, so Narrator
+    /// announces only the overlay (which carries the Custom state name), not a hidden On/Off switch.</summary>
+    public AccessibilityView ToggleAccessibilityViewFor(bool isCustomState) =>
+        isCustomState ? AccessibilityView.Raw : AccessibilityView.Content;
+
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
     public string OnBatteryText =>
