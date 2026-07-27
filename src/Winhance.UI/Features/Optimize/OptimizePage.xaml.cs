@@ -12,6 +12,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
@@ -446,6 +447,13 @@ public sealed partial class OptimizePage : Page
         UpdateFeatureBadge(NotificationBadge, FeatureIds.Notifications);
         UpdateFeatureBadge(SoundBadge, FeatureIds.Sound);
     }
+
+    /// <summary>A link in a feature's outcome banner was clicked. NavigateToSection pre-applies the
+    /// setting name as a search filter, so the user lands on that setting already filtered instead of
+    /// arriving in the feature and having to hunt for it. A null name is the "+N more" link, which just
+    /// opens the feature.</summary>
+    private void OnOutcomeBannerNavigationRequested(object? sender, FeatureOutcomeNavigationEventArgs e)
+        => NavigateToSection(e.SectionKey, e.SettingName);
 
     private void UpdateOverviewBadgePills()
     {

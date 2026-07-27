@@ -3,25 +3,29 @@
     x:Class="Winhance.UI.Features.Common.Controls.FeatureOutcomeBanner"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
     Reports, on a feature's overview card, that Winhance could not determine the state of some settings
-    inside it. Attaches to the BOTTOM of the card so it is unmistakably about that feature: the parent
-    StackPanel spaces its children by 8, so -9 closes that gap and overlaps the border by 1, and the top
-    corners are squared while the bottom stay rounded - the same join the settings cards use.
+    inside it - and names them, each as a link straight to that setting. Attaches to the BOTTOM of the
+    card so it is unmistakably about that feature: the parent StackPanel spaces its children by 8, so -9
+    closes that gap and overlaps the border by 1, top corners squared and bottom left rounded, the same
+    join the settings cards use.
 
     This REPLACED per-outcome info-badge pills. A detection outcome is a fault, not a badge: badges say
     where a value sits relative to our advice, which is optional detail and reasonably hidden behind
     View > InfoBadges. Hiding "1 setting is saved in the wrong format" behind that same toggle was
     backwards - so this is deliberately NOT gated by it.
 
-    SEVERITY IS ALWAYS INFORMATIONAL, and the per-outcome colour lives on the ITEMS instead. An earlier
+    SEVERITY IS ALWAYS INFORMATIONAL, and the per-outcome colour lives on each ROW instead. An earlier
     version set the bar's severity to the worst outcome present, which backfired: a feature holding one
     wrong-format and one unrecognized setting turned the whole bar amber, and the eye then went looking
-    for amber only - the blue one effectively disappeared. A neutral bar carrying one coloured chip per
-    kind tells you exactly what to hunt for once you click in, which is the only job this banner has.
+    for amber only - the blue one effectively disappeared. A neutral bar with one coloured row per kind
+    shows both at once.
+
+    Rows are built in code rather than by a DataTemplate because each is a single wrapping TextBlock
+    whose Inlines mix literal text with Hyperlink runs. A TextBlock wraps natively, which is what keeps a
+    long localized setting name from overflowing the card - a horizontal panel of link buttons would not.
     -->
     <Border Visibility="{x:Bind BannerVisibility, Mode=OneWay}" Margin="0,-9,0,0">
         <local:QuietInfoBar
@@ -32,24 +36,7 @@
             IsTabStop="True"
             UseSystemFocusVisuals="True"
             CornerRadius="0,0,4,4">
-            <!-- One chip per outcome KIND present, each with the same icon those settings carry on
-                 their own controls, so a colour means one thing everywhere in the app. -->
-            <ItemsControl ItemsSource="{x:Bind Fragments, Mode=OneWay}" Margin="0,0,0,4">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="16"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="local:FeatureOutcomeFragment">
-                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Color"
-                                                    FontSize="15" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Bind Text}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel x:Name="FragmentHost" Spacing="2" Margin="0,0,0,6"/>
         </local:QuietInfoBar>
     </Border>
 </UserControl>

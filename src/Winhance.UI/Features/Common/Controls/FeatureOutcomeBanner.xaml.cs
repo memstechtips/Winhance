@@ -1,34 +1,42 @@
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
+using FluentIcons.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>One kind of unresolved setting found in a feature: its icon and its "Label: N" text.
-///
-/// Plain settable properties, NOT init-only: the XAML compiler generates an XamlTypeInfo provider for
-/// any type reachable from a DataTemplate, and that provider assigns through ordinary setters. An
-/// `init` accessor makes the generated file fail to compile with CS8852.</summary>
-public sealed class FeatureOutcomeFragment
+/// <summary>Asks the host page to navigate. <see cref="SettingName"/> is null for the "+N more" link,
+/// which opens the feature without pre-filtering to any one setting.</summary>
+public sealed class FeatureOutcomeNavigationEventArgs : EventArgs
 {
-    public FluentIcons.Common.Icon Icon { get; set; }
-    public string Text { get; set; } = string.Empty;
+    public string SectionKey { get; set; } = string.Empty;
+    public string? SettingName { get; set; }
 }
 
 /// <summary>
-/// Code-behind for <see cref="FeatureOutcomeBanner"/>. Turns a feature's aggregated outcome counts into
-/// one informational banner carrying a coloured chip per kind found.
+/// Code-behind for <see cref="FeatureOutcomeBanner"/>. Names the settings Winhance could not place and
+/// turns each into a link to it.
 /// </summary>
 public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyChanged
 {
+    /// <summary>How many names to list per kind before collapsing into "+N more". Three keeps the row to
+    /// one or two wrapped lines even with long localized names; a shared registry value can leave eight
+    /// settings unresolved at once (the UserPreferencesMask case), and listing all of them would turn a
+    /// summary card into a wall of text.</summary>
+    private const int MaxNamesPerKind = 3;
+
     public FeatureOutcomeBanner() => InitializeComponent();
+
+    /// <summary>Raised when a link is clicked. The host page owns navigation, so it handles this.</summary>
+    public event EventHandler<FeatureOutcomeNavigationEventArgs>? NavigationRequested;
 
     public static readonly DependencyProperty FeatureProperty = DependencyProperty.Register(
         nameof(Feature), typeof(ISettingsFeatureViewModel), typeof(FeatureOutcomeBanner),
@@ -38,6 +46,17 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     {
         get => (ISettingsFeatureViewModel?)GetValue(FeatureProperty);
         set => SetValue(FeatureProperty, value);
+    }
+
+    /// <summary>The key the host page's NavigateToSection expects ("Gaming", "Taskbar", ...).</summary>
+    public static readonly DependencyProperty SectionKeyProperty = DependencyProperty.Register(
+        nameof(SectionKey), typeof(string), typeof(FeatureOutcomeBanner),
+        new PropertyMetadata(string.Empty));
+
+    public string SectionKey
+    {
+        get => (string)GetValue(SectionKeyProperty);
+        set => SetValue(SectionKeyProperty, value);
     }
 
     /// <summary>Supplies the localized strings. Set by the host page, which owns the service.</summary>
@@ -57,11 +76,8 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     public bool IsBannerOpen { get; private set; }
     public string BannerMessage { get; private set; } = string.Empty;
 
-    /// <summary>One entry per outcome kind actually present, most severe first.</summary>
-    public ObservableCollection<FeatureOutcomeFragment> Fragments { get; } = new();
-
-    /// <summary>Most severe first, so the chips read worst-to-least. The icons match the ones the
-    /// affected settings carry on their own controls.</summary>
+    /// <summary>Most severe first, so the rows read worst-to-least. Each icon matches the one those
+    /// settings carry on their own controls, so a colour means one thing everywhere.</summary>
     private static readonly (SettingDetectionOutcome Outcome, string LabelKey, string LabelFallback,
         FluentIcons.Common.Icon Icon)[] Kinds =
     {
@@ -77,47 +93,96 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     /// events that refresh the overview pills, so the banner never lags behind them.</summary>
     public void Refresh()
     {
-        Fragments.Clear();
+        FragmentHost.Children.Clear();
 
-        if (Feature is not { } feature)
+        var settings = Feature?.Settings;
+        if (settings is null || settings.Count == 0)
         {
             Hide();
             return;
         }
 
-        var summary = FeatureBadgeAggregator.Aggregate(feature);
-        if (summary.UnresolvedCount == 0)
-        {
-            Hide();
-            return;
-        }
-
+        bool any = false;
         foreach (var (outcome, labelKey, labelFallback, icon) in Kinds)
         {
-            int count = CountFor(summary, outcome);
-            if (count <= 0)
+            var affected = settings.Where(s => s.Outcome == outcome).ToList();
+            if (affected.Count == 0)
                 continue;
 
-            // No denominator. "1 of 114" reads as a ratio, which is right for "Recommended 109/114"
-            // but not here - how many settings the feature HAS tells you nothing about the one that is
-            // broken. The count alone is what you need: how many to look for once you click in.
-            Fragments.Add(new FeatureOutcomeFragment
-            {
-                Icon = icon,
-                Text = Format(
-                    Localize("Overview_OutcomeBanner_Fragment", "{0}: {1}"),
-                    Localize(labelKey, labelFallback),
-                    count.ToString()),
-            });
+            any = true;
+            FragmentHost.Children.Add(BuildRow(icon, Localize(labelKey, labelFallback), affected));
+        }
+
+        if (!any)
+        {
+            Hide();
+            return;
         }
 
         BannerMessage = Localize(
             "Overview_OutcomeBanner_Intro",
             "Winhance couldn't determine the state of some settings in this section.");
-
         BannerVisibility = Visibility.Visible;
         IsBannerOpen = true;
         NotifyAll();
+    }
+
+    /// <summary>One row: the outcome's icon, then "Label: name, name, +N more" where every name is a
+    /// link. The names live in a single wrapping TextBlock so a long localized name reflows instead of
+    /// overflowing the card - a horizontal panel of link buttons would not.</summary>
+    private StackPanel BuildRow(
+        FluentIcons.Common.Icon icon, string label, IReadOnlyList<SettingItemViewModel> affected)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+
+        row.Children.Add(new FluentIcon
+        {
+            Icon = icon,
+            IconVariant = FluentIcons.Common.IconVariant.Color,
+            FontSize = 15,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 1, 0, 0),
+        });
+
+        var text = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        // Localizable separator, not a hardcoded ": " - French puts a space before the colon and
+        // CJK uses a full-width one.
+        text.Inlines.Add(new Run { Text = Format(Localize("Overview_OutcomeBanner_Label", "{0}: "), label) });
+
+        int shown = Math.Min(MaxNamesPerKind, affected.Count);
+        for (int i = 0; i < shown; i++)
+        {
+            if (i > 0)
+                text.Inlines.Add(new Run { Text = ", " });
+            text.Inlines.Add(Link(affected[i].Name, affected[i].Name));
+        }
+
+        int remaining = affected.Count - shown;
+        if (remaining > 0)
+        {
+            text.Inlines.Add(new Run { Text = ", " });
+            // Null target: open the feature itself rather than pre-filtering to one setting.
+            text.Inlines.Add(Link(
+                Format(Localize("Overview_OutcomeBanner_More", "+{0} more"), remaining.ToString()),
+                null));
+        }
+
+        row.Children.Add(text);
+        return row;
+    }
+
+    /// <summary>A name that navigates. The host's NavigateToSection pre-applies the text as a search
+    /// filter, so clicking lands on that setting already filtered rather than somewhere to hunt from.</summary>
+    private Hyperlink Link(string display, string? settingName)
+    {
+        var link = new Hyperlink { UnderlineStyle = UnderlineStyle.None };
+        link.Inlines.Add(new Run { Text = display });
+        link.Click += (_, _) => NavigationRequested?.Invoke(this, new FeatureOutcomeNavigationEventArgs
+        {
+            SectionKey = SectionKey,
+            SettingName = settingName,
+        });
+        return link;
     }
 
     private void Hide()
@@ -127,17 +192,9 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         NotifyAll();
     }
 
-    private static int CountFor(FeatureBadgeSummary s, SettingDetectionOutcome outcome) => outcome switch
-    {
-        SettingDetectionOutcome.Undetermined => s.UndeterminedCount,
-        SettingDetectionOutcome.Malformed => s.MalformedCount,
-        _ => s.UnrecognizedCount,
-    };
-
-    /// <summary>Substitutes {0}/{1} without string.Format, so a translator's stray brace cannot throw a
+    /// <summary>Substitutes {0} without string.Format, so a translator's stray brace cannot throw a
     /// FormatException at runtime on a machine we never see.</summary>
-    private static string Format(string pattern, string a, string b) =>
-        pattern.Replace("{0}", a).Replace("{1}", b);
+    private static string Format(string pattern, string a) => pattern.Replace("{0}", a);
 
     private string Localize(string key, string fallback)
     {

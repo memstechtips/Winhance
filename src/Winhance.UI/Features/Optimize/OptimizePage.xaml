@@ -324,7 +324,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="PrivacyOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="PrivacyOutcomeBanner" SectionKey="Privacy"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.PrivacyViewModel}"/>
 
                             <!-- Power Card -->
@@ -367,7 +368,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="PowerOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="PowerOutcomeBanner" SectionKey="Power"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.PowerViewModel}"/>
 
                             <!-- Gaming and Performance Card -->
@@ -410,7 +412,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="GamingOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="GamingOutcomeBanner" SectionKey="Gaming"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.GamingViewModel}"/>
 
                             <!-- Update Card -->
@@ -453,7 +456,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="UpdateOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="UpdateOutcomeBanner" SectionKey="Update"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.UpdateViewModel}"/>
 
                             <!-- Notifications Card -->
@@ -496,7 +500,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="NotificationOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="NotificationOutcomeBanner" SectionKey="Notification"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.NotificationViewModel}"/>
 
                             <!-- Sound Card -->
@@ -539,7 +544,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
-                            <winControls:FeatureOutcomeBanner x:Name="SoundOutcomeBanner"
+                            <winControls:FeatureOutcomeBanner x:Name="SoundOutcomeBanner" SectionKey="Sound"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                         Feature="{x:Bind ViewModel.SoundViewModel}"/>
 
                         </StackPanel>
