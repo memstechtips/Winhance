@@ -398,26 +398,22 @@ public sealed partial class CustomizePage : Page
             ViewModel.WindowsThemeViewModel,
             WindowsThemeOverviewBadges,
             WindowsThemeRecommendedPill, WindowsThemeRecommendedText,
-            WindowsThemeDefaultPill, WindowsThemeDefaultText,
-            WindowsThemeCustomPill, WindowsThemeCustomText);
+            WindowsThemeDefaultPill, WindowsThemeDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.TaskbarViewModel,
             TaskbarOverviewBadges,
             TaskbarRecommendedPill, TaskbarRecommendedText,
-            TaskbarDefaultPill, TaskbarDefaultText,
-            TaskbarCustomPill, TaskbarCustomText);
+            TaskbarDefaultPill, TaskbarDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.StartMenuViewModel,
             StartMenuOverviewBadges,
             StartMenuRecommendedPill, StartMenuRecommendedText,
-            StartMenuDefaultPill, StartMenuDefaultText,
-            StartMenuCustomPill, StartMenuCustomText);
+            StartMenuDefaultPill, StartMenuDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.ExplorerViewModel,
             ExplorerOverviewBadges,
             ExplorerRecommendedPill, ExplorerRecommendedText,
-            ExplorerDefaultPill, ExplorerDefaultText,
-            ExplorerCustomPill, ExplorerCustomText);
+            ExplorerDefaultPill, ExplorerDefaultText);
     }
 
     private void UpdateOverviewNewBadges()
@@ -454,8 +450,7 @@ public sealed partial class CustomizePage : Page
         ISettingsFeatureViewModel feature,
         StackPanel container,
         Border recommendedPill, TextBlock recommendedText,
-        Border defaultPill, TextBlock defaultText,
-        Border customPill, TextBlock customText)
+        Border defaultPill, TextBlock defaultText)
     {
         if (!_isInfoBadgesVisible)
         {
@@ -478,23 +473,21 @@ public sealed partial class CustomizePage : Page
             defaultPill.Visibility = Visibility.Visible;
             defaultText.Text = $"{_localizationService?.GetString("InfoBadge_Default") ?? "Default"} {summary.DefaultCount}/{total}";
             defaultPill.Opacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
-
-            if (summary.CustomCount > 0)
-            {
-                customPill.Visibility = Visibility.Visible;
-                customText.Text = $"{_localizationService?.GetString("InfoBadge_Custom") ?? "Custom"} {summary.CustomCount}/{total}";
-            }
-            else
-            {
-                customPill.Visibility = Visibility.Collapsed;
-            }
         }
         else
         {
             recommendedPill.Visibility = Visibility.Collapsed;
             defaultPill.Visibility = Visibility.Collapsed;
-            customPill.Visibility = Visibility.Collapsed;
         }
+
+        // Per-outcome pills, generated: only non-zero ones appear, most severe first, each carrying the
+        // same icon the setting's own control shows. Replaces the single "Custom N/total" pill, which
+        // could not say WHICH kind of problem was inside - the reason finding a malformed setting meant
+        // opening the feature and hunting for it. Rebuilt (not just retexted) so a feature that becomes
+        // healthy loses its pills entirely.
+        OutcomePillBuilder.Rebuild(container, summary, _localizationService);
+        if (summary.UnresolvedCount > 0)
+            showAny = true;
 
         container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }

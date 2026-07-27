@@ -299,12 +299,6 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="WindowsThemeCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="WindowsThemeCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
@@ -344,12 +338,6 @@
                                                           VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                                 <TextBlock x:Name="TaskbarDefaultText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border x:Name="TaskbarCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="TaskbarCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -393,12 +381,6 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="StartMenuCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="StartMenuCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
@@ -438,12 +420,6 @@
                                                           VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                                 <TextBlock x:Name="ExplorerDefaultText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border x:Name="ExplorerCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="ExplorerCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>

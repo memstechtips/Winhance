@@ -150,23 +150,45 @@
                                   Foreground="{ThemeResource BadgeDefaultForeground}"/>
                     </Button>
                 </StackPanel>
-                <local:ComboBoxEx
-                    ItemsSource="{x:Bind ComboBoxOptions}"
-                    SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
-                    SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
-                    DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
-                    SelectedValuePath="Value"
-                    DisplayMemberPath="DisplayText"
-                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                <!-- Detection-outcome adornment: the selection could not be placed on a known option.
-                     Same colour icon as the toggle overlay knob and the banner, from the VM's one map, so
-                     the three can never disagree; the tooltip is that outcome's selection-worded banner
-                     string. Unlike the toggle overlay this is a passive marker - the ComboBox beside it
-                     stays usable, since picking a real option is itself the remedy. -->
-                <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color" FontSize="16"
-                                        VerticalAlignment="Center"
-                                        ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip, Mode=OneWay}"
-                                        Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"/>
+                <!-- Detection-outcome overlay for a selection. The ComboBox's option list holds ONLY real,
+                     choosable options - there is no synthetic "Custom" entry - so an unresolved setting
+                     leaves the control with nothing selected and an empty content area. This panel fills
+                     that area with the outcome's colour icon and text, INSIDE the box, so it reads as the
+                     control's own content rather than a marker floating beside it. That matches the toggle,
+                     where the icon is the knob: on both control types the icon lives within the control's
+                     footprint.
+
+                     PlaceholderText cannot be used - it is a plain string and cannot hold an icon - and
+                     retemplating ComboBox to change one TextBlock would mean owning ~200 lines of default
+                     template plus its visual states forever. Overlaying is a few lines and survives SDK
+                     updates.
+
+                     IsHitTestVisible="False" is what makes it work: every click passes straight through to
+                     the ComboBox, so the dropdown still opens from anywhere on the control. The ComboBox
+                     MUST stay usable here (unlike the toggle overlay, which intercepts) because picking a
+                     real option is itself the remedy. Margin mirrors ComboBoxPadding so the text lands
+                     exactly where a selected item's text would. -->
+                <Grid>
+                    <local:ComboBoxEx
+                        ItemsSource="{x:Bind ComboBoxOptions}"
+                        SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                        SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
+                        DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
+                        SelectedValuePath="Value"
+                        DisplayMemberPath="DisplayText"
+                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Margin="{ThemeResource ComboBoxPadding}"
+                                IsHitTestVisible="False"
+                                Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"
+                                ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip, Mode=OneWay}">
+                        <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color"
+                                                FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind CustomStateText, Mode=OneWay}" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </DataTemplate>
 

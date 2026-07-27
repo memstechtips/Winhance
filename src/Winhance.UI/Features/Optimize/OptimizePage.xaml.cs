@@ -453,38 +453,32 @@ public sealed partial class OptimizePage : Page
             ViewModel.PrivacyViewModel,
             PrivacyOverviewBadges,
             PrivacyRecommendedPill, PrivacyRecommendedText,
-            PrivacyDefaultPill, PrivacyDefaultText,
-            PrivacyCustomPill, PrivacyCustomText);
+            PrivacyDefaultPill, PrivacyDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.PowerViewModel,
             PowerOverviewBadges,
             PowerRecommendedPill, PowerRecommendedText,
-            PowerDefaultPill, PowerDefaultText,
-            PowerCustomPill, PowerCustomText);
+            PowerDefaultPill, PowerDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.GamingViewModel,
             GamingOverviewBadges,
             GamingRecommendedPill, GamingRecommendedText,
-            GamingDefaultPill, GamingDefaultText,
-            GamingCustomPill, GamingCustomText);
+            GamingDefaultPill, GamingDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.UpdateViewModel,
             UpdateOverviewPills,
             UpdateRecommendedPill, UpdateRecommendedText,
-            UpdateDefaultPill, UpdateDefaultText,
-            UpdateCustomPill, UpdateCustomText);
+            UpdateDefaultPill, UpdateDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.NotificationViewModel,
             NotificationOverviewBadges,
             NotificationRecommendedPill, NotificationRecommendedText,
-            NotificationDefaultPill, NotificationDefaultText,
-            NotificationCustomPill, NotificationCustomText);
+            NotificationDefaultPill, NotificationDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.SoundViewModel,
             SoundOverviewBadges,
             SoundRecommendedPill, SoundRecommendedText,
-            SoundDefaultPill, SoundDefaultText,
-            SoundCustomPill, SoundCustomText);
+            SoundDefaultPill, SoundDefaultText);
     }
 
     private void UpdateOverviewNewBadges()
@@ -523,8 +517,7 @@ public sealed partial class OptimizePage : Page
         ISettingsFeatureViewModel feature,
         StackPanel container,
         Border recommendedPill, TextBlock recommendedText,
-        Border defaultPill, TextBlock defaultText,
-        Border customPill, TextBlock customText)
+        Border defaultPill, TextBlock defaultText)
     {
         if (!_isInfoBadgesVisible)
         {
@@ -547,23 +540,21 @@ public sealed partial class OptimizePage : Page
             defaultPill.Visibility = Visibility.Visible;
             defaultText.Text = $"{_localizationService?.GetString("InfoBadge_Default") ?? "Default"} {summary.DefaultCount}/{total}";
             defaultPill.Opacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
-
-            if (summary.CustomCount > 0)
-            {
-                customPill.Visibility = Visibility.Visible;
-                customText.Text = $"{_localizationService?.GetString("InfoBadge_Custom") ?? "Custom"} {summary.CustomCount}/{total}";
-            }
-            else
-            {
-                customPill.Visibility = Visibility.Collapsed;
-            }
         }
         else
         {
             recommendedPill.Visibility = Visibility.Collapsed;
             defaultPill.Visibility = Visibility.Collapsed;
-            customPill.Visibility = Visibility.Collapsed;
         }
+
+        // Per-outcome pills, generated: only non-zero ones appear, most severe first, each carrying the
+        // same icon the setting's own control shows. Replaces the single "Custom N/total" pill, which
+        // could not say WHICH kind of problem was inside - the reason finding a malformed setting meant
+        // opening the feature and hunting for it. Rebuilt (not just retexted) so a feature that becomes
+        // healthy loses its pills entirely.
+        OutcomePillBuilder.Rebuild(container, summary, _localizationService);
+        if (summary.UnresolvedCount > 0)
+            showAny = true;
 
         container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }

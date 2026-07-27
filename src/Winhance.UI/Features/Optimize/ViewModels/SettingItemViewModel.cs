@@ -1035,11 +1035,22 @@ public partial class SettingItemViewModel : BaseViewModel
     public string OverlayStateTextFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed =>
-            _localizationService.GetString("Common_MalformedState") ?? "Wrong format",
+            Localized("Common_MalformedState") ?? "Wrong format",
         SettingDetectionOutcome.Undetermined =>
-            _localizationService.GetString("Common_UndeterminedState") ?? "Unknown",
-        _ => _localizationService.GetString("Common_CustomState") ?? "Custom",
+            Localized("Common_UndeterminedState") ?? "Couldn't read",
+        // Custom keeps its PER-SETTING override, which used to be the synthetic option's label: some
+        // settings expect a value outside the catalog and say so nicely ("Custom (User Defined)" for
+        // gaming-dns-server and security-uac-level). Falls back to the generic word.
+        _ => Localized($"Setting_{SettingId}_Option_Custom") ?? Localized("Common_CustomState") ?? "Custom",
     };
+
+    /// <summary>A localization lookup that treats the service's "[Key_Not_Found]" marker as absent, so a
+    /// per-setting override key that does not exist falls through to the generic one.</summary>
+    private string? Localized(string key)
+    {
+        var text = _localizationService.GetString(key);
+        return (text is { Length: >= 2 } && text[0] == '[' && text[^1] == ']') ? null : text;
+    }
 
     /// <summary>The overlay tooltip: the SAME string that outcome's banner shows, so the two can never
     /// drift. <paramref name="toggleLike"/> picks the toggle or selection wording.</summary>
@@ -1425,17 +1436,10 @@ public partial class SettingItemViewModel : BaseViewModel
                     }
                     else if (state.CurrentValue != null)
                     {
-                        // Keep the synthetic "Custom" option in sync with the re-detected index: append it when the
-                        // reading resolves to Custom and none exists (else the ComboBox binds a -1 with no matching
-                        // item and renders BLANK - mirrors the factory's load-time append), and drop it once the
-                        // reading is a real option (mirrors HandleValueChangedAsync). The whole method already runs
-                        // under _isUpdatingFromEvent, guarding these programmatic control updates.
-                        bool isCustomIndex = state.CurrentValue is int ci && ci == ComboBoxConstants.CustomStateIndex;
-                        if (isCustomIndex)
-                            EnsureCustomOption();
+                        // The option list holds only real options, so an unresolved re-detect simply leaves the
+                        // ComboBox with nothing selected and the card's outcome overlay renders over it. The whole
+                        // method already runs under _isUpdatingFromEvent, guarding programmatic control updates.
                         SelectedValue = state.CurrentValue;
-                        if (!isCustomIndex)
-                            RemoveCustomOption();
                     }
                     break;
                 case InputType.NumericRange:
@@ -1460,36 +1464,6 @@ public partial class SettingItemViewModel : BaseViewModel
             UpdateDetectionOutcomeBanner();
             RefreshTechnicalDetails();
         }
-    }
-
-    // Mirrors SettingViewModelFactory.BuildCatalogSelectionOptions' synthetic "Custom" option: appends one option
-    // whose Value is the Custom sentinel when a re-detect resolves outside the known options and none exists yet,
-    // so the ComboBox has an item to bind the -1 selection to instead of rendering blank.
-    private void EnsureCustomOption()
-    {
-        if (ComboBoxOptions.Any(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex))
-            return;
-        ComboBoxOptions.Add(new ComboBoxDisplayOption(LocalizeCustomOptionLabel(), ComboBoxConstants.CustomStateIndex, null));
-    }
-
-    // Mirrors HandleValueChangedAsync: removes the synthetic "Custom" option once a real option index is selected.
-    private void RemoveCustomOption()
-    {
-        var customOption = ComboBoxOptions.FirstOrDefault(o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
-        if (customOption != null)
-            ComboBoxOptions.Remove(customOption);
-    }
-
-    // The localized "Custom" option label, mirroring SettingViewModelFactory's resolution:
-    // Setting_{id}_Option_Custom, then the generic Common_CustomState, then the literal "Custom".
-    private string LocalizeCustomOptionLabel()
-    {
-        string? Localized(string key)
-        {
-            var text = _localizationService.GetString(key);
-            return (text.Length >= 2 && text[0] == '[' && text[^1] == ']') ? null : text;
-        }
-        return Localized($"Setting_{SettingId}_Option_Custom") ?? Localized("Common_CustomState") ?? "Custom";
     }
 
     // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it.
@@ -1790,11 +1764,8 @@ public partial class SettingItemViewModel : BaseViewModel
                 NumericValue = builderIntValue;
                 if (builderIntValue != ComboBoxConstants.CustomStateIndex)
                 {
+                    // Picking a real option resolves the setting; there is no synthetic list entry to strip.
                     Outcome = SettingDetectionOutcome.Resolved;
-                    var customOption = ComboBoxOptions.FirstOrDefault(
-                        o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
-                    if (customOption != null)
-                        ComboBoxOptions.Remove(customOption);
                 }
             }
             _hasChangedThisSession = true;
@@ -1849,14 +1820,10 @@ public partial class SettingItemViewModel : BaseViewModel
             {
                 NumericValue = intValue;
 
-                // Remove the Custom option once the user picks a defined value
                 if (intValue != ComboBoxConstants.CustomStateIndex)
                 {
+                    // Picking a real option resolves the setting; there is no synthetic list entry to strip.
                     Outcome = SettingDetectionOutcome.Resolved;
-                    var customOption = ComboBoxOptions.FirstOrDefault(
-                        o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
-                    if (customOption != null)
-                        ComboBoxOptions.Remove(customOption);
                 }
             }
 
@@ -2357,12 +2324,15 @@ public partial class SettingItemViewModel : BaseViewModel
                 row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
             }
 
-            // Selection: Custom when SelectedValue/AcValue/DcValue falls outside known options.
-            // NumericRange: Custom when the current value matches neither Recommended nor Default.
-            bool isCustom = InputType switch
+            // The Custom pill answers "is this value one of ours?" - a comparison against Recommended /
+            // Default. It deliberately does NOT light for an unresolved detection outcome any more: the
+            // control's own icon and the banner already say that, in more detail and more honestly (the pill
+            // could only ever say "Custom", even when the truth was "wrong format" or "we couldn't read it").
+            // For an unresolved setting we cannot compare at all, so no pill lights - Recommended and Default
+            // are dim too, which is the honest reading of "we don't know where this sits".
+            bool isCustom = Outcome == SettingDetectionOutcome.Resolved && InputType switch
             {
                 InputType.Selection => !IsKnownSelectionValue(),
-                InputType.Toggle or InputType.CheckBox => Outcome != SettingDetectionOutcome.Resolved,
                 InputType.NumericRange => (HasAnyRecommendedData() || HasAnyDefaultData())
                     && !matchesRecommended && !matchesDefault,
                 _ => false
@@ -2472,15 +2442,19 @@ public partial class SettingItemViewModel : BaseViewModel
             }
         }
 
+        // Same rule as the single-value pill: an unresolved setting cannot be compared against anything, so
+        // no Custom pill lights - its control's icon and banner carry the detail instead.
+        bool comparable = Outcome == SettingDetectionOutcome.Resolved;
+
         if (acHasData)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.AC);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, acCustom, label, tooltip, SettingBadgeMode.AC));
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, comparable && acCustom, label, tooltip, SettingBadgeMode.AC));
         }
         if (dcHasData)
         {
             var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.DC);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, dcCustom, label, tooltip, SettingBadgeMode.DC));
+            row.Add(new BadgePillState(SettingBadgeKind.Custom, comparable && dcCustom, label, tooltip, SettingBadgeMode.DC));
         }
     }
 
