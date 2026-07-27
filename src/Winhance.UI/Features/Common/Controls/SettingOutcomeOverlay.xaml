@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingOutcomeOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
+
+    <!--
+    The detection-outcome marker that sits INSIDE an input control, for every control that displays a
+    value. Placed in the same Grid cell as its control: when the setting is unresolved the control has
+    nothing selected and renders an empty content area, and this fills it with the outcome's colour icon
+    and text so it reads as the control's own content rather than a marker floating alongside.
+
+    IsHitTestVisible="False" is load-bearing. It suppresses INPUT but never LAYOUT, which gives both
+    properties this needs at once:
+      * clicks pass straight through, so the control underneath stays fully usable - picking a real
+        option is itself the remedy, so covering it would be actively harmful;
+      * it is still MEASURED, so a host that stretches its control gets sized by this content. That is
+        what stops a ComboBox with no selection collapsing to chevron-width, and it works in every
+        language because it measures the real localized string.
+
+    Everything it shows comes from the view model's one outcome map, so this, the toggle knob and the
+    overview pills can never disagree about what a colour means.
+    -->
+    <StackPanel Orientation="Horizontal" Spacing="8"
+                HorizontalAlignment="Left" VerticalAlignment="Center"
+                IsHitTestVisible="False"
+                Visibility="{x:Bind OverlayVisibility, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind OverlayTooltip, Mode=OneWay}">
+        <fluentIcons:FluentIcon Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"
+                                FontSize="16" VerticalAlignment="Center"/>
+        <TextBlock Text="{x:Bind OverlayText, Mode=OneWay}" VerticalAlignment="Center"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </StackPanel>
+</UserControl>

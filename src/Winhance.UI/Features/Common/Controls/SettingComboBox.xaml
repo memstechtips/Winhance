@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingComboBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    A settings-card dropdown: its Quick-Set pair, the ComboBox itself, and its detection-outcome overlay,
+    in ONE place. Every dropdown in the app is an instance of this - registry selections and the AC and DC
+    halves of a powercfg selection alike - so "a combo box" is one thing, and a change to how a dropdown
+    reports its state is a change to one file.
+
+    This replaces four separately hand-written ComboBox declarations across four DataTemplates. The
+    outcome overlay had been added to one of them and forgotten on the other three, which is exactly the
+    failure this structure removes.
+    -->
+    <UserControl.Resources>
+        <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <local:SettingQuickSetButtons
+            Setting="{x:Bind Setting, Mode=OneWay}"
+            Mode="{x:Bind Mode, Mode=OneWay}"
+            Kind="Selection"/>
+
+        <!-- HorizontalAlignment="Stretch" is load-bearing: a WinUI ComboBox measures its SELECTED item,
+             not its widest, so with nothing selected it collapses to chevron-width. The overlay is
+             measured, so the Grid takes the larger of the two and hands that width back here. -->
+        <Grid>
+            <local:ComboBoxEx
+                x:Name="Input"
+                ItemsSource="{x:Bind Options, Mode=OneWay}"
+                SelectedIndex="{x:Bind SelectedIndex, Mode=OneWay}"
+                SelectionChanged="OnSelectionChanged"
+                DropDownClosed="OnDropDownClosed"
+                SelectedValuePath="Value"
+                DisplayMemberPath="DisplayText"
+                HorizontalAlignment="Stretch"
+                Width="{x:Bind PinnedWidth, Mode=OneWay}"
+                MinWidth="{x:Bind PinnedWidth, Mode=OneWay}"
+                MaxWidth="{x:Bind PinnedMaxWidth, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind InputAutomationName, Mode=OneWay}"/>
+            <!-- Left margin matches the ComboBox's content inset so the text lands where a selected
+                 item's text would; the right reserves the chevron's column. -->
+            <local:SettingOutcomeOverlay
+                Setting="{x:Bind Setting, Mode=OneWay}"
+                Mode="{x:Bind Mode, Mode=OneWay}"
+                Margin="12,0,34,0"/>
+        </Grid>
+    </StackPanel>
+</UserControl>

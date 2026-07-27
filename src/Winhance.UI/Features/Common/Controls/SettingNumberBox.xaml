@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingNumberBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    A settings-card numeric up-down: its Quick-Set pair, the NumberBox, and its detection-outcome overlay,
+    in ONE place. Replaces four separately hand-written NumberBox declarations.
+
+    Unlike a dropdown, any number here is a legitimate value the user may type, so this control never
+    reports "unrecognized" - OutcomeForMode only yields Undetermined for a numeric, i.e. detection threw
+    and we do not know the current value. In that case showing a number would be a lie, so the overlay
+    covers the box and says so instead.
+    -->
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <local:SettingQuickSetButtons
+            Setting="{x:Bind Setting, Mode=OneWay}"
+            Mode="{x:Bind Mode, Mode=OneWay}"
+            Kind="Numeric"/>
+
+        <Grid>
+            <NumberBox
+                Value="{x:Bind NumericValue, Mode=OneWay}"
+                ValueChanged="OnValueChanged"
+                Loaded="OnLoaded"
+                Minimum="{x:Bind Minimum, Mode=OneWay}"
+                Maximum="{x:Bind Maximum, Mode=OneWay}"
+                SpinButtonPlacementMode="Inline"
+                SmallChange="1"
+                LargeChange="10"
+                MinWidth="120"
+                AutomationProperties.Name="{x:Bind InputAutomationName, Mode=OneWay}"/>
+            <!-- Opaque background: unlike the dropdown (where the control renders empty when unresolved),
+                 a NumberBox always paints a number, so the overlay must cover it rather than sit beside
+                 it. Right margin clears the inline spin buttons. -->
+            <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
+                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                    Visibility="{x:Bind OverlayVisibility, Mode=OneWay}">
+                <local:SettingOutcomeOverlay
+                    Setting="{x:Bind Setting, Mode=OneWay}"
+                    Mode="{x:Bind Mode, Mode=OneWay}"
+                    Margin="12,0,40,0"/>
+            </Border>
+        </Grid>
+    </StackPanel>
+</UserControl>

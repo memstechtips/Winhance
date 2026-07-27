@@ -15,6 +15,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -1064,6 +1065,152 @@ public partial class SettingItemViewModel : BaseViewModel
         };
         return _localizationService.GetString(prefix + (toggleLike ? "Toggle" : "Selection")) ?? string.Empty;
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Per-MODE resolution. A Separate-mode powercfg setting edits two values (AC and DC) that can be
+    // unrecognized independently: the sleep-after setting can sit on a catalog option while plugged in
+    // and on some arbitrary number on battery. Outcome is a setting-level verdict from the AC read, so
+    // asking it alone would have left a DC-only problem invisible.
+    //
+    // Rule: a failure to READ is setting-wide (we could not talk to powercfg at all), but a value we do
+    // not recognize is per-mode. Everything the shared input controls need is resolved here rather than
+    // in XAML, so the ten templates cannot drift apart again.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>This mode's effective outcome. Undetermined wins setting-wide; otherwise a mode whose
+    /// resolved index is the Custom sentinel is unrecognized in its own right.</summary>
+    public SettingDetectionOutcome OutcomeForMode(SettingInputMode mode)
+    {
+        if (Outcome == SettingDetectionOutcome.Undetermined)
+            return SettingDetectionOutcome.Undetermined;
+
+        return mode switch
+        {
+            SettingInputMode.Ac => AcValue == ComboBoxConstants.CustomStateIndex
+                ? SettingDetectionOutcome.Custom
+                : SettingDetectionOutcome.Resolved,
+            SettingInputMode.Dc => DcValue == ComboBoxConstants.CustomStateIndex
+                ? SettingDetectionOutcome.Custom
+                : SettingDetectionOutcome.Resolved,
+            _ => Outcome,
+        };
+    }
+
+    public Microsoft.UI.Xaml.Visibility OverlayVisibilityForMode(SettingInputMode mode) =>
+        OverlayVisibilityFor(OutcomeForMode(mode));
+
+    public FluentIcons.Common.Icon OverlayIconForMode(SettingInputMode mode) =>
+        OverlayIconFor(OutcomeForMode(mode));
+
+    public string OverlayTextForMode(SettingInputMode mode) =>
+        OverlayStateTextFor(OutcomeForMode(mode));
+
+    /// <summary>Overlay tooltip - the same string that outcome's banner shows. <paramref name="toggleLike"/>
+    /// picks the toggle or selection wording.</summary>
+    public string OverlayTooltipForMode(SettingInputMode mode, bool toggleLike) =>
+        OverlayTooltipFor(OutcomeForMode(mode), toggleLike);
+
+    /// <summary>The ComboBox index for this mode. Single reads the resolved selection; AC/DC read their own
+    /// powercfg index. The Custom sentinel (-1) selects nothing, which is what lets the overlay show.</summary>
+    public int ComboIndexForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => AcValue,
+        SettingInputMode.Dc => DcValue,
+        _ => SelectedValue is int index ? index : ComboBoxConstants.CustomStateIndex,
+    };
+
+    public double NumericValueForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => AcNumericValue,
+        SettingInputMode.Dc => DcNumericValue,
+        _ => NumericValue,
+    };
+
+    public bool ShowSelectionQuickSetForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => ShowAcSelectionQuickSetButtons,
+        SettingInputMode.Dc => ShowDcSelectionQuickSetButtons,
+        _ => ShowSelectionQuickSetButtons,
+    };
+
+    public IRelayCommand SelectionRecommendedCommandForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => SetAcSelectionToRecommendedCommand,
+        SettingInputMode.Dc => SetDcSelectionToRecommendedCommand,
+        _ => SetSelectionToRecommendedCommand,
+    };
+
+    public IRelayCommand SelectionDefaultCommandForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => SetAcSelectionToDefaultCommand,
+        SettingInputMode.Dc => SetDcSelectionToDefaultCommand,
+        _ => SetSelectionToDefaultCommand,
+    };
+
+    public string? SelectionRecommendedTooltipForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => AcSelectionRecommendedTooltip,
+        SettingInputMode.Dc => DcSelectionRecommendedTooltip,
+        _ => SelectionRecommendedTooltip,
+    };
+
+    public string? SelectionDefaultTooltipForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => AcSelectionDefaultTooltip,
+        SettingInputMode.Dc => DcSelectionDefaultTooltip,
+        _ => SelectionDefaultTooltip,
+    };
+
+    public IRelayCommand NumericRecommendedCommandForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => SetAcNumericToRecommendedCommand,
+        SettingInputMode.Dc => SetDcNumericToRecommendedCommand,
+        _ => SetNumericToRecommendedCommand,
+    };
+
+    public IRelayCommand NumericDefaultCommandForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => SetAcNumericToDefaultCommand,
+        SettingInputMode.Dc => SetDcNumericToDefaultCommand,
+        _ => SetNumericToDefaultCommand,
+    };
+
+    public string? NumericRecommendedTooltipForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => RecommendedAcValueTooltip,
+        SettingInputMode.Dc => RecommendedDcValueTooltip,
+        _ => RecommendedValueTooltip,
+    };
+
+    public string? NumericDefaultTooltipForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => DefaultAcValueTooltip,
+        SettingInputMode.Dc => DefaultDcValueTooltip,
+        _ => DefaultValueTooltip,
+    };
+
+    /// <summary>Automation name for a quick-set button, qualified with the power context when there is one
+    /// (so a screen reader can tell the plugged-in button from the on-battery one).</summary>
+    public string A11yNameForMode(SettingInputMode mode, string? action) => mode switch
+    {
+        SettingInputMode.Ac => A11yAcName(action),
+        SettingInputMode.Dc => A11yDcName(action),
+        _ => A11yName(action),
+    };
+
+    /// <summary>Closed-state width pin for a powercfg dropdown column. With BOTH the plugged-in and
+    /// on-battery columns shown, letting each grow to its widest item squeezes the left column and clips
+    /// the badges - so they are pinned to 120. With only one column there is nothing to squeeze, so it
+    /// stays auto (NaN).</summary>
+    public double PowerColumnWidth(bool hasBattery) => hasBattery ? 120d : double.NaN;
+
+    /// <summary>Automation name for the input control itself.</summary>
+    public string InputAutomationNameForMode(SettingInputMode mode) => mode switch
+    {
+        SettingInputMode.Ac => AcInputAutomationName,
+        SettingInputMode.Dc => DcInputAutomationName,
+        _ => Name,
+    };
 
     /// <summary>Opacity of the real ToggleSwitch: invisible (0) while the overlay covers it, fully opaque
     /// (1) otherwise. Never Collapsed - it must keep occupying its space, or the column reflows.</summary>

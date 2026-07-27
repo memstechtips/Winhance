@@ -129,365 +129,101 @@
         </DataTemplate>
 
         <!-- Template for Selection settings -->
+        <!-- ==========================================================================================
+             Selection and Numeric settings. Both come in three flavours - one value, or a powercfg
+             setting split into plugged-in and on-battery values - and each flavour used to be its own
+             hand-written template: four ComboBox declarations and four NumberBox declarations across
+             eight templates. The overlay that reports a setting Winhance could not place had been added
+             to one of them and forgotten on the other seven, which is how a powercfg dropdown ended up
+             rendering blank with no explanation.
+
+             They are now instances of ONE control each (local:SettingComboBox / local:SettingNumberBox),
+             which owns its Quick-Set pair, its input, and its outcome overlay together. The AC-only and
+             AC+DC layouts are one template apiece, with the battery column bound to HasBattery rather
+             than split across two nearly identical copies.
+             ========================================================================================== -->
+
         <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                            Visibility="{x:Bind ShowSelectionQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button
-                        Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                        Command="{x:Bind SetSelectionToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind SelectionRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(SelectionRecommendedTooltip), Mode=OneWay}">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                    </Button>
-                    <Button
-                        Style="{StaticResource QuickSetDefaultButtonStyle}"
-                        Command="{x:Bind SetSelectionToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind SelectionDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(SelectionDefaultTooltip), Mode=OneWay}">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                    </Button>
-                </StackPanel>
-                <!-- Detection-outcome overlay for a selection. The ComboBox's option list holds ONLY real,
-                     choosable options - there is no synthetic "Custom" entry - so an unresolved setting
-                     leaves the control with nothing selected and an empty content area. This panel fills
-                     that area with the outcome's colour icon and text, INSIDE the box, so it reads as the
-                     control's own content rather than a marker floating beside it. That matches the toggle,
-                     where the icon is the knob: on both control types the icon lives within the control's
-                     footprint.
-
-                     PlaceholderText cannot be used - it is a plain string and cannot hold an icon - and
-                     retemplating ComboBox to change one TextBlock would mean owning ~200 lines of default
-                     template plus its visual states forever. Overlaying is a few lines and survives SDK
-                     updates.
-
-                     IsHitTestVisible="False" is what makes it work: every click passes straight through to
-                     the ComboBox, so the dropdown still opens from anywhere on the control. The ComboBox
-                     MUST stay usable here (unlike the toggle overlay, which intercepts) because picking a
-                     real option is itself the remedy. Margin mirrors ComboBoxPadding so the text lands
-                     exactly where a selected item's text would. -->
-                <Grid>
-                    <!-- HorizontalAlignment="Stretch" is load-bearing. A WinUI ComboBox measures its
-                         SELECTED item, not its widest one, so with nothing selected it collapses to
-                         chevron-plus-padding and the overlay spilled out past its right edge. The overlay
-                         below IS measured (IsHitTestVisible only suppresses input, never layout), so the
-                         Grid takes the larger of the two and the ComboBox stretches to fill it. That sizes
-                         the control from the real localized string in every language, with no hardcoded
-                         width anywhere. When the setting resolves, the overlay collapses out of the
-                         measure pass and the ComboBox is back to its natural size. -->
-                    <local:ComboBoxEx
-                        ItemsSource="{x:Bind ComboBoxOptions}"
-                        SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
-                        SelectionChanged="{x:Bind OnComboBoxSelectionChanged}"
-                        DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
-                        SelectedValuePath="Value"
-                        DisplayMemberPath="DisplayText"
-                        HorizontalAlignment="Stretch"
-                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                    <!-- Right margin reserves the chevron's column so the text can never run underneath it;
-                         left matches the ComboBox's own content inset so the text lands exactly where a
-                         selected item's text would. -->
-                    <StackPanel Orientation="Horizontal" Spacing="8"
-                                HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Margin="12,0,34,0"
-                                IsHitTestVisible="False"
-                                Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"
-                                ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip, Mode=OneWay}">
-                        <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color"
-                                                FontSize="16" VerticalAlignment="Center"/>
-                        <TextBlock Text="{x:Bind CustomStateText, Mode=OneWay}" VerticalAlignment="Center"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
+            <local:SettingComboBox Setting="{x:Bind}" Mode="Single"/>
         </DataTemplate>
 
-        <!-- Template for PowerPlan selection settings (no quick-set buttons — deferred) -->
-        <DataTemplate x:Key="PowerPlanSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <local:PowerPlanComboBox
-                ItemsSource="{x:Bind ComboBoxOptions}"
-                SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
-                Loaded="OnPowerPlanComboBoxLoaded"
-                Tag="{x:Bind}"
-                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-        </DataTemplate>
-
-        <!-- Template for NumericRange settings. Both buttons together in front. -->
         <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button
-                        Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                        Command="{x:Bind SetNumericToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind RecommendedValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(RecommendedValueTooltip), Mode=OneWay}">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                    </Button>
-                    <Button
-                        Style="{StaticResource QuickSetDefaultButtonStyle}"
-                        Command="{x:Bind SetNumericToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind DefaultValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(DefaultValueTooltip), Mode=OneWay}">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                    </Button>
+            <local:SettingNumberBox Setting="{x:Bind}" Mode="Single"/>
+        </DataTemplate>
+
+        <!-- Power selection: the on-battery column only exists on a machine with a battery. The 120px pin
+             stops two columns growing to their widest item and squeezing the badges out of the row. -->
+        <DataTemplate x:Key="PowerSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
+                               Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <local:SettingComboBox Setting="{x:Bind}" Mode="Ac"
+                                           PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
                 </StackPanel>
-                <NumberBox
-                    Value="{x:Bind NumericValue, Mode=OneWay}"
-                    ValueChanged="{x:Bind OnNumberBoxValueChanged}"
-                    Loaded="{x:Bind OnNumberBoxLoaded}"
-                    Minimum="{x:Bind MinValue}"
-                    Maximum="{x:Bind MaxValue}"
-                    SpinButtonPlacementMode="Inline"
-                    SmallChange="1"
-                    LargeChange="10"
-                    MinWidth="120"
-                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                <StackPanel Spacing="4"
+                            Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <local:SettingComboBox Setting="{x:Bind}" Mode="Dc"
+                                           PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
+                </StackPanel>
             </StackPanel>
         </DataTemplate>
 
-        <!-- Template for Action settings (no quick-set buttons) -->
+        <DataTemplate x:Key="PowerNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
+                               Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <local:SettingNumberBox Setting="{x:Bind}" Mode="Ac"/>
+                </StackPanel>
+                <StackPanel Spacing="4"
+                            Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                    <local:SettingNumberBox Setting="{x:Bind}" Mode="Dc"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- The power plan dropdown sources its options at runtime, so it keeps its own control - but it
+             still reports an unplaceable state the same way every other input does. -->
+        <DataTemplate x:Key="PowerPlanSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <Grid>
+                <local:PowerPlanComboBox
+                    ItemsSource="{x:Bind ComboBoxOptions}"
+                    SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
+                    Loaded="OnPowerPlanComboBoxLoaded"
+                    Tag="{x:Bind}"
+                    HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single" Margin="12,0,34,0"/>
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <!-- The ONE input template with no outcome overlay, by design: an action button runs a task,
+                 it does not display a detected state, so there is nothing for detection to fail to place.
+                 CardTemplateOutcomeCoverageTests exempts this template by name. -->
             <Button
                 Content="{x:Bind ActionButtonText}"
                 Command="{x:Bind RunActionCommand}"
                 AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
         </DataTemplate>
 
-        <!-- Template for CheckBox settings (no quick-set buttons) -->
         <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <CheckBox
-                IsChecked="{x:Bind IsSelected, Mode=OneWay}"
-                Click="{x:Bind OnCheckBoxClick}"
-                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-        </DataTemplate>
-
-        <!-- Template for Dual AC/DC Selection settings (laptop with battery).
-             Each AC/DC combobox has its own pair of quick-set buttons in front. -->
-        <DataTemplate x:Key="DualSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                                    Visibility="{x:Bind ShowAcSelectionQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Button
-                                Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                                Command="{x:Bind SetAcSelectionToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yAcName(AcSelectionRecommendedTooltip), Mode=OneWay}">
-                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                            </Button>
-                            <Button
-                                Style="{StaticResource QuickSetDefaultButtonStyle}"
-                                Command="{x:Bind SetAcSelectionToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yAcName(AcSelectionDefaultTooltip), Mode=OneWay}">
-                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                          Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                            </Button>
-                        </StackPanel>
-                        <!-- Pinned to 120 px in both directions. After the popup opens
-                             and closes, the ComboBox remeasures against the widest item
-                             in the dropdown and a lone Width="120" doesn't always survive
-                             that pass; MinWidth + MaxWidth + HorizontalAlignment=Left
-                             together hold the closed-state size no matter how wide the
-                             items are. With both AC + DC shown, growing the comboboxes
-                             squeezes the left column and clips the badges. -->
-                        <local:ComboBoxEx
-                            ItemsSource="{x:Bind ComboBoxOptions}"
-                            SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
-                            DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
-                            DisplayMemberPath="DisplayText"
-                            Width="120" MinWidth="120" MaxWidth="120"
-                            HorizontalAlignment="Left"
-                            AutomationProperties.Name="{x:Bind AcInputAutomationName, Mode=OneWay}"/>
-                    </StackPanel>
-                </StackPanel>
-                <StackPanel Spacing="4">
-                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                                    Visibility="{x:Bind ShowDcSelectionQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Button
-                                Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                                Command="{x:Bind SetDcSelectionToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind DcSelectionRecommendedTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yDcName(DcSelectionRecommendedTooltip), Mode=OneWay}">
-                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                            </Button>
-                            <Button
-                                Style="{StaticResource QuickSetDefaultButtonStyle}"
-                                Command="{x:Bind SetDcSelectionToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DcSelectionDefaultTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yDcName(DcSelectionDefaultTooltip), Mode=OneWay}">
-                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                          Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                            </Button>
-                        </StackPanel>
-                        <!-- Same pin as the AC ComboBox above — see comment there. -->
-                        <local:ComboBoxEx
-                            ItemsSource="{x:Bind ComboBoxOptions}"
-                            SelectedIndex="{x:Bind DcValue, Mode=OneWay}"
-                            DropDownClosed="{x:Bind OnDCComboBoxDropDownClosed}"
-                            DisplayMemberPath="DisplayText"
-                            Width="120" MinWidth="120" MaxWidth="120"
-                            HorizontalAlignment="Left"
-                            AutomationProperties.Name="{x:Bind DcInputAutomationName, Mode=OneWay}"/>
-                    </StackPanel>
-                </StackPanel>
-            </StackPanel>
-        </DataTemplate>
-
-        <!-- Template for Single AC Selection settings (desktop without battery). -->
-        <DataTemplate x:Key="SingleACSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                            Visibility="{x:Bind ShowAcSelectionQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button
-                        Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                        Command="{x:Bind SetAcSelectionToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind AcSelectionRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(AcSelectionRecommendedTooltip), Mode=OneWay}">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                    </Button>
-                    <Button
-                        Style="{StaticResource QuickSetDefaultButtonStyle}"
-                        Command="{x:Bind SetAcSelectionToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind AcSelectionDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(AcSelectionDefaultTooltip), Mode=OneWay}">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                    </Button>
-                </StackPanel>
-                <local:ComboBoxEx
-                    ItemsSource="{x:Bind ComboBoxOptions}"
-                    SelectedIndex="{x:Bind AcValue, Mode=OneWay}"
-                    DropDownClosed="{x:Bind OnACComboBoxDropDownClosed}"
-                    DisplayMemberPath="DisplayText"
+            <Grid>
+                <CheckBox
+                    IsChecked="{x:Bind IsSelected, Mode=OneWay}"
+                    Click="{x:Bind OnCheckBoxClick}"
+                    Opacity="{x:Bind ToggleOpacityFor(Outcome), Mode=OneWay}"
+                    IsHitTestVisible="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
+                    IsTabStop="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
+                    AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(Outcome), Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-            </StackPanel>
+                <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single" IsToggleLike="True"/>
+            </Grid>
         </DataTemplate>
 
-        <!-- Template for Dual AC/DC Numeric settings (laptop with battery).
-             Each AC/DC spinner gets its own pair of quick-set buttons in front. -->
-        <DataTemplate x:Key="DualNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Button
-                                Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                                Command="{x:Bind SetAcNumericToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yAcName(RecommendedAcValueTooltip), Mode=OneWay}">
-                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                            </Button>
-                            <Button
-                                Style="{StaticResource QuickSetDefaultButtonStyle}"
-                                Command="{x:Bind SetAcNumericToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yAcName(DefaultAcValueTooltip), Mode=OneWay}">
-                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                          Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                            </Button>
-                        </StackPanel>
-                        <NumberBox
-                            Value="{x:Bind AcNumericValue, Mode=OneWay}"
-                            ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
-                            Loaded="{x:Bind OnNumberBoxLoaded}"
-                            Minimum="{x:Bind MinValue}"
-                            Maximum="{x:Bind MaxValue}"
-                            SpinButtonPlacementMode="Inline"
-                            SmallChange="1"
-                            LargeChange="10"
-                            MinWidth="120"
-                            AutomationProperties.Name="{x:Bind AcInputAutomationName, Mode=OneWay}"/>
-                    </StackPanel>
-                </StackPanel>
-                <StackPanel Spacing="4">
-                    <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                                    Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Button
-                                Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                                Command="{x:Bind SetDcNumericToRecommendedCommand}"
-                                ToolTipService.ToolTip="{x:Bind RecommendedDcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yDcName(RecommendedDcValueTooltip), Mode=OneWay}">
-                                <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                          Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                            </Button>
-                            <Button
-                                Style="{StaticResource QuickSetDefaultButtonStyle}"
-                                Command="{x:Bind SetDcNumericToDefaultCommand}"
-                                ToolTipService.ToolTip="{x:Bind DefaultDcValueTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind A11yDcName(DefaultDcValueTooltip), Mode=OneWay}">
-                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                          Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                            </Button>
-                        </StackPanel>
-                        <NumberBox
-                            Value="{x:Bind DcNumericValue, Mode=OneWay}"
-                            ValueChanged="{x:Bind OnDCNumberBoxValueChanged}"
-                            Loaded="{x:Bind OnNumberBoxLoaded}"
-                            Minimum="{x:Bind MinValue}"
-                            Maximum="{x:Bind MaxValue}"
-                            SpinButtonPlacementMode="Inline"
-                            SmallChange="1"
-                            LargeChange="10"
-                            MinWidth="120"
-                            AutomationProperties.Name="{x:Bind DcInputAutomationName, Mode=OneWay}"/>
-                    </StackPanel>
-                </StackPanel>
-            </StackPanel>
-        </DataTemplate>
-
-        <!-- Template for Single AC Numeric settings (desktop without battery). -->
-        <DataTemplate x:Key="SingleACNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                            Visibility="{x:Bind ShowNumericQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button
-                        Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                        Command="{x:Bind SetAcNumericToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind RecommendedAcValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(RecommendedAcValueTooltip), Mode=OneWay}">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                    </Button>
-                    <Button
-                        Style="{StaticResource QuickSetDefaultButtonStyle}"
-                        Command="{x:Bind SetAcNumericToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind DefaultAcValueTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(DefaultAcValueTooltip), Mode=OneWay}">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                    </Button>
-                </StackPanel>
-                <NumberBox
-                    Value="{x:Bind AcNumericValue, Mode=OneWay}"
-                    ValueChanged="{x:Bind OnACNumberBoxValueChanged}"
-                    Loaded="{x:Bind OnNumberBoxLoaded}"
-                    Minimum="{x:Bind MinValue}"
-                    Maximum="{x:Bind MaxValue}"
-                    SpinButtonPlacementMode="Inline"
-                    SmallChange="1"
-                    LargeChange="10"
-                    MinWidth="120"
-                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-            </StackPanel>
-        </DataTemplate>
 
         <!-- Template Selector -->
         <selectors:SettingTemplateSelector
@@ -498,10 +234,8 @@
             NumericTemplate="{StaticResource NumericSettingTemplate}"
             ActionTemplate="{StaticResource ActionSettingTemplate}"
             CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"
-            DualSelectionTemplate="{StaticResource DualSelectionSettingTemplate}"
-            SingleACSelectionTemplate="{StaticResource SingleACSelectionSettingTemplate}"
-            DualNumericTemplate="{StaticResource DualNumericSettingTemplate}"
-            SingleACNumericTemplate="{StaticResource SingleACNumericSettingTemplate}"/>
+            PowerSelectionTemplate="{StaticResource PowerSelectionSettingTemplate}"
+            PowerNumericTemplate="{StaticResource PowerNumericSettingTemplate}"/>
     </UserControl.Resources>
 
     <!-- Just the content control that selects the appropriate input control -->

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingQuickSetButtons"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    The green "Set to Recommended" / grey "Set to Windows Default" pair that precedes every input control.
+    This pair was copy-pasted NINE times across the card templates - once per control type, twice more for
+    each AC/DC split - differing only in which command it invoked. One control, nine usages.
+
+    The icons carry their own Foreground so the default ButtonForegroundPointerOver override cannot wipe
+    out the green/grey on hover; only the background hover tint renders.
+    -->
+    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+                Visibility="{x:Bind ButtonsVisibility, Mode=OneWay}">
+        <Button
+            Style="{StaticResource QuickSetRecommendedButtonStyle}"
+            Command="{x:Bind RecommendedCommand, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind RecommendedTooltip, Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind RecommendedAutomationName, Mode=OneWay}">
+            <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
+                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+        </Button>
+        <Button
+            Style="{StaticResource QuickSetDefaultButtonStyle}"
+            Command="{x:Bind DefaultCommand, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind DefaultTooltip, Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind DefaultAutomationName, Mode=OneWay}">
+            <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                      Foreground="{ThemeResource BadgeDefaultForeground}"/>
+        </Button>
+    </StackPanel>
+</UserControl>

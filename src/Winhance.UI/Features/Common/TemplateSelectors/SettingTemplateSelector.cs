@@ -18,10 +18,11 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
     public DataTemplate? CheckBoxTemplate { get; set; }
-    public DataTemplate? DualSelectionTemplate { get; set; }
-    public DataTemplate? SingleACSelectionTemplate { get; set; }
-    public DataTemplate? DualNumericTemplate { get; set; }
-    public DataTemplate? SingleACNumericTemplate { get; set; }
+    /// <summary>Separate-mode powercfg settings. ONE template each now: the on-battery column is bound
+    /// to HasBattery inside the template rather than split into Dual/SingleAC variants, which is what
+    /// let the two halves drift apart.</summary>
+    public DataTemplate? PowerSelectionTemplate { get; set; }
+    public DataTemplate? PowerNumericTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -37,9 +38,9 @@ public partial class SettingTemplateSelector : DataTemplateSelector
             if (vm.SupportsSeparateACDC)
             {
                 if (vm.InputType == InputType.Selection)
-                    return vm.HasBattery ? DualSelectionTemplate : SingleACSelectionTemplate;
+                    return PowerSelectionTemplate;
                 if (vm.InputType == InputType.NumericRange)
-                    return vm.HasBattery ? DualNumericTemplate : SingleACNumericTemplate;
+                    return PowerNumericTemplate;
             }
 
             return vm.InputType switch
