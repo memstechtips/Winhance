@@ -11,11 +11,15 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>One kind of unresolved setting found in a feature: its icon and its "Label: N" text.</summary>
+/// <summary>One kind of unresolved setting found in a feature: its icon and its "Label: N" text.
+///
+/// Plain settable properties, NOT init-only: the XAML compiler generates an XamlTypeInfo provider for
+/// any type reachable from a DataTemplate, and that provider assigns through ordinary setters. An
+/// `init` accessor makes the generated file fail to compile with CS8852.</summary>
 public sealed class FeatureOutcomeFragment
 {
-    public FluentIcons.Common.Icon Icon { get; init; }
-    public string Text { get; init; } = string.Empty;
+    public FluentIcons.Common.Icon Icon { get; set; }
+    public string Text { get; set; } = string.Empty;
 }
 
 /// <summary>
