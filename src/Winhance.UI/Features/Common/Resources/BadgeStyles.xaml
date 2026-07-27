@@ -28,6 +28,14 @@
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
 
+            <!-- Unrecognized value (detection outcome): a more saturated Fluent blue than Preference's
+                 #80B3FF, matching the blue QuestionCircle icon it sits beside. The two never share a row -
+                 Preference is a settings-card badge, this is an overview-card pill - but they are kept
+                 distinct anyway so the vocabulary reads the same wherever it appears. -->
+            <SolidColorBrush x:Key="BadgeUnrecognizedBackground" Color="#224CA6FF"/>
+            <SolidColorBrush x:Key="BadgeUnrecognizedBorder"     Color="#404CA6FF"/>
+            <SolidColorBrush x:Key="BadgeUnrecognizedForeground" Color="#FF4CA6FF"/>
+
             <!-- Danger: red -->
             <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22F25555"/>
             <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40F25555"/>
@@ -55,6 +63,11 @@
             <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#221E5FBF"/>
             <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
             <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
+
+            <!-- Unrecognized value (detection outcome): see the Dark note above. -->
+            <SolidColorBrush x:Key="BadgeUnrecognizedBackground" Color="#220F6CBD"/>
+            <SolidColorBrush x:Key="BadgeUnrecognizedBorder"     Color="#400F6CBD"/>
+            <SolidColorBrush x:Key="BadgeUnrecognizedForeground" Color="#FF0F6CBD"/>
 
             <!-- Danger: darker red for legibility on white -->
             <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22C42B1C"/>
@@ -112,6 +125,26 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
     </Style>
 
+    <!-- Detection-outcome pills on the overview cards. Malformed reuses the amber Custom capsule and
+         Undetermined the red Danger capsule, so only the blue is new - each matches the colour of the
+         Fluent icon inside it.
+
+         The paired *TextStyle entries exist because OutcomePillBuilder creates these pills in CODE, and
+         Application.Current.Resources.TryGetValue CANNOT resolve a ThemeDictionaries brush (the same trap
+         documented on BoolToDimOpacityConverter). A Style can be looked up - it lives at dictionary root -
+         and its {ThemeResource} setter resolves against the element when applied, so the text stays
+         theme-aware and follows a light/dark switch. Never fetch these brushes directly in code. -->
+    <Style x:Key="BadgeUnrecognizedStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background"  Value="{ThemeResource BadgeUnrecognizedBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeUnrecognizedBorder}"/>
+    </Style>
+
+    <Style x:Key="BadgeDangerStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
+        <Setter Property="Background"  Value="{ThemeResource BadgeDangerBackground}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BadgeDangerBorder}"/>
+    </Style>
+
+
     <!-- ==================== Software Apps Status Pill Styles ==================== -->
     <!-- Status badges on the Software Apps cards. Same BadgePillBase capsule as the
          settings badges so the two views share one visual vocabulary. -->
@@ -152,6 +185,17 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,0,0,2"/>
+    </Style>
+    <Style x:Key="BadgeUnrecognizedTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeUnrecognizedForeground}"/>
+    </Style>
+
+    <Style x:Key="BadgeMalformedTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeCustomForeground}"/>
+    </Style>
+
+    <Style x:Key="BadgeUndeterminedTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDangerForeground}"/>
     </Style>
 
     <!-- ==================== Icon Template Selector ==================== -->

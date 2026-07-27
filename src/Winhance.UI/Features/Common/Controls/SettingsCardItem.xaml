@@ -169,6 +169,14 @@
                      real option is itself the remedy. Margin mirrors ComboBoxPadding so the text lands
                      exactly where a selected item's text would. -->
                 <Grid>
+                    <!-- HorizontalAlignment="Stretch" is load-bearing. A WinUI ComboBox measures its
+                         SELECTED item, not its widest one, so with nothing selected it collapses to
+                         chevron-plus-padding and the overlay spilled out past its right edge. The overlay
+                         below IS measured (IsHitTestVisible only suppresses input, never layout), so the
+                         Grid takes the larger of the two and the ComboBox stretches to fill it. That sizes
+                         the control from the real localized string in every language, with no hardcoded
+                         width anywhere. When the setting resolves, the overlay collapses out of the
+                         measure pass and the ComboBox is back to its natural size. -->
                     <local:ComboBoxEx
                         ItemsSource="{x:Bind ComboBoxOptions}"
                         SelectedValue="{x:Bind SelectedValue, Mode=OneWay}"
@@ -176,10 +184,14 @@
                         DropDownClosed="{x:Bind OnComboBoxDropDownClosed}"
                         SelectedValuePath="Value"
                         DisplayMemberPath="DisplayText"
+                        HorizontalAlignment="Stretch"
                         AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
+                    <!-- Right margin reserves the chevron's column so the text can never run underneath it;
+                         left matches the ComboBox's own content inset so the text lands exactly where a
+                         selected item's text would. -->
                     <StackPanel Orientation="Horizontal" Spacing="8"
                                 HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Margin="{ThemeResource ComboBoxPadding}"
+                                Margin="12,0,34,0"
                                 IsHitTestVisible="False"
                                 Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"
                                 ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip, Mode=OneWay}">

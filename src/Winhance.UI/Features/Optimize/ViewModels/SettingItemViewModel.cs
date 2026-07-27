@@ -2308,7 +2308,6 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             AddAcDcRecommendedPills(row);
             AddAcDcDefaultPills(row);
-            AddAcDcCustomPills(row);
         }
         else
         {
@@ -2324,21 +2323,15 @@ public partial class SettingItemViewModel : BaseViewModel
                 row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
             }
 
-            // The Custom pill answers "is this value one of ours?" - a comparison against Recommended /
-            // Default. It deliberately does NOT light for an unresolved detection outcome any more: the
-            // control's own icon and the banner already say that, in more detail and more honestly (the pill
-            // could only ever say "Custom", even when the truth was "wrong format" or "we couldn't read it").
-            // For an unresolved setting we cannot compare at all, so no pill lights - Recommended and Default
-            // are dim too, which is the honest reading of "we don't know where this sits".
-            bool isCustom = Outcome == SettingDetectionOutcome.Resolved && InputType switch
-            {
-                InputType.Selection => !IsKnownSelectionValue(),
-                InputType.NumericRange => (HasAnyRecommendedData() || HasAnyDefaultData())
-                    && !matchesRecommended && !matchesDefault,
-                _ => false
-            };
-            var (cLabel, cTooltip) = ResolvePillStrings(SettingBadgeKind.Custom);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, IsHighlighted: isCustom, cLabel, cTooltip));
+            // NO Custom pill. It used to mean two different things at once - "detection couldn't place
+            // this" and "this value is neither Recommended nor Default" - and both are now said better
+            // elsewhere. The first is the control's own icon plus its banner, which name WHICH kind of
+            // problem instead of flattening all three to the word "Custom". The second needs no pill at
+            // all: Recommended and Default sitting dim together already says "at neither", so the pill was
+            // only ever restating them. Dropping it also ends the collision where "Custom" named both a
+            // value-comparison verdict and a detection outcome, and it makes every control type and every
+            // mechanism - registry, powercfg, scheduled task - behave identically, with no special case
+            // for the numeric up-down where any value is legitimately the user's own.
         }
 
         BadgeRow = row;
@@ -2388,76 +2381,6 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    private void AddAcDcCustomPills(List<BadgePillState> row)
-    {
-        // Custom (per-mode) lights when the current value matches neither Recommended nor Default on that
-        // side, AND the setting has comparison data on that side. Selection also treats an out-of-range
-        // index as Custom.
-        bool isNumeric = InputType == InputType.NumericRange;
-        bool acHasData = isNumeric
-            ? (AcRecommendedValue.HasValue || AcDefaultValue.HasValue)
-            : (AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue);
-        bool dcHasData = isNumeric
-            ? (DcRecommendedValue.HasValue || DcDefaultValue.HasValue)
-            : (DcSelectionRecommendedIndex.HasValue || DcSelectionDefaultIndex.HasValue);
-
-        bool acCustom = false, dcCustom = false;
-
-        if (InputType == InputType.Selection)
-        {
-            // State count == option count (1:1). In production Setting is non-null (the VM is built from the
-            // catalog Setting), so this is a no-op there - but this line is NOT data-gated, so null-guard it
-            // defensively rather than NRE (CS8602) on a null Setting: no Setting -> zero options -> no
-            // out-of-range verdict (the AC/DC accessors below are already null-safe, so the pill logic stays sane).
-            int optionCount = Setting?.States.Count ?? 0;
-            bool hasOptions = optionCount > 0;
-            if (acHasData)
-            {
-                bool acRec = AcSelectionRecommendedIndex is int rai && AcValue == rai;
-                bool acDef = AcSelectionDefaultIndex is int dai && AcValue == dai;
-                bool acOutOfRange = hasOptions && (AcValue < 0 || AcValue >= optionCount);
-                acCustom = acOutOfRange || (!acRec && !acDef);
-            }
-            if (dcHasData)
-            {
-                bool dcRec = DcSelectionRecommendedIndex is int rdi && DcValue == rdi;
-                bool dcDef = DcSelectionDefaultIndex is int ddi && DcValue == ddi;
-                bool dcOutOfRange = hasOptions && (DcValue < 0 || DcValue >= optionCount);
-                dcCustom = dcOutOfRange || (!dcRec && !dcDef);
-            }
-        }
-        else if (InputType == InputType.NumericRange)
-        {
-            if (acHasData)
-            {
-                bool acRec = AcRecommendedValue is int rac && AcNumericValue == ConvertFromSystemUnits(rac);
-                bool acDef = AcDefaultValue is int dac && AcNumericValue == ConvertFromSystemUnits(dac);
-                acCustom = !acRec && !acDef;
-            }
-            if (dcHasData)
-            {
-                bool dcRec = DcRecommendedValue is int rdc && DcNumericValue == ConvertFromSystemUnits(rdc);
-                bool dcDef = DcDefaultValue is int ddc && DcNumericValue == ConvertFromSystemUnits(ddc);
-                dcCustom = !dcRec && !dcDef;
-            }
-        }
-
-        // Same rule as the single-value pill: an unresolved setting cannot be compared against anything, so
-        // no Custom pill lights - its control's icon and banner carry the detail instead.
-        bool comparable = Outcome == SettingDetectionOutcome.Resolved;
-
-        if (acHasData)
-        {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.AC);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, comparable && acCustom, label, tooltip, SettingBadgeMode.AC));
-        }
-        if (dcHasData)
-        {
-            var (label, tooltip) = ResolvePillStrings(SettingBadgeKind.Custom, SettingBadgeMode.DC);
-            row.Add(new BadgePillState(SettingBadgeKind.Custom, comparable && dcCustom, label, tooltip, SettingBadgeMode.DC));
-        }
-    }
-
     private bool HasAnyRecommendedData()
     {
         if (Setting == null) return false;
@@ -2478,20 +2401,6 @@ public partial class SettingItemViewModel : BaseViewModel
             return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build));
         return AcDefaultValue.HasValue || AcSelectionDefaultIndex.HasValue
             || DcDefaultValue.HasValue || DcSelectionDefaultIndex.HasValue;
-    }
-
-    private bool IsKnownSelectionValue()
-    {
-        if (InputType != InputType.Selection) return true;
-        if (Setting == null) return true;
-        if (!IsPowerCfgSetting && !IsPowerPlanSetting)
-            return SelectedValue is int idxK && idxK >= 0 && idxK < Setting.States.Count;
-        int optionCount = Setting.States.Count;
-        if (optionCount == 0) return true;
-        if (SupportsSeparateACDC)
-            return AcValue >= 0 && AcValue < optionCount
-                && DcValue >= 0 && DcValue < optionCount;
-        return SelectedValue is int idx && idx >= 0 && idx < optionCount;
     }
 
     private (string Label, string Tooltip) ResolvePillStrings(SettingBadgeKind kind, SettingBadgeMode mode = SettingBadgeMode.None)
