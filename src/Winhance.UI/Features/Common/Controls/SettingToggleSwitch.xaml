@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingToggleSwitch"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    A settings-card toggle: its Quick-Set pair, the ToggleSwitch, and its detection-outcome overlay.
+
+    Unlike the dropdown and the numeric box, this overlay is INTERACTIVE - a Button styled to look like a
+    neutral toggle track - because a toggle has only two positions and neither of them is honest when the
+    setting is unresolved. So instead of marking the control, it replaces it: clicking opens the
+    Enabled / Disabled / Cancel dialog. That is also why this control is not built from
+    SettingOutcomeOverlay, which is a passive marker.
+
+    Extracted from SettingsCardItem.xaml on 2026-07-27. Not for symmetry - there is only one toggle
+    declaration - but for COHESION: the knob's hover animation lived in the card's code-behind, ~50 lines
+    away from the markup it animated, and had to walk the visual tree to find its own icon because
+    x:Name is not reachable inside a DataTemplate. Here the icon is simply named.
+    -->
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <local:SettingQuickSetButtons
+            Setting="{x:Bind Setting, Mode=OneWay}"
+            Mode="Single"
+            Kind="Toggle"/>
+
+        <Grid VerticalAlignment="Center">
+            <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this column
+                 its width, so the Quick-Set buttons land in the same place on an unresolved row as on a
+                 normal one. While unresolved it stays in layout but goes invisible (Opacity 0) and drops
+                 out of hit-testing, the tab order and the automation tree, so the overlay above it is the
+                 only thing a pointer, the keyboard or Narrator reaches. -->
+            <ToggleSwitch
+                IsOn="{x:Bind IsOn, Mode=OneWay}"
+                Toggled="OnToggled"
+                OnContent="{x:Bind OnText, Mode=OneWay}"
+                OffContent="{x:Bind OffText, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"
+                Opacity="{x:Bind SwitchOpacity, Mode=OneWay}"
+                IsHitTestVisible="{x:Bind SwitchInteractive, Mode=OneWay}"
+                IsTabStop="{x:Bind SwitchInteractive, Mode=OneWay}"
+                AutomationProperties.AccessibilityView="{x:Bind SwitchAccessibilityView, Mode=OneWay}"/>
+
+            <!-- Track-only stand-in, 2px larger than the stock 40x20 track, with the outcome's colour icon
+                 as the knob and its matching short glyph ("?" / "!" / "x") in the On/Off-content slot.
+                 Button chrome is cleared so it reads as a toggle control, not a pressable button; it
+                 carries no size of its own and stretches over the invisible ToggleSwitch, so its footprint
+                 IS the toggle's. Deliberately NOT a third selectable position (no accent colour).
+                 Undetermined renders but does nothing - the view model's IsActionable gate stops a click
+                 writing blind over a value we could not read. -->
+            <Button
+                Visibility="{x:Bind OverlayVisibility, Mode=OneWay}"
+                Click="OnOverlayClicked"
+                PointerEntered="OnOverlayPointerEntered"
+                PointerExited="OnOverlayPointerExited"
+                PointerCanceled="OnOverlayPointerExited"
+                PointerCaptureLost="OnOverlayPointerExited"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Right"
+                VerticalAlignment="Stretch"
+                VerticalContentAlignment="Center"
+                ToolTipService.ToolTip="{x:Bind OverlayTooltip, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind OverlayText, Mode=OneWay}">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                </Button.Resources>
+                <!-- Same order as the real toggles in this app: label LEFT, track flush at the card's
+                     right edge. -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind OverlayShortLabel, Mode=OneWay}" Margin="0,0,12,0"
+                               VerticalAlignment="Center"/>
+                    <Border Width="42" Height="22" CornerRadius="11"
+                            Background="{ThemeResource ControlFillColorDisabledBrush}"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1">
+                        <fluentIcons:FluentIcon x:Name="KnobIcon"
+                                                Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"
+                                                FontSize="16"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                RenderTransformOrigin="0.5,0.5">
+                            <fluentIcons:FluentIcon.RenderTransform>
+                                <CompositeTransform/>
+                            </fluentIcons:FluentIcon.RenderTransform>
+                        </fluentIcons:FluentIcon>
+                    </Border>
+                </StackPanel>
+            </Button>
+        </Grid>
+    </StackPanel>
+</UserControl>

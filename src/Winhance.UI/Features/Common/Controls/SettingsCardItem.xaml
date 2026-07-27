@@ -27,105 +27,30 @@
         <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
 
         <!-- Template for Toggle settings -->
+        <!-- ==========================================================================================
+             WHEN A CONTROL GETS ITS OWN UserControl, AND WHEN IT STAYS INLINE
+             (the rule, so the mix below reads as a decision rather than as drift)
+
+             Extract to a shared control when EITHER is true:
+               1. The same control is declared more than once. Selection and Numeric each had four
+                  declarations across the single / AC-only / AC+DC layouts, and the outcome overlay was
+                  added to one and forgotten on the rest. One declaration, one place to change.
+               2. Its behaviour cannot live beside its markup. The toggle has only ONE declaration, so
+                  rule 1 does not apply - it was extracted because its knob animation sat in this file's
+                  code-behind and had to walk the visual tree to find its own icon, since x:Name is not
+                  reachable inside a DataTemplate.
+
+             Otherwise leave it inline. CheckBox, PowerPlan and Action are each a single declaration whose
+             behaviour is fully expressed here, so wrapping them would buy symmetry and cost a file, a
+             pair of dependency properties and a hop to read them. Symmetry is not a benefit.
+
+             Either way, CardTemplateOutcomeCoverageTests enforces that any template hosting an input
+             control also reports a value Winhance could not place - so correctness never depends on
+             which side of this rule a control falls.
+             ========================================================================================== -->
+
         <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                            Visibility="{x:Bind ShowToggleQuickSetButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button
-                        Style="{StaticResource QuickSetRecommendedButtonStyle}"
-                        Command="{x:Bind SetToggleToRecommendedCommand}"
-                        ToolTipService.ToolTip="{x:Bind ToggleRecommendedTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(ToggleRecommendedTooltip), Mode=OneWay}">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                    </Button>
-                    <Button
-                        Style="{StaticResource QuickSetDefaultButtonStyle}"
-                        Command="{x:Bind SetToggleToDefaultCommand}"
-                        ToolTipService.ToolTip="{x:Bind ToggleDefaultTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind A11yName(ToggleDefaultTooltip), Mode=OneWay}">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                    </Button>
-                </StackPanel>
-                <Grid VerticalAlignment="Center">
-                    <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this
-                         column its width, so the Quick-Set buttons land in the same place on an unresolved
-                         row as on a normal one. It used to be Collapsed-swapped for the overlay, and the
-                         overlay's hard-coded MinWidth="154" is far wider than a ToggleSwitch actually renders
-                         (~72px), which shoved the Quick-Set buttons ~80px left (docs/Winhance.png).
-                         While the setting is unresolved the switch stays in layout but goes invisible
-                         (Opacity 0) and drops out of hit-testing, the tab order and the automation tree, so
-                         the overlay above it is the only thing a pointer, the keyboard or Narrator reaches. -->
-                    <ToggleSwitch
-                        IsOn="{x:Bind IsSelected, Mode=OneWay}"
-                        Toggled="{x:Bind OnToggleSwitchToggled}"
-                        OnContent="{x:Bind OnText}"
-                        OffContent="{x:Bind OffText}"
-                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
-                        Opacity="{x:Bind ToggleOpacityFor(Outcome), Mode=OneWay}"
-                        IsHitTestVisible="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
-                        IsTabStop="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
-                        AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(Outcome), Mode=OneWay}"/>
-                    <!-- Neutral detection-outcome overlay: a track-only stand-in for the ToggleSwitch,
-                         drawn 2px larger than the stock 40x20 track (Marco's sizing feedback), with that
-                         outcome's colour icon as the knob - the SAME icon the banner and the selection
-                         adornment show, from one map in the VM - plus its matching short glyph
-                         ("?" / "!" / "x") in the On/Off-content slot for column uniformity. Button chrome is
-                         cleared (hover/pressed backgrounds transparent) so it reads as a toggle control, not
-                         a pressable button. It carries NO size of its own: it stretches over the invisible
-                         ToggleSwitch behind it, so the overlay's footprint IS the toggle's footprint and the
-                         whole control area stays clickable. The knob grows slightly on pointer-over
-                         (code-behind storyboards, mirroring the native ToggleSwitch); PointerExited,
-                         PointerCanceled and PointerCaptureLost all shrink it back so it cannot stick
-                         enlarged. The tooltip is the SAME string as that outcome's banner so the two can
-                         never drift; the automation name is the outcome's STATE text.
-                         Deliberately NOT a third selectable position (no accent color).
-                         Clicking opens the Enabled/Disabled/Cancel dialog - EXCEPT for Undetermined, where
-                         the VM's IsActionable gate makes the click a no-op, because we could not read the
-                         current value and must not write blind over it. -->
-                    <Button
-                        Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"
-                        Click="{x:Bind OnCustomToggleClicked}"
-                        PointerEntered="OnCustomOverlayPointerEntered"
-                        PointerExited="OnCustomOverlayPointerExited"
-                        PointerCanceled="OnCustomOverlayPointerExited"
-                        PointerCaptureLost="OnCustomOverlayPointerExited"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Padding="0"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Right"
-                        VerticalAlignment="Stretch"
-                        VerticalContentAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind CustomStateText, Mode=OneWay}">
-                        <Button.Resources>
-                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
-                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
-                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
-                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
-                        </Button.Resources>
-                        <!-- Same order as the real toggles in this app: label LEFT, track flush at the
-                             card's right edge (see docs screenshot 2026-07-24). -->
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{x:Bind CustomStateShortLabel, Mode=OneWay}" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                            <Border Width="42" Height="22" CornerRadius="11"
-                                    Background="{ThemeResource ControlFillColorDisabledBrush}"
-                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                    BorderThickness="1">
-                                <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color" FontSize="16"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                        RenderTransformOrigin="0.5,0.5">
-                                    <fluentIcons:FluentIcon.RenderTransform>
-                                        <CompositeTransform/>
-                                    </fluentIcons:FluentIcon.RenderTransform>
-                                </fluentIcons:FluentIcon>
-                            </Border>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </StackPanel>
+            <local:SettingToggleSwitch Setting="{x:Bind}"/>
         </DataTemplate>
 
         <!-- Template for Selection settings -->

@@ -1039,14 +1039,17 @@ public partial class SettingItemViewModel : BaseViewModel
             Localized("Common_MalformedState") ?? "Wrong format",
         SettingDetectionOutcome.Undetermined =>
             Localized("Common_UndeterminedState") ?? "Couldn't read",
-        // Custom keeps its PER-SETTING override, which used to be the synthetic option's label: some
-        // settings expect a value outside the catalog and say so nicely ("Custom (User Defined)" for
-        // gaming-dns-server and security-uac-level). Falls back to the generic word.
-        _ => Localized($"Setting_{SettingId}_Option_Custom") ?? Localized("Common_CustomState") ?? "Custom",
+        // One wording for every setting. The per-setting "Custom (User Defined)" override was dropped on
+        // 2026-07-27: it said the same thing in different words, and "User Defined" asserted a cause we
+        // cannot know - a debloat tool, an OEM image or a policy could equally have set the value. The
+        // banner carries the reassuring tone ("you can leave it as it is"); this label only has to be
+        // accurate. "Custom" itself is reserved for states the catalog genuinely offers as a CHOICE
+        // (system tray icons, visual effects, ads), so a detected value we cannot place says
+        // "Not recognized" instead - one word, one meaning.
+        _ => Localized("Common_CustomState") ?? "Not recognized",
     };
 
-    /// <summary>A localization lookup that treats the service's "[Key_Not_Found]" marker as absent, so a
-    /// per-setting override key that does not exist falls through to the generic one.</summary>
+    /// <summary>A localization lookup that treats the service's "[Key_Not_Found]" marker as absent.</summary>
     private string? Localized(string key)
     {
         var text = _localizationService.GetString(key);
@@ -1239,18 +1242,6 @@ public partial class SettingItemViewModel : BaseViewModel
     /// <summary>The localized state text for the CURRENT outcome.</summary>
     public string CustomStateText => OverlayStateTextFor(Outcome);
 
-    /// <summary>Tooltip for the toggle overlay - the SAME string that outcome's banner shows, so the two
-    /// can never drift.</summary>
-    public string CustomStateToggleTooltip => OverlayTooltipFor(Outcome);
-
-    /// <summary>Tooltip for the selection adornment (that outcome's selection-worded banner string).</summary>
-    public string CustomStateSelectionTooltip => OverlayTooltipFor(Outcome, toggleLike: false);
-
-    /// <summary>The short glyph for the CURRENT outcome.</summary>
-    public string CustomStateShortLabel => OverlayShortLabelFor(Outcome);
-
-    /// <summary>The icon for the CURRENT outcome.</summary>
-    public FluentIcons.Common.Icon CustomStateIcon => OverlayIconFor(Outcome);
 
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
