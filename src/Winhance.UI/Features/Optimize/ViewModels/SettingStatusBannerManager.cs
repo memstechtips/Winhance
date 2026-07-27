@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -14,10 +15,11 @@ internal sealed class SettingStatusBannerManager
 {
     private readonly ILocalizationService _localizationService;
 
-    /// <summary>IsCustomState marks the Custom-state banner so the VM can give it the QuestionCircle
-    /// color icon (matching the toggle overlay knob / selection adornment); every other banner keeps
-    /// InfoBar's native severity icon.</summary>
-    internal readonly record struct BannerState(string? Message, InfoBarSeverity Severity, bool IsCustomState = false)
+    /// <summary>A non-null <see cref="DetectionOutcome"/> marks a detection-outcome banner, so the VM can give
+    /// it that outcome's color icon (matching the toggle overlay knob / selection adornment); every other
+    /// banner leaves it null and keeps InfoBar's native severity icon.</summary>
+    internal readonly record struct BannerState(
+        string? Message, InfoBarSeverity Severity, SettingDetectionOutcome? DetectionOutcome = null)
     {
         public static BannerState Clear => new(null, InfoBarSeverity.Informational);
     }
@@ -75,15 +77,32 @@ internal sealed class SettingStatusBannerManager
             InfoBarSeverity.Warning);
     }
 
-    /// <summary>Informational banner for a Custom-state setting (detection found a value Winhance does
-    /// not recognize). Warning/Error banners (compatibility, restart, option warnings, the cross-group
-    /// Custom warning above) outrank it - the VM applies this only when no higher-severity banner is
-    /// showing (SettingItemViewModel.UpdateCustomStateBanner).</summary>
-    public BannerState GetCustomStateBanner(bool isToggleLike)
-        => new(
-            _localizationService.GetString(isToggleLike ? "Common_CustomBanner_Toggle" : "Common_CustomBanner_Selection"),
-            InfoBarSeverity.Informational,
-            IsCustomState: true);
+    /// <summary>The banner for a setting detection could not resolve, at the severity that outcome deserves:
+    /// <list type="bullet">
+    /// <item><see cref="SettingDetectionOutcome.Custom"/> - Informational. A value we do not recognize is not
+    /// a fault; the user can simply choose one.</item>
+    /// <item><see cref="SettingDetectionOutcome.Malformed"/> - Warning. A genuine fault on the machine, but a
+    /// recoverable one that repairs itself the moment the user picks a state.</item>
+    /// <item><see cref="SettingDetectionOutcome.Undetermined"/> - Error. WE failed to read the setting; the
+    /// user cannot act and the message points at the log rather than pretending to offer a remedy.</item>
+    /// </list>
+    /// Severity here deliberately matches the overlay icon's colour (blue / yellow / red) so the two signals
+    /// can never contradict each other. The VM applies this only when no higher-priority banner is showing
+    /// (SettingItemViewModel.UpdateDetectionOutcomeBanner).</summary>
+    public BannerState GetDetectionOutcomeBanner(SettingDetectionOutcome outcome, bool isToggleLike)
+    {
+        var (prefix, severity) = outcome switch
+        {
+            SettingDetectionOutcome.Malformed => ("Common_MalformedBanner_", InfoBarSeverity.Warning),
+            SettingDetectionOutcome.Undetermined => ("Common_UndeterminedBanner_", InfoBarSeverity.Error),
+            _ => ("Common_CustomBanner_", InfoBarSeverity.Informational),
+        };
+
+        return new BannerState(
+            _localizationService.GetString(prefix + (isToggleLike ? "Toggle" : "Selection")),
+            severity,
+            DetectionOutcome: outcome);
+    }
 
     private BannerState ComputeCrossGroupBanner(int selectedIndex, string crossGroupInfoMessage, int optionCount)
     {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Models;
 
@@ -10,10 +11,19 @@ public sealed record SettingStateResult
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
 
-    /// <summary>Detection ran and could not place the setting on any known state: a toggle whose deciding
-    /// value matches no state, or a selection resolved to the Custom index. A parallel signal to
-    /// <see cref="IsEnabled"/> (the boolean modified-verdict), never a replacement for it. Defaults to false.</summary>
-    public bool IsCustomState { get; init; }
+    /// <summary>Whether detection placed the setting on a known state and, when it did not, why not:
+    /// unrecognized content (<see cref="SettingDetectionOutcome.Custom"/>), a value stored under the wrong
+    /// registry type (<see cref="SettingDetectionOutcome.Malformed"/>), or a detection failure
+    /// (<see cref="SettingDetectionOutcome.Undetermined"/>). A parallel signal to <see cref="IsEnabled"/>
+    /// (the boolean modified-verdict), never a replacement for it.
+    ///
+    /// Note this is independent of <see cref="Success"/>, which stays a TRANSPORT-level flag ("the provider
+    /// produced a result"). An Undetermined setting still reports Success = true, exactly as a thrown
+    /// detection did before this field existed, so existing Success consumers are unaffected.</summary>
+    public SettingDetectionOutcome Outcome { get; init; } = SettingDetectionOutcome.Resolved;
+
+    /// <summary>Diagnostic detail behind a non-resolved <see cref="Outcome"/>. Log/report only.</summary>
+    public string? OutcomeDetail { get; init; }
 
     /// <summary>Raw AC/DC powercfg values for a separate-mode power setting, so the UI
     /// reads AC/DC from a typed field. Null for non-powercfg settings.</summary>

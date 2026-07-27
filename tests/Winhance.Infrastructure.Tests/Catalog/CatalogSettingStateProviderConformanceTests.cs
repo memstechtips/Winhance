@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -284,7 +285,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     /// <summary>Runs one mocked detection result through the real provider (GetStatesAsync -> Map) and
-    /// returns the mapped state, for the IsCustomState threading facts below.</summary>
+    /// returns the mapped state, for the outcome-threading facts below.</summary>
     private static async Task<Winhance.Core.Features.Common.Models.SettingStateResult> MapViaProvider(
         Setting setting, CatalogDetectionResult result)
     {
@@ -302,30 +303,62 @@ public class CatalogSettingStateProviderConformanceTests
         return states[setting.Id];
     }
 
-    /// <summary>IsCustomState threading, toggle branch: a null StateLabel (present-but-unmatched deciding
-    /// value, or the service catch-all's Detected=false) reports Custom; a resolved "Enabled"/"Disabled"
-    /// label does not. Success stays true for a legitimate Custom (Success must not track Detected).</summary>
+    /// <summary>Outcome threading, toggle branch. The provider must CARRY the engine's outcome, not
+    /// re-infer it from "StateLabel is null" - that inference is exactly what conflated an unrecognized
+    /// value, a wrong stored type and a detection crash into one indistinguishable "Custom". Success stays
+    /// true throughout: it is a transport-level flag ("the provider produced a result"), not a verdict on
+    /// the setting.</summary>
     [Fact]
-    public async Task Toggle_with_null_state_label_reports_custom_state()
+    public async Task Toggle_carries_the_detection_outcome_through()
     {
         var toggle = SettingCatalog.All.First(x => x.Control == ControlKind.Toggle && x.Detector is null);
 
-        var custom = await MapViaProvider(toggle, new CatalogDetectionResult { StateLabel = null, Detected = false });
+        var custom = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
+        });
         Assert.True(custom.Success);
-        Assert.True(custom.IsCustomState);
+        Assert.Equal(SettingDetectionOutcome.Custom, custom.Outcome);
 
-        var enabled = await MapViaProvider(toggle, new CatalogDetectionResult { StateLabel = "Enabled", Detected = true });
-        Assert.False(enabled.IsCustomState);
+        var malformed = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Malformed,
+            OutcomeDetail = "expects Binary",
+        });
+        Assert.True(malformed.Success);
+        Assert.Equal(SettingDetectionOutcome.Malformed, malformed.Outcome);
+        Assert.Equal("expects Binary", malformed.OutcomeDetail);
 
-        var disabled = await MapViaProvider(toggle, new CatalogDetectionResult { StateLabel = "Disabled", Detected = true });
-        Assert.False(disabled.IsCustomState);
+        // Undetermined must survive as itself. If it degraded to Custom the UI would offer an apply over a
+        // value we never read - the whole reason the outcome is not a bool.
+        var undetermined = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Undetermined,
+            OutcomeDetail = "boom",
+        });
+        Assert.True(undetermined.Success);
+        Assert.Equal(SettingDetectionOutcome.Undetermined, undetermined.Outcome);
+
+        var enabled = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = "Enabled",
+            Detected = true,
+            Outcome = SettingDetectionOutcome.Resolved,
+        });
+        Assert.Equal(SettingDetectionOutcome.Resolved, enabled.Outcome);
     }
 
-    /// <summary>IsCustomState threading, selection branch: Custom exactly when the RESOLVED index is the
-    /// Custom index - label resolution AND the value-match fallback both failing. A value-match recovery
-    /// (no label, but the reads match an option) is NOT Custom.</summary>
+    /// <summary>Outcome threading, selection branch: Custom exactly when the RESOLVED index is the Custom
+    /// index - label resolution AND the value-match fallback both failing. A value-match recovery (no label,
+    /// but the reads match an option) is Resolved, not Custom.</summary>
     [Fact]
-    public async Task Selection_reports_custom_state_only_when_resolution_lands_on_the_custom_index()
+    public async Task Selection_reports_custom_only_when_resolution_lands_on_the_custom_index()
     {
         var sysmain = SettingCatalog.Find("gaming-sysmain-service");
         Assert.NotNull(sysmain);
@@ -335,28 +368,62 @@ public class CatalogSettingStateProviderConformanceTests
         {
             StateLabel = null,
             Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
             Readings = new Dictionary<string, object?> { ["Start"] = 3 },
         });
         Assert.Equal(1, recovered.CurrentValue);
-        Assert.False(recovered.IsCustomState);
+        Assert.Equal(SettingDetectionOutcome.Resolved, recovered.Outcome);
 
         // No label and Start=999 matches no option (and no fallback state exists) -> Custom index -> Custom.
         var custom = await MapViaProvider(sysmain!, new CatalogDetectionResult
         {
             StateLabel = null,
             Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
             Readings = new Dictionary<string, object?> { ["Start"] = 999 },
         });
         Assert.Equal(ComboBoxConstants.CustomStateIndex, custom.CurrentValue);
-        Assert.True(custom.IsCustomState);
+        Assert.Equal(SettingDetectionOutcome.Custom, custom.Outcome);
 
         // A resolved label -> that option's index, never Custom.
         var resolved = await MapViaProvider(sysmain!, new CatalogDetectionResult
         {
             StateLabel = sysmain!.States[0].Label,
             Detected = true,
+            Outcome = SettingDetectionOutcome.Resolved,
         });
         Assert.Equal(0, resolved.CurrentValue);
-        Assert.False(resolved.IsCustomState);
+        Assert.Equal(SettingDetectionOutcome.Resolved, resolved.Outcome);
+    }
+
+    /// <summary>A Malformed or Undetermined SELECTION short-circuits: no amount of index resolution can
+    /// rescue a value we could not read, so the outcome must survive the value-match fallback rather than
+    /// being downgraded to Custom (or worse, resolved) by it.</summary>
+    [Fact]
+    public async Task Selection_carries_malformed_and_undetermined_past_the_value_match_fallback()
+    {
+        var sysmain = SettingCatalog.Find("gaming-sysmain-service");
+        Assert.NotNull(sysmain);
+
+        // Start=3 WOULD value-match "Manual". It must not: the outcome says the read is not trustworthy.
+        var malformed = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Malformed,
+            Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+        });
+        Assert.Equal(SettingDetectionOutcome.Malformed, malformed.Outcome);
+        Assert.Equal(ComboBoxConstants.CustomStateIndex, malformed.CurrentValue);
+
+        var undetermined = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Undetermined,
+            Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+        });
+        Assert.Equal(SettingDetectionOutcome.Undetermined, undetermined.Outcome);
+        Assert.Equal(ComboBoxConstants.CustomStateIndex, undetermined.CurrentValue);
     }
 }

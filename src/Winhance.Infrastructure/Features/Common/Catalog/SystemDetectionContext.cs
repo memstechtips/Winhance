@@ -57,6 +57,9 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
 
+    public Microsoft.Win32.RegistryValueKind? GetValueKind(string keyPath, string? valueName) =>
+        _reg.GetValueKind(keyPath, valueName ?? "");
+
     public string[] GetSubKeyNames(string keyPath) => _reg.GetSubKeyNames(keyPath);
 
     public bool KeyExists(string keyPath) => _reg.KeyExists(keyPath);

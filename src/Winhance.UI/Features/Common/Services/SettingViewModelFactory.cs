@@ -72,7 +72,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
-            IsCustomState = currentState.IsCustomState,
+            Outcome = currentState.Outcome,
             OnText = _localizationService.GetString("Common_On") ?? "On",
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
@@ -236,7 +236,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         viewModel.ComputeBadgeState();
 
         // Initial Custom-state banner (Informational; a compatibility Warning applied above outranks it).
-        viewModel.UpdateCustomStateBanner();
+        viewModel.UpdateDetectionOutcomeBanner();
 
         // Build the technical-details panel from the Setting model + the now-populated current state
         // (the panel is VM-driven, not TooltipUpdatedEvent-driven).

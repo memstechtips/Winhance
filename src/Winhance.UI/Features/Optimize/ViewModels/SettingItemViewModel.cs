@@ -70,12 +70,14 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
 
-    /// <summary>Detection could not place this setting on any known state (an unrecognized value).
-    /// For a toggle this renders the neutral overlay + Enabled/Disabled/Cancel dialog flow; for a
-    /// selection it drives the info adornment beside the ComboBox. Cleared when the user picks a real
-    /// state and the apply succeeds, or a refresh resolves a known state.</summary>
+    /// <summary>Whether detection placed this setting on a known state, and if not, why not. Drives the
+    /// toggle overlay / selection adornment, its icon and short label, the banner, and - critically -
+    /// whether clicking does anything at all: an <see cref="SettingDetectionOutcome.Undetermined"/> setting
+    /// is rendered but inert, because applying a state over a value we failed to read would write blind.
+    /// Returns to <see cref="SettingDetectionOutcome.Resolved"/> when the user picks a state and the apply
+    /// succeeds, or a refresh resolves a known state.</summary>
     [ObservableProperty]
-    public partial bool IsCustomState { get; set; }
+    public partial SettingDetectionOutcome Outcome { get; set; }
 
     [ObservableProperty]
     public partial bool IsApplying { get; set; }
@@ -524,7 +526,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 // sits at IsSelected=false, so a Disabled target would be silently swallowed - no write,
                 // no feedback) and clear the overlay on success. Quick-set is an explicit state pick,
                 // so no dialog (same reasoning as the Custom dialog flow's no-double-confirm).
-                HandleToggleAsync(v, fromCustomState: IsCustomState).FireAndForget(_logService);
+                HandleToggleAsync(v, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToRecommendedCommand;
 
@@ -533,7 +535,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             if (ToggleDefaultState is bool v)
                 // fromCustomState while Custom: see SetToggleToRecommendedCommand.
-                HandleToggleAsync(v, resetToDefault: true, fromCustomState: IsCustomState).FireAndForget(_logService);
+                HandleToggleAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToDefaultCommand;
 
@@ -981,39 +983,116 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool IsPowerCfgSetting =>
         Setting?.Targets.OfType<PowerCfgTarget>().Any() == true;
 
-    /// <summary>The localized "Custom" state text - the toggle overlay's tooltip/automation name and
-    /// the a11y state announcement (SettingsCardItem.GetSettingStateText).</summary>
-    public string CustomStateText =>
-        _localizationService.GetString("Common_CustomState") ?? "Custom";
+    // ---------------------------------------------------------------------------------------------
+    // Detection-outcome presentation.
+    //
+    // The overlay does not REPLACE the ToggleSwitch, it covers it. The switch is always measured, so the
+    // toggle column is one width on every row (that is what keeps the Quick-Set buttons aligned); when the
+    // setting is unresolved the switch is simply made invisible and inert underneath the overlay.
+    //
+    // Everything below is driven from Outcome through ONE map, because the same icon and text appear in
+    // three places (the overlay knob, the selection adornment, the banner) and three hard-coded copies
+    // would eventually disagree. All of it is consumed with x:Bind function-call syntax in
+    // SettingsCardItem.xaml, which re-evaluates whenever Outcome raises PropertyChanged - the same pattern
+    // the A11yName(...) bindings already use.
+    // ---------------------------------------------------------------------------------------------
 
-    /// <summary>Tooltip for the selection Custom info adornment (the selection Custom banner string).</summary>
-    public string CustomStateSelectionTooltip =>
-        _localizationService.GetString("Common_CustomBanner_Selection") ?? string.Empty;
+    /// <summary>Whether the overlay is drawn at all. Every non-Resolved outcome shows it, so a bad state is
+    /// always visible and the toggle column keeps one footprint; only whether it RESPONDS differs
+    /// (see <see cref="IsActionable"/>).</summary>
+    public bool ShowsStateOverlay => Outcome != SettingDetectionOutcome.Resolved;
 
-    /// <summary>Short language-neutral label ("?" via Common_CustomState_ShortLabel, overridable per
-    /// language) shown in the overlay's On/Off-content slot for column uniformity with real toggles.</summary>
-    public string CustomStateShortLabel =>
-        _localizationService.GetString("Common_CustomState_ShortLabel") ?? "?";
+    /// <summary>Whether the user can act on this setting. False for
+    /// <see cref="SettingDetectionOutcome.Undetermined"/>: detection failed, so we do not know the current
+    /// value, and offering Enabled/Disabled would write blind over data we could not read. The overlay is
+    /// still drawn - it is simply inert, and the banner explains why.</summary>
+    public bool IsActionable => Outcome is SettingDetectionOutcome.Custom or SettingDetectionOutcome.Malformed;
 
-    /// <summary>Tooltip for the toggle Custom overlay - the SAME string the toggle Custom banner shows
-    /// (Common_CustomBanner_Toggle), so tooltip and banner can never drift.</summary>
-    public string CustomStateToggleTooltip =>
-        _localizationService.GetString("Common_CustomBanner_Toggle") ?? string.Empty;
+    /// <summary>THE outcome-to-icon map. Colour carries the severity at a glance and deliberately matches
+    /// the banner severity: blue question (a choice to make) / yellow exclamation (a real but recoverable
+    /// fault) / red cross (we could not read it). Rendered in the Color variant everywhere.</summary>
+    public FluentIcons.Common.Icon OverlayIconFor(SettingDetectionOutcome outcome) => outcome switch
+    {
+        SettingDetectionOutcome.Malformed => FluentIcons.Common.Icon.ErrorCircle,
+        SettingDetectionOutcome.Undetermined => FluentIcons.Common.Icon.DismissCircle,
+        _ => FluentIcons.Common.Icon.QuestionCircle,
+    };
 
-    // The Custom toggle overlay does not replace the ToggleSwitch, it covers it. The switch is always
-    // measured so the toggle column is one width on every row (that is what keeps the Quick-Set buttons
-    // aligned); in the Custom state it is simply made invisible and inert underneath the overlay. Both
-    // helpers are consumed with x:Bind function-call syntax in SettingsCardItem.xaml and re-evaluate when
-    // IsCustomState raises PropertyChanged.
+    /// <summary>The short language-neutral glyph in the overlay's On/Off-content slot, where a real toggle
+    /// shows "On"/"Off". Each matches its icon ("?" / "!" / "x") so the label and the knob never disagree.
+    /// Localizable so a language can substitute a better glyph.</summary>
+    public string OverlayShortLabelFor(SettingDetectionOutcome outcome) => outcome switch
+    {
+        SettingDetectionOutcome.Malformed =>
+            _localizationService.GetString("Common_MalformedState_ShortLabel") ?? "!",
+        SettingDetectionOutcome.Undetermined =>
+            _localizationService.GetString("Common_UndeterminedState_ShortLabel") ?? "x",
+        _ => _localizationService.GetString("Common_CustomState_ShortLabel") ?? "?",
+    };
 
-    /// <summary>Opacity of the real ToggleSwitch: invisible (0) while the Custom overlay is drawn on top
-    /// of it, fully opaque (1) otherwise. Never Collapsed - it must keep occupying its space.</summary>
-    public double ToggleOpacityFor(bool isCustomState) => isCustomState ? 0d : 1d;
+    /// <summary>The localized state NAME ("Custom" / "Malformed" / "Undetermined") - the overlay's
+    /// automation name and the a11y state announcement (SettingsCardItem.GetSettingStateText).</summary>
+    public string OverlayStateTextFor(SettingDetectionOutcome outcome) => outcome switch
+    {
+        SettingDetectionOutcome.Malformed =>
+            _localizationService.GetString("Common_MalformedState") ?? "Wrong format",
+        SettingDetectionOutcome.Undetermined =>
+            _localizationService.GetString("Common_UndeterminedState") ?? "Unknown",
+        _ => _localizationService.GetString("Common_CustomState") ?? "Custom",
+    };
 
-    /// <summary>Keeps the invisible ToggleSwitch out of the automation tree while Custom, so Narrator
-    /// announces only the overlay (which carries the Custom state name), not a hidden On/Off switch.</summary>
-    public AccessibilityView ToggleAccessibilityViewFor(bool isCustomState) =>
-        isCustomState ? AccessibilityView.Raw : AccessibilityView.Content;
+    /// <summary>The overlay tooltip: the SAME string that outcome's banner shows, so the two can never
+    /// drift. <paramref name="toggleLike"/> picks the toggle or selection wording.</summary>
+    public string OverlayTooltipFor(SettingDetectionOutcome outcome, bool toggleLike = true)
+    {
+        string prefix = outcome switch
+        {
+            SettingDetectionOutcome.Malformed => "Common_MalformedBanner_",
+            SettingDetectionOutcome.Undetermined => "Common_UndeterminedBanner_",
+            _ => "Common_CustomBanner_",
+        };
+        return _localizationService.GetString(prefix + (toggleLike ? "Toggle" : "Selection")) ?? string.Empty;
+    }
+
+    /// <summary>Opacity of the real ToggleSwitch: invisible (0) while the overlay covers it, fully opaque
+    /// (1) otherwise. Never Collapsed - it must keep occupying its space, or the column reflows.</summary>
+    public double ToggleOpacityFor(SettingDetectionOutcome outcome) =>
+        outcome == SettingDetectionOutcome.Resolved ? 1d : 0d;
+
+    /// <summary>Whether the real ToggleSwitch takes pointer input and tab focus. False while the overlay
+    /// covers it, so the overlay is the only thing reachable.</summary>
+    public bool ToggleInteractiveFor(SettingDetectionOutcome outcome) =>
+        outcome == SettingDetectionOutcome.Resolved;
+
+    /// <summary>Keeps the invisible ToggleSwitch out of the automation tree while covered, so Narrator
+    /// announces only the overlay (which carries the state name), not a hidden On/Off switch.</summary>
+    public AccessibilityView ToggleAccessibilityViewFor(SettingDetectionOutcome outcome) =>
+        outcome == SettingDetectionOutcome.Resolved ? AccessibilityView.Content : AccessibilityView.Raw;
+
+    /// <summary>Overlay visibility, bound directly so the template needs no bool-to-Visibility converter.
+    /// Fully qualified: this file imports Microsoft.UI.Xaml.Controls but not Microsoft.UI.Xaml itself.</summary>
+    public Microsoft.UI.Xaml.Visibility OverlayVisibilityFor(SettingDetectionOutcome outcome) =>
+        outcome == SettingDetectionOutcome.Resolved
+            ? Microsoft.UI.Xaml.Visibility.Collapsed
+            : Microsoft.UI.Xaml.Visibility.Visible;
+
+    // --- Bindings used by the templates (single-argument forms of the maps above). ---
+
+    /// <summary>The localized state text for the CURRENT outcome.</summary>
+    public string CustomStateText => OverlayStateTextFor(Outcome);
+
+    /// <summary>Tooltip for the toggle overlay - the SAME string that outcome's banner shows, so the two
+    /// can never drift.</summary>
+    public string CustomStateToggleTooltip => OverlayTooltipFor(Outcome);
+
+    /// <summary>Tooltip for the selection adornment (that outcome's selection-worded banner string).</summary>
+    public string CustomStateSelectionTooltip => OverlayTooltipFor(Outcome, toggleLike: false);
+
+    /// <summary>The short glyph for the CURRENT outcome.</summary>
+    public string CustomStateShortLabel => OverlayShortLabelFor(Outcome);
+
+    /// <summary>The icon for the CURRENT outcome.</summary>
+    public FluentIcons.Common.Icon CustomStateIcon => OverlayIconFor(Outcome);
 
     public string PluggedInText =>
         _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
@@ -1059,7 +1138,7 @@ public partial class SettingItemViewModel : BaseViewModel
         IconPack = config.IconPack;
         InputType = config.InputType;
         IsSelected = config.IsSelected;
-        IsCustomState = config.IsCustomState;
+        Outcome = config.Outcome;
         OnText = config.OnText;
         OffText = config.OffText;
         ActionButtonText = config.ActionButtonText;
@@ -1184,7 +1263,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 // success/failure path owns the flag - an unguarded clear would wipe the overlay a failed
                 // Custom-dialog apply deliberately keeps.
                 if (!IsApplying)
-                    IsCustomState = false;
+                    Outcome = SettingDetectionOutcome.Resolved;
             }
             else if (InputType == InputType.Selection)
             {
@@ -1202,7 +1281,7 @@ public partial class SettingItemViewModel : BaseViewModel
                     // The external AC/DC apply landed on known option indices - no longer Custom
                     // (same self-apply guard as the toggle branch above).
                     if (!IsApplying)
-                        IsCustomState = false;
+                        Outcome = SettingDetectionOutcome.Resolved;
                 }
                 else if (value != null)
                 {
@@ -1210,7 +1289,7 @@ public partial class SettingItemViewModel : BaseViewModel
                     // A real option index means the selection is no longer Custom (mirrors the toggle
                     // branch, same self-apply guard). A Custom sentinel or non-index payload leaves it.
                     if (!IsApplying && value is int realIdx && realIdx != ComboBoxConstants.CustomStateIndex)
-                        IsCustomState = false;
+                        Outcome = SettingDetectionOutcome.Resolved;
                 }
             }
             else if (InputType == InputType.NumericRange)
@@ -1233,7 +1312,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
-            UpdateCustomStateBanner();
+            UpdateDetectionOutcomeBanner();
             RefreshTechnicalDetails();
         }
     }
@@ -1323,7 +1402,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 case InputType.Toggle:
                 case InputType.CheckBox:
                     IsSelected = state.IsEnabled;
-                    IsCustomState = state.IsCustomState;
+                    Outcome = state.Outcome;
                     break;
                 case InputType.Selection:
                     // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
@@ -1334,7 +1413,7 @@ public partial class SettingItemViewModel : BaseViewModel
                         break;
 
                     // The detection result's flag is the source of truth on refresh (mirrors the factory load).
-                    IsCustomState = state.IsCustomState;
+                    Outcome = state.Outcome;
 
                     if (SupportsSeparateACDC && Setting is { States.Count: > 0 } sel
                         && sel.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
@@ -1378,7 +1457,7 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
-            UpdateCustomStateBanner();
+            UpdateDetectionOutcomeBanner();
             RefreshTechnicalDetails();
         }
     }
@@ -1451,8 +1530,9 @@ public partial class SettingItemViewModel : BaseViewModel
             HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
     }
 
-    /// <summary>Click handler for the neutral Custom-state toggle overlay (SettingsCardItem's toggle
-    /// template renders it instead of the ToggleSwitch while IsCustomState).</summary>
+    /// <summary>Click handler for the neutral detection-outcome overlay (SettingsCardItem's toggle template
+    /// draws it over the invisible ToggleSwitch whenever the setting is unresolved). Inert for
+    /// <see cref="SettingDetectionOutcome.Undetermined"/> - see <see cref="IsActionable"/>.</summary>
     public void OnCustomToggleClicked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         HandleCustomToggleClickAsync().FireAndForget(_logService);
@@ -1579,8 +1659,8 @@ public partial class SettingItemViewModel : BaseViewModel
             IsSelected = newValue;
             if (fromCustomState)
             {
-                IsCustomState = false;
-                UpdateCustomStateBanner();
+                Outcome = SettingDetectionOutcome.Resolved;
+                UpdateDetectionOutcomeBanner();
             }
             _hasChangedThisSession = true;
             ComputeBadgeState();
@@ -1624,8 +1704,8 @@ public partial class SettingItemViewModel : BaseViewModel
             if (fromCustomState)
             {
                 // On failure/exception the flag stays true (value untouched, overlay stays).
-                IsCustomState = false;
-                UpdateCustomStateBanner();
+                Outcome = SettingDetectionOutcome.Resolved;
+                UpdateDetectionOutcomeBanner();
             }
             _hasChangedThisSession = true;
             ComputeBadgeState();
@@ -1643,19 +1723,28 @@ public partial class SettingItemViewModel : BaseViewModel
         }
     }
 
-    /// <summary>The Custom-state dialog flow: title = the setting's display name, message explains the
-    /// unrecognized value, buttons Enabled / Disabled / Cancel with Cancel as the default (safe Enter).
-    /// Cancel keeps the unrecognized value and the Custom rendering. A pick applies EXACTLY once via
-    /// HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed. Only
-    /// reachable from Custom - afterwards the toggle renders and behaves normally.</summary>
+    /// <summary>The unresolved-state dialog flow: title = the setting's display name, message explains what
+    /// is wrong, buttons Enabled / Disabled / Cancel with Cancel as the default (safe Enter). Cancel keeps
+    /// the current value and rendering. A pick applies EXACTLY once via
+    /// HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed.
+    ///
+    /// The Malformed message additionally promises the storage format will be repaired, which the apply
+    /// delivers for free: every write passes the catalog's declared RegistryValueKind, and the surgical
+    /// binary writers now recover a wrongly-typed value's bytes instead of discarding them.</summary>
     private async Task HandleCustomToggleClickAsync()
     {
-        if (IsApplying || !IsCustomState) return;
+        // IsActionable is the safety gate: Undetermined never opens the dialog, so we can never
+        // apply a state over a value we failed to read.
+        if (IsApplying || !IsActionable) return;
+
+        string messageKey = Outcome == SettingDetectionOutcome.Malformed
+            ? "Common_MalformedDialog_Message"
+            : "Common_CustomDialog_Message";
 
         var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
             Title = Name,
-            Message = _localizationService.GetString("Common_CustomDialog_Message") ?? string.Empty,
+            Message = _localizationService.GetString(messageKey) ?? string.Empty,
             ConfirmButtonText = _localizationService.GetString("Common_CustomDialog_Enabled") ?? "Enabled",
             SecondaryButtonText = _localizationService.GetString("Common_CustomDialog_Disabled") ?? "Disabled",
             CancelButtonText = _localizationService.GetString("Button_Cancel") ?? "Cancel",
@@ -1701,7 +1790,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 NumericValue = builderIntValue;
                 if (builderIntValue != ComboBoxConstants.CustomStateIndex)
                 {
-                    IsCustomState = false;
+                    Outcome = SettingDetectionOutcome.Resolved;
                     var customOption = ComboBoxOptions.FirstOrDefault(
                         o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
                     if (customOption != null)
@@ -1763,7 +1852,7 @@ public partial class SettingItemViewModel : BaseViewModel
                 // Remove the Custom option once the user picks a defined value
                 if (intValue != ComboBoxConstants.CustomStateIndex)
                 {
-                    IsCustomState = false;
+                    Outcome = SettingDetectionOutcome.Resolved;
                     var customOption = ComboBoxOptions.FirstOrDefault(
                         o => o.Value is int v && v == ComboBoxConstants.CustomStateIndex);
                     if (customOption != null)
@@ -1816,8 +1905,8 @@ public partial class SettingItemViewModel : BaseViewModel
         {
             // Builder mode: AcValue/DcValue are already set by the caller; just record. A pick of known
             // indices also clears a loaded Custom state (mirrors the toggle builder branch).
-            IsCustomState = false;
-            UpdateCustomStateBanner();
+            Outcome = SettingDetectionOutcome.Resolved;
+            UpdateDetectionOutcomeBanner();
             _hasChangedThisSession = true;
             ComputeBadgeState();
             return;
@@ -1841,8 +1930,8 @@ public partial class SettingItemViewModel : BaseViewModel
             _hasChangedThisSession = true;
             // A successful AC/DC apply landed on known option indices - clear a loaded Custom state and
             // its "Select an option" banner (mirrors the toggle/selection apply paths).
-            IsCustomState = false;
-            UpdateCustomStateBanner();
+            Outcome = SettingDetectionOutcome.Resolved;
+            UpdateDetectionOutcomeBanner();
             ComputeBadgeState();
             ShowRestartBannerIfNeeded();
         }
@@ -2042,7 +2131,7 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         var banner = _statusBannerManager.ComputeBannerForValue(value, OptionWarnings, CrossGroupInfoMessage, ComboBoxOptions.Count, CompatibilityMessage);
         if (banner.HasValue) ApplyBanner(banner.Value);
-        UpdateCustomStateBanner();
+        UpdateDetectionOutcomeBanner();
     }
 
     /// <summary>
@@ -2081,33 +2170,69 @@ public partial class SettingItemViewModel : BaseViewModel
         StatusBannerMessage = state.Message;
         StatusBannerSeverity = state.Severity;
         // Fully qualified: this VM's own string `Icon` property shadows the FluentIcons.Common.Icon enum.
-        StatusBannerIconSource = state.IsCustomState
+        // A detection-outcome banner gets that outcome's colour icon - the SAME icon the toggle overlay knob
+        // and the selection adornment show, from the one map, so the three can never disagree. Every other
+        // banner passes null, which InfoBar reads as "use the severity's native icon".
+        StatusBannerIconSource = state.DetectionOutcome is { } bannerOutcome
             ? new FluentIcons.WinUI.FluentIconSource
             {
-                Icon = FluentIcons.Common.Icon.QuestionCircle,
+                Icon = OverlayIconFor(bannerOutcome),
                 IconVariant = FluentIcons.Common.IconVariant.Color,
             }
             : null;
     }
 
-    /// <summary>Shows the Informational Custom-state banner while <see cref="IsCustomState"/> and no
-    /// Warning/Error banner is active (compatibility, restart, option-warning and cross-group banners
-    /// outrank it), and clears it - only it - once Custom clears. Called from the load/refresh paths,
-    /// UpdateStatusBanner, and the Custom dialog flow.</summary>
-    internal void UpdateCustomStateBanner()
+    /// <summary>Shows the banner for a non-Resolved detection outcome, and clears it - only it - once the
+    /// setting resolves. Called from the load/refresh paths, UpdateStatusBanner, and the dialog flow.
+    ///
+    /// Priority, highest first: Undetermined (Error) > the existing compatibility/restart Warnings >
+    /// Malformed (Warning) > Custom (Informational). Undetermined outranks everything because it says we
+    /// could not read the setting at all, which makes any other advice about it unreliable; the existing
+    /// Warnings outrank Malformed because they describe the action the user just took, whereas a malformed
+    /// value is a pre-existing condition.</summary>
+    internal void UpdateDetectionOutcomeBanner()
     {
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        var custom = _statusBannerManager.GetCustomStateBanner(isToggleLike);
-        if (IsCustomState)
+        var outcomeBanner = _statusBannerManager.GetDetectionOutcomeBanner(Outcome, isToggleLike);
+
+        if (Outcome != SettingDetectionOutcome.Resolved)
         {
-            if (!string.IsNullOrEmpty(StatusBannerMessage) && StatusBannerSeverity != InfoBarSeverity.Informational)
+            bool hasBanner = !string.IsNullOrEmpty(StatusBannerMessage);
+            if (Outcome == SettingDetectionOutcome.Undetermined)
+            {
+                ApplyBanner(outcomeBanner); // outranks every other banner
                 return;
-            ApplyBanner(custom);
+            }
+
+            // Malformed and Custom both yield to an existing Warning/Error banner.
+            if (hasBanner && StatusBannerSeverity != InfoBarSeverity.Informational)
+                return;
+            ApplyBanner(outcomeBanner);
         }
-        else if (!string.IsNullOrEmpty(StatusBannerMessage) && StatusBannerMessage == custom.Message)
+        else if (!string.IsNullOrEmpty(StatusBannerMessage) && IsDetectionOutcomeBannerMessage(StatusBannerMessage))
         {
             ApplyBanner(SettingStatusBannerManager.BannerState.Clear);
         }
+    }
+
+    /// <summary>Whether the showing banner is one of OUR outcome banners, so clearing on resolve removes only
+    /// that and never someone else's message. Checked against every outcome's text because the outcome has
+    /// already changed to Resolved by the time we clear - comparing against the current outcome's string
+    /// would miss a banner raised under a different one (e.g. Malformed repaired straight to Resolved).</summary>
+    private bool IsDetectionOutcomeBannerMessage(string message)
+    {
+        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        foreach (var candidate in new[]
+                 {
+                     SettingDetectionOutcome.Custom,
+                     SettingDetectionOutcome.Malformed,
+                     SettingDetectionOutcome.Undetermined,
+                 })
+        {
+            if (message == _statusBannerManager.GetDetectionOutcomeBanner(candidate, isToggleLike).Message)
+                return true;
+        }
+        return false;
     }
 
     #endregion
@@ -2129,9 +2254,9 @@ public partial class SettingItemViewModel : BaseViewModel
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         if (isToggleLike)
         {
-            if (IsCustomState)
+            if (Outcome != SettingDetectionOutcome.Resolved)
             {
-                // A Custom toggle sits on no known state - it matches nothing (mirrors the selection
+                // An unresolved toggle sits on no known state - it matches nothing (mirrors the selection
                 // out-of-range verdict below).
                 matchesRecommended = false;
                 matchesDefault = false;
@@ -2237,7 +2362,7 @@ public partial class SettingItemViewModel : BaseViewModel
             bool isCustom = InputType switch
             {
                 InputType.Selection => !IsKnownSelectionValue(),
-                InputType.Toggle or InputType.CheckBox => IsCustomState,
+                InputType.Toggle or InputType.CheckBox => Outcome != SettingDetectionOutcome.Resolved,
                 InputType.NumericRange => (HasAnyRecommendedData() || HasAnyDefaultData())
                     && !matchesRecommended && !matchesDefault,
                 _ => false

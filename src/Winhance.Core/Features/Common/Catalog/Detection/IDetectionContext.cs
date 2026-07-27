@@ -13,6 +13,12 @@ public interface IDetectionContext
     /// <summary>Read a registry value, or null if the key/value is absent.</summary>
     object? GetValue(string keyPath, string? valueName);
 
+    /// <summary>The stored registry TYPE of a value (REG_BINARY, REG_SZ, ...), or null when the value is
+    /// absent or the type cannot be read. Used only to describe a malformed value in the log - detection
+    /// itself never branches on it. Default null: only the live context reads it; test fakes report
+    /// "unknown" and the diagnostic falls back to naming the CLR type.</summary>
+    Microsoft.Win32.RegistryValueKind? GetValueKind(string keyPath, string? valueName) => null;
+
     /// <summary>The immediate sub-key names under a registry key (empty if the key is absent).</summary>
     string[] GetSubKeyNames(string keyPath);
 

@@ -45,16 +45,16 @@ public class BuildContextDetectionTests
     public void Win11_uses_the_value_target()
     {
         var s = TwoMechanismSetting();
-        Assert.Equal("Enabled",  CatalogDiscovery.DetectState(s, new Ctx { CurrentBuild = new(22631), Value = 0, KeyPresent = false }));
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(s, new Ctx { CurrentBuild = new(22631), Value = 1, KeyPresent = false }));
+        Assert.Equal("Enabled",  CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 0, KeyPresent = false }).Label);
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 1, KeyPresent = false }).Label);
     }
 
     [Fact]
     public void Win10_uses_the_key_existence_target()
     {
         var s = TwoMechanismSetting();
-        Assert.Equal("Enabled",  CatalogDiscovery.DetectState(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = true }));
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = false }));
+        Assert.Equal("Enabled",  CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = true }).Label);
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = false }).Label);
     }
 
     [Fact]

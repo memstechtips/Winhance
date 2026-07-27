@@ -1,16 +1,30 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The detected state for one setting. StateLabel is the resolved state label for a
-/// state-based setting (toggle / selection / custom-detector) - null means Custom; Value is the raw reading for a
-/// numeric (slider) setting; Detected is false when the engine resolved nothing.</summary>
+/// state-based setting (toggle / selection / custom-detector) - null means it resolved to no state; Value is the
+/// raw reading for a numeric (slider) setting; Detected is false when the engine resolved nothing.
+/// <see cref="Outcome"/> says WHY a null label is null - unrecognized content, a wrong stored type, or a
+/// detection failure - which the UI must distinguish because only the first two are safe to act on.</summary>
 public sealed record CatalogDetectionResult
 {
     public string? StateLabel { get; init; }
     public int? Value { get; init; }
     public bool Detected { get; init; }
+
+    /// <summary>Why the setting did not resolve, when it did not. Defaults to
+    /// <see cref="SettingDetectionOutcome.Resolved"/> so an unset value never invents a problem; the
+    /// service sets it explicitly on every path, including its catch-all (which reports
+    /// <see cref="SettingDetectionOutcome.Undetermined"/> - detection failing is OUR failure, and must not
+    /// masquerade as an unrecognized value on the user's machine).</summary>
+    public SettingDetectionOutcome Outcome { get; init; } = SettingDetectionOutcome.Resolved;
+
+    /// <summary>Diagnostic detail for a non-resolved outcome (which value, expected vs actual registry kind,
+    /// or the exception message). For the log and issue reports; never rendered raw in the UI.</summary>
+    public string? OutcomeDetail { get; init; }
 
     /// <summary>Raw powercfg value indices for a setting with a live <see cref="PowerCfgTarget"/>, read per power
     /// context.

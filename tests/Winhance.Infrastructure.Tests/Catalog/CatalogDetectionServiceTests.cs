@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
@@ -188,4 +189,76 @@ public class CatalogDetectionServiceTests
         Assert.Null(r.StateLabel);
         Assert.False(r.Detected);
     }
+
+    /// <summary>A detection failure is OUR failure. It must report Undetermined, never Custom - Custom is a
+    /// statement about the user's machine ("this value is one we don't recognize") and, critically, an
+    /// ACTIONABLE state whose dialog would apply a value over data we could not read.</summary>
+    [Fact]
+    public async Task DetectAsync_reports_Undetermined_when_detection_throws()
+    {
+        var service = ServiceWith(new FakeContext(get: (_, _) => throw new InvalidOperationException("registry exploded")));
+
+        var results = await service.DetectAsync(new[] { ThrowingSetting() });
+
+        var r = results["throwing"];
+        Assert.Equal(SettingDetectionOutcome.Undetermined, r.Outcome);
+        Assert.NotEqual(SettingDetectionOutcome.Custom, r.Outcome);
+        Assert.False(r.Detected);
+        Assert.Contains("registry exploded", r.OutcomeDetail);
+    }
+
+    /// <summary>A wrongly-typed value reports Malformed, and carries the diagnostic naming what the catalog
+    /// expected - the single most useful line in a report about a setting "showing the wrong thing".</summary>
+    [Fact]
+    public async Task DetectAsync_reports_Malformed_for_a_wrongly_typed_binary_value()
+    {
+        var service = ServiceWith(new FakeContext(get: (_, _) => "not-bytes"));
+
+        var results = await service.DetectAsync(new[] { BitmaskSetting() });
+
+        var r = results["bitmask"];
+        Assert.Equal(SettingDetectionOutcome.Malformed, r.Outcome);
+        Assert.Null(r.StateLabel);
+        Assert.Contains("Binary", r.OutcomeDetail);
+    }
+
+    /// <summary>A setting that resolves normally must report Resolved - the default must not leak a problem
+    /// onto healthy settings.</summary>
+    [Fact]
+    public async Task DetectAsync_reports_Resolved_for_a_healthy_setting()
+    {
+        var service = ServiceWith(new FakeContext(get: (_, _) => new byte[] { 0x00, 0x08 }));
+
+        var results = await service.DetectAsync(new[] { BitmaskSetting() });
+
+        Assert.Equal(SettingDetectionOutcome.Resolved, results["bitmask"].Outcome);
+    }
+
+    private static Setting ThrowingSetting() => new()
+    {
+        Id = "throwing",
+        Display = new() { Name = "t", Description = "d" },
+        Targets = new Target[] { new RegTarget("V", new[] { @"HKEY_CURRENT_USER\X" }, "V", RegistryValueKind.DWord) },
+        States = new[]
+        {
+            new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+            new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+        },
+    };
+
+    private static Setting BitmaskSetting() => new()
+    {
+        Id = "bitmask",
+        Display = new() { Name = "b", Description = "d" },
+        Targets = new Target[]
+        {
+            new RegTarget("Mask", new[] { @"HKEY_CURRENT_USER\X" }, "Mask", RegistryValueKind.Binary)
+            { ByteIndex = 1, BitMask = 0x08 },
+        },
+        States = new[]
+        {
+            new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["Mask"] = StateValue.Of(1) } },
+            new SettingState { Label = "Disabled", IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mask"] = StateValue.Of(0) } },
+        },
+    };
 }

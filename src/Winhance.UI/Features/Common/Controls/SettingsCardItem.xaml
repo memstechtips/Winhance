@@ -50,41 +50,42 @@
                 </StackPanel>
                 <Grid VerticalAlignment="Center">
                     <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this
-                         column its width, so the Quick-Set buttons land in the same place on a Custom row as
-                         on a normal one. It used to be Collapsed-swapped for the overlay, and the overlay's
-                         hard-coded MinWidth="154" is far wider than a ToggleSwitch actually renders (~72px),
-                         which shoved the Quick-Set buttons ~80px left on Custom rows (docs/Winhance.png).
-                         In the Custom state the switch stays in layout but goes invisible (Opacity 0) and
-                         drops out of hit-testing, the tab order and the automation tree, so the overlay
-                         drawn on top of it is the only thing a pointer, the keyboard or Narrator can reach. -->
+                         column its width, so the Quick-Set buttons land in the same place on an unresolved
+                         row as on a normal one. It used to be Collapsed-swapped for the overlay, and the
+                         overlay's hard-coded MinWidth="154" is far wider than a ToggleSwitch actually renders
+                         (~72px), which shoved the Quick-Set buttons ~80px left (docs/Winhance.png).
+                         While the setting is unresolved the switch stays in layout but goes invisible
+                         (Opacity 0) and drops out of hit-testing, the tab order and the automation tree, so
+                         the overlay above it is the only thing a pointer, the keyboard or Narrator reaches. -->
                     <ToggleSwitch
                         IsOn="{x:Bind IsSelected, Mode=OneWay}"
                         Toggled="{x:Bind OnToggleSwitchToggled}"
                         OnContent="{x:Bind OnText}"
                         OffContent="{x:Bind OffText}"
                         AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
-                        Opacity="{x:Bind ToggleOpacityFor(IsCustomState), Mode=OneWay}"
-                        IsHitTestVisible="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
-                        IsTabStop="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
-                        AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(IsCustomState), Mode=OneWay}"/>
-                    <!-- Neutral Custom-state overlay: a track-only stand-in for the ToggleSwitch, drawn
-                         2px larger than the stock 40x20 track (Marco's sizing feedback), with the
-                         QuestionCircle color icon as the knob - the same icon the Custom banner and the
-                         selection adornment use - plus a short language-neutral "?" label in the
-                         On/Off-content slot for column uniformity. Button chrome is cleared
-                         (hover/pressed backgrounds transparent) so it reads as a toggle control, not a
-                         pressable button. It carries NO size of its own: it stretches over the invisible
-                         ToggleSwitch behind it, so the overlay's footprint IS the toggle's footprint and
-                         the whole control area stays clickable. The knob grows slightly on pointer-over
+                        Opacity="{x:Bind ToggleOpacityFor(Outcome), Mode=OneWay}"
+                        IsHitTestVisible="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
+                        IsTabStop="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
+                        AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(Outcome), Mode=OneWay}"/>
+                    <!-- Neutral detection-outcome overlay: a track-only stand-in for the ToggleSwitch,
+                         drawn 2px larger than the stock 40x20 track (Marco's sizing feedback), with that
+                         outcome's colour icon as the knob - the SAME icon the banner and the selection
+                         adornment show, from one map in the VM - plus its matching short glyph
+                         ("?" / "!" / "x") in the On/Off-content slot for column uniformity. Button chrome is
+                         cleared (hover/pressed backgrounds transparent) so it reads as a toggle control, not
+                         a pressable button. It carries NO size of its own: it stretches over the invisible
+                         ToggleSwitch behind it, so the overlay's footprint IS the toggle's footprint and the
+                         whole control area stays clickable. The knob grows slightly on pointer-over
                          (code-behind storyboards, mirroring the native ToggleSwitch); PointerExited,
                          PointerCanceled and PointerCaptureLost all shrink it back so it cannot stick
-                         enlarged. The tooltip is the SAME string as the Custom banner
-                         (Common_CustomBanner_Toggle via CustomStateToggleTooltip) so the two can never
-                         drift; the automation name stays the Custom STATE text. Deliberately NOT a third
-                         selectable position (no accent color). Clicking opens the Enabled/Disabled/Cancel
-                         dialog (OnCustomToggleClicked). -->
+                         enlarged. The tooltip is the SAME string as that outcome's banner so the two can
+                         never drift; the automation name is the outcome's STATE text.
+                         Deliberately NOT a third selectable position (no accent color).
+                         Clicking opens the Enabled/Disabled/Cancel dialog - EXCEPT for Undetermined, where
+                         the VM's IsActionable gate makes the click a no-op, because we could not read the
+                         current value and must not write blind over it. -->
                     <Button
-                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"
                         Click="{x:Bind OnCustomToggleClicked}"
                         PointerEntered="OnCustomOverlayPointerEntered"
                         PointerExited="OnCustomOverlayPointerExited"
@@ -97,8 +98,8 @@
                         HorizontalContentAlignment="Right"
                         VerticalAlignment="Stretch"
                         VerticalContentAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip}"
-                        AutomationProperties.Name="{x:Bind CustomStateText}">
+                        ToolTipService.ToolTip="{x:Bind CustomStateToggleTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind CustomStateText, Mode=OneWay}">
                         <Button.Resources>
                             <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
                             <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
@@ -108,12 +109,12 @@
                         <!-- Same order as the real toggles in this app: label LEFT, track flush at the
                              card's right edge (see docs screenshot 2026-07-24). -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{x:Bind CustomStateShortLabel}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind CustomStateShortLabel, Mode=OneWay}" Margin="0,0,12,0" VerticalAlignment="Center"/>
                             <Border Width="42" Height="22" CornerRadius="11"
                                     Background="{ThemeResource ControlFillColorDisabledBrush}"
                                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                                     BorderThickness="1">
-                                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                                <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color" FontSize="16"
                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
                                                         RenderTransformOrigin="0.5,0.5">
                                     <fluentIcons:FluentIcon.RenderTransform>
@@ -157,12 +158,15 @@
                     SelectedValuePath="Value"
                     DisplayMemberPath="DisplayText"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                <!-- Custom-state info adornment: the selection sits on a value Winhance doesn't recognize.
-                     Same QuestionCircle color icon as the toggle overlay knob and the Custom banner. -->
-                <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Color" FontSize="16"
+                <!-- Detection-outcome adornment: the selection could not be placed on a known option.
+                     Same colour icon as the toggle overlay knob and the banner, from the VM's one map, so
+                     the three can never disagree; the tooltip is that outcome's selection-worded banner
+                     string. Unlike the toggle overlay this is a passive marker - the ComboBox beside it
+                     stays usable, since picking a real option is itself the remedy. -->
+                <fluentIcons:FluentIcon Icon="{x:Bind CustomStateIcon, Mode=OneWay}" IconVariant="Color" FontSize="16"
                                         VerticalAlignment="Center"
-                                        ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip}"
-                                        Visibility="{x:Bind IsCustomState, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        ToolTipService.ToolTip="{x:Bind CustomStateSelectionTooltip, Mode=OneWay}"
+                                        Visibility="{x:Bind OverlayVisibilityFor(Outcome), Mode=OneWay}"/>
             </StackPanel>
         </DataTemplate>
 

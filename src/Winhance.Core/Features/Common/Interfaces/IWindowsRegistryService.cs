@@ -6,6 +6,10 @@ public interface IWindowsRegistryService
 {
     bool SetValue(string keyPath, string valueName, object value, RegistryValueKind kind);
     object? GetValue(string keyPath, string valueName);
+
+    /// <summary>The stored registry TYPE of a value, or null when the key/value is absent or unreadable.
+    /// Diagnostic only - used to report a value stored under a type its catalog target cannot read.</summary>
+    RegistryValueKind? GetValueKind(string keyPath, string valueName);
     bool DeleteKey(string keyPath);
     bool DeleteValue(string keyPath, string valueName);
 
