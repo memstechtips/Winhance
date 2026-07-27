@@ -19,12 +19,17 @@
         what stops a ComboBox with no selection collapsing to chevron-width, and it works in every
         language because it measures the real localized string.
 
+    NOTE ON THE TOOLTIP: while pass-through (the default), this element receives no pointer input, so a
+    tooltip set HERE can never fire - the same trap as a tooltip on a disabled control. The host puts the
+    tooltip on the control the pointer actually hits. The tooltip below is only reachable when a host sets
+    IsInteractive="True", which it does when the control underneath is inert anyway.
+
     Everything it shows comes from the view model's one outcome map, so this, the toggle knob and the
     overview pills can never disagree about what a colour means.
     -->
     <StackPanel Orientation="Horizontal" Spacing="8"
                 HorizontalAlignment="Left" VerticalAlignment="Center"
-                IsHitTestVisible="False"
+                IsHitTestVisible="{x:Bind IsInteractive, Mode=OneWay}"
                 Visibility="{x:Bind OverlayVisibility, Mode=OneWay}"
                 ToolTipService.ToolTip="{x:Bind OverlayTooltip, Mode=OneWay}">
         <fluentIcons:FluentIcon Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"

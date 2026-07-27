@@ -120,6 +120,7 @@
                     Loaded="OnPowerPlanComboBoxLoaded"
                     Tag="{x:Bind}"
                     HorizontalAlignment="Stretch"
+                    ToolTipService.ToolTip="{x:Bind SelectionOutcomeTooltip, Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
                 <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single" Margin="12,0,34,0"/>
             </Grid>
@@ -145,7 +146,10 @@
                     IsTabStop="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
                     AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(Outcome), Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single" IsToggleLike="True"/>
+                <!-- IsInteractive: the CheckBox above is inert while unresolved, so letting the overlay
+                     take the pointer costs nothing and is the only way its tooltip can fire. -->
+                <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single"
+                                             IsToggleLike="True" IsInteractive="True"/>
             </Grid>
         </DataTemplate>
 

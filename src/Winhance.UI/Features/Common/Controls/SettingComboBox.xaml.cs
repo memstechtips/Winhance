@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -67,6 +68,10 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     public int SelectedIndex { get; private set; } = -1;
     public string InputAutomationName { get; private set; } = string.Empty;
 
+    /// <summary>The outcome explanation, shown on hover of the CONTROL - the overlay passes pointer input
+    /// through, so a tooltip on it could never fire. Null while resolved so no empty tooltip appears.</summary>
+    public string? OutcomeTooltip { get; private set; }
+
     private SettingItemViewModel? _observed;
 
     private static void OnSettingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -110,9 +115,12 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         Options = vm.ComboBoxOptions;
         SelectedIndex = vm.ComboIndexForMode(Mode);
         InputAutomationName = vm.InputAutomationNameForMode(Mode);
+        OutcomeTooltip = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Resolved
+            ? null
+            : vm.OverlayTooltipForMode(Mode, toggleLike: false);
         // PinnedMaxWidth is derived from the PinnedWidth DP, so it is announced here too - the DP's
         // own change callback routes through Refresh.
-        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(PinnedMaxWidth));
+        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip), nameof(PinnedMaxWidth));
     }
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------

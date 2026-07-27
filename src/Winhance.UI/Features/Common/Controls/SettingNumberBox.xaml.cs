@@ -49,6 +49,9 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
     /// no "unrecognized value" for this control type.</summary>
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
 
+    /// <summary>The outcome explanation, on the covering Border (which is what the pointer hits).</summary>
+    public string? OutcomeTooltip { get; private set; }
+
     private SettingItemViewModel? _observed;
 
     private static void OnSettingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -98,8 +101,11 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         OverlayVisibility = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Undetermined
             ? Visibility.Visible
             : Visibility.Collapsed;
+        OutcomeTooltip = OverlayVisibility == Visibility.Visible
+            ? vm.OverlayTooltipForMode(Mode, toggleLike: false)
+            : null;
         Notify(nameof(NumericValue), nameof(Minimum), nameof(Maximum),
-               nameof(InputAutomationName), nameof(OverlayVisibility));
+               nameof(InputAutomationName), nameof(OverlayVisibility), nameof(OutcomeTooltip));
     }
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------

@@ -38,6 +38,7 @@
                 SelectedValuePath="Value"
                 DisplayMemberPath="DisplayText"
                 HorizontalAlignment="Stretch"
+                ToolTipService.ToolTip="{x:Bind OutcomeTooltip, Mode=OneWay}"
                 Width="{x:Bind PinnedWidth, Mode=OneWay}"
                 MinWidth="{x:Bind PinnedWidth, Mode=OneWay}"
                 MaxWidth="{x:Bind PinnedMaxWidth, Mode=OneWay}"

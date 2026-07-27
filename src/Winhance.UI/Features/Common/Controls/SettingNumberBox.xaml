@@ -35,8 +35,11 @@
             <!-- Opaque background: unlike the dropdown (where the control renders empty when unresolved),
                  a NumberBox always paints a number, so the overlay must cover it rather than sit beside
                  it. Right margin clears the inline spin buttons. -->
+            <!-- This Border is opaque and hit-testable, so unlike the dropdown's pass-through overlay it
+                 IS what the pointer lands on - the tooltip belongs here. -->
             <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
                     CornerRadius="{ThemeResource ControlCornerRadius}"
+                    ToolTipService.ToolTip="{x:Bind OutcomeTooltip, Mode=OneWay}"
                     Visibility="{x:Bind OverlayVisibility, Mode=OneWay}">
                 <local:SettingOutcomeOverlay
                     Setting="{x:Bind Setting, Mode=OneWay}"

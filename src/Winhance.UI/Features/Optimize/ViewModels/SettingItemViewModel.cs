@@ -1239,6 +1239,12 @@ public partial class SettingItemViewModel : BaseViewModel
 
     // --- Bindings used by the templates (single-argument forms of the maps above). ---
 
+    /// <summary>The outcome explanation for a selection-style control, or null while resolved. Bound to
+    /// the CONTROL's tooltip rather than the overlay's, because a pass-through overlay never receives the
+    /// pointer and so can never show one.</summary>
+    public string? SelectionOutcomeTooltip =>
+        Outcome == SettingDetectionOutcome.Resolved ? null : OverlayTooltipFor(Outcome, toggleLike: false);
+
     /// <summary>The localized state text for the CURRENT outcome.</summary>
     public string CustomStateText => OverlayStateTextFor(Outcome);
 

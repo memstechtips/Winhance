@@ -42,6 +42,20 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         set => SetValue(ModeProperty, value);
     }
 
+    /// <summary>Whether this overlay takes pointer input. False (the default) lets clicks reach the
+    /// control underneath, which every host whose control stays usable needs - and which also means a
+    /// tooltip on this element can never fire, so those hosts put it on the control instead. True when the
+    /// control underneath is inert while unresolved, so intercepting costs nothing and the tooltip works.</summary>
+    public static readonly DependencyProperty IsInteractiveProperty = DependencyProperty.Register(
+        nameof(IsInteractive), typeof(bool), typeof(SettingOutcomeOverlay),
+        new PropertyMetadata(false));
+
+    public bool IsInteractive
+    {
+        get => (bool)GetValue(IsInteractiveProperty);
+        set => SetValue(IsInteractiveProperty, value);
+    }
+
     /// <summary>True for a toggle-style host, so the tooltip uses the toggle wording ("click the toggle")
     /// rather than the selection wording ("pick an option from the list").</summary>
     public static readonly DependencyProperty IsToggleLikeProperty = DependencyProperty.Register(
