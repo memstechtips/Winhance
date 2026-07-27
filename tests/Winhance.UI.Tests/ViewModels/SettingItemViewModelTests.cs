@@ -910,7 +910,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     true),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -925,7 +924,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, false),
             (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -943,7 +941,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -960,7 +957,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, false),
             (SettingBadgeKind.Default,     true),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -978,7 +974,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, false),
             (SettingBadgeKind.Default,     true),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -995,7 +990,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -1012,7 +1006,6 @@ public class SettingItemViewModelTests : IDisposable
             (SettingBadgeKind.Preference,  true),
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
 
         sut.BadgeRow.Should().OnlyContain(
@@ -1033,26 +1026,9 @@ public class SettingItemViewModelTests : IDisposable
             (SettingBadgeKind.Preference,  true),
             (SettingBadgeKind.Recommended, false),
             (SettingBadgeKind.Default,     true),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
-    [Fact]
-    public void BadgeRow_Selection_Subjective_UnmappedValue_CustomLit()
-    {
-        var sut = CreateSut(SelectionConfig(SelectionSetting("uac-like-3",
-            new[] { ("DefOpt", false, true), ("RecOpt", true, false) }, subjective: true)));
-        sut.SelectedValue = 99;
-        sut.ComputeBadgeState();
-
-        sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
-        {
-            (SettingBadgeKind.Preference,  true),
-            (SettingBadgeKind.Recommended, false),
-            (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      true),
-        }, opts => opts.WithStrictOrdering());
-    }
 
     [Fact]
     public void BadgeRow_Selection_MultiDefault_NoRecommended_OnEitherOption_DefaultLit()
@@ -1066,7 +1042,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Preference, true),
             (SettingBadgeKind.Default,    true),
-            (SettingBadgeKind.Custom,     false),
         }, opts => opts.WithStrictOrdering());
 
         sut.SelectedValue = 1;
@@ -1075,7 +1050,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Preference, true),
             (SettingBadgeKind.Default,    true),
-            (SettingBadgeKind.Custom,     false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -1091,7 +1065,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     false),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -1107,7 +1080,6 @@ public class SettingItemViewModelTests : IDisposable
         {
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     true),
-            (SettingBadgeKind.Custom,      false),
         }, opts => opts.WithStrictOrdering());
     }
 
@@ -1189,23 +1161,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Should().ContainSingle(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.DC);
     }
 
-    [Fact]
-    public void BadgeRow_AcDcSeparate_WithBattery_AcCustom_DcAtRec_OnlyCustomAcLit()
-    {
-        // Partial-custom case: AC matches neither Rec nor Def, DC matches Rec. We expect
-        // Custom (AC) lit, Custom (DC) dim — the lit-state must follow the side, not the row.
-        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
-            "acdc-partial-custom", recAc: 50, recDc: 25, defAc: 0, defDc: 75)));
-        sut.HasBattery = true;
-        sut.AcNumericValue = 33;    // matches neither RecAC=50 nor DefAC=0 → AC Custom
-        sut.DcNumericValue = 25;    // matches RecDC → DC Recommended
-        sut.ComputeBadgeState();
-
-        var customAc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Custom && p.Mode == SettingBadgeMode.AC);
-        var customDc = sut.BadgeRow.Single(p => p.Kind == SettingBadgeKind.Custom && p.Mode == SettingBadgeMode.DC);
-        customAc.IsHighlighted.Should().BeTrue();
-        customDc.IsHighlighted.Should().BeFalse();
-    }
 
     // ---------------------------------------------------------------------------------------------------
     // Synthetic catalog-Setting fixtures.

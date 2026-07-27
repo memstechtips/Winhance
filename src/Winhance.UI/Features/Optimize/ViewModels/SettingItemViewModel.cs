@@ -2551,9 +2551,6 @@ public partial class SettingItemViewModel : BaseViewModel
             SettingBadgeKind.Default => (
                 _localizationService?.GetString("InfoBadge_Default") ?? "Default",
                 _localizationService?.GetString("InfoBadge_Default_Tooltip") ?? "Windows factory value"),
-            SettingBadgeKind.Custom => (
-                _localizationService?.GetString("InfoBadge_Custom") ?? "Custom",
-                _localizationService?.GetString("InfoBadge_Custom_Tooltip") ?? "Custom value (not a known option)"),
             SettingBadgeKind.Preference => (
                 _localizationService?.GetString("InfoBadge_Preference") ?? "Preference",
                 _localizationService?.GetString("InfoBadge_Preference_Tooltip") ?? "Personal preference"),

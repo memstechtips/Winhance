@@ -82,10 +82,10 @@
     BadgeStyles.xaml
     Centralized visual definition for the SettingsCard InfoBadge pill.
     Includes:
-      - Pill Border styles per state (Recommended / Default / Custom)
+      - Pill Border styles per state (Recommended / Default / Preference), plus the
+        detection-outcome capsules the overview cards use
       - Foreground brushes matching each pill style
-      - Shared text style
-      - The BadgeIconTemplateSelector resource with its three inline icon templates
+      - Shared text style, and the per-outcome text styles OutcomePillBuilder applies
     -->
 
     <!-- ==================== Pill Border Base ==================== -->
@@ -198,53 +198,6 @@
         <Setter Property="Foreground" Value="{ThemeResource BadgeDangerForeground}"/>
     </Style>
 
-    <!-- ==================== Icon Template Selector ==================== -->
-    <!-- Each template is a single icon control with the correct foreground brush.
-         The 4px right margin separates the icon from the pill's text label. -->
-    <converters:BadgeIconTemplateSelector x:Key="BadgeIconTemplateSelector">
-        <converters:BadgeIconTemplateSelector.RecommendedTemplate>
-            <DataTemplate>
-                <FontIcon
-                    Glyph="&#xE735;"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.RecommendedTemplate>
-        <converters:BadgeIconTemplateSelector.DefaultTemplate>
-            <DataTemplate>
-                <PathIcon
-                    Data="{StaticResource BadgeDefaultIconPath}"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Height="16"
-                    Width="16"
-                    Foreground="{ThemeResource BadgeDefaultForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.DefaultTemplate>
-        <converters:BadgeIconTemplateSelector.CustomTemplate>
-            <DataTemplate>
-                <fluentIcons:FluentIcon
-                    Icon="PersonWrench"
-                    IconVariant="Regular"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgeCustomForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.CustomTemplate>
-        <converters:BadgeIconTemplateSelector.PreferenceTemplate>
-            <DataTemplate>
-                <FontIcon
-                    Glyph="&#xE77B;"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgePreferenceForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.PreferenceTemplate>
-    </converters:BadgeIconTemplateSelector>
 
     <!-- ==================== Quick-Set Buttons ==================== -->
     <!--
