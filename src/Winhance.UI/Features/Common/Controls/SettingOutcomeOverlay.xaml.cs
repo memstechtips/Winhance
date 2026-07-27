@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -13,7 +14,7 @@ namespace Winhance.UI.Features.Common.Controls;
 /// and re-evaluate when EITHER changes. Recomputing them whenever Setting, Mode, or the setting's own
 /// state changes keeps the markup declarative and the refresh correct.
 /// </summary>
-public sealed partial class SettingOutcomeOverlay : UserControl
+public sealed partial class SettingOutcomeOverlay : UserControl, INotifyPropertyChanged
 {
     public SettingOutcomeOverlay()
     {
@@ -101,7 +102,7 @@ public sealed partial class SettingOutcomeOverlay : UserControl
         if (Setting is not { } vm)
         {
             OverlayVisibility = Visibility.Collapsed;
-            Bindings.Update();
+            Notify(nameof(OverlayVisibility));
             return;
         }
 
@@ -109,6 +110,23 @@ public sealed partial class SettingOutcomeOverlay : UserControl
         OverlayIcon = vm.OverlayIconForMode(Mode);
         OverlayText = vm.OverlayTextForMode(Mode);
         OverlayTooltip = vm.OverlayTooltipForMode(Mode, IsToggleLike);
-        Bindings.Update();
+        Notify(nameof(OverlayVisibility), nameof(OverlayIcon), nameof(OverlayText), nameof(OverlayTooltip));
+    }
+
+    // --- INotifyPropertyChanged -------------------------------------------------------------------
+    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
+    // at least one of their steps to support raising notifications") and the bindings only refresh
+    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
+    // property, and fails silently when you do.
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Notify(params string[] names)
+    {
+        var handler = PropertyChanged;
+        if (handler is null)
+            return;
+        foreach (var name in names)
+            handler(this, new PropertyChangedEventArgs(name));
     }
 }

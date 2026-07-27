@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -18,7 +19,7 @@ public enum SettingQuickSetKind
 /// Code-behind for <see cref="SettingQuickSetButtons"/>. Resolves (kind x mode) into the concrete command,
 /// tooltip and automation name through the view model, so the markup stays one declaration.
 /// </summary>
-public sealed partial class SettingQuickSetButtons : UserControl
+public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropertyChanged
 {
     public SettingQuickSetButtons()
     {
@@ -98,7 +99,7 @@ public sealed partial class SettingQuickSetButtons : UserControl
         if (Setting is not { } vm)
         {
             ButtonsVisibility = Visibility.Collapsed;
-            Bindings.Update();
+            NotifyAll();
             return;
         }
 
@@ -133,6 +134,29 @@ public sealed partial class SettingQuickSetButtons : UserControl
         ButtonsVisibility = show ? Visibility.Visible : Visibility.Collapsed;
         RecommendedAutomationName = vm.A11yNameForMode(Mode, RecommendedTooltip);
         DefaultAutomationName = vm.A11yNameForMode(Mode, DefaultTooltip);
-        Bindings.Update();
+        NotifyAll();
     }
+
+    private void NotifyAll() => Notify(
+        nameof(ButtonsVisibility), nameof(RecommendedCommand), nameof(DefaultCommand),
+        nameof(RecommendedTooltip), nameof(DefaultTooltip),
+        nameof(RecommendedAutomationName), nameof(DefaultAutomationName));
+
+    // --- INotifyPropertyChanged -------------------------------------------------------------------
+    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
+    // at least one of their steps to support raising notifications") and the bindings only refresh
+    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
+    // property, and fails silently when you do.
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Notify(params string[] names)
+    {
+        var handler = PropertyChanged;
+        if (handler is null)
+            return;
+        foreach (var name in names)
+            handler(this, new PropertyChangedEventArgs(name));
+    }
+
 }

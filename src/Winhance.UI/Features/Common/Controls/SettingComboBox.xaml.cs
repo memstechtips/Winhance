@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Interfaces;
@@ -15,7 +16,7 @@ namespace Winhance.UI.Features.Common.Controls;
 /// pick one at runtime. Each of those reads what it needs off the sender, so passing the real ComboBox
 /// through keeps their existing behaviour exactly.
 /// </summary>
-public sealed partial class SettingComboBox : UserControl
+public sealed partial class SettingComboBox : UserControl, INotifyPropertyChanged
 {
     public SettingComboBox()
     {
@@ -109,8 +110,28 @@ public sealed partial class SettingComboBox : UserControl
         Options = vm.ComboBoxOptions;
         SelectedIndex = vm.ComboIndexForMode(Mode);
         InputAutomationName = vm.InputAutomationNameForMode(Mode);
-        Bindings.Update();
+        // PinnedMaxWidth is derived from the PinnedWidth DP, so it is announced here too - the DP's
+        // own change callback routes through Refresh.
+        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(PinnedMaxWidth));
     }
+
+    // --- INotifyPropertyChanged -------------------------------------------------------------------
+    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
+    // at least one of their steps to support raising notifications") and the bindings only refresh
+    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
+    // property, and fails silently when you do.
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Notify(params string[] names)
+    {
+        var handler = PropertyChanged;
+        if (handler is null)
+            return;
+        foreach (var name in names)
+            handler(this, new PropertyChangedEventArgs(name));
+    }
+
 
     // --- Event routing ---------------------------------------------------------------------------
 

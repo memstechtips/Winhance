@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Enums;
@@ -9,7 +10,7 @@ namespace Winhance.UI.Features.Common.Controls;
 /// Code-behind for <see cref="SettingNumberBox"/>. Projects the view model's per-mode resolution into
 /// bindable properties and routes the NumberBox's events to the right view-model handler for this mode.
 /// </summary>
-public sealed partial class SettingNumberBox : UserControl
+public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChanged
 {
     public SettingNumberBox()
     {
@@ -97,8 +98,27 @@ public sealed partial class SettingNumberBox : UserControl
         OverlayVisibility = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Undetermined
             ? Visibility.Visible
             : Visibility.Collapsed;
-        Bindings.Update();
+        Notify(nameof(NumericValue), nameof(Minimum), nameof(Maximum),
+               nameof(InputAutomationName), nameof(OverlayVisibility));
     }
+
+    // --- INotifyPropertyChanged -------------------------------------------------------------------
+    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
+    // at least one of their steps to support raising notifications") and the bindings only refresh
+    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
+    // property, and fails silently when you do.
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Notify(params string[] names)
+    {
+        var handler = PropertyChanged;
+        if (handler is null)
+            return;
+        foreach (var name in names)
+            handler(this, new PropertyChangedEventArgs(name));
+    }
+
 
     // --- Event routing ---------------------------------------------------------------------------
 
