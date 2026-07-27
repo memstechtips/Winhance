@@ -449,6 +449,22 @@ public sealed partial class OptimizePage : Page
 
     private void UpdateOverviewBadgePills()
     {
+        // The outcome banners are refreshed on the SAME events as the pills, so the two can never
+        // disagree - but they are deliberately NOT gated by _isInfoBadgesVisible. A detection outcome is
+        // a fault, not optional detail, so hiding it behind View > InfoBadges would be backwards.
+        PrivacyOutcomeBanner.Localization = _localizationService;
+        PrivacyOutcomeBanner.Refresh();
+        PowerOutcomeBanner.Localization = _localizationService;
+        PowerOutcomeBanner.Refresh();
+        GamingOutcomeBanner.Localization = _localizationService;
+        GamingOutcomeBanner.Refresh();
+        UpdateOutcomeBanner.Localization = _localizationService;
+        UpdateOutcomeBanner.Refresh();
+        NotificationOutcomeBanner.Localization = _localizationService;
+        NotificationOutcomeBanner.Refresh();
+        SoundOutcomeBanner.Localization = _localizationService;
+        SoundOutcomeBanner.Refresh();
+
         UpdateFeatureOverviewPills(
             ViewModel.PrivacyViewModel,
             PrivacyOverviewBadges,
@@ -547,14 +563,8 @@ public sealed partial class OptimizePage : Page
             defaultPill.Visibility = Visibility.Collapsed;
         }
 
-        // Per-outcome pills, generated: only non-zero ones appear, most severe first, each carrying the
-        // same icon the setting's own control shows. Replaces the single "Custom N/total" pill, which
-        // could not say WHICH kind of problem was inside - the reason finding a malformed setting meant
-        // opening the feature and hunting for it. Rebuilt (not just retexted) so a feature that becomes
-        // healthy loses its pills entirely.
-        OutcomePillBuilder.Rebuild(container, summary, _localizationService);
-        if (summary.UnresolvedCount > 0)
-            showAny = true;
+        // Detection outcomes are NOT pills here. They are reported by FeatureOutcomeBanner below the
+        // card, because a fault must not be hidden by View > InfoBadges the way an optional badge may be.
 
         container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }

@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "Nierozpoznane",
   "InfoBadge_Malformed": "Nieprawidłowy format",
   "InfoBadge_Undetermined": "Nie można odczytać",
+  "Overview_OutcomeBanner_Intro": "Winhance nie mógł ustalić stanu niektórych ustawień w tej sekcji.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "Preferencja",
   "InfoBadge_Recommended_Tooltip": "Sugerowana przez Winhance wartość dla tego ustawienia — zwykle dobrana pod kątem wydajności, prywatności lub wygody. Podświetlona, gdy bieżąca wartość jest zgodna.",
   "InfoBadge_Default_Tooltip": "Fabryczna wartość systemu Windows — stan tego ustawienia zaraz po instalacji, przed jakimikolwiek zmianami. Podświetlona, gdy bieżąca wartość jest zgodna.",

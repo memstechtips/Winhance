@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Optimize"
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:winControls="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
@@ -323,6 +324,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="PrivacyOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.PrivacyViewModel}"/>
 
                             <!-- Power Card -->
                             <controls:SettingsCard
@@ -364,6 +367,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="PowerOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.PowerViewModel}"/>
 
                             <!-- Gaming and Performance Card -->
                             <controls:SettingsCard
@@ -405,6 +410,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="GamingOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.GamingViewModel}"/>
 
                             <!-- Update Card -->
                             <controls:SettingsCard
@@ -446,6 +453,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="UpdateOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.UpdateViewModel}"/>
 
                             <!-- Notifications Card -->
                             <controls:SettingsCard
@@ -487,6 +496,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="NotificationOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.NotificationViewModel}"/>
 
                             <!-- Sound Card -->
                             <controls:SettingsCard
@@ -528,6 +539,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="SoundOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.SoundViewModel}"/>
 
                         </StackPanel>
                         </Grid>

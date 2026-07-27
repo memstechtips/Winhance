@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Customize"
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:winControls="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
@@ -302,6 +303,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="WindowsThemeOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.WindowsThemeViewModel}"/>
 
                             <!-- Taskbar Card -->
                             <controls:SettingsCard
@@ -343,6 +346,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="TaskbarOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.TaskbarViewModel}"/>
 
                             <!-- Start Menu Card -->
                             <controls:SettingsCard
@@ -384,6 +389,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="StartMenuOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.StartMenuViewModel}"/>
 
                             <!-- Explorer Card -->
                             <controls:SettingsCard
@@ -425,6 +432,8 @@
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="ExplorerOutcomeBanner"
+                                                        Feature="{x:Bind ViewModel.ExplorerViewModel}"/>
 
                         </StackPanel>
                         </Grid>

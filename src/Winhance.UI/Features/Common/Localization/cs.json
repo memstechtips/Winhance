@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "Nerozpoznáno",
   "InfoBadge_Malformed": "Nesprávný formát",
   "InfoBadge_Undetermined": "Nelze přečíst",
+  "Overview_OutcomeBanner_Intro": "Winhance nedokázal určit stav některých nastavení v této části.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "Preference",
   "InfoBadge_Recommended_Tooltip": "Hodnota navrhovaná Winhance pro toto nastavení — obvykle laděná pro lepší výkon, soukromí nebo použitelnost. Zvýrazněno, když aktuální hodnota odpovídá.",
   "InfoBadge_Default_Tooltip": "Tovární hodnota Windows — co toto nastavení nabízí hned po instalaci, před jakýmikoli změnami. Zvýrazněno, když aktuální hodnota odpovídá.",

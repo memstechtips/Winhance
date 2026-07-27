@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "पहचाना नहीं गया",
   "InfoBadge_Malformed": "गलत प्रारूप",
   "InfoBadge_Undetermined": "पढ़ा नहीं जा सका",
+  "Overview_OutcomeBanner_Intro": "Winhance इस अनुभाग की कुछ सेटिंग्स की स्थिति निर्धारित नहीं कर सका।",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "प्राथमिकता",
   "InfoBadge_Recommended_Tooltip": "Winhance द्वारा इस सेटिंग के लिए सुझाया गया मान — आमतौर पर बेहतर प्रदर्शन, गोपनीयता या उपयोगिता के लिए अनुकूलित। जब आपका वर्तमान मान मेल खाता है तो हाइलाइट होता है।",
   "InfoBadge_Default_Tooltip": "Windows का फ़ैक्टरी मान — यानी बिना किसी बदलाव के यह सेटिंग जैसी होती है। जब आपका वर्तमान मान मेल खाता है तो हाइलाइट होता है।",

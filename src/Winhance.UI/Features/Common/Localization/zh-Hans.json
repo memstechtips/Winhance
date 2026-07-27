@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "无法识别",
   "InfoBadge_Malformed": "格式错误",
   "InfoBadge_Undetermined": "无法读取",
+  "Overview_OutcomeBanner_Intro": "Winhance 无法确定本节中某些设置的状态。",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "偏好",
   "InfoBadge_Recommended_Tooltip": "Winhance 对此设置的建议值——通常针对性能、隐私或易用性进行了调整。当前值与之匹配时会高亮显示。",
   "InfoBadge_Default_Tooltip": "Windows 出厂值——即未做任何更改前的初始状态。当前值与之匹配时会高亮显示。",

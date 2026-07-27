@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "Neatpazīts",
   "InfoBadge_Malformed": "Nepareizs formāts",
   "InfoBadge_Undetermined": "Nevar nolasīt",
+  "Overview_OutcomeBanner_Intro": "Winhance nevarēja noteikt dažu šīs sadaļas iestatījumu stāvokli.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "Izvēle",
   "InfoBadge_Recommended_Tooltip": "Winhance ieteiktā vērtība šim iestatījumam — parasti pielāgota labākai veiktspējai, privātumam vai lietojamībai. Izcelts, ja pašreizējā vērtība sakrīt.",
   "InfoBadge_Default_Tooltip": "Windows rūpnīcas vērtība — kāds šis iestatījums ir pēc noklusējuma, pirms jebkādām izmaiņām. Izcelts, ja pašreizējā vērtība sakrīt.",

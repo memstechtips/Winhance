@@ -1711,6 +1711,8 @@
   "InfoBadge_Custom": "Neatpažinta",
   "InfoBadge_Malformed": "Netinkamas formatas",
   "InfoBadge_Undetermined": "Nepavyko perskaityti",
+  "Overview_OutcomeBanner_Intro": "Winhance nepavyko nustatyti kai kurių šio skyriaus nuostatų būsenos.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
   "InfoBadge_Preference": "Pageidavimas",
   "InfoBadge_Recommended_Tooltip": "Winhance siūloma reikšmė šiam nustatymui — dažniausiai parinkta dėl geresnio našumo, privatumo ar naudojimo patogumo. Pažymima, kai dabartinė tavo reikšmė sutampa.",
   "InfoBadge_Default_Tooltip": "„Windows“ gamyklinė reikšmė — tokia šio nustatymo būsena iš karto po įdiegimo, prieš bet kokius pakeitimus. Pažymima, kai dabartinė tavo reikšmė sutampa.",
