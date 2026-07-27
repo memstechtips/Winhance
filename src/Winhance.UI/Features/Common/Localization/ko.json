@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "잘못된 형식",
   "InfoBadge_Undetermined": "읽을 수 없음",
   "Overview_OutcomeBanner_Intro": "Winhance가 이 섹션의 일부 설정 상태를 확인하지 못했습니다.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "선호",
   "InfoBadge_Recommended_Tooltip": "이 설정에 대한 Winhance의 권장 값입니다 — 대개 성능, 개인 정보 보호 또는 사용 편의성을 위해 조정되었습니다. 현재 값이 일치할 때 강조 표시됩니다.",
   "InfoBadge_Default_Tooltip": "Windows 공장 기본값입니다 — 어떤 변경도 하기 전, 처음 설치된 상태의 값입니다. 현재 값이 일치할 때 강조 표시됩니다.",

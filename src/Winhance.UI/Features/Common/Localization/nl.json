@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "Verkeerde indeling",
   "InfoBadge_Undetermined": "Niet leesbaar",
   "Overview_OutcomeBanner_Intro": "Winhance kon de status van sommige instellingen in dit gedeelte niet bepalen.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} van {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "Voorkeur",
   "InfoBadge_Recommended_Tooltip": "De door Winhance voorgestelde waarde voor deze instelling — doorgaans afgestemd op betere prestaties, privacy of bruikbaarheid. Gemarkeerd wanneer je huidige waarde overeenkomt.",
   "InfoBadge_Default_Tooltip": "De Windows-fabriekswaarde — hoe deze instelling uit de doos is, voor eventuele wijzigingen. Gemarkeerd wanneer je huidige waarde overeenkomt.",

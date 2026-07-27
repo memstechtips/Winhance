@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -10,9 +11,16 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
+/// <summary>One kind of unresolved setting found in a feature: its icon and its "Label: N" text.</summary>
+public sealed class FeatureOutcomeFragment
+{
+    public FluentIcons.Common.Icon Icon { get; init; }
+    public string Text { get; init; } = string.Empty;
+}
+
 /// <summary>
 /// Code-behind for <see cref="FeatureOutcomeBanner"/>. Turns a feature's aggregated outcome counts into
-/// one banner: the worst severity present, its matching icon, and a message naming every kind found.
+/// one informational banner carrying a coloured chip per kind found.
 /// </summary>
 public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyChanged
 {
@@ -43,23 +51,30 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
 
     public Visibility BannerVisibility { get; private set; } = Visibility.Collapsed;
     public bool IsBannerOpen { get; private set; }
-    public InfoBarSeverity BannerSeverity { get; private set; } = InfoBarSeverity.Informational;
     public string BannerMessage { get; private set; } = string.Empty;
-    public IconSource? BannerIconSource { get; private set; }
 
-    /// <summary>Most severe first. The first kind with a non-zero count decides the banner's severity and
-    /// icon; every non-zero kind contributes a fragment to the message.</summary>
-    private static readonly (SettingDetectionOutcome Outcome, string LabelKey, string LabelFallback)[] Kinds =
+    /// <summary>One entry per outcome kind actually present, most severe first.</summary>
+    public ObservableCollection<FeatureOutcomeFragment> Fragments { get; } = new();
+
+    /// <summary>Most severe first, so the chips read worst-to-least. The icons match the ones the
+    /// affected settings carry on their own controls.</summary>
+    private static readonly (SettingDetectionOutcome Outcome, string LabelKey, string LabelFallback,
+        FluentIcons.Common.Icon Icon)[] Kinds =
     {
-        (SettingDetectionOutcome.Undetermined, "InfoBadge_Undetermined", "Couldn't read"),
-        (SettingDetectionOutcome.Malformed, "InfoBadge_Malformed", "Wrong format"),
-        (SettingDetectionOutcome.Custom, "InfoBadge_Custom", "Not recognized"),
+        (SettingDetectionOutcome.Undetermined, "InfoBadge_Undetermined", "Couldn't read",
+            FluentIcons.Common.Icon.DismissCircle),
+        (SettingDetectionOutcome.Malformed, "InfoBadge_Malformed", "Wrong format",
+            FluentIcons.Common.Icon.ErrorCircle),
+        (SettingDetectionOutcome.Custom, "InfoBadge_Custom", "Not recognized",
+            FluentIcons.Common.Icon.QuestionCircle),
     };
 
     /// <summary>Recomputes from the feature's current settings. Called by the host page on the same
     /// events that refresh the overview pills, so the banner never lags behind them.</summary>
     public void Refresh()
     {
+        Fragments.Clear();
+
         if (Feature is not { } feature)
         {
             Hide();
@@ -73,47 +88,28 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             return;
         }
 
-        SettingDetectionOutcome? worst = null;
-        var fragments = new List<string>();
-
-        foreach (var (outcome, labelKey, labelFallback) in Kinds)
+        foreach (var (outcome, labelKey, labelFallback, icon) in Kinds)
         {
             int count = CountFor(summary, outcome);
             if (count <= 0)
                 continue;
 
-            worst ??= outcome;
-            fragments.Add(Format(
-                Localize("Overview_OutcomeBanner_Fragment", "{0}: {1} of {2}."),
-                Localize(labelKey, labelFallback),
-                count.ToString(),
-                summary.TotalWithBadgeData.ToString()));
+            // No denominator. "1 of 114" reads as a ratio, which is right for "Recommended 109/114"
+            // but not here - how many settings the feature HAS tells you nothing about the one that is
+            // broken. The count alone is what you need: how many to look for once you click in.
+            Fragments.Add(new FeatureOutcomeFragment
+            {
+                Icon = icon,
+                Text = Format(
+                    Localize("Overview_OutcomeBanner_Fragment", "{0}: {1}"),
+                    Localize(labelKey, labelFallback),
+                    count.ToString()),
+            });
         }
 
         BannerMessage = Localize(
             "Overview_OutcomeBanner_Intro",
-            "Winhance couldn't determine the state of some settings in this section.")
-            + " " + string.Join(" ", fragments);
-
-        BannerSeverity = worst switch
-        {
-            SettingDetectionOutcome.Undetermined => InfoBarSeverity.Error,
-            SettingDetectionOutcome.Malformed => InfoBarSeverity.Warning,
-            _ => InfoBarSeverity.Informational,
-        };
-
-        // The same icon the affected settings carry on their own controls, so a colour means one thing
-        // wherever it appears. Fully qualified for symmetry with the settings-card banner.
-        BannerIconSource = new FluentIcons.WinUI.FluentIconSource
-        {
-            Icon = worst switch
-            {
-                SettingDetectionOutcome.Undetermined => FluentIcons.Common.Icon.DismissCircle,
-                SettingDetectionOutcome.Malformed => FluentIcons.Common.Icon.ErrorCircle,
-                _ => FluentIcons.Common.Icon.QuestionCircle,
-            },
-            IconVariant = FluentIcons.Common.IconVariant.Color,
-        };
+            "Winhance couldn't determine the state of some settings in this section.");
 
         BannerVisibility = Visibility.Visible;
         IsBannerOpen = true;
@@ -134,10 +130,10 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         _ => s.UnrecognizedCount,
     };
 
-    /// <summary>Substitutes {0}/{1}/{2} without string.Format, so a translator's stray brace cannot throw
-    /// a FormatException at runtime on a machine we never see.</summary>
-    private static string Format(string pattern, string a, string b, string c) =>
-        pattern.Replace("{0}", a).Replace("{1}", b).Replace("{2}", c);
+    /// <summary>Substitutes {0}/{1} without string.Format, so a translator's stray brace cannot throw a
+    /// FormatException at runtime on a machine we never see.</summary>
+    private static string Format(string pattern, string a, string b) =>
+        pattern.Replace("{0}", a).Replace("{1}", b);
 
     private string Localize(string key, string fallback)
     {
@@ -158,8 +154,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             return;
         foreach (var name in new[]
                  {
-                     nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerSeverity),
-                     nameof(BannerMessage), nameof(BannerIconSource),
+                     nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerMessage),
                  })
         {
             handler(this, new PropertyChangedEventArgs(name));

@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "Formato incorreto",
   "InfoBadge_Undetermined": "Não foi possível ler",
   "Overview_OutcomeBanner_Intro": "O Winhance não conseguiu determinar o estado de algumas configurações desta seção.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} de {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "Preferência",
   "InfoBadge_Recommended_Tooltip": "O valor sugerido pelo Winhance para esta configuração — geralmente ajustado para melhor desempenho, privacidade ou usabilidade. Destacado quando seu valor atual corresponde.",
   "InfoBadge_Default_Tooltip": "O valor de fábrica do Windows — como esta configuração vem por padrão, antes de qualquer alteração. Destacado quando seu valor atual corresponde.",

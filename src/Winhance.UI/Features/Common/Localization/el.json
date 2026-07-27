@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "Λανθασμένη μορφή",
   "InfoBadge_Undetermined": "Δεν διαβάστηκε",
   "Overview_OutcomeBanner_Intro": "Το Winhance δεν μπόρεσε να προσδιορίσει την κατάσταση ορισμένων ρυθμίσεων σε αυτή την ενότητα.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "Προτίμηση",
   "InfoBadge_Recommended_Tooltip": "Η τιμή που προτείνει το Winhance για αυτή τη ρύθμιση — συνήθως ρυθμισμένη για καλύτερη απόδοση, απόρρητο ή χρηστικότητα. Επισημαίνεται όταν η τρέχουσα τιμή σου ταιριάζει.",
   "InfoBadge_Default_Tooltip": "Η εργοστασιακή τιμή των Windows — αυτή είναι η κατάσταση της ρύθμισης αμέσως μετά την εγκατάσταση, πριν από οποιαδήποτε αλλαγή. Επισημαίνεται όταν η τρέχουσα τιμή σου ταιριάζει.",

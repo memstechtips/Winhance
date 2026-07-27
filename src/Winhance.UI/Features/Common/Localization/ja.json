@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "形式が不正",
   "InfoBadge_Undetermined": "読み取り不可",
   "Overview_OutcomeBanner_Intro": "Winhance はこのセクションの一部の設定の状態を判別できませんでした。",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "好み",
   "InfoBadge_Recommended_Tooltip": "この設定に対する Winhance の推奨値です — パフォーマンス、プライバシー、または使いやすさを考慮して調整されています。現在の値が一致している場合にハイライト表示されます。",
   "InfoBadge_Default_Tooltip": "Windows の初期値です — 変更前の出荷時の状態です。現在の値が一致している場合にハイライト表示されます。",

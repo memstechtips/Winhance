@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "تنسيق خاطئ",
   "InfoBadge_Undetermined": "تعذّرت القراءة",
   "Overview_OutcomeBanner_Intro": "تعذّر على Winhance تحديد حالة بعض الإعدادات في هذا القسم.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "تفضيل شخصي",
   "InfoBadge_Recommended_Tooltip": "القيمة التي يقترحها Winhance لهذا الإعداد — مُحسَّنة في الغالب للأداء أو الخصوصية أو سهولة الاستخدام. تُبرَز عندما تطابق قيمتك الحالية هذه القيمة.",
   "InfoBadge_Default_Tooltip": "القيمة المُثبَّتة مسبقًا في Windows — وهي حال هذا الإعداد قبل أي تغييرات. تُبرَز عندما تطابق قيمتك الحالية هذه القيمة.",

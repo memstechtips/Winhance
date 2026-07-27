@@ -1712,7 +1712,7 @@
   "InfoBadge_Malformed": "Sai định dạng",
   "InfoBadge_Undetermined": "Không đọc được",
   "Overview_OutcomeBanner_Intro": "Winhance không thể xác định trạng thái của một số cài đặt trong phần này.",
-  "Overview_OutcomeBanner_Fragment": "{0}: {1} / {2}.",
+  "Overview_OutcomeBanner_Fragment": "{0}: {1}",
   "InfoBadge_Preference": "Tùy chọn",
   "InfoBadge_Recommended_Tooltip": "Giá trị Winhance đề xuất cho cài đặt này — thường được tinh chỉnh để cải thiện hiệu năng, quyền riêng tư hoặc khả năng sử dụng. Được tô sáng khi giá trị hiện tại khớp.",
   "InfoBadge_Default_Tooltip": "Giá trị gốc của Windows — trạng thái cài đặt này trước khi có bất kỳ thay đổi nào. Được tô sáng khi giá trị hiện tại khớp.",

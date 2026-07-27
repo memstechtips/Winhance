@@ -3,35 +3,53 @@
     x:Class="Winhance.UI.Features.Common.Controls.FeatureOutcomeBanner"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
     Reports, on a feature's overview card, that Winhance could not determine the state of some settings
-    inside it. Sits directly below the card, the same Border + QuietInfoBar pattern the settings cards
-    already use, so the two levels of the app explain a problem the same way.
+    inside it. Attaches to the BOTTOM of the card so it is unmistakably about that feature: the parent
+    StackPanel spaces its children by 8, so -9 closes that gap and overlaps the border by 1, and the top
+    corners are squared while the bottom stay rounded - the same join the settings cards use.
 
     This REPLACED per-outcome info-badge pills. A detection outcome is a fault, not a badge: badges say
     where a value sits relative to our advice, which is optional detail and reasonably hidden behind
     View > InfoBadges. Hiding "1 setting is saved in the wrong format" behind that same toggle was
-    backwards - so this is deliberately NOT gated by it. The Recommended / Default pills on the card
-    above still are, because those genuinely are optional detail.
+    backwards - so this is deliberately NOT gated by it.
 
-    ONE banner, never three. An InfoBar carries a single Severity, so three stacked bars would also mean
-    three colours, reading as three separate incidents rather than one section worth a look. The severity
-    is the WORST outcome present - red "couldn't read" outranks amber "wrong format" outranks blue
-    "not recognized" - which is the same ladder the settings cards use, so a colour means the same thing
-    everywhere. The message then names every kind that is actually present, so nothing is hidden by the
-    one that won.
+    SEVERITY IS ALWAYS INFORMATIONAL, and the per-outcome colour lives on the ITEMS instead. An earlier
+    version set the bar's severity to the worst outcome present, which backfired: a feature holding one
+    wrong-format and one unrecognized setting turned the whole bar amber, and the eye then went looking
+    for amber only - the blue one effectively disappeared. A neutral bar carrying one coloured chip per
+    kind tells you exactly what to hunt for once you click in, which is the only job this banner has.
     -->
-    <Border Visibility="{x:Bind BannerVisibility, Mode=OneWay}" Margin="0,-4,0,0">
+    <Border Visibility="{x:Bind BannerVisibility, Mode=OneWay}" Margin="0,-9,0,0">
         <local:QuietInfoBar
             IsOpen="{x:Bind IsBannerOpen, Mode=OneWay}"
-            Severity="{x:Bind BannerSeverity, Mode=OneWay}"
+            Severity="Informational"
             Message="{x:Bind BannerMessage, Mode=OneWay}"
-            IconSource="{x:Bind BannerIconSource, Mode=OneWay}"
             IsClosable="False"
             IsTabStop="True"
             UseSystemFocusVisuals="True"
-            CornerRadius="4"/>
+            CornerRadius="0,0,4,4">
+            <!-- One chip per outcome KIND present, each with the same icon those settings carry on
+                 their own controls, so a colour means one thing everywhere in the app. -->
+            <ItemsControl ItemsSource="{x:Bind Fragments, Mode=OneWay}" Margin="0,0,0,4">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="16"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="local:FeatureOutcomeFragment">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Color"
+                                                    FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind Text}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </local:QuietInfoBar>
     </Border>
 </UserControl>
