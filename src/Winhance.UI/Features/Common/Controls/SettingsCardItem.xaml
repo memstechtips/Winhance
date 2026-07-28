@@ -136,24 +136,6 @@
                 AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
         </DataTemplate>
 
-        <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-            <Grid>
-                <CheckBox
-                    IsChecked="{x:Bind IsSelected, Mode=OneWay}"
-                    Click="{x:Bind OnCheckBoxClick}"
-                    Opacity="{x:Bind ToggleOpacityFor(Outcome), Mode=OneWay}"
-                    IsHitTestVisible="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
-                    IsTabStop="{x:Bind ToggleInteractiveFor(Outcome), Mode=OneWay}"
-                    AutomationProperties.AccessibilityView="{x:Bind ToggleAccessibilityViewFor(Outcome), Mode=OneWay}"
-                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"/>
-                <!-- IsInteractive: the CheckBox above is inert while unresolved, so letting the overlay
-                     take the pointer costs nothing and is the only way its tooltip can fire. -->
-                <local:SettingOutcomeOverlay Setting="{x:Bind}" Mode="Single"
-                                             IsToggleLike="True" IsInteractive="True"/>
-            </Grid>
-        </DataTemplate>
-
-
         <!-- Template Selector -->
         <selectors:SettingTemplateSelector
             x:Key="SettingTemplateSelector"
@@ -162,7 +144,6 @@
             PowerPlanTemplate="{StaticResource PowerPlanSettingTemplate}"
             NumericTemplate="{StaticResource NumericSettingTemplate}"
             ActionTemplate="{StaticResource ActionSettingTemplate}"
-            CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"
             PowerSelectionTemplate="{StaticResource PowerSelectionSettingTemplate}"
             PowerNumericTemplate="{StaticResource PowerNumericSettingTemplate}"/>
     </UserControl.Resources>

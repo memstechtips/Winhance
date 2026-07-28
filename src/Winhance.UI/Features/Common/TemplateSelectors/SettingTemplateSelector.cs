@@ -17,7 +17,6 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
-    public DataTemplate? CheckBoxTemplate { get; set; }
     /// <summary>Separate-mode powercfg settings. ONE template each now: the on-battery column is bound
     /// to HasBattery inside the template rather than split into Dual/SingleAC variants, which is what
     /// let the two halves drift apart.</summary>
@@ -49,7 +48,10 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 InputType.Selection => SelectionTemplate,
                 InputType.NumericRange => NumericTemplate,
                 InputType.Action => ActionTemplate,
-                InputType.CheckBox => CheckBoxTemplate,
+                // No InputType.CheckBox arm: nothing produces that value. ControlKind has no CheckBox
+                // member and all three ControlToInputType maps fall through to Toggle, so a CheckBox
+                // view model cannot exist. The enum member survives only because ConfigurationItem
+                // persists InputType into .winhance files. It falls to the Toggle default below.
                 _ => ToggleTemplate // Default fallback
             };
         }

@@ -1656,12 +1656,6 @@ public partial class SettingItemViewModel : BaseViewModel
         HandleCustomToggleClickAsync().FireAndForget(_logService);
     }
 
-    public void OnCheckBoxClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        if (sender is CheckBox checkBox)
-            HandleToggleAsync(checkBox.IsChecked == true).FireAndForget(_logService);
-    }
-
     // Announce ComboBox option changes for screen readers (arrow key navigation on closed ComboBox)
     public void OnComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
