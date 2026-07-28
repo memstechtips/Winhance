@@ -95,7 +95,8 @@ public class SettingsLoadingServiceTests
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
-                It.IsAny<string?>()))
+                It.IsAny<string?>(),
+                It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm1)
             .ReturnsAsync(mockVm2);
 
@@ -141,7 +142,8 @@ public class SettingsLoadingServiceTests
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
-                It.IsAny<string?>()))
+                It.IsAny<string?>(),
+                It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
@@ -241,7 +243,8 @@ public class SettingsLoadingServiceTests
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
-                It.IsAny<string?>()))
+                It.IsAny<string?>(),
+                It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
@@ -292,9 +295,10 @@ public class SettingsLoadingServiceTests
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
-                It.IsAny<string?>()))
-            .Callback<Setting, SettingStateResult, ISettingsFeatureViewModel?, string?, ComboBoxSetupResult?, string?>(
-                (_, _, _, _, _, compatibilityMessage) => receivedCompatibilityMessage = compatibilityMessage)
+                It.IsAny<string?>(),
+                It.IsAny<WinBuild>()))
+            .Callback<Setting, SettingStateResult, ISettingsFeatureViewModel?, string?, ComboBoxSetupResult?, string?, WinBuild>(
+                (_, _, _, _, _, compatibilityMessage, _) => receivedCompatibilityMessage = compatibilityMessage)
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(
@@ -357,7 +361,8 @@ public class SettingsLoadingServiceTests
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ComboBoxSetupResult?>(),
-                It.IsAny<string?>()))
+                It.IsAny<string?>(),
+                It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(

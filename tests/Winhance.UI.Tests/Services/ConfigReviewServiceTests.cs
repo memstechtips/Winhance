@@ -300,7 +300,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["privacy-setting"] = new SettingStateResult { IsEnabled = false }
+                ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -360,7 +360,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["privacy-setting"] = new SettingStateResult { IsEnabled = true }
+                ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
         var config = new UnifiedConfigurationFile
@@ -418,7 +418,7 @@ public class ConfigReviewServiceTests : IDisposable
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
                 // Current state matches config (no value diff) but it's an action setting
-                ["taskbar-clean"] = new SettingStateResult { IsEnabled = true }
+                ["taskbar-clean"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
         var config = new UnifiedConfigurationFile
@@ -481,7 +481,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                [SettingIds.ThemeModeWindows] = new SettingStateResult { CurrentValue = selectedIndex == 0 ? 1 : 0 }
+                [SettingIds.ThemeModeWindows] = new SettingStateResult { Success = true, CurrentValue = selectedIndex == 0 ? 1 : 0 }
             });
 
         _mockLocalizationService
@@ -998,7 +998,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["s1"] = new SettingStateResult { IsEnabled = false }
+                ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1064,7 +1064,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["s1"] = new SettingStateResult { IsEnabled = false }
+                ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1127,7 +1127,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["s1"] = new SettingStateResult { IsEnabled = false }
+                ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1214,7 +1214,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["s1"] = new SettingStateResult { IsEnabled = false }
+                ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1293,7 +1293,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["numeric-setting"] = new SettingStateResult { CurrentValue = 30 }
+                ["numeric-setting"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1359,7 +1359,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["selection-setting"] = new SettingStateResult { CurrentValue = 0 }
+                ["selection-setting"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1422,7 +1422,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["start-menu-clean-10"] = new SettingStateResult { IsEnabled = false }
+                ["start-menu-clean-10"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1480,7 +1480,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["start-menu-clean-11"] = new SettingStateResult { IsEnabled = false }
+                ["start-menu-clean-11"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1536,7 +1536,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["nr-same"] = new SettingStateResult { CurrentValue = 30 }
+                ["nr-same"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1591,7 +1591,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["nr-nopower"] = new SettingStateResult { CurrentValue = 50 }
+                ["nr-nopower"] = new SettingStateResult { Success = true, CurrentValue = 50 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1643,7 +1643,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["nr-dconly"] = new SettingStateResult { CurrentValue = 30 }
+                ["nr-dconly"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1719,7 +1719,7 @@ public class ConfigReviewServiceTests : IDisposable
                 l => l.Any(s => s.Id == "priv1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["priv1"] = new SettingStateResult { IsEnabled = false }
+                ["priv1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
         _mockSettingStateProvider
@@ -1727,7 +1727,7 @@ public class ConfigReviewServiceTests : IDisposable
                 l => l.Any(s => s.Id == "pow1"))))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["pow1"] = new SettingStateResult { CurrentValue = 30 }
+                ["pow1"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1810,7 +1810,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                ["sel-null"] = new SettingStateResult { CurrentValue = 0 }
+                ["sel-null"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
         var config = new UnifiedConfigurationFile
@@ -1866,6 +1866,7 @@ public class ConfigReviewServiceTests : IDisposable
             {
                 ["power-plan"] = new SettingStateResult
                 {
+                    Success = true,
                     CurrentValue = 0,
                     // The service reads the active plan from the typed DynamicSelection (scheme GUID) +
                     // DynamicSelectionName (raw OS name), so drive those - not the retired RawValues bag.

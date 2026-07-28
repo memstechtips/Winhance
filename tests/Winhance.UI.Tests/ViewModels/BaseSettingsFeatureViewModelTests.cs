@@ -112,11 +112,23 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         InputType inputType = InputType.Toggle,
         bool isSelected = false,
         int numericValue = 0,
-        object? selectedValue = null)
+        object? selectedValue = null,
+        // Display units for a NumericRange setting ("Minutes"/"Hours"/"Milliseconds"). Null leaves
+        // Setting.Numeric unset, so UnitConversionHelper passes raw system values through unchanged -
+        // which is what the tests asserting NumericValue == the raw CurrentValue rely on. Supply it
+        // only when the test is actually exercising the unit conversion.
+        string? numericUnits = null)
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = description } },
+            Setting = new Setting
+            {
+                Id = settingId,
+                Display = new() { Name = name, Description = description },
+                Numeric = numericUnits is null
+                    ? null
+                    : new Numeric { Min = 0, Max = 100_000, Units = numericUnits },
+            },
             SettingId = settingId,
             Name = name,
             Description = description,
@@ -1413,8 +1425,11 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         var vm = CreateViewModel();
         var settings = new ObservableCollection<SettingItemViewModel>
         {
+            // Units are what make the 1800 -> 30 conversion below happen. Without them the helper
+            // leaves Setting.Numeric null and ConvertFromSystemUnits is an identity, which is why
+            // this test asserted a conversion it never actually configured.
             CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
-                numericValue: 10)
+                numericValue: 10, numericUnits: "Minutes")
         };
 
         _mockSettingsLoadingService
