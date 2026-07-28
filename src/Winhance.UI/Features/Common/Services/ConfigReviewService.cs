@@ -708,7 +708,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         // Build the review combo-box options from the catalog Setting's States (one per option). Only
         // DisplayText (from State.Label) and SelectedValue are read by the review diff (ComputeEagerDiffAsync /
         // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
-        // populated for the option object but are NOT read in this flow. The custom option label is hardcoded "Custom".
+        // populated for the option object but are NOT read in this flow.
         if (setting.States.Count == 0)
             return result; // e.g. power-plan-selection (dynamic options; handled by the PowerPlanGuid branch)
 
@@ -726,11 +726,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             });
         }
 
-        if (isCustomState)
-        {
-            result.Options.Add(new ComboBoxDisplayOption("Custom", ComboBoxConstants.CustomStateIndex, null));
-        }
-
+        // No synthetic "Custom" entry: every read of Options is guarded by `index >= 0` and the sentinel is
+        // -1, so the entry was unreachable dead code - and it carried a hardcoded English "Custom" that no
+        // language could translate. SelectedValue still carries the sentinel, which is what callers read.
         result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
         result.Success = true;
         return result;

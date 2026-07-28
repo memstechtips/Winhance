@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
@@ -95,10 +96,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         {
             case ControlKind.Toggle:
                 // IsEnabled (the switch position) is already derived from the resolved "Enabled"/"Disabled" label;
-                // a toggle carries no CurrentValue. A null StateLabel means detection ran and could not place the
-                // toggle on any known state (the service catch-all's Detected=false also lands here with a null
-                // label - "can't place it" is honest either way) -> Custom.
-                return result with { IsCustomState = r.StateLabel is null };
+                // a toggle carries no CurrentValue. The outcome comes from the detection engine rather than being
+                // re-inferred from "StateLabel is null" - that inference is exactly what conflated an unrecognized
+                // value, a wrong stored type and a detection crash into one indistinguishable "Custom".
+                return result with { Outcome = r.Outcome, OutcomeDetail = r.OutcomeDetail };
 
             case ControlKind.Selection:
                 // Two-tier resolution: resolve the selection index from the StateLabel; when it resolves use it,
@@ -107,6 +108,18 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 // Custom - so any selection for which the engine yields no resolved state label
                 // (StateDetectionEngine returns null) would regress to Custom; the value-match fallback recovers
                 // it. This hit the service dropdowns and delivery optimization.
+                // Malformed and Undetermined are decided upstream (a wrong stored type / a crash), and no
+                // amount of index resolution can rescue them - carry them straight through.
+                if (r.Outcome is SettingDetectionOutcome.Malformed or SettingDetectionOutcome.Undetermined)
+                {
+                    return result with
+                    {
+                        CurrentValue = ComboBoxConstants.CustomStateIndex,
+                        Outcome = r.Outcome,
+                        OutcomeDetail = r.OutcomeDetail,
+                    };
+                }
+
                 var labelIndex = ResolveSelectionIndex(catalogSetting, r.StateLabel);
                 if (labelIndex != ComboBoxConstants.CustomStateIndex)
                     return result with { CurrentValue = labelIndex };
@@ -118,7 +131,9 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 return result with
                 {
                     CurrentValue = valueMatchIndex,
-                    IsCustomState = valueMatchIndex == ComboBoxConstants.CustomStateIndex,
+                    Outcome = valueMatchIndex == ComboBoxConstants.CustomStateIndex
+                        ? SettingDetectionOutcome.Custom
+                        : SettingDetectionOutcome.Resolved,
                 };
 
             case ControlKind.Slider:

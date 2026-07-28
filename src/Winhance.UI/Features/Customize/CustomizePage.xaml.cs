@@ -12,6 +12,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using IConfigReviewService = Winhance.Core.Features.Common.Interfaces.IConfigReviewService;
@@ -392,32 +393,47 @@ public sealed partial class CustomizePage : Page
         UpdateFeatureBadge(ExplorerBadge, FeatureIds.ExplorerCustomization);
     }
 
+    /// <summary>A link in a feature's outcome banner was clicked. NavigateToSection pre-applies the
+    /// setting name as a search filter, so the user lands on that setting already filtered instead of
+    /// arriving in the feature and having to hunt for it. A null name is the "+N more" link, which just
+    /// opens the feature.</summary>
+    private void OnOutcomeBannerNavigationRequested(object? sender, FeatureOutcomeNavigationEventArgs e)
+        => NavigateToSection(e.SectionKey, e.SettingName);
+
     private void UpdateOverviewBadgePills()
     {
+        // The outcome banners are refreshed on the SAME events as the pills, so the two can never
+        // disagree - but they are deliberately NOT gated by _isInfoBadgesVisible. A detection outcome is
+        // a fault, not optional detail, so hiding it behind View > InfoBadges would be backwards.
+        WindowsThemeOutcomeBanner.Localization = _localizationService;
+        WindowsThemeOutcomeBanner.Refresh();
+        TaskbarOutcomeBanner.Localization = _localizationService;
+        TaskbarOutcomeBanner.Refresh();
+        StartMenuOutcomeBanner.Localization = _localizationService;
+        StartMenuOutcomeBanner.Refresh();
+        ExplorerOutcomeBanner.Localization = _localizationService;
+        ExplorerOutcomeBanner.Refresh();
+
         UpdateFeatureOverviewPills(
             ViewModel.WindowsThemeViewModel,
             WindowsThemeOverviewBadges,
             WindowsThemeRecommendedPill, WindowsThemeRecommendedText,
-            WindowsThemeDefaultPill, WindowsThemeDefaultText,
-            WindowsThemeCustomPill, WindowsThemeCustomText);
+            WindowsThemeDefaultPill, WindowsThemeDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.TaskbarViewModel,
             TaskbarOverviewBadges,
             TaskbarRecommendedPill, TaskbarRecommendedText,
-            TaskbarDefaultPill, TaskbarDefaultText,
-            TaskbarCustomPill, TaskbarCustomText);
+            TaskbarDefaultPill, TaskbarDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.StartMenuViewModel,
             StartMenuOverviewBadges,
             StartMenuRecommendedPill, StartMenuRecommendedText,
-            StartMenuDefaultPill, StartMenuDefaultText,
-            StartMenuCustomPill, StartMenuCustomText);
+            StartMenuDefaultPill, StartMenuDefaultText);
         UpdateFeatureOverviewPills(
             ViewModel.ExplorerViewModel,
             ExplorerOverviewBadges,
             ExplorerRecommendedPill, ExplorerRecommendedText,
-            ExplorerDefaultPill, ExplorerDefaultText,
-            ExplorerCustomPill, ExplorerCustomText);
+            ExplorerDefaultPill, ExplorerDefaultText);
     }
 
     private void UpdateOverviewNewBadges()
@@ -454,8 +470,7 @@ public sealed partial class CustomizePage : Page
         ISettingsFeatureViewModel feature,
         StackPanel container,
         Border recommendedPill, TextBlock recommendedText,
-        Border defaultPill, TextBlock defaultText,
-        Border customPill, TextBlock customText)
+        Border defaultPill, TextBlock defaultText)
     {
         if (!_isInfoBadgesVisible)
         {
@@ -478,23 +493,15 @@ public sealed partial class CustomizePage : Page
             defaultPill.Visibility = Visibility.Visible;
             defaultText.Text = $"{_localizationService?.GetString("InfoBadge_Default") ?? "Default"} {summary.DefaultCount}/{total}";
             defaultPill.Opacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
-
-            if (summary.CustomCount > 0)
-            {
-                customPill.Visibility = Visibility.Visible;
-                customText.Text = $"{_localizationService?.GetString("InfoBadge_Custom") ?? "Custom"} {summary.CustomCount}/{total}";
-            }
-            else
-            {
-                customPill.Visibility = Visibility.Collapsed;
-            }
         }
         else
         {
             recommendedPill.Visibility = Visibility.Collapsed;
             defaultPill.Visibility = Visibility.Collapsed;
-            customPill.Visibility = Visibility.Collapsed;
         }
+
+        // Detection outcomes are NOT pills here. They are reported by FeatureOutcomeBanner below the
+        // card, because a fault must not be hidden by View > InfoBadges the way an optional badge may be.
 
         container.Visibility = showAny ? Visibility.Visible : Visibility.Collapsed;
     }

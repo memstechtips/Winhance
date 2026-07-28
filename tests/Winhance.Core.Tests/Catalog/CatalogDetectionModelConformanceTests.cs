@@ -9,7 +9,7 @@ namespace Winhance.Core.Tests.Catalog;
 
 /// <summary>
 /// Machine-INDEPENDENT model-conformance gate for the registry precedence audit. Each case runs a real
-/// <see cref="SettingCatalog"/> setting (by Id) through <see cref="CatalogDiscovery.DetectState"/> over a
+/// <see cref="SettingCatalog"/> setting (by Id) through <see cref="CatalogDiscovery.Detect"/> over a
 /// CONSTRUCTED set of readings (clean / recommended-applied / group-policy-present / mirror-split), asserting it
 /// resolves to the value Windows would show. This pins the effective-value model across the states a single
 /// machine never shows -
@@ -73,7 +73,7 @@ public class CatalogDetectionModelConformanceTests
     private static string? Detect(string id, params (string Path, string? Value, object? Data)[] reads)
     {
         var dict = reads.ToDictionary(r => (r.Path, r.Value), r => r.Data);
-        return CatalogDiscovery.DetectState(Catalog[id], new Ctx(dict));
+        return CatalogDiscovery.Detect(Catalog[id], new Ctx(dict)).Label;
     }
 
     // ---- Path constants (verbatim from the catalog) -------------------------------------------------------------

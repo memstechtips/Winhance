@@ -253,3 +253,9 @@ $RECYCLE.BIN/
 
 # Agent investigation working notes (regenerated; not source-of-truth)
 .agent-plans/
+
+# Gate output logs. Written by extras/run-catalog-harness.ps1 and
+# extras/run-winhance-tests.ps1 -UIOnly on every run, read off the SMB share by the agent.
+# Regenerated each run and machine-specific - never source of truth.
+extras/catalog-harness-results.txt
+extras/uitest-results.txt

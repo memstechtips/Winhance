@@ -5,6 +5,7 @@ using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -68,6 +69,24 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         catch (Exception ex)
         {
             logService.LogDebug($"[WindowsRegistryService] Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    public RegistryValueKind? GetValueKind(string keyPath, string valueName)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            if (key is null)
+                return null;
+            // GetValueKind throws when the value does not exist, so check first rather than catching.
+            return key.GetValue(valueName) is null ? null : key.GetValueKind(valueName);
+        }
+        catch (Exception ex)
+        {
+            logService.LogDebug($"[WindowsRegistryService] Failed to get value kind '{keyPath}\\{valueName}': {ex.Message}");
             return null;
         }
     }
@@ -199,17 +218,42 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
+    /// <summary>Applies <see cref="BinaryValueRecovery"/> (the pure rule, unit-tested in Core) and logs what
+    /// it decided. Returns null when the caller must REFUSE the write rather than destroy the value.</summary>
+    private byte[]? ResolveBinaryEditBuffer(string keyPath, string valueName, object? currentValue, int byteIndex)
+    {
+        var buffer = BinaryValueRecovery.Resolve(currentValue, byteIndex);
+
+        if (buffer is null)
+        {
+            logService.Log(
+                LogLevel.Error,
+                $"[WindowsRegistryService] Refusing to edit '{keyPath}\\{valueName}': expected REG_BINARY but "
+                    + $"found {currentValue?.GetType().Name ?? "null"}, which has no safe byte representation. "
+                    + "The value was left untouched.");
+            return null;
+        }
+
+        if (BinaryValueRecovery.IsRecoveredFromString(currentValue))
+        {
+            logService.Log(
+                LogLevel.Warning,
+                $"[WindowsRegistryService] '{keyPath}\\{valueName}' is stored as a string but the catalog "
+                    + "expects REG_BINARY. Recovered its bytes from the UTF-16 content and rewriting the "
+                    + "value as REG_BINARY.");
+        }
+
+        return buffer;
+    }
+
     public bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
     {
         try
         {
             var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is not byte[] currentBytes)
-            {
-                var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
-                defaultBinary[byteIndex] = newValue;
-                return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
-            }
+            var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
+            if (currentBytes is null)
+                return false; // unrecoverable type - refuse rather than destroy the value
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -236,12 +280,9 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         try
         {
             var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is not byte[] currentBytes)
-            {
-                var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
-                defaultBinary[byteIndex] = setBit ? bitMask : (byte)0;
-                return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
-            }
+            var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
+            if (currentBytes is null)
+                return false; // unrecoverable type - refuse rather than destroy the value
 
             if (currentBytes.Length <= byteIndex)
             {

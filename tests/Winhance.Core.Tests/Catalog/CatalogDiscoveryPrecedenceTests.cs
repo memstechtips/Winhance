@@ -60,28 +60,28 @@ public class CatalogDiscoveryPrecedenceTests
     public void Preference_on_with_absent_mirror_reads_enabled() // the 29-diff bug case
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 }); // Enabled=1; GP + mirror absent
-        Assert.Equal("Enabled", CatalogDiscovery.DetectState(AdSetting(), ctx));
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Group_policy_override_wins_over_preference()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Gpo, "DisabledByGroupPolicy")] = 1 });
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(AdSetting(), ctx)); // GP forces off despite Enabled=1
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // GP forces off despite Enabled=1
     }
 
     [Fact]
     public void Nothing_present_falls_to_default_on_fallback()
     {
         var ctx = new Ctx(new()); // everything absent
-        Assert.Equal("Enabled", CatalogDiscovery.DetectState(AdSetting(), ctx)); // default-on via .OrAbsent fallback
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // default-on via .OrAbsent fallback
     }
 
     [Fact]
     public void Preference_off_reads_disabled()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 0 });
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(AdSetting(), ctx));
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class CatalogDiscoveryPrecedenceTests
 
         // mixed (light apps, dark taskbar) matches neither state -> Custom (null), NOT "Light"
         var ctx = new Ctx(new() { [(@"HKEY_CURRENT_USER\Themes", "AppsUseLightTheme")] = 1, [(@"HKEY_CURRENT_USER\Themes", "SystemUsesLightTheme")] = 0 });
-        Assert.Null(CatalogDiscovery.DetectState(setting, ctx));
+        Assert.Null(CatalogDiscovery.Detect(setting, ctx).Label);
     }
 
     [Fact]
@@ -125,8 +125,8 @@ public class CatalogDiscoveryPrecedenceTests
             },
         };
 
-        Assert.Equal("On", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 1 })));
-        Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 0 })));
+        Assert.Equal("On", CatalogDiscovery.Detect(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 1 })).Label);
+        Assert.Equal("Off", CatalogDiscovery.Detect(setting, new Ctx(new() { [(@"HKEY_LOCAL_MACHINE\TEST", "V")] = 0 })).Label);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class CatalogDiscoveryPrecedenceTests
         // Enabled=5 is PRESENT but matches neither Of(1).OrAbsent() nor Of(0): detection is honest and
         // reports Custom (null) instead of falling to the IsFallback state.
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 5 });
-        Assert.Null(CatalogDiscovery.DetectState(AdSetting(), ctx));
+        Assert.Null(CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class CatalogDiscoveryPrecedenceTests
             },
         };
 
-        Assert.Equal("Off", CatalogDiscovery.DetectState(setting, new Ctx(new())));
+        Assert.Equal("Off", CatalogDiscovery.Detect(setting, new Ctx(new())).Label);
     }
 
     [Fact]
@@ -164,6 +164,6 @@ public class CatalogDiscoveryPrecedenceTests
         // Matched != fell through: a present value that matches the IsFallback state's OWN pattern
         // (Enabled=1 vs Of(1).OrAbsent()) returns that state via the normal match, never Custom.
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
-        Assert.Equal("Enabled", CatalogDiscovery.DetectState(AdSetting(), ctx));
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 }

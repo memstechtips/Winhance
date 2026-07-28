@@ -22,8 +22,10 @@ public class FeatureBadgeAggregatorTests
         result.TotalWithBadgeData.Should().Be(0);
         result.RecommendedCount.Should().Be(0);
         result.DefaultCount.Should().Be(0);
-        result.CustomCount.Should().Be(0);
         result.NewCount.Should().Be(0);
+        result.UnrecognizedCount.Should().Be(0);
+        result.MalformedCount.Should().Be(0);
+        result.UndeterminedCount.Should().Be(0);
     }
 
     [Fact]
@@ -38,8 +40,10 @@ public class FeatureBadgeAggregatorTests
         result.TotalWithBadgeData.Should().Be(0);
         result.RecommendedCount.Should().Be(0);
         result.DefaultCount.Should().Be(0);
-        result.CustomCount.Should().Be(0);
         result.NewCount.Should().Be(0);
+        result.UnrecognizedCount.Should().Be(0);
+        result.MalformedCount.Should().Be(0);
+        result.UndeterminedCount.Should().Be(0);
     }
 
     // NOTE: per-mode AC/DC pill accounting (a single setting with both AC-Rec and DC-Rec

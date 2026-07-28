@@ -72,7 +72,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
-            IsCustomState = currentState.IsCustomState,
+            Outcome = currentState.Outcome,
             OnText = _localizationService.GetString("Common_On") ?? "On",
             OffText = _localizationService.GetString("Common_Off") ?? "Off",
             ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
@@ -176,7 +176,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                     // Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the fallback). The current index
                     // is the detection-resolved CurrentValue (1:1 with States, -1 == Custom).
                     int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
-                    BuildCatalogSelectionOptions(setting, currentIndex, viewModel.ComboBoxOptions);
+                    BuildCatalogSelectionOptions(setting, viewModel.ComboBoxOptions);
                     resolvedSelection = currentState.CurrentValue ?? currentIndex;
                 }
 
@@ -236,7 +236,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         viewModel.ComputeBadgeState();
 
         // Initial Custom-state banner (Informational; a compatibility Warning applied above outranks it).
-        viewModel.UpdateCustomStateBanner();
+        viewModel.UpdateDetectionOutcomeBanner();
 
         // Build the technical-details panel from the Setting model + the now-populated current state
         // (the panel is VM-driven, not TooltipUpdatedEvent-driven).
@@ -255,10 +255,13 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     /// Builds a selection's combobox options from the <see cref="Setting"/> model:
     /// one option per <see cref="SettingState"/>, localized via the canonical Setting_{id}_Option_{i}
     /// (and _OptionTooltip_{i}) keys with <c>state.Label</c> as the fallback, and the recommended/default
-    /// flags derived from the state's roles. Appends the synthetic "Custom" option (Setting_{id}_Option_Custom
-    /// or the generic Common_CustomState) when the current index is the Custom sentinel.
+    /// flags derived from the state's roles.
+    ///
+    /// The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == the -1
+    /// sentinel) is shown by the card's outcome overlay instead of by a synthetic list entry: a fake
+    /// "Custom" item made an unreadable value read as a deliberate choice, and it was pickable.
     /// </summary>
-    private void BuildCatalogSelectionOptions(Setting setting, int currentIndex, ObservableCollection<ComboBoxDisplayOption> options)
+    private void BuildCatalogSelectionOptions(Setting setting, ObservableCollection<ComboBoxDisplayOption> options)
     {
         var states = setting.States;
         for (int i = 0; i < states.Count; i++)
@@ -278,13 +281,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 IsDefault = state.HasRole(RoleKind.WindowsDefault),
                 IsSubjectivePreference = setting.Display.IsSubjectivePreference,
             });
-        }
-
-        if (currentIndex == ComboBoxConstants.CustomStateIndex)
-        {
-            var custom = LocalizeOrFallback($"Setting_{setting.Id}_Option_Custom",
-                LocalizeOrFallback("Common_CustomState", "Custom"));
-            options.Add(new ComboBoxDisplayOption(custom ?? "Custom", ComboBoxConstants.CustomStateIndex, null));
         }
     }
 

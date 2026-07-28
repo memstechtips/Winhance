@@ -16,35 +16,32 @@ public class BadgePillTemplateSelectorTests
 
     private const string Rec = "rec";
     private const string Def = "def";
-    private const string Cust = "cust";
     private const string Pref = "pref";
 
     [Theory]
     [InlineData(SettingBadgeKind.Recommended, Rec)]
     [InlineData(SettingBadgeKind.Default,     Def)]
-    [InlineData(SettingBadgeKind.Custom,      Cust)]
     [InlineData(SettingBadgeKind.Preference,  Pref)]
     public void PickByKind_ReturnsMatchingSlot(SettingBadgeKind kind, string expected)
     {
-        var result = BadgePillTemplateSelector.PickByKind(kind, Rec, Def, Cust, Pref);
+        var result = BadgePillTemplateSelector.PickByKind(kind, Rec, Def, Pref);
         result.Should().Be(expected);
     }
 
     [Fact]
     public void PickByKind_OutOfRangeEnum_ReturnsNull()
     {
-        var result = BadgePillTemplateSelector.PickByKind((SettingBadgeKind)999, Rec, Def, Cust, Pref);
+        var result = BadgePillTemplateSelector.PickByKind((SettingBadgeKind)999, Rec, Def, Pref);
         result.Should().BeNull();
     }
 
     [Theory]
     [InlineData(SettingBadgeKind.Recommended)]
     [InlineData(SettingBadgeKind.Default)]
-    [InlineData(SettingBadgeKind.Custom)]
     [InlineData(SettingBadgeKind.Preference)]
     public void PickByKind_NullSlot_ReturnsNull(SettingBadgeKind kind)
     {
-        var result = BadgePillTemplateSelector.PickByKind<string>(kind, null, null, null, null);
+        var result = BadgePillTemplateSelector.PickByKind<string>(kind, null, null, null);
         result.Should().BeNull();
     }
 }

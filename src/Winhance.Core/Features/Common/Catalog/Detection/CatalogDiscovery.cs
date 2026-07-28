@@ -13,14 +13,14 @@ namespace Winhance.Core.Features.Common.Catalog;
 public static class CatalogDiscovery
 {
     /// <summary>
-    /// The label of the setting's current state, or null for Custom. Registry reads (and key-existence
-    /// checks for ValueName-less targets) go through <paramref name="context"/>, which also serves Tier-2
-    /// custom detectors.
+    /// The setting's current state and, when it resolves to none, the honest reason. Registry reads (and
+    /// key-existence checks for ValueName-less targets) go through <paramref name="context"/>, which also
+    /// serves Tier-2 custom detectors.
     /// </summary>
-    public static string? DetectState(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
+    public static SettingDetection Detect(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
     {
         if (setting.Detector is { } detector)
-            return detector.Detect(setting, context);
+            return SettingDetection.FromLabel(detector.Detect(setting, context));
 
         var readings = new DictReadings();
         var activeKeys = new HashSet<string>();
@@ -35,8 +35,17 @@ public static class CatalogDiscovery
 
             if (target is RegTarget reg)
             {
-                var (value, present) = RegTargetReader.Read(reg, context);
-                readings.Set(reg.Key, value, present);
+                var reading = RegTargetReader.Read(reg, context);
+
+                // A value stored under a type its target cannot reduce is malformed, not "some state we
+                // don't recognize". Short-circuit BEFORE either matcher runs: this covers the
+                // single-value precedence path and the whole-pattern path with one check, and keeps both
+                // matchers pure. ApplyOnly targets are excluded - they are written but never read, so
+                // their stored type does not affect what the user sees.
+                if (reading.KindMismatch && !reg.ApplyOnly)
+                    return SettingDetection.Malformed(DescribeKindMismatch(reg, context));
+
+                readings.Set(reg.Key, reading.Value, reading.Present);
                 if (!reg.ApplyOnly)
                     regReadTargets.Add(reg);
             }
@@ -63,9 +72,29 @@ public static class CatalogDiscovery
         // whole-pattern matching, as do all non-registry mechanisms.
         bool precedenceShaped = regReadTargets.Count(t => !t.IsGroupPolicy) == 1;
         if (allRegistry && regReadTargets.Count > 0 && precedenceShaped)
-            return DetectByPrecedence(setting.States, readings, regReadTargets);
+            return SettingDetection.FromLabel(DetectByPrecedence(setting.States, readings, regReadTargets));
 
-        return StateDetectionEngine.Detect(setting.States, readings, activeKeys);
+        return SettingDetection.FromLabel(StateDetectionEngine.Detect(setting.States, readings, activeKeys));
+    }
+
+    /// <summary>Builds the diagnostic line for a malformed target: which value, where, what the catalog
+    /// expects, and what is actually stored. Re-reads the target to name the winning mirror path and its
+    /// live kind - only ever runs on the malformed path, so the extra read costs nothing in the normal
+    /// case. <see cref="IDetectionContext.GetValueKind"/> is optional (default null), so fakes and older
+    /// contexts fall back to naming the CLR type.</summary>
+    private static string DescribeKindMismatch(RegTarget reg, IDetectionContext context)
+    {
+        foreach (var path in RegTargetReader.OrderHklmFirst(reg.Paths))
+        {
+            var raw = context.GetValue(path, reg.ValueName);
+            if (raw is null)
+                continue;
+
+            string actual = context.GetValueKind(path, reg.ValueName)?.ToString() ?? raw.GetType().Name;
+            return $"'{reg.ValueName}' under '{path}' is stored as {actual} but the catalog expects {reg.Type}";
+        }
+
+        return $"'{reg.ValueName}' is stored under a type the catalog ({reg.Type}) cannot read";
     }
 
     /// <summary>Resolves a registry setting's state by precedence: a present group-policy target wins; else the

@@ -24,7 +24,5 @@
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 
     <!-- Badge Converters -->
-    <converters:BadgeKindToStyleConverter x:Key="BadgeKindToStyleConverter"/>
-    <converters:BadgeKindToForegroundConverter x:Key="BadgeKindToForegroundConverter"/>
 
 </ResourceDictionary>

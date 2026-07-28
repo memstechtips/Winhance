@@ -17,11 +17,11 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
-    public DataTemplate? CheckBoxTemplate { get; set; }
-    public DataTemplate? DualSelectionTemplate { get; set; }
-    public DataTemplate? SingleACSelectionTemplate { get; set; }
-    public DataTemplate? DualNumericTemplate { get; set; }
-    public DataTemplate? SingleACNumericTemplate { get; set; }
+    /// <summary>Separate-mode powercfg settings. ONE template each now: the on-battery column is bound
+    /// to HasBattery inside the template rather than split into Dual/SingleAC variants, which is what
+    /// let the two halves drift apart.</summary>
+    public DataTemplate? PowerSelectionTemplate { get; set; }
+    public DataTemplate? PowerNumericTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -37,9 +37,9 @@ public partial class SettingTemplateSelector : DataTemplateSelector
             if (vm.SupportsSeparateACDC)
             {
                 if (vm.InputType == InputType.Selection)
-                    return vm.HasBattery ? DualSelectionTemplate : SingleACSelectionTemplate;
+                    return PowerSelectionTemplate;
                 if (vm.InputType == InputType.NumericRange)
-                    return vm.HasBattery ? DualNumericTemplate : SingleACNumericTemplate;
+                    return PowerNumericTemplate;
             }
 
             return vm.InputType switch
@@ -48,7 +48,10 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 InputType.Selection => SelectionTemplate,
                 InputType.NumericRange => NumericTemplate,
                 InputType.Action => ActionTemplate,
-                InputType.CheckBox => CheckBoxTemplate,
+                // No InputType.CheckBox arm: nothing produces that value. ControlKind has no CheckBox
+                // member and all three ControlToInputType maps fall through to Toggle, so a CheckBox
+                // view model cannot exist. The enum member survives only because ConfigurationItem
+                // persists InputType into .winhance files. It falls to the Toggle default below.
                 _ => ToggleTemplate // Default fallback
             };
         }

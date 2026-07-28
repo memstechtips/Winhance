@@ -80,7 +80,7 @@ public class ComboBoxResolver : IComboBoxResolver
         // CAVEAT: a precedence-CORRECTED selection (CatalogDetectionModelConformanceTests.PrecedenceCorrectedIds - among
         // selections only gaming-touch-keyboard-service) authors an Of(x).OrAbsent() that is NOT a DefaultValue-fold
         // but a deliberate detection fix. CatalogDetectionModelConformanceTests runs each of those ids through
-        // CatalogDiscovery.DetectState over CONSTRUCTED readings (clean / recommended-applied / group-policy /
+        // CatalogDiscovery.Detect over CONSTRUCTED readings (clean / recommended-applied / group-policy /
         // mirror-split) and proves the corrected reading is the one Windows would show. It pins the detection MODEL
         // this fallback implements, not this method directly.
         var keysWithFoldedDefault = new HashSet<string>();

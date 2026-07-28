@@ -61,14 +61,42 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
                 }
                 else
                 {
-                    string? label = CatalogDiscovery.DetectState(setting, context);
-                    results[setting.Id] = new CatalogDetectionResult { StateLabel = label, Detected = label is not null, AcValue = acValue, DcValue = dcValue, Readings = readings };
+                    var detection = CatalogDiscovery.Detect(setting, context);
+
+                    // A malformed value is a real, reportable fault on the machine and the single most useful
+                    // line in a bug report about a setting "showing the wrong thing" - log it every time, with
+                    // the expected and actual registry types.
+                    if (detection.Outcome == SettingDetectionOutcome.Malformed)
+                    {
+                        _log.Log(
+                            LogLevel.Warning,
+                            $"[CatalogDetectionService] '{setting.Id}' has a malformed value: {detection.Detail}");
+                    }
+
+                    results[setting.Id] = new CatalogDetectionResult
+                    {
+                        StateLabel = detection.Label,
+                        Detected = detection.Label is not null,
+                        Outcome = detection.Outcome,
+                        OutcomeDetail = detection.Detail,
+                        AcValue = acValue,
+                        DcValue = dcValue,
+                        Readings = readings,
+                    };
                 }
             }
             catch (Exception ex)
             {
                 _log.Log(LogLevel.Warning, $"[CatalogDetectionService] Detection failed for '{setting.Id}': {ex.Message}", ex);
-                results[setting.Id] = new CatalogDetectionResult { Detected = false };
+
+                // Undetermined, NOT Custom. We do not know this setting's value, so the UI must not offer to
+                // apply a state over it - that would write blind over data we failed to read.
+                results[setting.Id] = new CatalogDetectionResult
+                {
+                    Detected = false,
+                    Outcome = SettingDetectionOutcome.Undetermined,
+                    OutcomeDetail = ex.Message,
+                };
             }
         }
 

@@ -18,8 +18,9 @@ namespace Winhance.Core.Features.Common.Localization;
 public static class SettingLocalizationKeys
 {
     /// <summary>
-    /// Generic localized "Custom" state key used by every Selection setting on a state mismatch
-    /// when no per-setting override key exists.
+    /// The localized name for a state detection could not place. One string for every setting - the
+    /// per-setting override key that used to sit alongside this was removed on 2026-07-27 with the
+    /// synthetic "Custom" dropdown entry it named.
     /// </summary>
     public const string CommonCustomState = "Common_CustomState";
 
@@ -31,7 +32,7 @@ public static class SettingLocalizationKeys
     public static string OptionDisplay(Setting setting, int index) => $"Setting_{Base(setting)}_Option_{index}";
     public static string OptionTooltip(Setting setting, int index) => $"Setting_{Base(setting)}_OptionTooltip_{index}";
     public static string OptionWarning(Setting setting, int index) => $"Setting_{Base(setting)}_OptionWarning_{index}";
-    public static string OptionCustom(Setting setting) => $"Setting_{Base(setting)}_Option_Custom";
+
 
     /// <summary>
     /// Compacted group key, e.g. group name "Privacy &amp; Security" -&gt; <c>SettingGroup_PrivacySecurity</c>.
@@ -93,7 +94,9 @@ public static class SettingLocalizationKeys
 
         if (setting.Control == ControlKind.Selection)
         {
-            yield return OptionCustom(setting);
+            // No per-setting Custom-option key any more: the synthetic "Custom" dropdown entry it named
+            // is gone, and its friendlier "Custom (User Defined)" wording was dropped on 2026-07-27 for
+            // asserting a cause we cannot know. Every setting now uses the one CommonCustomState string.
             yield return CommonCustomState;
 
             for (int i = 0; i < setting.States.Count; i++)

@@ -28,10 +28,10 @@ public record SettingItemViewModelConfig
     public required InputType InputType { get; init; }
     public bool IsSelected { get; init; }
 
-    /// <summary>Detection ran and could not place the setting on any known state (see
-    /// <c>SettingStateResult.IsCustomState</c>). Renders the toggle's neutral Custom overlay or the
-    /// selection's info adornment.</summary>
-    public bool IsCustomState { get; init; }
+    /// <summary>Whether detection placed the setting on a known state, and if not, why not (see
+    /// <c>SettingStateResult.Outcome</c>). Drives the toggle's neutral overlay or the selection's
+    /// adornment, which icon and short label they show, and whether clicking them does anything.</summary>
+    public SettingDetectionOutcome Outcome { get; init; }
     public string OnText { get; init; } = "On";
     public string OffText { get; init; } = "Off";
     public string ActionButtonText { get; init; } = "Apply";

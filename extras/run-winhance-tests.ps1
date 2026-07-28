@@ -245,7 +245,9 @@ function Invoke-UITestProject {
             Write-Host "          Read extras\uitest-results.txt - do NOT treat this as a pass." -ForegroundColor Red
             return "fail"
         }
-        Write-Host "  UI Tests: build verified (tests could not run headless - use VS Test Explorer)" -ForegroundColor Green
+        # Reaching here is now UNEXPECTED: these tests were confirmed to run headless (1625 of them,
+        # 2026-07-28). Treat it as "investigate", not as the documented normal state it once was.
+        Write-Host "  UI Tests: build verified, but the run produced no results - see extras\uitest-results.txt" -ForegroundColor Yellow
         return "buildonly"
     }
 

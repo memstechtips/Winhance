@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Optimize"
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:winControls="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
@@ -320,15 +321,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="PrivacyCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="PrivacyCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="PrivacyOutcomeBanner" SectionKey="Privacy"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.PrivacyViewModel}"/>
 
                             <!-- Power Card -->
                             <controls:SettingsCard
@@ -367,15 +365,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="PowerCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="PowerCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="PowerOutcomeBanner" SectionKey="Power"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.PowerViewModel}"/>
 
                             <!-- Gaming and Performance Card -->
                             <controls:SettingsCard
@@ -414,15 +409,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="GamingCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="GamingCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="GamingOutcomeBanner" SectionKey="Gaming"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.GamingViewModel}"/>
 
                             <!-- Update Card -->
                             <controls:SettingsCard
@@ -461,15 +453,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="UpdateCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="UpdateCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="UpdateOutcomeBanner" SectionKey="Update"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.UpdateViewModel}"/>
 
                             <!-- Notifications Card -->
                             <controls:SettingsCard
@@ -508,15 +497,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="NotificationCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="NotificationCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="NotificationOutcomeBanner" SectionKey="Notification"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.NotificationViewModel}"/>
 
                             <!-- Sound Card -->
                             <controls:SettingsCard
@@ -555,15 +541,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="SoundCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="SoundCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="SoundOutcomeBanner" SectionKey="Sound"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.SoundViewModel}"/>
 
                         </StackPanel>
                         </Grid>

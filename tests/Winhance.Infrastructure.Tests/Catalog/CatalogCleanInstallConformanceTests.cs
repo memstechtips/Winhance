@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 
 /// <summary>
 /// Conformance: on a CLEAN Windows install, the catalog's detection must resolve every setting to its
-/// WindowsDefault state. Replays the REAL detection pipeline (<see cref="CatalogDiscovery.DetectState"/> over
+/// WindowsDefault state. Replays the REAL detection pipeline (<see cref="CatalogDiscovery.Detect"/> over
 /// <see cref="RegTargetReader"/> / <see cref="StateDetectionEngine"/>) against three committed clean-install
 /// probe captures (tests/.../Catalog/Fixtures/cleaninstall-*.json), hydrating <see cref="IDetectionContext"/>
 /// from the probe readings. This is the C# successor to the audit's Python reconciler
@@ -166,8 +166,8 @@ public class CatalogCleanInstallConformanceTests
                 Assert.True(defaults.Count == 1,
                     $"'{setting.Id}' resolves {defaults.Count} WindowsDefault states for build {build.Build} ({roleContext}) - overlapping role scopes.");
 
-                string? detected = CatalogDiscovery.DetectState(
-                    setting, context, pc == PowerContext.Always ? PowerContext.AC : pc);
+                string? detected = CatalogDiscovery.Detect(
+                    setting, context, pc == PowerContext.Always ? PowerContext.AC : pc).Label;
 
                 compared++;
                 comparedIds.Add(setting.Id);

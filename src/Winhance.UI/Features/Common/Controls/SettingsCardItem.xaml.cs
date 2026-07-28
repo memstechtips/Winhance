@@ -1,8 +1,12 @@
+using System;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -111,8 +115,9 @@ public sealed partial class SettingsCardItem : UserControl
     {
         return vm.InputType switch
         {
-            // A Custom-state toggle is on no known state - announce "Custom", not On/Off.
-            InputType.Toggle or InputType.CheckBox when vm.IsCustomState => vm.CustomStateText,
+            // An unresolved toggle is on no known state - announce that state's name ("Custom" / the
+            // wrong-format text / the unknown text), never a misleading On/Off.
+            InputType.Toggle or InputType.CheckBox when vm.ShowsStateOverlay => vm.CustomStateText,
             InputType.Toggle or InputType.CheckBox => vm.IsSelected ? vm.OnText : vm.OffText,
             InputType.Selection => vm.ComboBoxOptions
                 ?.FirstOrDefault(o => Equals(o.Value, vm.SelectedValue))?.DisplayText

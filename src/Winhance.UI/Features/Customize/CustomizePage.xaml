@@ -6,6 +6,7 @@
     xmlns:local="using:Winhance.UI.Features.Customize"
     xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:winControls="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay"
@@ -299,15 +300,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="WindowsThemeCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="WindowsThemeCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="WindowsThemeOutcomeBanner" SectionKey="WindowsTheme"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.WindowsThemeViewModel}"/>
 
                             <!-- Taskbar Card -->
                             <controls:SettingsCard
@@ -346,15 +344,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="TaskbarCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="TaskbarCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="TaskbarOutcomeBanner" SectionKey="Taskbar"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.TaskbarViewModel}"/>
 
                             <!-- Start Menu Card -->
                             <controls:SettingsCard
@@ -393,15 +388,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="StartMenuCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="StartMenuCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="StartMenuOutcomeBanner" SectionKey="StartMenu"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.StartMenuViewModel}"/>
 
                             <!-- Explorer Card -->
                             <controls:SettingsCard
@@ -440,15 +432,12 @@
                                                            Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border x:Name="ExplorerCustomPill" Style="{StaticResource BadgeCustomStyle}" Visibility="Collapsed">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock x:Name="ExplorerCustomText" Style="{StaticResource BadgeTextStyle}"
-                                                           Foreground="{ThemeResource BadgeCustomForeground}"/>
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
                                 </StackPanel>
                             </controls:SettingsCard>
+                            <winControls:FeatureOutcomeBanner x:Name="ExplorerOutcomeBanner" SectionKey="Explorer"
+                                                        NavigationRequested="OnOutcomeBannerNavigationRequested"
+                                                        Feature="{x:Bind ViewModel.ExplorerViewModel}"/>
 
                         </StackPanel>
                         </Grid>

@@ -52,7 +52,7 @@ public class CatalogDiscoveryTests
             },
         };
         // raw read returns 2 for the target's value
-        var state = CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => 2));
+        var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => 2)).Label;
         Assert.Equal("Box", state);
     }
 
@@ -68,7 +68,7 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "Manual", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } },
             },
         };
-        var state = CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => null)); // absent
+        var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => null)).Label; // absent
         Assert.Equal("Manual", state);
     }
 
@@ -84,7 +84,7 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
             },
         };
-        Assert.Null(CatalogDiscovery.DetectState(setting, new FakeCtx((p, v) => 99)));
+        Assert.Null(CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => 99)).Label);
     }
 
     [Fact]
@@ -101,11 +101,11 @@ public class CatalogDiscoveryTests
             },
         };
 
-        Assert.Equal("Enabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: true)));
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: false)));
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: true)).Label);
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: false)).Label);
         // An absent task is not present, so nothing matches and the engine falls back to Disabled. (The
         // harness never reaches this path - it treats an absent task as Unavailable before calling the engine.)
-        Assert.Equal("Disabled", CatalogDiscovery.DetectState(setting, new FakeCtx(taskEnabled: null)));
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: null)).Label);
     }
 
     [Fact]
@@ -117,6 +117,6 @@ public class CatalogDiscoveryTests
             Detector = new FixedDetector("Show all"),
             // targets/states are ignored when a detector is present
         };
-        Assert.Equal("Show all", CatalogDiscovery.DetectState(setting, new FakeCtx()));
+        Assert.Equal("Show all", CatalogDiscovery.Detect(setting, new FakeCtx()).Label);
     }
 }

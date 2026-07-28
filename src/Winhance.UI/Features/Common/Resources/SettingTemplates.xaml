@@ -61,23 +61,6 @@
             </DataTemplate>
         </converters:BadgePillTemplateSelector.DefaultTemplate>
 
-        <converters:BadgePillTemplateSelector.CustomTemplate>
-            <DataTemplate x:DataType="coreModels:BadgePillState">
-                <Border
-                    Style="{StaticResource BadgeCustomStyle}"
-                    Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
-                    ToolTipService.ToolTip="{x:Bind Tooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <fluentIcons:FluentIcon Icon="PersonWrench" IconVariant="Regular"
-                                                FontSize="12" VerticalAlignment="Center"
-                                                Foreground="{ThemeResource BadgeCustomForeground}"/>
-                        <TextBlock Text="{x:Bind Label}"
-                                   Style="{StaticResource BadgeTextStyle}"
-                                   Foreground="{ThemeResource BadgeCustomForeground}"/>
-                    </StackPanel>
-                </Border>
-            </DataTemplate>
-        </converters:BadgePillTemplateSelector.CustomTemplate>
 
         <converters:BadgePillTemplateSelector.PreferenceTemplate>
             <DataTemplate x:DataType="coreModels:BadgePillState">
@@ -438,6 +421,7 @@
                     IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
                     Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
                     Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                    IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
                     IsClosable="False"
                     IsTabStop="True"
                     UseSystemFocusVisuals="True"
@@ -865,6 +849,7 @@
                     IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
                     Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
                     Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                    IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
                     IsClosable="False"
                     IsTabStop="True"
                     UseSystemFocusVisuals="True"
@@ -1228,6 +1213,7 @@
                                     IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
                                     Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
                                     Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                                    IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
                                     IsClosable="False"
                                     IsTabStop="True"
                                     UseSystemFocusVisuals="True"
