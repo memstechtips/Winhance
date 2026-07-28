@@ -14,9 +14,17 @@
 #
 # # Run only integration tests
 # .\run-winhance-tests.ps1 -IntegrationOnly
+#
+# # Build (and try to run) ONLY the WinUI test project - the `winhance-uitest` SSH verb's entry point
+# .\run-winhance-tests.ps1 -UIOnly
 param (
     [switch]$SkipUITests = $false,
     [switch]$IntegrationOnly = $false,
+    # Build and run ONLY tests\Winhance.UI.Tests, then exit. Building that project compiles
+    # src\Winhance.UI as a project reference, so this is the only gate that sees a compile error in
+    # UI code - no other runner builds either project. Writes extras\uitest-results.txt so the full
+    # MSBuild output is readable off the share.
+    [switch]$UIOnly = $false,
     # When set, dotnet test build output goes under this dir instead of each project's bin/.
     # Needed when the source lives on a network share that blocks launching testhost.exe from it
     # (run the build output on a local disk). Empty = default behaviour (output stays in bin/).
@@ -36,6 +44,14 @@ $totalPassed = 0
 $totalFailed = 0
 $totalSkipped = 0
 $failedProjects = @()
+
+# In -UIOnly mode, mirror the (potentially long) MSBuild output into a log file next to this script.
+# The repo is an SMB share, so the agent reads it at extras/uitest-results.txt without needing the
+# SSH stdout to survive intact - same trick run-catalog-harness.ps1 uses for its results file.
+$uiLogFile = if ($UIOnly) { Join-Path $PSScriptRoot "uitest-results.txt" } else { $null }
+function Add-UILog($text) {
+    if ($uiLogFile -and $text) { $text | Out-File -FilePath $uiLogFile -Append -Encoding utf8 }
+}
 
 function Run-TestProject {
     param (
@@ -93,6 +109,182 @@ function Run-TestProject {
     }
 }
 
+function Find-MSBuild {
+    # WinUI3/WindowsAppSDK projects cannot be built by the .NET SDK alone - the XAML compiler needs
+    # the MSVC toolset - so require BOTH components, same as build-and-package.ps1 does.
+    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswherePath) {
+        # The installer dir is shared across side-by-side VS versions, so -latest finds VS 18 too.
+        $found = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+        if ($found -and (Test-Path $found)) { return $found }
+    }
+    # Fallback for a machine whose vswhere is missing or too old to know the newer install.
+    foreach ($ver in @("18", "2022")) {
+        foreach ($edition in @("Community", "Professional", "Enterprise")) {
+            $path = "${env:ProgramFiles}\Microsoft Visual Studio\$ver\$edition\MSBuild\Current\Bin\MSBuild.exe"
+            if (Test-Path $path) { return $path }
+        }
+    }
+    return $null
+}
+
+function Invoke-UITestProject {
+    # Builds tests\Winhance.UI.Tests with MSBuild, then TRIES to run it.
+    #
+    # The build is the point: Winhance.UI.Tests project-references src\Winhance.UI, so a CS error in
+    # UI code fails here. Nothing else in the automated reach compiles either project.
+    #
+    # Running is a bonus. A WinUI test project needs the WindowsAppSDK native runtime, which the
+    # command-line test host does not bootstrap, so the run has historically not worked headless.
+    # A test host that produces NO result summary is therefore reported as build-verified, NOT as a
+    # failure - otherwise this gate would sit permanently red for a reason that is not a regression.
+    # If the run DOES work, real test failures are fatal: that is what catches stale expectations.
+    #
+    # Returns one of: nomsbuild | buildfailed | buildonly | pass | fail
+    #
+    # Function-scoped so native tools writing to stderr under 2>&1 don't become terminating errors
+    # (PowerShell 5.1 turns a redirected stderr line into a NativeCommandError when EAP is Stop).
+    $ErrorActionPreference = "Continue"
+
+    $uiProjectPath = "$solutionDir\tests\Winhance.UI.Tests\Winhance.UI.Tests.csproj"
+    $msbuildPath = Find-MSBuild
+    if (-not $msbuildPath) { return "nomsbuild" }
+
+    Write-Host ""
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
+    Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
+    Write-Host "  msbuild: $msbuildPath" -ForegroundColor DarkGray
+    Add-UILog "msbuild: $msbuildPath"
+    Add-UILog "project: $uiProjectPath"
+
+    $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal -restore 2>&1 | Out-String
+    $buildCode = $LASTEXITCODE
+    Add-UILog $buildOutput
+    if ($buildCode -ne 0) {
+        Write-Host "  BUILD FAILED - Winhance.UI or Winhance.UI.Tests does not compile" -ForegroundColor Red
+        Write-Host $buildOutput -ForegroundColor DarkGray
+        return "buildfailed"
+    }
+    Write-Host "  Build succeeded (Winhance.UI compiled)" -ForegroundColor Green
+
+    # Locate the built assembly. When the repo is on a share, Use-LocalBuildOutputs.ps1 has
+    # redirected bin\ to WINHANCE_LOCAL_BUILD_ROOT, so the in-tree path does not exist.
+    $dllRoots = @()
+    if ($env:WINHANCE_LOCAL_BUILD_ROOT) {
+        $dllRoots += (Join-Path $env:WINHANCE_LOCAL_BUILD_ROOT "Winhance.UI.Tests\bin")
+    }
+    $dllRoots += "$solutionDir\tests\Winhance.UI.Tests\bin"
+
+    # Constrain to the x64\Debug output we just built. Without this, a Release build left behind by
+    # Visual Studio can be NEWER than an up-to-date (so not rewritten) Debug dll and win the sort -
+    # which would run tests from an assembly this gate did not just verify.
+    $uiTestDll = $null
+    foreach ($root in $dllRoots) {
+        if (-not (Test-Path $root)) { continue }
+        $hit = Get-ChildItem -Path $root -Recurse -Filter "Winhance.UI.Tests.dll" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like "*\x64\Debug\*" } |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($hit) { $uiTestDll = $hit.FullName; break }
+    }
+    if (-not $uiTestDll) {
+        Write-Host "  UI Tests: build verified (test assembly not located; not run)" -ForegroundColor Green
+        Add-UILog "test assembly not found under: $($dllRoots -join '; ')"
+        return "buildonly"
+    }
+
+    # Derive the VS install root from the MSBuild path (...\<VSRoot>\MSBuild\Current\Bin\MSBuild.exe).
+    $vsInstallPath = (Get-Item $msbuildPath).Directory.Parent.Parent.Parent.FullName
+    $vstestConsolePath = Join-Path $vsInstallPath "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe"
+    if (-not (Test-Path $vstestConsolePath)) {
+        Write-Host "  UI Tests: build verified (vstest.console.exe not found; not run)" -ForegroundColor Green
+        Add-UILog "vstest.console.exe not found at $vstestConsolePath"
+        return "buildonly"
+    }
+
+    Write-Host "  Attempting to run UI tests..." -ForegroundColor Cyan
+    $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 2>&1 | Out-String
+    Add-UILog $runOutput
+
+    $summary = [regex]::Match($runOutput, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
+    if (-not $summary.Success) {
+        # No summary at all = the host never got far enough to report. Expected headless.
+        Write-Host "  UI Tests: build verified (tests could not run headless - use VS Test Explorer)" -ForegroundColor Green
+        return "buildonly"
+    }
+
+    $failed  = [int]$summary.Groups[1].Value
+    $passed  = [int]$summary.Groups[2].Value
+    $skipped = [int]$summary.Groups[3].Value
+    $script:totalPassed  += $passed
+    $script:totalFailed  += $failed
+    $script:totalSkipped += $skipped
+
+    if ($failed -gt 0) {
+        Write-Host "  FAILED: $passed passed, $failed failed, $skipped skipped" -ForegroundColor Red
+        Write-Host $runOutput -ForegroundColor DarkGray
+        return "fail"
+    }
+    Write-Host "  PASSED: $passed passed, $skipped skipped" -ForegroundColor Green
+    return "pass"
+}
+
+function Resolve-UIResult {
+    # Turns Invoke-UITestProject's status into a console line + the shared failure tally.
+    # Returns $true when the UI gate passed.
+    #
+    # $MSBuildRequired distinguishes the two callers: with -UIOnly, a missing MSBuild means the gate
+    # cannot do the one thing it exists for, so it FAILS loudly rather than reporting a silent green.
+    # In a normal full run it stays the historical soft skip, for anyone without Visual Studio.
+    param (
+        [string]$Result,
+        [bool]$MSBuildRequired
+    )
+
+    switch ($Result) {
+        "pass" {
+            return $true
+        }
+        "buildonly" {
+            return $true
+        }
+        "buildfailed" {
+            Write-Host "  FAILED: UI Tests - compile error (see the MSBuild output above)" -ForegroundColor Red
+            $script:totalFailed += 1
+            $script:failedProjects += "UI Tests (build)"
+            return $false
+        }
+        "fail" {
+            $script:failedProjects += "UI Tests"
+            return $false
+        }
+        "nomsbuild" {
+            if ($MSBuildRequired) {
+                Write-Host ""
+                Write-Host "  FAILED: MSBuild not found - install Visual Studio with the '.NET desktop" -ForegroundColor Red
+                Write-Host "          development' workload AND the MSVC x64 build tools." -ForegroundColor Red
+                Write-Host "          The WinUI test project cannot be built by the .NET SDK alone." -ForegroundColor Red
+                Add-UILog "MSBuild not found - Visual Studio with the MSVC toolset is required."
+                $script:totalFailed += 1
+                $script:failedProjects += "UI Tests (no MSBuild)"
+                return $false
+            }
+            Write-Host ""
+            Write-Host "  SKIPPED: UI Tests - MSBuild not found (Visual Studio required)" -ForegroundColor Yellow
+            Write-Host "  Use -SkipUITests to suppress this warning" -ForegroundColor DarkGray
+            return $true
+        }
+    }
+
+    # Unreachable today - the five cases above cover every status Invoke-UITestProject returns.
+    # It records a failed project anyway so that a sixth status added later fails BOTH callers:
+    # -UIOnly reads the return value, but a normal run only reads $failedProjects.
+    Write-Host "  FAILED: UI Tests - unrecognised status '$Result'" -ForegroundColor Red
+    $script:totalFailed += 1
+    $script:failedProjects += "UI Tests (unknown status: $Result)"
+    return $false
+}
+
 # Header
 Write-Host ""
 Write-Host ("=" * 60) -ForegroundColor Cyan
@@ -100,6 +292,30 @@ Write-Host "  Winhance Test Runner" -ForegroundColor Cyan
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
 $startTime = Get-Date
+
+if ($UIOnly) {
+    "# Winhance UI test gate (-UIOnly): $(Get-Date -Format o)" | Out-File -FilePath $uiLogFile -Encoding utf8
+    Write-Host "  mode:    UI only (build Winhance.UI.Tests -> compiles Winhance.UI)" -ForegroundColor Cyan
+    Write-Host "  log:     $uiLogFile" -ForegroundColor Cyan
+
+    $uiOk = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $true
+
+    Write-Host ""
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    if ($uiOk) {
+        Write-Host "  UI gate: PASS" -ForegroundColor Green
+        if ($totalPassed -gt 0) { Write-Host "  Tests:   $totalPassed passed, $totalSkipped skipped" -ForegroundColor Green }
+        Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
+        Write-Host ("=" * 60) -ForegroundColor Cyan
+        Write-Host ""
+        exit 0
+    }
+    Write-Host "  UI gate: FAIL" -ForegroundColor Red
+    Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    Write-Host ""
+    exit 1
+}
 
 if (-not $IntegrationOnly) {
     # Unit Tests - Core
@@ -112,62 +328,11 @@ if (-not $IntegrationOnly) {
         -Name "Infrastructure Unit Tests" `
         -ProjectPath "$solutionDir\tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 
-    # Unit Tests - UI (requires Visual Studio / WinUI SDK, built with MSBuild)
+    # Unit Tests - UI (requires Visual Studio / WinUI SDK, built with MSBuild).
+    # A build failure here used to print "SKIPPED" and leave the exit code at 0, so a compile error
+    # in Winhance.UI passed as green. Resolve-UIResult now counts it as a real failure.
     if (-not $SkipUITests) {
-        $uiProjectPath = "$solutionDir\tests\Winhance.UI.Tests\Winhance.UI.Tests.csproj"
-
-        # Find MSBuild via vswhere, then fall back to well-known paths
-        $msbuildPath = $null
-        $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-        if (Test-Path $vswherePath) {
-            $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
-        }
-        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
-            $fallbackPaths = @(
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-            )
-            foreach ($path in $fallbackPaths) {
-                if (Test-Path $path) {
-                    $msbuildPath = $path
-                    break
-                }
-            }
-        }
-
-        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
-            Write-Host ""
-            Write-Host "  SKIPPED: UI Tests - MSBuild not found (Visual Studio required)" -ForegroundColor Yellow
-            Write-Host "  Use -SkipUITests to suppress this warning" -ForegroundColor DarkGray
-        }
-        else {
-            Write-Host ""
-            Write-Host ("=" * 60) -ForegroundColor DarkGray
-            Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
-            Write-Host ("=" * 60) -ForegroundColor DarkGray
-
-            $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:quiet -restore 2>&1 | Out-String
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "  SKIPPED: UI Tests failed to build" -ForegroundColor Yellow
-                Write-Host $buildOutput -ForegroundColor DarkGray
-            }
-            else {
-                Write-Host "  Build succeeded" -ForegroundColor Green
-
-                # Derive VS install path from MSBuild path (e.g. ...\2022\Community\MSBuild\Current\Bin\MSBuild.exe)
-                $vsInstallPath = (Get-Item $msbuildPath).Directory.Parent.Parent.Parent.FullName
-                $vstestConsolePath = Join-Path $vsInstallPath "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe"
-
-                $uiTestDll = "$solutionDir\tests\Winhance.UI.Tests\bin\x64\Debug\net10.0-windows10.0.19041.0\Winhance.UI.Tests.dll"
-
-                # WinUI test projects require Visual Studio Test Explorer to run.
-                # The native Windows App SDK runtime DLLs cannot be loaded by
-                # the command-line test host (dotnet test or vstest.console.exe).
-                # The build-only check above confirms the tests still compile.
-                Write-Host "  UI Tests: Build verified (run via VS Test Explorer)" -ForegroundColor Green
-            }
-        }
+        $null = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $false
     }
     else {
         Write-Host ""
