@@ -645,7 +645,7 @@ public class AppItemViewModelTests
     // -------------------------------------------------------
 
     [Fact]
-    public void IconSource_LightTheme_WithLightSibling_DecodesFromLightPath()
+    public void IconSource_LightTheme_WithLightSibling_ResolvesLightPath()
     {
         var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
         Directory.CreateDirectory(tmpDir);
@@ -660,10 +660,8 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
 
             var vm = CreateViewModel(def);
-            var bmp = vm.IconSource;
 
-            bmp.Should().NotBeNull();
-            bmp!.UriSource.LocalPath.Should().Be(lightPath);
+            vm.ResolvedIconPath.Should().Be(lightPath);
         }
         finally
         {
@@ -685,7 +683,7 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+            vm.ResolvedIconPath.Should().Be(primaryPath);
         }
         finally
         {
@@ -711,7 +709,7 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+            vm.ResolvedIconPath.Should().Be(primaryPath);
         }
         finally
         {
@@ -720,7 +718,7 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void IconSource_DarkTheme_WithDarkSibling_DecodesFromDarkPath()
+    public void IconSource_DarkTheme_WithDarkSibling_ResolvesDarkPath()
     {
         // Mono-dark source (e.g. Xbox Game Bar #333): synthesizer wrote a
         // .dark.png; the VM must prefer it in dark mode.
@@ -739,7 +737,7 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(darkPath);
+            vm.ResolvedIconPath.Should().Be(darkPath);
         }
         finally
         {

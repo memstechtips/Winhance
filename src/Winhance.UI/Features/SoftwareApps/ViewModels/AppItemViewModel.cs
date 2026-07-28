@@ -110,19 +110,32 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     /// to the UI, so callers that change Definition.IconPath must invoke
     /// NotifyIconChanged() to refresh the bound Image and FontIcon.
     /// </summary>
-    public BitmapImage? IconSource
+    /// <summary>
+    /// The theme-resolved path <see cref="IconSource"/> will decode, or null when no icon is
+    /// resolved. Separate from IconSource because path SELECTION is pure logic worth observing on
+    /// its own: constructing a <see cref="BitmapImage"/> needs a WinRT/XAML application context, so
+    /// asserting the choice through IconSource is impossible outside a running app.
+    /// </summary>
+    public string? ResolvedIconPath
     {
         get
         {
             var basePath = Definition.IconPath;
-            if (string.IsNullOrEmpty(basePath))
+            return string.IsNullOrEmpty(basePath) ? null : ResolveThemeAwarePath(basePath);
+        }
+    }
+
+    public BitmapImage? IconSource
+    {
+        get
+        {
+            var resolvedPath = ResolvedIconPath;
+            if (resolvedPath is null)
             {
                 _iconSource = null;
                 _iconSourcePath = null;
                 return null;
             }
-
-            var resolvedPath = ResolveThemeAwarePath(basePath);
 
             if (_iconSource is not null && _iconSourcePath == resolvedPath)
                 return _iconSource;
@@ -199,6 +212,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         _dispatcherService.RunOnUIThread(() =>
         {
             OnPropertyChanged(nameof(IconSource));
+            OnPropertyChanged(nameof(ResolvedIconPath));
             OnPropertyChanged(nameof(HasIcon));
             OnPropertyChanged(nameof(IsAppXFallback));
             OnPropertyChanged(nameof(IsCapabilityFallback));
