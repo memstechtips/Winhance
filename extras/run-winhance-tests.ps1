@@ -206,16 +206,56 @@ function Invoke-UITestProject {
     $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 2>&1 | Out-String
     Add-UILog $runOutput
 
-    $summary = [regex]::Match($runOutput, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
-    if (-not $summary.Success) {
-        # No summary at all = the host never got far enough to report. Expected headless.
+    # Two summary shapes, because two runners emit them:
+    #   vstest.console.exe : "Test Run Failed." / "Total tests: N" / "Passed: N" / "Failed: N"
+    #                        on SEPARATE lines, Skipped omitted when zero.
+    #   dotnet test        : "Passed! - Failed: 0, Passed: 3, Skipped: 0" on ONE comma-joined line.
+    # Only the dotnet shape was matched originally, so a real vstest run of 1625 tests with 21
+    # failures fell through to the "could not run" branch and was reported GREEN. Parse both.
+    $failed = -1; $passed = 0; $skipped = 0
+    $oneLine = [regex]::Match($runOutput, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
+    if ($oneLine.Success) {
+        $failed  = [int]$oneLine.Groups[1].Value
+        $passed  = [int]$oneLine.Groups[2].Value
+        $skipped = [int]$oneLine.Groups[3].Value
+    }
+    else {
+        $mFailed  = [regex]::Match($runOutput, '(?m)^\s*Failed:\s*(\d+)\s*$')
+        $mPassed  = [regex]::Match($runOutput, '(?m)^\s*Passed:\s*(\d+)\s*$')
+        $mSkipped = [regex]::Match($runOutput, '(?m)^\s*Skipped:\s*(\d+)\s*$')
+        if ($mPassed.Success -or $mFailed.Success) {
+            # vstest prints "Failed:" only when there ARE failures, "Passed:" only when there are passes.
+            $failed  = if ($mFailed.Success)  { [int]$mFailed.Groups[1].Value }  else { 0 }
+            $passed  = if ($mPassed.Success)  { [int]$mPassed.Groups[1].Value }  else { 0 }
+            $skipped = if ($mSkipped.Success) { [int]$mSkipped.Groups[1].Value } else { 0 }
+        }
+    }
+
+    # Decisive markers beat count-parsing: honour them even if the numbers were unreadable.
+    $ranFailed = $runOutput -match 'Test Run Failed\.' -or $runOutput -match 'Test Run Aborted\.'
+    $ranOk     = $runOutput -match 'Test Run Successful\.'
+    # Individual result lines prove the host DID execute tests, whatever the summary looked like.
+    $sawTests  = [regex]::IsMatch($runOutput, '(?m)^\s*(Passed|Failed|Skipped)\s+\S+\.\S+')
+
+    if ($failed -lt 0) {
+        # No parseable summary. Green is only honest when there is no evidence any test ran -
+        # otherwise the run happened and we simply cannot read the verdict, which must not pass.
+        if ($ranFailed -or $sawTests) {
+            Write-Host "  FAILED: UI tests ran but the result summary could not be parsed" -ForegroundColor Red
+            Write-Host "          Read extras\uitest-results.txt - do NOT treat this as a pass." -ForegroundColor Red
+            return "fail"
+        }
         Write-Host "  UI Tests: build verified (tests could not run headless - use VS Test Explorer)" -ForegroundColor Green
         return "buildonly"
     }
 
-    $failed  = [int]$summary.Groups[1].Value
-    $passed  = [int]$summary.Groups[2].Value
-    $skipped = [int]$summary.Groups[3].Value
+    if ($ranFailed -and $failed -eq 0) {
+        # Marker and counts disagree (an aborted run can report zero failures). Trust the marker.
+        Write-Host "  FAILED: test run reported failure/abort despite a zero failed-count" -ForegroundColor Red
+        Write-Host $runOutput -ForegroundColor DarkGray
+        return "fail"
+    }
+    if ($ranOk -and $failed -gt 0) { Write-Host "  (marker said success but $failed failed - trusting the count)" -ForegroundColor Yellow }
     $script:totalPassed  += $passed
     $script:totalFailed  += $failed
     $script:totalSkipped += $skipped
