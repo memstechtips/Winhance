@@ -666,6 +666,148 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             "Users", username);
     }
 
+    /// <inheritdoc />
+    public IShellRelaunchToken? CaptureShellRelaunchToken()
+    {
+        // Deliberately NOT gated on _isOtsElevation. When Marco runs Winhance elevated as himself
+        // there is no OTS, so LaunchProcessAsInteractiveUser would fall through to Process.Start -
+        // and an elevated Process.Start cannot bring the shell back. Harvest a token from the live
+        // explorer.exe instead, while it still exists.
+        try
+        {
+            uint consoleSessionId = UserTokenApi.WTSGetActiveConsoleSessionId();
+            if (consoleSessionId == 0xFFFFFFFF)
+            {
+                _logService.Log(LogLevel.Warning, "[InteractiveUserService] No active console session - cannot capture a shell relaunch token");
+                return null;
+            }
+
+            foreach (var proc in Process.GetProcessesByName("explorer"))
+            {
+                try
+                {
+                    if (!UserTokenApi.ProcessIdToSessionId((uint)proc.Id, out uint procSessionId)
+                        || procSessionId != consoleSessionId)
+                        continue;
+
+                    if (!UserTokenApi.OpenProcessToken(proc.Handle,
+                        UserTokenApi.TOKEN_QUERY | UserTokenApi.TOKEN_DUPLICATE,
+                        out IntPtr tokenHandle))
+                        continue;
+
+                    try
+                    {
+                        if (UserTokenApi.DuplicateTokenEx(
+                            tokenHandle,
+                            UserTokenApi.TOKEN_ALL_ACCESS,
+                            IntPtr.Zero,
+                            UserTokenApi.SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
+                            UserTokenApi.TOKEN_TYPE.TokenPrimary,
+                            out IntPtr duplicatedToken))
+                        {
+                            _logService.Log(LogLevel.Debug,
+                                $"[InteractiveUserService] Captured a shell relaunch token from explorer.exe (PID {proc.Id})");
+                            return new ShellRelaunchToken(duplicatedToken, _logService);
+                        }
+
+                        _logService.Log(LogLevel.Warning,
+                            $"[InteractiveUserService] Failed to duplicate the shell token (error {Marshal.GetLastWin32Error()})");
+                    }
+                    finally
+                    {
+                        UserTokenApi.CloseHandle(tokenHandle);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Debug,
+                        $"[InteractiveUserService] Could not read explorer.exe PID {proc.Id}: {ex.Message}");
+                }
+                finally
+                {
+                    proc.Dispose();
+                }
+            }
+
+            _logService.Log(LogLevel.Warning, "[InteractiveUserService] No usable explorer.exe found to capture a shell relaunch token from");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Failed to capture a shell relaunch token", ex);
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IShellRelaunchToken"/>
+    private sealed class ShellRelaunchToken(IntPtr token, ILogService logService) : IShellRelaunchToken
+    {
+        private IntPtr _token = token;
+
+        public bool TryLaunch(string fileName, string arguments = "")
+        {
+            if (_token == IntPtr.Zero)
+                return false;
+
+            IntPtr envBlock = IntPtr.Zero;
+            try
+            {
+                UserTokenApi.CreateEnvironmentBlock(out envBlock, _token, false);
+
+                var si = new UserTokenApi.STARTUPINFO
+                {
+                    cb = Marshal.SizeOf<UserTokenApi.STARTUPINFO>(),
+                    lpDesktop = "winsta0\\default",
+                };
+
+                var commandLine = string.IsNullOrEmpty(arguments)
+                    ? $"\"{fileName}\""
+                    : $"\"{fileName}\" {arguments}";
+
+                if (!UserTokenApi.CreateProcessWithTokenW(
+                    _token,
+                    UserTokenApi.LOGON_WITH_PROFILE,
+                    null,
+                    commandLine,
+                    UserTokenApi.CREATE_UNICODE_ENVIRONMENT,
+                    envBlock,
+                    null,
+                    ref si,
+                    out UserTokenApi.PROCESS_INFORMATION pi))
+                {
+                    logService.Log(LogLevel.Warning,
+                        $"[ShellRelaunchToken] CreateProcessWithTokenW failed for '{fileName}' (error {Marshal.GetLastWin32Error()})");
+                    return false;
+                }
+
+                logService.Log(LogLevel.Info,
+                    $"[ShellRelaunchToken] Relaunched '{fileName}' as the interactive shell user (PID {pi.dwProcessId})");
+                UserTokenApi.CloseHandle(pi.hThread);
+                UserTokenApi.CloseHandle(pi.hProcess);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"[ShellRelaunchToken] Failed to relaunch '{fileName}'", ex);
+                return false;
+            }
+            finally
+            {
+                if (envBlock != IntPtr.Zero)
+                    UserTokenApi.DestroyEnvironmentBlock(envBlock);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_token != IntPtr.Zero)
+            {
+                UserTokenApi.CloseHandle(_token);
+                _token = IntPtr.Zero;
+            }
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

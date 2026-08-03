@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
@@ -100,6 +101,11 @@ public class SettingApplicationService(
 
     public async Task<OperationResult> ApplySettingAsync(ApplySettingRequest request)
     {
+        // Times the WHOLE apply. That single number on the success line is what tells a user at a glance
+        // whether a toggle was fast; the per-phase Debug lines (broadcast, relationship detection) say
+        // where the time went when it was not.
+        var applyStopwatch = Stopwatch.StartNew();
+
         var settingId = request.SettingId;
         var enable = request.Enable;
         var value = request.Value;
@@ -169,15 +175,20 @@ public class SettingApplicationService(
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler");
+            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler in {applyStopwatch.ElapsedMilliseconds}ms");
 
             if (renderSetting != null)
                 LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
             return OperationResult.Succeeded();
         }
 
+        // The branch below applies the feature's recommended settings INLINE, inside the coalesced-restart
+        // scope. Named so the confirmation-checkbox rule further down can see that they have already been
+        // applied and must not apply them a second time.
+        bool recommendedAppliedInline = applyRecommended && setting.Control == ControlKind.Action;
+
         OperationResult operationResult;
-        if (applyRecommended && setting.Control == ControlKind.Action)
+        if (recommendedAppliedInline)
         {
             // One coalesced restart for the whole click: suppress the primary action's restart AND the
             // recommended batch, then flush once for primary + recommended combined.
@@ -229,13 +240,44 @@ public class SettingApplicationService(
                 .ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection, this).ConfigureAwait(false);
         }
 
+        // The confirmation checkbox on a setting with NO special handler means one thing, and every
+        // Setting_{id}_ConfirmCheckbox string that reaches here says it: also apply this feature's recommended
+        // settings. Without this the box was inert on the config-import path - cleaning the taskbar removed the
+        // pinned items and left Task View and Search showing, which is not what the prompt offered.
+        //
+        // The specialHandler-is-null guard is load-bearing. A setting WITH a special handler owns its own
+        // checkbox semantics - theme-mode-windows' box means "also change the wallpaper", which
+        // ThemeWallpaperApplier applies itself - so a generic rule without the guard would apply a whole
+        // feature's recommended settings off a wallpaper opt-in. It holds on both special-handler paths: a
+        // handler that ACCEPTS returns above, and one that DECLINES falls through to here with a non-null
+        // handler, so neither reaches this.
+        //
+        // recommendedAppliedInline excludes the live UI button path, which sets ApplyRecommended AND
+        // CheckboxResult from the same checkbox (SettingItemViewModel.RunActionAsync) and has already applied
+        // them in the coalesced-restart branch above; applying again here would double-fire. What this reaches
+        // is the config-import path (ConfigurationApplicationBridgeService), which sets CheckboxResult alone.
+        //
+        // A failure here cannot fail the main apply - the action itself already ran - so it is logged and
+        // swallowed, exactly as UpdateService treats the same call.
+        if (specialHandler is null && checkboxResult && !recommendedAppliedInline && operationResult.Success)
+        {
+            try
+            {
+                await ApplyRecommendedSettingsForFeatureAsync(settingId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply some recommended settings for '{settingId}' after its confirmation checkbox: {ex.Message}");
+            }
+        }
+
         if (!operationResult.Success)
         {
             logService.Log(LogLevel.Warning, $"[SettingApplicationService] Setting '{settingId}' partially failed: {operationResult.ErrorMessage}");
             return operationResult;
         }
 
-        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}'");
+        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' in {applyStopwatch.ElapsedMilliseconds}ms");
         if (renderSetting != null)
             LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
         return OperationResult.Succeeded();
@@ -297,28 +339,108 @@ public class SettingApplicationService(
         if (targetLabel is null)
             return;
 
-        // Pre-fetch every catalog setting's current state ONCE. currentStateOf is sync (the resolvers are pure),
-        // but DetectAsync is async, so resolve up front and serve from the cache. Detecting the whole catalog in
-        // one batch is acceptable for a one-shot apply and is simplest/correct: it covers every related id the
-        // resolvers may scan (forward Links, reverse Controls, reverse cascade dependents). DetectAsync isolates
-        // each setting's failure, so a partial machine read degrades gracefully (unknown ids resolve to null).
+        var targetState = setting.States.FirstOrDefault(st => st.Label == targetLabel);
+
+        // WHICH OTHER SETTINGS CAN THIS APPLY REACH? Every gate the three resolvers use to decide
+        // CANDIDACY is a PURE CATALOG PREDICATE - none of them reads machine state to decide whether a
+        // setting is a candidate, only to decide what to do with one that already is - so evaluating those
+        // same predicates here produces a provable SUPERSET of the ids that can yield an action:
+        //
+        //   ResolveForward        - reads currentStateOf(link.OtherId) for the Requires links on the TARGET
+        //                           state only. Its Enables links and its Controls children produce actions
+        //                           without reading any state at all.
+        //   ResolveReverseSync    - a parent is a candidate only when one of its states Controls this id;
+        //                           it then reads that parent and every child its states Control.
+        //   ResolveReverseCascade - a dependent can only act when one of its states declares
+        //                           Requires(this id, ReverseCascade: true).
+        //
+        // What this replaces was correct but detected all 414 settings after EVERY interactive apply, which
+        // is why power plans and system restore appear in the log while the user is on the Taskbar page.
+        var syncParents = SettingCatalog.All
+            .Where(p => p.States.Any(st => st.Controls?.ContainsKey(setting.Id) == true))
+            .ToList();
+
+        var cascadeDependents = SettingCatalog.All
+            .Where(d => d.States.Any(st => st.Links.Any(l =>
+                l.Kind == LinkKind.Requires && l.OtherId == setting.Id && l.ReverseCascade)))
+            .ToList();
+
+        // ResolveForward can only return an action when the TARGET STATE itself declares one - a Link of
+        // either kind, or Controls. (Relationships are a property of the state, not of the setting.)
+        bool forwardPossible = targetState is not null
+            && (targetState.Links.Count > 0 || targetState.Controls is { Count: > 0 });
+
+        // Nothing in the catalog relates to this setting in this state, so no resolver can return an action
+        // however the machine happens to be configured. Detecting anything here would be pure cost, and this
+        // is the common case: the whole relationship graph is a few dozen Links and a handful of Controls
+        // across 414 settings, so most applies stop here having read nothing.
+        if (!forwardPossible && syncParents.Count == 0 && cascadeDependents.Count == 0)
+        {
+            // SAY SO. This path used to return in silence, which made the scoping fix - the one that
+            // stopped every interactive apply detecting all 414 settings - invisible and unverifiable
+            // from a user's log.
+            logService.Log(LogLevel.Debug,
+                $"[SettingApplicationService] Relationship scope for '{setting.Id}': 0 related settings - detection skipped");
+            return;
+        }
+
+        // The ids whose CURRENT STATE a resolver can read. Anything outside this set is never handed to
+        // currentStateOf, so detecting it cannot change a single decision. The applied setting is in it
+        // because ResolveReverseSync reads the changed child's own state when scoring a parent's presets.
+        var scopeIds = new HashSet<string>(StringComparer.Ordinal) { setting.Id };
+        if (targetState is not null)
+        {
+            foreach (var link in targetState.Links)
+                if (link.Kind == LinkKind.Requires)
+                    scopeIds.Add(link.OtherId);
+        }
+        foreach (var parent in syncParents)
+        {
+            scopeIds.Add(parent.Id);
+            foreach (var state in parent.States)
+                if (state.Controls is { } controls)
+                    foreach (var childId in controls.Keys)
+                        scopeIds.Add(childId);
+        }
+        foreach (var dependent in cascadeDependents)
+            scopeIds.Add(dependent.Id);
+
+        // Materialized FROM SettingCatalog.All, so each scoped setting is the same object a full-catalog
+        // detect would have read. An id with no catalog Setting is simply not detectable - it was not
+        // detectable under the full-catalog read either, and resolves to null there too.
+        var scope = SettingCatalog.All.Where(st => scopeIds.Contains(st.Id)).ToList();
+
+        // Resolved up front and served from the cache: currentStateOf is sync (the resolvers are pure) but
+        // DetectAsync is async. DetectAsync isolates each setting's failure, so a partial machine read
+        // degrades gracefully (unknown ids resolve to null). Detection is per-setting - the context
+        // pre-fetches from the batch's own targets and every custom detector reads only its own setting - so
+        // a scoped batch returns exactly the results the full-catalog batch returned for these ids.
         Dictionary<string, CatalogDetectionResult> detected;
+        var detectStopwatch = Stopwatch.StartNew();
         try
         {
-            detected = await catalogDetection.DetectAsync(SettingCatalog.All).ConfigureAwait(false);
+            detected = await catalogDetection.DetectAsync(scope).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Catalog relationship detection failed for '{setting.Id}': {ex.Message}");
+            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Catalog relationship detection failed for '{setting.Id}' after {detectStopwatch.ElapsedMilliseconds}ms: {ex.Message}");
             return;
         }
+
+        // The other half of the scope story: how many settings the resolvers can actually reach, and what
+        // reading their current state cost.
+        logService.Log(LogLevel.Debug,
+            $"[SettingApplicationService] Relationship scope for '{setting.Id}': {scope.Count} related settings, detected in {detectStopwatch.ElapsedMilliseconds}ms");
 
         string? currentStateOf(string id) =>
             detected != null && detected.TryGetValue(id, out var r) ? r.StateLabel : null;
 
+        // Each reverse resolver gets the candidate list that passes ITS OWN first gate rather than the whole
+        // catalog. Every setting left out would have been dropped by that resolver's very next line, so the
+        // actions returned are identical - this narrows the loop, never the behaviour.
         var fwd = RelationshipResolver.ResolveForward(setting, targetLabel, currentStateOf);
-        var sync = RelationshipResolver.ResolveReverseSync(setting.Id, SettingCatalog.All, currentStateOf);
-        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, SettingCatalog.All, currentStateOf, CurrentBuild());
+        var sync = RelationshipResolver.ResolveReverseSync(setting.Id, syncParents, currentStateOf);
+        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, cascadeDependents, currentStateOf, CurrentBuild());
 
         // Self-skip + visited loop guard. Seed with the setting being applied so a relationship pointing back at
         // it is never re-applied.

@@ -40,7 +40,7 @@
                 HorizontalAlignment="Stretch"
                 ToolTipService.ToolTip="{x:Bind OutcomeTooltip, Mode=OneWay}"
                 Width="{x:Bind PinnedWidth, Mode=OneWay}"
-                MinWidth="{x:Bind PinnedWidth, Mode=OneWay}"
+                MinWidth="{x:Bind PinnedMinWidth, Mode=OneWay}"
                 MaxWidth="{x:Bind PinnedMaxWidth, Mode=OneWay}"
                 AutomationProperties.Name="{x:Bind InputAutomationName, Mode=OneWay}"/>
             <!-- Left margin matches the ComboBox's content inset so the text lands where a selected

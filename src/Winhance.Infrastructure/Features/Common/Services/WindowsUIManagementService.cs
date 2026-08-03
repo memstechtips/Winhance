@@ -1,23 +1,24 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class WindowsUIManagementService : IWindowsUIManagementService
 {
-    private readonly ILogService _logService;
-    private readonly IProcessExecutor _processExecutor;
+    // The shell's taskbar window class. Its presence IS the definition of "a shell is running", and it is
+    // the window the graceful-exit message is posted to.
+    private const string ShellTrayWindowClass = "Shell_TrayWnd";
+    private const string ShellProcessName = "explorer";
 
-    public WindowsUIManagementService(ILogService logService, IProcessExecutor processExecutor)
+    private readonly ILogService _logService;
+
+    public WindowsUIManagementService(ILogService logService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     }
 
     public bool IsProcessRunning(string processName)
@@ -62,86 +63,179 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    public async Task<OperationResult> RefreshWindowsGUI(bool killExplorer = true)
+    public bool KillProcessAndWait(string processName, int timeoutMs)
+    {
+        var deadline = Environment.TickCount64 + timeoutMs;
+        try
+        {
+            var processes = Process.GetProcessesByName(processName);
+            foreach (var process in processes)
+            {
+                try
+                {
+                    process.Kill();
+                    // Process.Kill only REQUESTS termination. Without this wait the caller's very next
+                    // "is it running" poll still sees the dying process.
+                    var remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+                    if (!process.WaitForExit(remaining))
+                        _logService.Log(LogLevel.Warning,
+                            $"Process {processName} did not exit within the timeout");
+                }
+                catch (Exception ex)
+                {
+                    // Already exited between enumeration and Kill is the common, harmless case.
+                    _logService.Log(LogLevel.Debug, $"Killing {processName}: {ex.Message}");
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+
+            return !IsProcessRunning(processName);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Failed to kill process {processName}", ex);
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public bool IsShellWindowAlive()
     {
         try
         {
-            IntPtr result;
-            User32Api.SendMessageTimeout(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SYSCOLORCHANGE,
-                IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
-            User32Api.SendMessageTimeout(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_THEMECHANGE,
-                IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+            return User32Api.FindWindow(ShellTrayWindowClass, null) != IntPtr.Zero;
+        }
+        catch (Exception ex)
+        {
+            // Fail CLOSED. "No shell" makes the caller launch one; claiming a shell is alive off a probe
+            // that threw would leave the user with no taskbar.
+            _logService.Log(LogLevel.Debug, $"Shell window probe failed: {ex.Message}");
+            return false;
+        }
+    }
 
-            if (killExplorer)
+    /// <inheritdoc />
+    public bool TryGracefulShellExit(int timeoutMs)
+    {
+        var deadline = Environment.TickCount64 + timeoutMs;
+        try
+        {
+            var taskbar = User32Api.FindWindow(ShellTrayWindowClass, null);
+            if (taskbar == IntPtr.Zero)
             {
-                await Task.Delay(500).ConfigureAwait(false);
+                _logService.Log(LogLevel.Debug,
+                    "No taskbar window found, so there is nothing to post the graceful shell-exit message to");
+                return false;
+            }
 
-                bool explorerWasRunning = IsProcessRunning("explorer");
+            // Handles FIRST. Once the shell has been asked to leave there may be nothing left to enumerate,
+            // and waiting on the handles we already hold is the only precise verdict available.
+            var processes = Process.GetProcessesByName(ShellProcessName);
+            if (processes.Length == 0)
+                return false;
 
-                if (explorerWasRunning)
+            try
+            {
+                if (!User32Api.PostMessage(taskbar, User32Api.WM_SHELL_GRACEFUL_EXIT, IntPtr.Zero, IntPtr.Zero))
                 {
-                    KillProcess("explorer");
-                    await Task.Delay(1000).ConfigureAwait(false);
+                    _logService.Log(LogLevel.Debug, "Posting the graceful shell-exit message failed");
+                    return false;
+                }
 
-                    int retryCount = 0;
-                    const int maxRetries = 5;
-                    bool explorerRestarted = false;
-
-                    while (retryCount < maxRetries && !explorerRestarted)
+                bool allExited = true;
+                foreach (var process in processes)
+                {
+                    try
                     {
-                        if (IsProcessRunning("explorer"))
-                        {
-                            explorerRestarted = true;
-                        }
-                        else
-                        {
-                            retryCount++;
-                            await Task.Delay(1000).ConfigureAwait(false);
-                        }
+                        var remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+                        if (!process.WaitForExit(remaining))
+                            allExited = false;
                     }
-
-                    if (!explorerRestarted)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            await _processExecutor.ShellExecuteAsync("explorer.exe").ConfigureAwait(false);
-                            await Task.Delay(2000).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.LogError("Failed to start Explorer manually", ex);
-                            return OperationResult.Failed("Failed to start Explorer manually", ex);
-                        }
+                        // Cannot PROVE it exited, so report failure and let the caller terminate it.
+                        _logService.Log(LogLevel.Debug,
+                            $"Waiting for {ShellProcessName} to exit gracefully: {ex.Message}");
+                        allExited = false;
                     }
                 }
+
+                return allExited;
             }
+            finally
+            {
+                foreach (var process in processes)
+                    process.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError(
+                "Graceful Explorer exit failed; the caller falls back to terminating it", ex);
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public void BroadcastShellRefresh()
+    {
+        try
+        {
+            // The generic WM_SETTINGCHANGE, NULL lParam. NO POINTER PAYLOAD, so there is nothing a receiver
+            // can read after we return: SendNotifyMessage returns immediately and is Microsoft's own
+            // recommendation for HWND_BROADCAST. It costs nothing per window, which is exactly why this is
+            // the one message every Explorer-restart setting gets.
+            User32Api.SendNotifyMessage(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error broadcasting shell refresh", ex);
+        }
+    }
+
+    /// <inheritdoc />
+    public void BroadcastThemeRefresh()
+    {
+        try
+        {
+            // These two carry NO POINTER PAYLOAD, so there is nothing a receiver can read after we return:
+            // SendNotifyMessage returns immediately and is Microsoft's own recommendation for HWND_BROADCAST.
+            User32Api.SendNotifyMessage(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero);
+            User32Api.SendNotifyMessage(
+                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero);
 
             string themeChanged = "ImmersiveColorSet";
             IntPtr themeChangedPtr = Marshal.StringToHGlobalUni(themeChanged);
 
             try
             {
+                // MUST STAY SYNCHRONOUS. lParam is a pointer to the string above and the finally below frees
+                // it, so an asynchronous send would return before the receivers had read it and they would read
+                // freed memory. Only the per-window timeout is reduced (1000ms -> 100ms); SMTO_ABORTIFHUNG stays.
+                //
+                // THIS CALL IS THE COST. SendMessageTimeout charges its timeout PER TOP-LEVEL WINDOW on a
+                // broadcast (Microsoft docs: "if you specify a five second time-out period and there are three
+                // top-level windows that fail to process the message, you could have up to a 15 second delay"),
+                // so 100ms x ~20 busy windows is the 2s stall a user saw with nothing in the log. Splitting the
+                // broadcast is what keeps the other ~43 Explorer-restart settings from paying it.
+                IntPtr result;
                 User32Api.SendMessageTimeout(
                     (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
-                    IntPtr.Zero, themeChangedPtr, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
-
-                User32Api.SendMessageTimeout(
-                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
-                    IntPtr.Zero, IntPtr.Zero, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+                    IntPtr.Zero, themeChangedPtr, User32Api.SMTO_ABORTIFHUNG, 100, out result);
             }
             finally
             {
                 Marshal.FreeHGlobal(themeChangedPtr);
             }
-
-            return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
-            _logService.LogError("Error refreshing Windows GUI", ex);
-            return OperationResult.Failed("Error refreshing Windows GUI", ex);
+            _logService.LogError("Error broadcasting theme refresh", ex);
         }
     }
 

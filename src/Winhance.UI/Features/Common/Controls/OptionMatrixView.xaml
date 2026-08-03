@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.OptionMatrixView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Winhance.UI.Features.Common.Controls"
+    HorizontalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch">
+
+    <!-- One bordered box holding the grid, the grid's scrollbar, and the code blocks. The code is
+         NOT part of the grid: a script line is far wider than any column, and as a spanning cell it
+         charged its whole width to the last column, leaving an enormous empty column and pushing the
+         grid's scrollbar down below the code where it could not be seen while reading the grid. -->
+    <Border BorderBrush="{ThemeResource TechDetail.Table.StrokeBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+        <StackPanel>
+            <!-- Sizes to its content height; only the value columns move sideways, and the pinned
+                 cells are held in place inside the same layout pass. -->
+            <controls:TechnicalDetailsTable x:Name="Table" FrozenColumnCount="2"/>
+
+            <!-- Its own scrollbar rather than a ScrollViewer: the table is not a scrolling control,
+                 it just reads an offset. Hidden entirely when everything fits. Margin is set in
+                 code, to start where the scrolling columns start rather than under the frozen ones. -->
+            <ScrollBar x:Name="HorizontalScroll"
+                       Orientation="Horizontal"
+                       Minimum="0"
+                       SmallChange="24"
+                       IndicatorMode="MouseIndicator"
+                       Visibility="Collapsed"
+                       Scroll="OnScroll"/>
+
+            <!-- Scripts and .reg payloads, built in code. Each gets a scroller of its own so a long
+                 line is reachable without widening anything above it. -->
+            <StackPanel x:Name="CodeHost"/>
+        </StackPanel>
+    </Border>
+</UserControl>

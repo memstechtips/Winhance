@@ -56,6 +56,7 @@ public sealed partial class CustomizePage : Page
     private bool _showOnlyChanges;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _settingsRefreshedSubscription;
+    private ISubscriptionToken? _settingLinkSubscription;
 
     public CustomizeViewModel ViewModel { get; }
 
@@ -151,6 +152,13 @@ public sealed partial class CustomizePage : Page
                 {
                     DispatcherQueue.TryEnqueue(() => { UpdateOverviewBadgePills(); UpdateOverviewNewBadges(); });
                 });
+                // A Technical Details requirement chip naming another setting was clicked. Only
+                // this page knows which of its sections holds it, so resolution happens here.
+                _settingLinkSubscription?.Dispose();
+                _settingLinkSubscription = eventBus.Subscribe<SettingLinkRequestedEvent>(e =>
+                {
+                    DispatcherQueue.TryEnqueue(() => GoToLinkedSetting(e.SettingId, e.SettingName));
+                });
                 _settingsRefreshedSubscription?.Dispose();
                 _settingsRefreshedSubscription = eventBus.Subscribe<SettingsRefreshedEvent>(e =>
                 {
@@ -210,7 +218,20 @@ public sealed partial class CustomizePage : Page
         _settingAppliedSubscription = null;
         _settingsRefreshedSubscription?.Dispose();
         _settingsRefreshedSubscription = null;
+        _settingLinkSubscription?.Dispose();
+        _settingLinkSubscription = null;
         ViewModel.OnNavigatedFrom();
+    }
+
+    /// <summary>
+    /// Takes the user to a setting another one named. Falls back to the section currently open when
+    /// this page does not hold it -- the setting is on the other page, and pre-applying the search
+    /// where the user already is beats navigating them somewhere it also is not.
+    /// </summary>
+    private void GoToLinkedSetting(string settingId, string settingName)
+    {
+        var sectionKey = ViewModel.FindSectionForSetting(settingId) ?? ViewModel.CurrentSectionKey;
+        if (!string.IsNullOrEmpty(sectionKey)) NavigateToSection(sectionKey, settingName);
     }
 
     public void NavigateToSection(string sectionKey, string? searchText = null)
@@ -402,17 +423,12 @@ public sealed partial class CustomizePage : Page
 
     private void UpdateOverviewBadgePills()
     {
-        // The outcome banners are refreshed on the SAME events as the pills, so the two can never
-        // disagree - but they are deliberately NOT gated by _isInfoBadgesVisible. A detection outcome is
-        // a fault, not optional detail, so hiding it behind View > InfoBadges would be backwards.
+        // The banners refresh themselves; they only need the service. Deliberately NOT gated by
+        // _isInfoBadgesVisible - a detection outcome is a fault, not optional detail.
         WindowsThemeOutcomeBanner.Localization = _localizationService;
-        WindowsThemeOutcomeBanner.Refresh();
         TaskbarOutcomeBanner.Localization = _localizationService;
-        TaskbarOutcomeBanner.Refresh();
         StartMenuOutcomeBanner.Localization = _localizationService;
-        StartMenuOutcomeBanner.Refresh();
         ExplorerOutcomeBanner.Localization = _localizationService;
-        ExplorerOutcomeBanner.Refresh();
 
         UpdateFeatureOverviewPills(
             ViewModel.WindowsThemeViewModel,

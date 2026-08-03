@@ -1,17 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Section header bar (used for every collapsible section) -->
-    <Style x:Key="TechDetail.SectionHeader" TargetType="Button">
-        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Padding" Value="8,6"/>
-        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
-        <Setter Property="BorderThickness" Value="1,0,1,1"/>
-        <Setter Property="CornerRadius" Value="0"/>
-    </Style>
+    <ResourceDictionary.ThemeDictionaries>
+        <!-- The option matrix's border and grid lines, ported from WinUI.TableView's
+             Themes/Resources.xaml (MIT - see THIRD-PARTY-NOTICES.txt). It picks a different stroke
+             per theme deliberately: the card stroke reads as a clean hairline on white but all but
+             disappears against a dark card, where the control stroke is the visible one. -->
+        <ResourceDictionary x:Key="Dark">
+            <StaticResource x:Key="TechDetail.Table.StrokeBrush" ResourceKey="ControlStrokeColorDefaultBrush"/>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <StaticResource x:Key="TechDetail.Table.StrokeBrush" ResourceKey="CardStrokeColorDefaultBrush"/>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="HighContrast">
+            <StaticResource x:Key="TechDetail.Table.StrokeBrush" ResourceKey="SystemColorButtonTextColorBrush"/>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
 
     <!-- PowerShell code block -->
     <Style x:Key="TechDetail.CodeBlock.PowerShell" TargetType="Border">
@@ -31,23 +40,182 @@
         <Setter Property="CornerRadius" Value="2"/>
     </Style>
 
-    <!-- Shared text style for code blocks -->
+    <!-- Shared text style for code blocks. Wraps rather than clips: a script the user can't read
+         to the end documents nothing. -->
     <Style x:Key="TechDetail.CodeText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Consolas,Cascadia Code,Courier New"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Foreground" Value="#FFDDDDDD"/>
         <Setter Property="IsTextSelectionEnabled" Value="True"/>
-        <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
 
-    <!-- Dependency chip -->
-    <Style x:Key="TechDetail.DependencyChip" TargetType="Border">
+    <!-- ==================== Option matrix ====================
+
+         These are STYLES rather than brushes set in code-behind: the table is built in C#, and a
+         brush fetched from Application.Resources is resolved once and then frozen, so it would not
+         follow a light/dark switch. A ThemeResource inside a Style setter stays live.
+
+         The metrics are WinUI.TableView's own (MIT - see THIRD-PARTY-NOTICES.txt), so the panel
+         reads as the same control users see on the Software & Apps page:
+
+           - header row at least 32 high, body rows at least 40;
+           - 12px of horizontal padding, with the row height rather than vertical padding doing the
+             vertical spacing, which is what keeps every row the same height regardless of content;
+           - 1px grid lines on the right and bottom edge of each cell.
+
+         Edge cells drop the line that would otherwise double up against the table's own border, and
+         the four outer corners are rounded to 4 to match the Software & Apps table. Both are decided
+         per cell by OptionMatrixView, because only it knows which cell is last. -->
+
+    <!-- Row 0: the spanning header naming where this group of columns is written. Taller than a
+         plain column header because it carries a path and the button that opens it. -->
+    <Style x:Key="TechDetail.Table.HeaderBand" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource TechDetail.Table.StrokeBrush}"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Padding" Value="12,4"/>
+    </Style>
+
+    <!-- Row 1: one cell per column, naming the value written there. -->
+    <Style x:Key="TechDetail.Table.HeaderCell" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource TechDetail.Table.StrokeBrush}"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Padding" Value="12,4"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.GroupLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- The sentence beside a group's name saying what Winhance does with those locations. Wraps,
+         because the group's width is set by the columns underneath it, not by this. -->
+    <Style x:Key="TechDetail.Table.GroupDescription" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <!-- A size down from the rest of the table and in the secondary colour: the path is context for
+         the columns beside it, not a column of its own, and its width is charged to those columns. -->
+    <Style x:Key="TechDetail.Table.GroupPath" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="IsTextSelectionEnabled" Value="True"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.RegeditButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="4,0"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.HeaderText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="IsTextSelectionEnabled" Value="True"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.HeaderType" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <!-- Names what the reader is looking at: Path, Value name, Value data. Proportional rather than
+         monospaced and a size down, so it reads as a label for the value beside it rather than as
+         another value. Without these the panel shows a path, a name and a number and leaves the
+         reader to work out which is which. -->
+    <Style x:Key="TechDetail.Table.HeaderCaption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}"/>
+    </Style>
+
+    <!-- Body cell. The height, not the padding, is what separates the rows. -->
+    <Style x:Key="TechDetail.Table.Cell" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource TechDetail.Table.StrokeBrush}"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Padding" Value="12,0"/>
+    </Style>
+
+    <!-- Divider between two script groups under the grid. Same hairline the grid rows use, at
+         full bleed like them, so the code section reads as a continuation of the table rather
+         than a list stuck underneath. Between groups only: the box border closes the last one. -->
+    <Style x:Key="TechDetail.Table.CodeSeparator" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource TechDetail.Table.StrokeBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.OptionLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="IsTextSelectionEnabled" Value="True"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.Value" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="IsTextSelectionEnabled" Value="True"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.ValueCurrent" TargetType="TextBlock"
+           BasedOn="{StaticResource TechDetail.Table.Value}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.ReadingLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.ChipText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <!-- The setting name inside a Requires chip. Sized and coloured like the chip text around it,
+         with only the accent foreground and the pointer marking it as somewhere to go: a full-size
+         HyperlinkButton would tower over the 10px text it sits in the middle of. -->
+    <Style x:Key="TechDetail.ChipLink" TargetType="HyperlinkButton">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="TechDetail.ChipLinkText" TargetType="TextBlock"
+           BasedOn="{StaticResource TechDetail.ChipText}">
+        <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+        <Setter Property="TextDecorations" Value="Underline"/>
+    </Style>
+
+    <!-- Metadata chip on a location row (Group Policy, written-not-read, mirrored key, ...) -->
+    <Style x:Key="TechDetail.Chip" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Padding" Value="8,3"/>
-        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Padding" Value="8,2"/>
+        <Setter Property="Margin" Value="0"/>
     </Style>
 
 </ResourceDictionary>

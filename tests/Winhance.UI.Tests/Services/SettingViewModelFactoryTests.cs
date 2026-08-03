@@ -219,6 +219,37 @@ public class SettingViewModelFactoryTests
         result.SelectedValue.Should().Be(1);
     }
 
+    // ---- Detect-only states: skipped, never renumbered ----
+
+    [Fact]
+    public async Task CreateAsync_SelectionSetting_LeavesDetectOnlyStatesOutOfTheOptionList()
+    {
+        // A detect-only state is one detection can resolve to but the user cannot pick. Offering it as a
+        // dropdown entry would offer a choice that writes nothing.
+        var setting = CreateSelectionSettingWithDetectOnlyState("DetectOnlySetting");
+        var state = new SettingStateResult { CurrentValue = 0, Success = true };
+
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
+
+        result.ComboBoxOptions.Should().HaveCount(2);
+        result.ComboBoxOptions.Select(o => o.DisplayText).Should().NotContain("Setting_DetectOnlySetting_Option_1");
+    }
+
+    [Fact]
+    public async Task CreateAsync_SelectionSetting_SurvivingOptionsKeepTheirOwnStateIndex()
+    {
+        // THE invariant behind the skip. Option Value == state index is what the drop-down-closed handler
+        // applies, what a saved .winhance config persists, and what the review diff compares - so a skipped
+        // state must NOT pull the states after it down by one. Here the skipped state sits in the MIDDLE,
+        // so a renumbering filter would produce 0,1 and this test would fail.
+        var setting = CreateSelectionSettingWithDetectOnlyState("DetectOnlySetting");
+        var state = new SettingStateResult { CurrentValue = 0, Success = true };
+
+        var result = await _sut.CreateAsync(setting, state, null, null, null, null);
+
+        result.ComboBoxOptions.Select(o => (int)o.Value).Should().Equal(0, 2);
+    }
+
     // ── Review diff ──
 
     [Fact]
@@ -318,6 +349,21 @@ public class SettingViewModelFactoryTests
             {
                 new SettingState { Label = "Option A" },
                 new SettingState { Label = "Option B" },
+            },
+        };
+
+    // The detect-only state sits at index 1, DELIBERATELY not last, so the skip-not-renumber assertion
+    // cannot pass by accident the way a trailing skip would.
+    private static Setting CreateSelectionSettingWithDetectOnlyState(string id) =>
+        new Setting
+        {
+            Id = id,
+            Display = new() { Name = "Selection", Description = "Selection setting", GroupName = "" },
+            States = new[]
+            {
+                new SettingState { Label = "Option A" },
+                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+                new SettingState { Label = "Option C" },
             },
         };
 }

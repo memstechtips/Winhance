@@ -5,8 +5,9 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>
 /// Validates a Setting's authoring against the structural invariants the detection engine relies on.
-/// Pure; returns ALL violations (empty list = valid). Cross-setting rules like acyclic relationship graphs
-/// are checked separately by ValidateCatalog (DetectLinkCycles).
+/// Pure; returns ALL violations (empty list = valid). Cross-setting rules - acyclic relationship graphs,
+/// and the resolution of every setting id AND every state LABEL one setting names on another - are checked
+/// separately by ValidateCatalog.
 /// </summary>
 public static class CatalogValidator
 {
@@ -39,6 +40,14 @@ public static class CatalogValidator
         foreach (var s in setting.States.Where(s => !s.IsFallback && s.Set.Count == 0))
             errors.Add(new CatalogValidationError(id, $"State '{s.Label}' has an empty Set and is not IsFallback — it would be undetectable."));
 
+        // R7: a detect-only state is not a choice, so it cannot be RECOMMENDED or be what Windows
+        // ships - both roles are claims about a state the user can end up in deliberately. Read the raw
+        // Roles rather than HasRole so a BUILD-SCOPED role is caught too (HasRole deliberately ignores those).
+        foreach (var st in setting.States.Where(st => st.IsDetectOnly))
+            foreach (var role in st.Roles.Where(r => r.Kind is RoleKind.Recommended or RoleKind.WindowsDefault))
+                errors.Add(new CatalogValidationError(id,
+                    $"State '{st.Label}' is IsDetectOnly and cannot carry the {role.Kind} role - it is not a state the user can choose."));
+
         // R4: each state's Set keys must line up with the detectable target keys.
         // A non-fallback state must cover EVERY target (so two states can't ambiguously both match by
         // one omitting a discriminating key). A fallback state is the last-resort catch-all, so it may
@@ -68,6 +77,8 @@ public static class CatalogValidator
                 errors.Add(new CatalogValidationError(id, $"State '{st.Label}' Controls cannot reference its own setting."));
         if (setting.UiParentId == id)
             errors.Add(new CatalogValidationError(id, "UiParentId cannot be its own setting."));
+        if (setting.EnabledWhen?.OtherId == id)
+            errors.Add(new CatalogValidationError(id, "EnabledWhen cannot reference its own setting."));
 
         // R6: setting-level Effects are the Action mechanism - a stateless one-shot, never detected. If a
         // setting carries any, it must have no States, Targets, or Detector. Conversely a setting that detects
@@ -88,8 +99,9 @@ public static class CatalogValidator
 
     /// <summary>
     /// Cross-setting checks that need the whole catalog: unique ids, every relationship target exists,
-    /// and the Link relationship graph is acyclic (an auto-applied requirement that loops back would
-    /// recurse without this cycle guard).
+    /// every state LABEL one setting names on another resolves to a real (and, where the relationship
+    /// DEMANDS it, choosable) state on that setting, and the Link relationship graph is acyclic (an
+    /// auto-applied requirement that loops back would recurse without this cycle guard).
     /// </summary>
     public static IReadOnlyList<CatalogValidationError> ValidateCatalog(IReadOnlyList<Setting> settings)
     {
@@ -110,6 +122,64 @@ public static class CatalogValidator
                         errors.Add(new CatalogValidationError(s.Id, $"Controls child '{childId}' is not a known setting."));
             if (s.UiParentId is { } parent && !ids.Contains(parent))
                 errors.Add(new CatalogValidationError(s.Id, $"UiParentId '{parent}' is not a known setting."));
+            if (s.EnabledWhen is { } gate && !ids.Contains(gate.OtherId))
+                errors.Add(new CatalogValidationError(s.Id, $"EnabledWhen target '{gate.OtherId}' is not a known setting."));
+
+            // EVERY STATE LABEL ONE SETTING NAMES ON ANOTHER MUST RESOLVE, and must not resolve to a
+            // state nothing may DEMAND. Two questions about the same lookup, so they are asked together
+            // for each of the three ways a label crosses a setting boundary.
+            //
+            // "Does it exist" was missing until now - only the setting ID was ever checked - so a label
+            // that matched no state failed silently and permanently: gaming-performance-prefetch required
+            // gaming-sysmain-service in "Enabled", a label that setting has never had (its states are
+            // Disabled/Manual/Automatic), so ResolveReverseCascade saw a requirement that could never be
+            // met and reset Prefetch to its Windows default on ANY SysMain change. A dangling label is
+            // never intentional - it is a rename or a copy/paste - and it produces behaviour no reader of
+            // the catalog would predict.
+            //
+            // "Is it detect-only" applies to Controls and Links but NOT to EnabledWhen: those two DEMAND a
+            // state (an apply that targets an unchoosable one writes nothing), while a gate merely OBSERVES
+            // one. "Usable while the master reads Mixed" is a perfectly sane thing for a gate to say.
+            foreach (var l in s.States.SelectMany(st => st.Links))
+            {
+                var other = settings.FirstOrDefault(o => o.Id == l.OtherId);
+                if (other is null)
+                    continue; // unknown target - already reported above
+                var required = other.States.FirstOrDefault(os => os.Label == l.RequiredState);
+                if (required is null)
+                    errors.Add(new CatalogValidationError(s.Id,
+                        $"Link {l.Kind} '{l.OtherId}' names required state '{l.RequiredState}', which is not a state on that setting."));
+                else if (required.IsDetectOnly)
+                    errors.Add(new CatalogValidationError(s.Id,
+                        $"Link {l.Kind} '{l.OtherId}' names required state '{l.RequiredState}', which is a detect-only state on that setting."));
+            }
+
+            foreach (var st in s.States)
+            {
+                if (st.Controls is not { } controls)
+                    continue;
+                foreach (var entry in controls)
+                {
+                    var child = settings.FirstOrDefault(c => c.Id == entry.Key);
+                    if (child is null)
+                        continue; // unknown child - already reported above
+                    var wanted = child.States.FirstOrDefault(cs => cs.Label == entry.Value);
+                    if (wanted is null)
+                        errors.Add(new CatalogValidationError(s.Id,
+                            $"State '{st.Label}' Controls '{entry.Key}' into '{entry.Value}', which is not a state on that setting."));
+                    else if (wanted.IsDetectOnly)
+                        errors.Add(new CatalogValidationError(s.Id,
+                            $"State '{st.Label}' Controls '{entry.Key}' into '{entry.Value}', which is a detect-only state on that setting."));
+                }
+            }
+
+            if (s.EnabledWhen is { } declaredGate
+                && settings.FirstOrDefault(o => o.Id == declaredGate.OtherId) is { } gateTarget)
+            {
+                foreach (var label in declaredGate.States.Where(label => gateTarget.States.All(os => os.Label != label)))
+                    errors.Add(new CatalogValidationError(s.Id,
+                        $"EnabledWhen names state '{label}' on '{declaredGate.OtherId}', which is not a state on that setting."));
+            }
         }
 
         errors.AddRange(DetectLinkCycles(settings, ids));

@@ -121,6 +121,8 @@ public sealed partial class SettingsCardItem : UserControl
             InputType.Toggle or InputType.CheckBox => vm.IsSelected ? vm.OnText : vm.OffText,
             InputType.Selection => vm.ComboBoxOptions
                 ?.FirstOrDefault(o => Equals(o.Value, vm.SelectedValue))?.DisplayText
+                // A detect-only state is a real state with no option to name it - announce the state.
+                ?? (vm.DetectOnlySelectedState is not null ? vm.DetectOnlyStateText : (string?)null)
                 ?? vm.SelectedValue?.ToString() ?? "changed",
             InputType.NumericRange => vm.NumericValue.ToString(),
             _ => "applied"

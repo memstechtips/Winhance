@@ -729,7 +729,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </Button>
@@ -739,7 +739,7 @@
                     AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.IsInReviewMode, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
@@ -750,7 +750,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.InstallButtonText}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.InstallButtonText}"/>
                 </StackPanel>
             </ToggleButton>
@@ -761,7 +761,7 @@
                           AutomationProperties.Name="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"
                           Padding="10,6,12,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.RemoveButtonText, Mode=OneWay}"/>
                 </StackPanel>
             </ToggleButton>
@@ -772,14 +772,14 @@
                     <KeyboardAccelerator Key="F5"/>
                 </Button.KeyboardAccelerators>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.RefreshButtonText}"/>
                 </StackPanel>
             </Button>
             <Button Command="{x:Bind ViewModel.ShowHelpCommand}"
                     AutomationProperties.Name="{x:Bind ViewModel.HelpButtonText}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Regular" FontSize="18"/>
+                    <fluentIcons:FluentIcon Icon="QuestionCircle" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.HelpButtonText}"/>
                 </StackPanel>
             </Button>
@@ -797,7 +797,7 @@
                                   BorderThickness="0"
                                   CornerRadius="4,0,0,4"
                                   Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="Grid" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="Grid" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     </ToggleButton>
                     <ToggleButton x:Name="TableViewToggle"
                                   IsChecked="{x:Bind ViewModel.IsTableView, Mode=OneWay}"
@@ -808,7 +808,7 @@
                                   BorderThickness="0"
                                   CornerRadius="0"
                                   Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="TableSimple" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     </ToggleButton>
                     <ToggleButton x:Name="CompactViewToggle"
                                   IsChecked="{x:Bind ViewModel.IsCompactView, Mode=OneWay}"
@@ -819,7 +819,7 @@
                                   BorderThickness="0"
                                   CornerRadius="0,4,4,0"
                                   Padding="10,6">
-                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="18"/>
+                        <fluentIcons:FluentIcon Icon="LineHorizontal3" IconVariant="Regular" FontSize="{StaticResource ActionBarIconFontSize}"/>
                     </ToggleButton>
                 </StackPanel>
             </Border>

@@ -56,6 +56,7 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
+            EnabledWhen = new("windows-pushnotifications", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" }, "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND", RegistryValueKind.DWord),
@@ -88,6 +89,7 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
+            EnabledWhen = new("windows-pushnotifications", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" }, "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK", RegistryValueKind.DWord),
@@ -130,6 +132,7 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
+            EnabledWhen = new("windows-pushnotifications", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" }, "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK", RegistryValueKind.DWord),
@@ -163,6 +166,9 @@ public static class NotificationOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
+            // NO EnabledWhen, unlike its three siblings: ShowNotificationIcon is a tray-icon
+            // preference Explorer honours whether or not toasts are on, so it stays usable while
+            // notifications are off. Nesting is where the card is drawn, not a claim about meaning.
             Targets = new Target[]
             {
                 new RegTarget("ShowNotificationIcon", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowNotificationIcon", RegistryValueKind.DWord),

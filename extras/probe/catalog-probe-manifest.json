@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "4bf07cc60c11af245a5efef5433bec7c97e49fc72545b6bcb53f694676bbe979",
+  "catalogHash": "3e0a57352b14535362677efa4b361c55b303b95525e458fa11b2448c562db571",
   "settingCount": 414,
   "settings": [
     {
@@ -137,6 +137,13 @@
               "writePayload": 0
             }
           },
+          "resetSet": null
+        },
+        {
+          "label": "Mixed",
+          "isFallback": true,
+          "roles": [],
+          "set": {},
           "resetSet": null
         }
       ]

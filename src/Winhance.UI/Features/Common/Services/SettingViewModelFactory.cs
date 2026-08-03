@@ -259,7 +259,13 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     ///
     /// The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == the -1
     /// sentinel) is shown by the card's outcome overlay instead of by a synthetic list entry: a fake
-    /// "Custom" item made an unreadable value read as a deliberate choice, and it was pickable.
+    /// "Custom" item made an unreadable value read as a deliberate choice, and it was pickable. A
+    /// <see cref="SettingState.IsDetectOnly"/> state is left out for the same reason from the other
+    /// direction: detection can land on it, but choosing it would write nothing.
+    ///
+    /// SKIP, NEVER RENUMBER. A skipped state does not shift the ones after it: every option keeps its own
+    /// STATE index as its Value, because that index is what the drop-down-closed handler applies, what a
+    /// saved .winhance config persists, and what the review diff compares.
     /// </summary>
     private void BuildCatalogSelectionOptions(Setting setting, ObservableCollection<ComboBoxDisplayOption> options)
     {
@@ -267,6 +273,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];
+            if (state.IsDetectOnly)
+                continue; // not a choice - see the skip-not-renumber note above
             // When the state Label is itself a shared localization key
             // (Template_* / ServiceOption_* / Setting_* / PowerPlan_*), look it up AS the key; otherwise
             // build the per-setting Setting_{id}_Option_{i} key. state.Label is the final raw fallback.
@@ -285,9 +293,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     }
 
     // Per-option warnings sourced from the catalog Setting's States. Localized via the canonical
-    // Setting_{id}_OptionWarning_{i} key with the raw state.Warning as the fallback. Index-aligned with the
-    // options BuildCatalogSelectionOptions builds (one per State), which is how the status banner indexes the
-    // list. Null for a stateless setting (e.g. the dynamic power-plan).
+    // Setting_{id}_OptionWarning_{i} key with the raw state.Warning as the fallback. Indexed by STATE index -
+    // one entry per State, including any BuildCatalogSelectionOptions skips - because the status banner looks
+    // it up by the selected VALUE, which is the state index. Null for a stateless setting (the power-plan).
     private IReadOnlyList<string?>? BuildCatalogOptionWarnings(Setting setting)
     {
         if (setting.States.Count == 0)

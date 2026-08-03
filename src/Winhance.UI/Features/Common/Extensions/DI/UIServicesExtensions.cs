@@ -117,6 +117,9 @@ public static class UIServicesExtensions
         services.AddSingleton<ReviewModeBarViewModel>();
         services.AddSingleton<BuilderModeBarViewModel>();
 
+        // Pending Explorer restart bar (Singleton - one bar, observed across every page)
+        services.AddSingleton<PendingRestartViewModel>();
+
         // MainWindow ViewModel (Singleton - one main window)
         services.AddSingleton<MainWindowViewModel>();
 

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    Icon sizes, keyed by what the icon IS rather than how big it is, so two concepts that happen
+    to share a number today can be changed apart tomorrow.
+
+    These were literals duplicated across pages. The outcome icon had already drifted - 15 in the
+    feature banner against 16 everywhere else - which is the bug this file prevents.
+    -->
+
+    <!-- Detection-outcome glyph: setting cards, the toggle knob, and the feature banner. -->
+    <x:Double x:Key="OutcomeIconFontSize">16</x:Double>
+
+    <!-- Icons inside the Recommended/Default/Custom/Preference pills. The margin nudges the glyph
+         onto the label's cap height; a horizontal StackPanel has no baseline alignment. -->
+    <x:Double x:Key="BadgePillIconFontSize">12</x:Double>
+    <Thickness x:Key="BadgePillIconMargin">0,1,0,0</Thickness>
+
+    <!-- Breadcrumb chevron between the page name and the open section. -->
+    <x:Double x:Key="BreadcrumbSeparatorFontSize">12</x:Double>
+
+    <!-- Setting card: the Technical Details strip and the card's own expander. -->
+    <x:Double x:Key="TechnicalDetailsIconFontSize">12</x:Double>
+    <x:Double x:Key="TechnicalDetailsChevronFontSize">9</x:Double>
+    <x:Double x:Key="CardExpanderChevronFontSize">16</x:Double>
+
+    <!-- WimUtil: collapsible section headers and their pass/fail status glyph. -->
+    <x:Double x:Key="SectionChevronFontSize">12</x:Double>
+    <x:Double x:Key="StatusIconFontSize">20</x:Double>
+
+    <!-- App chrome. -->
+    <x:Double x:Key="NavIconFontSize">20</x:Double>
+    <x:Double x:Key="TitleBarIconFontSize">20</x:Double>
+
+    <!-- Toolbar buttons above a list (install, remove, refresh, view mode). -->
+    <x:Double x:Key="ActionBarIconFontSize">18</x:Double>
+
+</ResourceDictionary>

@@ -143,29 +143,16 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        // Exact-id verbatim path (unchanged): when the applied setting lives on THIS feature, update its own card
-        // and its children's ParentIsEnabled directly from the event payload. The master-ads flow relies on this.
+        // Exact-id verbatim path: when the applied setting lives on THIS feature, update its own card
+        // from the event payload without a re-read. The master-ads flow relies on this. The gate pass that
+        // follows is deliberately over the WHOLE list rather than this setting's children - the applied
+        // card may be the TARGET of a gate declared by something that is not nested under it at all.
         if (_settingsById.TryGetValue(evt.SettingId, out var setting))
         {
             _dispatcherService.RunOnUIThread(() =>
             {
                 setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
-
-                // Update children's ParentIsEnabled if this setting has any children
-                if (_childrenByParentId.TryGetValue(evt.SettingId, out var children))
-                {
-                    bool parentEnabled = setting.InputType switch
-                    {
-                        InputType.Toggle => setting.IsSelected,
-                        InputType.Selection => setting.SelectedValue is int index && index != 0,
-                        _ => setting.IsSelected
-                    };
-
-                    foreach (var child in children)
-                    {
-                        child.ParentIsEnabled = parentEnabled;
-                    }
-                }
+                RefreshDeclaredGates();
             });
         }
 
@@ -258,6 +245,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                     if (states.TryGetValue(vm.SettingId, out var state))
                         vm.UpdateStateFromSystemState(state);
                 }
+
+                RefreshDeclaredGates();
             });
         }
         catch (Exception ex)
@@ -533,7 +522,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 }
             }
 
-            UpdateParentChildRelationships();
+            RefreshDeclaredGates();
             RebuildGroupedSettings();
 
             OnPropertyChanged(nameof(HasVisibleSettings));
@@ -615,6 +604,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                         setting.UpdateStateFromSystemState(state);
                     }
                 }
+
+                RefreshDeclaredGates();
             });
         }
         catch (Exception ex)
@@ -623,26 +614,58 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    private void UpdateParentChildRelationships()
-    {
-        foreach (var setting in Settings)
-        {
-            if (!string.IsNullOrEmpty(setting.EffectiveUiParentId))
-            {
-                var parent = Settings.FirstOrDefault(s => s.SettingId == setting.EffectiveUiParentId);
-                if (parent != null)
-                {
-                    bool parentEnabled = parent.InputType switch
-                    {
-                        InputType.Toggle => parent.IsSelected,
-                        InputType.Selection => parent.SelectedValue is int index && index != 0,
-                        _ => parent.IsSelected
-                    };
+    // ---------------------------------------------------------------------------------------------
+    // THE PRESENTATION GATE - one implementation, four callers.
+    //
+    // A card is greyed only when its catalog DECLARES an EnabledWhen and the setting that names is
+    // currently outside the declared states. Nesting under a UiParentId no longer gates anything:
+    // "nested under" and "meaningless unless" are different facts, and only the setting's author knows
+    // the second one. What this replaced was a comparison of the parent's selected INDEX against zero,
+    // written out twice - positional superstition that greyed both Windows-theme sub-toggles on every
+    // stock Windows 11 install, because "Light Mode" happens to be state 0.
+    //
+    // Every path that can move a card's state in NORMAL mode ends here: the initial load, an apply
+    // event, the navigation refresh (RefreshSettingStatesAsync) and the related-refresh debounce. The
+    // last two never touched the gate before, so a child that changed its parent left every sibling
+    // holding a stale verdict until the page was rebuilt. Recomputing the whole list costs one pass
+    // over a few dozen cards, so there is no reason to work out which cards could have changed.
+    //
+    // Builder mode is the one gap left, unchanged: it authors un-applied state with no
+    // SettingAppliedEvent, and both refresh paths deliberately skip it so a live re-read cannot clobber
+    // what the user is authoring - so a gate holds its load-time verdict until Builder exit, which
+    // reloads from live state anyway.
+    // ---------------------------------------------------------------------------------------------
 
-                    setting.ParentIsEnabled = parentEnabled;
-                }
-            }
-        }
+    private void RefreshDeclaredGates()
+    {
+        if (Settings is null)
+            return;
+
+        foreach (var setting in Settings)
+            setting.ParentIsEnabled = IsGateSatisfied(setting);
+    }
+
+    /// <summary>One card's gate. TRUE (usable) unless the card declares an EnabledWhen whose named
+    /// setting is loaded here, has a state we can name, and that state is NOT one of the declared ones.
+    ///
+    /// The two "not gated" answers are deliberate. A setting this feature has not loaded cannot be read
+    /// at all, and a card whose own state does not resolve (detection landed on nothing) is not evidence
+    /// that anything else is meaningless - so neither is grounds for taking a control away. A gate is a
+    /// positive claim; it is only made when it can actually be checked. For a toggle parent - which is
+    /// every gate in the catalog but one - the label always resolves, so this is exactly the old
+    /// `parent.IsSelected` and nothing about those cards changes.</summary>
+    private bool IsGateSatisfied(SettingItemViewModel item)
+    {
+        if (item.Setting?.EnabledWhen is not { } gate)
+            return true;
+
+        if (!_settingsById.TryGetValue(gate.OtherId, out var other))
+            return true;
+
+        if (other.CurrentStateLabel is not { } label)
+            return true;
+
+        return gate.States.Contains(label, StringComparer.Ordinal);
     }
 
     private void RebuildGroupedSettings()

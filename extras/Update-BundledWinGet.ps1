@@ -10,7 +10,7 @@
     copies the desktop runtime DLLs (vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll)
     into the bundle. These are needed for winget.exe to run on minimal Windows
     installations (e.g. LTSC) that lack the VC++ Runtime. The _app.dll variants from the
-    MSIX are excluded — they are only used inside the MSIX package context and are not
+    MSIX are excluded - they are only used inside the MSIX package context and are not
     loaded when winget.exe runs as an unpackaged desktop process via Process.Start.
 
 .PARAMETER Version
@@ -38,7 +38,7 @@ $TempDir   = Join-Path ([System.IO.Path]::GetTempPath()) "winhance-winget-update
 
 # Files we need from the extracted MSIX (excluding _app.dll VC++ Runtime variants,
 # which are only used inside the MSIX package context).
-# NOTE: resources.pri is deliberately excluded — it conflicts with the WinUI PRI
+# NOTE: resources.pri is deliberately excluded - it conflicts with the WinUI PRI
 # generator (duplicate 'Files/App.xbf') and the standalone CLI works without it.
 $NeededFiles = @(
     'winget.exe'
@@ -48,7 +48,7 @@ $NeededFiles = @(
 )
 
 # Desktop VC++ Runtime DLLs needed for non-packaged (Process.Start) execution.
-# These are NOT in the WinGet MSIX — they come from the system VC++ Redistributable.
+# These are NOT in the WinGet MSIX - they come from the system VC++ Redistributable.
 $VcRuntimeDlls = @(
     'concrt140.dll'
     'msvcp140.dll'
@@ -80,7 +80,7 @@ try {
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
 
     # ============================================================
-    #  1. WinGet CLI — check current vs latest version
+    #  1. WinGet CLI - check current vs latest version
     # ============================================================
     $wingetExe     = Join-Path $OutputDir "winget.exe"
     $versionMarker = Join-Path $OutputDir "winget-version.txt"
@@ -116,7 +116,7 @@ try {
     }
 
     # ============================================================
-    #  2. WinGet CLI — download and extract (if needed)
+    #  2. WinGet CLI - download and extract (if needed)
     # ============================================================
     $wingetCopied  = 0
     $wingetMissing = @()
@@ -189,19 +189,19 @@ try {
         }
 
         # Record the bundled release tag so the next run can detect "up to
-        # date" by reading this file — without launching winget.exe, which
+        # date" by reading this file - without launching winget.exe, which
         # Windows blocks when the repo is on a network share.
         Set-Content -Path $versionMarker -Value $latestWingetTag -NoNewline
     }
 
     # ============================================================
-    #  3. VC++ Runtime — ensure system is up to date, then copy
+    #  3. VC++ Runtime - ensure system is up to date, then copy
     # ============================================================
     Write-Host ""
 
     $systemDir = [System.Environment]::SystemDirectory
 
-    # The core DLL must exist — the others are optional (e.g. vcamp140 is C++ AMP)
+    # The core DLL must exist - the others are optional (e.g. vcamp140 is C++ AMP)
     $coreVcDll = Join-Path $systemDir "vcruntime140.dll"
     if (-not (Test-Path $coreVcDll)) {
         throw "vcruntime140.dll not found in $systemDir. " +
@@ -278,7 +278,7 @@ try {
     }
 
     # ============================================================
-    #  4. VC++ Runtime — copy from System32 (if needed)
+    #  4. VC++ Runtime - copy from System32 (if needed)
     # ============================================================
     $vcCopied = 0
 
@@ -314,7 +314,7 @@ try {
     if (Test-Path $wingetExe) {
         Write-Host ""
         Write-Host "Verifying winget.exe ..."
-        # Don't launch winget.exe — Windows blocks running executables from a
+        # Don't launch winget.exe - Windows blocks running executables from a
         # network share. Confirm the binary is present and report the
         # bundled release tag from the marker file written above.
         $bundledTag = if (Test-Path $versionMarker) {

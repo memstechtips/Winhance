@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Linq;
 using FluentIcons.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -22,25 +23,37 @@ public sealed class FeatureOutcomeNavigationEventArgs : EventArgs
 }
 
 /// <summary>
-/// Code-behind for <see cref="FeatureOutcomeBanner"/>. Names the settings Winhance could not place and
-/// turns each into a link to it.
+/// Code-behind for <see cref="FeatureOutcomeBanner"/>. Renders the rows from
+/// <see cref="FeatureOutcomeRowBuilder"/> as wrapping text with a link per setting name.
 /// </summary>
 public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyChanged
 {
-    /// <summary>How many names to list per kind before collapsing into "+N more". Three keeps the row to
-    /// one or two wrapped lines even with long localized names; a shared registry value can leave eight
-    /// settings unresolved at once (the UserPreferencesMask case), and listing all of them would turn a
-    /// summary card into a wall of text.</summary>
-    private const int MaxNamesPerKind = 3;
+    /// <summary>Fallback if the resource dictionary is missing the key; keeps a bad merge from
+    /// rendering an invisible icon.</summary>
+    private const double OutcomeIconFontSizeFallback = 16;
 
-    public FeatureOutcomeBanner() => InitializeComponent();
+    /// <summary>Drops the icon onto the text's cap height. Top alignment only lines up the layout
+    /// boxes, and a TextBlock's box starts above its glyphs by the font's internal leading.</summary>
+    private static readonly Thickness OutcomeIconMargin = new(0, 2, 0, 0);
+
+    private ISettingsFeatureViewModel? _observedFeature;
+    private ObservableCollection<SettingItemViewModel>? _observedSettings;
+    private readonly List<SettingItemViewModel> _observedItems = new();
+    private ILocalizationService? _observedLocalization;
+
+    public FeatureOutcomeBanner()
+    {
+        InitializeComponent();
+        Loaded += (_, _) => { Attach(); Refresh(); };
+        Unloaded += (_, _) => Detach();
+    }
 
     /// <summary>Raised when a link is clicked. The host page owns navigation, so it handles this.</summary>
     public event EventHandler<FeatureOutcomeNavigationEventArgs>? NavigationRequested;
 
     public static readonly DependencyProperty FeatureProperty = DependencyProperty.Register(
         nameof(Feature), typeof(ISettingsFeatureViewModel), typeof(FeatureOutcomeBanner),
-        new PropertyMetadata(null, (d, _) => ((FeatureOutcomeBanner)d).Refresh()));
+        new PropertyMetadata(null, (d, _) => ((FeatureOutcomeBanner)d).Reattach()));
 
     public ISettingsFeatureViewModel? Feature
     {
@@ -62,7 +75,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     /// <summary>Supplies the localized strings. Set by the host page, which owns the service.</summary>
     public static readonly DependencyProperty LocalizationProperty = DependencyProperty.Register(
         nameof(Localization), typeof(ILocalizationService), typeof(FeatureOutcomeBanner),
-        new PropertyMetadata(null, (d, _) => ((FeatureOutcomeBanner)d).Refresh()));
+        new PropertyMetadata(null, (d, _) => ((FeatureOutcomeBanner)d).Reattach()));
 
     public ILocalizationService? Localization
     {
@@ -76,103 +89,159 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     public bool IsBannerOpen { get; private set; }
     public string BannerMessage { get; private set; } = string.Empty;
 
-    /// <summary>Most severe first, so the rows read worst-to-least. Each icon matches the one those
-    /// settings carry on their own controls, so a colour means one thing everywhere.</summary>
-    private static readonly (SettingDetectionOutcome Outcome, string LabelKey, string LabelFallback,
-        FluentIcons.Common.Icon Icon)[] Kinds =
-    {
-        (SettingDetectionOutcome.Undetermined, "InfoBadge_Undetermined", "Couldn't read",
-            FluentIcons.Common.Icon.DismissCircle),
-        (SettingDetectionOutcome.Malformed, "InfoBadge_Malformed", "Wrong format",
-            FluentIcons.Common.Icon.ErrorCircle),
-        (SettingDetectionOutcome.Custom, "InfoBadge_Custom", "Not recognized",
-            FluentIcons.Common.Icon.QuestionCircle),
-    };
+    // --- Staying current -------------------------------------------------------------------------
+    // The banner subscribes to everything that can change what it shows rather than relying on the
+    // host to call Refresh, which went stale silently whenever a caller was missed.
 
-    /// <summary>Recomputes from the feature's current settings. Called by the host page on the same
-    /// events that refresh the overview pills, so the banner never lags behind them.</summary>
-    public void Refresh()
+    private void Reattach()
+    {
+        Attach();
+        Refresh();
+    }
+
+    private void Attach()
+    {
+        Detach();
+
+        _observedLocalization = Localization;
+        if (_observedLocalization is { } loc)
+            loc.LanguageChanged += OnLanguageChanged;
+
+        _observedFeature = Feature;
+        if (_observedFeature is not { } feature)
+            return;
+
+        feature.PropertyChanged += OnFeaturePropertyChanged;
+        _observedSettings = feature.Settings;
+        if (_observedSettings is not { } settings)
+            return;
+
+        settings.CollectionChanged += OnSettingsCollectionChanged;
+        foreach (var setting in settings)
+        {
+            setting.PropertyChanged += OnSettingPropertyChanged;
+            _observedItems.Add(setting);
+        }
+    }
+
+    private void Detach()
+    {
+        if (_observedLocalization is { } loc)
+            loc.LanguageChanged -= OnLanguageChanged;
+        _observedLocalization = null;
+
+        if (_observedFeature is { } feature)
+            feature.PropertyChanged -= OnFeaturePropertyChanged;
+        _observedFeature = null;
+
+        // Unsubscribe from the collection we actually attached to - the feature may have swapped it.
+        if (_observedSettings is { } settings)
+            settings.CollectionChanged -= OnSettingsCollectionChanged;
+        _observedSettings = null;
+
+        foreach (var setting in _observedItems)
+            setting.PropertyChanged -= OnSettingPropertyChanged;
+        _observedItems.Clear();
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Refresh();
+
+    private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null or nameof(ISettingsFeatureViewModel.Settings))
+            Reattach();
+    }
+
+    private void OnSettingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => Reattach();
+
+    private void OnSettingPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null
+            or nameof(SettingItemViewModel.Outcome)
+            or nameof(SettingItemViewModel.Name))
+        {
+            Refresh();
+        }
+    }
+
+    /// <summary>Rebuilds the rows from the feature's current settings.</summary>
+    private void Refresh()
     {
         FragmentHost.Children.Clear();
 
-        var settings = Feature?.Settings;
-        if (settings is null || settings.Count == 0)
+        var rows = FeatureOutcomeRowBuilder.Build(Feature);
+        if (rows.Count == 0)
         {
-            Hide();
+            BannerVisibility = Visibility.Collapsed;
+            IsBannerOpen = false;
+            Notify(nameof(BannerVisibility), nameof(IsBannerOpen));
             return;
         }
 
-        bool any = false;
-        foreach (var (outcome, labelKey, labelFallback, icon) in Kinds)
-        {
-            var affected = settings.Where(s => s.Outcome == outcome).ToList();
-            if (affected.Count == 0)
-                continue;
-
-            any = true;
-            FragmentHost.Children.Add(BuildRow(icon, Localize(labelKey, labelFallback), affected));
-        }
-
-        if (!any)
-        {
-            Hide();
-            return;
-        }
+        foreach (var row in rows)
+            FragmentHost.Children.Add(BuildRow(row));
 
         BannerMessage = Localize(
             "Overview_OutcomeBanner_Intro",
             "Winhance couldn't determine the state of some settings in this section.");
         BannerVisibility = Visibility.Visible;
         IsBannerOpen = true;
-        NotifyAll();
+        Notify(nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerMessage));
     }
 
-    /// <summary>One row: the outcome's icon, then "Label: name, name, +N more" where every name is a
-    /// link. The names live in a single wrapping TextBlock so a long localized name reflows instead of
-    /// overflowing the card - a horizontal panel of link buttons would not.</summary>
-    private StackPanel BuildRow(
-        FluentIcons.Common.Icon icon, string label, IReadOnlyList<SettingItemViewModel> affected)
+    /// <summary>One row: the outcome's icon, then "Label: name, name, +N more" with every name a link.
+    /// The names share one wrapping TextBlock so a long localized name reflows instead of overflowing;
+    /// a horizontal panel of link buttons would not.</summary>
+    private StackPanel BuildRow(FeatureOutcomeRow row)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
 
-        row.Children.Add(new FluentIcon
+        panel.Children.Add(new FluentIcon
         {
-            Icon = icon,
+            Icon = row.Icon,
             IconVariant = FluentIcons.Common.IconVariant.Color,
-            FontSize = 15,
+            FontSize = OutcomeIconFontSize,
             VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 1, 0, 0),
+            Margin = OutcomeIconMargin,
         });
 
         var text = new TextBlock { TextWrapping = TextWrapping.Wrap };
-        // Localizable separator, not a hardcoded ": " - French puts a space before the colon and
-        // CJK uses a full-width one.
-        text.Inlines.Add(new Run { Text = Format(Localize("Overview_OutcomeBanner_Label", "{0}: "), label) });
+        // Localizable separator: French puts a space before the colon, CJK uses a full-width one.
+        text.Inlines.Add(new Run
+        {
+            Text = Format(Localize("Overview_OutcomeBanner_Label", "{0}: "), row.Label),
+        });
 
-        int shown = Math.Min(MaxNamesPerKind, affected.Count);
-        for (int i = 0; i < shown; i++)
+        for (int i = 0; i < row.Names.Count; i++)
         {
             if (i > 0)
                 text.Inlines.Add(new Run { Text = ", " });
-            text.Inlines.Add(Link(affected[i].Name, affected[i].Name));
+            text.Inlines.Add(Link(row.Names[i], row.Names[i]));
         }
 
-        int remaining = affected.Count - shown;
-        if (remaining > 0)
+        if (row.Remaining > 0)
         {
             text.Inlines.Add(new Run { Text = ", " });
             // Null target: open the feature itself rather than pre-filtering to one setting.
             text.Inlines.Add(Link(
-                Format(Localize("Overview_OutcomeBanner_More", "+{0} more"), remaining.ToString()),
+                Format(Localize("Overview_OutcomeBanner_More", "+{0} more"), row.Remaining.ToString()),
                 null));
         }
 
-        row.Children.Add(text);
-        return row;
+        panel.Children.Add(text);
+        return panel;
     }
 
-    /// <summary>A name that navigates. The host's NavigateToSection pre-applies the text as a search
-    /// filter, so clicking lands on that setting already filtered rather than somewhere to hunt from.</summary>
+    /// <summary>Shared with the setting cards via the IconSizes dictionary, so one outcome is one size.</summary>
+    private static double OutcomeIconFontSize =>
+        Application.Current?.Resources.TryGetValue("OutcomeIconFontSize", out var value) == true
+        && value is double size
+            ? size
+            : OutcomeIconFontSizeFallback;
+
+    /// <summary>A name that navigates. NavigateToSection pre-applies the text as a search filter, so
+    /// clicking lands on that setting already filtered.</summary>
     private Hyperlink Link(string display, string? settingName)
     {
         var link = new Hyperlink { UnderlineStyle = UnderlineStyle.None };
@@ -185,15 +254,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         return link;
     }
 
-    private void Hide()
-    {
-        BannerVisibility = Visibility.Collapsed;
-        IsBannerOpen = false;
-        NotifyAll();
-    }
-
-    /// <summary>Substitutes {0} without string.Format, so a translator's stray brace cannot throw a
-    /// FormatException at runtime on a machine we never see.</summary>
+    /// <summary>Substitutes {0} without string.Format, so a translator's stray brace cannot throw.</summary>
     private static string Format(string pattern, string a) => pattern.Replace("{0}", a);
 
     private string Localize(string key, string fallback)
@@ -205,20 +266,16 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     }
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------
+    // x:Bind OneWay needs a notification source; without one the compiler emits WMC1506.
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    private void NotifyAll()
+    private void Notify(params string[] names)
     {
         var handler = PropertyChanged;
         if (handler is null)
             return;
-        foreach (var name in new[]
-                 {
-                     nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerMessage),
-                 })
-        {
+        foreach (var name in names)
             handler(this, new PropertyChangedEventArgs(name));
-        }
     }
 }

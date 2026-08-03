@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
@@ -14,12 +15,60 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class SystemInfoProvider : ISystemInfoProvider
 {
+    /// <summary>
+    /// One WMI query: (scope, WQL) -> the matching rows as plain dictionaries. A null scope
+    /// means the default namespace. Rows are materialised so nothing WMI-shaped escapes this
+    /// file.
+    /// </summary>
+    internal delegate IReadOnlyList<IReadOnlyDictionary<string, object?>> WmiQuery(
+        string? scope, string wql);
+
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly WmiQuery _query;
 
     public SystemInfoProvider(IInteractiveUserService interactiveUserService)
+        : this(interactiveUserService, query: null)
+    {
+    }
+
+    /// <summary>Test seam: lets the suite feed constructed WMI rows instead of querying the
+    /// live machine. Without it these tests assert on the hardware of whoever runs them.
+    /// </summary>
+    internal SystemInfoProvider(IInteractiveUserService interactiveUserService, WmiQuery? query)
     {
         _interactiveUserService = interactiveUserService
             ?? throw new ArgumentNullException(nameof(interactiveUserService));
+        _query = query ?? RunWmiQuery;
+    }
+
+    /// <summary>
+    /// The live implementation of the seam, and the only place in this file that talks to WMI
+    /// directly. Rows are copied out before the underlying objects are disposed.
+    /// </summary>
+    private static IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(
+        string? scope, string wql)
+    {
+        using var searcher = scope is null
+            ? new ManagementObjectSearcher(wql)
+            : new ManagementObjectSearcher(scope, wql);
+        using var collection = searcher.Get();
+
+        var rows = new List<IReadOnlyDictionary<string, object?>>();
+        foreach (ManagementObject obj in collection)
+        {
+            using (obj)
+            {
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                foreach (PropertyData p in obj.Properties)
+                {
+                    row[p.Name] = p.Value;
+                }
+
+                rows.Add(row);
+            }
+        }
+
+        return rows;
     }
 
     public SystemInfo Collect()
@@ -130,77 +179,74 @@ public class SystemInfoProvider : ISystemInfoProvider
         }
     }
 
-    private static void CollectComputerSystemInfo(
+    private void CollectComputerSystemInfo(
         ref string deviceType, ref string ram, ref string domainJoined)
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
+            var rows = _query(
+                null,
                 "SELECT PCSystemType, Model, Manufacturer, TotalPhysicalMemory, PartOfDomain, Domain FROM Win32_ComputerSystem");
-            using var collection = searcher.Get();
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
+                // DeviceType
+                try
                 {
-                    // DeviceType
-                    try
+                    if (row.GetValueOrDefault("PCSystemType") != null)
                     {
-                        if (obj["PCSystemType"] != null)
+                        int pcSystemType = Convert.ToInt32(row.GetValueOrDefault("PCSystemType"));
+                        deviceType = pcSystemType switch
                         {
-                            int pcSystemType = Convert.ToInt32(obj["PCSystemType"]);
-                            deviceType = pcSystemType switch
-                            {
-                                1 => "Desktop",
-                                2 => "Laptop",
-                                3 => "Workstation",
-                                4 => "Enterprise Server",
-                                5 => "SOHO Server",
-                                7 => "Performance Server",
-                                8 => "Slate",
-                                _ => $"Other ({pcSystemType})"
-                            };
-                        }
-
-                        // Detect virtual machines from Model/Manufacturer
-                        string model = (obj["Model"] as string ?? "").Trim();
-                        string manufacturer = (obj["Manufacturer"] as string ?? "").Trim();
-                        if (IsVirtualMachine(model, manufacturer))
-                            deviceType += " (Virtual Machine)";
+                            1 => "Desktop",
+                            2 => "Laptop",
+                            3 => "Workstation",
+                            4 => "Enterprise Server",
+                            5 => "SOHO Server",
+                            7 => "Performance Server",
+                            8 => "Slate",
+                            _ => $"Other ({pcSystemType})"
+                        };
                     }
-                    catch { /* field failure */ }
 
-                    // RAM
-                    try
-                    {
-                        if (obj["TotalPhysicalMemory"] != null)
-                        {
-                            long totalBytes = Convert.ToInt64(obj["TotalPhysicalMemory"]);
-                            int totalGb = (int)Math.Round(totalBytes / (1024.0 * 1024 * 1024));
-                            ram = $"{totalGb} GB";
-                        }
-                    }
-                    catch { /* field failure */ }
-
-                    // Domain
-                    try
-                    {
-                        if (obj["PartOfDomain"] != null)
-                        {
-                            bool partOfDomain = Convert.ToBoolean(obj["PartOfDomain"]);
-                            if (partOfDomain)
-                            {
-                                string domain = obj["Domain"] as string ?? "";
-                                domainJoined = $"Yes ({domain})";
-                            }
-                            else
-                            {
-                                domainJoined = "No";
-                            }
-                        }
-                    }
-                    catch { /* field failure */ }
+                    // Detect virtual machines from Model/Manufacturer
+                    string model = (row.GetValueOrDefault("Model") as string ?? "").Trim();
+                    string manufacturer = (row.GetValueOrDefault("Manufacturer") as string ?? "").Trim();
+                    if (IsVirtualMachine(model, manufacturer))
+                        deviceType += " (Virtual Machine)";
                 }
+                catch { /* field failure */ }
+
+                // RAM
+                try
+                {
+                    if (row.GetValueOrDefault("TotalPhysicalMemory") != null)
+                    {
+                        long totalBytes = Convert.ToInt64(row.GetValueOrDefault("TotalPhysicalMemory"));
+                        int totalGb = (int)Math.Round(totalBytes / (1024.0 * 1024 * 1024));
+                        ram = $"{totalGb} GB";
+                    }
+                }
+                catch { /* field failure */ }
+
+                // Domain
+                try
+                {
+                    if (row.GetValueOrDefault("PartOfDomain") != null)
+                    {
+                        bool partOfDomain = Convert.ToBoolean(row.GetValueOrDefault("PartOfDomain"));
+                        if (partOfDomain)
+                        {
+                            string domain = row.GetValueOrDefault("Domain") as string ?? "";
+                            domainJoined = $"Yes ({domain})";
+                        }
+                        else
+                        {
+                            domainJoined = "No";
+                        }
+                    }
+                }
+                catch { /* field failure */ }
             }
 
             // Fallback to ChassisTypes if PCSystemType wasn't conclusive
@@ -240,28 +286,24 @@ public class SystemInfoProvider : ISystemInfoProvider
         return false;
     }
 
-    private static string CollectDeviceTypeFromChassis()
+    private string CollectDeviceTypeFromChassis()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT ChassisTypes FROM Win32_SystemEnclosure");
-            using var collection = searcher.Get();
+            var rows = _query(null, "SELECT ChassisTypes FROM Win32_SystemEnclosure");
 
-            foreach (ManagementObject enclosure in collection)
+            foreach (var enclosure in rows)
             {
-                using (enclosure)
+                if (enclosure.GetValueOrDefault("ChassisTypes") is Array chassisTypes
+                    && chassisTypes.Length > 0)
                 {
-                    if (enclosure["ChassisTypes"] is Array chassisTypes && chassisTypes.Length > 0)
+                    foreach (var chassisType in chassisTypes)
                     {
-                        foreach (var chassisType in chassisTypes)
-                        {
-                            int type = Convert.ToInt32(chassisType);
-                            if (LaptopChassisTypes.Contains(type))
-                                return "Laptop";
-                        }
-                        return "Desktop";
+                        int type = Convert.ToInt32(chassisType);
+                        if (LaptopChassisTypes.Contains(type))
+                            return "Laptop";
                     }
+                    return "Desktop";
                 }
             }
         }
@@ -270,22 +312,18 @@ public class SystemInfoProvider : ISystemInfoProvider
         return "Unknown";
     }
 
-    private static string CollectCpu()
+    private string CollectCpu()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, NumberOfLogicalProcessors FROM Win32_Processor");
-            using var collection = searcher.Get();
+            var rows = _query(
+                null, "SELECT Name, NumberOfLogicalProcessors FROM Win32_Processor");
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
-                {
-                    string name = (obj["Name"] as string ?? "Unknown").Trim();
-                    int cores = Convert.ToInt32(obj["NumberOfLogicalProcessors"] ?? 0);
-                    return cores > 0 ? $"{name} ({cores} cores)" : name;
-                }
+                string name = (row.GetValueOrDefault("Name") as string ?? "Unknown").Trim();
+                int cores = Convert.ToInt32(row.GetValueOrDefault("NumberOfLogicalProcessors") ?? 0);
+                return cores > 0 ? $"{name} ({cores} cores)" : name;
             }
         }
         catch { /* query failure */ }
@@ -293,28 +331,24 @@ public class SystemInfoProvider : ISystemInfoProvider
         return "Unknown";
     }
 
-    private static string CollectGpu()
+    private string CollectGpu()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, AdapterDACType FROM Win32_VideoController");
-            using var collection = searcher.Get();
+            var rows = _query(
+                null, "SELECT Name, AdapterDACType FROM Win32_VideoController");
 
             var gpus = new System.Collections.Generic.List<string>();
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
-                {
-                    string name = (obj["Name"] as string ?? "").Trim();
-                    if (string.IsNullOrEmpty(name))
-                        continue;
+                string name = (row.GetValueOrDefault("Name") as string ?? "").Trim();
+                if (string.IsNullOrEmpty(name))
+                    continue;
 
-                    string dacType = (obj["AdapterDACType"] as string ?? "").Trim();
-                    string gpuType = ClassifyGpu(name, dacType);
-                    gpus.Add($"{name} ({gpuType})");
-                }
+                string dacType = (row.GetValueOrDefault("AdapterDACType") as string ?? "").Trim();
+                string gpuType = ClassifyGpu(name, dacType);
+                gpus.Add($"{name} ({gpuType})");
             }
 
             return gpus.Count > 0 ? string.Join("; ", gpus) : "Unknown";
@@ -415,26 +449,22 @@ public class SystemInfoProvider : ISystemInfoProvider
         return "Unknown";
     }
 
-    private static string CollectTpm()
+    private string CollectTpm()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
+            var rows = _query(
                 @"root\cimv2\Security\MicrosoftTpm",
                 "SELECT SpecVersion FROM Win32_Tpm");
-            using var collection = searcher.Get();
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
+                string specVersion = row.GetValueOrDefault("SpecVersion") as string ?? "";
+                if (!string.IsNullOrEmpty(specVersion))
                 {
-                    string specVersion = obj["SpecVersion"] as string ?? "";
-                    if (!string.IsNullOrEmpty(specVersion))
-                    {
-                        // SpecVersion is like "2.0, 0, 1.59" — take the major part
-                        string major = specVersion.Split(',')[0].Trim();
-                        return major;
-                    }
+                    // SpecVersion is like "2.0, 0, 1.59" - take the major part
+                    string major = specVersion.Split(',')[0].Trim();
+                    return major;
                 }
             }
         }

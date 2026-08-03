@@ -10,6 +10,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- WinUI 3 native controls resources -->
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- Icon sizes, keyed by concept. Merged first so later dictionaries can use them. -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/IconSizes.xaml" />
                 <!-- Value converters -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
                 <!-- Shared setting templates and styles (code-behind enabled for x:Bind) -->

@@ -298,6 +298,109 @@ public class SettingApplicationServiceTests
     }
 
     // ---------------------------------------------------------------
+    // The confirmation checkbox: on a setting with NO special handler it means
+    // "also apply this feature's recommended settings"
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_CheckboxResultWithNoSpecialHandler_AppliesRecommendedForTheFeature()
+    {
+        // The config-import path (ConfigurationApplicationBridgeService) passes the confirmation result as
+        // CheckboxResult ALONE - no ApplyRecommended - and CheckboxResult used to be read only by a special
+        // handler, so on a setting with none the tick did nothing at all. A real catalog Action with no
+        // handler registered must now route it to the recommended-for-feature applier.
+        var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
+        SetupSettingInRegistry(actionId);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = actionId,
+            Enable = true,
+            CheckboxResult = true,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            actionId, _service), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_NoCheckboxResult_DoesNotApplyRecommended()
+    {
+        // The other half of the same rule: an unticked box is the default, so the SAME apply must leave the
+        // feature's other settings alone. Without this the rule would fire on every Action apply.
+        var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
+        SetupSettingInRegistry(actionId);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = actionId,
+            Enable = true,
+            CheckboxResult = false,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_CheckboxResultOnSpecialHandledSetting_DoesNotApplyRecommended()
+    {
+        // The load-bearing guard. theme-mode-windows' checkbox means "also change the wallpaper" and its
+        // handler owns that meaning, so the generic rule must never fire for a setting that HAS a handler -
+        // otherwise a wallpaper opt-in would silently apply a whole feature's recommended settings. The
+        // handler here DECLINES (returns false) so the funnel falls THROUGH to the generic apply, which is
+        // the path where the guard is the only thing standing between the checkbox and the applier; a handler
+        // that accepts returns long before this point.
+        var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
+        SetupSettingInRegistry(actionId);
+
+        var handler = new Mock<ISpecialSettingHandler>();
+        handler
+            .Setup(h => h.TryApplySpecialSettingAsync(
+                It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>(), It.IsAny<ISettingApplicationService>()))
+            .ReturnsAsync(false);
+        _mockSpecialHandlerRegistry.Setup(r => r.TryGet(actionId)).Returns(handler.Object);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = actionId,
+            Enable = true,
+            CheckboxResult = true,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ActionWithBothCheckboxFlags_AppliesRecommendedExactlyOnce()
+    {
+        // The live UI button path sets ApplyRecommended AND CheckboxResult from the SAME checkbox
+        // (SettingItemViewModel.RunActionAsync), so the coalesced-restart branch has already applied the
+        // recommended settings by the time the checkbox rule is reached. It must not apply them again: two
+        // passes would mean two restart flushes and a second run of every recommended setting.
+        var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
+        SetupSettingInRegistry(actionId);
+        _mockRestart.Setup(r => r.SuppressRestarts()).Returns(Mock.Of<IDisposable>());
+        _mockRecommended
+            .Setup(r => r.ApplyRecommendedForFeatureAsync(actionId, It.IsAny<ISettingApplicationService>()))
+            .ReturnsAsync(new List<Setting>());
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = actionId,
+            Enable = true,
+            CheckboxResult = true,
+            ApplyRecommended = true,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedForFeatureAsync(
+            actionId, _service), Times.Once);
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+    }
+
+    // ---------------------------------------------------------------
     // Unpaired setting -> resolver returns null -> logged OperationResult.Failed
     // ---------------------------------------------------------------
 
@@ -936,5 +1039,73 @@ public class SettingApplicationServiceTests
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Relationship detection is SCOPED (2026-07-31). It used to detect all 414 catalog settings after
+    // every interactive apply - correct, but ~1-2s a click, and it is why power plans and system restore
+    // showed up in the log while the user was on the Taskbar page.
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ApplySettingAsync_SettingWithNoRelationships_DetectsNothing()
+    {
+        // Nothing in the catalog relates to this setting: no state of it declares a Link or Controls, no
+        // state of any other setting Controls it, and no state of any other setting Links to it. Every
+        // resolver is therefore empty for ANY machine reading, so the detection was pure cost.
+        var unrelated = SettingCatalog.All.FirstOrDefault(s =>
+            s.Detector is null && s.OptionSource is null && s.Numeric is null
+            && s.Targets.OfType<RegTarget>().Any()
+            && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+            && s.States.All(st => st.Links.Count == 0 && (st.Controls is null || st.Controls.Count == 0))
+            && !SettingCatalog.All.Any(o => o.States.Any(st =>
+                st.Controls != null && st.Controls.ContainsKey(s.Id)))
+            && !SettingCatalog.All.Any(o => o.States.Any(st => st.Links.Any(l => l.OtherId == s.Id))));
+        Assert.NotNull(unrelated);
+        SetupSettingInRegistry(unrelated!.Id);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = unrelated.Id, Enable = true });
+
+        _mockCatalogDetection.Verify(
+            d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()), Times.Never,
+            "a setting nothing relates to needs no machine read to resolve its relationships");
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_SettingWithARequiresLink_DetectsOnlyTheScopeAndStillFiresTheFollowOn()
+    {
+        // The other half of the same rule: narrowing the batch must not narrow BEHAVIOUR. A setting whose
+        // target state Requires another must still read that other setting's live state and act on it.
+        var owner = SettingCatalog.All.FirstOrDefault(s =>
+            s.Detector is null && s.OptionSource is null
+            && s.States.Any(st => st.Label == "Disabled")
+            && s.States.Any(st => st.Label == "Enabled" && st.Links.Any(l => l.Kind == LinkKind.Requires)));
+        Assert.NotNull(owner);
+        var req = owner!.States.First(st => st.Label == "Enabled").Links.First(l => l.Kind == LinkKind.Requires);
+        Assert.Contains(SettingCatalog.All, s => s.Id == req.OtherId);
+
+        SetupSettingInRegistry(owner.Id);
+        SetupSettingInRegistry(req.OtherId);
+
+        IReadOnlyCollection<Setting>? scope = null;
+        _mockCatalogDetection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Callback((IReadOnlyCollection<Setting> batch) => scope ??= batch)
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                [req.OtherId] = new CatalogDetectionResult
+                {
+                    StateLabel = req.RequiredState == "Enabled" ? "Disabled" : "Enabled",
+                    Detected = true,
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = owner.Id, Enable = true });
+
+        scope.Should().NotBeNull("a Requires link can only be resolved by reading the prerequisite's state");
+        scope!.Should().Contain(s => s.Id == req.OtherId, "the prerequisite is exactly what the resolver reads");
+        scope!.Count.Should().BeLessThan(SettingCatalog.All.Count,
+            "one relationship must no longer cost a whole-catalog detection");
+        _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(x => x.SettingId == req.OtherId)), Times.Once);
     }
 }

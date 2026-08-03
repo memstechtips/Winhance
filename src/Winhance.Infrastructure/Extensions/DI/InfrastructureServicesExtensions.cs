@@ -81,6 +81,12 @@ public static class InfrastructureServicesExtensions
         // registers an empty default here so the UI composition root's real handler-set registration wins.
         services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>()));
+        // Pending Explorer restart state (observed by the bottom bar; cleared by ExplorerRestartService)
+        services.AddSingleton<IPendingRestartService, PendingRestartService>();
+
+        // The single owner of restarting Explorer (single-flight, elevation-safe relaunch)
+        services.AddSingleton<IExplorerRestartService, ExplorerRestartService>();
+
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();

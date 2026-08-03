@@ -16,6 +16,7 @@ using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
 using System;
@@ -37,6 +38,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private IConfigReviewService? _configReviewService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
+    private PendingRestartViewModel? _pendingRestartViewModel;
     private bool _isStartupLoading = true;
 
     // Helper classes (Phases 2-5)
@@ -399,6 +401,15 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 TaskProgressControl.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
                 TaskProgressControl2.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
                 TaskProgressControl3.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+
+                // Pending Explorer restart bar. The pending state changes on background apply threads,
+                // so the ViewModel's notification is marshalled onto the dispatcher before Refresh()
+                // touches any bound property.
+                _pendingRestartViewModel = App.Services.GetService<PendingRestartViewModel>();
+                if (_pendingRestartViewModel is { } pendingRestartVm)
+                {
+                    PendingRestartBar.ViewModel = pendingRestartVm;
+                }
 
                 ViewModel.TaskProgress.PropertyChanged += (s, e) =>
                     _taskProgressCoordinator?.HandlePropertyChanged(ViewModel.TaskProgress, e.PropertyName);

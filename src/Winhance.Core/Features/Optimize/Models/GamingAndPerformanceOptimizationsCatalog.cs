@@ -1156,6 +1156,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             },
             Apply = new() { RequiresReboot = true },
             UiParentId = "gaming-virtualization-based-security",
+            EnabledWhen = new("gaming-virtualization-based-security", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("Enabled", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" }, "Enabled", RegistryValueKind.DWord),
@@ -1364,6 +1365,9 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "gaming-sysmain-service",
+            // Prefetching is the SysMain service's job: with the service off there is nothing for
+            // EnablePrefetcher to configure. Manual counts - the service can still be started.
+            EnabledWhen = new("gaming-sysmain-service", new[] { "Manual", "Automatic (Recommended for HDD)" }),
             Targets = new Target[] { new RegTarget("EnablePrefetcher", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" }, "EnablePrefetcher", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1378,7 +1382,10 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Links = new[] { new Link("gaming-sysmain-service", LinkKind.Requires, "Enabled") },
+                    // Deliberately NO Requires on gaming-sysmain-service. A Requires here is a demand to
+                    // CHANGE the service, so turning prefetching off would also stop SysMain and ask for a
+                    // reboot the user never asked for. The real relationship - prefetching is inert while
+                    // the service is off - is a presentation fact, and EnabledWhen above already carries it.
                     Set = new Dictionary<string, StateValue> { ["EnablePrefetcher"] = Of(0) },
                 },
             },

@@ -206,6 +206,14 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
+                    // Turning hibernation ON is what makes the Start-menu Hibernate entry worth showing, so
+                    // it force-shows it. This Link sat on the DISABLED state until 2026-07-31, i.e. switching
+                    // hibernation OFF force-SHOWED an entry that could no longer do anything. Nothing
+                    // validated the direction; it read backwards from the day it was written.
+                    Links = new[]
+                    {
+                        new Link("start-power-hibernate-option", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
+                    },
                     Set = new Dictionary<string, StateValue> { ["HibernateEnabled"] = StateValue.Of(1).OrAbsent() },
                     Effects = new Effect[] { new NativePowerEffect(10, 1) },
                 },
@@ -213,10 +221,6 @@ public static class PowerOptimizationsCatalog
                 {
                     Label = "Disabled",
                     Roles = new[] { StateRole.Recommended },
-                    Links = new[]
-                    {
-                        new Link("start-power-hibernate-option", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },
-                    },
                     Set = new Dictionary<string, StateValue> { ["HibernateEnabled"] = StateValue.Of(0) },
                     IsFallback = true,
                     Effects = new Effect[] { new NativePowerEffect(10, 0) },
@@ -239,6 +243,7 @@ public static class PowerOptimizationsCatalog
                 ValidatesExistence = true,
             },
             UiParentId = "power-hibernation-enable",
+            EnabledWhen = new("power-hibernation-enable", new[] { "Enabled" }),
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new Target[]
             {
@@ -263,6 +268,7 @@ public static class PowerOptimizationsCatalog
                 ValidatesExistence = true,
             },
             UiParentId = "power-hibernation-enable",
+            EnabledWhen = new("power-hibernation-enable", new[] { "Enabled" }),
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new Target[]
             {
@@ -284,6 +290,7 @@ public static class PowerOptimizationsCatalog
                 Icon = MaterialIcons.FlashAuto,
             },
             UiParentId = "power-hibernation-enable",
+            EnabledWhen = new("power-hibernation-enable", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("HiberbootEnabled", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager\Power" }, "HiberbootEnabled", RegistryValueKind.DWord),
@@ -321,6 +328,7 @@ public static class PowerOptimizationsCatalog
                 IsSubjectivePreference = true,
             },
             UiParentId = "power-hibernation-enable",
+            EnabledWhen = new("power-hibernation-enable", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("ShowHibernateOption", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" }, "ShowHibernateOption", RegistryValueKind.DWord),

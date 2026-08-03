@@ -56,6 +56,34 @@ public interface IInteractiveUserService
     /// Falls back to normal Process.Start if not OTS or no token is available.
     /// </summary>
     void LaunchProcessAsInteractiveUser(string fileName, string arguments = "");
+
+    /// <summary>
+    /// Duplicates a primary token from the RUNNING shell so the shell can be relaunched at the user's
+    /// integrity level later. Returns null when no token could be captured.
+    ///
+    /// Two things make this different from <see cref="LaunchProcessAsInteractiveUser"/>, and both are
+    /// the point:
+    ///
+    /// (1) It is NOT gated on OTS elevation. The common case is an admin running Winhance elevated as
+    ///     themselves, where <see cref="IsOtsElevation"/> is false and that method degrades to
+    ///     Process.Start - which cannot start the shell, because Winhance is always elevated and
+    ///     Windows will not run the shell at high integrity.
+    ///
+    /// (2) It MUST be called BEFORE the shell is terminated. The token is harvested from the live
+    ///     explorer.exe process; once the shell is gone there is nothing left to harvest from, which
+    ///     is exactly when you need it.
+    /// </summary>
+    IShellRelaunchToken? CaptureShellRelaunchToken();
+}
+
+/// <summary>
+/// A primary token duplicated from the shell process, used to relaunch the shell at the interactive
+/// user's integrity level after Winhance has terminated it. Dispose closes the underlying handle.
+/// </summary>
+public interface IShellRelaunchToken : IDisposable
+{
+    /// <summary>Launches <paramref name="fileName"/> with the captured token. False if creation failed.</summary>
+    bool TryLaunch(string fileName, string arguments = "");
 }
 
 /// <summary>

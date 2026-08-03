@@ -57,6 +57,14 @@ public class ResolveTotalityAuditTests
                 case ControlKind.Selection:
                     for (int i = 0; i < s.States.Count; i++)
                     {
+                        // A DETECT-ONLY state is not a reachable apply target and so is out of this audit's
+                        // scope. It is not in the option list, so no producer can dispatch its index: the card
+                        // cannot select it, config export writes the index only for a state the user chose, and
+                        // the relationship reverse-sync's snap to it is intercepted by the setting's special
+                        // handler before Resolve. Auditing it would prove nothing either - the state carries no
+                        // Set, so Resolve returns an EMPTY (non-null) plan and the assertion passes vacuously.
+                        if (s.States[i].IsDetectOnly)
+                            continue;
                         Check(true, i, false, $"idx{i}");
                         Check(true, i, true, $"reset-idx{i}");
                     }

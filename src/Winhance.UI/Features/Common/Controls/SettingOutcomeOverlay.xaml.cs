@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -48,7 +49,7 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
     /// control underneath is inert while unresolved, so intercepting costs nothing and the tooltip works.</summary>
     public static readonly DependencyProperty IsInteractiveProperty = DependencyProperty.Register(
         nameof(IsInteractive), typeof(bool), typeof(SettingOutcomeOverlay),
-        new PropertyMetadata(false));
+        new PropertyMetadata(false, OnAnyChanged));
 
     public bool IsInteractive
     {
@@ -71,7 +72,19 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
     // --- Projected, bindable ---------------------------------------------------------------------
 
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
+    public double OverlayOpacity { get; private set; } = 1d;
+
+    /// <summary>An Opacity-0 element is still clickable and still announced by Narrator, so while the
+    /// marker is hidden mid-apply both have to be switched off too - otherwise a hover raises a tooltip
+    /// for something invisible and a screen reader reads the stale state.</summary>
+    public bool OverlayHitTestable { get; private set; }
+    public AccessibilityView OverlayAccessibilityView { get; private set; } = AccessibilityView.Content;
     public FluentIcons.Common.Icon OverlayIcon { get; private set; } = FluentIcons.Common.Icon.QuestionCircle;
+
+    /// <summary>Whether the icon is drawn at all. The icons are a severity scale, so a state that is
+    /// simply not on the option list (a detect-only state, named by <see cref="OverlayText"/>) shows the
+    /// name alone - a fault marker beside it would assert a problem that is not there.</summary>
+    public Visibility OverlayIconVisibility { get; private set; } = Visibility.Visible;
     public string OverlayText { get; private set; } = string.Empty;
     public string OverlayTooltip { get; private set; } = string.Empty;
 
@@ -98,14 +111,19 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
     }
 
     /// <summary>Refresh on anything that can move the outcome: the outcome itself, the per-mode powercfg
-    /// indices, and a language change (which re-raises the localized text properties).</summary>
+    /// indices, a language change (which re-raises the localized text properties), and IsApplying, which
+    /// hides the marker for the duration of an apply.</summary>
     private void OnSettingPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is null
             or nameof(SettingItemViewModel.Outcome)
             or nameof(SettingItemViewModel.AcValue)
             or nameof(SettingItemViewModel.DcValue)
-            or nameof(SettingItemViewModel.CustomStateText))
+            // A detect-only current state is read off SelectedValue, not off Outcome (it resolves), so
+            // without this the overlay would keep drawing the previous state's name after a change.
+            or nameof(SettingItemViewModel.SelectedValue)
+            or nameof(SettingItemViewModel.CustomStateText)
+            or nameof(SettingItemViewModel.IsApplying))
         {
             Refresh();
         }
@@ -121,10 +139,16 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         }
 
         OverlayVisibility = vm.OverlayVisibilityForMode(Mode);
+        OverlayOpacity = vm.OverlayOpacity;
+        OverlayHitTestable = IsInteractive && !vm.IsApplying;
+        OverlayAccessibilityView = vm.IsApplying ? AccessibilityView.Raw : AccessibilityView.Content;
         OverlayIcon = vm.OverlayIconForMode(Mode);
+        OverlayIconVisibility = vm.OverlayShowsIconForMode(Mode) ? Visibility.Visible : Visibility.Collapsed;
         OverlayText = vm.OverlayTextForMode(Mode);
         OverlayTooltip = vm.OverlayTooltipForMode(Mode, IsToggleLike);
-        Notify(nameof(OverlayVisibility), nameof(OverlayIcon), nameof(OverlayText), nameof(OverlayTooltip));
+        Notify(nameof(OverlayVisibility), nameof(OverlayOpacity), nameof(OverlayHitTestable),
+            nameof(OverlayAccessibilityView), nameof(OverlayIcon), nameof(OverlayIconVisibility),
+            nameof(OverlayText), nameof(OverlayTooltip));
     }
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------
