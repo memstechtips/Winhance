@@ -150,20 +150,9 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         return string.IsNullOrEmpty(localized) ? setting.Display.Name : localized;
     }
 
-    /// <summary>
-    /// Returns the localized string, or an empty string when the key is missing. LocalizationService
-    /// returns the literal "[{key}]" miss-marker rather than null, so mirror that detection here.
-    /// </summary>
-    private string Localize(string key)
-    {
-        var result = _localizationService.GetString(key);
-        if (string.IsNullOrEmpty(result))
-            return string.Empty;
-
-        return result.StartsWith("[", StringComparison.Ordinal) && result.EndsWith("]", StringComparison.Ordinal)
-            ? string.Empty
-            : result;
-    }
+    /// <summary>Returns the localized string, or an empty string when the key is missing.</summary>
+    private string Localize(string key) =>
+        _localizationService.TryGetString(key, out var value) ? value : string.Empty;
 
     public void Dispose()
     {

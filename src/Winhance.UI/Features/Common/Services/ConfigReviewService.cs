@@ -792,18 +792,16 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// <summary>
     /// Localizes combo box display text by attempting resolution through the localization service.
     /// Keys like "PowerPlan_Balanced_Name" or "ServiceOption_Disabled" resolve to localized strings;
-    /// plain text like "Programs" passes through unchanged (GetString returns "[key]" for missing keys).
+    /// plain text like "Programs" is not a key, so it passes through unchanged.
     /// </summary>
     private string LocalizeComboBoxDisplayText(string displayText)
     {
         if (string.IsNullOrEmpty(displayText))
             return "Unknown";
 
-        var localized = _localizationService.GetString(displayText);
-        if (!string.IsNullOrEmpty(localized) && !(localized.StartsWith("[") && localized.EndsWith("]")))
-            return localized;
-
-        return displayText;
+        return _localizationService.TryGetString(displayText, out var localized) && !string.IsNullOrEmpty(localized)
+            ? localized
+            : displayText;
     }
 
     /// <summary>

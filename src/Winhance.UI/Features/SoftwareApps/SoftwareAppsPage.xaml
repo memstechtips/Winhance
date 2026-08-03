@@ -96,13 +96,6 @@
              Title row ≈ 22px + 4px margin + 2-line desc ≈ 32px = 58px content. -->
         <x:Double x:Key="CardContentHeight">84</x:Double>
         <x:Double x:Key="CardCellHeight">108</x:Double>
-        <!-- Pill geometry. CornerRadius is set high enough to fully round the ends
-             at the rendered pill height (~18px), but kept finite so it clips
-             cleanly at HiDPI scales (CornerRadius=999 can render with subpixel
-             artefacts on the inner border). -->
-        <CornerRadius x:Key="CardPillCornerRadius">10</CornerRadius>
-        <Thickness x:Key="CardPillPadding">8,2</Thickness>
-
         <!-- Card-view selection target. Wrapping the whole card in a templated
              ToggleButton is what makes "click anywhere on the card" reliably
              toggle selection — Border + Tapped from the data template was

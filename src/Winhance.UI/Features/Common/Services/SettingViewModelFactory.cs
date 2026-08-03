@@ -323,13 +323,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return LocalizeOrFallback(SettingLocalizationKeys.GroupSnake(groupName), groupName) ?? groupName;
     }
 
-    // Returns the localized string for the key, or the fallback when the key is missing
-    // (ILocalizationService.GetString returns the "[key]" marker on a miss).
-    private string? LocalizeOrFallback(string key, string? fallback)
-    {
-        var s = _localizationService.GetString(key);
-        return (s.Length >= 2 && s[0] == '[' && s[^1] == ']') ? fallback : s;
-    }
+    // Returns the localized string for the key, or the fallback when the key is missing.
+    private string? LocalizeOrFallback(string key, string? fallback) =>
+        _localizationService.TryGetString(key, out var value) ? value : fallback;
 
     // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it, for
     // a separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).

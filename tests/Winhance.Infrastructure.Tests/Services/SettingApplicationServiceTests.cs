@@ -11,6 +11,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
@@ -49,6 +50,8 @@ public class SettingApplicationServiceTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalization.MirrorTryGetString();
 
         // Default: a Windows 11 build. Build-agnostic settings (no Target.AppliesTo) are unaffected by this
         // value; build-gated tests override it per-test.

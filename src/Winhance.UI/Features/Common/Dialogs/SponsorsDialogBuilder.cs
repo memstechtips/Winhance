@@ -362,13 +362,8 @@ internal class SponsorsDialogBuilder
         // Content-sized pill: explicit Center so the Border hugs its text rather
         // than inheriting the parent StackPanel's default horizontal stretch
         // (which rendered the pill stretched edge-to-edge across the card).
-        // Pill geometry matches the Software Apps card badges (CornerRadius 10,
-        // Padding 8,2). CornerRadius 999 was dropped: at the rendered pill height
-        // it produced the subpixel/clipping artefacts Marco saw (the same reason
-        // SoftwareAppsPage.xaml's CardPillCornerRadius is 10, not 999). Those
-        // StaticResource definitions live in SoftwareAppsPage.xaml's page-scoped
-        // resources and are not reachable from code here, so the literal values
-        // are used directly.
+        // Pill geometry matches the Software Apps card badges. CornerRadius 999 was dropped:
+        // at the rendered pill height it produced subpixel/clipping artefacts.
         return new Border
         {
             Background = new SolidColorBrush(tierColor),

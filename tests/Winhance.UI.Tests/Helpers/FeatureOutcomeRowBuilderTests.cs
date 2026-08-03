@@ -10,6 +10,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Helpers;
 
@@ -25,6 +26,13 @@ public class FeatureOutcomeRowBuilderTests
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<IEventBus> _eventBus = new();
+
+    public FeatureOutcomeRowBuilderTests()
+    {
+        // Mirrors the per-key GetString stubs onto TryGetString - an unstubbed Moq answers
+        // "missing" for every key.
+        _localizationService.MirrorTryGetString();
+    }
 
     [Fact]
     public void Build_WithNullFeature_ReturnsNoRows()

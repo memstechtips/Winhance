@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.SoftwareApps.Views;
 
@@ -41,7 +42,7 @@ public sealed partial class WindowsAppsHelpContent : UserControl
         // Resolve the icon geometry from FeatureIcons resources
         if (Application.Current.Resources.TryGetValue(item.IconPath, out var pathData) && pathData is string pathString)
         {
-            pathIcon.Data = (Geometry)XamlBindingHelper.ConvertValue(typeof(Geometry), pathString);
+            pathIcon.Data = GeometryHelper.FromPathData(pathString);
         }
 
         // Apply initial color

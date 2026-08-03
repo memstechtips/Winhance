@@ -80,21 +80,26 @@ public class SettingLocalizationService : ISettingLocalizationService
         return $"{header}\n{string.Join("\n", lines)}";
     }
 
+    // The English strings here are real fallbacks, not decoration: GetString returns the "[key]"
+    // marker for a missing key and never null, so the `??` these replaced could never fire.
     private string GetFeatureName(string settingId)
     {
         if (settingId.StartsWith("privacy-"))
-            return _localization.GetString("Feature_Privacy_Name") ?? "Privacy & Security";
+            return Localized("Feature_Privacy_Name", "Privacy & Security");
         if (settingId.StartsWith("notifications-"))
-            return _localization.GetString("Feature_Notifications_Name") ?? "Notifications";
+            return Localized("Feature_Notifications_Name", "Notifications");
         if (settingId.StartsWith("start-"))
-            return _localization.GetString("Feature_StartMenu_Name") ?? "Start Menu";
+            return Localized("Feature_StartMenu_Name", "Start Menu");
         if (settingId.StartsWith("customize-"))
-            return _localization.GetString("Feature_Explorer_Name") ?? "Explorer";
+            return Localized("Feature_Explorer_Name", "Explorer");
         if (settingId.StartsWith("gaming-"))
-            return _localization.GetString("Feature_GamingPerformance_Name") ?? "Gaming & Performance";
+            return Localized("Feature_GamingPerformance_Name", "Gaming & Performance");
         if (settingId.StartsWith("power-"))
-            return _localization.GetString("Feature_Power_Name") ?? "Power";
+            return Localized("Feature_Power_Name", "Power");
 
-        return _localization.GetString("Nav_Settings") ?? "Settings";
+        return Localized("Nav_Settings", "Settings");
     }
+
+    private string Localized(string key, string fallback) =>
+        _localization.TryGetString(key, out var value) && !string.IsNullOrEmpty(value) ? value : fallback;
 }

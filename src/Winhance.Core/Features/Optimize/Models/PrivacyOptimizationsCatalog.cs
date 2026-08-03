@@ -345,7 +345,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = "PowerShell Execution Policy",
                 Description = "Controls whether PowerShell scripts are allowed to run and under what conditions for both the current user and the local machine",
                 GroupName = "Security",
-                Icon = MaterialIcons.PowerShell,
+                Icon = MaterialIcons.Powershell,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },

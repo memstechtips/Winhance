@@ -841,8 +841,6 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsReviewActionRejected { get; set; }
 
-    public bool IsReviewActionDecisionMade => IsReviewActionApproved || IsReviewActionRejected;
-
     public string ReviewActionGroupName => $"{SettingId}_action";
 
     /// <summary>
@@ -855,7 +853,6 @@ public partial class SettingItemViewModel : BaseViewModel
         if (value && IsReviewActionRejected)
             IsReviewActionRejected = false;
 
-        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
         ReviewActionApprovalChanged?.Invoke(this, value);
     }
 
@@ -864,7 +861,6 @@ public partial class SettingItemViewModel : BaseViewModel
         if (value && IsReviewActionApproved)
             IsReviewActionApproved = false;
 
-        OnPropertyChanged(nameof(IsReviewActionDecisionMade));
         if (value)
             ReviewActionApprovalChanged?.Invoke(this, false);
     }
@@ -1137,12 +1133,9 @@ public partial class SettingItemViewModel : BaseViewModel
     private bool IsDetectOnlyForMode(SettingInputMode mode) =>
         mode is not (SettingInputMode.Ac or SettingInputMode.Dc) && DetectOnlySelectedState is not null;
 
-    /// <summary>A localization lookup that treats the service's "[Key_Not_Found]" marker as absent.</summary>
-    private string? Localized(string key)
-    {
-        var text = _localizationService.GetString(key);
-        return (text is { Length: >= 2 } && text[0] == '[' && text[^1] == ']') ? null : text;
-    }
+    /// <summary>A localization lookup that returns null for a key the language files do not carry.</summary>
+    private string? Localized(string key) =>
+        _localizationService.TryGetString(key, out var text) ? text : null;
 
     /// <summary>The overlay tooltip: the SAME string that outcome's banner shows, so the two can never
     /// drift. <paramref name="toggleLike"/> picks the toggle or selection wording.</summary>

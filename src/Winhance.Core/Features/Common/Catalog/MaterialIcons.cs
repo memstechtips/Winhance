@@ -1,7 +1,10 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Generated typed accessors for the Material icon glyphs used in the catalog. Regenerate via
-/// extras/gen-catalog-icons.py when a new glyph is introduced; the glyph name is compile-checked.</summary>
+/// extras/gen-catalog-icons.py when a new glyph is introduced.
+///
+/// The ACCESSOR is compile-checked; the glyph NAME is not - it is a bare string, and this assembly
+/// does not reference the icon package that defines the names. CatalogIconNameTests pins them.</summary>
 public static class MaterialIcons
 {
     public static readonly Icon AccountCog = new(IconPack.Material, "AccountCog");
@@ -208,7 +211,6 @@ public static class MaterialIcons
     public static readonly Icon Play = new(IconPack.Material, "Play");
     public static readonly Icon PlayBox = new(IconPack.Material, "PlayBox");
     public static readonly Icon PowerSettings = new(IconPack.Material, "PowerSettings");
-    public static readonly Icon PowerShell = new(IconPack.Material, "PowerShell");
     public static readonly Icon PowerSleep = new(IconPack.Material, "PowerSleep");
     public static readonly Icon Powershell = new(IconPack.Material, "Powershell");
     public static readonly Icon Printer = new(IconPack.Material, "Printer");

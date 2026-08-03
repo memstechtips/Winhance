@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 using Xunit.Abstractions;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -211,13 +211,7 @@ public class CatalogCleanInstallConformanceTests
 
     // Anchors on the compile-time source path (RecommendedConfigConformanceTests precedent) so fixtures
     // resolve from the repo even when the build output is redirected off the network share.
-    private static string SolutionDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath);
-        while (dir != null && !File.Exists(Path.Combine(dir, "Winhance.sln")))
-            dir = Directory.GetParent(dir)?.FullName;
-        return dir ?? throw new InvalidOperationException("Could not find Winhance.sln walking up from " + callerPath);
-    }
+    private static string SolutionDir() => RepoPaths.SolutionDir();
 
     // ---------------------------------------------------------------------------------------------
     // Fixture model + detection context

@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -165,11 +165,5 @@ internal static class DefaultConfigProjection
     internal static string ConfigPath(string fileName)
         => Path.Combine(SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources", "Configs", fileName);
 
-    private static string SolutionDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath);
-        while (dir != null && !File.Exists(Path.Combine(dir, "Winhance.sln")))
-            dir = Directory.GetParent(dir)?.FullName;
-        return dir ?? throw new InvalidOperationException("Could not find Winhance.sln walking up from " + callerPath);
-    }
+    private static string SolutionDir() => RepoPaths.SolutionDir();
 }

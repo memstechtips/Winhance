@@ -11,6 +11,7 @@ using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -263,6 +264,8 @@ public class SettingsLoadingServiceTests
         // the key itself.
         _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(false);
         _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalization.MirrorTryGetString();
 
         var win10Only = new Setting
         {
@@ -513,6 +516,8 @@ public class SettingsLoadingServiceTests
         var mockDialog = new Mock<IDialogService>();
         var mockLocalization = new Mock<ILocalizationService>();
         mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        mockLocalization.MirrorTryGetString();
         var mockEventBus = new Mock<IEventBus>();
         var mockUserPrefs = new Mock<IUserPreferencesService>();
         var mockRegeditLauncher = new Mock<IRegeditLauncher>();

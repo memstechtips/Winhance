@@ -1,8 +1,8 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.Localization;
 
@@ -60,14 +60,7 @@ public class LocalizationDuplicateValueReportTests
     private static bool IsContractual(string key) =>
         ContractualPrefixes.Any(p => key.StartsWith(p, StringComparison.Ordinal));
 
-    private static string LocalizationDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath);
-        while (dir != null && !File.Exists(Path.Combine(dir, "Winhance.sln")))
-            dir = Directory.GetParent(dir)?.FullName;
-        if (dir is null) throw new InvalidOperationException($"Winhance.sln not found from {callerPath}");
-        return Path.Combine(dir, "src", "Winhance.UI", "Features", "Common", "Localization");
-    }
+    private static string LocalizationDir() => RepoPaths.LocalizationDir();
 
     private static Dictionary<string, string> Load(string path)
     {

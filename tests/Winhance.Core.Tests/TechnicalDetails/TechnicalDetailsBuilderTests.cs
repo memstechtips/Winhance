@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.TechnicalDetails;
 
@@ -19,10 +20,12 @@ public class TechnicalDetailsBuilderTests
     {
         var mock = new Mock<ILocalizationService>();
         mock.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        mock.MirrorTryGetString();
         return mock.Object;
     }
 
-    /// <summary>No-setup mock: GetString returns null so every lookup falls back to its English default.</summary>
+    /// <summary>No-setup mock: TryGetString reports every key missing, so every lookup falls back
+    /// to its English default.</summary>
     private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
 
     private static Display Show(string name = "Test") => new() { Name = name, Description = "d" };

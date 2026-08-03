@@ -675,9 +675,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (Settings == null || Settings.Count == 0)
             return;
 
-        var otherGroupName = _localizationService.GetString("SettingGroup_Other");
-        if (otherGroupName.StartsWith("[") && otherGroupName.EndsWith("]"))
-            otherGroupName = "Other";
+        var otherGroupName = _localizationService.TryGetString("SettingGroup_Other", out var localizedOther)
+            ? localizedOther
+            : "Other";
 
         var groupOrder = new List<string>();
         var groupedDict = new Dictionary<string, List<SettingItemViewModel>>();

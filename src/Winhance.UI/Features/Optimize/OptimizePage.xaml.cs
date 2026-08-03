@@ -349,9 +349,7 @@ public sealed partial class OptimizePage : Page
                 }
                 else
                 {
-                    var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                        typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
-                    BreadcrumbSectionIcon.Data = geometry;
+                    BreadcrumbSectionIcon.Data = GeometryHelper.FromPathData(iconData);
                 }
             }
 
@@ -877,25 +875,43 @@ public sealed partial class OptimizePage : Page
         }
     }
 
-    // Quick Actions handlers
+    // Quick Actions handlers.
+    //
+    // The try/catch is not optional here: async void means an escaped exception is unobserved and
+    // takes the process down. Every path below ends at ContentDialog.ShowAsync(), which throws when a
+    // second dialog opens while one is already showing - a double-click on the flyout item.
     private async void ApplyRecommended_Click(object sender, RoutedEventArgs e)
     {
-        if (_configReviewService?.IsInReviewMode == true)
-            await ExecuteReviewBulkActionAsync(approved: true);
-        else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
-            await ExecuteBuilderBulkActionAsync(BulkActionType.ApplyRecommended);
-        else
-            await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
+        try
+        {
+            if (_configReviewService?.IsInReviewMode == true)
+                await ExecuteReviewBulkActionAsync(approved: true);
+            else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
+                await ExecuteBuilderBulkActionAsync(BulkActionType.ApplyRecommended);
+            else
+                await ExecuteBulkActionAsync(BulkActionType.ApplyRecommended);
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Log("OptimizePage", $"ApplyRecommended_Click EXCEPTION: {ex}");
+        }
     }
 
     private async void ResetDefaults_Click(object sender, RoutedEventArgs e)
     {
-        if (_configReviewService?.IsInReviewMode == true)
-            await ExecuteReviewBulkActionAsync(approved: false);
-        else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
-            await ExecuteBuilderBulkActionAsync(BulkActionType.ResetToDefaults);
-        else
-            await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+        try
+        {
+            if (_configReviewService?.IsInReviewMode == true)
+                await ExecuteReviewBulkActionAsync(approved: false);
+            else if (_applicationModeService?.CurrentMode == WinhanceMode.Builder)
+                await ExecuteBuilderBulkActionAsync(BulkActionType.ResetToDefaults);
+            else
+                await ExecuteBulkActionAsync(BulkActionType.ResetToDefaults);
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Log("OptimizePage", $"ResetDefaults_Click EXCEPTION: {ex}");
+        }
     }
 
     /// <summary>
@@ -1084,9 +1100,7 @@ public sealed partial class OptimizePage : Page
             ApplyRecommendedIcon.Glyph = "\uE735";
             ResetDefaultsItem.Icon = new PathIcon
             {
-                Data = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry),
-                    (string)Application.Current.Resources["WindowsLogoIconPath"])
+                Data = GeometryHelper.FromResource("WindowsLogoIconPath")
             };
             ShowOnlyChangesSeparator.Visibility = Visibility.Collapsed;
             ShowOnlyChangesToggleItem.Visibility = Visibility.Collapsed;

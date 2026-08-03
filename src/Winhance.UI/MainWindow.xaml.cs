@@ -23,6 +23,7 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI;
 
@@ -642,10 +643,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         {
             if (ViewModel != null && WindowsFilterIcon != null)
             {
-                var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Geometry),
-                    ViewModel.WindowsFilterIcon);
-                WindowsFilterIcon.Data = geometry;
+                WindowsFilterIcon.Data = GeometryHelper.FromPathData(ViewModel.WindowsFilterIcon);
             }
         }
         catch (Exception ex)

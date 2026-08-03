@@ -13,6 +13,7 @@ using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -62,6 +63,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalizationService.MirrorTryGetString();
 
         // Dispatcher executes actions synchronously for testing
         _mockDispatcherService
@@ -1111,10 +1114,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         // Arrange
         var vm = CreateViewModel();
 
-        // Mock the "Other" localization to return a bracketed value, triggering the fallback
-        _mockLocalizationService
-            .Setup(l => l.GetString("SettingGroup_Other"))
-            .Returns("[SettingGroup_Other]");
+        _mockLocalizationService.MissingKey("SettingGroup_Other");
 
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", ""));
@@ -1129,9 +1129,33 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - should fall back to "Other" when localization returns bracketed key
+        // Assert - should fall back to "Other" when the key is missing
         vm.GroupedSettings.Should().HaveCount(1);
         vm.GroupedSettings[0].Key.Should().Be("Other");
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_OtherGroupTranslationLooksLikeAMissMarker_IsStillUsed()
+    {
+        // A translation is allowed to be bracketed. The old code recognised a miss by the shape of
+        // the string, so it threw this away and showed English instead.
+        var vm = CreateViewModel();
+        _mockLocalizationService.PresentKey("SettingGroup_Other", "[Sonstige]");
+
+        var settings = CreateSettingsCollection(
+            ("s1", "Setting 1", ""));
+
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
+
+        await vm.LoadSettingsAsync();
+
+        vm.GroupedSettings.Should().HaveCount(1);
+        vm.GroupedSettings[0].Key.Should().Be("[Sonstige]");
     }
 
     // ── Dispose ──

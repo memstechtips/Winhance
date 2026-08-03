@@ -257,13 +257,10 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
     /// <summary>Substitutes {0} without string.Format, so a translator's stray brace cannot throw.</summary>
     private static string Format(string pattern, string a) => pattern.Replace("{0}", a);
 
-    private string Localize(string key, string fallback)
-    {
-        var text = Localization?.GetString(key);
-        if (string.IsNullOrEmpty(text))
-            return fallback;
-        return (text.Length >= 2 && text[0] == '[' && text[^1] == ']') ? fallback : text;
-    }
+    private string Localize(string key, string fallback) =>
+        Localization is { } loc && loc.TryGetString(key, out var text) && !string.IsNullOrEmpty(text)
+            ? text
+            : fallback;
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay needs a notification source; without one the compiler emits WMC1506.

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -10,6 +9,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
 using Xunit;
 using Xunit.Abstractions;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -237,11 +237,5 @@ public class RecommendedConfigConformanceTests
 
     // Anchors on the compile-time source path (like Winhance.IntegrationTests/Helpers/TestContext), so it resolves
     // the in-repo config even when the test bin folder lives outside the tree (network-share / redirected build root).
-    private static string SolutionDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath);
-        while (dir != null && !File.Exists(Path.Combine(dir, "Winhance.sln")))
-            dir = Directory.GetParent(dir)?.FullName;
-        return dir ?? throw new InvalidOperationException("Could not find Winhance.sln walking up from " + callerPath);
-    }
+    private static string SolutionDir() => RepoPaths.SolutionDir();
 }
