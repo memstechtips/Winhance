@@ -69,7 +69,8 @@ public class SettingItemViewModelTests : IDisposable
     {
         return new SettingItemViewModel(
             config ?? _defaultConfig,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
@@ -631,6 +632,7 @@ public class SettingItemViewModelTests : IDisposable
     public void IsReviewApproved_SettingTrue_ClearsIsReviewRejected()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
         sut.IsReviewRejected = true;
 
         sut.IsReviewApproved = true;
@@ -643,6 +645,7 @@ public class SettingItemViewModelTests : IDisposable
     public void IsReviewRejected_SettingTrue_ClearsIsReviewApproved()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
         sut.IsReviewApproved = true;
 
         sut.IsReviewRejected = true;
@@ -655,6 +658,7 @@ public class SettingItemViewModelTests : IDisposable
     public void IsReviewDecisionMade_ReturnsTrueWhenApproved()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
 
         sut.IsReviewApproved = true;
 
@@ -665,6 +669,7 @@ public class SettingItemViewModelTests : IDisposable
     public void IsReviewDecisionMade_ReturnsTrueWhenRejected()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
 
         sut.IsReviewRejected = true;
 
@@ -683,6 +688,7 @@ public class SettingItemViewModelTests : IDisposable
     public void ReviewApprovalChanged_RaisedWhenIsReviewApprovedChanges()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
         bool? receivedApproval = null;
         sut.ReviewApprovalChanged += (_, approved) => receivedApproval = approved;
 
@@ -695,6 +701,7 @@ public class SettingItemViewModelTests : IDisposable
     public void ReviewApprovalChanged_RaisedWithFalseWhenRejected()
     {
         var sut = CreateSut();
+        sut.IsInReviewMode = true;
         bool? receivedApproval = null;
         sut.ReviewApprovalChanged += (_, approved) => receivedApproval = approved;
 

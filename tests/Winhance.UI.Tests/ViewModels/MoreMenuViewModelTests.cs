@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -24,6 +25,8 @@ public class MoreMenuViewModelTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalization.MirrorTryGetString();
     }
 
     private MoreMenuViewModel CreateViewModel()

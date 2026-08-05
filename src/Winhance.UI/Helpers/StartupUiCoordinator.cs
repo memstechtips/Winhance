@@ -110,7 +110,7 @@ internal sealed class StartupUiCoordinator
                     try
                     {
                         var localizationService = App.Services.GetService<ILocalizationService>();
-                        loadingStatusText.Text = localizationService?.GetString(localizationKey) ?? localizationKey;
+                        loadingStatusText.Text = localizationService.GetStringOrDefault(localizationKey, localizationKey);
                     }
                     catch
                     {

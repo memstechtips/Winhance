@@ -80,7 +80,8 @@ public class SettingReviewDiffApplierTests
 
         var vm = new SettingItemViewModel(
             config,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcher.Object,
             _mockDialogService.Object,

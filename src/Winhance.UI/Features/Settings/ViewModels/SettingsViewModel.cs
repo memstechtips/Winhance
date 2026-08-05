@@ -152,9 +152,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     /// </summary>
     private string GetThemeDisplayName(WinhanceTheme theme) => theme switch
     {
-        WinhanceTheme.System => _localizationService.GetString("Theme_System") ?? "System",
-        WinhanceTheme.LightNative => _localizationService.GetString("Theme_LightNative") ?? "Light",
-        WinhanceTheme.DarkNative => _localizationService.GetString("Theme_DarkNative") ?? "Dark",
+        WinhanceTheme.System => _localizationService.GetStringOrDefault("Theme_System", "System"),
+        WinhanceTheme.LightNative => _localizationService.GetStringOrDefault("Theme_LightNative", "Light"),
+        WinhanceTheme.DarkNative => _localizationService.GetStringOrDefault("Theme_DarkNative", "Dark"),
         _ => theme.ToString()
     };
 
@@ -189,22 +189,22 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 
     // Localized string properties for x:Bind
-    public string PageTitle => _localizationService.GetString("Settings_Title") ?? "Settings";
-    public string PageDescription => _localizationService.GetString("Settings_Description") ?? "Configure Winhance Application Preferences";
-    public string GeneralLabel => _localizationService.GetString("Category_General") ?? "General";
-    public string LanguageHeader => _localizationService.GetString("Settings_Menu_Language") ?? "Language";
-    public string LanguageDescription => _localizationService.GetString("Settings_Language_Description") ?? "Select your preferred language";
-    public string ThemeHeader => _localizationService.GetString("Settings_Theme_Title") ?? "Theme";
-    public string ThemeDescription => _localizationService.GetString("Tooltip_ToggleTheme") ?? "Choose your preferred theme";
-    public string ConfigurationLabel => _localizationService.GetString("Category_Configuration") ?? "Configuration";
-    public string BackupRestoreHeader => _localizationService.GetString("Settings_BackupRestore_Title") ?? "Backup & Restore";
-    public string BackupRestoreDescription => _localizationService.GetString("Settings_BackupRestore_Description") ?? "Import or export your settings configuration";
-    public string ImportButtonText => _localizationService.GetString("Button_Import") ?? "Import";
-    public string ExportButtonText => _localizationService.GetString("Button_Export") ?? "Export";
-    public string SystemProtectionLabel => _localizationService.GetString("Category_SystemProtection") ?? "System Protection";
-    public string SystemProtectionHeader => _localizationService.GetString("Settings_SystemProtection_Title") ?? "System Restore Point";
-    public string SystemProtectionDescription => _localizationService.GetString("Settings_SystemProtection_Description") ?? "Create a Windows System Restore point to allow rolling back system changes";
-    public string CreateRestorePointButtonText => _localizationService.GetString("Settings_CreateRestorePoint_Button") ?? "Create Restore Point";
+    public string PageTitle => _localizationService.GetStringOrDefault("Settings_Title", "Settings");
+    public string PageDescription => _localizationService.GetStringOrDefault("Settings_Description", "Configure Winhance Application Preferences");
+    public string GeneralLabel => _localizationService.GetStringOrDefault("Category_General", "General");
+    public string LanguageHeader => _localizationService.GetStringOrDefault("Settings_Menu_Language", "Language");
+    public string LanguageDescription => _localizationService.GetStringOrDefault("Settings_Language_Description", "Select your preferred language");
+    public string ThemeHeader => _localizationService.GetStringOrDefault("Settings_Theme_Title", "Theme");
+    public string ThemeDescription => _localizationService.GetStringOrDefault("Tooltip_ToggleTheme", "Choose your preferred theme");
+    public string ConfigurationLabel => _localizationService.GetStringOrDefault("Category_Configuration", "Configuration");
+    public string BackupRestoreHeader => _localizationService.GetStringOrDefault("Settings_BackupRestore_Title", "Backup & Restore");
+    public string BackupRestoreDescription => _localizationService.GetStringOrDefault("Settings_BackupRestore_Description", "Import or export your settings configuration");
+    public string ImportButtonText => _localizationService.GetStringOrDefault("Button_Import", "Import");
+    public string ExportButtonText => _localizationService.GetStringOrDefault("Button_Export", "Export");
+    public string SystemProtectionLabel => _localizationService.GetStringOrDefault("Category_SystemProtection", "System Protection");
+    public string SystemProtectionHeader => _localizationService.GetStringOrDefault("Settings_SystemProtection_Title", "System Restore Point");
+    public string SystemProtectionDescription => _localizationService.GetStringOrDefault("Settings_SystemProtection_Description", "Create a Windows System Restore point to allow rolling back system changes");
+    public string CreateRestorePointButtonText => _localizationService.GetStringOrDefault("Settings_CreateRestorePoint_Button", "Create Restore Point");
 
     /// <summary>
     /// Called when the selected theme changes.
@@ -257,7 +257,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         IsCreatingRestorePoint = true;
         var cts = _taskProgressService.StartTask(
-            _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+            _localizationService.GetStringOrDefault("Progress_CreatingRestorePoint", "Creating system restore point..."),
             isIndeterminate: true);
         var progress = _taskProgressService.CreateDetailedProgress();
 
@@ -270,14 +270,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
             if (result.Success && result.RestorePointCreated)
             {
-                var successMsg = _localizationService.GetString("Settings_RestorePoint_Success")
-                    ?? "System Restore point created successfully.";
+                var successMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Success", "System Restore point created successfully.");
                 await _dialogService.ShowInformationAsync(successMsg);
             }
             else
             {
-                var failMsg = _localizationService.GetString("Settings_RestorePoint_Fail")
-                    ?? "Failed to create System Restore point.";
+                var failMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Fail", "Failed to create System Restore point.");
                 if (!string.IsNullOrEmpty(result.ErrorMessage))
                     failMsg += $"\n\n{result.ErrorMessage}";
                 await _dialogService.ShowWarningAsync(failMsg);
@@ -288,8 +286,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _taskProgressService.CompleteTask();
             _logService.LogWarning($"Failed to create restore point from Settings: {ex.Message}");
             await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("Settings_RestorePoint_Fail")
-                    ?? "Failed to create System Restore point.");
+                _localizationService.GetStringOrDefault("Settings_RestorePoint_Fail", "Failed to create System Restore point."));
         }
         finally
         {

@@ -524,7 +524,8 @@ public class SettingsLoadingServiceTests
 
         return new SettingItemViewModel(
             config,
-            mockSettingApp.Object,
+            SettingWriteStrategies.Selector(
+                mockSettingApp.Object, mockDialog.Object, mockLocalization.Object, mockLog.Object),
             mockLog.Object,
             mockDispatcher.Object,
             mockDialog.Object,

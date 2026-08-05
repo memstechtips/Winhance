@@ -7,6 +7,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -14,16 +15,22 @@ public class OptimizeViewModelTests
 {
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
+    private readonly Mock<IConfigReviewBadgeService> _mockBadgeService;
+    private readonly Mock<IConfigReviewModeService> _mockReviewModeService;
 
     public OptimizeViewModelTests()
     {
         _mockLogService = new Mock<ILogService>();
         _mockLocalizationService = new Mock<ILocalizationService>();
+        _mockBadgeService = new Mock<IConfigReviewBadgeService>();
+        _mockReviewModeService = new Mock<IConfigReviewModeService>();
 
         // Default localization setup: return the key itself as the localized string
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalizationService.MirrorTryGetString();
     }
 
     private IEnumerable<IOptimizationFeatureViewModel> CreateFeatureViewModels()
@@ -61,7 +68,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.Should().NotBeNull();
@@ -77,10 +86,22 @@ public class OptimizeViewModelTests
         var action = () => new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            featureViewModels);
+            featureViewModels,
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Sections_AreInTheOrderTheUserSees()
+    {
+        // The overview cards and the breadcrumb flyout render Sections as written, so this list is
+        // the display order. The Contains tests below pass under any permutation - that is how the
+        // Customize page's order was silently reversed by a refactor and only caught by eye.
+        OptimizeViewModel.Sections.Select(s => s.Key)
+            .Should().Equal("Privacy", "Power", "Gaming", "Update", "Notification", "Sound");
     }
 
     [Fact]
@@ -145,7 +166,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.SoundViewModel.Should().NotBeNull();
@@ -159,7 +182,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.UpdateViewModel.Should().NotBeNull();
@@ -173,7 +198,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.NotificationViewModel.Should().NotBeNull();
@@ -187,7 +214,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.PrivacyViewModel.Should().NotBeNull();
@@ -201,7 +230,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.PowerViewModel.Should().NotBeNull();
@@ -215,7 +246,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.GamingViewModel.Should().NotBeNull();
@@ -233,7 +266,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Act & Assert
         vm.PageTitle.Should().Be("Optimize");
@@ -250,7 +285,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Act & Assert
         vm.PageDescription.Should().Be("Optimize your system");
@@ -267,7 +304,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Act & Assert
         vm.BreadcrumbRootText.Should().Be("Optimize");
@@ -280,7 +319,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.CurrentSectionKey.Should().Be("Overview");
@@ -293,7 +334,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.IsLoading.Should().BeTrue();
@@ -306,7 +349,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Assert
         vm.SearchText.Should().BeEmpty();
@@ -319,7 +364,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         // Act
         var action = () => vm.Dispose();
@@ -335,7 +382,9 @@ public class OptimizeViewModelTests
         var vm = new OptimizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            CreateFeatureViewModels());
+            CreateFeatureViewModels(),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
 
         vm.SearchText = "test";
 

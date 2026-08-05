@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -46,7 +47,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
             if (hasDiffValues)
             {
                 // Show the value diff (e.g. "Current: Light Mode → Config: Dark Mode")
-                var diffFormat = _localizationService.GetString("Review_Mode_Diff_Toggle") ?? "Current: {0} \u2192 Config: {1}";
+                var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} \u2192 Config: {1}");
                 viewModel.HasReviewDiff = true;
                 viewModel.ReviewDiffMessage = string.Format(diffFormat, existingDiff.CurrentValueDisplay, existingDiff.ConfigValueDisplay);
             }
@@ -110,7 +111,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
         if (hasDiff)
         {
-            var diffFormat = _localizationService.GetString("Review_Mode_Diff_Toggle") ?? "Current: {0} \u2192 Config: {1}";
+            var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} \u2192 Config: {1}");
             viewModel.HasReviewDiff = true;
             viewModel.ReviewDiffMessage = string.Format(diffFormat, currentDisplay, configDisplay);
             viewModel.IsReviewApproved = false;
@@ -160,8 +161,8 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         ConfigurationItem configItem,
         SettingStateResult currentState)
     {
-        var onText = _localizationService.GetString("Common_On") ?? "On";
-        var offText = _localizationService.GetString("Common_Off") ?? "Off";
+        var onText = _localizationService.GetStringOrDefault("Common_On", "On");
+        var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");
 
         switch (viewModel.InputType)
         {

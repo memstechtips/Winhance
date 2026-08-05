@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using WinRT.Interop;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Views;
 
@@ -48,8 +49,8 @@ public sealed partial class ConfigImportOverlayWindow : Window
         try
         {
             var localizationService = App.Services.GetService<ILocalizationService>();
-            OverlayTitleText.Text = localizationService?.GetString("App_Title") ?? "Winhance";
-            OverlayTaglineText.Text = localizationService?.GetString("App_Tagline") ?? "";
+            OverlayTitleText.Text = localizationService.GetStringOrDefault("App_Title", "Winhance");
+            OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "");
         }
         catch
         {

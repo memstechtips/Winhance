@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
@@ -58,8 +59,8 @@ public sealed partial class AutounattendGeneratorPage : Page
         if (e.PropertyName != nameof(ViewModel.IsGenerating)) return;
 
         var message = ViewModel.IsGenerating
-            ? _localizationService?.GetString("Accessibility_GeneratingXml") ?? "Generating XML..."
-            : _localizationService?.GetString("Accessibility_GenerationComplete") ?? "XML generation complete";
+            ? _localizationService.GetStringOrDefault("Accessibility_GeneratingXml", "Generating XML...")
+            : _localizationService.GetStringOrDefault("Accessibility_GenerationComplete", "XML generation complete");
         Announce(message);
     }
 

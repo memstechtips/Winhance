@@ -157,7 +157,8 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         var vm = new SettingItemViewModel(
             config,
-            mockSettingAppService.Object,
+            SettingWriteStrategies.Selector(
+                mockSettingAppService.Object, mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcherService.Object,
             mockDialogService.Object,

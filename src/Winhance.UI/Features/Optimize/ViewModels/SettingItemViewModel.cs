@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -24,9 +25,9 @@ using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-public partial class SettingItemViewModel : BaseViewModel
+public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 {
-    private readonly ISettingApplicationService _settingApplicationService;
+    private readonly ISettingWriteStrategySelector _writeStrategySelector;
     private readonly ILogService _logService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
@@ -192,7 +193,7 @@ public partial class SettingItemViewModel : BaseViewModel
     }
 
     public string TechnicalDetailsLabel =>
-        _localizationService.GetString("View_TechnicalDetails") ?? "Technical Details";
+        _localizationService.GetStringOrDefault("View_TechnicalDetails", "Technical Details");
 
     /// <summary>Toggles the panel. A command so the one shared panel control can bind to it.</summary>
     [RelayCommand]
@@ -218,7 +219,7 @@ public partial class SettingItemViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsNewBadgeGloballyVisible { get; set; } = true;
 
-    public string NewBadgeText => _localizationService.GetString("Badge_New") ?? "NEW";
+    public string NewBadgeText => _localizationService.GetStringOrDefault("Badge_New", "NEW");
 
     public bool ShowNewBadge => IsNew && IsNewBadgeGloballyVisible;
 
@@ -807,39 +808,139 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public bool RequiresAdvancedUnlock =>
         Setting?.Availability.RequiresAdvancedUnlock ?? false;
-    public string ClickToUnlockText => _localizationService.GetString("Common_ClickToUnlock") ?? "Click to unlock";
+    public string ClickToUnlockText => _localizationService.GetStringOrDefault("Common_ClickToUnlock", "Click to unlock");
     public IAsyncRelayCommand UnlockCommand { get; }
 
-    // Review mode properties
-    [ObservableProperty]
-    public partial bool IsInReviewMode { get; set; }
+    // ── Review-mode state ──
+    //
+    // All of it lives behind one nullable reference, so leaving review is a single assignment to
+    // null and nothing has to be reset field by field. That is the point of the shape: the previous
+    // one was nine separate observable properties cleared by a nine-line ClearReviewState(), which
+    // put every future review field one forgotten line away from surviving into the next mode — a
+    // leak with no symptom where it was introduced. A field added to SettingReviewState cannot
+    // outlive the review, because nothing clears fields at all.
+    //
+    // The properties below stay exactly as the XAML and the diff applier already know them; only
+    // where the values live has changed.
+    private SettingReviewState? _reviewState;
 
-    [ObservableProperty]
-    public partial bool HasReviewDiff { get; set; }
+    /// <summary>
+    /// Whether this card is showing a pending configuration instead of the live system. Setting it
+    /// true opens a fresh review overlay; setting it false drops the overlay and everything in it.
+    /// </summary>
+    public bool IsInReviewMode
+    {
+        get => _reviewState is not null;
+        set
+        {
+            if (value == IsInReviewMode) return;
 
-    [ObservableProperty]
-    public partial string? ReviewDiffMessage { get; set; }
+            _reviewState = value ? new SettingReviewState() : null;
 
-    [ObservableProperty]
-    public partial bool IsReviewApproved { get; set; }
+            OnPropertyChanged();
+            NotifyReviewProjectionsChanged();
+            OnPropertyChanged(nameof(EffectiveIsEnabled));
 
-    [ObservableProperty]
-    public partial bool IsReviewRejected { get; set; }
+            // Entering review forces every expander open so children carrying review diffs are
+            // visible. A parent collapsed before import would otherwise hide its children behind a
+            // disabled card and leave Apply Config gated. The chevron still collapses a subtree after.
+            if (value)
+                IsExpanderExpanded = true;
+        }
+    }
+
+    public bool HasReviewDiff
+    {
+        get => _reviewState?.HasDiff ?? false;
+        set => SetReviewValue(static s => s.HasDiff, static (s, v) => s.HasDiff = v, value);
+    }
+
+    public string? ReviewDiffMessage
+    {
+        get => _reviewState?.DiffMessage;
+        set => SetReviewValue(static s => s.DiffMessage, static (s, v) => s.DiffMessage = v, value);
+    }
+
+    public bool IsReviewApproved
+    {
+        get => _reviewState?.IsApproved ?? false;
+        set
+        {
+            if (!SetReviewValue(static s => s.IsApproved, static (s, v) => s.IsApproved = v, value))
+                return;
+
+            if (value && IsReviewRejected)
+                IsReviewRejected = false;
+
+            OnPropertyChanged(nameof(IsReviewDecisionMade));
+            // Notify the ConfigReviewService when approval changes
+            ReviewApprovalChanged?.Invoke(this, value);
+        }
+    }
+
+    public bool IsReviewRejected
+    {
+        get => _reviewState?.IsRejected ?? false;
+        set
+        {
+            if (!SetReviewValue(static s => s.IsRejected, static (s, v) => s.IsRejected = v, value))
+                return;
+
+            if (value && IsReviewApproved)
+                IsReviewApproved = false;
+
+            OnPropertyChanged(nameof(IsReviewDecisionMade));
+            // When rejecting, notify with approved=false
+            if (value)
+                ReviewApprovalChanged?.Invoke(this, false);
+        }
+    }
 
     public bool IsReviewDecisionMade => IsReviewApproved || IsReviewRejected;
 
     // Review action properties (for action settings like wallpaper that appear alongside a diff)
-    [ObservableProperty]
-    public partial bool HasReviewAction { get; set; }
+    public bool HasReviewAction
+    {
+        get => _reviewState?.HasAction ?? false;
+        set => SetReviewValue(static s => s.HasAction, static (s, v) => s.HasAction = v, value);
+    }
 
-    [ObservableProperty]
-    public partial string? ReviewActionMessage { get; set; }
+    public string? ReviewActionMessage
+    {
+        get => _reviewState?.ActionMessage;
+        set => SetReviewValue(static s => s.ActionMessage, static (s, v) => s.ActionMessage = v, value);
+    }
 
-    [ObservableProperty]
-    public partial bool IsReviewActionApproved { get; set; }
+    public bool IsReviewActionApproved
+    {
+        get => _reviewState?.IsActionApproved ?? false;
+        set
+        {
+            if (!SetReviewValue(static s => s.IsActionApproved, static (s, v) => s.IsActionApproved = v, value))
+                return;
 
-    [ObservableProperty]
-    public partial bool IsReviewActionRejected { get; set; }
+            if (value && IsReviewActionRejected)
+                IsReviewActionRejected = false;
+
+            ReviewActionApprovalChanged?.Invoke(this, value);
+        }
+    }
+
+    public bool IsReviewActionRejected
+    {
+        get => _reviewState?.IsActionRejected ?? false;
+        set
+        {
+            if (!SetReviewValue(static s => s.IsActionRejected, static (s, v) => s.IsActionRejected = v, value))
+                return;
+
+            if (value && IsReviewActionApproved)
+                IsReviewActionApproved = false;
+
+            if (value)
+                ReviewActionApprovalChanged?.Invoke(this, false);
+        }
+    }
 
     public string ReviewActionGroupName => $"{SettingId}_action";
 
@@ -848,56 +949,6 @@ public partial class SettingItemViewModel : BaseViewModel
     /// </summary>
     public event EventHandler<bool>? ReviewActionApprovalChanged;
 
-    partial void OnIsReviewActionApprovedChanged(bool value)
-    {
-        if (value && IsReviewActionRejected)
-            IsReviewActionRejected = false;
-
-        ReviewActionApprovalChanged?.Invoke(this, value);
-    }
-
-    partial void OnIsReviewActionRejectedChanged(bool value)
-    {
-        if (value && IsReviewActionApproved)
-            IsReviewActionApproved = false;
-
-        if (value)
-            ReviewActionApprovalChanged?.Invoke(this, false);
-    }
-
-    partial void OnIsInReviewModeChanged(bool value)
-    {
-        OnPropertyChanged(nameof(EffectiveIsEnabled));
-
-        // When entering Review Mode, force every expander open so children carrying
-        // review diffs are visible. A parent collapsed before import would otherwise
-        // hide its children behind a disabled card and Apply Config would stay gated.
-        // The user can still toggle the chevron overlay to collapse a subtree after.
-        if (value)
-            IsExpanderExpanded = true;
-    }
-
-    partial void OnIsReviewApprovedChanged(bool value)
-    {
-        if (value && IsReviewRejected)
-            IsReviewRejected = false;
-
-        OnPropertyChanged(nameof(IsReviewDecisionMade));
-        // Notify the ConfigReviewService when approval changes
-        ReviewApprovalChanged?.Invoke(this, value);
-    }
-
-    partial void OnIsReviewRejectedChanged(bool value)
-    {
-        if (value && IsReviewApproved)
-            IsReviewApproved = false;
-
-        OnPropertyChanged(nameof(IsReviewDecisionMade));
-        // When rejecting, notify with approved=false
-        if (value)
-            ReviewApprovalChanged?.Invoke(this, false);
-    }
-
     /// <summary>
     /// Raised when the user changes the review approval state for this setting.
     /// The ConfigReviewService subscribes to this to update its approval counts.
@@ -905,27 +956,63 @@ public partial class SettingItemViewModel : BaseViewModel
     public event EventHandler<bool>? ReviewApprovalChanged;
 
     /// <summary>
-    /// Clears all review mode state including event handlers.
-    /// Used when exiting review mode to ensure clean state for subsequent imports.
-    /// Nulls event handler first to prevent stale notifications during property resets.
+    /// Writes one value into the review overlay, raising PropertyChanged only on a real change, and
+    /// reporting whether anything changed so a caller can run its side effects in the same order the
+    /// generated observable properties used to.
+    ///
+    /// A write while no overlay exists is dropped. Review values belong to the review, and letting
+    /// one land outside it is the contamination this shape exists to prevent — the diff applier sets
+    /// <see cref="IsInReviewMode"/> before anything else for exactly that reason.
+    /// </summary>
+    private bool SetReviewValue<T>(
+        Func<SettingReviewState, T> read,
+        Action<SettingReviewState, T> write,
+        T value,
+        [CallerMemberName] string? propertyName = null)
+    {
+        if (_reviewState is not { } state) return false;
+        if (EqualityComparer<T>.Default.Equals(read(state), value)) return false;
+
+        write(state, value);
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    /// <summary>
+    /// Re-reads every property that projects off the review overlay. Needed when the overlay itself
+    /// is created or dropped, because the individual values did not change — the object they read
+    /// from did.
+    ///
+    /// This is a list, unlike the state it replaces, but it is a list of notifications rather than
+    /// of resets: a missing line here leaves a card looking stale, which is visible and harmless,
+    /// where a missing reset leaked state into the next mode invisibly.
+    /// <c>SettingItemViewModelReviewStateTests</c> derives the expected set by reflection, so a new
+    /// review property is covered without anyone remembering to come back here.
+    /// </summary>
+    private void NotifyReviewProjectionsChanged()
+    {
+        OnPropertyChanged(nameof(HasReviewDiff));
+        OnPropertyChanged(nameof(ReviewDiffMessage));
+        OnPropertyChanged(nameof(IsReviewApproved));
+        OnPropertyChanged(nameof(IsReviewRejected));
+        OnPropertyChanged(nameof(IsReviewDecisionMade));
+        OnPropertyChanged(nameof(HasReviewAction));
+        OnPropertyChanged(nameof(ReviewActionMessage));
+        OnPropertyChanged(nameof(IsReviewActionApproved));
+        OnPropertyChanged(nameof(IsReviewActionRejected));
+    }
+
+    /// <summary>
+    /// Drops the review overlay and the subscriptions that fed it, so a subsequent import starts
+    /// clean. Handlers go first: dropping the overlay raises PropertyChanged for the projections,
+    /// and a stale subscriber must not act on those.
     /// </summary>
     public void ClearReviewState()
     {
-        // Clear event handler BEFORE resetting properties to prevent
-        // OnIsReviewApprovedChanged/OnIsReviewRejectedChanged from
-        // invoking stale subscribers during cleanup.
         ReviewApprovalChanged = null;
         ReviewActionApprovalChanged = null;
 
         IsInReviewMode = false;
-        HasReviewDiff = false;
-        ReviewDiffMessage = null;
-        IsReviewApproved = false;
-        IsReviewRejected = false;
-        HasReviewAction = false;
-        ReviewActionMessage = null;
-        IsReviewActionApproved = false;
-        IsReviewActionRejected = false;
     }
 
     partial void OnIsEnabledChanged(bool value)
@@ -983,8 +1070,144 @@ public partial class SettingItemViewModel : BaseViewModel
 
     public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
 
-    // Builder mode records desired state into the UI without applying to the system.
-    private bool IsBuilderMode => _applicationModeService?.CurrentMode == WinhanceMode.Builder;
+    // Builder mode records desired state into the UI without applying to the system. Named for the
+    // capability rather than the mode so the write path asks what it is allowed to do, not who it is.
+    private bool AuthorsIntent => _applicationModeService.Capabilities().AuthorsIntent;
+
+    /// <summary>Whether this setting asks to be confirmed before it is applied.</summary>
+    private bool SettingRequiresConfirmation => Setting?.Apply.RequiresConfirmation ?? false;
+
+    /// <summary>
+    /// Re-applies this setting's authored value over whatever live system state was just written
+    /// into this card.
+    ///
+    /// "What the user authored" and "what the machine currently says" are two different facts, and
+    /// while a mode is authoring, the authored one is what the card must show — because it is what
+    /// Save will write. The recorded edit is the single store for that fact; this method is how a
+    /// card that has just been rebuilt from the machine gets back in step with it.
+    ///
+    /// Call it from every path that writes live state into this ViewModel. Before it existed, a
+    /// reload during Builder — a Windows-version filter toggle or a UI language change both cause
+    /// one — rebuilt every card from the live machine while the recorded edits survived unseen in
+    /// the mode service and were still written on Save, so the saved file silently disagreed with
+    /// the screen.
+    ///
+    /// No-op outside an authoring mode, and no-op for a setting that was never authored. Restores
+    /// only what the record actually holds: an <see cref="SettingDetectionOutcome"/> is set here
+    /// only where the authoring write path derived one from the same value.
+    /// </summary>
+    public void ApplyAuthoredOverlay()
+    {
+        if (!AuthorsIntent) return;
+        if (_applicationModeService?.GetBuilderEdit(SettingId) is not { } edit) return;
+
+        // These are programmatic writes standing in for the user's earlier ones - they must not
+        // re-enter the input handlers and record themselves a second time. Saved and restored
+        // rather than cleared, because the live-state writers call this from inside their own
+        // suppressed section.
+        bool wasUpdatingFromEvent = _isUpdatingFromEvent;
+        _isUpdatingFromEvent = true;
+        try
+        {
+            ApplyAuthoredValues(edit);
+        }
+        finally
+        {
+            _isUpdatingFromEvent = wasUpdatingFromEvent;
+        }
+    }
+
+    /// <summary>
+    /// Writes one recorded edit back onto the card, per input shape. The inverse of what the
+    /// handlers record; <c>SettingItemViewModelAuthoredOverlayTests</c> round-trips every shape
+    /// through both directions, so a new input type that records but cannot restore fails there
+    /// rather than silently saving a value the user cannot see.
+    /// </summary>
+    private void ApplyAuthoredValues(BuilderEdit edit)
+    {
+        switch (InputType)
+        {
+            case InputType.Toggle:
+            case InputType.CheckBox:
+            case InputType.Action:
+                // Outcome deliberately untouched: the toggle path only resolves an outcome for a
+                // Custom-state pick, and that is not part of the record to restore from.
+                if (edit.IsSelected is { } authoredToggle)
+                    IsSelected = authoredToggle;
+                break;
+
+            case InputType.Selection:
+                if (SupportsSeparateACDC)
+                {
+                    if (edit.AcIndex is { } authoredAc) AcValue = authoredAc;
+                    if (edit.DcIndex is { } authoredDc) DcValue = authoredDc;
+                    if (edit.AcIndex is not null || edit.DcIndex is not null)
+                        Outcome = SettingDetectionOutcome.Resolved;
+                }
+                else if (edit.CustomStateValues is { } authoredCustomValues)
+                {
+                    // Authored at the Custom index: the raw values are the payload, and the card
+                    // keeps its Custom rendering - the write path does not resolve this case either.
+                    CapturedCustomStateValues = authoredCustomValues;
+                    SelectedValue = ComboBoxConstants.CustomStateIndex;
+                    NumericValue = ComboBoxConstants.CustomStateIndex;
+                }
+                else if (edit.SelectedIndex is { } authoredIndex)
+                {
+                    SelectedValue = authoredIndex;
+                    NumericValue = authoredIndex;
+                    Outcome = SettingDetectionOutcome.Resolved;
+                    UpdateStatusBanner(authoredIndex);
+                }
+                break;
+
+            case InputType.NumericRange:
+                // Converted on the way out because the record holds SYSTEM units and the sliders
+                // read DISPLAY units - the same asymmetry the recording side converts across.
+                if (SupportsSeparateACDC)
+                {
+                    if (edit.AcNumericValue is { } authoredAcNumeric)
+                        AcNumericValue = ConvertFromSystemUnits(authoredAcNumeric);
+                    if (edit.DcNumericValue is { } authoredDcNumeric)
+                        DcNumericValue = ConvertFromSystemUnits(authoredDcNumeric);
+                }
+                else if (edit.NumericValue is { } authoredNumeric)
+                {
+                    int display = ConvertFromSystemUnits(authoredNumeric);
+                    NumericValue = display;
+                    SelectedValue = display;
+                    Outcome = SettingDetectionOutcome.Resolved;
+                    UpdateStatusBanner(display);
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Hands one edit to whichever <see cref="ISettingWriteStrategy"/> the active mode calls for.
+    ///
+    /// Resolved per write, not held in a field: the mode changes while this ViewModel stays alive.
+    /// </summary>
+    private Task<SettingWriteResult> WriteAsync(SettingWriteRequest request) =>
+        _writeStrategySelector.ForCurrentMode().WriteAsync(request, this);
+
+    /// <summary>
+    /// Marks this setting as touched during the current session, and — in Builder mode — marks the
+    /// Builder session dirty.
+    ///
+    /// Every input handler funnels through here on a write that stuck, which is the point: the
+    /// discard prompt has to fire for authored work even if it produced no serializable
+    /// <c>BuilderEdit</c>. Marking dirty inside each handler's own branch instead is what let two
+    /// of them drift into recording nothing at all — a new input type gets the prompt here for free.
+    /// </summary>
+    private void MarkChangedThisSession()
+    {
+        _hasChangedThisSession = true;
+        if (AuthorsIntent)
+        {
+            _applicationModeService?.MarkBuilderDirty();
+        }
+    }
 
     /// <summary>
     /// When this Selection setting was seeded at the Custom index (live state matched no
@@ -1067,10 +1290,10 @@ public partial class SettingItemViewModel : BaseViewModel
     public string OverlayShortLabelFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed =>
-            _localizationService.GetString("Common_MalformedState_ShortLabel") ?? "!",
+            _localizationService.GetStringOrDefault("Common_MalformedState_ShortLabel", "!"),
         SettingDetectionOutcome.Undetermined =>
-            _localizationService.GetString("Common_UndeterminedState_ShortLabel") ?? "x",
-        _ => _localizationService.GetString("Common_CustomState_ShortLabel") ?? "?",
+            _localizationService.GetStringOrDefault("Common_UndeterminedState_ShortLabel", "x"),
+        _ => _localizationService.GetStringOrDefault("Common_CustomState_ShortLabel", "?"),
     };
 
     /// <summary>The localized state NAME ("Custom" / "Malformed" / "Undetermined") - the overlay's
@@ -1147,7 +1370,7 @@ public partial class SettingItemViewModel : BaseViewModel
             SettingDetectionOutcome.Undetermined => "Common_UndeterminedBanner_",
             _ => "Common_CustomBanner_",
         };
-        return _localizationService.GetString(prefix + (toggleLike ? "Toggle" : "Selection")) ?? string.Empty;
+        return _localizationService.GetStringOrDefault(prefix + (toggleLike ? "Toggle" : "Selection"), string.Empty);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1360,15 +1583,15 @@ public partial class SettingItemViewModel : BaseViewModel
 
 
     public string PluggedInText =>
-        _localizationService.GetString("PowerStatus_PluggedIn") ?? "Plugged In";
+        _localizationService.GetStringOrDefault("PowerStatus_PluggedIn", "Plugged In");
     public string OnBatteryText =>
-        _localizationService.GetString("PowerStatus_OnBattery") ?? "On Battery";
+        _localizationService.GetStringOrDefault("PowerStatus_OnBattery", "On Battery");
 
     public IAsyncRelayCommand RunActionCommand { get; }
 
     public SettingItemViewModel(
         SettingItemViewModelConfig config,
-        ISettingApplicationService settingApplicationService,
+        ISettingWriteStrategySelector writeStrategySelector,
         ILogService logService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
@@ -1379,7 +1602,7 @@ public partial class SettingItemViewModel : BaseViewModel
         INewBadgeService? newBadgeService = null,
         IApplicationModeService? applicationModeService = null)
     {
-        _settingApplicationService = settingApplicationService;
+        _writeStrategySelector = writeStrategySelector;
         _logService = logService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
@@ -1552,6 +1775,11 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         finally
         {
+            // An authoring mode applies nothing, so a SettingAppliedEvent should never reach a card
+            // holding authored values. Re-applying anyway costs nothing and means the invariant
+            // "every live-state writer re-applies the overlay" has no exception to remember.
+            ApplyAuthoredOverlay();
+
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
             UpdateDetectionOutcomeBanner();
@@ -1584,14 +1812,14 @@ public partial class SettingItemViewModel : BaseViewModel
     /// PowerPlanComboBox control reads (status dot / [Active] badge / delete-by-GUID). Shared by SettingViewModelFactory
     /// (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is rebuilt identically from detection on
     /// BOTH paths - the dropdown is detection-driven, not combobox-service-driven.
-    /// Returns true when it handled the dropdown (a power-plan Selection with DynamicOptions, not Builder mode); false so
-    /// the caller falls through to normal Selection handling. Builder mode keeps the factory's index-valued dropdown
+    /// Returns true when it handled the dropdown (a power-plan Selection with DynamicOptions, not an authoring mode); false so
+    /// the caller falls through to normal Selection handling. An authoring mode keeps the factory's index-valued dropdown
     /// (config-export BuilderEdit serialization), so this returns false there.</summary>
     public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
     {
         if (InputType != InputType.Selection
             || !IsPowerPlanSetting
-            || IsBuilderMode
+            || AuthorsIntent
             || state.DynamicOptions is not { } dynamicOptions)
             return false;
 
@@ -1690,6 +1918,11 @@ public partial class SettingItemViewModel : BaseViewModel
         }
         finally
         {
+            // Before the badge/banner/details rebuild, so all three describe what the card will
+            // actually show. A refresh that lands during authoring has just overwritten the user's
+            // values with the machine's; this puts theirs back.
+            ApplyAuthoredOverlay();
+
             _isUpdatingFromEvent = false;
             ComputeBadgeState();
             UpdateDetectionOutcomeBanner();
@@ -1851,75 +2084,44 @@ public partial class SettingItemViewModel : BaseViewModel
         // so picking Disabled (false) would otherwise be swallowed here.
         if (!fromCustomState && newValue == IsSelected) return;
 
-        if (IsBuilderMode)
+        var result = await WriteAsync(new SettingWriteRequest
         {
-            // Builder mode: record the desired state only — never apply to the system,
-            // never confirm, never show a restart banner.
-            IsSelected = newValue;
-            if (fromCustomState)
+            Description = $"toggle to {newValue}",
+            SystemRequest = new ApplySettingRequest
             {
-                Outcome = SettingDetectionOutcome.Resolved;
-                UpdateDetectionOutcomeBanner();
-            }
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
-            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+                SettingId = SettingId,
+                Enable = newValue,
+                ResetToDefault = resetToDefault,
+            },
+            AuthoredEdit = new BuilderEdit
             {
                 SettingId = SettingId,
                 InputType = InputType,
-                IsSelected = newValue
-            });
+                IsSelected = newValue,
+            },
+            // The Custom-state dialog already confirmed intent - never double-confirm.
+            RequiresConfirmation = SettingRequiresConfirmation && !fromCustomState,
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+        {
+            OnPropertyChanged(nameof(IsSelected));
             return;
         }
 
-        try
+        IsSelected = newValue;
+        if (fromCustomState)
         {
-            bool checkboxChecked = false;
-            if (!fromCustomState)
-            {
-                // The Custom-state dialog already confirmed intent - never double-confirm.
-                var (confirmed, cb) = await HandleConfirmationIfNeededAsync(newValue);
-                if (!confirmed)
-                {
-                    OnPropertyChanged(nameof(IsSelected));
-                    return;
-                }
-                checkboxChecked = cb;
-            }
+            // Only on a write that stuck: a rejected one leaves the value untouched and the
+            // Custom overlay in place.
+            Outcome = SettingDetectionOutcome.Resolved;
+            UpdateDetectionOutcomeBanner();
+        }
+        MarkChangedThisSession();
+        ComputeBadgeState();
 
-            IsApplying = true;
-            _logService.Log(LogLevel.Info, $"Toggling setting: {SettingId} to {newValue}");
-
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = newValue, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
-
-            if (!result.Success)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' apply failed: {result.ErrorMessage}. Reverting UI state.");
-                OnPropertyChanged(nameof(IsSelected));
-                return;
-            }
-
-            IsSelected = newValue;
-            if (fromCustomState)
-            {
-                // On failure/exception the flag stays true (value untouched, overlay stays).
-                Outcome = SettingDetectionOutcome.Resolved;
-                UpdateDetectionOutcomeBanner();
-            }
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
+        if (result.Outcome == SettingWriteOutcome.Applied)
             ShowRestartBannerIfNeeded();
-            _logService.Log(LogLevel.Info, $"Successfully toggled setting {SettingId} to {newValue}");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error toggling setting {SettingId}: {ex.Message}");
-            OnPropertyChanged(nameof(IsSelected));
-        }
-        finally
-        {
-            IsApplying = false;
-        }
     }
 
     /// <summary>The unresolved-state dialog flow: title = the setting's display name, message explains what
@@ -1943,10 +2145,10 @@ public partial class SettingItemViewModel : BaseViewModel
         var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
             Title = Name,
-            Message = _localizationService.GetString(messageKey) ?? string.Empty,
-            ConfirmButtonText = _localizationService.GetString("Common_CustomDialog_Enabled") ?? "Enabled",
-            SecondaryButtonText = _localizationService.GetString("Common_CustomDialog_Disabled") ?? "Disabled",
-            CancelButtonText = _localizationService.GetString("Button_Cancel") ?? "Cancel",
+            Message = _localizationService.GetStringOrDefault(messageKey, string.Empty),
+            ConfirmButtonText = _localizationService.GetStringOrDefault("Common_CustomDialog_Enabled", "Enabled"),
+            SecondaryButtonText = _localizationService.GetStringOrDefault("Common_CustomDialog_Disabled", "Disabled"),
+            CancelButtonText = _localizationService.GetStringOrDefault("Button_Cancel", "Cancel"),
         });
 
         if (r.Confirmed)
@@ -1980,60 +2182,24 @@ public partial class SettingItemViewModel : BaseViewModel
             return;
         }
 
-        if (IsBuilderMode)
-        {
-            // Builder mode: record the desired selection only — never apply.
-            SelectedValue = value;
-            if (value is int builderIntValue)
-            {
-                NumericValue = builderIntValue;
-                if (builderIntValue != ComboBoxConstants.CustomStateIndex)
-                {
-                    // Picking a real option resolves the setting; there is no synthetic list entry to strip.
-                    Outcome = SettingDetectionOutcome.Resolved;
-                }
-            }
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
-            UpdateStatusBanner(value);
-
-            // Only Selection settings are serialized from Builder edits today; numeric and
-            // AC/DC power edits fall back to the seeded value (see BuilderEdit scope note).
-            if (InputType == InputType.Selection && value is int builderSelIndex)
-            {
-                _applicationModeService?.RecordBuilderEdit(new BuilderEdit
-                {
-                    SettingId = SettingId,
-                    InputType = InputType,
-                    SelectedIndex = builderSelIndex == ComboBoxConstants.CustomStateIndex ? null : builderSelIndex,
-                    CustomStateValues = builderSelIndex == ComboBoxConstants.CustomStateIndex ? CapturedCustomStateValues : null
-                });
-            }
-            return;
-        }
-
-        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: proceeding with value change");
         try
         {
-            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(value);
-            if (!confirmed)
+            var result = await WriteAsync(new SettingWriteRequest
             {
-                OnPropertyChanged(nameof(SelectedValue));
-                OnPropertyChanged(nameof(NumericValue));
-                return;
-            }
+                Description = $"value {value}",
+                SystemRequest = new ApplySettingRequest
+                {
+                    SettingId = SettingId,
+                    Enable = true,
+                    Value = value,
+                    ResetToDefault = resetToDefault,
+                },
+                AuthoredEdit = AuthoredEditForValue(value),
+                RequiresConfirmation = SettingRequiresConfirmation,
+            });
 
-            IsApplying = true;
-            _logService.Log(LogLevel.Info, $"Changing value for setting: {SettingId} to {value}");
-            _logService.LogDebug($"[SettingItemViewModel] Calling ApplySettingAsync for {SettingId} with value={value}");
-
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = value, ResetToDefault = resetToDefault, CheckboxResult = checkboxChecked });
-
-            _logService.LogDebug($"[SettingItemViewModel] ApplySettingAsync completed for {SettingId}");
-
-            if (!result.Success)
+            if (result.Outcome == SettingWriteOutcome.Rejected)
             {
-                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' value change failed: {result.ErrorMessage}. Reverting UI state.");
                 OnPropertyChanged(nameof(SelectedValue));
                 OnPropertyChanged(nameof(NumericValue));
                 return;
@@ -2052,26 +2218,44 @@ public partial class SettingItemViewModel : BaseViewModel
                 }
             }
 
-            _hasChangedThisSession = true;
+            MarkChangedThisSession();
             ComputeBadgeState();
             UpdateStatusBanner(value);
-            ShowRestartBannerIfNeeded();
 
-            _logService.Log(LogLevel.Info, $"Successfully changed value for setting {SettingId}");
-            _logService.LogDebug($"[SettingItemViewModel] SelectedValue set to {value} for {SettingId}");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error changing value for setting {SettingId}: {ex.Message}");
-            OnPropertyChanged(nameof(SelectedValue));
-            OnPropertyChanged(nameof(NumericValue));
+            if (result.Outcome == SettingWriteOutcome.Applied)
+                ShowRestartBannerIfNeeded();
         }
         finally
         {
-            IsApplying = false;
             await ProcessPendingValueAsync();
         }
     }
+
+    /// <summary>
+    /// The serializable form of a dropdown or slider change, or null when this input carries a
+    /// value shape the config format has no representation for — which the authoring strategy
+    /// reports rather than swallowing.
+    /// </summary>
+    private BuilderEdit? AuthoredEditForValue(object? value) => (InputType, value) switch
+    {
+        (InputType.Selection, int index) => new BuilderEdit
+        {
+            SettingId = SettingId,
+            InputType = InputType,
+            SelectedIndex = index == ComboBoxConstants.CustomStateIndex ? null : index,
+            CustomStateValues = index == ComboBoxConstants.CustomStateIndex ? CapturedCustomStateValues : null,
+        },
+
+        // Converted because the slider carries DISPLAY units and a BuilderEdit holds SYSTEM units.
+        (InputType.NumericRange, int numeric) => new BuilderEdit
+        {
+            SettingId = SettingId,
+            InputType = InputType,
+            NumericValue = ConvertToSystemUnits(numeric),
+        },
+
+        _ => null,
+    };
 
     /// <summary>
     /// If a value change was queued while a previous apply was in progress,
@@ -2093,177 +2277,128 @@ public partial class SettingItemViewModel : BaseViewModel
     {
         if (IsApplying || _isUpdatingFromEvent) return;
 
-        if (IsBuilderMode)
+        // AcValue/DcValue are already set by the caller; the write only has to carry them.
+        var result = await WriteAsync(new SettingWriteRequest
         {
-            // Builder mode: AcValue/DcValue are already set by the caller; just record. A pick of known
-            // indices also clears a loaded Custom state (mirrors the toggle builder branch).
-            Outcome = SettingDetectionOutcome.Resolved;
-            UpdateDetectionOutcomeBanner();
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
+            Description = $"AC/DC selection AC={AcValue}, DC={DcValue}",
+            SystemRequest = new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+                Value = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue },
+                ResetToDefault = resetToDefault,
+            },
+            AuthoredEdit = new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                AcIndex = AcValue,
+                DcIndex = DcValue,
+            },
+            // The AC/DC inputs have never prompted, whatever the setting declares. No power setting
+            // declares RequiresConfirmation today, so this states the intent rather than suppressing
+            // a prompt anyone would see.
+            RequiresConfirmation = false,
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+        {
+            OnPropertyChanged(nameof(AcValue));
+            OnPropertyChanged(nameof(DcValue));
             return;
         }
 
-        try
-        {
-            IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC selection for setting: {SettingId} AC={AcValue}, DC={DcValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
+        // The write landed on known option indices - clear a loaded Custom state and its
+        // "Select an option" banner (mirrors the toggle/selection paths).
+        Outcome = SettingDetectionOutcome.Resolved;
+        UpdateDetectionOutcomeBanner();
+        MarkChangedThisSession();
+        ComputeBadgeState();
 
-            if (!result.Success)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC selection failed: {result.ErrorMessage}. Reverting UI state.");
-                OnPropertyChanged(nameof(AcValue));
-                OnPropertyChanged(nameof(DcValue));
-                return;
-            }
-
-            _hasChangedThisSession = true;
-            // A successful AC/DC apply landed on known option indices - clear a loaded Custom state and
-            // its "Select an option" banner (mirrors the toggle/selection apply paths).
-            Outcome = SettingDetectionOutcome.Resolved;
-            UpdateDetectionOutcomeBanner();
-            ComputeBadgeState();
+        if (result.Outcome == SettingWriteOutcome.Applied)
             ShowRestartBannerIfNeeded();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error changing AC/DC selection for setting {SettingId}: {ex.Message}");
-        }
-        finally
-        {
-            IsApplying = false;
-        }
     }
 
     private async Task HandleACDCNumericChangedAsync(bool resetToDefault = false)
     {
         if (IsApplying || _isUpdatingFromEvent) return;
 
-        if (IsBuilderMode)
+        // AcNumericValue/DcNumericValue are already set by the caller; the write only carries them.
+        var result = await WriteAsync(new SettingWriteRequest
         {
-            // Builder mode: AcNumericValue/DcNumericValue are already set by the caller; just record.
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
+            Description = $"AC/DC numeric AC={AcNumericValue}, DC={DcNumericValue}",
+            SystemRequest = new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+                Value = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue },
+                ResetToDefault = resetToDefault,
+            },
+            // Converted because the sliders carry DISPLAY units and every consumer of a BuilderEdit
+            // - the config file included - speaks SYSTEM units.
+            AuthoredEdit = new BuilderEdit
+            {
+                SettingId = SettingId,
+                InputType = InputType,
+                AcNumericValue = ConvertToSystemUnits(AcNumericValue),
+                DcNumericValue = ConvertToSystemUnits(DcNumericValue),
+            },
+            // As with the AC/DC dropdowns: these inputs have never prompted.
+            RequiresConfirmation = false,
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+        {
+            OnPropertyChanged(nameof(AcNumericValue));
+            OnPropertyChanged(nameof(DcNumericValue));
             return;
         }
 
-        try
-        {
-            IsApplying = true;
-            var dict = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue };
-            _logService.Log(LogLevel.Info, $"Changing AC/DC numeric for setting: {SettingId} AC={AcNumericValue}, DC={DcNumericValue}");
-            var result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = dict, ResetToDefault = resetToDefault });
+        MarkChangedThisSession();
+        ComputeBadgeState();
 
-            if (!result.Success)
-            {
-                _logService.Log(LogLevel.Warning, $"Setting '{SettingId}' AC/DC numeric failed: {result.ErrorMessage}. Reverting UI state.");
-                OnPropertyChanged(nameof(AcNumericValue));
-                OnPropertyChanged(nameof(DcNumericValue));
-                return;
-            }
-
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
+        if (result.Outcome == SettingWriteOutcome.Applied)
             ShowRestartBannerIfNeeded();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error changing AC/DC numeric for setting {SettingId}: {ex.Message}");
-        }
-        finally
-        {
-            IsApplying = false;
-        }
     }
 
     private async Task RunActionAsync()
     {
         if (IsApplying) return;
 
-        if (IsBuilderMode)
+        var result = await WriteAsync(new SettingWriteRequest
         {
-            // Builder mode: mark the action for inclusion in the saved config; do not execute.
-            IsSelected = true;
-            _hasChangedThisSession = true;
-            ComputeBadgeState();
-            _applicationModeService?.RecordBuilderEdit(new BuilderEdit
+            Description = "action",
+            SystemRequest = new ApplySettingRequest { SettingId = SettingId, Enable = true },
+            AuthoredEdit = new BuilderEdit
             {
                 SettingId = SettingId,
                 InputType = InputType,
-                IsSelected = true
-            });
+                IsSelected = true,
+            },
+            RequiresConfirmation = SettingRequiresConfirmation,
+            CheckboxAlsoAppliesRecommended = true,
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Recorded)
+        {
+            // Authoring an action means marking it for inclusion in the saved config, and the card
+            // shows that as selected. Running one for real is a one-shot with no lasting state to
+            // show, which is why this is keyed on what the write did rather than on the mode.
+            IsSelected = true;
+            MarkChangedThisSession();
+            ComputeBadgeState();
             return;
         }
 
-        try
+        if (result.Outcome == SettingWriteOutcome.Applied
+            && result.ConfirmationCheckboxChecked
+            && ParentFeatureViewModel != null)
         {
-            var (confirmed, checkboxChecked) = await HandleConfirmationIfNeededAsync(null);
-            if (!confirmed)
-                return;
-
-            IsApplying = true;
-            _logService.Log(LogLevel.Info, $"Executing action for setting: {SettingId}");
-
-            await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-            {
-                SettingId = SettingId,
-                Enable = true,
-                CheckboxResult = checkboxChecked,
-                ApplyRecommended = checkboxChecked
-            });
-
-            _logService.Log(LogLevel.Info, $"Successfully executed action for setting {SettingId}");
-
-            if (checkboxChecked && ParentFeatureViewModel != null)
-            {
-                _logService.Log(LogLevel.Info, $"Refreshing parent ViewModel after applying recommended settings for {SettingId}");
-                await ParentFeatureViewModel.RefreshSettingsAsync();
-            }
+            // The checkbox applied the whole feature's recommended settings, so every sibling this
+            // card sits beside is now showing a stale value.
+            _logService.Log(LogLevel.Info, $"Refreshing parent ViewModel after applying recommended settings for {SettingId}");
+            await ParentFeatureViewModel.RefreshSettingsAsync();
         }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error executing action for setting {SettingId}: {ex.Message}");
-        }
-        finally
-        {
-            IsApplying = false;
-        }
-    }
-
-    private async Task<(bool confirmed, bool checkboxChecked)> HandleConfirmationIfNeededAsync(object? value)
-    {
-        bool requiresConfirmation =
-            Setting?.Apply.RequiresConfirmation ?? false;
-        if (!requiresConfirmation)
-            return (true, false);
-
-        var title = _localizationService.GetString($"Setting_{SettingId}_ConfirmTitle");
-        var message = _localizationService.GetString($"Setting_{SettingId}_ConfirmMessage");
-        var checkboxText = _localizationService.GetString($"Setting_{SettingId}_ConfirmCheckbox");
-
-        if (SettingId == SettingIds.ThemeModeWindows && value is int comboBoxIndex)
-        {
-            var themeMode = comboBoxIndex == 1
-                ? _localizationService.GetString("Setting_theme-mode-windows_Option_1")
-                : _localizationService.GetString("Setting_theme-mode-windows_Option_0");
-            message = message.Replace("{themeMode}", themeMode);
-            checkboxText = checkboxText.Replace("{themeMode}", themeMode);
-        }
-
-        var continueText = _localizationService.GetString("Button_Continue");
-        var cancelText = _localizationService.GetString("Button_Cancel");
-
-        var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-        {
-            Message = message,
-            CheckboxText = checkboxText,
-            Title = title,
-            ConfirmButtonText = continueText,
-            CancelButtonText = cancelText,
-        });
-        return (r.Confirmed, r.CheckboxChecked);
     }
 
     #endregion
@@ -2277,8 +2412,8 @@ public partial class SettingItemViewModel : BaseViewModel
         var message = _localizationService.GetString("Dialog_AdvancedPowerWarning_Message");
         var checkboxText = _localizationService.GetString("Dialog_AdvancedPowerWarning_DontShowAgain");
         var title = _localizationService.GetString("Dialog_AdvancedPowerWarning_Title");
-        var unlockText = _localizationService.GetString("Button_Unlock") ?? "Unlock";
-        var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        var unlockText = _localizationService.GetStringOrDefault("Button_Unlock", "Unlock");
+        var cancelText = _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
         var r = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
@@ -2633,14 +2768,14 @@ public partial class SettingItemViewModel : BaseViewModel
         var (baseLabel, tooltip) = kind switch
         {
             SettingBadgeKind.Recommended => (
-                _localizationService?.GetString("InfoBadge_Recommended") ?? "Recommended",
-                _localizationService?.GetString("InfoBadge_Recommended_Tooltip") ?? "Winhance's recommended value"),
+                _localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended"),
+                _localizationService.GetStringOrDefault("InfoBadge_Recommended_Tooltip", "Winhance's recommended value")),
             SettingBadgeKind.Default => (
-                _localizationService?.GetString("InfoBadge_Default") ?? "Default",
-                _localizationService?.GetString("InfoBadge_Default_Tooltip") ?? "Windows factory value"),
+                _localizationService.GetStringOrDefault("InfoBadge_Default", "Default"),
+                _localizationService.GetStringOrDefault("InfoBadge_Default_Tooltip", "Windows factory value")),
             SettingBadgeKind.Preference => (
-                _localizationService?.GetString("InfoBadge_Preference") ?? "Preference",
-                _localizationService?.GetString("InfoBadge_Preference_Tooltip") ?? "Personal preference"),
+                _localizationService.GetStringOrDefault("InfoBadge_Preference", "Preference"),
+                _localizationService.GetStringOrDefault("InfoBadge_Preference_Tooltip", "Personal preference")),
             _ => ("", ""),
         };
 

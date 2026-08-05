@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
@@ -119,7 +120,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -162,7 +163,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             GenerateWinhanceXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlGenError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
     }
 
@@ -178,7 +179,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -205,7 +206,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlAddFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlAddFailed"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
             }
         }
         catch (Exception ex)
@@ -215,7 +216,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             DownloadXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlDownloadError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
     }
 
@@ -231,7 +232,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -248,7 +249,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlInvalidError"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
                 return;
             }
 
@@ -268,7 +269,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidAddFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlValidAddFailed"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
             }
         }
         catch (Exception ex)
@@ -278,7 +279,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             SelectXmlCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_XmlSelectError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
     }
 

@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -33,6 +34,8 @@ public class WimUtilViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockFileSystemService
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))

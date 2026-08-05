@@ -8,6 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -35,6 +36,7 @@ public class ExternalAppsViewModelTests
 
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
+        _localizationService.MirrorTryGetString();
     }
 
     private ExternalAppsViewModel CreateSut() => new(

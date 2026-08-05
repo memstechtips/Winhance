@@ -275,12 +275,19 @@ public class BulkSettingsActionServiceTests
             IsSelected = false,
         };
 
+        var logService = new Mock<ILogService>();
+        var dialogService = new Mock<IDialogService>();
+
         return new SettingItemViewModel(
             config,
-            new Mock<ISettingApplicationService>().Object,
-            new Mock<ILogService>().Object,
+            SettingWriteStrategies.Selector(
+                new Mock<ISettingApplicationService>().Object,
+                dialogService.Object,
+                localization.Object,
+                logService.Object),
+            logService.Object,
             dispatcher.Object,
-            new Mock<IDialogService>().Object,
+            dialogService.Object,
             localization.Object,
             new Mock<IEventBus>().Object,
             new Mock<IUserPreferencesService>().Object,

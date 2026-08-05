@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -84,9 +85,8 @@ public class ConfigLoadService : IConfigLoadService
             {
                 var versionText = loadedConfig.Version ?? "unknown";
                 await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("Config_Unsupported_Message", versionText)
-                        ?? $"This configuration file version ({versionText}) is not compatible with this version of Winhance.",
-                    _localizationService.GetString("Config_Unsupported_Title") ?? "Incompatible Configuration");
+                    _localizationService.GetStringOrDefault("Config_Unsupported_Message", $"This configuration file version ({versionText}) is not compatible with this version of Winhance.", versionText),
+                    _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Incompatible Configuration"));
                 _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
                 return null;
             }
@@ -190,8 +190,8 @@ public class ConfigLoadService : IConfigLoadService
             if (!_fileSystemService.DirectoryExists(configDir))
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
-                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files found."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }
 
@@ -202,8 +202,8 @@ public class ConfigLoadService : IConfigLoadService
             if (backupFiles.Length == 0)
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
-                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files found."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }
 
@@ -223,8 +223,7 @@ public class ConfigLoadService : IConfigLoadService
                     return null;
                 }
 
-                var dialogTitle = _localizationService.GetString("Config_Backup_Select_Title")
-                    ?? "Select Backup File";
+                var dialogTitle = _localizationService.GetStringOrDefault("Config_Backup_Select_Title", "Select Backup File");
                 var selectedPath = Win32FileDialogHelper.ShowOpenFilePicker(
                     window, dialogTitle, ConfigFileConstants.FileFilter, ConfigFileConstants.FilePattern, configDir);
 

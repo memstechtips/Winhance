@@ -183,9 +183,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
-    public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
-    public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
+    public string SelectAllLabel => _localizationService.GetStringOrDefault("Common_SelectAll", "Select All");
+    public string SelectAllInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_Installed", "Select All Installed");
+    public string SelectAllNotInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_NotInstalled", "Select All Not Installed");
 
     [ObservableProperty]
     public partial bool IsTaskRunning { get; set; }
@@ -477,7 +477,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
         try
         {
-            _progressService.StartTask(_localizationService.GetString("Progress_Task_InstallingExternalApps") ?? "Installing External Apps", false);
+            _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_InstallingExternalApps", "Installing External Apps"), false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
@@ -546,7 +546,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
         try
         {
-            _progressService.StartTask(_localizationService.GetString("Progress_Task_UninstallingExternalApps") ?? "Uninstalling External Apps", false);
+            _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_UninstallingExternalApps", "Uninstalling External Apps"), false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;

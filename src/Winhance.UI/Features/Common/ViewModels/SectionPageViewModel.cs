@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -11,15 +12,26 @@ namespace Winhance.UI.Features.Common.ViewModels;
 /// Handles initialization, search, navigation, and localization for pages
 /// that display a collection of feature ViewModels organized into sections.
 /// </summary>
-public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObject, IDisposable
+public abstract partial class SectionPageViewModel<TSectionInfo>
+    : ObservableObject, ISectionPageViewModel, IDisposable
     where TSectionInfo : ISectionInfo
 {
     private bool _disposed;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
+    private readonly IConfigReviewBadgeService _badgeService;
+    private readonly IConfigReviewModeService _reviewModeService;
     private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
     private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
+
+    /// <summary>
+    /// One item per section, in declaration order — the source the overview cards and the breadcrumb
+    /// flyout are generated from. Each item derives its own badges from observed state, so nothing
+    /// has to remember to refresh them after a change.
+    /// </summary>
+    public IReadOnlyList<SectionOverviewItemViewModel> OverviewItems { get; private set; } =
+        Array.Empty<SectionOverviewItemViewModel>();
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
@@ -50,11 +62,19 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
 
     public string PageTitle => _localizationService.GetString(PageTitleKey);
     public string PageDescription => _localizationService.GetString(PageDescriptionKey);
-    public string BreadcrumbRootText => _localizationService.GetString(PageTitleKey) ?? BreadcrumbRootFallback;
-    public string SearchPlaceholder => _localizationService.GetString("Common_Search_Placeholder") ?? "Type here to search...";
+    public string BreadcrumbRootText => _localizationService.GetStringOrDefault(PageTitleKey, BreadcrumbRootFallback);
+    public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Type here to search...");
     public bool IsNotLoading => !IsLoading;
     public bool IsInDetailPage => CurrentSectionKey != "Overview";
     public string CurrentSectionName => GetSectionDisplayName(CurrentSectionKey);
+
+    /// <summary>
+    /// The open section's overview item, or null on the overview itself. Lets the breadcrumb bind its
+    /// icon and review badge to the same derived state the card uses, instead of a second imperative
+    /// path computing the same answers into named elements.
+    /// </summary>
+    public SectionOverviewItemViewModel? CurrentSectionItem =>
+        OverviewItems.FirstOrDefault(item => item.SectionKey == CurrentSectionKey);
 
     public bool HasNoSearchResults
     {
@@ -74,10 +94,14 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
     protected SectionPageViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<ISettingsFeatureViewModel> featureViewModels)
+        IEnumerable<ISettingsFeatureViewModel> featureViewModels,
+        IConfigReviewBadgeService badgeService,
+        IConfigReviewModeService reviewModeService)
     {
         _logService = logService;
         _localizationService = localizationService;
+        _badgeService = badgeService;
+        _reviewModeService = reviewModeService;
         _featureViewModels = featureViewModels.ToList();
 
         _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
@@ -95,6 +119,11 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+
+        // Each item holds subscriptions to the badge/review services and to every setting it
+        // observes; leaving them attached would keep this page's cards recomputing forever.
+        foreach (var item in OverviewItems)
+            item.Dispose();
     }
 
     /// <summary>
@@ -104,11 +133,25 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
     protected void InitializeSectionMappings()
     {
         var byModuleId = _featureViewModels.ToDictionary(vm => vm.ModuleId);
+        var overviewItems = new List<SectionOverviewItemViewModel>();
+
         foreach (var section in SectionDefinitions)
         {
-            if (byModuleId.TryGetValue(section.ModuleId, out var vm))
-                _viewModelBySectionKey[section.Key] = vm;
+            if (!byModuleId.TryGetValue(section.ModuleId, out var vm))
+                continue;
+
+            _viewModelBySectionKey[section.Key] = vm;
+            overviewItems.Add(new SectionOverviewItemViewModel(
+                section.Key,
+                section.ModuleId,
+                section.IconGlyphKey,
+                vm,
+                _badgeService,
+                _reviewModeService,
+                _localizationService));
         }
+
+        OverviewItems = overviewItems;
     }
 
     /// <summary>
@@ -255,6 +298,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
     {
         OnPropertyChanged(nameof(IsInDetailPage));
         OnPropertyChanged(nameof(CurrentSectionName));
+        OnPropertyChanged(nameof(CurrentSectionItem));
         OnPropertyChanged(nameof(HasNoSearchResults));
 
         if (!string.IsNullOrEmpty(SearchText))

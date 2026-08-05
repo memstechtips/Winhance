@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -66,7 +67,7 @@ public class StartupNotificationService : IStartupNotificationService
 
                 // Use TaskProgressService so the main window progress bar shows status
                 var cts = _taskProgressService.StartTask(
-                    _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+                    _localizationService.GetStringOrDefault("Progress_CreatingRestorePoint", "Creating system restore point..."),
                     isIndeterminate: true);
                 var progress = _taskProgressService.CreateDetailedProgress();
 

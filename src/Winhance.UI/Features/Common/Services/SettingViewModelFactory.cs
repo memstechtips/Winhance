@@ -11,6 +11,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -73,15 +74,15 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
             Outcome = currentState.Outcome,
-            OnText = _localizationService.GetString("Common_On") ?? "On",
-            OffText = _localizationService.GetString("Common_Off") ?? "Off",
-            ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply",
+            OnText = _localizationService.GetStringOrDefault("Common_On", "On"),
+            OffText = _localizationService.GetStringOrDefault("Common_Off", "Off"),
+            ActionButtonText = _localizationService.GetStringOrDefault("Button_Apply", "Apply"),
             OptionWarnings = BuildCatalogOptionWarnings(setting)
         };
 
         var viewModel = new SettingItemViewModel(
             config,
-            _viewModelDeps.SettingApplicationService,
+            _viewModelDeps.WriteStrategySelector,
             _viewModelDeps.LogService,
             _viewModelDeps.DispatcherService,
             _viewModelDeps.DialogService,
@@ -228,6 +229,12 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             // it via UpdateStatusBanner's compat fallback).
             viewModel.ShowCompatibilityBanner();
         }
+
+        // Everything above seeded this card from the live machine. If the user already authored
+        // this setting in the current session, that is the value the card must show and the value
+        // Save will write, so it goes on last - this is the seeding half of the same invariant
+        // UpdateStateFromSystemState honours on refresh.
+        viewModel.ApplyAuthoredOverlay();
 
         // If in review mode, apply review diff to the newly created ViewModel
         _enricher.ApplyReviewDiff(viewModel, currentState);

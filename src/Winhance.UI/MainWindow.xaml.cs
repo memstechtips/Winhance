@@ -262,7 +262,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                         if (advancedToolsButton?.IsLocked == true)
                         {
                             ToolTipService.SetToolTip(advancedToolsButton,
-                                localizationService.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
+                                localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
                         }
                     });
                 };
@@ -492,7 +492,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 // Lock Advanced Tools during review mode
                 var localizationService = App.Services.GetService<ILocalizationService>();
                 NavSidebar.SetButtonLocked("AdvancedTools", true,
-                    localizationService?.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
+                    localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
 
                 // If currently on Advanced Tools, navigate away to Software & Apps
                 var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);

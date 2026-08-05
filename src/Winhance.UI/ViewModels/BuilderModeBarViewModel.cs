@@ -32,25 +32,24 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public bool IsAutounattendTarget => _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend;
 
     public string BuilderModeTitleText =>
-        _localizationService.GetString("Builder_Mode_Title") ?? "Builder Mode";
+        _localizationService.GetStringOrDefault("Builder_Mode_Title", "Builder Mode");
 
     public string BuilderModeDescriptionText =>
-        _localizationService.GetString("Builder_Mode_Description")
-            ?? "You're authoring a file from these settings — nothing here changes this PC. Choose a target, set your options, then Save.";
+        _localizationService.GetStringOrDefault("Builder_Mode_Description", "You're authoring a file from these settings — nothing here changes this PC. Choose a target, set your options, then Save.");
 
     public string BuilderConfigTargetText =>
-        _localizationService.GetString("Builder_Mode_Target_Config") ?? "Config";
+        _localizationService.GetStringOrDefault("Builder_Mode_Target_Config", "Config");
 
     public string BuilderAutounattendTargetText =>
-        _localizationService.GetString("Builder_Mode_Target_Autounattend") ?? "Autounattend";
+        _localizationService.GetStringOrDefault("Builder_Mode_Target_Autounattend", "Autounattend");
 
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
-            ? (_localizationService.GetString("Builder_Mode_Save_Autounattend") ?? "Save autounattend.xml")
-            : (_localizationService.GetString("Builder_Mode_Save_Config") ?? "Save Config");
+            ? (_localizationService.GetStringOrDefault("Builder_Mode_Save_Autounattend", "Save autounattend.xml"))
+            : (_localizationService.GetStringOrDefault("Builder_Mode_Save_Config", "Save Config"));
 
     public string BuilderCancelButtonText =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public BuilderModeBarViewModel(
         IApplicationModeService applicationModeService,
@@ -142,9 +141,8 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task CancelAsync()
     {
-        var title = _localizationService.GetString("Builder_Mode_Cancel_Confirmation_Title") ?? "Leave Builder Mode";
-        var message = _localizationService.GetString("Builder_Mode_Cancel_Confirmation")
-            ?? "Leave Builder mode? Your authored selections will be discarded (nothing was applied to this PC).";
+        var title = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation_Title", "Leave Builder Mode");
+        var message = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation", "Leave Builder mode? Your authored selections will be discarded (nothing was applied to this PC).");
 
         var confirmed = (await _dialogService.ShowConfirmationAsync(
             new ConfirmationRequest { Message = message, Title = title })).Confirmed;

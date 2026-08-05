@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -15,6 +16,8 @@ public class AdvancedToolsViewModelTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalization.MirrorTryGetString();
     }
 
     private AdvancedToolsViewModel CreateViewModel()

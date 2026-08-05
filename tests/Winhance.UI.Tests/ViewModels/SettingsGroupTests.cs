@@ -68,7 +68,8 @@ public class SettingsGroupTests : IDisposable
 
         var item = new SettingItemViewModel(
             config,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,

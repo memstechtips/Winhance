@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
@@ -222,10 +223,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     private void RefreshOtsInfoBarText()
     {
-        OtsInfoBarTitle = _localizationService.GetString("InfoBar_OtsElevation_Title")
-            ?? "Running as a different user";
-        var messageTemplate = _localizationService.GetString("InfoBar_OtsElevation_Message")
-            ?? "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only.";
+        OtsInfoBarTitle = _localizationService.GetStringOrDefault("InfoBar_OtsElevation_Title", "Running as a different user");
+        var messageTemplate = _localizationService.GetStringOrDefault("InfoBar_OtsElevation_Message", "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only.");
         OtsInfoBarMessage = string.Format(messageTemplate, _interactiveUserService.InteractiveUserName);
     }
 
@@ -243,19 +242,19 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     // App title bar
     public string AppTitle =>
-        _localizationService.GetString("App_Title") ?? "Winhance";
+        _localizationService.GetStringOrDefault("App_Title", "Winhance");
 
     public string AppSubtitle =>
-        _localizationService.GetString("App_By") ?? "by Memory";
+        _localizationService.GetStringOrDefault("App_By", "by Memory");
 
     // Mode switcher label + per-mode labels and tooltips
-    public string WinhanceModeLabel => _localizationService.GetString("Mode_Switcher_Label") ?? "Winhance Mode";
-    public string ModeNormalLabel => _localizationService.GetString("Mode_Normal") ?? "Normal";
-    public string ModeBuilderLabel => _localizationService.GetString("Mode_Builder") ?? "Builder";
-    public string ModeConfigReviewLabel => _localizationService.GetString("Mode_ConfigReview") ?? "Config Review";
-    public string ModeNormalTooltip => _localizationService.GetString("Mode_Normal_Tooltip") ?? "Normal mode";
-    public string ModeBuilderTooltip => _localizationService.GetString("Mode_Builder_Tooltip") ?? "Builder mode";
-    public string ModeConfigReviewTooltip => _localizationService.GetString("Mode_ConfigReview_Tooltip") ?? "Config Review";
+    public string WinhanceModeLabel => _localizationService.GetStringOrDefault("Mode_Switcher_Label", "Winhance Mode");
+    public string ModeNormalLabel => _localizationService.GetStringOrDefault("Mode_Normal", "Normal");
+    public string ModeBuilderLabel => _localizationService.GetStringOrDefault("Mode_Builder", "Builder");
+    public string ModeConfigReviewLabel => _localizationService.GetStringOrDefault("Mode_ConfigReview", "Config Review");
+    public string ModeNormalTooltip => _localizationService.GetStringOrDefault("Mode_Normal_Tooltip", "Normal mode");
+    public string ModeBuilderTooltip => _localizationService.GetStringOrDefault("Mode_Builder_Tooltip", "Builder mode");
+    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Review");
 
     // Tooltips
     public string WindowsFilterTooltip
@@ -264,14 +263,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             if (IsWindowsVersionFilterEnabled)
             {
-                var title = _localizationService.GetString("Tooltip_FilterEnabled") ?? "Windows Version Filter: ON";
-                var description = _localizationService.GetString("Tooltip_FilterEnabled_Description") ?? "Click to show settings for all Windows versions";
+                var title = _localizationService.GetStringOrDefault("Tooltip_FilterEnabled", "Windows Version Filter: ON");
+                var description = _localizationService.GetStringOrDefault("Tooltip_FilterEnabled_Description", "Click to show settings for all Windows versions");
                 return $"{title}\n{description}";
             }
             else
             {
-                var title = _localizationService.GetString("Tooltip_FilterDisabled") ?? "Windows Version Filter: OFF";
-                var description = _localizationService.GetString("Tooltip_FilterDisabled_Description") ?? "Showing all settings (incompatible settings marked)";
+                var title = _localizationService.GetStringOrDefault("Tooltip_FilterDisabled", "Windows Version Filter: OFF");
+                var description = _localizationService.GetStringOrDefault("Tooltip_FilterDisabled_Description", "Showing all settings (incompatible settings marked)");
                 return $"{title}\n{description}";
             }
         }
@@ -293,35 +292,35 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     public string ToggleNavigationTooltip =>
-        _localizationService.GetString("Tooltip_ToggleNavigation") ?? "Toggle Navigation";
+        _localizationService.GetStringOrDefault("Tooltip_ToggleNavigation", "Toggle Navigation");
 
     public string DonateTooltip =>
-        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
+        _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
 
     public string BugReportTooltip =>
-        _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
+        _localizationService.GetStringOrDefault("Tooltip_ReportBug", "Report a Bug");
 
     public string DocsTooltip =>
-        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
+        _localizationService.GetStringOrDefault("Tooltip_Documentation", "Documentation");
 
     // Nav bar text
     public string NavSoftwareAppsText =>
-        _localizationService.GetString("Nav_SoftwareAndApps") ?? "Software & Apps";
+        _localizationService.GetStringOrDefault("Nav_SoftwareAndApps", "Software & Apps");
 
     public string NavOptimizeText =>
-        _localizationService.GetString("Nav_Optimize") ?? "Optimize";
+        _localizationService.GetStringOrDefault("Nav_Optimize", "Optimize");
 
     public string NavCustomizeText =>
-        _localizationService.GetString("Nav_Customize") ?? "Customize";
+        _localizationService.GetStringOrDefault("Nav_Customize", "Customize");
 
     public string NavAdvancedToolsText =>
-        _localizationService.GetString("Nav_AdvancedTools") ?? "Advanced Tools";
+        _localizationService.GetStringOrDefault("Nav_AdvancedTools", "Advanced Tools");
 
     public string NavSettingsText =>
-        _localizationService.GetString("Nav_Settings") ?? "Settings";
+        _localizationService.GetStringOrDefault("Nav_Settings", "Settings");
 
     public string NavMoreText =>
-        _localizationService.GetString("Nav_More") ?? "More";
+        _localizationService.GetStringOrDefault("Nav_More", "More");
 
     // Filter button enabled state
     public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode;
@@ -342,15 +341,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // HasBuilderChanges, not GetBuilderEdits().Count: NumericRange and AC/DC power settings are
+        // authored into the UI but do not yet produce a serializable BuilderEdit, so counting edits
+        // silently skipped the prompt for anyone who had only moved sliders.
         bool leavingBuilderWithEdits = _applicationModeService.CurrentMode == WinhanceMode.Builder
-            && _applicationModeService.GetBuilderEdits().Count > 0;
+            && _applicationModeService.HasBuilderChanges;
         bool leavingReview = _applicationModeService.CurrentMode == WinhanceMode.ConfigReview;
 
         if (leavingBuilderWithEdits || leavingReview)
         {
-            var message = _localizationService.GetString("Mode_Switch_Confirmation")
-                ?? "Switch mode? Your current unsaved progress will be discarded. Nothing was applied to this PC.";
-            var title = _localizationService.GetString("Mode_Switch_Confirmation_Title") ?? "Switch Mode";
+            var message = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation", "Switch mode? Your current unsaved progress will be discarded. Nothing was applied to this PC.");
+            var title = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation_Title", "Switch Mode");
             var confirmed = (await _dialogService.ShowConfirmationAsync(
                 new ConfirmationRequest { Message = message, Title = title })).Confirmed;
             if (!confirmed)

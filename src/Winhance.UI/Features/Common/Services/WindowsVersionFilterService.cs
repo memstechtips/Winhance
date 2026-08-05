@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -75,12 +76,11 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
             if (!dontShowAgain)
             {
-                var message = _localizationService.GetString("Filter_Dialog_Message") ??
-                    "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.";
-                var checkboxText = _localizationService.GetString("Filter_Dialog_Checkbox") ?? "Don't show this message again";
-                var title = _localizationService.GetString("Filter_Dialog_Title") ?? "Windows Version Filter";
-                var continueText = _localizationService.GetString("Filter_Dialog_Button_Toggle") ?? "Toggle Filter";
-                var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
+                var message = _localizationService.GetStringOrDefault("Filter_Dialog_Message", "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.");
+                var checkboxText = _localizationService.GetStringOrDefault("Filter_Dialog_Checkbox", "Don't show this message again");
+                var title = _localizationService.GetStringOrDefault("Filter_Dialog_Title", "Windows Version Filter");
+                var continueText = _localizationService.GetStringOrDefault("Filter_Dialog_Button_Toggle", "Toggle Filter");
+                var cancelText = _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
                 var result = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
                 {

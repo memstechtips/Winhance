@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -499,6 +500,59 @@ public class MainWindowViewModelTests : IDisposable
         _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
 
         sut.AppIconSource.Should().Be(iconBeforeEvent);
+    }
+
+    // ── Leaving Builder mode: the discard prompt ──
+    //
+    // The prompt used to be gated on GetBuilderEdits().Count > 0. NumericRange and AC/DC power
+    // settings are authored into the UI but do not produce a serializable BuilderEdit, so a
+    // session that had only moved sliders reported zero edits, skipped the prompt, and had its
+    // authoring discarded silently by the (correct, intended) reload on Builder exit.
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChangesButNoRecordedEdits_Prompts()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+        // The regression: no BuilderEdit was ever recorded for a slider-only session.
+        _mockApplicationModeService.Setup(m => m.GetBuilderEdits()).Returns(new List<BuilderEdit>());
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Once);
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChanges_WhenUserDeclines_StaysInBuilder()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingAnUntouchedBuilderSession_SwitchesWithoutPrompting()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(false);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
     }
 
     [Fact]

@@ -103,13 +103,12 @@ public class WindowsAppsService(
                 {
                     logService?.LogWarning($"Windows Update DLLs appear to be renamed (Disabled mode). Offering to fix for {item.Name}...");
 
-                    var updateTitle = localizationService.GetString("Dialog_UpdatePolicyBlocking_Title") ?? "Windows Updates Disabled";
-                    var updateMessage = localizationService.GetString("Dialog_UpdatePolicyBlocking_Message", item.Name) ??
-                        $"The installation of '{item.Name}' could not complete, likely because Windows Updates are disabled.\n\n" +
+                    var updateTitle = localizationService.GetStringOrDefault("Dialog_UpdatePolicyBlocking_Title", "Windows Updates Disabled");
+                    var updateMessage = localizationService.GetStringOrDefault("Dialog_UpdatePolicyBlocking_Message", $"The installation of '{item.Name}' could not complete, likely because Windows Updates are disabled.\n\n", item.Name) +
                         "Disabling Windows Updates prevents app installations from the Microsoft Store from completing.\n\n" +
                         "Would you like Winhance to change the update policy to 'Paused for a long time' and retry the installation?";
-                    var yesButton = localizationService.GetString("Button_Yes") ?? "Yes";
-                    var noButton = localizationService.GetString("Button_No") ?? "No";
+                    var yesButton = localizationService.GetStringOrDefault("Button_Yes", "Yes");
+                    var noButton = localizationService.GetStringOrDefault("Button_No", "No");
 
                     var userAccepted = (await dialogService.ShowConfirmationAsync(new ConfirmationRequest
                     {
@@ -166,17 +165,16 @@ public class WindowsAppsService(
                     // Show confirmation dialog if needed
                     if (!skipConfirmation)
                     {
-                        var title = localizationService.GetString("Dialog_FallbackDownload") ?? "Alternative Download Method";
-                        var message = localizationService.GetString("WindowsApps_Msg_FallbackDownload", item.Name) ??
-                                     $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n" +
+                        var title = localizationService.GetStringOrDefault("Dialog_FallbackDownload", "Alternative Download Method");
+                        var message = localizationService.GetStringOrDefault("WindowsApps_Msg_FallbackDownload", $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n", item.Name) +
                                      $"Winhance can download this package directly from Microsoft's servers using an alternative method (store.rg-adguard.net).\n\n" +
                                      $"• The package files come directly from Microsoft's official CDN\n" +
                                      $"• This method is completely legal and safe\n" +
                                      $"• It bypasses regional restrictions only\n\n" +
                                      $"Would you like to proceed with the alternative download method?";
-                        var checkboxText = localizationService.GetString("WindowsApps_Checkbox_DontAskAgain") ?? "Don't ask me again for future installations";
-                        var downloadButton = localizationService.GetString("Button_Download") ?? "Download";
-                        var cancelButton = localizationService.GetString("Button_Cancel") ?? "Cancel";
+                        var checkboxText = localizationService.GetStringOrDefault("WindowsApps_Checkbox_DontAskAgain", "Don't ask me again for future installations");
+                        var downloadButton = localizationService.GetStringOrDefault("Button_Download", "Download");
+                        var cancelButton = localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
                         var r = await dialogService.ShowConfirmationAsync(new ConfirmationRequest
                         {

@@ -34,7 +34,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
-    private ISubscriptionToken? _builderModeExitedSubscription;
+    private ISubscriptionToken? _authoringModeExitedSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -138,7 +138,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
-        _builderModeExitedSubscription = _eventBus.SubscribeAsync<BuilderModeExitedEvent>(OnBuilderModeExitedAsync);
+        _authoringModeExitedSubscription = _eventBus.SubscribeAsync<AuthoringModeExitedEvent>(OnAuthoringModeExitedAsync);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -224,7 +224,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _pendingRelatedRefresh.Clear();
         }
 
-        if (subset.Count == 0 || _applicationModeService.CurrentMode == WinhanceMode.Builder)
+        if (subset.Count == 0 || _applicationModeService.Capabilities().AuthorsIntent)
             return;
 
         RefreshRelatedStatesAsync(subset).FireAndForget(_logService);
@@ -342,11 +342,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         });
     }
 
-    private async Task OnBuilderModeExitedAsync(BuilderModeExitedEvent e)
+    private async Task OnAuthoringModeExitedAsync(AuthoringModeExitedEvent e)
     {
-        // Builder moved the toggles to authored (un-applied) positions on the shared VMs.
-        // Reload from live system state so Normal mode shows the truth. Only touch features
-        // that are actually loaded — unopened ones read fresh system state on first open.
+        // The mode we just left moved the toggles to authored, un-applied positions on the shared
+        // VMs. Reload from live system state so what is on screen is the truth again. Only touch
+        // features that are actually loaded — unopened ones read fresh system state on first open.
+        //
+        // A total rebuild rather than a per-field reset, and that is why this side needs no overlay
+        // the way review state does: the ViewModels are disposed and recreated, so a newly added
+        // field cannot survive the transition. There is no cleanup list here to fall out of date.
         if (Settings?.Any() != true) return;
         await RefreshSettingsForFilterChangeAsync();
     }
@@ -587,8 +591,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         // Builder mode authors un-applied state into these ViewModels. The section pages
         // call this on every navigation to keep Normal mode truthful, but re-reading the
         // system here would clobber the authored Builder values — skip until Builder exit,
-        // which reloads from live state anyway (BuilderModeExitedEvent).
-        if (_applicationModeService.CurrentMode == WinhanceMode.Builder)
+        // which reloads from live state anyway (AuthoringModeExitedEvent).
+        if (_applicationModeService.Capabilities().AuthorsIntent)
             return;
 
         try
@@ -719,8 +723,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _reviewModeExitedSubscription?.Dispose();
             _reviewModeExitedSubscription = null;
 
-            _builderModeExitedSubscription?.Dispose();
-            _builderModeExitedSubscription = null;
+            _authoringModeExitedSubscription?.Dispose();
+            _authoringModeExitedSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

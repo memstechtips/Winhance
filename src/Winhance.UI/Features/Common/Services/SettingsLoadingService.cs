@@ -93,7 +93,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                 // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
                 // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
                 ComboBoxSetupResult? builderComboBoxOptions =
-                    (_applicationModeService?.CurrentMode == WinhanceMode.Builder && setting.OptionSource is not null)
+                    (_applicationModeService.Capabilities().AuthorsIntent && setting.OptionSource is not null)
                         ? BuildBuilderPowerPlanOptions(currentState)
                         : null;
 

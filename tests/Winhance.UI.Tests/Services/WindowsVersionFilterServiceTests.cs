@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -21,6 +22,10 @@ public class WindowsVersionFilterServiceTests
 
     private WindowsVersionFilterService CreateService()
     {
+        // Mirrored here rather than in a single test: every test in this class that asserts on
+        // dialog text goes through GetStringOrDefault, which reads TryGetString.
+        _mockLocalizationService.MirrorTryGetString();
+
         return new WindowsVersionFilterService(
             _mockPreferencesService.Object,
             _mockEventBus.Object,

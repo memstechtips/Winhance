@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Helpers;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -226,11 +227,11 @@ public class DialogService : IDialogService
                 // Announce checkbox state changes to Narrator
                 checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
-                    $"{checkboxText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}",
+                    $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}",
                     "CheckboxStateChange");
                 checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
-                    $"{checkboxText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}",
+                    $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}",
                     "CheckboxStateChange");
 
                 contentPanel.Children.Add(checkBox);

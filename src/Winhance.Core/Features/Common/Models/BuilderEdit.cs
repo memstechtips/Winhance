@@ -8,10 +8,9 @@ namespace Winhance.Core.Features.Common.Models;
 /// merges these onto the system-seeded base configuration so the saved file reflects
 /// the user's authored intent rather than only the live system state.
 ///
-/// Scope note: Toggle / CheckBox / Action / Selection (including the Custom index) are
-/// captured here. NumericRange and AC/DC power settings are not yet recorded — their
-/// Builder edits fall back to the seeded value until unit-conversion serialization is
-/// completed (tracked as a follow-up).
+/// Every input type is captured. Numeric values are stored in SYSTEM units, matching what the
+/// exporter writes into <c>ConfigurationItem.PowerSettings</c> and what the config format has always
+/// held — the ViewModel converts on the way in, so no consumer has to know the display units.
 /// </summary>
 public class BuilderEdit
 {
@@ -26,4 +25,19 @@ public class BuilderEdit
 
     /// <summary>For Selection seeded at the Custom index: the raw values to write.</summary>
     public Dictionary<string, object>? CustomStateValues { get; set; }
+
+    /// <summary>For a single-context NumericRange: the value, in SYSTEM units.</summary>
+    public int? NumericValue { get; set; }
+
+    /// <summary>For an AC/DC-separate NumericRange: the AC value, in SYSTEM units.</summary>
+    public int? AcNumericValue { get; set; }
+
+    /// <summary>For an AC/DC-separate NumericRange: the DC value, in SYSTEM units.</summary>
+    public int? DcNumericValue { get; set; }
+
+    /// <summary>For an AC/DC-separate Selection: the chosen AC option index.</summary>
+    public int? AcIndex { get; set; }
+
+    /// <summary>For an AC/DC-separate Selection: the chosen DC option index.</summary>
+    public int? DcIndex { get; set; }
 }

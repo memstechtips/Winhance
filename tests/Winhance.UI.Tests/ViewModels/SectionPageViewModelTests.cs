@@ -6,6 +6,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -49,8 +50,10 @@ public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo
     public TestableSectionPageViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<ISettingsFeatureViewModel> featureViewModels)
-        : base(logService, localizationService, featureViewModels)
+        IEnumerable<ISettingsFeatureViewModel> featureViewModels,
+        IConfigReviewBadgeService badgeService,
+        IConfigReviewModeService reviewModeService)
+        : base(logService, localizationService, featureViewModels, badgeService, reviewModeService)
     {
         InitializeSectionMappings();
     }
@@ -60,6 +63,8 @@ public class SectionPageViewModelTests : IDisposable
 {
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
+    private readonly Mock<IConfigReviewBadgeService> _mockBadgeService = new();
+    private readonly Mock<IConfigReviewModeService> _mockReviewModeService = new();
     private readonly List<Mock<ISettingsFeatureViewModel>> _mockFeatureVms;
 
     public SectionPageViewModelTests()
@@ -71,6 +76,8 @@ public class SectionPageViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockFeatureVms = new List<Mock<ISettingsFeatureViewModel>>();
         foreach (var section in TestableSectionPageViewModel.TestSections)
@@ -95,7 +102,9 @@ public class SectionPageViewModelTests : IDisposable
         return new TestableSectionPageViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            _mockFeatureVms.Select(m => m.Object));
+            _mockFeatureVms.Select(m => m.Object),
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
     }
 
     private TestableSectionPageViewModel CreateViewModel(
@@ -104,7 +113,9 @@ public class SectionPageViewModelTests : IDisposable
         return new TestableSectionPageViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
-            featureViewModels);
+            featureViewModels,
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object);
     }
 
     // ── Constructor Tests ──

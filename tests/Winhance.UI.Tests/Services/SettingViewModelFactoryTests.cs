@@ -49,7 +49,12 @@ public class SettingViewModelFactoryTests
             .Returns(Task.CompletedTask);
 
         _deps = new SettingViewModelDependencies(
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object,
+                _mockDialogService.Object,
+                _mockLocalizationService.Object,
+                _mockLogService.Object,
+                _mockApplicationModeService.Object),
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,

@@ -163,7 +163,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     // -------------------------------------------------------
 
     [Fact]
-    public void OnApplicationModeChanged_BuilderToNormal_PublishesBuilderModeExitedEvent()
+    public void OnApplicationModeChanged_BuilderToNormal_PublishesAuthoringModeExitedEvent()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         var service = CreateService();
@@ -171,11 +171,11 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Once);
     }
 
     [Fact]
-    public void OnApplicationModeChanged_BuilderToConfigReview_PublishesBuilderModeExitedEvent()
+    public void OnApplicationModeChanged_BuilderToConfigReview_PublishesAuthoringModeExitedEvent()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         var service = CreateService();
@@ -183,11 +183,11 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Once);
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Once);
     }
 
     [Fact]
-    public void OnApplicationModeChanged_NormalToConfigReview_DoesNotPublishBuilderModeExitedEvent()
+    public void OnApplicationModeChanged_NormalToConfigReview_DoesNotPublishAuthoringModeExitedEvent()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
         var service = CreateService();
@@ -195,11 +195,11 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Never);
     }
 
     [Fact]
-    public void OnApplicationModeChanged_BuilderTargetSwitch_DoesNotPublishBuilderModeExitedEvent()
+    public void OnApplicationModeChanged_BuilderTargetSwitch_DoesNotPublishAuthoringModeExitedEvent()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         var service = CreateService();
@@ -207,7 +207,63 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         // Builder target switches raise ModeChanged while CurrentMode stays Builder
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
-        _mockEventBus.Verify(e => e.Publish(It.IsAny<BuilderModeExitedEvent>()), Times.Never);
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Never);
+    }
+
+    // -------------------------------------------------------
+    // The reload follows the capability, not the mode name
+    // -------------------------------------------------------
+    //
+    // Derived from ModeCapabilities rather than listing Builder, so a second authoring mode is
+    // covered the moment it declares its capabilities - which is the whole reason the publisher
+    // asks AuthorsIntent instead of comparing against WinhanceMode.Builder.
+
+    public static TheoryData<WinhanceMode> AuthoringModes() =>
+        Modes(authoring: true);
+
+    public static TheoryData<WinhanceMode> NonAuthoringModes() =>
+        Modes(authoring: false);
+
+    private static TheoryData<WinhanceMode> Modes(bool authoring)
+    {
+        var data = new TheoryData<WinhanceMode>();
+        foreach (var mode in Enum.GetValues<WinhanceMode>())
+        {
+            if (ModeCapabilities.For(mode).AuthorsIntent == authoring)
+                data.Add(mode);
+        }
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(AuthoringModes))]
+    public void OnApplicationModeChanged_LeavingAnyAuthoringMode_PublishesAuthoringModeExitedEvent(WinhanceMode authoringMode)
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(authoringMode);
+        var service = CreateService();
+
+        var destination = Enum.GetValues<WinhanceMode>()
+            .First(m => !ModeCapabilities.For(m).AuthorsIntent);
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(destination);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Once,
+            failMessage: $"leaving {authoringMode} leaves authored, un-applied values on screen");
+    }
+
+    [Theory]
+    [MemberData(nameof(NonAuthoringModes))]
+    public void OnApplicationModeChanged_LeavingAModeThatAuthoredNothing_PublishesNoReload(WinhanceMode plainMode)
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(plainMode);
+        var service = CreateService();
+
+        var destination = Enum.GetValues<WinhanceMode>().First(m => m != plainMode);
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(destination);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Never,
+            failMessage: $"{plainMode} never moved a value without applying it, so nothing is stale");
     }
 
     // -------------------------------------------------------

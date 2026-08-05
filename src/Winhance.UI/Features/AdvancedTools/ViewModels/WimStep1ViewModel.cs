@@ -10,6 +10,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
@@ -247,7 +248,7 @@ public partial class WimStep1ViewModel : ObservableObject
             SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
         finally
         {

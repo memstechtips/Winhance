@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -31,6 +32,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
     private readonly Dictionary<string, BuilderEdit> _builderEdits = new();
+
+    /// <summary>
+    /// Any authored change this Builder session, including input types that do not yet produce a
+    /// serializable <see cref="BuilderEdit"/>. Gates the discard prompt; see
+    /// <see cref="MarkBuilderDirty"/>.
+    /// </summary>
+    private bool _builderDirty;
 
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
@@ -163,19 +171,23 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private void LeaveCurrentMode()
     {
-        switch (CurrentMode)
+        // Authored, un-applied edits belong to the session that authored them, and dropping them
+        // here is what makes the reload on exit show live system state again. Keyed off the
+        // capability rather than off Builder by name, so a second authoring mode drops its edits
+        // without anyone editing this method.
+        if (ModeCapabilities.For(CurrentMode).AuthorsIntent)
         {
-            case WinhanceMode.ConfigReview:
-                ClearReviewArtifacts();
-                // Flip out of review BEFORE notifying so subscribers see IsInReviewMode == false.
-                CurrentMode = WinhanceMode.Normal;
-                ReviewModeChanged?.Invoke(this, EventArgs.Empty);
-                BadgeStateChanged?.Invoke(this, EventArgs.Empty);
-                break;
+            _builderEdits.Clear();
+            _builderDirty = false;
+        }
 
-            case WinhanceMode.Builder:
-                _builderEdits.Clear();
-                break;
+        if (CurrentMode == WinhanceMode.ConfigReview)
+        {
+            ClearReviewArtifacts();
+            // Flip out of review BEFORE notifying so subscribers see IsInReviewMode == false.
+            CurrentMode = WinhanceMode.Normal;
+            ReviewModeChanged?.Invoke(this, EventArgs.Empty);
+            BadgeStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -202,12 +214,38 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         _builderEdits[edit.SettingId] = edit;
+        _builderDirty = true;
     }
 
     public IReadOnlyCollection<BuilderEdit> GetBuilderEdits()
     {
         return _builderEdits.Values.ToList();
     }
+
+    public BuilderEdit? GetBuilderEdit(string settingId)
+    {
+        if (string.IsNullOrEmpty(settingId))
+        {
+            return null;
+        }
+
+        // Same dictionary GetBuilderEdits() projects and Save consumes - deliberately not a
+        // second copy, because a card showing one thing while the file holds another is the
+        // failure this lookup was added to prevent.
+        return _builderEdits.TryGetValue(settingId, out var edit) ? edit : null;
+    }
+
+    public void MarkBuilderDirty()
+    {
+        if (CurrentMode != WinhanceMode.Builder)
+        {
+            return;
+        }
+
+        _builderDirty = true;
+    }
+
+    public bool HasBuilderChanges => _builderDirty;
 
     public void SetBuilderTarget(BuilderTarget target)
     {
@@ -412,8 +450,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     /// </summary>
     private async Task ComputeEagerDiffsAsync(UnifiedConfigurationFile config)
     {
-        var onText = _localizationService.GetString("Common_On") ?? "On";
-        var offText = _localizationService.GetString("Common_Off") ?? "Off";
+        var onText = _localizationService.GetStringOrDefault("Common_On", "On");
+        var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");
 
         // Process Optimize features
         foreach (var feature in config.Optimize.Features)
@@ -534,11 +572,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return configItem.Id switch
         {
             SettingIds.ThemeModeWindows => GetThemeWallpaperMessage(configItem),
-            SettingIds.TaskbarClean => _localizationService.GetString("Review_Mode_Action_CleanTaskbar")
-                ?? "Clean the taskbar as part of this configuration?",
+            SettingIds.TaskbarClean => _localizationService.GetStringOrDefault("Review_Mode_Action_CleanTaskbar", "Clean the taskbar as part of this configuration?"),
             SettingIds.StartMenuCleanWin10 or SettingIds.StartMenuCleanWin11 =>
-                _localizationService.GetString("Review_Mode_Action_CleanStartMenu")
-                ?? "Clean the start menu as part of this configuration?",
+                _localizationService.GetStringOrDefault("Review_Mode_Action_CleanStartMenu", "Clean the start menu as part of this configuration?"),
             _ => string.Empty
         };
     }
@@ -546,9 +582,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private string GetThemeWallpaperMessage(ConfigurationItem configItem)
     {
         var themeNameKey = configItem.SelectedIndex == 0 ? "Theme_LightNative" : "Theme_DarkNative";
-        var themeName = _localizationService.GetString(themeNameKey) ?? (configItem.SelectedIndex == 0 ? "Light" : "Dark");
-        var format = _localizationService.GetString("Review_Mode_Action_ThemeWallpaper")
-            ?? "Apply the default {0} wallpaper?";
+        var themeName = _localizationService.GetStringOrDefault(themeNameKey, configItem.SelectedIndex == 0 ? "Light" : "Dark");
+        var format = _localizationService.GetStringOrDefault("Review_Mode_Action_ThemeWallpaper", "Apply the default {0} wallpaper?");
         return string.Format(format, themeName);
     }
 

@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -112,17 +113,15 @@ public class ConfigExportService : IConfigExportService
             _logService.Log(LogLevel.Info, $"Configuration exported to {filePath}");
 
             await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Export_Success_Message", filePath)
-                    ?? $"Configuration exported to {filePath}",
-                _localizationService.GetString("Config_Export_Success_Title") ?? "Export Successful");
+                _localizationService.GetStringOrDefault("Config_Export_Success_Message", $"Configuration exported to {filePath}", filePath),
+                _localizationService.GetStringOrDefault("Config_Export_Success_Title", "Export Successful"));
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error exporting configuration: {ex.Message}");
             await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
-                    ?? $"Error exporting configuration: {ex.Message}",
-                _localizationService.GetString("Config_Export_Error_Title") ?? "Export Error");
+                _localizationService.GetStringOrDefault("Config_Export_Error_Message", $"Error exporting configuration: {ex.Message}", ex.Message),
+                _localizationService.GetStringOrDefault("Config_Export_Error_Title", "Export Error"));
         }
     }
 
@@ -210,7 +209,18 @@ public class ConfigExportService : IConfigExportService
                         break;
 
                     case InputType.Selection:
-                        if (edit.CustomStateValues != null)
+                        if (edit.AcIndex != null || edit.DcIndex != null)
+                        {
+                            // AC/DC-separate selection: the config stores per-context option indices.
+                            item.PowerSettings = new Dictionary<string, object>
+                            {
+                                ["ACIndex"] = edit.AcIndex!,
+                                ["DCIndex"] = edit.DcIndex!
+                            };
+                            item.SelectedIndex = null;
+                            item.CustomStateValues = null;
+                        }
+                        else if (edit.CustomStateValues != null)
                         {
                             item.CustomStateValues = edit.CustomStateValues;
                             item.SelectedIndex = null;
@@ -222,8 +232,25 @@ public class ConfigExportService : IConfigExportService
                         }
                         break;
 
-                    // NumericRange / AC-DC power edits are not yet recorded; they retain
-                    // their seeded value. See BuilderEdit scope note.
+                    case InputType.NumericRange:
+                        // Values arrive in system units, which is what the config format holds — the
+                        // ViewModel converts from the slider's display units when recording.
+                        if (edit.AcNumericValue != null || edit.DcNumericValue != null)
+                        {
+                            item.PowerSettings = new Dictionary<string, object>
+                            {
+                                ["ACValue"] = edit.AcNumericValue!,
+                                ["DCValue"] = edit.DcNumericValue!
+                            };
+                        }
+                        else if (edit.NumericValue != null)
+                        {
+                            item.PowerSettings = new Dictionary<string, object>
+                            {
+                                ["Value"] = edit.NumericValue!
+                            };
+                        }
+                        break;
                 }
             }
         }
@@ -271,17 +298,15 @@ public class ConfigExportService : IConfigExportService
             _logService.Log(LogLevel.Info, $"Builder configuration exported to {filePath}");
 
             await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Export_Success_Message", filePath)
-                    ?? $"Configuration saved to {filePath}",
-                _localizationService.GetString("Config_Export_Success_Title") ?? "Save Successful");
+                _localizationService.GetStringOrDefault("Config_Export_Success_Message", $"Configuration saved to {filePath}", filePath),
+                _localizationService.GetStringOrDefault("Config_Export_Success_Title", "Save Successful"));
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error exporting Builder configuration: {ex.Message}");
             await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
-                    ?? $"Error saving configuration: {ex.Message}",
-                _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
+                _localizationService.GetStringOrDefault("Config_Export_Error_Message", $"Error saving configuration: {ex.Message}", ex.Message),
+                _localizationService.GetStringOrDefault("Config_Export_Error_Title", "Save Error"));
         }
     }
 
@@ -323,17 +348,15 @@ public class ConfigExportService : IConfigExportService
             _logService.Log(LogLevel.Info, $"Builder autounattend.xml exported to {filePath}");
 
             await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Export_Success_Message", filePath)
-                    ?? $"autounattend.xml saved to {filePath}",
-                _localizationService.GetString("Config_Export_Success_Title") ?? "Save Successful");
+                _localizationService.GetStringOrDefault("Config_Export_Success_Message", $"autounattend.xml saved to {filePath}", filePath),
+                _localizationService.GetStringOrDefault("Config_Export_Success_Title", "Save Successful"));
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error exporting Builder autounattend.xml: {ex.Message}");
             await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("Config_Export_Error_Message", ex.Message)
-                    ?? $"Error saving autounattend.xml: {ex.Message}",
-                _localizationService.GetString("Config_Export_Error_Title") ?? "Save Error");
+                _localizationService.GetStringOrDefault("Config_Export_Error_Message", $"Error saving autounattend.xml: {ex.Message}", ex.Message),
+                _localizationService.GetStringOrDefault("Config_Export_Error_Title", "Save Error"));
         }
     }
 

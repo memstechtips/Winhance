@@ -55,4 +55,33 @@ public interface IApplicationModeService
     /// Builder, returning to Normal, or exiting Review.
     /// </summary>
     IReadOnlyCollection<BuilderEdit> GetBuilderEdits();
+
+    /// <summary>
+    /// The edit recorded for <paramref name="settingId"/> in the current authoring session, or
+    /// null if that setting was not authored.
+    ///
+    /// This is what a setting ViewModel re-reads to show authored values after its card has been
+    /// rebuilt from live system state, so it MUST answer from the same store as
+    /// <see cref="GetBuilderEdits"/> — which is what Save writes. Two stores for "what the user
+    /// authored" is precisely the defect this exists to close: a filter or language change during
+    /// Builder rebuilds every card from the live machine, and before this the recorded edits
+    /// survived unseen and were still saved, so the file disagreed with the screen.
+    /// </summary>
+    BuilderEdit? GetBuilderEdit(string settingId);
+
+    /// <summary>
+    /// Flags the current Builder session as having authored changes. Separate from
+    /// <see cref="RecordBuilderEdit"/> on purpose: not every input type is serialized into a
+    /// <see cref="BuilderEdit"/> yet (NumericRange and AC/DC power settings are not — see the
+    /// scope note on <see cref="BuilderEdit"/>), but every one of them is still authored work
+    /// the user would lose on a mode switch. No-op outside Builder mode.
+    /// </summary>
+    void MarkBuilderDirty();
+
+    /// <summary>
+    /// True when the current Builder session has any authored change, whether or not it produced
+    /// a serializable <see cref="BuilderEdit"/>. This — not <see cref="GetBuilderEdits"/> — is the
+    /// correct gate for "discard unsaved progress?" prompts. Cleared with the edits.
+    /// </summary>
+    bool HasBuilderChanges { get; }
 }

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
@@ -97,8 +98,8 @@ internal class TaskOutputDialogBuilder
         {
             Title = title,
             Content = container,
-            CloseButtonText = _localization.GetString("Button_Close") ?? "Close",
-            SecondaryButtonText = _localization.GetString("Button_CopyToClipboard") ?? "Copy to Clipboard",
+            CloseButtonText = _localization.GetStringOrDefault("Button_Close", "Close"),
+            SecondaryButtonText = _localization.GetStringOrDefault("Button_CopyToClipboard", "Copy to Clipboard"),
             DefaultButton = ContentDialogButton.Close
         };
 

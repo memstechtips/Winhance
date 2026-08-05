@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Settings.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -24,6 +25,8 @@ public class SettingsViewModelTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalization.MirrorTryGetString();
         _mockLocalization
             .Setup(l => l.CurrentLanguage)
             .Returns("en");

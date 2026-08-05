@@ -114,13 +114,13 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         NotifyCardViewProperties();
     }
 
-    public string SectionAppsHeader => _localizationService.GetString("WindowsApps_Section_Apps") ?? "Windows Apps";
-    public string SectionCapabilitiesHeader => _localizationService.GetString("WindowsApps_Section_Capabilities") ?? "Windows Capabilities";
-    public string SectionOptionalFeaturesHeader => _localizationService.GetString("WindowsApps_Section_OptionalFeatures") ?? "Windows Optional Features";
+    public string SectionAppsHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_Apps", "Windows Apps");
+    public string SectionCapabilitiesHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_Capabilities", "Windows Capabilities");
+    public string SectionOptionalFeaturesHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_OptionalFeatures", "Windows Optional Features");
 
-    public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
-    public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
-    public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
+    public string SelectAllLabel => _localizationService.GetStringOrDefault("Common_SelectAll", "Select All");
+    public string SelectAllInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_Installed", "Select All Installed");
+    public string SelectAllNotInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_NotInstalled", "Select All Not Installed");
 
     public bool IsAllSelected =>
         Items.Count > 0 && Items.All(a => a.IsSelected);
@@ -446,7 +446,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
         try
         {
-            _progressService.StartTask(_localizationService.GetString("Progress_Task_InstallingWindowsApps") ?? "Installing Windows Apps", false);
+            _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_InstallingWindowsApps", "Installing Windows Apps"), false);
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;

@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.SoftwareApps.Views;
 
@@ -62,12 +63,12 @@ public sealed partial class WindowsAppsHelpContent : UserControl
             {
                 if (item.IsLoading && !wasLoading)
                 {
-                    var template = _localizationService.GetString("Accessibility_Removing") ?? "Removing {0}";
+                    var template = _localizationService.GetStringOrDefault("Accessibility_Removing", "Removing {0}");
                     DispatcherQueue.TryEnqueue(() => Announce(string.Format(template, item.ScheduledTaskName)));
                 }
                 else if (!item.IsLoading && wasLoading)
                 {
-                    var template = _localizationService.GetString("Accessibility_Removed") ?? "{0} removed";
+                    var template = _localizationService.GetStringOrDefault("Accessibility_Removed", "{0} removed");
                     DispatcherQueue.TryEnqueue(() => Announce(string.Format(template, item.ScheduledTaskName)));
                 }
                 wasLoading = item.IsLoading;
