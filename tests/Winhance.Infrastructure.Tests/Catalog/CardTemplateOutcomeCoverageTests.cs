@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -148,11 +148,5 @@ public class CardTemplateOutcomeCoverageTests
 
     // Anchors on the compile-time source path (CatalogCleanInstallConformanceTests precedent) so the file
     // resolves from the repo even when the build output is redirected off the network share.
-    private static string SolutionDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath)!;
-        while (dir is not null && !Directory.Exists(Path.Combine(dir, "src")))
-            dir = Path.GetDirectoryName(dir);
-        return dir ?? throw new InvalidOperationException("solution root not found from " + callerPath);
-    }
+    private static string SolutionDir() => RepoPaths.SolutionDir();
 }

@@ -35,16 +35,16 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     public partial bool CanApplyReviewedConfig { get; set; }
 
     public string ReviewModeTitleText =>
-        _localizationService.GetString("Review_Mode_Title") ?? "Config Review Mode";
+        _localizationService.GetStringOrDefault("Review_Mode_Title", "Config Review Mode");
 
     public string ReviewModeApplyButtonText =>
-        _localizationService.GetString("Review_Mode_Apply_Button") ?? "Apply Config";
+        _localizationService.GetStringOrDefault("Review_Mode_Apply_Button", "Apply Config");
 
     public string ReviewModeCancelButtonText =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public string ReviewModeDescriptionText =>
-        _localizationService.GetString("Review_Mode_Description") ?? "Review the changes below across all sections, then click Apply Config when ready.";
+        _localizationService.GetStringOrDefault("Review_Mode_Description", "Review the changes below across all sections, then click Apply Config when ready.");
 
     public ReviewModeBarViewModel(
         IConfigReviewModeService configReviewModeService,
@@ -159,7 +159,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         if (_configReviewDiffService.TotalChanges > 0)
         {
             // Show reviewed/total count and how many will be applied
-            var format = _localizationService.GetString("Review_Mode_Status_Format") ?? "{0} of {1} reviewed ({2} will be applied)";
+            var format = _localizationService.GetStringOrDefault("Review_Mode_Status_Format", "{0} of {1} reviewed ({2} will be applied)");
             ReviewModeStatusText = string.Format(format,
                 _configReviewDiffService.ReviewedChanges,
                 _configReviewDiffService.TotalChanges,
@@ -168,13 +168,11 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         else if (_configReviewDiffService.TotalConfigItems > 0)
         {
             // Config has items but all match current state
-            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_AllMatch")
-                ?? "All settings already match config";
+            ReviewModeStatusText = _localizationService.GetStringOrDefault("Review_Mode_Status_AllMatch", "All settings already match config");
         }
         else
         {
-            ReviewModeStatusText = _localizationService.GetString("Review_Mode_Status_NoItems")
-                ?? "No configuration items to apply";
+            ReviewModeStatusText = _localizationService.GetStringOrDefault("Review_Mode_Status_NoItems", "No configuration items to apply");
         }
     }
 
@@ -194,8 +192,8 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task CancelReviewModeAsync()
     {
-        var title = _localizationService.GetString("Review_Mode_Cancel_Confirmation_Title") ?? "Cancel Config Review";
-        var message = _localizationService.GetString("Review_Mode_Cancel_Confirmation") ?? "Are you sure you want to cancel? No changes will be applied.";
+        var title = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation_Title", "Cancel Config Review");
+        var message = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation", "Are you sure you want to cancel? No changes will be applied.");
 
         var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = message, Title = title })).Confirmed;
         if (confirmed)

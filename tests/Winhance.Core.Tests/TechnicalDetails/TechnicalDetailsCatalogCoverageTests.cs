@@ -32,7 +32,7 @@ public class TechnicalDetailsCatalogCoverageTests
 
     private static readonly WinBuild Build = new(26100);
 
-    /// <summary>No-setup mock: GetString returns null, so every lookup falls back to its English
+    /// <summary>No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English
     /// default. Keeps this test about structure rather than about localization.</summary>
     private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
 

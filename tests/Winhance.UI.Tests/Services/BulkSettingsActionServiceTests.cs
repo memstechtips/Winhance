@@ -14,6 +14,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -49,6 +50,8 @@ public class BulkSettingsActionServiceTests
         _localizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string k) => k);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _localizationService.MirrorTryGetString();
     }
 
     private BulkSettingsActionService CreateSut(params Setting[] settings)
@@ -259,6 +262,8 @@ public class BulkSettingsActionServiceTests
 
         var localization = new Mock<ILocalizationService>();
         localization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string _) => null!);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        localization.MirrorTryGetString();
 
         var config = new SettingItemViewModelConfig
         {
@@ -270,12 +275,19 @@ public class BulkSettingsActionServiceTests
             IsSelected = false,
         };
 
+        var logService = new Mock<ILogService>();
+        var dialogService = new Mock<IDialogService>();
+
         return new SettingItemViewModel(
             config,
-            new Mock<ISettingApplicationService>().Object,
-            new Mock<ILogService>().Object,
+            SettingWriteStrategies.Selector(
+                new Mock<ISettingApplicationService>().Object,
+                dialogService.Object,
+                localization.Object,
+                logService.Object),
+            logService.Object,
             dispatcher.Object,
-            new Mock<IDialogService>().Object,
+            dialogService.Object,
             localization.Object,
             new Mock<IEventBus>().Object,
             new Mock<IUserPreferencesService>().Object,

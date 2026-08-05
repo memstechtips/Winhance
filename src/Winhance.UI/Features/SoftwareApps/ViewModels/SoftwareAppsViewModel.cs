@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.Views;
@@ -221,7 +222,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     // Localized text properties
     public string PageTitle => _localizationService.GetString("Category_SoftwareApps_Title");
     public string PageDescription => _localizationService.GetString("Category_SoftwareApps_StatusText");
-    public string SearchPlaceholder => _localizationService.GetString("Common_Search_Placeholder") ?? "Search apps...";
+    public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Search apps...");
     public string WindowsAppsTabText => _localizationService.GetString("SoftwareApps_Tab_WindowsApps");
     public string ExternalAppsTabText => _localizationService.GetString("SoftwareApps_Tab_ExternalApps");
     public string InstallButtonText => _localizationService.GetString("SoftwareApps_Button_InstallSelected");
@@ -232,16 +233,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
     public string ViewModeCompactTooltip => _localizationService.GetString("ViewMode_Compact");
 
-    public string SortButtonText => _localizationService.GetString("SoftwareApps_Sort_Button") ?? "Sort";
-    public string SortInstalledFirstText => _localizationService.GetString("SoftwareApps_Sort_NameAZInstalledFirst") ?? "Name A-Z (Installed First)";
-    public string SortNameAscText => _localizationService.GetString("SoftwareApps_Sort_NameAZ") ?? "Name A-Z";
-    public string SortNameDescText => _localizationService.GetString("SoftwareApps_Sort_NameZA") ?? "Name Z-A";
+    public string SortButtonText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_Button", "Sort");
+    public string SortInstalledFirstText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameAZInstalledFirst", "Name A-Z (Installed First)");
+    public string SortNameAscText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameAZ", "Name A-Z");
+    public string SortNameDescText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameZA", "Name Z-A");
 
     /// <summary>
     /// Hint shown when hovering the Sort button while it is disabled in Table view —
     /// sorting in Table view is driven by clicking the column headers instead.
     /// </summary>
-    public string SortTableHintText => _localizationService.GetString("SoftwareApps_Sort_TableHint") ?? "Click a column header to sort by it in ascending or descending order.";
+    public string SortTableHintText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_TableHint", "Click a column header to sort by it in ascending or descending order.");
 
     /// <summary>
     /// The Sort dropdown is only usable in Card and Compact views; in Table view sorting is
@@ -253,12 +254,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     // Table-view column header texts. Applied to the DataGrid columns in code-behind
     // (SoftwareAppsPage.LocalizeColumnHeaders) because CommunityToolkit DataGrid columns
     // live outside the page's compiled-binding tree, and re-applied on language change.
-    public string ColumnHeaderName => _localizationService.GetString("SoftwareApps_Column_Name") ?? "Name";
-    public string ColumnHeaderDescription => _localizationService.GetString("SoftwareApps_Column_Description") ?? "Description";
-    public string ColumnHeaderType => _localizationService.GetString("SoftwareApps_Column_Type") ?? "Type";
-    public string ColumnHeaderStatus => _localizationService.GetString("SoftwareApps_Column_Status") ?? "Status";
-    public string ColumnHeaderInstallable => _localizationService.GetString("SoftwareApps_Column_Installable") ?? "Installable";
-    public string ColumnHeaderGroup => _localizationService.GetString("SoftwareApps_Column_Group") ?? "Group";
+    public string ColumnHeaderName => _localizationService.GetStringOrDefault("SoftwareApps_Column_Name", "Name");
+    public string ColumnHeaderDescription => _localizationService.GetStringOrDefault("SoftwareApps_Column_Description", "Description");
+    public string ColumnHeaderType => _localizationService.GetStringOrDefault("SoftwareApps_Column_Type", "Type");
+    public string ColumnHeaderStatus => _localizationService.GetStringOrDefault("SoftwareApps_Column_Status", "Status");
+    public string ColumnHeaderInstallable => _localizationService.GetStringOrDefault("SoftwareApps_Column_Installable", "Installable");
+    public string ColumnHeaderGroup => _localizationService.GetStringOrDefault("SoftwareApps_Column_Group", "Group");
 
     public string ReviewWindowsAppsBannerText
     {
@@ -456,20 +457,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string? ExternalAppsTabLockedTooltip =>
         IsExternalAppsTabLocked
-            ? (_localizationService.GetString("SoftwareApps_ExternalTab_AutounattendLocked")
-                ?? "External Apps in autounattend is an upcoming feature.")
+            ? (_localizationService.GetStringOrDefault("SoftwareApps_ExternalTab_AutounattendLocked", "External Apps in autounattend is an upcoming feature."))
             : null;
 
     public string BuilderWindowsAppsBannerText =>
         _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend
-            ? (_localizationService.GetString("SoftwareApps_Builder_Banner_Autounattend_WindowsApps")
-                ?? "Checked apps will be removed from the Windows image during installation.")
-            : (_localizationService.GetString("SoftwareApps_Builder_Banner_Config")
-                ?? "These selections are saved to the config. You choose whether to install or uninstall them when you import.");
+            ? (_localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Autounattend_WindowsApps", "Checked apps will be removed from the Windows image during installation."))
+            : (_localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Config", "These selections are saved to the config. You choose whether to install or uninstall them when you import."));
 
     public string BuilderExternalAppsBannerText =>
-        _localizationService.GetString("SoftwareApps_Builder_Banner_Config")
-            ?? "These selections are saved to the config. You choose whether to install or uninstall them when you import.";
+        _localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Config", "These selections are saved to the config. You choose whether to install or uninstall them when you import.");
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
@@ -493,7 +490,11 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     {
         bool isAnyTaskRunning = WindowsAppsViewModel.IsTaskRunning || ExternalAppsViewModel.IsTaskRunning;
 
-        if (IsInReviewMode || IsBuilderMode)
+        // Install/remove touch this PC, so they are gated on the capability rather than on a list of
+        // modes — a fourth mode that also must not write is then covered without editing this line.
+        // Read from the mode service, which is the source the local IsInReviewMode flag is derived
+        // from, so the gate cannot lag behind a transition that has already happened.
+        if (!_applicationModeService.Capabilities().AppliesToSystem)
         {
             CanInstallItems = false;
             CanRemoveItems = false;

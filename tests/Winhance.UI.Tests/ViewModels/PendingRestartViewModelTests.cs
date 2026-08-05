@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -27,6 +28,8 @@ public class PendingRestartViewModelTests
         // The real service returns the "[Key]" miss-marker for unknown keys; echoing the key back is
         // enough for these tests and keeps assertions readable.
         _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalization.MirrorTryGetString();
         _mockPending.Setup(p => p.PendingSettingIds).Returns(Array.Empty<string>());
 
         // Run inline: the view-model marshals its own refresh through this service, so a mock

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
@@ -52,10 +53,10 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public string CancelButtonLabel =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public string CloseButtonLabel =>
-        _localizationService.GetString("Button_Close") ?? "Close";
+        _localizationService.GetStringOrDefault("Button_Close", "Close");
 
     public TaskProgressViewModel(
         ITaskProgressService taskProgressService,

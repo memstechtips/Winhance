@@ -65,12 +65,6 @@
          so we need pixel-aligned geometry. Used for the InfoBadge Default pill. -->
     <x:String x:Key="BadgeDefaultIconPath">M0,0 H5 V5 H0 Z M6,0 H11 V5 H6 Z M0,6 H5 V11 H0 Z M6,6 H11 V11 H6 Z</x:String>
 
-    <!-- FluentIcons symbol name - Used for Recommended badge + Apply Recommended menu item -->
-    <x:String x:Key="BadgeRecommendedIconSymbol">StarCheckmark</x:String>
-
-    <!-- FluentIcons symbol name - Used for Custom badge (no Quick Actions counterpart) -->
-    <x:String x:Key="BadgeCustomIconSymbol">PersonWrench</x:String>
-
     <!-- BookInformationVariant MDI - Used for View Dropdown > InfoBadges -->
     <x:String x:Key="BookInformationVariantIconPath">M18 2H12V9L9.5 7.5L7 9V2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V4C20 2.89 19.1 2 18 2M17.68 18.41C17.57 18.5 16.47 19.25 16.05 19.5C15.63 19.79 14 20.72 14.26 18.92C14.89 15.28 16.11 13.12 14.65 14.06C14.27 14.29 14.05 14.43 13.91 14.5C13.78 14.61 13.79 14.6 13.68 14.41S13.53 14.23 13.67 14.13C13.67 14.13 15.9 12.34 16.72 12.28C17.5 12.21 17.31 13.17 17.24 13.61C16.78 15.46 15.94 18.15 16.07 18.54C16.18 18.93 17 18.31 17.44 18C17.44 18 17.5 17.93 17.61 18.05C17.72 18.22 17.83 18.3 17.68 18.41M16.97 11.06C16.4 11.06 15.94 10.6 15.94 10.03C15.94 9.46 16.4 9 16.97 9C17.54 9 18 9.46 18 10.03C18 10.6 17.54 11.06 16.97 11.06Z</x:String>
 
@@ -94,12 +88,6 @@
     <x:String x:Key="WrenchClockIconPath">M10 6.2C10 4.3 8.8 2.6 7 2V5.7H4V2C2.2 2.6 1 4.3 1 6.2C1 8.1 2.2 9.8 4 10.4V21.4C4 21.8 4.2 22 4.5 22H6.5C6.8 22 7 21.8 7 21.5V10.5C8.8 9.9 10 8.2 10 6.2M16 8C16 8 15.9 8 16 8C12.1 8.1 9 11.2 9 15C9 18.9 12.1 22 16 22S23 18.9 23 15 19.9 8 16 8M16 20C13.2 20 11 17.8 11 15S13.2 10 16 10 21 12.2 21 15 18.8 20 16 20M15 11V16L18.6 18.2L19.4 17L16.5 15.3V11H15Z</x:String>
     <!-- ToolBox - Used for Windows ADK in WIMUtil Steps -->
     <x:String x:Key="ToolBoxIconPath">M18 16H16V15H8V16H6V15H2V20H22V15H18V16M20 8H17V6C17 4.9 16.1 4 15 4H9C7.9 4 7 4.9 7 6V8H4C2.9 8 2 8.9 2 10V14H6V12H8V14H16V12H18V14H22V10C22 8.9 21.1 8 20 8M15 8H9V6H15V8Z</x:String>
-
-    <!-- ==================== Technical Details Icons (Material Design - Path Data) ==================== -->
-    <!-- Information - Used when Technical Details is ON -->
-    <x:String x:Key="InformationIconPath">M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z</x:String>
-    <!-- InformationOff - Used when Technical Details is OFF -->
-    <x:String x:Key="InformationOffIconPath">M22.1 21.5L2.4 1.7L1.1 3L4.1 6C2.8 7.6 2 9.7 2 12C2 17.5 6.5 22 12 22C14.3 22 16.4 21.2 18 19.9L20.8 22.7L22.1 21.5M13 17H11V12.9L13 14.9V17M11 7.8L6.7 3.5C8.3 2.6 10.1 2 12 2C17.5 2 22 6.5 22 12C22 13.9 21.4 15.7 20.5 17.3L12.2 9H13V7H11V7.8Z</x:String>
 
     <!-- ==================== Filter Icons (Material Design - Path Data) ==================== -->
     <!-- Filter with checkmark - Used when Windows version filter is ON -->

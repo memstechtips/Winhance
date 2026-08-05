@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -25,6 +26,8 @@ public class ConfigReviewServiceTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockLocalizationService
             .Setup(l => l.GetString("Common_On"))
@@ -180,6 +183,89 @@ public class ConfigReviewServiceTests : IDisposable
 
         service.CurrentMode.Should().Be(WinhanceMode.Normal);
         raised.Should().BeTrue();
+    }
+
+    // -------------------------------------------------------
+    // Builder dirty-tracking
+    //
+    // HasBuilderChanges exists because not every authored input type produces a serializable
+    // BuilderEdit — NumericRange and AC/DC power settings do not (see the BuilderEdit scope note).
+    // Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt entirely
+    // for a session that had only moved sliders, and the authoring was discarded silently.
+    // -------------------------------------------------------
+
+    [Fact]
+    public void HasBuilderChanges_OnAFreshBuilderSession_IsFalse()
+    {
+        var service = CreateService();
+
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkBuilderDirty_InBuilderMode_SetsHasBuilderChangesWithoutRecordingAnEdit()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.MarkBuilderDirty();
+
+        // This is the whole point: dirty without a serializable edit — the slider case.
+        service.HasBuilderChanges.Should().BeTrue();
+        service.GetBuilderEdits().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MarkBuilderDirty_OutsideBuilderMode_IsIgnored()
+    {
+        var service = CreateService();
+
+        service.MarkBuilderDirty();
+
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RecordBuilderEdit_AlsoMarksTheSessionDirty()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.RecordBuilderEdit(new BuilderEdit
+        {
+            SettingId = "some-setting",
+            InputType = InputType.Toggle,
+            IsSelected = true
+        });
+
+        service.HasBuilderChanges.Should().BeTrue();
+    }
+
+    [Fact]
+    public void LeavingBuilderMode_ClearsDirtyAlongsideTheEdits()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        service.MarkBuilderDirty();
+
+        service.EnterNormalMode();
+
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ReEnteringBuilderMode_StartsCleanAfterAPriorDirtySession()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        service.MarkBuilderDirty();
+        service.EnterNormalMode();
+
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.HasBuilderChanges.Should().BeFalse();
     }
 
     // -------------------------------------------------------

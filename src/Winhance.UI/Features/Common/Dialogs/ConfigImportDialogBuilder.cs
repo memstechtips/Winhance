@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Helpers;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
@@ -97,7 +98,7 @@ internal class ConfigImportDialogBuilder
             "Dialog_ImportConfig_Option_Defaults_Description",
             ImportOption.ImportWindowsDefaults, isDark, isLast: true);
 
-        var skipReviewText = _localization.GetString("Review_Mode_Skip_Checkbox") ?? "Skip review and apply immediately";
+        var skipReviewText = _localization.GetStringOrDefault("Review_Mode_Skip_Checkbox", "Skip review and apply immediately");
         _skipReviewCheckbox = new CheckBox
         {
             Content = skipReviewText,
@@ -121,13 +122,13 @@ internal class ConfigImportDialogBuilder
         {
             optionsPanel.Opacity = 1.0;
             SetImportControlsEnabled(true);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}");
         };
         _skipReviewCheckbox.Unchecked += (_, _) =>
         {
             optionsPanel.Opacity = 0.4;
             SetImportControlsEnabled(false);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}");
         };
 
         var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
@@ -283,7 +284,7 @@ internal class ConfigImportDialogBuilder
             // Announce the selection to Narrator
             DialogAccessibilityHelper.AnnounceToNarrator(
                 cardButton,
-                $"{_localization.GetString("Accessibility_Selected") ?? "Selected"}: {titleText}",
+                $"{_localization.GetStringOrDefault("Accessibility_Selected", "Selected")}: {titleText}",
                 "ConfigOptionSelected");
         };
 
@@ -344,11 +345,11 @@ internal class ConfigImportDialogBuilder
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var winAppsText = _localization.GetString("Config_Import_Options_WindowsApps") ?? "Windows Apps";
-        var extAppsText = _localization.GetString("Config_Import_Options_ExternalApps") ?? "External Apps";
-        var installText = _localization.GetString("Config_Import_Options_Install") ?? "Install";
-        var uninstallText = _localization.GetString("Config_Import_Options_Uninstall") ?? "Uninstall";
-        var selectOnlyText = _localization.GetString("Config_Import_Options_SelectOnly") ?? "Select Only";
+        var winAppsText = _localization.GetStringOrDefault("Config_Import_Options_WindowsApps", "Windows Apps");
+        var extAppsText = _localization.GetStringOrDefault("Config_Import_Options_ExternalApps", "External Apps");
+        var installText = _localization.GetStringOrDefault("Config_Import_Options_Install", "Install");
+        var uninstallText = _localization.GetStringOrDefault("Config_Import_Options_Uninstall", "Uninstall");
+        var selectOnlyText = _localization.GetStringOrDefault("Config_Import_Options_SelectOnly", "Select Only");
 
         // Row 0: Windows Apps
         var winAppsLabel = new TextBlock
@@ -391,15 +392,15 @@ internal class ConfigImportDialogBuilder
 
         // Customize action checkboxes
         var themeWallpaperCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_ThemeWallpaper") ?? "Apply default wallpaper for theme",
+            _localization.GetStringOrDefault("Config_Import_Options_ThemeWallpaper", "Apply default wallpaper for theme"),
             isChecked: true, margin: new Thickness(0, 2, 0, 0));
 
         var cleanTaskbarCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_CleanTaskbar") ?? "Clean Taskbar",
+            _localization.GetStringOrDefault("Config_Import_Options_CleanTaskbar", "Clean Taskbar"),
             isChecked: true);
 
         var cleanStartMenuCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_CleanStartMenu") ?? "Clean Start Menu",
+            _localization.GetStringOrDefault("Config_Import_Options_CleanStartMenu", "Clean Start Menu"),
             isChecked: true);
 
         var optionsPanel = new StackPanel
@@ -454,10 +455,10 @@ internal class ConfigImportDialogBuilder
 
         checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
+            $"{text}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}");
         checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
+            $"{text}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}");
 
         return checkBox;
     }

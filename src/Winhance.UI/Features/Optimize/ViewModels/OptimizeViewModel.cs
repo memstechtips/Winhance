@@ -42,8 +42,11 @@ public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInf
     public OptimizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<IOptimizationFeatureViewModel> featureViewModels)
-        : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>())
+        IEnumerable<IOptimizationFeatureViewModel> featureViewModels,
+        IConfigReviewBadgeService badgeService,
+        IConfigReviewModeService reviewModeService)
+        : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>(),
+               badgeService, reviewModeService)
     {
         InitializeSectionMappings();
 

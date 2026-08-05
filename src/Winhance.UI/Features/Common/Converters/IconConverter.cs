@@ -2,6 +2,7 @@ using Material.Icons;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Converters;
 
@@ -64,13 +65,9 @@ public sealed partial class IconConverter : IValueConverter
             {
                 try
                 {
-                    // Parse the path data into a Geometry
-                    var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                        typeof(Geometry), pathData);
-
                     return new PathIcon
                     {
-                        Data = geometry,
+                        Data = GeometryHelper.FromPathData(pathData),
                         Margin = new Microsoft.UI.Xaml.Thickness(0, 0, 0, 1)
                     };
                 }

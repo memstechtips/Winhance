@@ -9,7 +9,7 @@ namespace Winhance.UI.Features.Common.Models;
 /// forwards unchanged to SettingItemViewModel constructors.
 /// </summary>
 public record SettingViewModelDependencies(
-    ISettingApplicationService SettingApplicationService,
+    ISettingWriteStrategySelector WriteStrategySelector,
     ILogService LogService,
     IDispatcherService DispatcherService,
     IDialogService DialogService,

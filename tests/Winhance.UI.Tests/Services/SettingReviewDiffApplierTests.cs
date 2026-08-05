@@ -10,6 +10,7 @@ using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Optimize.ViewModels;
 using System.Collections.ObjectModel;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -36,6 +37,8 @@ public class SettingReviewDiffApplierTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockLocalizationService
             .Setup(l => l.GetString("Review_Mode_Diff_Toggle"))
@@ -77,7 +80,8 @@ public class SettingReviewDiffApplierTests
 
         var vm = new SettingItemViewModel(
             config,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcher.Object,
             _mockDialogService.Object,

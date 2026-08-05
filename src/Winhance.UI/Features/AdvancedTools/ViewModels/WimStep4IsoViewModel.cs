@@ -125,7 +125,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
-                    _localizationService.GetString("Dialog_Success") ?? "Success");
+                    _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
             }
             else
             {
@@ -133,7 +133,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 DownloadOscdimgCard.HasFailed = true;
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_AdkInstallFailed"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
             }
         }
         catch (Exception ex)
@@ -144,7 +144,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             DownloadOscdimgCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_AdkInstallError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
         finally
         {
@@ -175,7 +175,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_OscdimgRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -183,7 +183,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_OutputRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -191,7 +191,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -228,7 +228,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
             }
         }
         catch (OperationCanceledException)
@@ -254,7 +254,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreationError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
         finally
         {

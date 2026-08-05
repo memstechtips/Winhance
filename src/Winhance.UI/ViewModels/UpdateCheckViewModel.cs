@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
@@ -58,10 +59,10 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     public partial bool IsRelaunchButtonVisible { get; set; }
 
     public string InstallNowButtonText =>
-        _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
+        _localizationService.GetStringOrDefault("Dialog_Update_Button_InstallNow", "Install Now");
 
     public string RelaunchButtonText =>
-        _localizationService.GetString("Dialog_Update_Button_Relaunch") ?? "Relaunch";
+        _localizationService.GetStringOrDefault("Dialog_Update_Button_Relaunch", "Relaunch");
 
     public UpdateCheckViewModel(
         IVersionService versionService,
@@ -169,7 +170,7 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error installing update: {ex.Message}");
 
-            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_Status_Error") ?? "Error downloading update: {0}";
+            var errorMessageTemplate = _localizationService.GetStringOrDefault("Dialog_Update_Status_Error", "Error downloading update: {0}");
             var errorMessage = string.Format(errorMessageTemplate, ex.Message);
 
             UpdateInfoBarMessage = errorMessage;
@@ -247,32 +248,32 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         switch (_updateInfoBarState)
         {
             case UpdateInfoBarState.UpdateAvailable:
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
+                var message = _localizationService.GetStringOrDefault("Dialog_Update_Message", "Good News! A New Version of Winhance is available.");
+                var currentVersionLabel = _localizationService.GetStringOrDefault("Dialog_Update_CurrentVersion", "Current Version:");
+                var latestVersionLabel = _localizationService.GetStringOrDefault("Dialog_Update_LatestVersion", "Latest Version:");
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Title", "Update Available");
                 UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {_cachedCurrentVersion}  →  {latestVersionLabel} {_cachedLatestVersion}";
                 break;
 
             case UpdateInfoBarState.NoUpdates:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_NoUpdates_Title", "No Updates Available");
+                UpdateInfoBarMessage = _localizationService.GetStringOrDefault("Dialog_Update_NoUpdates_Message", "You have the latest version of Winhance.");
                 break;
 
             case UpdateInfoBarState.CheckError:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
-                var errorTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_CheckError_Title", "Update Check Error");
+                var errorTemplate = _localizationService.GetStringOrDefault("Dialog_Update_CheckError_Message", "An error occurred while checking for updates: {0}");
                 UpdateInfoBarMessage = string.Format(errorTemplate, _cachedErrorMessage);
                 break;
 
             case UpdateInfoBarState.Downloading:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Status_Downloading", "Downloading update...");
                 UpdateInfoBarMessage = string.Empty;
                 break;
 
             case UpdateInfoBarState.UpdateDownloaded:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Installed_Title") ?? "Update Ready";
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Installed_Message") ?? "The update has been downloaded. Click Relaunch to install and restart Winhance.";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Installed_Title", "Update Ready");
+                UpdateInfoBarMessage = _localizationService.GetStringOrDefault("Dialog_Update_Installed_Message", "The update has been downloaded. Click Relaunch to install and restart Winhance.");
                 break;
         }
     }

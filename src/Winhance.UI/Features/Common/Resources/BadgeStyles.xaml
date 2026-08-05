@@ -102,11 +102,6 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeDefaultBorder}"/>
     </Style>
 
-    <Style x:Key="BadgeCustomStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background"  Value="{ThemeResource BadgeCustomBackground}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
-    </Style>
-
     <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgePreferenceBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
@@ -98,6 +99,14 @@ public static class UIServicesExtensions
 
         // Review Mode ViewModel Coordinator (Singleton - abstracts concrete ViewModel dependencies)
         services.AddSingleton<IReviewModeViewModelCoordinator, ReviewModeViewModelCoordinator>();
+
+        // Per-mode setting write strategies. One implementation per thing a mode can do with an
+        // edit - apply it, author it, refuse it - selected from the mode's declared capabilities so
+        // that a new mode gets the right one without a second table to keep in sync.
+        services.AddSingleton<LiveSettingWriteStrategy>();
+        services.AddSingleton<BuilderSettingWriteStrategy>();
+        services.AddSingleton<ReadOnlySettingWriteStrategy>();
+        services.AddSingleton<ISettingWriteStrategySelector, SettingWriteStrategySelector>();
 
         // Setting ViewModel Dependencies (parameter object grouping pass-through deps for SettingItemViewModel)
         services.AddSingleton<SettingViewModelDependencies>();

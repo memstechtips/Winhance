@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -81,15 +82,22 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         var current = _applicationModeService.CurrentMode;
         _previousMode = current;
 
-        // Builder authors toggle/selection state into the shared settings VMs without
-        // applying it. Any transition out of Builder leaves those positions stale, so
-        // reload from live system state. This is safe during review entry too: the
-        // recreated ViewModels get their review decoration from SettingViewModelFactory,
-        // which applies the eagerly computed diffs against fresh discovery state.
-        if (previous == WinhanceMode.Builder && current != WinhanceMode.Builder)
+        // A mode that authors intent moves toggle/selection state on the shared settings VMs
+        // without applying it, so any transition out of one leaves those positions stale and the
+        // settings must be reloaded from live system state. Safe during review entry too: the
+        // recreated ViewModels get their review decoration from SettingViewModelFactory, which
+        // applies the eagerly computed diffs against fresh discovery state.
+        //
+        // Asked as a capability rather than as "was that Builder?" so a second authoring mode
+        // inherits the reload by declaring its capabilities. Naming Builder here is how a future
+        // mode would silently keep showing values it never applied.
+        bool leftAnAuthoringMode =
+            ModeCapabilities.For(previous).AuthorsIntent && !ModeCapabilities.For(current).AuthorsIntent;
+
+        if (leftAnAuthoringMode)
         {
-            _eventBus.Publish(new BuilderModeExitedEvent());
-            _logService.Log(LogLevel.Info, "Published BuilderModeExitedEvent to reload settings from system state");
+            _eventBus.Publish(new AuthoringModeExitedEvent());
+            _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
         }
     }
 
@@ -97,13 +105,16 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         if (_configReviewModeService.IsInReviewMode)
         {
-            // Entering review from Builder: skip the in-place reapply. The loaded VMs
-            // still show authored (un-applied) Builder positions, and the applier's
-            // fallback diff would read those as system truth and register false diffs.
-            // ReviewModeChanged fires before ModeChanged, so _previousMode still holds
-            // Builder here; the ModeChanged handler then publishes BuilderModeExitedEvent,
-            // and the reloaded ViewModels get review decoration from SettingViewModelFactory.
-            if (_previousMode == WinhanceMode.Builder)
+            // Entering review straight from a mode that authored intent: skip the in-place reapply.
+            // Those VMs still show authored, un-applied positions, and the applier's fallback diff
+            // would read them as system truth and register false diffs. ReviewModeChanged fires
+            // before ModeChanged, so _previousMode still holds the authoring mode here; the
+            // ModeChanged handler then publishes AuthoringModeExitedEvent, and the reloaded
+            // ViewModels get their review decoration from SettingViewModelFactory.
+            //
+            // The capability, not the mode name: what makes the reapply wrong is that the values on
+            // screen were never applied, which is precisely what AuthorsIntent declares.
+            if (ModeCapabilities.For(_previousMode).AuthorsIntent)
             {
                 return;
             }
@@ -259,8 +270,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             if (!selectedSections.Any())
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "No changes to apply.",
-                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Changes");
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "No Changes"));
                 return;
             }
 
@@ -290,8 +301,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             }
 
             // Show overlay
-            var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
-                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+            var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
@@ -327,8 +337,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             // Show success message and wait for user dismissal
             await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Import_Success_Message") ?? "Configuration imported successfully.",
-                _localizationService.GetString("Config_Import_Success_Title") ?? "Import Successful");
+                _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),
+                _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
 
             // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
             // Use captured user selections instead of config section to honor user's review choices

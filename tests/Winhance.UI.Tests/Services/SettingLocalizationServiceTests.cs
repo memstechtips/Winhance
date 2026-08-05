@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -23,6 +24,8 @@ public class SettingLocalizationServiceTests
         // Default: return the key wrapped in brackets to indicate "not found"
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => $"[{k}]");
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _localizationService.MirrorTryGetString();
         // Default: filter ON (the normal mode) -> the service passes includeOtherOsVersions: false
         _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
     }

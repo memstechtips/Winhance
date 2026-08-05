@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -97,8 +98,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             if (!selectedSections.Any())
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "No changes to apply.",
-                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Changes");
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "No Changes"));
                 return;
             }
 
@@ -164,8 +165,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
             // Show overlay during config application
-            var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
-                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+            var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
             _configImportState.IsActive = true;
@@ -259,10 +259,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         // Always restart explorer at the end to apply all changes
         _overlayService.UpdateStatus(
-            _localizationService.GetString("Config_Import_Status_Applying")
-                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...",
-            _localizationService.GetString("Config_Import_Status_RestartingExplorer")
-                ?? "Restarting Explorer...");
+            _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings..."),
+            _localizationService.GetStringOrDefault("Config_Import_Status_RestartingExplorer", "Restarting Explorer..."));
         await Task.Run(async () =>
         {
             // Broadcast regional setting change so apps pick up intl changes from import
@@ -319,8 +317,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         int completedFeatures = 0;
 
-        var statusText = _localizationService.GetString("Config_Import_Status_Applying")
-            ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+        var statusText = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
         _overlayService.UpdateStatus(statusText, $"0/{totalFeatures} features applied");
 
         Action<string> onFeatureCompleted = featureName =>
@@ -574,7 +571,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private async Task ShowImportSuccessMessage(List<string> selectedSections)
     {
         await _dialogService.ShowInformationAsync(
-            _localizationService.GetString("Config_Import_Success_Message") ?? "Configuration imported successfully.",
-            _localizationService.GetString("Config_Import_Success_Title") ?? "Import Successful");
+            _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),
+            _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
     }
 }

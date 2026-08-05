@@ -36,20 +36,26 @@ public class LocalizationService : ILocalizationService
 
     public bool IsRightToLeft => _currentCulture.TextInfo.IsRightToLeft;
 
-    public string GetString(string key)
+    public bool TryGetString(string key, out string value)
     {
-        if (_currentStrings.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
+        if (_currentStrings.TryGetValue(key, out var current) && !string.IsNullOrEmpty(current))
         {
-            return value;
+            value = current;
+            return true;
         }
 
-        if (_fallbackStrings.TryGetValue(key, out var fallbackValue) && !string.IsNullOrEmpty(fallbackValue))
+        if (_fallbackStrings.TryGetValue(key, out var english) && !string.IsNullOrEmpty(english))
         {
-            return fallbackValue;
+            value = english;
+            return true;
         }
 
-        return $"[{key}]";
+        value = string.Empty;
+        return false;
     }
+
+    // Defined in terms of TryGetString so the two can never disagree about what counts as a miss.
+    public string GetString(string key) => TryGetString(key, out var value) ? value : $"[{key}]";
 
     public string GetString(string key, params object[] args)
     {

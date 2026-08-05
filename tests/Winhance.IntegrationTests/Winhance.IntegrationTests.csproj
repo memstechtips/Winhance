@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Winhance.Core\Winhance.Core.csproj" />
     <ProjectReference Include="..\..\src\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
+    <ProjectReference Include="..\Winhance.TestSupport\Winhance.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

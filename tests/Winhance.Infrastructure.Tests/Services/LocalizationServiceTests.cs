@@ -178,4 +178,106 @@ public class LocalizationServiceTests
 
         result.Should().Be("[SomeKey]");
     }
+
+    // -- TryGetString --
+    //
+    // GetString is defined in terms of TryGetString, so these pin the contract the rest of
+    // the app relies on - and the one LocalizationMock.MirrorTryGetString imitates. Without
+    // them the mock's idea of a miss and the real service's can drift apart silently.
+
+    [Fact]
+    public void TryGetString_UnknownKey_ReturnsFalseAndEmptyValue()
+    {
+        var found = _sut.TryGetString("NonExistentKey", out var value);
+
+        found.Should().BeFalse();
+        value.Should().BeEmpty("callers use the out value unconditionally, so it must not be null");
+    }
+
+    [Fact]
+    public void TryGetString_KeyInCurrentLanguage_ReturnsTrueAndValue()
+    {
+        var sut = ServiceWith(("en", "{\"Greeting\": \"Hello\"}"));
+
+        sut.TryGetString("Greeting", out var value).Should().BeTrue();
+        value.Should().Be("Hello");
+    }
+
+    [Fact]
+    public void TryGetString_KeyOnlyInEnglish_FallsBackAndReportsFound()
+    {
+        // The English fallback tier lives inside TryGetString, so a key the active language
+        // has not translated is a HIT - callers must not substitute their own fallback for it.
+        var sut = ServiceWith(
+            ("en", "{\"Greeting\": \"Hello\"}"),
+            ("de", "{\"Untranslated\": \"nur hier\"}"));
+        sut.SetLanguage("de");
+
+        sut.TryGetString("Greeting", out var value).Should().BeTrue();
+        value.Should().Be("Hello");
+    }
+
+    [Fact]
+    public void TryGetString_TranslationLooksLikeTheMissMarker_IsStillReportedAsFound()
+    {
+        // The bug this method exists to fix: a translation is allowed to be bracketed, and
+        // the "[key]" marker cannot tell it apart from a miss.
+        var sut = ServiceWith(
+            ("en", "{\"SettingGroup_Other\": \"Other\"}"),
+            ("de", "{\"SettingGroup_Other\": \"[Sonstige]\"}"));
+        sut.SetLanguage("de");
+
+        sut.TryGetString("SettingGroup_Other", out var value).Should().BeTrue();
+        value.Should().Be("[Sonstige]");
+    }
+
+    [Fact]
+    public void TryGetString_EmptyTranslation_FallsThroughToEnglish()
+    {
+        // An empty string in a locale file is an untranslated placeholder, not a value.
+        var sut = ServiceWith(
+            ("en", "{\"Greeting\": \"Hello\"}"),
+            ("de", "{\"Greeting\": \"\"}"));
+        sut.SetLanguage("de");
+
+        sut.TryGetString("Greeting", out var value).Should().BeTrue();
+        value.Should().Be("Hello");
+    }
+
+    [Fact]
+    public void GetString_BracketedTranslation_IsReturnedRatherThanTreatedAsAMiss()
+    {
+        // Guards the "defined in terms of TryGetString" wiring: if the two ever disagree about
+        // what a miss is, the eight call sites this replaced come back one at a time.
+        var sut = ServiceWith(
+            ("en", "{\"SettingGroup_Other\": \"Other\"}"),
+            ("de", "{\"SettingGroup_Other\": \"[Sonstige]\"}"));
+        sut.SetLanguage("de");
+
+        sut.GetString("SettingGroup_Other").Should().Be("[Sonstige]");
+    }
+
+    /// <summary>A service whose Localization folder holds exactly the given language files.</summary>
+    private static LocalizationService ServiceWith(params (string Lang, string Json)[] files)
+    {
+        var mockFs = new Mock<IFileSystemService>();
+        mockFs.Setup(f => f.CombinePath(It.IsAny<string[]>()))
+            .Returns((string[] parts) => string.Join("\\", parts));
+        mockFs.Setup(f => f.DirectoryExists(It.IsAny<string>()))
+            .Returns(true);
+        mockFs.Setup(f => f.GetFiles(It.IsAny<string>(), "*.json"))
+            .Returns(files.Select(file => $"{file.Lang}.json").ToArray());
+        mockFs.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
+            .Returns((string path) => Path.GetFileNameWithoutExtension(path));
+
+        foreach (var (lang, json) in files)
+        {
+            mockFs.Setup(f => f.FileExists(It.Is<string>(s => s.EndsWith($"{lang}.json"))))
+                .Returns(true);
+            mockFs.Setup(f => f.ReadAllText(It.Is<string>(s => s.EndsWith($"{lang}.json"))))
+                .Returns(json);
+        }
+
+        return new LocalizationService(mockFs.Object);
+    }
 }

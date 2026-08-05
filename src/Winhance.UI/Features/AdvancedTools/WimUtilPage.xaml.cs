@@ -12,6 +12,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
@@ -107,11 +108,11 @@ public sealed partial class WimUtilPage : Page
         string? message = e.PropertyName switch
         {
             nameof(WizardActionCard.IsProcessing) when card.IsProcessing
-                => $"{card.Title}: {_localizationService?.GetString("Accessibility_InProgress") ?? "in progress"}",
+                => $"{card.Title}: {_localizationService.GetStringOrDefault("Accessibility_InProgress", "in progress")}",
             nameof(WizardActionCard.IsComplete) when card.IsComplete
-                => $"{card.Title}: {_localizationService?.GetString("Accessibility_Complete") ?? "complete"}",
+                => $"{card.Title}: {_localizationService.GetStringOrDefault("Accessibility_Complete", "complete")}",
             nameof(WizardActionCard.HasFailed) when card.HasFailed
-                => $"{card.Title}: {_localizationService?.GetString("Accessibility_Failed") ?? "failed"}",
+                => $"{card.Title}: {_localizationService.GetStringOrDefault("Accessibility_Failed", "failed")}",
             _ => null,
         };
         if (message != null) Announce(message);

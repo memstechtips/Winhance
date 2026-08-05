@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.TechnicalDetails;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -657,9 +658,7 @@ public sealed partial class OptionMatrixView : UserControl
         else
             content.Children.Add(new PathIcon
             {
-                Data = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry),
-                    (string)Application.Current.Resources["BadgeDefaultIconPath"]),
+                Data = GeometryHelper.FromResource("BadgeDefaultIconPath"),
                 Style = Named("TechDetail.Table.BadgeDefaultIcon"),
             });
         content.Children.Add(new TextBlock

@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 using Xunit.Abstractions;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -427,11 +427,5 @@ public class CatalogProbeManifestGeneratorTests
 
     // Anchors on the compile-time source path (same as RecommendedConfigConformanceTests) so the repo resolves
     // even when the build output lives outside the tree on a redirected/network-share build root.
-    private static string SolutionDir([CallerFilePath] string callerPath = "")
-    {
-        var dir = Path.GetDirectoryName(callerPath);
-        while (dir != null && !File.Exists(Path.Combine(dir, "Winhance.sln")))
-            dir = Directory.GetParent(dir)?.FullName;
-        return dir ?? throw new InvalidOperationException("Could not find Winhance.sln walking up from " + callerPath);
-    }
+    private static string SolutionDir() => RepoPaths.SolutionDir();
 }

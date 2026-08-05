@@ -23,6 +23,7 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI;
 
@@ -261,7 +262,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                         if (advancedToolsButton?.IsLocked == true)
                         {
                             ToolTipService.SetToolTip(advancedToolsButton,
-                                localizationService.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
+                                localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
                         }
                     });
                 };
@@ -491,7 +492,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 // Lock Advanced Tools during review mode
                 var localizationService = App.Services.GetService<ILocalizationService>();
                 NavSidebar.SetButtonLocked("AdvancedTools", true,
-                    localizationService?.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
+                    localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
 
                 // If currently on Advanced Tools, navigate away to Software & Apps
                 var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
@@ -642,10 +643,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         {
             if (ViewModel != null && WindowsFilterIcon != null)
             {
-                var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Geometry),
-                    ViewModel.WindowsFilterIcon);
-                WindowsFilterIcon.Data = geometry;
+                WindowsFilterIcon.Data = GeometryHelper.FromPathData(ViewModel.WindowsFilterIcon);
             }
         }
         catch (Exception ex)

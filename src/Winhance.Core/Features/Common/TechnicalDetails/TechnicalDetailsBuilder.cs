@@ -1121,13 +1121,9 @@ public static class TechnicalDetailsBuilder
         /// <summary>True when the setting's real work is a .reg import, which makes its RegTargets detection probes.</summary>
         public bool IsRegContentDriven { get; }
 
-        /// <summary>Localized string, or the English fallback. LocalizationService returns "[key]" on a
-        /// miss and a bare-null mock returns null, so those two are the miss signals.</summary>
-        public string Text(string key, string fallback)
-        {
-            var value = _loc.GetString(key);
-            return string.IsNullOrEmpty(value) || value == $"[{key}]" ? fallback : value;
-        }
+        /// <summary>Localized string, or the English fallback.</summary>
+        public string Text(string key, string fallback) =>
+            _loc.TryGetString(key, out var value) && !string.IsNullOrEmpty(value) ? value : fallback;
 
         /// <summary>A metadata chip plus the hover text that explains what it means.</summary>
         public MatrixChip Chip(string key, string fallback, string tooltipKey, string tooltipFallback) =>

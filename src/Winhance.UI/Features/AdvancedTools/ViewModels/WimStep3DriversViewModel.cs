@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
@@ -95,7 +96,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -127,14 +128,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 ExtractSystemDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriversSuccess"),
-                    _localizationService.GetString("Dialog_Success") ?? "Success");
+                    _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
             }
             else
             {
                 ExtractSystemDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_NoDriversFound"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
             }
         }
         catch (Exception ex)
@@ -145,7 +146,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             ExtractSystemDriversCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DriverExtractionError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
         finally
         {
@@ -165,7 +166,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -177,7 +178,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_InvalidFolder"),
-                    _localizationService.GetString("Dialog_Error") ?? "Error");
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
                 return;
             }
 
@@ -187,7 +188,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_EmptyFolder"),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
 
@@ -211,14 +212,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 SelectCustomDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriverFilesAdded"),
-                    _localizationService.GetString("Dialog_Success") ?? "Success");
+                    _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
             }
             else
             {
                 SelectCustomDriversCard.HasFailed = true;
                 await _dialogService.ShowWarningAsync(
                     string.Format(_localizationService.GetString("WIMUtil_Msg_NoCustomDrivers"), selectedPath),
-                    _localizationService.GetString("Dialog_Warning") ?? "Warning");
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
             }
         }
         catch (Exception ex)
@@ -229,7 +230,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             SelectCustomDriversCard.HasFailed = true;
             await _dialogService.ShowErrorAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_DriverAdditionError"), ex.Message),
-                _localizationService.GetString("Dialog_Error") ?? "Error");
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
         }
         finally
         {

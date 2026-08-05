@@ -7,6 +7,7 @@ using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
@@ -50,7 +51,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     // ── Localization labels (read-only, for XAML) ────────────────────
 
-    public string Title => _localizationService?.GetString("WIMUtil_Title") ?? "Windows Installation Media Utility";
+    public string Title => _localizationService.GetStringOrDefault("WIMUtil_Title", "Windows Installation Media Utility");
     public string CheckboxExtractedAlreadyText => _localizationService.GetString("WIMUtil_CheckboxExtractedAlready");
     public string ButtonSelectFolderText => _localizationService.GetString("WIMUtil_ButtonSelectFolder");
     public string ButtonStartExtractionText => _localizationService.GetString("WIMUtil_ButtonStartExtraction");
@@ -267,7 +268,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step1State = new WizardStepState
         {
             StepNumber = 1,
-            Title = _localizationService.GetString("WIMUtil_Step1_Title") ?? "Select ISO",
+            Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select ISO"),
             Icon = "DiscPlayer",
             StatusText = _localizationService.GetString("WIMUtil_Status_NoIsoSelected"),
             IsExpanded = true,
@@ -277,7 +278,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2State = new WizardStepState
         {
             StepNumber = 2,
-            Title = _localizationService.GetString("WIMUtil_Step2_Title") ?? "Add XML File",
+            Title = _localizationService.GetStringOrDefault("WIMUtil_Step2_Title", "Add XML File"),
             Icon = "FileCode",
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
@@ -285,7 +286,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step3State = new WizardStepState
         {
             StepNumber = 3,
-            Title = _localizationService.GetString("WIMUtil_Step3_Title") ?? "Add Drivers",
+            Title = _localizationService.GetStringOrDefault("WIMUtil_Step3_Title", "Add Drivers"),
             Icon = "Chip",
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
@@ -293,7 +294,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4State = new WizardStepState
         {
             StepNumber = 4,
-            Title = _localizationService.GetString("WIMUtil_Step4_Title") ?? "Create ISO",
+            Title = _localizationService.GetStringOrDefault("WIMUtil_Step4_Title", "Create ISO"),
             Icon = "WrenchClock",
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
@@ -478,10 +479,10 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         // Update step state titles and status text
-        Step1State.Title = _localizationService.GetString("WIMUtil_Step1_Title") ?? "Select ISO";
-        Step2State.Title = _localizationService.GetString("WIMUtil_Step2_Title") ?? "Add XML File";
-        Step3State.Title = _localizationService.GetString("WIMUtil_Step3_Title") ?? "Add Drivers";
-        Step4State.Title = _localizationService.GetString("WIMUtil_Step4_Title") ?? "Create ISO";
+        Step1State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select ISO");
+        Step2State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step2_Title", "Add XML File");
+        Step3State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step3_Title", "Add Drivers");
+        Step4State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step4_Title", "Create ISO");
         UpdateStepStates();
 
         // Raise property changes for all localization label properties

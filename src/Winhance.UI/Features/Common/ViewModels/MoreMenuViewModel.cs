@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -92,28 +93,28 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     #region Localized Strings
 
     public string MenuDocumentation =>
-        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
+        _localizationService.GetStringOrDefault("Tooltip_Documentation", "Documentation");
 
     public string MenuReportBug =>
-        _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
+        _localizationService.GetStringOrDefault("Tooltip_ReportBug", "Report a Bug");
 
     public string MenuCheckForUpdates =>
-        _localizationService.GetString("Menu_CheckForUpdates") ?? "Check for Updates";
+        _localizationService.GetStringOrDefault("Menu_CheckForUpdates", "Check for Updates");
 
     public string MenuWinhanceLogs =>
-        _localizationService.GetString("Menu_WinhanceLogs") ?? "Winhance Logs";
+        _localizationService.GetStringOrDefault("Menu_WinhanceLogs", "Winhance Logs");
 
     public string MenuChangeHistory =>
-        _localizationService.GetString("Menu_ChangeHistory") ?? "Change History";
+        _localizationService.GetStringOrDefault("Menu_ChangeHistory", "Change History");
 
     public string MenuWinhanceScripts =>
-        _localizationService.GetString("Menu_WinhanceScripts") ?? "Winhance Scripts";
+        _localizationService.GetStringOrDefault("Menu_WinhanceScripts", "Winhance Scripts");
 
     public string MenuSupportWinhance =>
-        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
+        _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
 
     public string MenuCloseWinhance =>
-        _localizationService.GetString("Menu_CloseWinhance") ?? "Close Winhance";
+        _localizationService.GetStringOrDefault("Menu_CloseWinhance", "Close Winhance");
 
     #endregion
 

@@ -542,16 +542,9 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>
-    /// Returns the localized string, or null when the key is missing. The real LocalizationService
-    /// returns the literal "[{key}]" miss-marker for an unknown key (never null/empty), so we mirror
-    /// SettingLocalizationService's StartsWith("[") &amp;&amp; EndsWith("]") detection exactly.
-    /// </summary>
-    private string? ResolveLocalized(string key)
-    {
-        var result = localizationService.GetString(key);
-        return result.StartsWith("[") && result.EndsWith("]") ? null : result;
-    }
+    /// <summary>Returns the localized string, or null when the key is missing.</summary>
+    private string? ResolveLocalized(string key) =>
+        localizationService.TryGetString(key, out var value) ? value : null;
 
     /// <summary>
     /// Resolves a Selection option index to a human-readable label, mirroring the UI exactly

@@ -111,9 +111,7 @@ public sealed partial class AdvancedToolsPage : Page
                 Application.Current.Resources.TryGetValue(resourceKey, out var resourceValue) &&
                 resourceValue is string iconData)
             {
-                var geometry = (Microsoft.UI.Xaml.Media.Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Microsoft.UI.Xaml.Media.Geometry), iconData);
-                BreadcrumbSectionIcon.Data = geometry;
+                BreadcrumbSectionIcon.Data = GeometryHelper.FromPathData(iconData);
             }
         }
     }

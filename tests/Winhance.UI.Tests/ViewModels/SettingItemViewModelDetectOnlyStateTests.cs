@@ -1,3 +1,4 @@
+using Winhance.TestSupport;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -140,7 +141,8 @@ public class SettingItemViewModelDetectOnlyStateTests
 
         return new SettingItemViewModel(
             config,
-            _settingAppService.Object,
+            SettingWriteStrategies.Selector(
+                _settingAppService.Object, _dialogService.Object, _localizationService.Object, _logService.Object),
             _logService.Object,
             _dispatcherService.Object,
             _dialogService.Object,

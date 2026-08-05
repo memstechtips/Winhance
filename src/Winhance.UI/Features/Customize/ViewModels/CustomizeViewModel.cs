@@ -19,14 +19,22 @@ public partial class CustomizeViewModel : SectionPageViewModel<CustomizeSectionI
     protected override IReadOnlyList<CustomizeSectionInfo> SectionDefinitions => Sections;
 
     /// <summary>
-    /// Section definitions for navigation.
+    /// Section definitions for navigation, in the order they are presented to the user.
     /// </summary>
+    // This list is the display order: the overview cards and the breadcrumb flyout both render it
+    // as written. The order is the one the page has always shipped with and is Marco's call, not
+    // alphabetical and not derivable — so do not "tidy" it. Sections_AreInTheOrderTheUserSees pins it.
+    //
+    // Icon keys are the PathIcon resources the overview cards and breadcrumb resolve. They used to
+    // be the "…IconGlyph" font-glyph keys, which no surface ever rendered — CustomizePage.xaml.cs
+    // kept its own second table of "…IconPath" keys for the icons actually shown, and the two were
+    // free to disagree. One table now.
     public static readonly IReadOnlyList<CustomizeSectionInfo> Sections = new List<CustomizeSectionInfo>()
     {
-        new("Explorer", "ExplorerIconGlyph", "Explorer", FeatureIds.ExplorerCustomization),
-        new("StartMenu", "StartMenuIconGlyph", "Start Menu", FeatureIds.StartMenu),
-        new("Taskbar", "TaskbarIconGlyph", "Taskbar", FeatureIds.Taskbar),
-        new("WindowsTheme", "WindowsThemeIconGlyph", "Windows Theme", FeatureIds.WindowsTheme),
+        new("WindowsTheme", "WindowsThemeIconPath", "Windows Theme", FeatureIds.WindowsTheme),
+        new("Taskbar", "TaskbarIconPath", "Taskbar", FeatureIds.Taskbar),
+        new("StartMenu", "StartMenuIconPath", "Start Menu", FeatureIds.StartMenu),
+        new("Explorer", "ExplorerIconPath", "Explorer", FeatureIds.ExplorerCustomization),
     };
 
     // Named properties for XAML binding (typed as interface, not concrete)
@@ -38,8 +46,11 @@ public partial class CustomizeViewModel : SectionPageViewModel<CustomizeSectionI
     public CustomizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<ICustomizationFeatureViewModel> featureViewModels)
-        : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>())
+        IEnumerable<ICustomizationFeatureViewModel> featureViewModels,
+        IConfigReviewBadgeService badgeService,
+        IConfigReviewModeService reviewModeService)
+        : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>(),
+               badgeService, reviewModeService)
     {
         InitializeSectionMappings();
 

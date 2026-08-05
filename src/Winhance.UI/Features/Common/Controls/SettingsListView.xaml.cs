@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -170,8 +171,8 @@ public sealed partial class SettingsListView : UserControl
         // Announce the new state and details content to Narrator
         var localizationService = App.Services.GetService<ILocalizationService>();
         var stateText = vm.IsTechnicalDetailsExpanded
-            ? localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
-            : localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
+            ? localizationService.GetStringOrDefault("TechnicalDetails_On", "Technical Details: On")
+            : localizationService.GetStringOrDefault("TechnicalDetails_Off", "Technical Details: Off");
 
         var announcement = $"{vm.Name}: {stateText}";
 

@@ -9,6 +9,7 @@ using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -34,8 +35,10 @@ public class AutounattendGeneratorViewModelTests
     {
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
+        _localizationService.MirrorTryGetString();
         _winLocalizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
+        _winLocalizationService.MirrorTryGetString();
         _dispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
