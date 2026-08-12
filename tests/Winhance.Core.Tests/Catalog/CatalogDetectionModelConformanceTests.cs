@@ -146,9 +146,9 @@ public class CatalogDetectionModelConformanceTests
     [Fact]
     public void Touch_keyboard_service_reads_start_type() // IsInputAppPreloadEnabled is an apply-only secondary
     {
-        Assert.Equal("ServiceOption_Manual", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Manual)
-        Assert.Equal("ServiceOption_DisabledRecommended", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
-        Assert.Equal("ServiceOption_Manual", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 3)));
+        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Manual)
+        Assert.Equal("ServiceOption_Disabled", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 3)));
         Assert.Equal("ServiceOption_Automatic", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 2)));
         Assert.Null(Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 1)));                        // unrecognised -> Custom
     }
