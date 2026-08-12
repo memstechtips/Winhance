@@ -2930,8 +2930,8 @@
           {
             "Id": "updates-notification-level",
             "Name": "Update Notifications",
-            "IsSelected": false,
-            "InputType": 0
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "updates-restart-notification",
