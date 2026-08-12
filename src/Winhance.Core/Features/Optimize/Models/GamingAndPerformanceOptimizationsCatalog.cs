@@ -1431,7 +1431,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             Display = new()
             {
                 Name = "Print Spooler Service",
-                Description = "Manages print jobs sent to printers. If you don't use a printer, set to Manual or Disabled to free up system resources",
+                Description = "Manages print jobs sent to printers. Left at the Windows default so printing works whenever you need it. If you never print, set this to Disabled to stop the service running in the background.",
                 GroupName = "System Services",
                 Icon = MaterialIcons.Printer,
                 IsSubjectivePreference = true,
@@ -1447,14 +1447,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 },
                 new SettingState
                 {
-                    Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Label = "ServiceOption_Manual",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
                 {
-                    Label = "ServiceOption_Automatic",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Label = "ServiceOption_AutomaticRecommended",
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2).OrAbsent() },
                 },
             },
