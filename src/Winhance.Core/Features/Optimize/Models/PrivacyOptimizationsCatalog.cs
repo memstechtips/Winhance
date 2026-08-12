@@ -22,7 +22,6 @@ public static class PrivacyOptimizationsCatalog
                 Description = "Controls UAC notification level and secure desktop behavior",
                 GroupName = "Security",
                 Icon = MaterialIcons.ShieldAccount,
-                IsSubjectivePreference = true,
             },
             Targets = new Target[]
             {
@@ -51,8 +50,11 @@ public static class PrivacyOptimizationsCatalog
                 },
                 new SettingState
                 {
+                    // Recommended is the Windows default. "Never notify" (0/0) elevates everything
+                    // silently, which is what #743 objected to - it stays available, we just stop
+                    // applying it for people who press Apply Recommended.
                     Label = "Notify when apps try to make changes",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["ConsentPromptBehaviorAdmin"] = Of(5),
@@ -71,7 +73,6 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Never notify",
-                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["ConsentPromptBehaviorAdmin"] = Of(0),
@@ -734,14 +735,16 @@ public static class PrivacyOptimizationsCatalog
             {
                 new SettingState
                 {
+                    // Recommended is the Windows default. Disabling this takes Win+L away entirely (#749).
+                    // Of(0) is the right write, not a leftover: every clean-install probe in docs/probe-data
+                    // has DisableLockWorkstation PRESENT at 0, so writing it restores what Windows ships.
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["DisableLockWorkstation"] = Of(0) },
                 },
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DisableLockWorkstation"] = Of(1) },
                 },
