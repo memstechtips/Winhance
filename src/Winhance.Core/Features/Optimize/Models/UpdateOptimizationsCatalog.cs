@@ -354,28 +354,64 @@ public static class UpdateOptimizationsCatalog
             Display = new()
             {
                 Name = "Update Notifications",
-                Description = "Show or hide notifications about available updates and update progress",
+                Description = "Choose how much Windows tells you about available updates and update progress. Hiding all notifications also hides restart warnings.",
                 GroupName = "Update Behavior",
                 Icon = MaterialIcons.BellPlus,
                 IsSubjectivePreference = true,
             },
+            // "Display options for update notifications" (WindowsUpdate.admx) writes THREE values and the names
+            // are not interchangeable: the <policy> element's own valueName is the 0/1 enabled FLAG, the <enum>
+            // child carries the 0/1/2 LEVEL, and the <boolean> child is the active-hours box. Writing the level
+            // into the flag - what this did until now - yields a policy that reads as configured and suppresses
+            // nothing. class="Machine", so HKLM only; the HKCU copy older builds wrote is kept purely so we can
+            // delete it again.
             Targets = new Target[]
             {
-                new RegTarget("SetUpdateNotificationLevel", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" }, "SetUpdateNotificationLevel", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("SetUpdateNotificationLevel", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" }, "SetUpdateNotificationLevel", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("UpdateNotificationLevel", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" }, "UpdateNotificationLevel", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("NoUpdateNotificationsDuringActiveHours", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" }, "NoUpdateNotificationsDuringActiveHours", RegistryValueKind.DWord) { IsGroupPolicy = true, ApplyOnly = true },
+                new RegTarget("LegacyHkcuNotificationLevel", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" }, "SetUpdateNotificationLevel", RegistryValueKind.DWord) { IsGroupPolicy = true, ApplyOnly = true },
             },
+            // No IsFallback: a machine still carrying the old malformed SetUpdateNotificationLevel=2 matches no
+            // state and honestly reads Custom. A fallback would claim it sits at the Windows default, which is
+            // the bug being fixed. Every state must carry an entry for EVERY target - a missing key is silently
+            // skipped by the detection engine and produces a false match, and nothing gates that.
             States = new[]
             {
                 new SettingState
                 {
-                    Label = "Enabled",
-                    Set = new Dictionary<string, StateValue> { ["SetUpdateNotificationLevel"] = Of(2) },
+                    Label = "Show all update notifications",
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["SetUpdateNotificationLevel"] = Absent,
+                        ["UpdateNotificationLevel"] = Absent,
+                        ["NoUpdateNotificationsDuringActiveHours"] = Absent,
+                        ["LegacyHkcuNotificationLevel"] = Absent,
+                    },
                 },
                 new SettingState
                 {
-                    Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["SetUpdateNotificationLevel"] = Absent },
+                    Label = "Hide all except restart warnings",
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["SetUpdateNotificationLevel"] = Of(1),
+                        ["UpdateNotificationLevel"] = Of(1),
+                        ["NoUpdateNotificationsDuringActiveHours"] = Of(0).OrAbsent(),
+                        ["LegacyHkcuNotificationLevel"] = Absent,
+                    },
+                },
+                new SettingState
+                {
+                    Label = "Hide all notifications",
+                    Warning = "This also hides restart warnings, so Windows will not tell you when it needs to restart to finish installing an update.",
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["SetUpdateNotificationLevel"] = Of(1),
+                        ["UpdateNotificationLevel"] = Of(2),
+                        ["NoUpdateNotificationsDuringActiveHours"] = Of(0).OrAbsent(),
+                        ["LegacyHkcuNotificationLevel"] = Absent,
+                    },
                 },
             },
         },

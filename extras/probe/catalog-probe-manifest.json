@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "3e0a57352b14535362677efa4b361c55b303b95525e458fa11b2448c562db571",
+  "catalogHash": "38af9730862c96c97fcb5c9604ed412b78b2111d4ee1c685cc937fcead84d35d",
   "settingCount": 414,
   "settings": [
     {
@@ -15688,7 +15688,7 @@
     {
       "id": "updates-notification-level",
       "feature": "Update",
-      "control": "Toggle",
+      "control": "Selection",
       "contexts": [
         "Always"
       ],
@@ -15708,7 +15708,6 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
             "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate"
           ],
           "valueName": "SetUpdateNotificationLevel",
@@ -15725,15 +15724,198 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "UpdateNotificationLevel",
+          "joinKey": "UpdateNotificationLevel",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate"
+          ],
+          "valueName": "UpdateNotificationLevel",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "NoUpdateNotificationsDuringActiveHours",
+          "joinKey": "NoUpdateNotificationsDuringActiveHours",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate"
+          ],
+          "valueName": "NoUpdateNotificationsDuringActiveHours",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": true,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "LegacyHkcuNotificationLevel",
+          "joinKey": "LegacyHkcuNotificationLevel",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate"
+          ],
+          "valueName": "SetUpdateNotificationLevel",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": true,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
         {
-          "label": "Enabled",
+          "label": "Show all update notifications",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "LegacyHkcuNotificationLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "NoUpdateNotificationsDuringActiveHours": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "SetUpdateNotificationLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "UpdateNotificationLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Hide all except restart warnings",
           "isFallback": false,
           "roles": [],
           "set": {
+            "LegacyHkcuNotificationLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "NoUpdateNotificationsDuringActiveHours": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
             "SetUpdateNotificationLevel": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "UpdateNotificationLevel": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Hide all notifications",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "LegacyHkcuNotificationLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "NoUpdateNotificationsDuringActiveHours": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "SetUpdateNotificationLevel": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "UpdateNotificationLevel": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -15741,32 +15923,6 @@
                 2
               ],
               "writePayload": 2
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Disabled",
-          "isFallback": true,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            },
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
-          "set": {
-            "SetUpdateNotificationLevel": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
             }
           },
           "resetSet": null
@@ -22043,15 +22199,9 @@
           "resetSet": null
         },
         {
-          "label": "ServiceOption_ManualRecommended",
+          "label": "ServiceOption_Manual",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Start": {
               "acceptsAbsent": false,
@@ -22066,11 +22216,16 @@
           "resetSet": null
         },
         {
-          "label": "ServiceOption_Automatic",
+          "label": "ServiceOption_AutomaticRecommended",
           "isFallback": false,
           "roles": [
             {
               "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
               "context": "Always",
               "appliesTo": []
             }
@@ -25211,15 +25366,9 @@
       ],
       "states": [
         {
-          "label": "ServiceOption_DisabledRecommended",
+          "label": "ServiceOption_Disabled",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "IsInputAppPreloadEnabled": {
               "acceptsAbsent": false,
@@ -25243,11 +25392,16 @@
           "resetSet": null
         },
         {
-          "label": "ServiceOption_Manual",
+          "label": "ServiceOption_ManualRecommended",
           "isFallback": false,
           "roles": [
             {
               "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
               "context": "Always",
               "appliesTo": []
             }
@@ -29378,6 +29532,11 @@
               "kind": "WindowsDefault",
               "context": "Always",
               "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
             }
           ],
           "set": {
@@ -29431,13 +29590,7 @@
         {
           "label": "Never notify",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "ConsentPromptBehaviorAdmin": {
               "acceptsAbsent": false,
@@ -31223,6 +31376,11 @@
               "kind": "WindowsDefault",
               "context": "Always",
               "appliesTo": []
+            },
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
             }
           ],
           "set": {
@@ -31241,13 +31399,7 @@
         {
           "label": "Disabled",
           "isFallback": true,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "DisableLockWorkstation": {
               "acceptsAbsent": false,
