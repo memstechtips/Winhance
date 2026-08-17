@@ -29,7 +29,7 @@ public class CatalogPowerExistenceFilterConformanceTests
 
 
     [Fact]
-    public void New_filter_keeps_a_setting_whose_hidden_powercfg_target_is_enabled()
+    public async Task New_filter_keeps_a_setting_whose_hidden_powercfg_target_is_enabled()
     {
         var pick = Catalog.SelectMany(s => s.Targets.OfType<PowerCfgTarget>().Select(t => (s, t)))
             .First(x => x.t.EnablementKey is not null && x.s.Availability.ValidatesExistence);
@@ -47,7 +47,7 @@ public class CatalogPowerExistenceFilterConformanceTests
             .Returns((string path, string vn, object v, RegistryValueKind k) => { present.Add(path.Split('\\').Last()); return true; });
         var svc = new CatalogPowerExistenceFilter(query.Object, reg.Object, new Mock<IScheduledTaskStateService>().Object, new Mock<ILogService>().Object);
 
-        var result = svc.FilterAsync(Catalog).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(Catalog);
         Assert.Contains(result, s => s.Id == pick.s.Id);
     }
 
@@ -93,19 +93,19 @@ public class CatalogPowerExistenceFilterConformanceTests
     /// <summary>A ValidatesExistence setting whose scheduled task is not registered on this system
     /// (state reads back as null) is hidden - a task that does not exist cannot be toggled.</summary>
     [Fact]
-    public void Task_setting_with_no_registered_task_is_filtered_out()
+    public async Task Task_setting_with_no_registered_task_is_filtered_out()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: null);
-        var result = svc.FilterAsync(new[] { pick }).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(new[] { pick });
         Assert.DoesNotContain(result, s => s.Id == pick.Id);
     }
 
     /// <summary>A registered task (enabled OR disabled - existence, not state) keeps its setting visible.</summary>
     [Fact]
-    public void Task_setting_with_a_registered_task_survives()
+    public async Task Task_setting_with_a_registered_task_survives()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: false);
-        var result = svc.FilterAsync(new[] { pick }).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(new[] { pick });
         Assert.Contains(result, s => s.Id == pick.Id);
     }
 }
