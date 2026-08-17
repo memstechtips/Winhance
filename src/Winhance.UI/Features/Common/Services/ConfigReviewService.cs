@@ -70,6 +70,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     public WinhanceMode CurrentMode { get; private set; } = WinhanceMode.Normal;

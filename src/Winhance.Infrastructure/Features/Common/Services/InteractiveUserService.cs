@@ -819,5 +819,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             }
             _disposed = true;
         }
+        GC.SuppressFinalize(this);
     }
 }

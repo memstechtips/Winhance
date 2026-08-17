@@ -657,7 +657,7 @@ public class TechnicalDetailsBuilderTests
         Apply = new() { RequiresConfirmation = true },
         Effects =
         [
-            new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Foo", "Favorites", RegistryValueKind.Binary, new byte[0]),
+            new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Foo", "Favorites", RegistryValueKind.Binary, Array.Empty<byte>()),
             new RegistryWriteEffect(@"HKEY_LOCAL_MACHINE\Software\Policies\Foo", "Pins", RegistryValueKind.String, "[]")
             {
                 IsGroupPolicy = true,

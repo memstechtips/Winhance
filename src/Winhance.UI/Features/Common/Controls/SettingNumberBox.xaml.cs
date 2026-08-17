@@ -128,7 +128,7 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
 
     // --- Event routing ---------------------------------------------------------------------------
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender, e);
+    private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender);
 
     private void OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
     {
@@ -138,13 +138,13 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         switch (Mode)
         {
             case SettingInputMode.Ac:
-                vm.OnACNumberBoxValueChanged(sender, e);
+                vm.OnACNumberBoxValueChanged(e);
                 break;
             case SettingInputMode.Dc:
-                vm.OnDCNumberBoxValueChanged(sender, e);
+                vm.OnDCNumberBoxValueChanged(e);
                 break;
             default:
-                vm.OnNumberBoxValueChanged(sender, e);
+                vm.OnNumberBoxValueChanged(e);
                 break;
         }
     }

@@ -87,7 +87,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _viewModelDeps.DispatcherService,
             _viewModelDeps.DialogService,
             _localizationService,
-            _viewModelDeps.EventBus,
             _userPreferencesService,
             _viewModelDeps.RegeditLauncher,
             _newBadgeService,

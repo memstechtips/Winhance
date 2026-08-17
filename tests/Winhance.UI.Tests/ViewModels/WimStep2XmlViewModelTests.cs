@@ -53,6 +53,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──

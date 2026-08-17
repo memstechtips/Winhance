@@ -62,6 +62,7 @@ public class WimStep4IsoViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──

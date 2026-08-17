@@ -251,6 +251,6 @@ public class IconManifestServiceTests
 
         await svc.LoadAsync();
 
-        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("2"))), Times.Once);
+        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains('2'))), Times.Once);
     }
 }

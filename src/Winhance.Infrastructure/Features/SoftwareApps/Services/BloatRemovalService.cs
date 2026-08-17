@@ -120,7 +120,7 @@ public class BloatRemovalService(
         {
             var (packages, capabilities, optionalFeatures, specialApps) = CategorizeApps(apps);
 
-            bool hasItems = packages.Any() || capabilities.Any() || optionalFeatures.Any() || specialApps.Any();
+            bool hasItems = packages.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0;
             if (!hasItems)
             {
                 logService.LogInformation("No items to process in BloatRemoval");
@@ -439,10 +439,10 @@ public class BloatRemovalService(
 
     private bool IsScriptEmpty(string content)
     {
-        return !ExtractArrayFromScript(content, "packages").Any()
-            && !ExtractArrayFromScript(content, "capabilities").Any()
-            && !ExtractArrayFromScript(content, "optionalFeatures").Any()
-            && !ExtractArrayFromScript(content, "specialApps").Any();
+        return ExtractArrayFromScript(content, "packages").Count == 0
+            && ExtractArrayFromScript(content, "capabilities").Count == 0
+            && ExtractArrayFromScript(content, "optionalFeatures").Count == 0
+            && ExtractArrayFromScript(content, "specialApps").Count == 0;
     }
 
     private string RemoveItemsFromScriptContent(string content, List<string> itemsToRemove)

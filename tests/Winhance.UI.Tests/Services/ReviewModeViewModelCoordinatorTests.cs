@@ -43,8 +43,6 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IApplicationModeService> _applicationModeService = new();
 
-    private readonly Mock<OptimizeViewModel> _optimizeVm = new();
-    private readonly Mock<CustomizeViewModel> _customizeVm = new();
     private readonly Mock<ISettingReviewDiffApplier> _reviewDiffApplier = new();
 
     public ReviewModeViewModelCoordinatorTests()

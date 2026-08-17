@@ -77,7 +77,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
 
             // Add WS_EX_LAYERED (for opacity) and WS_EX_TOOLWINDOW (hides from taskbar)
             var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+            _ = SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
 
             // Set window opacity to ~90% (0xE6 = 230) — matches WPF's #E6000000
             SetLayeredWindowAttributes(hwnd, 0, 230, LWA_ALPHA);

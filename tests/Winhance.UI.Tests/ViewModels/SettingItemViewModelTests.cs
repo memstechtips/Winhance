@@ -14,14 +14,13 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-public class SettingItemViewModelTests : IDisposable
+public class SettingItemViewModelTests
 {
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
 
@@ -75,14 +74,8 @@ public class SettingItemViewModelTests : IDisposable
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockEventBus.Object,
             _mockUserPreferencesService.Object,
             _mockRegeditLauncher.Object);
-    }
-
-    public void Dispose()
-    {
-        // Intentionally empty; individual tests dispose their SUT as needed.
     }
 
     // ── Constructor / Initialization ──

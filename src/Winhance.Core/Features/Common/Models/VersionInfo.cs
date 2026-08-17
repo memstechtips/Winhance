@@ -12,7 +12,7 @@ public sealed record VersionInfo
     public static VersionInfo FromTag(string tag)
     {
         // Parse version tag in format v25.05.02 or v25.05.02-beta
-        if (string.IsNullOrEmpty(tag) || !tag.StartsWith("v"))
+        if (string.IsNullOrEmpty(tag) || !tag.StartsWith('v'))
             return new VersionInfo();
 
         string versionString = tag.Substring(1); // Remove 'v' prefix

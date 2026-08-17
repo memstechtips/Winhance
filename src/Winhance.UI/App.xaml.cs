@@ -119,14 +119,9 @@ public partial class App : Application
                 // Start file logging to C:\ProgramData\Winhance\Logs
                 try
                 {
-                    // Wire up interactive user service and system info provider for logging
-                    var interactiveUserService = Services.GetService<IInteractiveUserService>();
+                    // Wire up the system info provider for logging
                     if (_logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
                     {
-                        if (interactiveUserService != null)
-                        {
-                            concreteLogService.SetInteractiveUserService(interactiveUserService);
-                        }
                         var systemInfoProvider = Services.GetService<ISystemInfoProvider>();
                         if (systemInfoProvider != null)
                         {

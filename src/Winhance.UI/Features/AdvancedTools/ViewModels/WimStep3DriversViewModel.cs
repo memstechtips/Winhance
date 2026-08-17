@@ -242,6 +242,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
 }

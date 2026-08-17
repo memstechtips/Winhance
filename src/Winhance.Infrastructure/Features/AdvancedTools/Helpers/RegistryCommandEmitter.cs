@@ -298,7 +298,7 @@ internal class RegistryCommandEmitter
 
         Dictionary<string, object> valuesToApply;
 
-        if (configItem.CustomStateValues != null && configItem.CustomStateValues.Any())
+        if (configItem.CustomStateValues != null && configItem.CustomStateValues.Count > 0)
         {
             valuesToApply = configItem.CustomStateValues;
         }
@@ -354,7 +354,7 @@ internal class RegistryCommandEmitter
         foreach (var kvp in valuesToApply)
         {
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
-            if (kvp.Key == "PowerCfgValue" && powerCfgTargets.Any())
+            if (kvp.Key == "PowerCfgValue" && powerCfgTargets.Count > 0)
             {
                 foreach (var powerCfgTarget in powerCfgTargets)
                 {

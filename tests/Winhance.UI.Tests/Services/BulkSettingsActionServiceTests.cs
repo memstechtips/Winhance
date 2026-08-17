@@ -289,7 +289,6 @@ public class BulkSettingsActionServiceTests
             dispatcher.Object,
             dialogService.Object,
             localization.Object,
-            new Mock<IEventBus>().Object,
             new Mock<IUserPreferencesService>().Object,
             new Mock<IRegeditLauncher>().Object);
     }

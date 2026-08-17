@@ -17,15 +17,6 @@ public class ConfigurationServiceTests
     private readonly Mock<IConfigApplicationExecutionService> _mockConfigExecutionService = new();
     private readonly Mock<IConfigReviewOrchestrationService> _mockConfigReviewOrchestrationService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
-    private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-
-    public ConfigurationServiceTests()
-    {
-        _mockLocalizationService
-            .Setup(l => l.GetString(It.IsAny<string>()))
-            .Returns((string key) => key);
-    }
-
     private ConfigurationService CreateService()
     {
         return new ConfigurationService(
@@ -35,8 +26,7 @@ public class ConfigurationServiceTests
             _mockConfigLoadService.Object,
             _mockConfigExecutionService.Object,
             _mockConfigReviewOrchestrationService.Object,
-            _mockDialogService.Object,
-            _mockLocalizationService.Object);
+            _mockDialogService.Object);
     }
 
     // -------------------------------------------------------

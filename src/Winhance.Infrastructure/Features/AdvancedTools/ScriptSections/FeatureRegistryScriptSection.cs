@@ -31,7 +31,6 @@ internal class FeatureRegistryScriptSection
         StringBuilder sb,
         FeatureGroupSection featureGroup,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
-        string groupName,
         bool isHkcu,
         string indent,
         WinBuild? build = null)
@@ -180,7 +179,7 @@ internal class FeatureRegistryScriptSection
                     }
                 }
 
-                if (scheduledTasksToApply.Any())
+                if (scheduledTasksToApply.Count > 0)
                 {
                     AppendScheduledTaskBatch(sb, scheduledTasksToApply, indent);
                 }
@@ -235,7 +234,7 @@ internal class FeatureRegistryScriptSection
         }
         else
         {
-            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Any() == true;
+            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Count > 0;
             var targetLabel = useEnabled ? "Enabled" : "Disabled";
             activeState = catalogSetting.States.FirstOrDefault(s => s.Label == targetLabel);
         }
@@ -313,7 +312,7 @@ internal class FeatureRegistryScriptSection
     {
         // Custom state (user-entered values) always counts as "enabled" - the user picking Custom DNS is
         // expressing intent to configure, not to reset.
-        bool useEnabled = configItem.CustomStateValues?.Any() == true || configItem.IsSelected == true;
+        bool useEnabled = configItem.CustomStateValues?.Count > 0 || configItem.IsSelected == true;
 
         // The deliberate no-intent behavior documented above: a no-intent shape emits nothing.
         if (!useEnabled)

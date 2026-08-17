@@ -53,7 +53,7 @@ public class AppInstallationService(
     {
         try
         {
-            if (apps == null || !apps.Any())
+            if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
             if (shouldRemoveFromBloatScript)
@@ -129,7 +129,7 @@ public class AppInstallationService(
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
+            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Length > 0) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||
                 app?.ExternalApp?.RequiresDirectDownload == true ||
                 app?.ExternalApp?.DownloadUrl != null)

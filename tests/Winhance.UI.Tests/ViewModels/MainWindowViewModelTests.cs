@@ -72,8 +72,7 @@ public class MainWindowViewModelTests : IDisposable
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockLogService.Object);
+            _mockLocalizationService.Object);
 
         _updateCheckViewModel = new UpdateCheckViewModel(
             _mockVersionService.Object,
@@ -124,6 +123,7 @@ public class MainWindowViewModelTests : IDisposable
         _updateCheckViewModel.Dispose();
         _reviewModeBarViewModel.Dispose();
         _builderModeBarViewModel.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──

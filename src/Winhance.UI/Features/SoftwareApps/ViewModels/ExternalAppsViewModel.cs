@@ -434,7 +434,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     public async Task InstallApps(bool skipConfirmation = false)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return;
+        if (selectedItems.Count == 0) return;
 
         if (!skipConfirmation)
         {
@@ -452,7 +452,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     public async Task InstallAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
                 "Please select at least one app for installation.",
@@ -527,7 +527,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     public async Task UninstallAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
                 "Please select at least one app for uninstallation.",

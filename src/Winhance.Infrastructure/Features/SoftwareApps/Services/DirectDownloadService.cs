@@ -294,9 +294,9 @@ public class DirectDownloadService : IDirectDownloadService
             int bytesRead;
             int lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -469,7 +469,7 @@ public class DirectDownloadService : IDirectDownloadService
         }
         finally
         {
-            MsiApi.MsiCloseHandle(hProduct);
+            _ = MsiApi.MsiCloseHandle(hProduct);
         }
     }
 
@@ -522,7 +522,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            await _processExecutor.ShellExecuteAsync(exePath).ConfigureAwait(false);
+            await _processExecutor.ShellExecuteAsync(exePath, ct: cancellationToken).ConfigureAwait(false);
 
             return true;
         }

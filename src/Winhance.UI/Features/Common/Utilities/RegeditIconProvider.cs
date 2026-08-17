@@ -87,7 +87,7 @@ public static class RegeditIconProvider
                         return;
 
                     var bmp = new BITMAP();
-                    GetObject(iconInfo.hbmColor, Marshal.SizeOf<BITMAP>(), ref bmp);
+                    _ = GetObject(iconInfo.hbmColor, Marshal.SizeOf<BITMAP>(), ref bmp);
 
                     if (bmp.bmWidth <= 0 || bmp.bmHeight <= 0)
                         return;

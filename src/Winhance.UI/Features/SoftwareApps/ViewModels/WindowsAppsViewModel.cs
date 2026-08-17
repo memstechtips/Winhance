@@ -238,7 +238,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             Items.Clear();
 
             var allItems = await _windowsAppsService.GetAppsAsync();
-            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
+            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Length > 0));
             var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
@@ -427,7 +427,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task InstallAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
                 "Please select at least one item for installation.",
@@ -499,7 +499,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return (true, true);
+        if (selectedItems.Count == 0) return (true, true);
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
@@ -516,7 +516,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task RemoveApps(bool skipConfirmation = false, bool saveRemovalScripts = true)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return;
+        if (selectedItems.Count == 0) return;
 
         if (!skipConfirmation)
         {
@@ -537,7 +537,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task RemoveAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
                 "Please select at least one item for removal.",

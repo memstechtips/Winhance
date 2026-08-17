@@ -201,17 +201,21 @@ public class WindowsAppsViewModelTests
     [Fact]
     public async Task LoadAppsAndCheckInstallationStatusAsync_SetsIsLoadingDuringOperation()
     {
+        var sut = CreateSut();
         bool wasLoadingDuringGet = false;
 
         _windowsAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+            .ReturnsAsync(() =>
+            {
+                wasLoadingDuringGet = sut.IsLoading;
+                return Enumerable.Empty<ItemDefinition>();
+            });
         _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
             .ReturnsAsync(new Dictionary<string, bool>());
 
-        var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        // After completion, IsLoading should be false
+        wasLoadingDuringGet.Should().BeTrue();
         sut.IsLoading.Should().BeFalse();
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -31,7 +32,8 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         private readonly List<object> _objects = new();
 
-        public object Keep(object comObject)
+        [return: NotNullIfNotNull(nameof(comObject))]
+        public object? Keep(object? comObject)
         {
             if (comObject is not null)
                 _objects.Add(comObject);

@@ -25,7 +25,6 @@ public class FeatureOutcomeRowBuilderTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
 
     public FeatureOutcomeRowBuilderTests()
     {
@@ -193,7 +192,6 @@ public class FeatureOutcomeRowBuilderTests
             _logService.Object,
             _dispatcherService.Object,
             _dialogService.Object,
-            _localizationService.Object,
-            _eventBus.Object);
+            _localizationService.Object);
     }
 }

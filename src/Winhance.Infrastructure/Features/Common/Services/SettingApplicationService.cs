@@ -584,10 +584,10 @@ public class SettingApplicationService(
 
                     // Separate AC/DC option indices (UI quick-set path). JSON sources may box these
                     // as long/double, so coerce defensively.
-                    if (dict.ContainsKey("ACValue") && dict.ContainsKey("DCValue"))
+                    if (dict.TryGetValue("ACValue", out var acRaw) && dict.TryGetValue("DCValue", out var dcRaw))
                     {
-                        var acInt = TryToInt(dict["ACValue"]);
-                        var dcInt = TryToInt(dict["DCValue"]);
+                        var acInt = TryToInt(acRaw);
+                        var dcInt = TryToInt(dcRaw);
                         if (acInt.HasValue && dcInt.HasValue)
                             return ComposeAcDc(GetOptionLabel(setting, acInt.Value), GetOptionLabel(setting, dcInt.Value), hasBattery);
                     }

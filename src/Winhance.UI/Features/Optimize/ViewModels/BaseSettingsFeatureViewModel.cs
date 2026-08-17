@@ -694,13 +694,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             var groupName = string.IsNullOrEmpty(setting.GroupName) ? otherGroupName : setting.GroupName;
 
-            if (!groupedDict.ContainsKey(groupName))
+            if (!groupedDict.TryGetValue(groupName, out var groupSettings))
             {
                 groupOrder.Add(groupName);
-                groupedDict[groupName] = new List<SettingItemViewModel>();
+                groupSettings = new List<SettingItemViewModel>();
+                groupedDict[groupName] = groupSettings;
             }
 
-            groupedDict[groupName].Add(setting);
+            groupSettings.Add(setting);
         }
 
         foreach (var groupName in groupOrder)

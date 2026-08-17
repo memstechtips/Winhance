@@ -189,5 +189,6 @@ public class WindowsRegistryServiceTests : IDisposable
         {
             // Best effort cleanup
         }
+        GC.SuppressFinalize(this);
     }
 }

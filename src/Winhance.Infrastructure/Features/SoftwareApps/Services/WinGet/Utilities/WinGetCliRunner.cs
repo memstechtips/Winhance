@@ -284,7 +284,7 @@ public static class WinGetCliRunner
                     using var conPty = new ConPtyProcess();
                     var ptyResult = await conPty.RunAsync(
                         exePath, arguments,
-                        wrapOutput, wrapError, wrapProgress,
+                        wrapOutput, wrapProgress,
                         linkedCts.Token).ConfigureAwait(false);
                     return ptyResult with { Termination = GetTerminationReason(ptyResult.ExitCode) };
                 }

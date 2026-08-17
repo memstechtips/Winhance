@@ -57,14 +57,14 @@ internal static class DismSessionManager
                     finally
                     {
                         log?.Invoke("[DismSession] Calling DismCloseSession...");
-                        DismApi.DismCloseSession(session);
+                        _ = DismApi.DismCloseSession(session);
                         log?.Invoke("[DismSession] DismCloseSession done");
                     }
                 }
                 finally
                 {
                     log?.Invoke("[DismSession] Calling DismShutdown...");
-                    DismApi.DismShutdown();
+                    _ = DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
             }, ct);
@@ -135,14 +135,14 @@ internal static class DismSessionManager
                     finally
                     {
                         log?.Invoke("[DismSession] Calling DismCloseSession...");
-                        DismApi.DismCloseSession(session);
+                        _ = DismApi.DismCloseSession(session);
                         log?.Invoke("[DismSession] DismCloseSession done");
                     }
                 }
                 finally
                 {
                     log?.Invoke("[DismSession] Calling DismShutdown...");
-                    DismApi.DismShutdown();
+                    _ = DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
             }, ct);

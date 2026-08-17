@@ -104,7 +104,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
         {
-            return ResolvePowerPlanValue(setting, item);
+            return ResolvePowerPlanValue(item);
         }
 
         if (item.CustomStateValues != null && item.CustomStateValues.Count > 0)
@@ -113,11 +113,11 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         }
 
         if (item.PowerSettings != null &&
-            item.PowerSettings.ContainsKey("ACIndex") &&
-            item.PowerSettings.ContainsKey("DCIndex"))
+            item.PowerSettings.TryGetValue("ACIndex", out var acRaw) &&
+            item.PowerSettings.TryGetValue("DCIndex", out var dcRaw))
         {
-            var acIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["ACIndex"]));
-            var dcIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["DCIndex"]));
+            var acIndex = Convert.ToInt32(UnwrapJsonElement(acRaw));
+            var dcIndex = Convert.ToInt32(UnwrapJsonElement(dcRaw));
             return (acIndex, dcIndex);
         }
 
@@ -133,7 +133,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return 0;
     }
 
-    private object ResolvePowerPlanValue(Setting setting, ConfigurationItem item)
+    private object ResolvePowerPlanValue(ConfigurationItem item)
     {
         if (!string.IsNullOrEmpty(item.PowerPlanGuid))
         {
@@ -248,7 +248,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             }
         }
 
-        while (remainingItems.Any())
+        while (remainingItems.Count > 0)
         {
             var currentWave = new List<(ConfigurationItem, Setting)>();
 
@@ -266,7 +266,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 }
             }
 
-            if (!currentWave.Any() && remainingItems.Any())
+            if (currentWave.Count == 0 && remainingItems.Count > 0)
             {
                 var circularSettingIds = string.Join(", ", remainingItems.Select(x => x.setting.Id));
                 _logService.Log(LogLevel.Warning, $"Circular dependency detected in settings: {circularSettingIds}. Processing anyway.");
@@ -274,7 +274,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 remainingItems.Clear();
             }
 
-            if (currentWave.Any())
+            if (currentWave.Count > 0)
             {
                 waves.Add(currentWave);
             }

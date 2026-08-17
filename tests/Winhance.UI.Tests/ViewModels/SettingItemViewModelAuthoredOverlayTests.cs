@@ -33,7 +33,6 @@ public class SettingItemViewModelAuthoredOverlayTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
     private readonly Mock<IApplicationModeService> _modeService = new();
 
     /// <summary>The authoring session's edits, behaving like the real dictionary-backed store.</summary>
@@ -63,7 +62,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             _dispatcherService.Object,
             _dialogService.Object,
             _localizationService.Object,
-            _eventBus.Object,
             null,
             null,
             null,

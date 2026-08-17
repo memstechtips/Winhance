@@ -15,8 +15,6 @@ public class ApplicationCloseServiceTests
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
 
-    private bool _shutdownCalled;
-
     private ApplicationCloseService CreateService()
     {
         var svc = new ApplicationCloseService(
@@ -25,7 +23,7 @@ public class ApplicationCloseServiceTests
             _mockUserPreferencesService.Object,
             _mockDialogService.Object);
         // Tests must not actually terminate the test host — swap in a no-op shutdown.
-        svc.ShutdownAction = () => _shutdownCalled = true;
+        svc.ShutdownAction = () => { };
         return svc;
     }
 
@@ -263,7 +261,7 @@ public class ApplicationCloseServiceTests
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(true);
-        _mockTaskProgressService.Setup(t => t.CurrentStatusText).Returns((string?)null);
+        _mockTaskProgressService.Setup(t => t.CurrentStatusText).Returns((string)null!);
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(

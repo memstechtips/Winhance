@@ -62,7 +62,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         {
             var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
 
-            if (incompatibleSettings.Any())
+            if (incompatibleSettings.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
@@ -95,7 +95,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 }
             }
 
-            if (!selectedSections.Any())
+            if (selectedSections.Count == 0)
             {
                 _dialogService.ShowMessage(
                     _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
@@ -193,7 +193,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             }
 
             // Show success message and wait for user dismissal
-            await ShowImportSuccessMessage(selectedSections);
+            await ShowImportSuccessMessage();
 
             // Process Windows Apps installation AFTER overlay is hidden (shows confirmation dialog)
             if (hasWindowsApps && importOptions.ProcessWindowsAppsInstallation)
@@ -419,7 +419,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                     bool featureSuccess = true;
 
                     // Execute action commands first if any
-                    if (actionItems.Any())
+                    if (actionItems.Count > 0)
                     {
                         var actionSection = new ConfigSection
                         {
@@ -494,7 +494,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
             featureTasks.Add(Task.Run(async () =>
             {
-                if (capturedActionItems.Any())
+                if (capturedActionItems.Count > 0)
                 {
                     var actionSection = new ConfigSection
                     {
@@ -568,7 +568,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
-    private async Task ShowImportSuccessMessage(List<string> selectedSections)
+    private async Task ShowImportSuccessMessage()
     {
         await _dialogService.ShowInformationAsync(
             _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),

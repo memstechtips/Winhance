@@ -36,7 +36,7 @@ public class AppStatusDiscoveryService(
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var definitionList = definitions.ToList();
 
-        if (!definitionList.Any()) return result;
+        if (definitionList.Count == 0) return result;
 
         try
         {
@@ -46,7 +46,7 @@ public class AppStatusDiscoveryService(
 
             int capCount = 0, featCount = 0, appxCount = 0, wingetCount = 0;
 
-            if (capabilities.Any())
+            if (capabilities.Count > 0)
             {
                 var capabilityNames = capabilities.Select(c => c.CapabilityName!).ToList();
                 var capabilityResults = await CheckCapabilitiesAsync(capabilityNames).ConfigureAwait(false);
@@ -64,7 +64,7 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            if (features.Any())
+            if (features.Count > 0)
             {
                 var featureNames = features.Select(f => f.OptionalFeatureName!).ToList();
                 var featureResults = await CheckFeaturesAsync(featureNames).ConfigureAwait(false);
@@ -82,7 +82,7 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            if (apps.Any())
+            if (apps.Count > 0)
             {
                 var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
                 foreach (var app in apps)
@@ -98,10 +98,10 @@ public class AppStatusDiscoveryService(
                 // WinGet fallback for apps not found by PackageManager
                 var undetectedApps = apps
                     .Where(a => !result.ContainsKey(a.Id) || !result[a.Id])
-                    .Where(a => (a.WinGetPackageId != null && a.WinGetPackageId.Any()) || !string.IsNullOrEmpty(a.MsStoreId))
+                    .Where(a => (a.WinGetPackageId != null && a.WinGetPackageId.Length > 0) || !string.IsNullOrEmpty(a.MsStoreId))
                     .ToList();
 
-                if (undetectedApps.Any())
+                if (undetectedApps.Count > 0)
                 {
                     var winGetIds = await GetOrFetchWinGetPackageIdsAsync().ConfigureAwait(false);
                     if (winGetIds != null)
@@ -173,7 +173,7 @@ public class AppStatusDiscoveryService(
                 }
                 finally
                 {
-                    DismApi.DismDelete(capPtr);
+                    _ = DismApi.DismDelete(capPtr);
                 }
             }, cts.Token, msg => logService.LogDebug(msg)).ConfigureAwait(false);
 
@@ -230,7 +230,7 @@ public class AppStatusDiscoveryService(
                 }
                 finally
                 {
-                    DismApi.DismDelete(featPtr);
+                    _ = DismApi.DismDelete(featPtr);
                 }
             }, cts.Token, msg => logService.LogDebug(msg)).ConfigureAwait(false);
 
@@ -315,7 +315,7 @@ public class AppStatusDiscoveryService(
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var definitionList = definitions.ToList();
 
-        if (!definitionList.Any())
+        if (definitionList.Count == 0)
             return result;
 
         try
@@ -327,10 +327,10 @@ public class AppStatusDiscoveryService(
 
             // Phase 1: WinGet detection for apps with WinGetPackageId or MsStoreId
             var appsWithWinGetId = definitionList
-                .Where(d => (d.WinGetPackageId != null && d.WinGetPackageId.Any()) || !string.IsNullOrEmpty(d.MsStoreId))
+                .Where(d => (d.WinGetPackageId != null && d.WinGetPackageId.Length > 0) || !string.IsNullOrEmpty(d.MsStoreId))
                 .ToList();
 
-            if (appsWithWinGetId.Any())
+            if (appsWithWinGetId.Count > 0)
             {
                 var winGetIds = await GetOrFetchWinGetPackageIdsAsync().ConfigureAwait(false);
 
@@ -401,7 +401,7 @@ public class AppStatusDiscoveryService(
                     && (!result.ContainsKey(d.Id) || !result[d.Id]))
                 .ToList();
 
-            if (appsForChocoCheck.Any())
+            if (appsForChocoCheck.Count > 0)
             {
                 try
                 {
@@ -439,7 +439,7 @@ public class AppStatusDiscoveryService(
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
                 .ToList();
 
-            if (appsWithAppxName.Any())
+            if (appsWithAppxName.Count > 0)
             {
                 var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
                 foreach (var def in appsWithAppxName)
@@ -459,7 +459,7 @@ public class AppStatusDiscoveryService(
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
                 .ToList();
 
-            if (appsForRegistryCheck.Any())
+            if (appsForRegistryCheck.Count > 0)
             {
                 var regInfo = sharedRegInfo ?? await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
 
@@ -530,7 +530,7 @@ public class AppStatusDiscoveryService(
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
                 .ToList();
 
-            if (appsWithDetectionPaths.Any())
+            if (appsWithDetectionPaths.Count > 0)
             {
                 foreach (var def in appsWithDetectionPaths)
                 {

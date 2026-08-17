@@ -28,7 +28,7 @@ public static class TaskbarCustomizationsCatalog
             Apply = new() { RequiresConfirmation = true, Restart = new RestartProcess("Explorer") },
             Effects = new Effect[]
             {
-                new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband", "Favorites", RegistryValueKind.Binary, new byte[0]),
+                new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband", "Favorites", RegistryValueKind.Binary, Array.Empty<byte>()),
             },
         },
         new()

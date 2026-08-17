@@ -18,8 +18,6 @@ public class UserPreferencesServiceTests
 
     // Stable paths used across tests
     private const string LocalAppDataPath = @"C:\Users\TestUser\AppData\Local";
-    private const string ConfigDir = @"C:\Users\TestUser\AppData\Local\Winhance\Config";
-    private const string PrefsFilePath = @"C:\Users\TestUser\AppData\Local\Winhance\Config\UserPreferences.json";
 
     public UserPreferencesServiceTests()
     {

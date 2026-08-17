@@ -314,6 +314,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = null;
+        GC.SuppressFinalize(this);
     }
 
 }

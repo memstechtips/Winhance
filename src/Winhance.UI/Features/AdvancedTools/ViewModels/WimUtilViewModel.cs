@@ -214,15 +214,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4.WorkingDirectory = initialWorkingDir;
     }
 
-    /// <summary>
-    /// Kept for backward compatibility with WimUtilPage.xaml.cs.
-    /// The IFilePickerService now handles window references internally via IMainWindowProvider.
-    /// </summary>
-    public void SetMainWindow(Microsoft.UI.Xaml.Window window)
-    {
-        // No-op: file picker now uses IMainWindowProvider internally.
-    }
-
     public async Task OnNavigatedToAsync()
     {
         Step4.IsOscdimgAvailable = await _oscdimgToolManager.IsOscdimgAvailableAsync();
@@ -530,5 +521,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         (Step3 as IDisposable)?.Dispose();
         (Step4 as IDisposable)?.Dispose();
         (ImageFormat as IDisposable)?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

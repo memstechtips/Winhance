@@ -27,5 +27,6 @@ public class TempDirectoryFixture : IDisposable
                 // Best effort cleanup — temp directory may be locked
             }
         }
+        GC.SuppressFinalize(this);
     }
 }

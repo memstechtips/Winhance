@@ -15,14 +15,13 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-public class SettingsGroupTests : IDisposable
+public class SettingsGroupTests
 {
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
 
     public SettingsGroupTests()
     {
@@ -39,11 +38,6 @@ public class SettingsGroupTests : IDisposable
             .Returns((string key) => key);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _mockLocalizationService.MirrorTryGetString();
-    }
-
-    public void Dispose()
-    {
-        // Intentionally empty.
     }
 
     private SettingItemViewModel CreateSettingItem(
@@ -73,8 +67,7 @@ public class SettingsGroupTests : IDisposable
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockEventBus.Object);
+            _mockLocalizationService.Object);
 
         item.IsVisible = isVisible;
         return item;

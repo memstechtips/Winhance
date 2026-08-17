@@ -210,7 +210,7 @@ public sealed partial class PowerPlanComboBox : UserControl
             var grid = FindChild<Grid>(container, null);
             if (grid == null) continue;
 
-            SetupItemVisualState(grid, powerPlanOption, option.Tag);
+            SetupItemVisualState(grid, powerPlanOption);
 
             // Keyboard accessibility: Delete key on the focused item triggers DeleteRequested.
             // The trash button itself can't be tab-reached inside an open ComboBox (Tab dismisses
@@ -241,7 +241,7 @@ public sealed partial class PowerPlanComboBox : UserControl
     /// <summary>
     /// Sets up the visual state for a single item.
     /// </summary>
-    private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption, object? tag)
+    private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption)
     {
         // Find child elements
         var statusIndicator = FindChild<Ellipse>(grid, "StatusIndicator");

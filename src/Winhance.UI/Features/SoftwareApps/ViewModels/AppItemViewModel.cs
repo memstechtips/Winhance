@@ -43,6 +43,7 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
             _themeService.ThemeChanged -= OnThemeChanged;
             _disposed = true;
         }
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

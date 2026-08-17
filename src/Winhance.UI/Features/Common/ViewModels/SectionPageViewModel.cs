@@ -124,6 +124,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         // observes; leaving them attached would keep this page's cards recomputing forever.
         foreach (var item in OverviewItems)
             item.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -261,7 +262,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
             return;
 
-        var searchLower = searchText.ToLowerInvariant();
         var currentViewModel = GetSectionViewModel(CurrentSectionKey);
 
         foreach (var section in SectionDefinitions)
@@ -272,8 +272,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
 
             foreach (var setting in viewModel.Settings)
             {
-                if (setting.Name?.ToLowerInvariant().Contains(searchLower) == true ||
-                    setting.Description?.ToLowerInvariant().Contains(searchLower) == true)
+                if (setting.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+                    setting.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
                 {
                     SearchSuggestions.Add(new SearchSuggestionItem(
                         setting.Name ?? "Unknown",

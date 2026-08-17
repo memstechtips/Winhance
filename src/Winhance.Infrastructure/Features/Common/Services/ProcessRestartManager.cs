@@ -338,7 +338,7 @@ public class ProcessRestartManager(
                 : $"[ProcessRestartManager] Restarting service '{serviceName}' (coalesced)");
         try
         {
-            if (serviceName.Contains("*"))
+            if (serviceName.Contains('*'))
             {
                 var pattern = serviceName.Replace("*", "");
                 var allServices = ServiceController.GetServices();

@@ -358,6 +358,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = null;
+        GC.SuppressFinalize(this);
     }
 
     internal static string FormatFileSize(long bytes) => $"{bytes / (1024.0 * 1024 * 1024):F2} GB";

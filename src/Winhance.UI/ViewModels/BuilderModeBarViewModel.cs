@@ -76,6 +76,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _disposed = true;
         _applicationModeService.ModeChanged -= OnModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnModeChanged(object? sender, EventArgs e)

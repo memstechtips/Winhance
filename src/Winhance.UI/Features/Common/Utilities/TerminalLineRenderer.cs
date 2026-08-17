@@ -125,7 +125,7 @@ internal static class TerminalLineRenderer
                 }
             }
             // Ensure trailing newline on the last Run
-            if (appendNewline && runs.Count > 0 && !runs[^1].Text.EndsWith("\x0a"))
+            if (appendNewline && runs.Count > 0 && !runs[^1].Text.EndsWith('\x0a'))
                 runs[^1].Text += "\x0a";
             return runs.ToArray();
         }

@@ -68,7 +68,7 @@ public class TaskProgressServiceTests
         var act = () => _sut.StartTask(taskName!);
 
         act.Should().Throw<ArgumentException>()
-            .WithParameterName("taskName");
+            .WithParameterName(nameof(taskName));
     }
 
     [Fact]

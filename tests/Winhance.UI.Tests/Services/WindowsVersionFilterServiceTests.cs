@@ -463,7 +463,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
-            .Returns((string?)null);
+            .Returns((string)null!);
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))

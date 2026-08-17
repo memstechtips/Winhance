@@ -67,7 +67,7 @@ public class WindowsAppsService(
     {
         try
         {
-            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()) || item.AppxPackageName?.Length > 0)
+            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0) || item.AppxPackageName?.Length > 0)
             {
                 // Determine package ID and source
                 string? packageId = null;
@@ -78,7 +78,7 @@ public class WindowsAppsService(
                     packageId = item.MsStoreId;
                     source = "msstore";
                 }
-                else if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+                else if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
                 {
                     packageId = item.WinGetPackageId.FirstOrDefault();
                     source = "winget";
@@ -152,7 +152,7 @@ public class WindowsAppsService(
 
                 // If WinGet failed and we have a WinGetPackageId, try fallback to direct download
                 // This bypasses market restrictions
-                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
+                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 

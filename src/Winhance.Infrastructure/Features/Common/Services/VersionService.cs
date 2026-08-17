@@ -22,7 +22,6 @@ public class VersionService : IVersionService
     private const string LocalInstallerEnvVar = "WINHANCE_LOCAL_INSTALLER";
 
     private readonly ILogService _logService;
-    private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
     private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
@@ -30,10 +29,9 @@ public class VersionService : IVersionService
     private readonly string _userAgent = "Winhance-Update-Checker";
     private string? _downloadedInstallerPath;
 
-    public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService, HttpClient httpClient)
+    public VersionService(ILogService logService, IFileSystemService fileSystemService, HttpClient httpClient)
     {
         _logService = logService;
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
         _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
@@ -64,7 +62,7 @@ public class VersionService : IVersionService
             }
 
             // If the version doesn't start with 'v', add it
-            if (!version.StartsWith("v"))
+            if (!version.StartsWith('v'))
             {
                 version = $"v{version}";
             }

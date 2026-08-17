@@ -41,7 +41,7 @@ public class TestableSettingsFeatureViewModel : BaseSettingsFeatureViewModel
     }
 }
 
-public class BaseSettingsFeatureViewModelTests : IDisposable
+public class BaseSettingsFeatureViewModelTests
 {
     private readonly Mock<ISettingsLoadingService> _mockSettingsLoadingService;
     private readonly Mock<ILogService> _mockLogService;
@@ -85,11 +85,6 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         _mockEventBus
             .Setup(e => e.Subscribe(It.IsAny<Action<ReviewModeExitedEvent>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
-    }
-
-    public void Dispose()
-    {
-        // Intentionally empty; individual tests dispose their SUT as needed.
     }
 
     private TestableSettingsFeatureViewModel CreateViewModel()
@@ -162,8 +157,7 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
             _mockLogService.Object,
             _mockDispatcherService.Object,
             mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockEventBus.Object);
+            _mockLocalizationService.Object);
 
         // Set post-construction values for non-Toggle types
         if (inputType == InputType.NumericRange)

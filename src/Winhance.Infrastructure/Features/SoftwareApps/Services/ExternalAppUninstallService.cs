@@ -65,7 +65,7 @@ public class ExternalAppUninstallService(
         }
 
         // Default: prefer WinGet if available, then Registry
-        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
+        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
             return UninstallMethod.WinGet;
 
         if (!string.IsNullOrEmpty(item.ChocoPackageId))
@@ -89,7 +89,7 @@ public class ExternalAppUninstallService(
             string? packageId;
             string? source;
 
-            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
             {
                 packageId = item.WinGetPackageId[0];
                 source = "winget";
@@ -521,9 +521,9 @@ public class ExternalAppUninstallService(
 
         uninstallString = uninstallString.Trim();
 
-        if (uninstallString.StartsWith("\""))
+        if (uninstallString.StartsWith('"'))
         {
-            var endQuoteIndex = uninstallString.IndexOf("\"", 1);
+            var endQuoteIndex = uninstallString.IndexOf('"', 1);
             if (endQuoteIndex > 0)
             {
                 var fileName = uninstallString.Substring(1, endQuoteIndex - 1);

@@ -79,7 +79,7 @@ internal class AppRemovalScriptSection
         sb.AppendLine();
 
         // Embed BloatRemoval.ps1 if there are regular apps to remove
-        if (regularApps.Any() || capabilities.Any() || optionalFeatures.Any() || specialApps.Any())
+        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
             AppendEmbeddedScript(sb, "BloatRemoval", "bloatRemoval",
                 GenerateBloatRemovalScriptContent(regularApps, capabilities, optionalFeatures, specialApps), indent);
@@ -102,7 +102,7 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}# Execute removal scripts and register scheduled tasks");
         sb.AppendLine($"{indent}$scriptsToExecute = @()");
 
-        if (regularApps.Any() || capabilities.Any() || optionalFeatures.Any() || specialApps.Any())
+        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
             sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\BloatRemoval.ps1\"; Name = \"BloatRemoval\"; TriggerType = \"Logon\"}}");
         }

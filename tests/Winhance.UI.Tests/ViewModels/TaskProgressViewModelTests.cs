@@ -14,7 +14,6 @@ public class TaskProgressViewModelTests : IDisposable
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<ILogService> _mockLogService = new();
 
     private readonly TaskProgressViewModel _sut;
 
@@ -37,13 +36,13 @@ public class TaskProgressViewModelTests : IDisposable
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockLogService.Object);
+            _mockLocalizationService.Object);
     }
 
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──
@@ -444,8 +443,7 @@ public class TaskProgressViewModelTests : IDisposable
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockLogService.Object);
+            _mockLocalizationService.Object);
 
         sut.Dispose();
 
@@ -467,8 +465,7 @@ public class TaskProgressViewModelTests : IDisposable
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockLogService.Object);
+            _mockLocalizationService.Object);
 
         var act = () =>
         {

@@ -18,7 +18,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly ILogService _logService;
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
@@ -62,14 +61,12 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
-        ILocalizationService localizationService,
-        ILogService logService)
+        ILocalizationService localizationService)
     {
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _logService = logService;
 
         AppName = string.Empty;
         LastTerminalLine = string.Empty;
@@ -88,6 +85,7 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         _localizationService.LanguageChanged -= OnLanguageChanged;
         _hideDelayCts?.Cancel();
         _hideDelayCts?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

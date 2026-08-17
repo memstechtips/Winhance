@@ -82,6 +82,7 @@ public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

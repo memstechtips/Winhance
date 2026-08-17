@@ -122,6 +122,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

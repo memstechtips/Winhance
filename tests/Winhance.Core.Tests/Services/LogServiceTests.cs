@@ -78,17 +78,6 @@ public class LogServiceTests
     }
 
     [Fact]
-    public void SetInteractiveUserService_DoesNotThrow()
-    {
-        using var service = new LogService();
-        var mockService = new Mock<IInteractiveUserService>();
-
-        var action = () => service.SetInteractiveUserService(mockService.Object);
-
-        action.Should().NotThrow();
-    }
-
-    [Fact]
     public void SetSystemInfoProvider_DoesNotThrow()
     {
         using var service = new LogService();

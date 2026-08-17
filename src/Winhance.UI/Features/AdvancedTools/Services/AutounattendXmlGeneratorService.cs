@@ -145,7 +145,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             var featureId = kvp.Key;
             var settings = kvp.Value.ToList();
 
-            if (!settings.Any())
+            if (settings.Count == 0)
                 continue;
 
             var isOptimize = FeatureDefinitions.OptimizeFeatures.Contains(featureId);

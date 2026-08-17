@@ -55,6 +55,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──

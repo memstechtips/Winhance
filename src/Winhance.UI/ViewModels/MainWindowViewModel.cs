@@ -149,6 +149,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ReviewModeBar.PropertyChanged -= OnReviewModeBarPropertyChanged;
         _applicationModeService.ModeChanged -= OnApplicationModeChanged;
         _windowsVersionFilterService.FilterStateChanged -= OnFilterStateChanged;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

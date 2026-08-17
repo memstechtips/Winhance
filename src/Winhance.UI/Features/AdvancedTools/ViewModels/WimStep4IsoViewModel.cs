@@ -285,6 +285,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
 }

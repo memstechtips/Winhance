@@ -518,7 +518,6 @@ public class SettingsLoadingServiceTests
         mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         mockLocalization.MirrorTryGetString();
-        var mockEventBus = new Mock<IEventBus>();
         var mockUserPrefs = new Mock<IUserPreferencesService>();
         var mockRegeditLauncher = new Mock<IRegeditLauncher>();
 
@@ -530,7 +529,6 @@ public class SettingsLoadingServiceTests
             mockDispatcher.Object,
             mockDialog.Object,
             mockLocalization.Object,
-            mockEventBus.Object,
             mockUserPrefs.Object,
             mockRegeditLauncher.Object);
     }

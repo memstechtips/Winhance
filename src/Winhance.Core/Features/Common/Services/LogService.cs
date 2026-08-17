@@ -11,7 +11,6 @@ public class LogService : ILogService, IDisposable
     private string _logPath;
     private StreamWriter? _logWriter;
     private readonly object _lockObject = new object();
-    private IInteractiveUserService? _interactiveUserService;
     private ISystemInfoProvider? _systemInfoProvider;
 
     public LogService()
@@ -22,11 +21,6 @@ public class LogService : ILogService, IDisposable
             "Logs",
             $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
         );
-    }
-
-    public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
-    {
-        _interactiveUserService = interactiveUserService;
     }
 
     public void SetSystemInfoProvider(ISystemInfoProvider systemInfoProvider)

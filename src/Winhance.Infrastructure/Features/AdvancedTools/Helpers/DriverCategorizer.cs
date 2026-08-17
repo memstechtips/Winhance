@@ -57,7 +57,7 @@ public class DriverCategorizer(ILogService logService, IFileSystemService fileSy
             {
                 var trimmedLine = line.Trim();
 
-                if (trimmedLine.StartsWith("Class", StringComparison.OrdinalIgnoreCase) && trimmedLine.Contains("="))
+                if (trimmedLine.StartsWith("Class", StringComparison.OrdinalIgnoreCase) && trimmedLine.Contains('='))
                 {
                     var parts = trimmedLine.Split('=');
                     if (parts.Length >= 2)

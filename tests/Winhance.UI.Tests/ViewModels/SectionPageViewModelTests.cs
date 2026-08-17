@@ -59,7 +59,7 @@ public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo
     }
 }
 
-public class SectionPageViewModelTests : IDisposable
+public class SectionPageViewModelTests
 {
     private readonly Mock<ILogService> _mockLogService;
     private readonly Mock<ILocalizationService> _mockLocalizationService;
@@ -92,28 +92,12 @@ public class SectionPageViewModelTests : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        // Intentionally empty.
-    }
-
     private TestableSectionPageViewModel CreateViewModel()
     {
         return new TestableSectionPageViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
             _mockFeatureVms.Select(m => m.Object),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object);
-    }
-
-    private TestableSectionPageViewModel CreateViewModel(
-        IEnumerable<ISettingsFeatureViewModel> featureViewModels)
-    {
-        return new TestableSectionPageViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            featureViewModels,
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
     }

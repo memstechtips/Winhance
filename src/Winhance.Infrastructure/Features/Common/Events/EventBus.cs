@@ -77,8 +77,7 @@ public class EventBus : IEventBus
     /// <inheritdoc />
     public ISubscriptionToken Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IDomainEvent
     {
-        if (handler == null)
-            throw new ArgumentNullException(nameof(handler));
+        ArgumentNullException.ThrowIfNull(handler);
 
         return AddSubscription(typeof(TEvent), handler, isAsync: false);
     }
@@ -86,8 +85,7 @@ public class EventBus : IEventBus
     /// <inheritdoc />
     public ISubscriptionToken SubscribeAsync<TEvent>(Func<TEvent, Task> handler) where TEvent : IDomainEvent
     {
-        if (handler == null)
-            throw new ArgumentNullException(nameof(handler));
+        ArgumentNullException.ThrowIfNull(handler);
 
         return AddSubscription(typeof(TEvent), handler, isAsync: true);
     }
@@ -95,8 +93,7 @@ public class EventBus : IEventBus
     /// <inheritdoc />
     public void Unsubscribe(ISubscriptionToken token)
     {
-        if (token == null)
-            throw new ArgumentNullException(nameof(token));
+        ArgumentNullException.ThrowIfNull(token);
 
         lock (_lock)
         {

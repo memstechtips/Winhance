@@ -132,7 +132,7 @@ public class WinGetPackageInstallerTests
         var act = () => _sut.InstallPackageAsync(packageId!);
 
         await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("packageId");
+            .WithParameterName(nameof(packageId));
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class WinGetPackageInstallerTests
         var act = () => _sut.UninstallPackageAsync(packageId!);
 
         await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("packageId");
+            .WithParameterName(nameof(packageId));
     }
 
     [Fact]

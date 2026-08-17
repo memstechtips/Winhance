@@ -69,6 +69,7 @@ public class NavBadgeServiceTests : IDisposable
         _sut.UnsubscribeFromSoftwareAppsChanges();
         _windowsAppsVm.Dispose();
         _externalAppsVm.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── ComputeNavBadges ──

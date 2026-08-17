@@ -106,7 +106,7 @@ internal class ConfigImportDialogBuilder
             Margin = new Thickness(0, 12, 0, 0)
         };
 
-        var (optionsPanel, importControls) = BuildImportOptionsGrid(skipReviewText);
+        var (optionsPanel, importControls) = BuildImportOptionsGrid();
         _winAppsInstallRadio = importControls.WinAppsInstall;
         _winAppsUninstallRadio = importControls.WinAppsUninstall;
         _winAppsSelectOnlyRadio = importControls.WinAppsSelectOnly;
@@ -329,7 +329,7 @@ internal class ConfigImportDialogBuilder
         CheckBox CleanTaskbar,
         CheckBox CleanStartMenu);
 
-    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid(string skipReviewText)
+    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid()
     {
         // Use a Grid so label and radio columns align across both rows
         var appsGrid = new Grid

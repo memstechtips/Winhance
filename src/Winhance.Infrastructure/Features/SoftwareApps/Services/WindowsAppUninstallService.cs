@@ -79,7 +79,7 @@ public class WindowsAppUninstallService(
 
         try
         {
-            if (apps == null || !apps.Any())
+            if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
             logService.LogInformation($"[UninstallApps] START: {apps.Count} total apps to process");
@@ -154,7 +154,7 @@ public class WindowsAppUninstallService(
     {
         try
         {
-            if (apps == null || !apps.Any())
+            if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
             logService.LogInformation($"[UninstallAppsParallel] START: {apps.Count} total apps to process");

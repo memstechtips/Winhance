@@ -35,6 +35,7 @@ public class UpdateCheckViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──

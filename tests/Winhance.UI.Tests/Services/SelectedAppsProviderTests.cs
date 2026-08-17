@@ -53,6 +53,7 @@ public class SelectedAppsProviderTests : IDisposable
     public void Dispose()
     {
         _windowsAppsVm?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private WindowsAppsViewModel CreateWindowsAppsVm()

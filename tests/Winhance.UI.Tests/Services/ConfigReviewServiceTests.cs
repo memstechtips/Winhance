@@ -52,6 +52,7 @@ public class ConfigReviewServiceTests : IDisposable
     public void Dispose()
     {
         _service?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // -------------------------------------------------------

@@ -354,8 +354,7 @@ public class AppIconResolver : IAppIconResolver
 
     private static string ShortSha1Hex(string input)
     {
-        using var sha1 = System.Security.Cryptography.SHA1.Create();
-        var bytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        var bytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes, 0, 4).ToLowerInvariant();
     }
 

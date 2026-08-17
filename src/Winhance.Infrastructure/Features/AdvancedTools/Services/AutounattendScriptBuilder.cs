@@ -75,13 +75,13 @@ public class AutounattendScriptBuilder
         // 2c. HKLM registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2d. HKLM registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
         // 2e. Clean Start Menu Layout (always included)
@@ -104,13 +104,13 @@ public class AutounattendScriptBuilder
         // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
         // 3c. User-specific custom script placeholder

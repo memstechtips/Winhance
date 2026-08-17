@@ -74,6 +74,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _disposed = true;
         _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
         _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
@@ -141,7 +142,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             // Filter incompatible settings
             var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
-            if (incompatibleSettings.Any())
+            if (incompatibleSettings.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
@@ -267,7 +268,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             }
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
-            if (!selectedSections.Any())
+            if (selectedSections.Count == 0)
             {
                 _dialogService.ShowMessage(
                     _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
@@ -409,7 +410,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 .Where(item => approvedSettingIds.Contains(item.Id))
                 .ToList();
 
-            if (approvedItems.Any())
+            if (approvedItems.Count > 0)
             {
                 filteredFeatures[feature.Key] = new ConfigSection
                 {

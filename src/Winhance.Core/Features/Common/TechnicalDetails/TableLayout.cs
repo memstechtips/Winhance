@@ -97,7 +97,7 @@ public static class TableLayout
         ArgumentNullException.ThrowIfNull(columnWidths);
         if (column < 0 || column >= columnWidths.Count)
             throw new ArgumentOutOfRangeException(nameof(column));
-        if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        ArgumentOutOfRangeException.ThrowIfLessThan(columnSpan, 1);
 
         double left = 0;
         for (int i = 0; i < column; i++) left += columnWidths[i];

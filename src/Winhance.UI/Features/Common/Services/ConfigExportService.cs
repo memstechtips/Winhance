@@ -375,7 +375,7 @@ public class ConfigExportService : IConfigExportService
             var featureId = kvp.Key;
             var settings = kvp.Value.ToList();
 
-            if (!settings.Any())
+            if (settings.Count == 0)
                 continue;
 
             var isOptimize = FeatureDefinitions.OptimizeFeatures.Contains(featureId);
@@ -565,7 +565,7 @@ public class ConfigExportService : IConfigExportService
                         InputType = InputType.Toggle
                     };
 
-                    if (item.Definition.WinGetPackageId != null && item.Definition.WinGetPackageId.Any())
+                    if (item.Definition.WinGetPackageId != null && item.Definition.WinGetPackageId.Length > 0)
                         configItem.WinGetPackageId = item.Definition.WinGetPackageId[0];
 
                     return configItem;

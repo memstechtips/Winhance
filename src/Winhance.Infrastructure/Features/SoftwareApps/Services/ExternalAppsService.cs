@@ -61,7 +61,7 @@ public class ExternalAppsService(
             // Build ordered source list: WinGet → MsStore → Choco
             var sources = new List<(string packageId, string source)>();
 
-            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
                 sources.Add((item.WinGetPackageId[0], "winget"));
             if (!string.IsNullOrEmpty(item.MsStoreId))
                 sources.Add((item.MsStoreId, "msstore"));
@@ -194,7 +194,7 @@ public class ExternalAppsService(
             }
 
             var exeFiles = fileSystemService.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
-            if (!exeFiles.Any())
+            if (exeFiles.Count == 0)
             {
                 logService.LogWarning($"No executables found for {item.Name}");
                 return;
@@ -243,7 +243,7 @@ public class ExternalAppsService(
                 .Where(f => !fileSystemService.GetFileName(f).Equals("ChocolateyInstall.ps1", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            if (!exeFiles.Any())
+            if (exeFiles.Count == 0)
             {
                 logService.LogWarning($"No executables found in Chocolatey package for {item.Name}");
                 return;

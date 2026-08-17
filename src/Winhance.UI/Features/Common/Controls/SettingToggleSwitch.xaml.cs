@@ -118,9 +118,9 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
 
     // --- Interaction -----------------------------------------------------------------------------
 
-    private void OnToggled(object sender, RoutedEventArgs e) => Setting?.OnToggleSwitchToggled(sender, e);
+    private void OnToggled(object sender, RoutedEventArgs e) => Setting?.OnToggleSwitchToggled(sender);
 
-    private void OnOverlayClicked(object sender, RoutedEventArgs e) => Setting?.OnCustomToggleClicked(sender, e);
+    private void OnOverlayClicked(object sender, RoutedEventArgs e) => Setting?.OnCustomToggleClicked();
 
     private void OnOverlayPointerEntered(object sender, PointerRoutedEventArgs e) => AnimateKnob(HoverScale);
 

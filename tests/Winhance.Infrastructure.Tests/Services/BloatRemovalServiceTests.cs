@@ -45,22 +45,6 @@ public class BloatRemovalServiceTests
         RemovalScript = removalScript,
     };
 
-    private static ItemDefinition CreateCapabilityApp(string id, string capabilityName) => new()
-    {
-        Id = id,
-        Name = id,
-        Description = $"Description for {id}",
-        CapabilityName = capabilityName,
-    };
-
-    private static ItemDefinition CreateFeatureApp(string id, string featureName) => new()
-    {
-        Id = id,
-        Name = id,
-        Description = $"Description for {id}",
-        OptionalFeatureName = featureName,
-    };
-
     // --- ExecuteDedicatedScriptAsync ---
 
     [Fact]

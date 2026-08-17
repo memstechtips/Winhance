@@ -168,13 +168,13 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         switch (Mode)
         {
             case SettingInputMode.Ac:
-                vm.OnACComboBoxDropDownClosed(sender, e);
+                vm.OnACComboBoxDropDownClosed(sender);
                 break;
             case SettingInputMode.Dc:
-                vm.OnDCComboBoxDropDownClosed(sender, e);
+                vm.OnDCComboBoxDropDownClosed(sender);
                 break;
             default:
-                vm.OnComboBoxDropDownClosed(sender, e);
+                vm.OnComboBoxDropDownClosed(sender);
                 break;
         }
     }

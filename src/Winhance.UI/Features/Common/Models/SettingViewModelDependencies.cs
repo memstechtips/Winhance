@@ -1,4 +1,3 @@
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
@@ -13,7 +12,6 @@ public record SettingViewModelDependencies(
     ILogService LogService,
     IDispatcherService DispatcherService,
     IDialogService DialogService,
-    IEventBus EventBus,
     IRegeditLauncher RegeditLauncher,
     IApplicationModeService ApplicationModeService
 );

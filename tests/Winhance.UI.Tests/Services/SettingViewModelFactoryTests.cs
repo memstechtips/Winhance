@@ -20,7 +20,6 @@ public class SettingViewModelFactoryTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
@@ -58,7 +57,6 @@ public class SettingViewModelFactoryTests
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockEventBus.Object,
             _mockRegeditLauncher.Object,
             _mockApplicationModeService.Object);
 

@@ -63,7 +63,7 @@ public static class User32Api
 
     /// <summary>Finds a top-level window by class name and/or window name. IntPtr.Zero when there is none -
     /// which is how "no taskbar, so no live shell" is detected.</summary>
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
     [DllImport("user32.dll")]
@@ -75,6 +75,6 @@ public static class User32Api
     [DllImport("user32.dll")]
     public static extern bool IsIconic(IntPtr hWnd);
 
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern int SystemParametersInfo(int uAction, int uParam, string? lpvParam, int fuWinIni);
 }

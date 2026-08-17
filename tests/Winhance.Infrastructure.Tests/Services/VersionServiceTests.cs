@@ -13,7 +13,6 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class VersionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<HttpMessageHandler> _mockHttpHandler = new();
     private readonly HttpClient _httpClient;
@@ -24,7 +23,6 @@ public class VersionServiceTests
         _httpClient = new HttpClient(_mockHttpHandler.Object);
         _service = new VersionService(
             _mockLogService.Object,
-            _mockProcessExecutor.Object,
             _mockFileSystemService.Object,
             _httpClient);
     }
@@ -187,10 +185,6 @@ public class VersionServiceTests
                 Content = new ByteArrayContent(new byte[] { 0x4D, 0x5A }) // Fake PE header
             });
 
-        _mockProcessExecutor.Setup(p => p.ShellExecuteAsync(
-                It.IsAny<string>(), It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(0);
-
         // Act — this will throw because FileStream opens a real file path,
         // but we can verify the setup calls were correct.
         // In a real scenario this would need an IFileSystemService.CreateFileStream abstraction.
@@ -280,20 +274,10 @@ public class VersionServiceTests
     #region Constructor Validation
 
     [Fact]
-    public void Constructor_NullProcessExecutor_ThrowsArgumentNullException()
-    {
-        var act = () => new VersionService(
-            _mockLogService.Object, null!, _mockFileSystemService.Object, _httpClient);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("processExecutor");
-    }
-
-    [Fact]
     public void Constructor_NullFileSystemService_ThrowsArgumentNullException()
     {
         var act = () => new VersionService(
-            _mockLogService.Object, _mockProcessExecutor.Object, null!, _httpClient);
+            _mockLogService.Object, null!, _httpClient);
 
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("fileSystemService");
@@ -303,7 +287,7 @@ public class VersionServiceTests
     public void Constructor_NullHttpClient_ThrowsArgumentNullException()
     {
         var act = () => new VersionService(
-            _mockLogService.Object, _mockProcessExecutor.Object, _mockFileSystemService.Object, null!);
+            _mockLogService.Object, _mockFileSystemService.Object, null!);
 
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("httpClient");

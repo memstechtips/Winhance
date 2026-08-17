@@ -146,7 +146,7 @@ public class EventBusTests
     {
         var token = _eventBus.Subscribe<SettingAppliedEvent>(_ => { });
 
-        token.EventType.Should().Be(typeof(SettingAppliedEvent));
+        token.EventType.Should().Be<SettingAppliedEvent>();
         token.SubscriptionId.Should().NotBeEmpty();
     }
 
@@ -193,7 +193,7 @@ public class EventBusTests
     {
         var token = _eventBus.SubscribeAsync<ReviewModeExitedEvent>(async _ => await Task.CompletedTask);
 
-        token.EventType.Should().Be(typeof(ReviewModeExitedEvent));
+        token.EventType.Should().Be<ReviewModeExitedEvent>();
     }
 
     [Fact]

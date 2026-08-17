@@ -56,7 +56,7 @@ public class WindowsVersionService : IWindowsVersionService
             // Fallback to registry check
             using var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
             var productName = key?.GetValue("ProductName")?.ToString() ?? "";
-            return productName.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
+            return productName.Contains("Windows 11", StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {

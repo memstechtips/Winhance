@@ -56,15 +56,16 @@ public class SettingLocalizationService : ISettingLocalizationService
                 var localizedGroupName = _localization.GetString(groupNameKey);
                 var groupKey = $"{featureName} ({localizedGroupName})";
 
-                if (!groupedSettings.ContainsKey(groupKey))
+                if (!groupedSettings.TryGetValue(groupKey, out var groupItems))
                 {
-                    groupedSettings[groupKey] = new List<string>();
+                    groupItems = new List<string>();
+                    groupedSettings[groupKey] = groupItems;
                 }
 
                 var localizedChildName = _localization.GetString(localizationKey);
                 if (!string.IsNullOrEmpty(localizedChildName))
                 {
-                    groupedSettings[groupKey].Add(localizedChildName);
+                    groupItems.Add(localizedChildName);
                 }
             }
             catch

@@ -29,7 +29,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 {
     private readonly ISettingWriteStrategySelector _writeStrategySelector;
     private readonly ILogService _logService;
-    private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService? _userPreferencesService;
@@ -1237,7 +1236,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     partial void OnIsLastChildChanged(bool value) => OnPropertyChanged(nameof(ChildCornerRadius));
 
-    public void ToggleExpander(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => IsExpanderExpanded = !IsExpanderExpanded;
+    public void ToggleExpander() => IsExpanderExpanded = !IsExpanderExpanded;
 
     public bool IsPowerPlanSetting => Setting?.OptionSource is not null;
 
@@ -1596,7 +1595,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IDispatcherService dispatcherService,
         IDialogService dialogService,
         ILocalizationService localizationService,
-        IEventBus? eventBus = null,
         IUserPreferencesService? userPreferencesService = null,
         IRegeditLauncher? regeditLauncher = null,
         INewBadgeService? newBadgeService = null,
@@ -1604,7 +1602,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         _writeStrategySelector = writeStrategySelector;
         _logService = logService;
-        _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
@@ -1962,7 +1959,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     #region UI Event Handlers
 
-    public void OnToggleSwitchToggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    public void OnToggleSwitchToggled(object sender)
     {
         if (sender is ToggleSwitch toggle)
             HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
@@ -1971,7 +1968,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     /// <summary>Click handler for the neutral detection-outcome overlay (SettingsCardItem's toggle template
     /// draws it over the invisible ToggleSwitch whenever the setting is unresolved). Inert for
     /// <see cref="SettingDetectionOutcome.Undetermined"/> - see <see cref="IsActionable"/>.</summary>
-    public void OnCustomToggleClicked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    public void OnCustomToggleClicked()
     {
         HandleCustomToggleClickAsync().FireAndForget(_logService);
     }
@@ -1996,7 +1993,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     // Using DropDownClosed instead of SelectionChanged because SelectionChanged fires during initialization
-    public void OnComboBoxDropDownClosed(object sender, object e)
+    public void OnComboBoxDropDownClosed(object sender)
     {
         if (sender is ComboBox comboBox && comboBox.SelectedValue is { } value)
             HandleValueChangedAsync(value).FireAndForget(_logService);
@@ -2008,13 +2005,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
-    public void OnNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    public void OnNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
             HandleValueChangedAsync((int)e.NewValue).FireAndForget(_logService);
     }
 
-    public void OnACComboBoxDropDownClosed(object sender, object e)
+    public void OnACComboBoxDropDownClosed(object sender)
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
@@ -2023,7 +2020,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public void OnDCComboBoxDropDownClosed(object sender, object e)
+    public void OnDCComboBoxDropDownClosed(object sender)
     {
         if (sender is ComboBox cb && cb.SelectedIndex >= 0)
         {
@@ -2032,7 +2029,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public void OnACNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    public void OnACNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
         {
@@ -2041,7 +2038,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public void OnDCNumberBoxValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    public void OnDCNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
         {
@@ -2056,15 +2053,17 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     /// This prevents locale-sensitive formatting (e.g. Russian "50.000" for 50000)
     /// from causing incorrect values when the user interacts with the control.
     /// </summary>
-    public void OnNumberBoxLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    public void OnNumberBoxLoaded(object sender)
     {
         if (sender is NumberBox nb)
             nb.NumberFormatter = CreateInvariantNumberFormatter();
     }
 
+    private static readonly string[] InvariantFormatterLanguages = ["en-US"];
+
     private static DecimalFormatter CreateInvariantNumberFormatter()
     {
-        var formatter = new DecimalFormatter(new[] { "en-US" }, "US")
+        var formatter = new DecimalFormatter(InvariantFormatterLanguages, "US")
         {
             FractionDigits = 0,
             IsGrouped = false

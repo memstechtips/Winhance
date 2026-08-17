@@ -79,6 +79,7 @@ public class WimUtilViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // ── Constructor ──
@@ -223,16 +224,6 @@ public class WimUtilViewModelTests : IDisposable
         await _sut.OnNavigatedToAsync();
 
         _sut.Step4.IsOscdimgAvailable.Should().BeFalse();
-    }
-
-    // ── SetMainWindow ──
-
-    [Fact]
-    public void SetMainWindow_IsNoOp_DoesNotThrow()
-    {
-        var act = () => _sut.SetMainWindow(null!);
-
-        act.Should().NotThrow();
     }
 
     // ── Forwarded properties ──

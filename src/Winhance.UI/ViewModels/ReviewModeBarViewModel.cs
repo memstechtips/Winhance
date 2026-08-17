@@ -81,6 +81,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         _configReviewDiffService.ApprovalCountChanged -= OnApprovalCountChanged;
         _configReviewBadgeService.BadgeStateChanged -= OnBadgeStateChangedForApplyButton;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

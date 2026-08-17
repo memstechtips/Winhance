@@ -50,12 +50,6 @@ public sealed partial class WimUtilPage : Page
     {
         base.OnNavigatedTo(e);
 
-        // Set main window reference for file dialogs
-        if (App.MainWindow != null)
-        {
-            ViewModel.SetMainWindow(App.MainWindow);
-        }
-
         // Initialize the ViewModel
         await ViewModel.OnNavigatedToAsync();
 

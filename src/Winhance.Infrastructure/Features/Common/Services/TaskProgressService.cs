@@ -174,7 +174,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             if (detail.Progress.Value < 0 || detail.Progress.Value > 100)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(detail.Progress),
+                    nameof(detail),
                     "Progress must be between 0 and 100."
                 );
             }

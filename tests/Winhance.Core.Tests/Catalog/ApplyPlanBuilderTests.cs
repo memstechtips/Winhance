@@ -100,7 +100,7 @@ public class ApplyPlanBuilderTests
             });
 
         var plan = ApplyPlanBuilder.Build(setting, "Disabled");
-        Assert.True(plan.Last() is EffectOp);
+        Assert.True(plan[^1] is EffectOp);
         Assert.Equal("rename.ps1", ((ScriptEffect)plan.OfType<EffectOp>().Single().Effect).Script);
     }
 

@@ -35,7 +35,6 @@ internal sealed class ConPtyProcess : IDisposable
         string exePath,
         string arguments,
         Action<string>? onOutputLine,
-        Action<string>? onErrorLine,
         Action<string>? onProgressLine,
         CancellationToken cancellationToken)
     {

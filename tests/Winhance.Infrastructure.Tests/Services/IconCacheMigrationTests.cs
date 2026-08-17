@@ -24,6 +24,7 @@ public class IconCacheMigrationTests : IDisposable
     {
         if (Directory.Exists(_root))
             Directory.Delete(_root, recursive: true);
+        GC.SuppressFinalize(this);
     }
 
     [Fact]

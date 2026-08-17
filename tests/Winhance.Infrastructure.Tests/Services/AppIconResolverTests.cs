@@ -49,6 +49,7 @@ public class AppIconResolverTests : IDisposable
     {
         if (Directory.Exists(_tempCacheDir))
             Directory.Delete(_tempCacheDir, recursive: true);
+        GC.SuppressFinalize(this);
     }
 
     private static ItemDefinition Def(
@@ -75,8 +76,7 @@ public class AppIconResolverTests : IDisposable
 
     private static string Sha1HexLower(string input)
     {
-        using var sha1 = System.Security.Cryptography.SHA1.Create();
-        return Convert.ToHexString(sha1.ComputeHash(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
+        return Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
     }
 
     /// <summary>Mirrors AppIconResolver.BuildCacheFileName for path assertions.</summary>
@@ -369,7 +369,6 @@ public class AppIconResolverTests : IDisposable
         // etc.) must NOT fire a guaranteed-404 network request — it goes straight
         // to the colored fallback. This is what previously cost ~30s on launch.
         var def = Def("windows-app-aix", appxName: "MicrosoftWindows.Client.AIX", installed: false);
-        var expectedRepoPath = "icons/windows/microsoftwindows.client.aix.png";
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());

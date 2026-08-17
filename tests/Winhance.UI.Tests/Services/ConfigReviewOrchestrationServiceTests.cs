@@ -68,6 +68,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     public void Dispose()
     {
         _service?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // -------------------------------------------------------

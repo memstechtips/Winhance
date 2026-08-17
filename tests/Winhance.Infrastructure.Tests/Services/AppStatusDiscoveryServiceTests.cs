@@ -41,22 +41,6 @@ public class AppStatusDiscoveryServiceTests
         AppxPackageName = new[] { appxName },
     };
 
-    private static ItemDefinition CreateCapabilityDefinition(string id, string capabilityName) => new()
-    {
-        Id = id,
-        Name = id,
-        Description = $"Description for {id}",
-        CapabilityName = capabilityName,
-    };
-
-    private static ItemDefinition CreateFeatureDefinition(string id, string featureName) => new()
-    {
-        Id = id,
-        Name = id,
-        Description = $"Description for {id}",
-        OptionalFeatureName = featureName,
-    };
-
     private static ItemDefinition CreateExternalAppDefinition(
         string id,
         string name,

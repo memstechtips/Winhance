@@ -119,7 +119,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
     {
         uint bufferSize = 0;
         // First call to get size
-        PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
+        _ = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
 
         if (bufferSize == 0) return "Unknown Power Plan";
 
