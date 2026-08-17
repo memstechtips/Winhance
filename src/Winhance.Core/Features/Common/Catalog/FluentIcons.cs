@@ -1,7 +1,7 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Generated typed accessors for the Fluent icon glyphs used in the catalog. Regenerate via
-/// extras/gen-catalog-icons.py when a new glyph is introduced.
+/// docs/tools/gen-catalog-icons.py when a new glyph is introduced.
 ///
 /// The ACCESSOR is compile-checked; the glyph NAME is not - it is a bare string, and this assembly
 /// does not reference the icon package that defines the names. CatalogIconNameTests pins them.</summary>
