@@ -71,7 +71,9 @@ public class CatalogSettingStateProviderConformanceTests
         // A 3-option service: Automatic = WindowsDefault, ManualRecommended = Recommended, Disabled = no role.
         // The hard instance: Disabled is neither default nor recommended, yet it IS a modification from the Windows
         // default, so it must read enabled - this is where `!WindowsDefault` and `HasRole(Recommended)` diverge.
-        var s = Catalog["gaming-print-spooler-service"];
+        // Was gaming-print-spooler-service until 2026-08-12; its Recommended moved onto the Windows-default
+        // state, collapsing exactly the divergence this test exists to cover. windows-search has the same shape.
+        var s = Catalog["gaming-windows-search-service"];
         Assert.False(Derive(s, "ServiceOption_Automatic"));         // Windows default -> not enabled
         Assert.True(Derive(s, "ServiceOption_ManualRecommended"));  // recommended, non-default -> enabled
         Assert.True(Derive(s, "ServiceOption_Disabled"));           // non-default, non-recommended -> enabled

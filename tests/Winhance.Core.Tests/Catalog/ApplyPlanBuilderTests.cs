@@ -12,6 +12,9 @@ public class ApplyPlanBuilderTests
     private static RegTarget Reg(string key, string valueName, params string[] paths) =>
         new(key, paths.Length == 0 ? new[] { @"HKEY_LOCAL_MACHINE\TEST" } : paths, valueName, RegistryValueKind.DWord);
 
+    private static readonly WinBuild Win11 = new(22631);
+    private static readonly WinBuild Win10 = new(19045);
+
     private static Setting Make(IReadOnlyList<Target> targets, params SettingState[] states) =>
         new() { Id = "t", Display = new() { Name = "t", Description = "t" }, Targets = targets, States = states };
 
@@ -365,5 +368,42 @@ public class ApplyPlanBuilderTests
             o => Assert.Equal(@"HKLM\A", Assert.IsType<RegistryWriteOp>(o).Path),
             o => Assert.Equal(@"HKLM\B", Assert.IsType<RegistryWriteOp>(o).Path),
             o => Assert.IsType<EffectOp>(o));
+    }
+    [Fact]
+    public void Windows_default_state_writes_its_ResetSet_without_the_reset_flag()
+    {
+        // Apply Recommended and the per-card quick-set issue a NORMAL apply. When the state they land on is
+        // also the Windows default, it must still DELETE the targets its ResetSet covers - otherwise those two
+        // buttons re-stamp what Apply Windows Defaults removed.
+        var setting = Make(
+            new[] { Reg("k", "V") },
+            new SettingState
+            {
+                Label = "Enabled",
+                Roles = new[] { StateRole.WindowsDefault },
+                Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
+                ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+            });
+
+        var plan = ApplyPlanBuilder.Build(setting, "Enabled");
+
+        Assert.IsType<RegistryDeleteOp>(Assert.Single(plan));
+    }
+
+    [Fact]
+    public void Build_scoped_windows_default_writes_its_ResetSet_only_on_the_build_it_applies_to()
+    {
+        var setting = Make(
+            new[] { Reg("k", "V") },
+            new SettingState
+            {
+                Label = "Enabled",
+                Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+            });
+
+        Assert.IsType<RegistryDeleteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, "Enabled", Win11)));
+        Assert.IsType<RegistryWriteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, "Enabled", Win10)));
     }
 }

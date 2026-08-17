@@ -1650,7 +1650,7 @@
             "Id": "gaming-print-spooler-service",
             "Name": "Print Spooler Service",
             "InputType": 1,
-            "SelectedIndex": 1
+            "SelectedIndex": 2
           },
           {
             "Id": "gaming-telemetry-service",
@@ -1824,7 +1824,7 @@
             "Id": "gaming-touch-keyboard-service",
             "Name": "Touch Keyboard and Handwriting Panel Service",
             "InputType": 1,
-            "SelectedIndex": 0
+            "SelectedIndex": 1
           },
           {
             "Id": "gaming-sensor-monitoring-service",
@@ -2506,7 +2506,7 @@
             "Id": "security-uac-level",
             "Name": "User Account Control Level",
             "InputType": 1,
-            "SelectedIndex": 4
+            "SelectedIndex": 2
           },
           {
             "Id": "security-workplace-join-messages",
@@ -2619,7 +2619,7 @@
           {
             "Id": "privacy-lock-screen",
             "Name": "Lock Screen",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2923,8 +2923,8 @@
           {
             "Id": "updates-notification-level",
             "Name": "Update Notifications",
-            "IsSelected": false,
-            "InputType": 0
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "updates-restart-notification",

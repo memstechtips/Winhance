@@ -142,6 +142,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["StartupDelayInMSec"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["StartupDelayInMSec"] = Absent },
                 },
             },
         },
@@ -230,6 +231,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["WholeFileSystem"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["WholeFileSystem"] = Absent },
                 },
             },
         },
@@ -259,12 +261,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["EnabledState"] = Of(2),
+                        ["EnabledState"] = Of(2).OrAbsent(),
                         ["EnabledStateOptions"] = Absent,
                         ["Variant"] = Absent,
                         ["VariantPayload"] = Absent,
                         ["VariantPayloadKind"] = Absent,
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["EnabledState"] = Absent },
                 },
                 new SettingState
                 {
@@ -714,6 +717,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["EnableGR535"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["EnableGR535"] = Absent },
                 },
             },
         },
@@ -1125,8 +1129,9 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     {
                         ["EnableVirtualizationBasedSecurity"] = Of(1),
                         ["RequirePlatformSecurityFeatures"] = Of(1),
-                        ["Locked"] = Of(1),
+                        ["Locked"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["Locked"] = Absent },
                 },
                 new SettingState
                 {
@@ -1172,9 +1177,10 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(1),
-                        ["Locked"] = Of(1),
+                        ["Locked"] = Of(1).OrAbsent(),
                         ["WasEnabledBy"] = Of(2),
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["Locked"] = Absent },
                 },
                 new SettingState
                 {
@@ -1315,6 +1321,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["ServicesPipeTimeout"] = Of(60000) },
+                    ResetSet = new Dictionary<string, StateValue> { ["ServicesPipeTimeout"] = Absent },
                 },
             },
         },
@@ -1431,7 +1438,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             Display = new()
             {
                 Name = "Print Spooler Service",
-                Description = "Manages print jobs sent to printers. If you don't use a printer, set to Manual or Disabled to free up system resources",
+                Description = "Manages print jobs sent to printers. Left at the Windows default so printing works whenever you need it. If you never print, set this to Disabled to stop the service running in the background.",
                 GroupName = "System Services",
                 Icon = MaterialIcons.Printer,
                 IsSubjectivePreference = true,
@@ -1447,14 +1454,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 },
                 new SettingState
                 {
-                    Label = "ServiceOption_ManualRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Label = "ServiceOption_Manual",
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
                 {
-                    Label = "ServiceOption_Automatic",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Label = "ServiceOption_AutomaticRecommended",
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(2).OrAbsent() },
                 },
             },
@@ -2386,7 +2392,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             Display = new()
             {
                 Name = "Touch Keyboard and Handwriting Panel Service",
-                Description = "Manages the Windows Input Experience including touch keyboard, pen/stylus input, handwriting panel, emoji panel (Win+.), and Xbox controller keyboard. Disabling will break all virtual/software keyboard input but is safe on desktop systems without touchscreen, pen, or gamepad",
+                Description = "Manages the Windows Input Experience: touch keyboard, pen and handwriting input, the emoji panel (Win+.), clipboard history (Win+V), voice typing, and IME candidate windows. If you use none of those - a desktop or gaming PC with no touchscreen or pen - set this to Disabled to stop the background input host and free the memory it uses.",
                 GroupName = "System Services",
                 Icon = MaterialIcons.KeyboardOutline,
                 AddedInVersion = "26.04.03",
@@ -2401,8 +2407,8 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 new SettingState
                 {
-                    Label = "ServiceOption_DisabledRecommended",
-                    Roles = new[] { StateRole.Recommended },
+                    Label = "ServiceOption_Disabled",
+                    Warning = "Disabling this removes the Windows Input Experience host, which also provides the emoji panel (Win+.), clipboard history (Win+V), voice typing and handwriting. Do not disable it if you use a touchscreen, a pen, or a Chinese, Japanese or Korean input method.",
                     Effects = new Effect[] { new ScriptEffect(@"if([Environment]::OSVersion.Version.Build -ge 22000 -and -not(Get-WinUserLanguageList|?{$_.LanguageTag-match'^(zh|ja|ko)'})){$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue}", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -2412,8 +2418,8 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 },
                 new SettingState
                 {
-                    Label = "ServiceOption_Manual",
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Label = "ServiceOption_ManualRecommended",
+                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
                     Effects = new Effect[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {

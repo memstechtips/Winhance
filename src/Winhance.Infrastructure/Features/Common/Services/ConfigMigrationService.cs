@@ -27,6 +27,7 @@ public class ConfigMigrationService : IConfigMigrationService
             ["explorer-customization-shortcut-suffix"] = MigrateToggleToSelection,
             ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
             ["gaming-background-apps"] = MigrateBackgroundApps,
+            ["updates-notification-level"] = MigrateUpdateNotificationLevel,
         };
     }
 
@@ -116,6 +117,28 @@ public class ConfigMigrationService : IConfigMigrationService
         _logService.Log(
             LogLevel.Info,
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
+    }
+
+    /// <summary>
+    /// Migrates the old Toggle-based "updates-notification-level" to the three-option Selection.
+    /// Both toggle positions map to index 0 ("Show all update notifications"), on purpose:
+    /// IsSelected=false is what an untouched setting exported as, and IsSelected=true meant "I want update
+    /// notifications", which IS index 0. Nobody had working suppression to preserve either way - the old
+    /// state wrote SetUpdateNotificationLevel=2, which the ADMX gives no meaning, so it suppressed nothing.
+    /// Applying index 0 also clears that stale value off the machine.
+    /// </summary>
+    private void MigrateUpdateNotificationLevel(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle)
+            return; // Already migrated or not a toggle
+
+        item.SelectedIndex = 0;
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex=0)");
     }
 
     /// <summary>
