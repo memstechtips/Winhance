@@ -27,6 +27,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly Mock<IStateWriter> _mockStateWriter = new();
+    private readonly Mock<IAsyncEffectRunner> _mockAsyncEffects = new();
     private readonly Mock<IWindowsVersionService> _mockVersion = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
@@ -37,12 +38,18 @@ public class SettingApplicationServiceTests
     {
         // Default: machine HAS a battery, so every existing AC/DC test keeps its current
         // "AC: x, DC: y" expectations. No-battery tests override this per-test.
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(true);
 
         // Default: every IStateWriter write SUCCEEDS, so a paired setting routed through the ApplyExecutor
         // reports OperationResult.Succeeded. There is no fallback that makes an unpaired id succeed; tests
         // asserting a failure use an unpaired (null-plan) id instead of a mock override.
         _mockStateWriter.SetReturnsDefault(true);
+
+        // Default: nothing deferred, nothing failed. Required, not optional - RunAllAsync returns a
+        // reference type, so an unstubbed Moq call hands back a NULL list and the caller NREs on .Count.
+        _mockAsyncEffects
+            .Setup(r => r.RunAllAsync(It.IsAny<IReadOnlyList<Effect>>()))
+            .ReturnsAsync(Array.Empty<string>());
 
         // Default: GetString echoes the key back. A key-echo is NOT the "[{key}]" miss-marker, so by default
         // ResolveLocalized treats every key as a HIT returning the key text; tests that assert on display strings
@@ -76,7 +83,7 @@ public class SettingApplicationServiceTests
             _mockLog.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
-            _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
+            _mockHardware.Object, _mockStateWriter.Object, _mockAsyncEffects.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
     }
 
@@ -838,7 +845,7 @@ public class SettingApplicationServiceTests
         // Battery-less desktop: only the AC dropdown exists and PowerCfgApplier skips all DC writes.
         // The receipt must show "AC: <label>" only -- no ", DC: ..." phantom. Rendering reads the REAL catalog
         // (power-display-timeout: Set["Power"] raw 0 -> option 0; apply index 2 -> option 2).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(false);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 
@@ -876,7 +883,7 @@ public class SettingApplicationServiceTests
         // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant) DC garbage
         // differs. The receipt must suppress the entry -- DC garbage must NEVER create a phantom change. Before
         // "AC: Never" == after "AC: Never". Rendering reads the REAL catalog (power-display-timeout: raw 0 -> opt 0).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(false);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 
@@ -945,12 +952,11 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplySettingAsync_BatteryDetectionThrows_AppliesAndRendersBothComponents()
+    public async Task ApplySettingAsync_BatteryStateUnknown_AppliesAndRendersBothComponents()
     {
-        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still succeeds and the
-        // entry renders BOTH AC and DC (more information, never a phantom suppression). Rendering reads the REAL
-        // catalog (power-display-timeout: raw 0 -> option 0).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ThrowsAsync(new InvalidOperationException("WMI exploded"));
+        // Unknown (null) is what the service reports when the WMI probe fails. This caller defaults it to
+        // true so the receipt renders BOTH AC and DC rather than hiding the DC half.
+        _mockHardware.Setup(h => h.HasBattery()).Returns((bool?)null);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 

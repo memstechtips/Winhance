@@ -29,6 +29,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 ///
 /// Run: winhance-harness CatalogProbeManifest      (or: dotnet test --filter CatalogProbeManifest)
 /// </summary>
+[Collection(RepoFileWritersCollection.Name)]
 public class CatalogProbeManifestGeneratorTests
 {
     private const string ManifestPlaceholder = "@@MANIFEST_JSON@@";
@@ -112,8 +113,8 @@ public class CatalogProbeManifestGeneratorTests
 
         var scriptPath = Path.Combine(probeDir, "Probe-WinhanceDefaults.ps1");
         var manifestPath = Path.Combine(probeDir, "catalog-probe-manifest.json");
-        File.WriteAllText(scriptPath, Crlf(script), new UTF8Encoding(false));
-        File.WriteAllText(manifestPath, Crlf(readable), new UTF8Encoding(false));
+        GeneratedFile.WriteIfChanged(scriptPath, Crlf(script));
+        GeneratedFile.WriteIfChanged(manifestPath, Crlf(readable));
 
         var regTargets = settings.SelectMany(s => s.Targets).OfType<RegTarget>().Count();
         var powerTargets = settings.SelectMany(s => s.Targets).OfType<PowerCfgTarget>().Count();

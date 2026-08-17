@@ -18,7 +18,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 {
     private readonly IWindowsRegistryService _reg;
     private readonly ISystemRestoreService _restore;
-    private readonly IScheduledTaskService _tasks;
+    private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerSettingsQueryService _power;
     private readonly ILogService _log;
 
@@ -33,7 +33,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     public SystemDetectionContext(
         IWindowsRegistryService reg,
         ISystemRestoreService restore,
-        IScheduledTaskService tasks,
+        IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
         ILogService log)
     {
@@ -157,7 +157,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     {
         var build = CurrentBuild;
 
-        // Scheduled tasks: read every distinct live task path in parallel; cache enabled / disabled / null (absent).
+        // One connection for every task path: a per-path read opens its own out-of-process Schedule.Service
+        // instance, so a page navigation would activate N at once. Cache holds enabled / disabled / absent.
         var taskPaths = settings
             .SelectMany(s => LiveTargets(s, build).OfType<TaskTarget>())
             .Select(t => t.TaskPath)
@@ -165,10 +166,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             .ToList();
         if (taskPaths.Count > 0)
         {
-            var read = await Task.WhenAll(taskPaths.Select(async path =>
-                new KeyValuePair<string, bool?>(path, await _tasks.IsTaskEnabledAsync(path).ConfigureAwait(false))))
-                .ConfigureAwait(false);
-            _taskCache = new Dictionary<string, bool?>(read);
+            var read = await Task.Run(() => _tasks.GetTasksEnabled(taskPaths)).ConfigureAwait(false);
+            _taskCache = new Dictionary<string, bool?>(read, StringComparer.OrdinalIgnoreCase);
         }
 
         // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. PowerCfgValue

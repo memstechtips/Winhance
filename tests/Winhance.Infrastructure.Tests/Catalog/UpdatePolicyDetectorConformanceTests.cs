@@ -97,4 +97,10 @@ public class UpdatePolicyDetectorConformanceTests
         foreach (var label in new[] { DefaultLabel, DeferLabel, PausedLabel, DisabledLabel })
             Assert.Contains(label, stateLabels);
     }
+
+    // UpdateService applies this through the synchronous ApplyExecutor and cannot await, so a
+    // process-launching effect added here would be split off the plan and never run.
+    [Fact]
+    public void No_state_carries_an_effect_the_synchronous_apply_path_cannot_run()
+        => Assert.DoesNotContain(UpdatePolicy.States.SelectMany(s => s.Effects), e => e.IsAsyncIo);
 }

@@ -1,4 +1,4 @@
-# run-winhance-tests.ps1
+﻿# run-winhance-tests.ps1
 # Runs all Winhance test suites and reports results.
 #
 # SYNOPSIS:
@@ -408,6 +408,21 @@ if ($totalSkipped -gt 0) {
 }
 Write-Host "  Time:    $($elapsed.TotalSeconds.ToString('F1'))s" -ForegroundColor White
 Write-Host ("=" * 60) -ForegroundColor Cyan
+
+# Analyzer summary. Written to docs\ (gitignored) rather than streamed to the console,
+# so the agent reads a file instead of a wall of build output, and so we keep a record
+# of the last run to work through. Wrapped in try/catch and never allowed to change the
+# exit code: this is reporting, not a gate.
+#
+# The linter lives in docs\tools\ - gitignored, so it is NOT on the remote. extras\ is for
+# build and release tooling that ships; local dev/agent tooling does not belong there. That
+# is why this call is Test-Path-guarded: on a fresh clone the script is simply absent and
+# the test run carries on unchanged.
+try {
+    $lintScript = Join-Path $PSScriptRoot '..\docs\tools\lint-solution.ps1'
+    if (Test-Path $lintScript) { & $lintScript }
+}
+catch { Write-Host "  (analyzer summary skipped: $_)" -ForegroundColor DarkGray }
 
 if ($failedProjects.Count -gt 0) {
     Write-Host ""

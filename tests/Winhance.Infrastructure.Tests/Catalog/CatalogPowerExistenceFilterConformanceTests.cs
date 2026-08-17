@@ -45,7 +45,7 @@ public class CatalogPowerExistenceFilterConformanceTests
         var reg = new Mock<IWindowsRegistryService>();
         reg.Setup(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()))
             .Returns((string path, string vn, object v, RegistryValueKind k) => { present.Add(path.Split('\\').Last()); return true; });
-        var svc = new CatalogPowerExistenceFilter(query.Object, reg.Object, new Mock<IScheduledTaskService>().Object, new Mock<ILogService>().Object);
+        var svc = new CatalogPowerExistenceFilter(query.Object, reg.Object, new Mock<IScheduledTaskStateService>().Object, new Mock<ILogService>().Object);
 
         var result = svc.FilterAsync(Catalog).GetAwaiter().GetResult();
         Assert.Contains(result, s => s.Id == pick.s.Id);
@@ -81,15 +81,17 @@ public class CatalogPowerExistenceFilterConformanceTests
         var query = new Mock<IPowerSettingsQueryService>();
         query.Setup(q => q.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int?, int?)>());
-        var tasks = new Mock<IScheduledTaskService>();
-        tasks.Setup(t => t.IsTaskEnabledAsync(It.IsAny<string>())).ReturnsAsync(taskEnabledAnswer);
+        var tasks = new Mock<IScheduledTaskStateService>();
+        tasks.Setup(t => t.GetTasksEnabled(It.IsAny<IReadOnlyCollection<string>>()))
+            .Returns((IReadOnlyCollection<string> paths) =>
+                paths.ToDictionary(p => p, _ => taskEnabledAnswer));
         var svc = new CatalogPowerExistenceFilter(
             query.Object, new Mock<IWindowsRegistryService>().Object, tasks.Object, new Mock<ILogService>().Object);
         return (svc, pick);
     }
 
     /// <summary>A ValidatesExistence setting whose scheduled task is not registered on this system
-    /// (IsTaskEnabledAsync = null) is hidden - a task that does not exist cannot be toggled.</summary>
+    /// (state reads back as null) is hidden - a task that does not exist cannot be toggled.</summary>
     [Fact]
     public void Task_setting_with_no_registered_task_is_filtered_out()
     {

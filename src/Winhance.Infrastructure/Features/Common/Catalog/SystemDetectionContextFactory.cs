@@ -9,14 +9,14 @@ public sealed class SystemDetectionContextFactory : ISystemDetectionContextFacto
 {
     private readonly IWindowsRegistryService _reg;
     private readonly ISystemRestoreService _restore;
-    private readonly IScheduledTaskService _tasks;
+    private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerSettingsQueryService _power;
     private readonly ILogService _log;
 
     public SystemDetectionContextFactory(
         IWindowsRegistryService reg,
         ISystemRestoreService restore,
-        IScheduledTaskService tasks,
+        IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
         ILogService log)
     {

@@ -187,63 +187,73 @@ public class ScheduledTaskServiceTests
         result.Should().BeFalse();
     }
 
-    // --- EnableTaskAsync ---
+    // --- SetTaskEnabled (synchronous: the Task Scheduler COM call blocks) ---
 
     [Fact]
-    public async Task EnableTaskAsync_ComFailure_ReturnsFailedResult()
+    public void SetTaskEnabled_Enable_ComFailure_ReturnsFailedResult()
     {
-        // COM interop fails in test environment
-        var result = await _service.EnableTaskAsync(@"\Microsoft\Windows\Test\SomeTask");
-
-        result.Should().NotBeNull();
-        // Will fail due to COM not being available
-        result.Success.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task EnableTaskAsync_DoesNotThrow()
-    {
-        var action = () => _service.EnableTaskAsync(@"\Test\Task");
-
-        await action.Should().NotThrowAsync();
-    }
-
-    // --- DisableTaskAsync ---
-
-    [Fact]
-    public async Task DisableTaskAsync_ComFailure_ReturnsFailedResult()
-    {
-        var result = await _service.DisableTaskAsync(@"\Microsoft\Windows\Test\SomeTask");
+        // The task does not exist on the test machine, so the COM lookup fails.
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\SomeTask", enabled: true);
 
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
     }
 
     [Fact]
-    public async Task DisableTaskAsync_DoesNotThrow()
+    public void SetTaskEnabled_Enable_DoesNotThrow()
     {
-        var action = () => _service.DisableTaskAsync(@"\Test\Task");
+        var action = () => _service.SetTaskEnabled(@"\Test\Task", enabled: true);
 
-        await action.Should().NotThrowAsync();
-    }
-
-    // --- IsTaskEnabledAsync ---
-
-    [Fact]
-    public async Task IsTaskEnabledAsync_ComFailure_ReturnsNull()
-    {
-        // COM interop fails in test environment, catch returns null
-        var result = await _service.IsTaskEnabledAsync(@"\Microsoft\Windows\Test\SomeTask");
-
-        result.Should().BeNull();
+        action.Should().NotThrow();
     }
 
     [Fact]
-    public async Task IsTaskEnabledAsync_DoesNotThrow()
+    public void SetTaskEnabled_Disable_ComFailure_ReturnsFailedResult()
     {
-        var action = () => _service.IsTaskEnabledAsync(@"\Any\Task\Path");
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\SomeTask", enabled: false);
 
-        await action.Should().NotThrowAsync();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetTaskEnabled_Disable_DoesNotThrow()
+    {
+        var action = () => _service.SetTaskEnabled(@"\Test\Task", enabled: false);
+
+        action.Should().NotThrow();
+    }
+
+    // --- GetTasksEnabled (batched over one connection) ---
+
+    [Fact]
+    public void GetTasksEnabled_NoPaths_ReturnsEmptyWithoutConnecting()
+    {
+        var result = _service.GetTasksEnabled(Array.Empty<string>());
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetTasksEnabled_ReturnsAnEntryForEveryRequestedPath()
+    {
+        // The contract the detection context relies on: every requested path is present in the result,
+        // absent tasks as null. A missing KEY would be read as "never asked" and silently re-queried.
+        var paths = new[] { @"\Microsoft\Windows\Test\One", @"\Microsoft\Windows\Test\Two" };
+
+        var result = _service.GetTasksEnabled(paths);
+
+        result.Should().HaveCount(2);
+        result.Keys.Should().BeEquivalentTo(paths);
+        result.Values.Should().AllSatisfy(v => v.Should().BeNull());
+    }
+
+    [Fact]
+    public void GetTasksEnabled_DoesNotThrow()
+    {
+        var action = () => _service.GetTasksEnabled(new[] { @"\Any\Task\Path" });
+
+        action.Should().NotThrow();
     }
 
     // --- RunScheduledTaskAsync ---
@@ -267,32 +277,32 @@ public class ScheduledTaskServiceTests
     }
 
     // --- SplitTaskPath (tested indirectly via public methods) ---
-    // SplitTaskPath is private static, but its logic is exercised through EnableTaskAsync/DisableTaskAsync/IsTaskEnabledAsync.
+    // SplitTaskPath is private static, but its logic is exercised through SetTaskEnabled/GetTasksEnabled.
 
     [Fact]
-    public async Task EnableTaskAsync_WithFullPath_ParsesFolderAndName()
+    public void SetTaskEnabled_WithFullPath_ParsesFolderAndName()
     {
         // The path "\Microsoft\Windows\Test\TaskName" should split to folder="\Microsoft\Windows\Test" name="TaskName"
         // COM will fail in test env, but we verify no exception
-        var result = await _service.EnableTaskAsync(@"\Microsoft\Windows\Test\TaskName");
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EnableTaskAsync_WithRootPath_ParsesCorrectly()
+    public void SetTaskEnabled_WithRootPath_ParsesCorrectly()
     {
         // The path "\TaskName" should split to folder="\" name="TaskName"
-        var result = await _service.EnableTaskAsync(@"\TaskName");
+        var result = _service.SetTaskEnabled(@"\TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EnableTaskAsync_WithBareTaskName_ParsesCorrectly()
+    public void SetTaskEnabled_WithBareTaskName_ParsesCorrectly()
     {
         // A bare name "TaskName" (lastSep <= 0) should split to folder="\" name="TaskName"
-        var result = await _service.EnableTaskAsync("TaskName");
+        var result = _service.SetTaskEnabled("TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }

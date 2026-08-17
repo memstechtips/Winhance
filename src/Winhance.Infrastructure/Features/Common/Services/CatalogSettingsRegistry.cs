@@ -38,9 +38,11 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         if (_initialized) return;
 
         _build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
-        _caps = new HardwareCaps(
-            await _hardware.HasBatteryAsync().ConfigureAwait(false),
-            await _hardware.SupportsHybridSleepAsync().ConfigureAwait(false));
+        // The cold call that pays for the WMI round trip, so it is offloaded here rather than inside the
+        // service. Unknown battery hides battery-only settings: offering one that cannot work is worse.
+        _caps = await Task.Run(() => new HardwareCaps(
+            _hardware.HasBattery() ?? false,
+            _hardware.SupportsHybridSleep())).ConfigureAwait(false);
 
         // Resolve powercfg existence ONCE over the OS-version-INDEPENDENT candidate set (hardware-passing settings
         // that validate existence). Existence is machine-state (GUID presence), orthogonal to the OS-build gate, so

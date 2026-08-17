@@ -62,10 +62,17 @@ public sealed class ThemeWallpaperApplier(
             return true;
         }
 
-        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, themeState), stateWriter);
+        var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, themeState));
+        var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
                 $"[ThemeWallpaperApplier] {result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
+
+        // This path is synchronous and cannot await, so a process-launching effect would be dropped.
+        // ThemeWallpaperEffectsConformanceTests asserts none exists; this catches it at runtime if one does.
+        if (plan.AsyncEffects.Count > 0)
+            logService.Log(LogLevel.Error,
+                $"[ThemeWallpaperApplier] {plan.AsyncEffects.Count} async effect(s) NOT run - a theme state gained one but this apply path is synchronous");
 
         // Import-flow checkbox: also change the wallpaper to match.
         if (additionalContext)

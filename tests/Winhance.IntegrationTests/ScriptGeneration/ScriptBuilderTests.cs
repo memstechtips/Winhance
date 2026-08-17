@@ -26,7 +26,7 @@ public class ScriptBuilderTests
             .Setup(p => p.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
             .Returns(Task.CompletedTask);
 
-        _hardwareDetection.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        _hardwareDetection.Setup(h => h.HasBattery()).Returns(false);
 
         _powerSettingsQuery
             .Setup(p => p.GetActivePowerPlanAsync())

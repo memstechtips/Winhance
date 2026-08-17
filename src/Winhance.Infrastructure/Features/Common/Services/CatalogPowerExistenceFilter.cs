@@ -22,10 +22,10 @@ public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
     private const string Scheme = "SCHEME_CURRENT";
     private readonly IPowerSettingsQueryService _query;
     private readonly IWindowsRegistryService _registry;
-    private readonly IScheduledTaskService _tasks;
+    private readonly IScheduledTaskStateService _tasks;
     private readonly ILogService _log;
 
-    public CatalogPowerExistenceFilter(IPowerSettingsQueryService query, IWindowsRegistryService registry, IScheduledTaskService tasks, ILogService log)
+    public CatalogPowerExistenceFilter(IPowerSettingsQueryService query, IWindowsRegistryService registry, IScheduledTaskStateService tasks, ILogService log)
     {
         _query = query;
         _registry = registry;
@@ -76,11 +76,13 @@ public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
 
             // A scheduled task exists when the OS can answer its enabled state at all (null = the
             // task is not registered on this system, e.g. removed on this build or app not installed).
-            foreach (var t in taskTargets)
+            // Read this setting's task targets over one Task Scheduler connection rather than opening one
+            // per target; the read is off-thread because the COM call blocks.
+            if (!hasValid && taskTargets.Count > 0)
             {
-                if (hasValid) break;
-                if (await _tasks.IsTaskEnabledAsync(t.TaskPath).ConfigureAwait(false) is not null)
-                    hasValid = true;
+                var paths = taskTargets.Select(t => t.TaskPath).Distinct().ToList();
+                var states = await Task.Run(() => _tasks.GetTasksEnabled(paths)).ConfigureAwait(false);
+                hasValid = states.Values.Any(state => state is not null);
             }
 
             if (!hasValid)

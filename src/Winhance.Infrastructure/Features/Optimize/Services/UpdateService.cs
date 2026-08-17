@@ -346,10 +346,17 @@ public class UpdateService(
             return;
         }
 
-        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label), stateWriter);
+        var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label));
+        var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
                 $"[UpdateService] {result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
+
+        // This path is synchronous and cannot await, so a process-launching effect would be dropped.
+        // UpdatePolicyDetectorConformanceTests asserts none exists; this catches it at runtime if one does.
+        if (plan.AsyncEffects.Count > 0)
+            logService.Log(LogLevel.Error,
+                $"[UpdateService] {plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
     }
 
     public async Task<int> GetCurrentUpdatePolicyIndexAsync()

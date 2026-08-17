@@ -28,35 +28,12 @@ public class SettingApplicationService(
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
     IStateWriter stateWriter,
+    IAsyncEffectRunner asyncEffectRunner,
     IWindowsVersionService windowsVersionService,
     ICatalogDetectionService catalogDetection,
     ICatalogSettingStateProvider settingStateProvider,
     IConfigImportState configImportState) : ISettingApplicationService
 {
-    // Battery presence doesn't change mid-session, so resolve it once and cache. The async
-    // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
-    // and stored here so the synchronous formatters can consult it. Fail OPEN: a detection failure
-    // defaults to true (render BOTH AC and DC — more information, never a phantom suppression).
-    private bool? _hasBatteryCache;
-
-    private async Task<bool> GetHasBatteryAsync()
-    {
-        if (_hasBatteryCache.HasValue)
-            return _hasBatteryCache.Value;
-
-        try
-        {
-            _hasBatteryCache = await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Debug, $"[SettingApplicationService] Battery detection failed, defaulting to true (render both AC/DC): {ex.Message}");
-            _hasBatteryCache = true;
-        }
-
-        return _hasBatteryCache.Value;
-    }
-
     // The live Windows build, threaded into ApplyRequestResolver.Resolve / ResolveTargetLabel to gate
     // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses.
     private WinBuild CurrentBuild()
@@ -84,17 +61,24 @@ public class SettingApplicationService(
             return OperationResult.Failed(nullPlanMessage);
         }
 
-        var result = ApplyExecutor.Execute(plan, stateWriter);
+        var applyPlan = ApplyPlan.From(plan);
+        var result = ApplyExecutor.Execute(applyPlan, stateWriter);
+
+        // Awaited before the restarts below, so a script's writes are in place when Explorer restarts.
+        var deferredFailures = await asyncEffectRunner.RunAllAsync(applyPlan.AsyncEffects).ConfigureAwait(false);
 
         // The apply engine performs no process/service restarts, so run them here explicitly - so a setting
         // that restarts Explorer/a service on apply still takes visual effect. This respects an active
         // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart.
         await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
-        if (result.AllSucceeded)
+        if (result.AllSucceeded && deferredFailures.Count == 0)
             return OperationResult.Succeeded();
 
-        var message = $"{result.Failed}/{result.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", result.Failures)}";
+        var allFailures = deferredFailures.Count == 0
+            ? result.Failures
+            : result.Failures.Concat(deferredFailures).ToList();
+        var message = $"{result.Failed + deferredFailures.Count}/{applyPlan.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", allFailures)}";
         logService.Log(LogLevel.Warning, $"[SettingApplicationService] {message}");
         return OperationResult.Failed(message);
     }
@@ -145,12 +129,12 @@ public class SettingApplicationService(
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE any relationship follow-on / nested applies run so they don't mutate the read.
-        // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
-        // can render AC-only on battery-less machines and before/after CANNOT disagree.
+        // One read for both halves of the receipt, so before/after CANNOT disagree. Unknown battery state
+        // renders BOTH AC and DC - more information beats silently hiding the DC half.
         string? beforeDisplay = null;
         if (setting.Control != ControlKind.Action)
         {
-            var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
+            var hasBattery = hardwareDetectionService.HasBattery() ?? true;
             try
             {
                 // The full-state provider reads the complete before-state incl. the typed AC/DC, consistent with
@@ -525,10 +509,9 @@ public class SettingApplicationService(
                 return;
             }
 
-            // Battery flag was resolved in ApplySettingAsync's before-capture block for every
-            // non-Action setting (and Action never hits the AC/DC formatting below). A null cache
-            // means detection never ran for this path — fail open to rendering both components.
-            var hasBattery = _hasBatteryCache ?? true;
+            // Same read as the before-capture block above. The service caches, so before and after
+            // cannot disagree; unknown renders both components.
+            var hasBattery = hardwareDetectionService.HasBattery() ?? true;
             var after = FormatStateDisplay(setting, enable, value, hasBattery);
             var before = beforeDisplay ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
             if (before == after)

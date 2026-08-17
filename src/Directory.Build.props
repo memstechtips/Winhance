@@ -19,4 +19,32 @@
     <BaseIntermediateOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
     <BaseOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\bin\</BaseOutputPath>
   </PropertyGroup>
+  <!--
+    House-style enforcement. Added 2026-08-17.
+
+    EnforceCodeStyleInBuild is the load-bearing line: IDExxxx style rules are DISABLED
+    by default on command-line builds and only run inside Visual Studio without it, so
+    without this the .editorconfig would silently do nothing on the SSH test gate.
+
+    AnalysisLevel is PINNED rather than left at the default `latest`, so that installing
+    a newer SDK cannot add new warnings on its own and turn a green gate red without
+    anyone changing code.
+
+    No TreatWarningsAsErrors — that remains a deliberate repo position. Warnings are
+    driven to zero by hand first; promoting to error comes after, once clean.
+  -->
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>10.0-Minimum</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.16.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

@@ -21,8 +21,8 @@ public class CatalogSettingsRegistryCompositionTests
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
         version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         var hardware = new Mock<IHardwareDetectionService>();
-        hardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(true);
+        hardware.Setup(h => h.HasBattery()).Returns(false);
+        hardware.Setup(h => h.SupportsHybridSleep()).Returns(true);
         var existence = new Mock<ICatalogPowerExistenceFilter>();
         existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync((IReadOnlyList<Setting> s) => s); // passthrough - existence proven separately
@@ -82,8 +82,8 @@ public class CatalogSettingsRegistryCompositionTests
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
         version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
         var hardware = new Mock<IHardwareDetectionService>();
-        hardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
-        hardware.Setup(h => h.SupportsHybridSleepAsync()).ReturnsAsync(true);
+        hardware.Setup(h => h.HasBattery()).Returns(false);
+        hardware.Setup(h => h.SupportsHybridSleep()).Returns(true);
         var existence = new Mock<ICatalogPowerExistenceFilter>();
         existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync((IReadOnlyList<Setting> s) => s); // passthrough - existence proven separately

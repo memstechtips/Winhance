@@ -18,4 +18,27 @@
     <BaseIntermediateOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
     <BaseOutputPath>$(WINHANCE_LOCAL_BUILD_ROOT)\$(MSBuildProjectName)\bin\</BaseOutputPath>
   </PropertyGroup>
+  <!--
+    Analyzer + house-style enforcement, same settings as src\Directory.Build.props.
+    Duplicated rather than imported: this file must NOT import src's, because that one
+    also sets Base*OutputPath and the two would fight over the test-binary redirect
+    that the comment above explains is load-bearing.
+
+    Test code is analysed under the same .editorconfig as src. The rules that would
+    otherwise fire constantly on tests (CA1707 underscores, for Method_Scenario_Expectation
+    names) are already silenced there by ID, so no test-specific relaxation is needed.
+  -->
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>10.0-Minimum</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.16.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

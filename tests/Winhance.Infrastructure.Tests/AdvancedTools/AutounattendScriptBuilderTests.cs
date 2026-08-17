@@ -29,7 +29,7 @@ public class AutounattendScriptBuilderTests
             .ReturnsAsync(new PowerPlan { Guid = "balanced-guid", Name = "Balanced" });
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
-        _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(false);
+        _hardwareDetectionService.Setup(s => s.HasBattery()).Returns(false);
 
         // Syntax validation succeeds by default
         _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))

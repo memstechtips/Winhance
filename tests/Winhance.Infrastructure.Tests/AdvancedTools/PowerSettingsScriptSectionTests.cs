@@ -191,7 +191,7 @@ public class PowerSettingsScriptSectionTests
             .ReturnsAsync(new PowerPlan { Guid = "active-guid", Name = "Balanced" });
         _powerSettingsQueryService.Setup(s => s.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
-        _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(false);
+        _hardwareDetectionService.Setup(s => s.HasBattery()).Returns(false);
 
         var sb = new StringBuilder();
         var result = await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
@@ -250,7 +250,7 @@ public class PowerSettingsScriptSectionTests
             {
                 { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (10, 5) }
             });
-        _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(true);
+        _hardwareDetectionService.Setup(s => s.HasBattery()).Returns(true);
 
         var sb = new StringBuilder();
         var result = await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");
@@ -319,7 +319,7 @@ public class PowerSettingsScriptSectionTests
                 { "5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f", (10, 5) },
                 { "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", (20, 15) }
             });
-        _hardwareDetectionService.Setup(s => s.HasBatteryAsync()).ReturnsAsync(false);
+        _hardwareDetectionService.Setup(s => s.HasBattery()).Returns(false);
 
         var sb = new StringBuilder();
         await _sut.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ");

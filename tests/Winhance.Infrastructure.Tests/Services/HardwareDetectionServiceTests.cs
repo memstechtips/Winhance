@@ -35,36 +35,49 @@ public class HardwareDetectionServiceTests
 
     #endregion
 
-    #region HasBatteryAsync — WMI integration test (runs against real hardware)
+    #region HasBattery — WMI integration test (runs against real hardware)
 
     [Fact]
-    public async Task HasBatteryAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void HasBattery_DoesNotThrow_ReturnsBooleanValue()
     {
         // Arrange
         var service = new HardwareDetectionService(_mockLogService.Object);
 
         // Act
-        var act = () => service.HasBatteryAsync();
+        var act = () => service.HasBattery();
 
         // Assert - should complete without throwing; actual value depends on hardware
-        await act.Should().NotThrowAsync();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void HasBattery_QueriesWmiOnce_AndServesLaterCallsFromCache()
+    {
+        // The cache is what makes a synchronous HasBattery() safe to call from anywhere: only the
+        // first caller pays for the WMI round trip. Same instance must keep answering the same way.
+        var service = new HardwareDetectionService(_mockLogService.Object);
+
+        var first = service.HasBattery();
+        var second = service.HasBattery();
+
+        second.Should().Be(first);
     }
 
     #endregion
 
-    #region SupportsHybridSleepAsync
+    #region SupportsHybridSleep
 
     [Fact]
-    public async Task SupportsHybridSleepAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void SupportsHybridSleep_DoesNotThrow_ReturnsBooleanValue()
     {
         // Arrange
         var service = new HardwareDetectionService(_mockLogService.Object);
 
         // Act
-        var act = () => service.SupportsHybridSleepAsync();
+        var act = () => service.SupportsHybridSleep();
 
         // Assert
-        await act.Should().NotThrowAsync();
+        act.Should().NotThrow();
     }
 
     #endregion

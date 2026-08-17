@@ -45,4 +45,15 @@ public class ThemeWallpaperEffectsConformanceTests
             (SettingIds.ThemeModeWindows, "Dark Mode"),
         });
     }
+
+    // ThemeWallpaperApplier runs this setting through the synchronous ApplyExecutor and cannot await, so a
+    // process-launching effect added here would be split off the plan and never run.
+    [Fact]
+    public void No_theme_state_carries_an_effect_the_synchronous_apply_path_cannot_run()
+    {
+        SettingCatalog.All.First(s => s.Id == SettingIds.ThemeModeWindows)
+            .States.SelectMany(st => st.Effects)
+            .Where(e => e.IsAsyncIo)
+            .Should().BeEmpty();
+    }
 }

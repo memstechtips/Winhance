@@ -12,6 +12,11 @@ public abstract record Effect
     /// as Target.AppliesTo / StateRole.AppliesTo. Only WallpaperEffect uses it today (the default wallpaper is
     /// OS-divergent); every other effect leaves it empty (unconditional).</summary>
     public IReadOnlyList<BuildRange> AppliesTo { get; init; } = System.Array.Empty<BuildRange>();
+
+    /// <summary>True when carrying this effect out launches a PROCESS and waits for it, rather than making
+    /// a blocking OS call the way the registry and native-power effects do. <see cref="ApplyPlan"/> routes
+    /// these to IAsyncEffectRunner; this is the one place that classification lives.</summary>
+    public bool IsAsyncIo => this is ScriptEffect or RegContentEffect;
 }
 
 /// <summary>PowerShell script this state runs on apply. Detection comes from an accompanying Target in the state's Set.</summary>

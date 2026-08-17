@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -9,13 +10,54 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService) : IScheduledTaskService
+/// <summary>Task Scheduler COM adapter. Implements two contracts over one connection helper: Winhance's own
+/// tasks (<see cref="IScheduledTaskService"/>) and the state of tasks Windows owns
+/// (<see cref="IScheduledTaskStateService"/>).</summary>
+public class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService)
+    : IScheduledTaskService, IScheduledTaskStateService
 {
     private enum TaskTriggerType
     {
         Startup = 8,
         Logon = 9
     }
+
+    // ERROR_FILE_NOT_FOUND as an HRESULT. The Task Scheduler COM API reports BOTH "no such folder" and
+    // "no such task" with it, and both mean the same thing here: the task is not on this machine.
+    private const int TaskNotFoundHResult = unchecked((int)0x80070002);
+
+    // Releases every COM object taken through it, youngest first.
+    private sealed class ComScope : IDisposable
+    {
+        private readonly List<object> _objects = new();
+
+        public object Keep(object comObject)
+        {
+            if (comObject is not null)
+                _objects.Add(comObject);
+            return comObject;
+        }
+
+        public void Dispose()
+        {
+            for (var i = _objects.Count - 1; i >= 0; i--)
+            {
+                try { Marshal.ReleaseComObject(_objects[i]); }
+                catch { /* best-effort COM release */ }
+            }
+        }
+    }
+
+    private dynamic Connect(ComScope com)
+    {
+        Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service")!;
+        dynamic taskService = com.Keep(Activator.CreateInstance(taskSchedulerType)!);
+
+        taskService.Connect();
+        return taskService;
+    }
+
+    // --- Winhance's own tasks (IScheduledTaskService) ---
 
     public async Task<OperationResult> RegisterScheduledTaskAsync(RemovalScript script)
     {
@@ -33,7 +75,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
                 var triggerType = script.RunOnStartup ? TaskTriggerType.Startup : TaskTriggerType.Logon;
 
-                return await RegisterTaskInternal(script.Name, script.ActualScriptPath, null, triggerType).ConfigureAwait(false);
+                return await RegisterTaskInternal(script.Name, script.ActualScriptPath, triggerType).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -43,25 +85,21 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         }).ConfigureAwait(false);
     }
 
-
     public async Task<OperationResult> UnregisterScheduledTaskAsync(string taskName)
     {
         return await Task.Run(() =>
         {
-            dynamic? taskService = null;
-            dynamic? folder = null;
-            dynamic? existingTask = null;
+            using var com = new ComScope();
             try
             {
-                taskService = CreateTaskService();
-                folder = GetWinhanceFolder(taskService);
-
-                if (folder == null) return OperationResult.Succeeded();
+                object? found = GetWinhanceFolder(com, Connect(com));
+                if (found is null) return OperationResult.Succeeded();
+                dynamic folder = found;
 
                 try
                 {
-                    existingTask = folder.GetTask(taskName);
-                    if (existingTask != null)
+                    object? existingTask = com.Keep((object)folder.GetTask(taskName));
+                    if (existingTask is not null)
                     {
                         folder.DeleteTask(taskName, 0);
                         logService.LogInformation($"Unregistered task: {taskName}");
@@ -79,12 +117,6 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.LogError($"Error unregistering task: {taskName}", ex);
                 return OperationResult.Failed(ex.Message, ex);
             }
-            finally
-            {
-                ReleaseComObject(existingTask);
-                ReleaseComObject(folder);
-                ReleaseComObject(taskService);
-            }
         }).ConfigureAwait(false);
     }
 
@@ -92,29 +124,19 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
-            dynamic? taskService = null;
-            dynamic? folder = null;
-            dynamic? task = null;
+            using var com = new ComScope();
             try
             {
-                taskService = CreateTaskService();
-                folder = GetWinhanceFolder(taskService);
+                object? found = GetWinhanceFolder(com, Connect(com));
+                if (found is null) return false;
+                dynamic folder = found;
 
-                if (folder == null) return false;
-
-                task = folder.GetTask(taskName);
-                return task != null;
+                return com.Keep((object)folder.GetTask(taskName)) is not null;
             }
             catch (Exception ex)
             {
                 logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not registered: {ex.Message}");
                 return false;
-            }
-            finally
-            {
-                ReleaseComObject(task);
-                ReleaseComObject(folder);
-                ReleaseComObject(taskService);
             }
         }).ConfigureAwait(false);
     }
@@ -123,26 +145,24 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
     {
         return await Task.Run(() =>
         {
-            dynamic? taskService = null;
-            dynamic? folder = null;
-            dynamic? task = null;
+            using var com = new ComScope();
             try
             {
-                taskService = CreateTaskService();
-                folder = GetWinhanceFolder(taskService);
-
-                if (folder == null)
+                object? found = GetWinhanceFolder(com, Connect(com));
+                if (found is null)
                 {
                     logService.LogError($"Winhance task folder not found when trying to run: {taskName}");
                     return OperationResult.Failed("Winhance task folder not found");
                 }
+                dynamic folder = found;
 
-                task = folder.GetTask(taskName);
-                if (task == null)
+                object? foundTask = com.Keep((object)folder.GetTask(taskName));
+                if (foundTask is null)
                 {
                     logService.LogError($"Task not found: {taskName}");
                     return OperationResult.Failed($"Task not found: {taskName}");
                 }
+                dynamic task = foundTask;
 
                 task.Run(null);
                 logService.LogInformation($"Started task: {taskName}");
@@ -153,277 +173,148 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 logService.LogError($"Error running task: {taskName}", ex);
                 return OperationResult.Failed(ex.Message, ex);
             }
-            finally
-            {
-                ReleaseComObject(task);
-                ReleaseComObject(folder);
-                ReleaseComObject(taskService);
-            }
         }).ConfigureAwait(false);
     }
 
-    private async Task<OperationResult> RegisterTaskInternal(string taskName, string? scriptPath, string? username, TaskTriggerType triggerType, string? command = null)
+    private async Task<OperationResult> RegisterTaskInternal(string taskName, string scriptPath, TaskTriggerType triggerType)
     {
-        dynamic? taskService = null;
-        dynamic? folder = null;
-        dynamic? taskDefinition = null;
+        using var com = new ComScope();
+        dynamic taskService = Connect(com);
+        dynamic folder = GetOrCreateWinhanceFolder(com, taskService);
+
+
+        await RemoveExistingTask(com, folder, taskName).ConfigureAwait(false);
+
+        dynamic taskDefinition = CreateTaskDefinition(com, taskService, scriptPath, triggerType);
+
+        folder.RegisterTaskDefinition(
+            taskName,
+            taskDefinition,
+            6,      // TASK_CREATE_OR_UPDATE
+            null,   // user: always SYSTEM
+            null,   // password
+            5,      // TASK_LOGON_SERVICE_ACCOUNT
+            null
+        );
+
+        logService.LogInformation($"Registered task: {taskName} as SYSTEM");
+        return OperationResult.Succeeded();
+    }
+
+    private object GetOrCreateWinhanceFolder(ComScope com, dynamic taskService)
+    {
+        dynamic rootFolder = com.Keep((object)taskService.GetFolder("\\"));
         try
         {
-            taskService = CreateTaskService();
-            folder = GetOrCreateWinhanceFolder(taskService);
-
-            await RemoveExistingTask(folder, taskName).ConfigureAwait(false);
-
-            taskDefinition = CreateTaskDefinition(taskService, scriptPath, command, username, triggerType);
-
-            folder.RegisterTaskDefinition(
-                taskName,
-                taskDefinition,
-                6, // TASK_CREATE_OR_UPDATE
-                username,
-                null, // password
-                username != null ? 1 : 5, // TASK_LOGON_INTERACTIVE_TOKEN or TASK_LOGON_SERVICE_ACCOUNT
-                null
-            );
-
-            logService.LogInformation($"Registered task: {taskName} as {username ?? "SYSTEM"}");
-            return OperationResult.Succeeded();
-        }
-        finally
-        {
-            ReleaseComObject(taskDefinition);
-            ReleaseComObject(folder);
-            ReleaseComObject(taskService);
-        }
-    }
-
-    private dynamic CreateTaskService()
-    {
-        Type taskSchedulerType = Type.GetTypeFromProgID("Schedule.Service")!;
-        dynamic taskService = Activator.CreateInstance(taskSchedulerType)!;
-        taskService.Connect();
-        return taskService;
-    }
-
-    private static void ReleaseComObject(object? comObject)
-    {
-        if (comObject != null)
-        {
-            try { Marshal.ReleaseComObject(comObject); } catch { /* best-effort COM release */ }
-        }
-    }
-
-    private dynamic GetOrCreateWinhanceFolder(dynamic taskService)
-    {
-        dynamic rootFolder = taskService.GetFolder("\\");
-        try
-        {
-            return rootFolder.GetFolder("Winhance");
+            return com.Keep((object)rootFolder.GetFolder("Winhance"));
         }
         catch (Exception ex)
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder doesn't exist, creating: {ex.Message}");
-            return rootFolder.CreateFolder("Winhance");
-        }
-        finally
-        {
-            ReleaseComObject(rootFolder);
+            return com.Keep((object)rootFolder.CreateFolder("Winhance"));
         }
     }
 
-    private dynamic? GetWinhanceFolder(dynamic taskService)
+    private object? GetWinhanceFolder(ComScope com, dynamic taskService)
     {
-        dynamic? rootFolder = null;
         try
         {
-            rootFolder = taskService.GetFolder("\\");
-            return rootFolder.GetFolder("Winhance");
+            dynamic rootFolder = com.Keep((object)taskService.GetFolder("\\"));
+            return com.Keep((object)rootFolder.GetFolder("Winhance"));
         }
         catch (Exception ex)
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder not found: {ex.Message}");
             return null;
         }
-        finally
-        {
-            ReleaseComObject(rootFolder);
-        }
     }
 
-    private async Task RemoveExistingTask(dynamic folder, string taskName)
+    private async Task RemoveExistingTask(ComScope com, dynamic folder, string taskName)
     {
-        dynamic? existingTask = null;
         try
         {
-            existingTask = folder.GetTask(taskName);
-            if (existingTask != null)
+            object? existingTask = com.Keep((object)folder.GetTask(taskName));
+            if (existingTask is not null)
             {
                 folder.DeleteTask(taskName, 0);
                 logService.LogInformation($"Deleted existing task: {taskName}");
 
-                // Wait 2 seconds for Windows scheduled task cache to reset
+                // The Task Scheduler serves a stale task list for a moment after a delete.
                 await Task.Delay(2000).ConfigureAwait(false);
-                logService.LogInformation("Waited 2 seconds for task cache reset");
             }
         }
         catch (Exception ex)
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] No existing task '{taskName}' to remove: {ex.Message}");
         }
-        finally
-        {
-            ReleaseComObject(existingTask);
-        }
     }
 
-
-    private dynamic CreateTaskDefinition(dynamic taskService, string scriptPath, string command, string username, TaskTriggerType triggerType)
+    private static dynamic CreateTaskDefinition(ComScope com, dynamic taskService, string scriptPath, TaskTriggerType triggerType)
     {
-        var taskDefinition = taskService.NewTask(0);
+        dynamic taskDefinition = com.Keep((object)taskService.NewTask(0));
 
-        dynamic? settings = null;
-        dynamic? triggers = null;
-        dynamic? trigger = null;
-        dynamic? actions = null;
-        dynamic? action = null;
-        dynamic? principal = null;
+        dynamic settings = com.Keep((object)taskDefinition.Settings);
+        settings.Enabled = true;
+        settings.DisallowStartIfOnBatteries = false;
+        settings.StopIfGoingOnBatteries = false;
+        settings.AllowDemandStart = true;
+
+        dynamic triggers = com.Keep((object)taskDefinition.Triggers);
+        dynamic trigger = com.Keep((object)triggers.Create((int)triggerType));
+        trigger.Enabled = true;
+
+        dynamic actions = com.Keep((object)taskDefinition.Actions);
+        dynamic action = com.Keep((object)actions.Create(0));   // TASK_ACTION_EXEC
+        action.Path = "powershell.exe";
+        action.Arguments = $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\"";
+
+        dynamic principal = com.Keep((object)taskDefinition.Principal);
+        principal.UserId = "SYSTEM";
+        principal.LogonType = 5;    // Run whether logged in or not
+        principal.RunLevel = 1;     // Highest privileges
+
+        return taskDefinition;
+    }
+
+    // --- State of tasks Windows owns (IScheduledTaskStateService) ---
+
+    public IReadOnlyDictionary<string, bool?> GetTasksEnabled(IReadOnlyCollection<string> taskPaths)
+    {
+        var results = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+        if (taskPaths.Count == 0)
+            return results;
+
+        using var com = new ComScope();
         try
         {
-            // Settings
-            settings = taskDefinition.Settings;
-            settings.Enabled = true;
-            settings.DisallowStartIfOnBatteries = false;
-            settings.StopIfGoingOnBatteries = false;
-            settings.AllowDemandStart = true;
-
-            // Trigger
-            triggers = taskDefinition.Triggers;
-            trigger = triggers.Create((int)triggerType);
-            trigger.Enabled = true;
-
-            if (triggerType == TaskTriggerType.Logon && !string.IsNullOrEmpty(username))
-            {
-                trigger.UserId = username;
-            }
-
-            // Action
-            actions = taskDefinition.Actions;
-            action = actions.Create(0); // TASK_ACTION_EXEC
-            action.Path = "powershell.exe";
-            action.Arguments = scriptPath != null
-                ? $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\""
-                : command;
-
-            // Principal
-            principal = taskDefinition.Principal;
-            if (!string.IsNullOrEmpty(username))
-            {
-                principal.UserId = username;
-                principal.LogonType = 5; // Run whether logged in or not
-                principal.RunLevel = 1; // Highest privileges
-            }
-            else
-            {
-                principal.UserId = "SYSTEM";
-                principal.LogonType = 5;
-                principal.RunLevel = 1;
-            }
-
-            return taskDefinition;
+            // ONE connection for the batch: creating a Schedule.Service instance is an out-of-process COM
+            // activation, and doing it per path is what made a page navigation open N of them at once.
+            dynamic taskService = Connect(com);
+            foreach (var taskPath in taskPaths)
+                results[taskPath] = ReadTaskEnabled(com, taskService, taskPath);
         }
-        finally
+        catch (Exception ex)
         {
-            ReleaseComObject(principal);
-            ReleaseComObject(action);
-            ReleaseComObject(actions);
-            ReleaseComObject(trigger);
-            ReleaseComObject(triggers);
-            ReleaseComObject(settings);
-        }
-    }
-
-
-    public async Task<OperationResult> EnableTaskAsync(string taskPath)
-    {
-        return await Task.Run(() => SetTaskEnabled(taskPath, true)).ConfigureAwait(false);
-    }
-
-    public async Task<OperationResult> DisableTaskAsync(string taskPath)
-    {
-        return await Task.Run(() => SetTaskEnabled(taskPath, false)).ConfigureAwait(false);
-    }
-
-    // ERROR_FILE_NOT_FOUND as an HRESULT. The Task Scheduler COM API reports BOTH "no such folder" and
-    // "no such task" with it, and both mean the same thing here: the task is not on this machine.
-    private const int TaskNotFoundHResult = unchecked((int)0x80070002);
-
-    /// <summary>True when <paramref name="ex"/> means "that task simply is not present on this machine" -
-    /// a <see cref="FileNotFoundException"/>, or any exception carrying HRESULT 0x80070002. The chain is
-    /// walked because the Task Scheduler calls go through dynamic dispatch, which may wrap the COMException
-    /// that actually carries the HRESULT.</summary>
-    private static bool IsTaskNotFound(Exception? ex)
-    {
-        for (; ex is not null; ex = ex.InnerException)
-        {
-            if (ex is FileNotFoundException || ex.HResult == TaskNotFoundHResult)
-                return true;
+            // Every requested path resolves to "unknown" rather than being absent, so the detection context
+            // does not read a connection failure as "never asked".
+            logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                $"Failed to connect to the Task Scheduler; {taskPaths.Count} task state(s) unavailable: {ex.Message}");
+            foreach (var taskPath in taskPaths)
+                results[taskPath] = null;
         }
 
-        return false;
+        return results;
     }
 
-    public async Task<bool?> IsTaskEnabledAsync(string taskPath)
+    public OperationResult SetTaskEnabled(string taskPath, bool enabled)
     {
-        return await Task.Run(() =>
-        {
-            dynamic? taskService = null;
-            dynamic? folder = null;
-            dynamic? task = null;
-            try
-            {
-                taskService = CreateTaskService();
-                var (folderPath, taskName) = SplitTaskPath(taskPath);
-                folder = taskService.GetFolder(folderPath);
-                task = folder.GetTask(taskName);
-                // State: 1 = Disabled, 3 = Ready, 4 = Running
-                int state = (int)task.State;
-                return (bool?)(state != 1);
-            }
-            catch (Exception ex) when (IsTaskNotFound(ex))
-            {
-                // Not a fault: the task is not installed on this PC (Recall, for one, is absent from most).
-                // The detection context already models "absent" as null, so this is a normal detection
-                // outcome - reporting it at Warning put a red herring in every user's log.
-                logService.Log(Core.Features.Common.Enums.LogLevel.Debug,
-                    $"Scheduled task {taskPath} is not present on this machine");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
-                    $"Failed to query task state for {taskPath}: {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                ReleaseComObject(task);
-                ReleaseComObject(folder);
-                ReleaseComObject(taskService);
-            }
-        }).ConfigureAwait(false);
-    }
-
-    private OperationResult SetTaskEnabled(string taskPath, bool enabled)
-    {
-        dynamic? taskService = null;
-        dynamic? folder = null;
-        dynamic? task = null;
+        using var com = new ComScope();
         try
         {
-            taskService = CreateTaskService();
+            dynamic taskService = Connect(com);
             var (folderPath, taskName) = SplitTaskPath(taskPath);
-            folder = taskService.GetFolder(folderPath);
-            task = folder.GetTask(taskName);
+            dynamic folder = com.Keep((object)taskService.GetFolder(folderPath));
+            dynamic task = com.Keep((object)folder.GetTask(taskName));
             task.Enabled = enabled;
             logService.LogInformation($"{(enabled ? "Enabled" : "Disabled")} task: {taskPath}");
             return OperationResult.Succeeded();
@@ -434,12 +325,47 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 $"Failed to {(enabled ? "enable" : "disable")} task {taskPath}: {ex.Message}");
             return OperationResult.Failed(ex.Message, ex);
         }
-        finally
+    }
+
+    // Never throws: a missing task and a failed read both resolve to null, matching how the detection
+    // context models "absent".
+    private bool? ReadTaskEnabled(ComScope com, dynamic taskService, string taskPath)
+    {
+        try
         {
-            ReleaseComObject(task);
-            ReleaseComObject(folder);
-            ReleaseComObject(taskService);
+            var (folderPath, taskName) = SplitTaskPath(taskPath);
+            dynamic folder = com.Keep((object)taskService.GetFolder(folderPath));
+            dynamic task = com.Keep((object)folder.GetTask(taskName));
+            // State: 1 = Disabled, 3 = Ready, 4 = Running
+            int state = (int)task.State;
+            return state != 1;
         }
+        catch (Exception ex) when (IsTaskNotFound(ex))
+        {
+            // Normal: the task is not installed on this PC (Recall, for one, is absent from most). Reporting
+            // it at Warning put a red herring in every user's log.
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug,
+                $"Scheduled task {taskPath} is not present on this machine");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(Core.Features.Common.Enums.LogLevel.Warning,
+                $"Failed to query task state for {taskPath}: {ex.Message}");
+            return null;
+        }
+    }
+
+    // The chain is walked because dynamic dispatch may wrap the COMException carrying the HRESULT.
+    private static bool IsTaskNotFound(Exception? ex)
+    {
+        for (; ex is not null; ex = ex.InnerException)
+        {
+            if (ex is FileNotFoundException || ex.HResult == TaskNotFoundHResult)
+                return true;
+        }
+
+        return false;
     }
 
     private static (string FolderPath, string TaskName) SplitTaskPath(string taskPath)
@@ -464,5 +390,4 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             fileSystemService.WriteAllText(script.ActualScriptPath!, script.Content);
         }
     }
-
 }

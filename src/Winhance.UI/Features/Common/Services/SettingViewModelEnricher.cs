@@ -24,7 +24,9 @@ public class SettingViewModelEnricher : ISettingViewModelEnricher
     /// <inheritdoc />
     public async Task DetectBatteryAsync(SettingItemViewModel viewModel)
     {
-        viewModel.HasBattery = await _hardwareDetectionService.HasBatteryAsync();
+        // Task.Run at the call site: the first HasBattery() blocks on WMI and this is the UI thread.
+        // Unknown shows both AC and DC.
+        viewModel.HasBattery = await Task.Run(() => _hardwareDetectionService.HasBattery()) ?? true;
     }
 
     /// <inheritdoc />

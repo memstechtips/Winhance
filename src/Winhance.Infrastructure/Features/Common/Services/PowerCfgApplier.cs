@@ -13,13 +13,16 @@ public class PowerCfgApplier(
     ILogService logService) : IPowerCfgApplier
 {
 
-    public async Task<bool> WriteValueIndexAsync(PowerCfgTarget target, PowerContext context, int value)
+    public bool WriteValueIndex(PowerCfgTarget target, PowerContext context, int value)
     {
         // Per-(target, context) write for a single context: a DC write is skipped on a battery-less machine; the
         // active scheme is resolved, the value index written, and the scheme committed by re-activating it. The
         // apply engine emits one PowerCfgSetOp per context, so the writer calls this once per context (AC then
         // DC). Writing the same value again is a no-op on disk, so it is omitted here.
-        if (context == PowerContext.DC && !await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false))
+        // Unknown battery state attempts the write: a wasted DC write on a desktop is harmless, a skipped
+        // one on a laptop loses the setting.
+        bool hasBattery = hardwareDetectionService.HasBattery() ?? true;
+        if (context == PowerContext.DC && !hasBattery)
         {
             logService.Log(LogLevel.Debug, $"[PowerCfgApplier] Skipping DC write for {target.SettingGuid} - no battery present");
             return true;

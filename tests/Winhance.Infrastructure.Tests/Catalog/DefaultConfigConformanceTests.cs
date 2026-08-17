@@ -24,6 +24,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 ///
 /// Run: winhance-harness DefaultConfigConformanceTests
 /// </summary>
+[Collection(RepoFileWritersCollection.Name)]
 public class DefaultConfigConformanceTests
 {
     private readonly ITestOutputHelper _output;

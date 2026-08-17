@@ -1,0 +1,195 @@
+# Winhance house style.
+#
+# Every rule here was chosen by MEASURING this repo, not by importing a generic style.
+# Where a number appears in a comment it is the count as of 2026-08-17, so a future
+# reader can tell whether a rule still describes the code or has drifted from it.
+#
+# Severity tiers used below:
+#   error       correctness. A build must not produce these.
+#   warning     house style and anti-bloat. Drive to zero, then promote to error.
+#   suggestion  IDE-only nudge; does not affect the build.
+#   none        deliberately off. The comment says why.
+
+root = true
+
+[*]
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+
+[*.{json,yml,yaml,xml,csproj,props,targets}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+
+#### Formatting — matches the existing code, so it flags drift rather than the codebase ####
+
+# 574 of 574 .cs files use file-scoped namespaces. Zero use block namespaces.
+csharp_style_namespace_declarations = file_scoped:warning
+
+# `this.` appears 48 times in ~89k lines. It is not the convention.
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Measured `var` usage: 419 `var x = new T()` against 2 explicit. The rule is
+# "var when the right-hand side already names the type", which is also
+# dotnet/runtime rule #10. Elsewhere, name the type.
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# 950 expression-bodied members. Established practice, but never forced.
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = true:suggestion
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+
+# Modern language features this codebase already uses freely.
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+
+#### Naming ####
+
+# Private instance fields: 803 of 803 are _camelCase. Total compliance, so this
+# is safe to enforce at warning without a cleanup debt.
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_fields.required_modifiers =
+
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+dotnet_naming_rule.constants_pascal.severity = warning
+dotnet_naming_rule.constants_pascal.symbols = constants
+dotnet_naming_rule.constants_pascal.style = pascal
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+dotnet_naming_rule.interfaces_prefixed_i.severity = warning
+dotnet_naming_rule.interfaces_prefixed_i.symbols = interfaces
+dotnet_naming_rule.interfaces_prefixed_i.style = i_pascal
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.i_pascal.required_prefix = I
+dotnet_naming_style.i_pascal.capitalization = pascal_case
+
+#### TIER 1 — correctness. These are real bugs, not taste. ####
+#
+# Deliberately `warning`, NOT `error`, on first adoption. Rolled out 2026-08-17 as error and
+# immediately broke two test projects on a single pre-existing CA1816 site
+# (InteractiveUserService.cs:811) — which contradicted the rollout plan these tiers were
+# written for: turn on -> measure -> fix the backlog -> THEN promote to error so it cannot
+# regress. Promote this block once the solution-wide count is at zero; the repo's standing
+# "no TreatWarningsAsErrors" position means nothing else will fail a build in the meantime.
+
+dotnet_diagnostic.CA2013.severity = warning   # ReferenceEquals on value types — always wrong
+dotnet_diagnostic.CA2200.severity = warning   # `throw ex` — destroys the stack trace
+dotnet_diagnostic.CA2247.severity = warning   # TaskCompletionSource wrong enum argument
+dotnet_diagnostic.CA2017.severity = warning   # logging template parameter count mismatch
+dotnet_diagnostic.CA1816.severity = warning   # Dispose should call SuppressFinalize
+dotnet_diagnostic.CA2215.severity = warning   # Dispose should call base.Dispose
+dotnet_diagnostic.CS4014.severity = warning   # un-awaited task — silent fire-and-forget
+dotnet_diagnostic.CA2012.severity = warning   # ValueTask consumed incorrectly
+
+#### TIER 2 — anti-bloat. This is the tier that targets the actual complaint. ####
+# Each of these mechanically removes the residue of over-engineering: code written
+# speculatively, kept "just in case", and never actually reached.
+
+dotnet_diagnostic.IDE0051.severity = warning   # unused private member
+dotnet_diagnostic.IDE0052.severity = warning   # private member written but never read
+dotnet_diagnostic.IDE0060.severity = warning   # unused parameter — premature generality
+dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using
+dotnet_diagnostic.IDE0035.severity = warning   # unreachable code
+dotnet_diagnostic.IDE0080.severity = warning   # unnecessary suppression operator
+dotnet_diagnostic.IDE0040.severity = warning   # accessibility modifiers required
+dotnet_diagnostic.CA1822.severity = suggestion # member can be static — often signals a stateless "abstraction"
+
+# CA1031 (do not catch general Exception) is the classic anti-defensive-bloat rule,
+# and it is deliberately a SUGGESTION here rather than a warning. The audit measured
+# catch density at 1-per-75 lines in Infrastructure against 1-per-3853 in Core — that
+# asymmetry is correct and intentional, because Infrastructure is the layer that talks
+# to the registry, COM and the task scheduler, where broad catches are the right call.
+# Escalating this to warning would flag the layer that is behaving properly.
+dotnet_diagnostic.CA1031.severity = suggestion
+
+#### TIER 3 — deliberately off, with reasons ####
+
+# CA1812 flags internal classes never instantiated. It fires constantly on
+# DI-registered types because the container instantiates them by reflection, and
+# this app registers ~131 services that way.
+dotnet_diagnostic.CA1812.severity = none
+
+# CA1848 (use LoggerMessage delegates) is a hot-path performance rule. This is a
+# desktop settings app; the logging volume does not justify the ceremony.
+dotnet_diagnostic.CA1848.severity = none
+
+# CA1303 wants every literal string localised. Winhance localises through
+# ILocalizationService with its own key convention and a gating integration test;
+# this rule cannot see that and would flag every log message and every catalog id.
+dotnet_diagnostic.CA1303.severity = none
+
+# CA1416 (platform compatibility) — the whole app is Windows-only by design and
+# every project already targets net10.0-windows.
+dotnet_diagnostic.CA1416.severity = none
+
+# Design-opinion rules that generate churn without changing behaviour.
+dotnet_diagnostic.CA1002.severity = none   # do not expose List<T>
+dotnet_diagnostic.CA1051.severity = none   # do not declare visible instance fields
+dotnet_diagnostic.CA1062.severity = none   # validate arguments of public methods —
+                                           # this is the defensive-boilerplate rule; real
+                                           # WinUI codebases do not do this.
+dotnet_diagnostic.CA1305.severity = none   # IFormatProvider on every conversion
+dotnet_diagnostic.CA1310.severity = none   # StringComparison on every comparison
+
+#### Public-library API rules — off. Winhance is an APP, not a NuGet package. ####
+# These fire in the hundreds and every one of them is advice for someone shipping a
+# public API surface to third-party callers. Measured on Winhance.Core, 2026-08-17:
+# CA1401 alone was 142 of 348 warnings and CA1707 another 116.
+
+# 142 hits. P/Invoke declarations should not be public. They are interop plumbing in an
+# app nobody references as a library; making them internal buys nothing.
+dotnet_diagnostic.CA1401.severity = none
+
+# 116 hits. Identifiers should not contain underscores. This repo's test convention is
+# Method_Scenario_Expectation and its localization keys are Setting_{id}_Name. The
+# underscore IS the convention.
+dotnet_diagnostic.CA1707.severity = none
+
+# Library naming/design advice with no meaning for an internal app surface.
+dotnet_diagnostic.CA1720.severity = none   # identifier contains type name
+dotnet_diagnostic.CA1000.severity = none   # static members on generic types
+dotnet_diagnostic.CA1716.severity = none   # identifier conflicts with a keyword in VB/F#
+dotnet_diagnostic.CA1711.severity = none   # type-name suffix advice
+dotnet_diagnostic.CA1068.severity = none   # CancellationToken must be the last parameter
+
+# Micro-performance advice. Real, but not worth churn in a settings app; left visible
+# in the IDE so it can be taken opportunistically.
+dotnet_diagnostic.CA1859.severity = suggestion   # use concrete type for performance
+dotnet_diagnostic.CA1805.severity = suggestion   # do not initialize to default
+
+#### Generated code — never analyse it ####
+
+[*.{Designer,g,generated}.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+
+[**/obj/**.cs]
+generated_code = true

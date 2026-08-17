@@ -7,6 +7,7 @@ using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
+using Winhance.TestSupport;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,6 +28,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 ///
 /// Run: winhance-harness DefaultConfigGenerator
 /// </summary>
+[Collection(RepoFileWritersCollection.Name)]
 public class DefaultConfigGeneratorTests
 {
     private readonly ITestOutputHelper _output;
@@ -39,9 +41,23 @@ public class DefaultConfigGeneratorTests
         foreach (var (fileName, build) in DefaultConfigProjection.Targets)
         {
             string path = DefaultConfigProjection.ConfigPath(fileName);
-            var existing = JsonSerializer.Deserialize<UnifiedConfigurationFile>(
-                    File.ReadAllText(path), ConfigFileConstants.JsonOptions)
-                ?? throw new InvalidOperationException($"{fileName} deserialized to null.");
+
+            // Version / CreatedAt / the apps sections are carried forward from the file, so a damaged file
+            // cannot be regenerated from the catalog alone. Say that, rather than surfacing a raw JsonException.
+            UnifiedConfigurationFile existing;
+            try
+            {
+                existing = JsonSerializer.Deserialize<UnifiedConfigurationFile>(
+                        File.ReadAllText(path), ConfigFileConstants.JsonOptions)
+                    ?? throw new InvalidOperationException($"{fileName} deserialized to null.");
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(
+                    $"{fileName} is not valid JSON ({new FileInfo(path).Length} bytes) - it is damaged, not "
+                    + $"drifted. Restore it (git restore) and re-run; the generator carries data forward from "
+                    + $"it and cannot rebuild it from the catalog alone.", ex);
+            }
 
             var generated = new UnifiedConfigurationFile
             {
@@ -59,8 +75,8 @@ public class DefaultConfigGeneratorTests
 
             string json = JsonSerializer.Serialize(generated, ConfigFileConstants.JsonOptions);
             json = json.Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n";
-            File.WriteAllText(path, json, new UTF8Encoding(false));
-            _output.WriteLine($"wrote {fileName}: {items} setting items for build {build.Build}.");
+            bool rewritten = GeneratedFile.WriteIfChanged(path, json);
+            _output.WriteLine($"{(rewritten ? "wrote" : "unchanged")} {fileName}: {items} setting items for build {build.Build}.");
         }
     }
 

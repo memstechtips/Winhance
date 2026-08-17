@@ -16,27 +16,23 @@ namespace Winhance.Infrastructure.Features.Common.Catalog;
 public sealed class WindowsStateWriter : IStateWriter
 {
     private readonly IWindowsRegistryService _reg;
-    private readonly IScheduledTaskService _tasks;
+    private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerCfgApplier _powerCfg;
-    private readonly IPowerShellRunner _powerShell;
-    private readonly IRegImportService _regImport;
     private readonly IPowerPlanActivationService _activation;
     private readonly ILogService _log;
 
+    // No IPowerShellRunner / IRegImportService here any more: the two effects that used them launch a
+    // process, so they are deferred to IAsyncEffectRunner instead of being blocked on at this boundary.
     public WindowsStateWriter(
         IWindowsRegistryService reg,
-        IScheduledTaskService tasks,
+        IScheduledTaskStateService tasks,
         IPowerCfgApplier powerCfg,
-        IPowerShellRunner powerShell,
-        IRegImportService regImport,
         IPowerPlanActivationService activation,
         ILogService log)
     {
         _reg = reg;
         _tasks = tasks;
         _powerCfg = powerCfg;
-        _powerShell = powerShell;
-        _regImport = regImport;
         _activation = activation;
         _log = log;
     }
@@ -149,40 +145,31 @@ public sealed class WindowsStateWriter : IStateWriter
 
     // --- Scheduled task ---
 
-    public bool SetTask(TaskTarget target, bool enabled)
-    {
-        // Enable/DisableTaskAsync. Sync-over-async at the writer boundary.
-        var result = enabled
-            ? _tasks.EnableTaskAsync(target.TaskPath).GetAwaiter().GetResult()
-            : _tasks.DisableTaskAsync(target.TaskPath).GetAwaiter().GetResult();
-        return result.Success;
-    }
+    public bool SetTask(TaskTarget target, bool enabled) =>
+        _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
 
     // --- Powercfg ---
 
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
         // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the
-        // native P/Invoke already lives and is exercised by the powercfg apply-smoke. Sync-over-async at the boundary.
-        _powerCfg.WriteValueIndexAsync(target, context, value).GetAwaiter().GetResult();
+        // native P/Invoke already lives and is exercised by the powercfg apply-smoke.
+        _powerCfg.WriteValueIndex(target, context, value);
 
     // --- Effects (apply-only side-effects a state runs on apply) ---
 
     public bool RunEffect(Effect effect)
     {
+        // Routed to IAsyncEffectRunner instead; arriving here is a routing bug, and the permissive
+        // default below would hide it as a success.
+        if (effect.IsAsyncIo)
+        {
+            _log.Log(LogLevel.Error,
+                $"[WindowsStateWriter] {effect.GetType().Name} must be deferred, not run on the synchronous writer");
+            return false;
+        }
+
         switch (effect)
         {
-            case ScriptEffect s:
-                // Runs the script in-memory and does NOT track its result (returns success regardless).
-                // RunContext is carried for fidelity but not passed. Sync-over-async at the writer boundary.
-                _powerShell.RunScriptInMemoryAsync(s.Script).GetAwaiter().GetResult();
-                return true;
-
-            case RegContentEffect r:
-                // .reg import via the OTS-aware dance (throws on a file-system / process exception; a non-zero
-                // reg.exe exit is logged, not treated as failure).
-                _regImport.RunRegImportAsync(r.Content).GetAwaiter().GetResult();
-                return true;
-
             case NativePowerEffect n:
                 // CallNtPowerInformation (e.g. the hibernate toggle); status 0 is success.
                 byte value = n.Value;

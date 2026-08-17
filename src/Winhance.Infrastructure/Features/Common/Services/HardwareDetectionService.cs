@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Management;
-using System.Threading.Tasks;
+using System.Threading;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
@@ -12,50 +12,52 @@ public class HardwareDetectionService : IHardwareDetectionService
 {
     private readonly ILogService _logService;
 
+    // ExecutionAndPublication so a second caller arriving mid-query waits rather than starting its own
+    // WMI round trip.
+    private readonly Lazy<bool?> _hasBattery;
+
     public HardwareDetectionService(ILogService logService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _hasBattery = new Lazy<bool?>(QueryHasBattery, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public Task<bool> HasBatteryAsync()
+    public bool? HasBattery() => _hasBattery.Value;
+
+    private bool? QueryHasBattery()
     {
-        return Task.Run(() =>
+        try
         {
-            try
-            {
-                using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
-                using var collection = searcher.Get();
-                return collection.Count > 0;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
-                return false;
-            }
-        });
+            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
+            using var collection = searcher.Get();
+            return collection.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            // null, not false: "no battery" and "could not tell" lead callers to different defaults.
+            _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
+            return null;
+        }
     }
 
-    public Task<bool> SupportsHybridSleepAsync()
+    public bool SupportsHybridSleep()
     {
-        return Task.Run(() =>
+        try
         {
-            try
+            if (!PowerProf.GetPwrCapabilities(out var caps))
             {
-                if (!PowerProf.GetPwrCapabilities(out var caps))
-                {
-                    _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
-                    return false;
-                }
-
-                bool supported = caps.FastSystemS4;
-                _logService.Log(LogLevel.Info, $"Hybrid sleep supported (FastSystemS4): {supported}");
-                return supported;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error detecting hybrid sleep support: {ex.Message}");
+                _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
                 return false;
             }
-        });
+
+            bool supported = caps.FastSystemS4;
+            _logService.Log(LogLevel.Info, $"Hybrid sleep supported (FastSystemS4): {supported}");
+            return supported;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error detecting hybrid sleep support: {ex.Message}");
+            return false;
+        }
     }
 }

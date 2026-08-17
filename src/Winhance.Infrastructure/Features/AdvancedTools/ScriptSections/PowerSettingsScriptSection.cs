@@ -221,7 +221,7 @@ internal class PowerSettingsScriptSection
         if (!allSettings.TryGetValue(FeatureIds.Power, out var settings))
             return powerSettings;
 
-        bool hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
+        bool hasBattery = _hardwareDetectionService.HasBattery() ?? true;
 
         var bulkQueryResults = await _powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 

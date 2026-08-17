@@ -100,10 +100,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
         // Full-state provider for GetSettingStatesAsync + overlay.
         services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
-        // Catalog apply: the live IStateWriter that executes apply plans against the real system, plus the
-        // OTS-aware .reg-import effect runner it delegates to.
+        // Catalog apply: the synchronous writer, plus the runner for effects that launch a process.
         services.AddSingleton<IRegImportService, RegImportService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
+        services.AddSingleton<IAsyncEffectRunner, WindowsAsyncEffectRunner>();
 
         // ComboBox Services: consumers build the combobox options directly off the catalog model.
         services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
@@ -117,7 +117,10 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ICatalogSettingsRegistry, CatalogSettingsRegistry>();
 
         // System Services
-        services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
+        // One COM adapter, two contracts: Winhance's own tasks, and the state of tasks Windows owns.
+        services.AddSingleton<ScheduledTaskService>();
+        services.AddSingleton<IScheduledTaskService>(sp => sp.GetRequiredService<ScheduledTaskService>());
+        services.AddSingleton<IScheduledTaskStateService>(sp => sp.GetRequiredService<ScheduledTaskService>());
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
         services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
