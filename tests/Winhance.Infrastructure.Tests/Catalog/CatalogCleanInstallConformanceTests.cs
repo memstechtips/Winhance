@@ -51,16 +51,12 @@ public class CatalogCleanInstallConformanceTests
     {
         ["gaming-memory-integrity"] = "hardware-conditional: VBS values absent on incapable/VM hardware; capable hardware writes Enabled=1 (held, no OrAbsent)",
         ["gaming-virtualization-based-security"] = "hardware-conditional: same as memory-integrity",
-        ["gaming-performance-search-webview2"] = "held (a): value absent on every probed machine, role unconfirmed by any observation",
-        ["privacy-speech-recognition"] = "held (a): no OOBE path writes its keys; needs a better detection target",
     };
 
     private static readonly IReadOnlyDictionary<string, string> GoldLaptopExpected = new Dictionary<string, string>
     {
         ["gaming-memory-integrity"] = "hardware-conditional: this laptop has VBS off",
         ["gaming-virtualization-based-security"] = "hardware-conditional: this laptop has VBS off",
-        ["gaming-performance-search-webview2"] = "held (a): see Win10 fixture",
-        ["privacy-speech-recognition"] = "held (a): see Win10 fixture",
         ["privacy-advertising-id"] = "privacy band: WindowsDefault is the EXPRESS state (decision 11b.2); this fixture is privacy-DECLINED, diverging by design",
         ["privacy-improve-inking-typing"] = "privacy band: declined fixture vs express default (by design)",
         ["privacy-tailored-experiences"] = "privacy band: declined fixture vs express default (by design)",
@@ -71,8 +67,6 @@ public class CatalogCleanInstallConformanceTests
     {
         ["gaming-memory-integrity"] = "hardware-conditional: VM, VBS off",
         ["gaming-virtualization-based-security"] = "hardware-conditional: VM, VBS off",
-        ["gaming-performance-search-webview2"] = "held (a): see Win10 fixture",
-        ["privacy-speech-recognition"] = "held (a): see Win10 fixture",
         ["notifications-system-pane-suggestions"] = "post-image drift documented in the image-comparison doc (1 -> 0 after updates); image + gold conform",
         ["power-fast-startup"] = "VM artifact: no hibernation support on VMware, HiberbootEnabled=0; image + real hardware ship 1",
         ["security-bitlocker-auto-encryption"] = "VM artifact: PreventDeviceEncryption=1 is an unsupported-hardware write; image ships nothing, gold conforms",

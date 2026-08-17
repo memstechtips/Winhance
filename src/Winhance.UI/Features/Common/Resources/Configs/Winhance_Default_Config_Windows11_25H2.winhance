@@ -2476,7 +2476,7 @@
           {
             "Id": "privacy-speech-recognition",
             "Name": "Online Speech Recognition",
-            "IsSelected": true,
+            "IsSelected": false,
             "InputType": 0
           },
           {

@@ -142,6 +142,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["StartupDelayInMSec"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["StartupDelayInMSec"] = Absent },
                 },
             },
         },
@@ -230,6 +231,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["WholeFileSystem"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["WholeFileSystem"] = Absent },
                 },
             },
         },
@@ -259,12 +261,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["EnabledState"] = Of(2),
+                        ["EnabledState"] = Of(2).OrAbsent(),
                         ["EnabledStateOptions"] = Absent,
                         ["Variant"] = Absent,
                         ["VariantPayload"] = Absent,
                         ["VariantPayloadKind"] = Absent,
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["EnabledState"] = Absent },
                 },
                 new SettingState
                 {
@@ -714,6 +717,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["EnableGR535"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["EnableGR535"] = Absent },
                 },
             },
         },
@@ -1125,8 +1129,9 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     {
                         ["EnableVirtualizationBasedSecurity"] = Of(1),
                         ["RequirePlatformSecurityFeatures"] = Of(1),
-                        ["Locked"] = Of(1),
+                        ["Locked"] = Of(1).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["Locked"] = Absent },
                 },
                 new SettingState
                 {
@@ -1172,9 +1177,10 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Enabled"] = Of(1),
-                        ["Locked"] = Of(1),
+                        ["Locked"] = Of(1).OrAbsent(),
                         ["WasEnabledBy"] = Of(2),
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["Locked"] = Absent },
                 },
                 new SettingState
                 {
@@ -1315,6 +1321,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["ServicesPipeTimeout"] = Of(60000) },
+                    ResetSet = new Dictionary<string, StateValue> { ["ServicesPipeTimeout"] = Absent },
                 },
             },
         },

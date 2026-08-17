@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "38af9730862c96c97fcb5c9604ed412b78b2111d4ee1c685cc937fcead84d35d",
+  "catalogHash": "d755a413d4c173f558cbce1bd4aa6899048955a1497da108f596dcf4321d04f5",
   "settingCount": 414,
   "settings": [
     {
@@ -704,7 +704,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "{20D04FE0-3AEA-1069-A2D8-08002B30309D}": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -884,7 +892,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "{59031A47-3F72-44A7-89C5-5595FE6B30EE}": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -974,7 +990,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -1064,7 +1088,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -4663,7 +4695,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "PersistBrowsers": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -7017,7 +7057,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "NavPaneShowAllCloudStates": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -7195,7 +7243,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "NavPaneShowAllFolders": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -7321,22 +7377,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -7462,22 +7503,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -7603,22 +7629,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{374DE290-123F-4565-9164-39C4925E467B}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -7744,22 +7755,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{1CF1260C-4DD0-4ebb-811F-33C572699FDE}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -7885,22 +7881,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -8026,22 +8007,7 @@
               "writePayload": 1
             }
           },
-          "resetSet": {
-            "HiddenByDefault": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            },
-            "{A0953C92-50DC-43bf-BE83-3742FED03C9C}": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         }
       ]
     },
@@ -8214,6 +8180,13 @@
           },
           "resetSet": {
             "HiddenByDefault": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "System.IsPinnedToNameSpaceTree": {
               "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": true,
@@ -15503,7 +15476,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "AllowMUUpdateService": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -16014,7 +15995,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "RestartNotificationsAllowed2": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -18228,7 +18217,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "StartupDelayInMSec": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -18514,7 +18511,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "WholeFileSystem": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -18664,7 +18669,7 @@
           ],
           "set": {
             "EnabledState": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -18701,7 +18706,15 @@
               "writePayload": null
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "EnabledState": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         },
         {
           "label": "Disabled",
@@ -20158,7 +20171,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "EnableGR535": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -21162,7 +21183,7 @@
               "writePayload": 1
             },
             "Locked": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -21180,7 +21201,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "Locked": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         },
         {
           "label": "Disabled",
@@ -21334,7 +21363,7 @@
               "writePayload": 1
             },
             "Locked": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -21352,7 +21381,15 @@
               "writePayload": 2
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "Locked": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         },
         {
           "label": "Disabled",
@@ -21831,7 +21868,15 @@
               "writePayload": 60000
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "ServicesPipeTimeout": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -30356,7 +30401,15 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "AllowDevelopmentWithoutDevLicense": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -32325,13 +32378,7 @@
         {
           "label": "Enabled",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "AllowInputPersonalization": {
               "acceptsAbsent": false,
@@ -32362,6 +32409,11 @@
               "kind": "Recommended",
               "context": "Always",
               "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
             }
           ],
           "set": {
@@ -32382,7 +32434,22 @@
               "writePayload": 0
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "AllowInputPersonalization": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "HasAccepted": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         }
       ]
     },
@@ -33221,7 +33288,7 @@
           ],
           "set": {
             "DisableTailoredExperiencesWithDiagnosticData": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -33240,7 +33307,15 @@
               "writePayload": 1
             }
           },
-          "resetSet": null
+          "resetSet": {
+            "DisableTailoredExperiencesWithDiagnosticData": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
         },
         {
           "label": "Disabled",

@@ -335,6 +335,7 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["AllowDevelopmentWithoutDevLicense"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["AllowDevelopmentWithoutDevLicense"] = Absent },
                 },
             },
         },
@@ -1024,7 +1025,6 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Enabled",
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["HasAccepted"] = Of(1),
@@ -1034,11 +1034,16 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = "Disabled",
-                    Roles = new[] { StateRole.Recommended },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["HasAccepted"] = Of(0),
+                        ["AllowInputPersonalization"] = Absent,
+                    },
+                    ResetSet = new Dictionary<string, StateValue>
+                    {
+                        ["HasAccepted"] = Absent,
                         ["AllowInputPersonalization"] = Absent,
                     },
                 },
@@ -1263,8 +1268,9 @@ public static class PrivacyOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["TailoredExperiencesWithDiagnosticDataEnabled"] = OneOf(1, 2),
-                        ["DisableTailoredExperiencesWithDiagnosticData"] = Of(0),
+                        ["DisableTailoredExperiencesWithDiagnosticData"] = Of(0).OrAbsent(),
                     },
+                    ResetSet = new Dictionary<string, StateValue> { ["DisableTailoredExperiencesWithDiagnosticData"] = Absent },
                 },
                 new SettingState
                 {

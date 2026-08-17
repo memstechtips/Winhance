@@ -313,6 +313,40 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
+    public void Reset_never_routes_to_a_ResetSet_on_a_non_default_state()
+    {
+        // A reset resolves the WindowsDefault-roled state, so a ResetSet declared anywhere else is unreachable.
+        // Pinned so the dead declarations stay deleted rather than reappearing as a plausible-looking no-op.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = "n", Description = "d" },
+            Targets = new[] { Reg() },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                },
+                new SettingState
+                {
+                    Label = "Disabled",
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+
+        Assert.Equal(0, Assert.IsType<RegistryWriteOp>(Assert.Single(plan!)).Value);
+    }
+
+    [Fact]
     public void CheckBox_builds_like_toggle()
     {
         var setting = ToggleSetting();

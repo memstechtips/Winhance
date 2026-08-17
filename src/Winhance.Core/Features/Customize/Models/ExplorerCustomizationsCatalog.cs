@@ -121,6 +121,7 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["{20D04FE0-3AEA-1069-A2D8-08002B30309D}"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["{20D04FE0-3AEA-1069-A2D8-08002B30309D}"] = Absent },
                 },
             },
         },
@@ -187,6 +188,7 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["{59031A47-3F72-44A7-89C5-5595FE6B30EE}"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["{59031A47-3F72-44A7-89C5-5595FE6B30EE}"] = Absent },
                 },
             },
         },
@@ -220,6 +222,7 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"] = Absent },
                 },
             },
         },
@@ -253,6 +256,7 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"] = Absent },
                 },
             },
         },
@@ -1851,6 +1855,7 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["PersistBrowsers"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["PersistBrowsers"] = Absent },
                 },
             },
         },
@@ -2523,6 +2528,7 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["NavPaneShowAllCloudStates"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["NavPaneShowAllCloudStates"] = Absent },
                 },
             },
         },
@@ -2596,6 +2602,7 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["NavPaneShowAllFolders"] = Of(0) },
+                    ResetSet = new Dictionary<string, StateValue> { ["NavPaneShowAllFolders"] = Absent },
                 },
             },
         },
@@ -2637,11 +2644,6 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2685,11 +2687,6 @@ if (Test-Path $appPathsKey) {
                         ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{A8CDFF1C-4878-43be-B5FD-F8091C1C60D0}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
-                    },
                 },
             },
         },
@@ -2731,11 +2728,6 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{374DE290-123F-4565-9164-39C4925E467B}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{374DE290-123F-4565-9164-39C4925E467B}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2779,11 +2771,6 @@ if (Test-Path $appPathsKey) {
                         ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{1CF1260C-4DD0-4ebb-811F-33C572699FDE}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
-                    },
                 },
             },
         },
@@ -2826,11 +2813,6 @@ if (Test-Path $appPathsKey) {
                         ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
                     },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{3ADD1653-EB32-4cb0-BBD7-DFA0ABB5ACCA}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
-                    },
                 },
             },
         },
@@ -2872,11 +2854,6 @@ if (Test-Path $appPathsKey) {
                     {
                         ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Of(1).OrAbsent(),
                         ["HiddenByDefault"] = Of(1).OrAbsent(),
-                    },
-                    ResetSet = new Dictionary<string, StateValue>
-                    {
-                        ["{A0953C92-50DC-43bf-BE83-3742FED03C9C}"] = Absent,
-                        ["HiddenByDefault"] = Absent,
                     },
                 },
             },
@@ -2924,6 +2901,7 @@ if (Test-Path $appPathsKey) {
                     },
                     ResetSet = new Dictionary<string, StateValue>
                     {
+                        ["System.IsPinnedToNameSpaceTree"] = Absent,
                         ["{031E4825-7B94-4dc3-B131-E946B44C8DD5}"] = Absent,
                         ["HiddenByDefault"] = Absent,
                     },

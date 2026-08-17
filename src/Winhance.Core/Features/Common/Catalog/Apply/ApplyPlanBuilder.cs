@@ -25,6 +25,14 @@ public static class ApplyPlanBuilder
     {
         var ops = new List<ApplyOp>();
 
+        // A state that IS this build's Windows default writes its ResetSet on ANY apply, not just the reset
+        // button - "put this how Windows has it" cannot depend on which button asked. Where one state carries
+        // both roles, Apply Recommended and the per-card quick-set would otherwise stamp values back onto the
+        // targets Apply Windows Defaults had just deleted.
+        bool resetWrites = reset || (build is { } roleBuild
+            ? state.HasRole(RoleKind.WindowsDefault, roleBuild)
+            : state.HasRole(RoleKind.WindowsDefault));
+
         // A setting that applies via a .reg import does NOT write its registry targets - those are detect-only;
         // the import is the apply.
         bool appliesViaRegContent = setting.States.Any(s => s.Effects.OfType<RegContentEffect>().Any());
@@ -39,11 +47,10 @@ public static class ApplyPlanBuilder
                 case RegTarget reg:
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
-                    // Reset-to-default: a state's ResetSet overrides its Set per target for the reset write (the
-                    // 18 [1,null] Explorer targets detect "1-or-absent" but DELETE on reset); a target absent from
-                    // ResetSet falls back to its normal Set write.
+                    // A state's ResetSet overrides its Set per target (the [1,null] Explorer targets detect
+                    // "1-or-absent" but DELETE); a target absent from ResetSet falls back to its normal Set write.
                     StateValue sv;
-                    if (reset && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
+                    if (resetWrites && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
                         sv = resetSv;
                     else if (!state.Set.TryGetValue(reg.Key, out var setSv))
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) - leave it alone
