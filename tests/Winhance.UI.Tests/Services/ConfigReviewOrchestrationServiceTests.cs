@@ -385,6 +385,9 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockConfigLoadService
             .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
             .Throws(new Exception("Test error"));
+        _mockLocalizationService
+            .Setup(l => l.GetString("Config_Review_EnterError", It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => $"{key}:{args[0]}");
 
         var service = CreateService();
         await service.EnterReviewModeAsync(config);

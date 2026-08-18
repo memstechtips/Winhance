@@ -11,6 +11,7 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ITaskProgressService _taskProgressService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _localizationService;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -33,12 +34,14 @@ public class ApplicationCloseService : IApplicationCloseService
         ILogService logService,
         ITaskProgressService taskProgressService,
         IUserPreferencesService userPreferencesService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ILocalizationService localizationService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
         _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
     }
 
     public async Task<OperationResult> CheckOperationsAndCloseAsync()
@@ -59,18 +62,17 @@ public class ApplicationCloseService : IApplicationCloseService
 
             if (_taskProgressService.IsTaskRunning)
             {
-                string currentOperation = _taskProgressService.CurrentStatusText ?? "an operation";
+                string currentOperation = _taskProgressService.CurrentStatusText
+                    ?? _localizationService.GetString("Dialog_CloseWhileRunning_UnknownOperation");
 
                 _logService.LogInformation($"Close requested while operation in progress: {currentOperation}");
 
                 var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
                 {
-                    Message = $"The following operation is still running:\n\n{currentOperation}\n\n" +
-                              $"Closing now may leave incomplete files or mounted drives.\n\n" +
-                              $"Cancel this operation and close Winhance?",
-                    Title = "Warning: Operation in Progress",
-                    ConfirmButtonText = "Yes, Close",
-                    CancelButtonText = "Cancel",
+                    Message = _localizationService.GetString("Dialog_CloseWhileRunning_Message", currentOperation),
+                    Title = _localizationService.GetString("Dialog_CloseWhileRunning_Title"),
+                    ConfirmButtonText = _localizationService.GetString("Dialog_CloseWhileRunning_ConfirmButton"),
+                    CancelButtonText = _localizationService.GetString("Button_Cancel"),
                 })).Confirmed;
 
                 if (!confirmed)

@@ -411,8 +411,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for installation.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Install"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 
@@ -514,8 +514,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for removal.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Remove"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 

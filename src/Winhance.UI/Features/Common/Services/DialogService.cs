@@ -101,14 +101,20 @@ public class DialogService : IDialogService
         _ = ShowInformationAsync(message, title);
     }
 
-    public async Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
+    public async Task ShowInformationAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Information") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
-    public async Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
+    public async Task ShowWarningAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Warning") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
-    public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
+    public async Task ShowErrorAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Error") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
     public async Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode)
     {
@@ -210,9 +216,13 @@ public class DialogService : IDialogService
                     ? _localization.GetString("Dialog_Confirmation")
                     : confirmationRequest.Title,
                 Content = contentPanel,
-                PrimaryButtonText = confirmationRequest.ConfirmButtonText,
+                PrimaryButtonText = string.IsNullOrEmpty(confirmationRequest.ConfirmButtonText)
+                    ? _localization.GetString("Button_OK")
+                    : confirmationRequest.ConfirmButtonText,
                 SecondaryButtonText = confirmationRequest.SecondaryButtonText,
-                CloseButtonText = confirmationRequest.CancelButtonText,
+                CloseButtonText = string.IsNullOrEmpty(confirmationRequest.CancelButtonText)
+                    ? _localization.GetString("Button_Cancel")
+                    : confirmationRequest.CancelButtonText,
                 // A three-button dialog defaults Enter to Cancel (the safe choice); the classic
                 // two-button shape keeps Primary.
                 DefaultButton = confirmationRequest.SecondaryButtonText is null
@@ -250,7 +260,7 @@ public class DialogService : IDialogService
         });
     }
 
-    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "Close")
+    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "")
     {
         await ExecuteDialogAsync(async () =>
         {
@@ -258,7 +268,9 @@ public class DialogService : IDialogService
             {
                 Title = title,
                 Content = content,
-                CloseButtonText = closeButtonText,
+                CloseButtonText = string.IsNullOrEmpty(closeButtonText)
+                    ? _localization.GetString("Button_Close")
+                    : closeButtonText,
                 DefaultButton = ContentDialogButton.Close
             };
             ConfigureDialog(dialog);

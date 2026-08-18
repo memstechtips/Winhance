@@ -14,6 +14,14 @@ public class ApplicationCloseServiceTests
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
+    private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+
+    public ApplicationCloseServiceTests()
+    {
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => key);
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => $"{key}:{args[0]}");
+    }
 
     private ApplicationCloseService CreateService()
     {
@@ -21,7 +29,8 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object);
+            _mockDialogService.Object,
+            _mockLocalizationService.Object);
         // Tests must not actually terminate the test host — swap in a no-op shutdown.
         svc.ShutdownAction = () => { };
         return svc;
@@ -34,7 +43,8 @@ public class ApplicationCloseServiceTests
             null!,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object);
+            _mockDialogService.Object,
+            _mockLocalizationService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("logService");
     }
@@ -46,7 +56,8 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             null!,
             _mockUserPreferencesService.Object,
-            _mockDialogService.Object);
+            _mockDialogService.Object,
+            _mockLocalizationService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("taskProgressService");
     }
@@ -58,7 +69,8 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             null!,
-            _mockDialogService.Object);
+            _mockDialogService.Object,
+            _mockLocalizationService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("userPreferencesService");
     }
@@ -70,9 +82,23 @@ public class ApplicationCloseServiceTests
             _mockLogService.Object,
             _mockTaskProgressService.Object,
             _mockUserPreferencesService.Object,
-            null!);
+            null!,
+            _mockLocalizationService.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("dialogService");
+    }
+
+    [Fact]
+    public void Constructor_WithNullLocalizationService_ThrowsArgumentNullException()
+    {
+        var act = () => new ApplicationCloseService(
+            _mockLogService.Object,
+            _mockTaskProgressService.Object,
+            _mockUserPreferencesService.Object,
+            _mockDialogService.Object,
+            null!);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("localizationService");
     }
 
     [Fact]
@@ -246,14 +272,14 @@ public class ApplicationCloseServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(
-                It.Is<ConfirmationRequest>(r => r.Message.Contains("an operation"))))
+                It.Is<ConfirmationRequest>(r => r.Message.Contains("Dialog_CloseWhileRunning_UnknownOperation"))))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         await service.CheckOperationsAndCloseAsync();
 
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(
-                It.Is<ConfirmationRequest>(r => r.Message.Contains("an operation"))),
+                It.Is<ConfirmationRequest>(r => r.Message.Contains("Dialog_CloseWhileRunning_UnknownOperation"))),
             Times.Once);
     }
 
@@ -277,8 +303,7 @@ public class ApplicationCloseServiceTests
         }
 
         _mockDialogService.Verify(
-            d => d.ShowConfirmationAsync(
-                It.Is<ConfirmationRequest>(r => r.Title.Contains("Operation in Progress"))),
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
     }
 

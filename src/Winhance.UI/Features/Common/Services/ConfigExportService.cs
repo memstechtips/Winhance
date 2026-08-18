@@ -88,7 +88,7 @@ public class ConfigExportService : IConfigExportService
             if (window == null)
             {
                 _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                 return;
             }
 
@@ -273,7 +273,7 @@ public class ConfigExportService : IConfigExportService
             if (window == null)
             {
                 _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                 return;
             }
 
@@ -324,7 +324,7 @@ public class ConfigExportService : IConfigExportService
             if (window == null)
             {
                 _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                 return;
             }
 

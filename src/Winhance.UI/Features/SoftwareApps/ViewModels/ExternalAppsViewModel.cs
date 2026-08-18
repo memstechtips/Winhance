@@ -431,8 +431,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one app for installation.",
-                "No Apps Selected");
+                _localizationService.GetString("ExternalApps_NoSelection_Install"),
+                _localizationService.GetString("ExternalApps_NoSelection_Title"));
             return;
         }
 
@@ -506,8 +506,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one app for uninstallation.",
-                "No Apps Selected");
+                _localizationService.GetString("ExternalApps_NoSelection_Uninstall"),
+                _localizationService.GetString("ExternalApps_NoSelection_Title"));
             return;
         }
 

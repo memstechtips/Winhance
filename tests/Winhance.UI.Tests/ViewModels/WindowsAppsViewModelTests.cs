@@ -261,7 +261,7 @@ public class WindowsAppsViewModelTests
         await sut.InstallAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("WindowsApps_NoSelection_Install")),
             It.IsAny<string>()), Times.Once);
     }
 
@@ -279,7 +279,7 @@ public class WindowsAppsViewModelTests
         await sut.RemoveAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("WindowsApps_NoSelection_Remove")),
             It.IsAny<string>()), Times.Once);
     }
 

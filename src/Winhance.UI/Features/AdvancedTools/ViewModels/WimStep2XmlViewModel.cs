@@ -119,8 +119,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 Message = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
                 Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-                ConfirmButtonText = "Yes",
-                CancelButtonText = "No",
+                ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                CancelButtonText = _localizationService.GetString("Button_No"),
             })).Confirmed;
             if (!confirmed) return;
 
@@ -131,8 +131,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 {
                     Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
                     Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                    ConfirmButtonText = "Yes",
-                    CancelButtonText = "No",
+                    ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                    CancelButtonText = _localizationService.GetString("Button_No"),
                 })).Confirmed;
                 if (!continueAnyway) return;
             }

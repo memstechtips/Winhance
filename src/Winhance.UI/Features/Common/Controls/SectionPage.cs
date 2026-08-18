@@ -466,7 +466,7 @@ public abstract class SectionPage : Page
         {
             Title = Localized("QuickActions_ConfirmTitle", "Confirm Action"),
             Content = message,
-            PrimaryButtonText = "OK",
+            PrimaryButtonText = Localized("Button_OK", "OK"),
             CloseButtonText = Localized("Button_Cancel", "Cancel"),
             XamlRoot = this.XamlRoot
         };

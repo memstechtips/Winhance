@@ -167,7 +167,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Review_EnterError", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
 
@@ -334,7 +334,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
             _overlayService.HideOverlay();
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error applying configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Apply_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
 

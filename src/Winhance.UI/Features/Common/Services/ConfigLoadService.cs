@@ -54,7 +54,7 @@ public class ConfigLoadService : IConfigLoadService
             if (window == null)
             {
                 _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                 return null;
             }
 
@@ -74,7 +74,7 @@ public class ConfigLoadService : IConfigLoadService
 
             if (loadedConfig == null)
             {
-                _dialogService.ShowMessage("Failed to load configuration file.", "Error");
+                _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Failed"), _localizationService.GetString("Dialog_Error"));
                 return null;
             }
 
@@ -96,7 +96,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
     }
@@ -116,8 +116,8 @@ public class ConfigLoadService : IConfigLoadService
             {
                 _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
                 _dialogService.ShowMessage(
-                    "The recommended configuration file could not be found in the application.",
-                    "Resource Error");
+                    _localizationService.GetString("Config_Load_RecommendedMissing"),
+                    _localizationService.GetString("Config_Load_ResourceError_Title"));
                 return null;
             }
 
@@ -133,7 +133,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading recommended configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
     }
@@ -156,8 +156,8 @@ public class ConfigLoadService : IConfigLoadService
             {
                 _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
                 _dialogService.ShowMessage(
-                    "The Windows defaults configuration file could not be found in the application.",
-                    "Resource Error");
+                    _localizationService.GetString("Config_Load_WindowsDefaultsMissing"),
+                    _localizationService.GetString("Config_Load_ResourceError_Title"));
                 return null;
             }
 
@@ -173,7 +173,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading Windows defaults configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
     }
@@ -218,7 +218,7 @@ public class ConfigLoadService : IConfigLoadService
                 if (window == null)
                 {
                     _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                    await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                    await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                     return null;
                 }
 
@@ -242,7 +242,7 @@ public class ConfigLoadService : IConfigLoadService
 
             if (config == null)
             {
-                _dialogService.ShowMessage("Failed to load backup configuration file.", "Error");
+                _dialogService.ShowMessage(_localizationService.GetString("Config_Backup_LoadFailed"), _localizationService.GetString("Dialog_Error"));
                 return null;
             }
 
@@ -254,7 +254,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading user backup configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading backup configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Backup_LoadError", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
     }

@@ -94,8 +94,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             {
                 Message = _localizationService.GetString("WIMUtil_Msg_ExtractDriversConfirm"),
                 Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
-                ConfirmButtonText = "Yes",
-                CancelButtonText = "No",
+                ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                CancelButtonText = _localizationService.GetString("Button_No"),
             })).Confirmed;
             if (!confirmed) return;
 

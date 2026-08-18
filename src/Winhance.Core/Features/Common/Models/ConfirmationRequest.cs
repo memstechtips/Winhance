@@ -12,9 +12,10 @@ public sealed record ConfirmationRequest
 
     public bool CheckboxInitiallyChecked { get; init; } = true;
 
-    public string ConfirmButtonText { get; init; } = "OK";
+    // Empty means DialogService supplies the localized OK / Cancel.
+    public string ConfirmButtonText { get; init; } = string.Empty;
 
-    public string CancelButtonText { get; init; } = "Cancel";
+    public string CancelButtonText { get; init; } = string.Empty;
 
     // When set, a third button appears and Enter defaults to Cancel (the safe choice) instead of the primary button.
     public string? SecondaryButtonText { get; init; }

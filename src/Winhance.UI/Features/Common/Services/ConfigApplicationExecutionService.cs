@@ -207,7 +207,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         {
             _logService.Log(LogLevel.Error, $"Error importing configuration: {ex.Message}");
             _overlayService.HideOverlay();
-            _dialogService.ShowMessage($"Error importing configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Import_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
 

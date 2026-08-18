@@ -111,8 +111,8 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             {
                 Message = string.Format(_localizationService.GetString(confirmKey), diff.ToString("F2")),
                 Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormatName),
-                ConfirmButtonText = "Yes",
-                CancelButtonText = "No",
+                ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                CancelButtonText = _localizationService.GetString("Button_No"),
             })).Confirmed;
             if (!confirmed) return;
 

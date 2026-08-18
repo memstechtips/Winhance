@@ -288,7 +288,7 @@ public class ExternalAppsViewModelTests
         await sut.InstallAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("ExternalApps_NoSelection_Install")),
             It.IsAny<string>()), Times.Once);
     }
 
@@ -326,7 +326,7 @@ public class ExternalAppsViewModelTests
         await sut.UninstallAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("ExternalApps_NoSelection_Uninstall")),
             It.IsAny<string>()), Times.Once);
     }
 
