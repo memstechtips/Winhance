@@ -61,11 +61,13 @@ public class DialogInstallConsentTests
         _shown.CancelButtonText.Should().Be("Button_Cancel");
     }
 
-    [Fact]
-    public async Task AllowFallbackDownload_UserCancels_ReturnsFalse()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AllowFallbackDownload_UserCancels_ReturnsFalseAndRemembersNothing(bool checkboxChecked)
     {
         _dialog.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = checkboxChecked });
 
         var result = await CreateSut().AllowFallbackDownloadAsync("Test App");
 

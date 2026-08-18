@@ -37,7 +37,9 @@ public sealed class DialogInstallConsent(
             CancelButtonText = localizationService.GetString("Button_Cancel"),
         });
 
-        if (response.CheckboxChecked)
+        // "Don't ask again" only ever remembers a yes: the box is checked by default, so a Cancel that
+        // persisted would silently switch every later install to the fallback download.
+        if (response.Confirmed && response.CheckboxChecked)
             await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true);
 
         return response.Confirmed;
