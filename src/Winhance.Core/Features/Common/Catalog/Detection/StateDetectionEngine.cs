@@ -1,12 +1,8 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// THE detection function. Returns the label of the first state whose every live Set entry the readings
-/// satisfy; null = Custom. One engine for toggles (2 states) and selections (N) - replaces the old
-/// bool-resolver AND the duplicated ResolveRawValuesToIndex. Pure; no service deps.
-/// IStateDetector (custom detectors) is consulted by the CALLER before this engine, not here.
-/// When activeTargetKeys is supplied, Set entries for targets not live on the current build are ignored.
-/// </summary>
+// The label of the first state whose every live Set entry the readings satisfy; null = Custom. Custom detectors
+// (IStateDetector) are consulted by the CALLER, not here. With activeTargetKeys, Set entries for targets not
+// live on the current build are ignored.
 public static class StateDetectionEngine
 {
     public static string? Detect(

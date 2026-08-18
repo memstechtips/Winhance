@@ -1,9 +1,5 @@
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// Abstracts file system operations for testability.
-/// Wraps System.IO.File, System.IO.Directory, and System.IO.Path static calls.
-/// </summary>
 public interface IFileSystemService
 {
     // File operations

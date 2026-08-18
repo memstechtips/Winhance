@@ -4,8 +4,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Imports .reg content via reg.exe, OTS-aware (write a temp .reg file, run reg.exe import - as the
-/// interactive user under OTS).</summary>
 [SupportedOSPlatform("windows")]
 public class RegImportService(
     IInteractiveUserService interactiveUserService,

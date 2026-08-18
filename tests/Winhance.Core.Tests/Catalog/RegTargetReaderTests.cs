@@ -14,8 +14,6 @@ public class RegTargetReaderTests
     private static readonly string[] LongHklmA = [@"HKEY_LOCAL_MACHINE\A"];
     private static readonly string[] LongHklmAAndB = [@"HKEY_LOCAL_MACHINE\A", @"HKEY_LOCAL_MACHINE\B"];
 
-    /// <summary>Fake context: value reads come from <c>get</c>; key-existence from
-    /// <c>keyExists</c> (defaults to "no key exists" for the value-based tests).</summary>
     private sealed class Ctx : IDetectionContext
     {
         public WinBuild CurrentBuild => new(int.MaxValue);

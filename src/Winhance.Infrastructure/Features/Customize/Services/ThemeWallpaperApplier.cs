@@ -6,11 +6,6 @@ using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-/// <summary>
-/// Handles the wallpaper + registry side of the Windows theme switch. The explorer
-/// refresh is no longer the handler's job — it's declarative via
-/// <c>setting.RestartProcess = "Explorer"</c>, handled by ProcessRestartManager.
-/// </summary>
 public sealed class ThemeWallpaperApplier(
     IWallpaperService wallpaperService,
     IWindowsVersionService versionService,

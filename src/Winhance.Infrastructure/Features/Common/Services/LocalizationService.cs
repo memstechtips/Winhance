@@ -5,10 +5,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Provides localization services by loading strings from JSON language files.
-/// Uses the Localization folder in the application's base directory.
-/// </summary>
 public class LocalizationService : ILocalizationService
 {
     private CultureInfo _currentCulture;
@@ -143,7 +139,6 @@ public class LocalizationService : ILocalizationService
         }
     }
 
-    /// <inheritdoc />
     public IReadOnlyList<LanguageOption> GetAvailableLanguages()
     {
         try

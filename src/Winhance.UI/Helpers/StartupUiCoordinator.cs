@@ -13,18 +13,11 @@ using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Manages the startup loading overlay and initial navigation sequence.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class StartupUiCoordinator
 {
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly ILogService? _logService;
 
-    /// <summary>
-    /// Whether this is the first launch of the application.
-    /// </summary>
     public bool IsFirstLaunch { get; private set; }
 
     public StartupUiCoordinator(DispatcherQueue dispatcherQueue, ILogService? logService)
@@ -33,9 +26,6 @@ internal sealed class StartupUiCoordinator
         _logService = logService;
     }
 
-    /// <summary>
-    /// Sets all overlay text from localization keys and updates the loading logo.
-    /// </summary>
     public void InitializeLoadingOverlay(
         TextBlock loadingTitleText,
         TextBlock loadingTaglineText,
@@ -61,9 +51,6 @@ internal sealed class StartupUiCoordinator
         }
     }
 
-    /// <summary>
-    /// Sets the loading overlay logo based on the current theme.
-    /// </summary>
     public void UpdateLoadingLogo(Image loadingLogo, Grid rootGrid)
     {
         try
@@ -85,9 +72,6 @@ internal sealed class StartupUiCoordinator
         }
     }
 
-    /// <summary>
-    /// Delegates startup to the orchestrator, then dispatches completion on the UI thread.
-    /// </summary>
     public async Task RunStartupAndCompleteAsync(
         TextBlock loadingStatusText,
         Frame contentFrame,
@@ -161,9 +145,6 @@ internal sealed class StartupUiCoordinator
         });
     }
 
-    /// <summary>
-    /// Navigates to SoftwareApps, waits for initialization, then hides the loading overlay.
-    /// </summary>
     private async Task CompleteStartupAsync(
         Frame contentFrame,
         NavSidebar navSidebar,

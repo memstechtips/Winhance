@@ -9,9 +9,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM Utility Step 1: ISO selection, working directory, and extraction.
-/// </summary>
 public partial class WimStep1ViewModel : ObservableObject
 {
     private readonly IIsoService _isoService;

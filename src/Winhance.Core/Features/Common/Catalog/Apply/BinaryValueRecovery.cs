@@ -1,27 +1,13 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// The rule for turning whatever is currently stored at a REG_BINARY target into the byte array a surgical
-/// edit (single bit / single byte) should operate on - WITHOUT ever discarding data we were able to read.
-///
-/// This is a domain rule, not registry plumbing, which is why it lives in Core and is pure: it decides what
-/// counts as recoverable, and getting it wrong destroys user data silently. Before it existed, every
-/// non-<c>byte[]</c> value took the "nothing there, start fresh" path and was overwritten with a zeroed
-/// array - so one click on a setting backed by a wrongly-typed UserPreferencesMask reset every unrelated
-/// preference packed into that same value.
-/// </summary>
+// Decides what counts as a recoverable REG_BINARY buffer without ever discarding data we could read. Getting it
+// wrong destroys user data silently: a wrongly-typed UserPreferencesMask once reset every preference packed into it.
 public static class BinaryValueRecovery
 {
-    /// <summary>The length Windows uses for the values this applies to, and the floor for a fresh array.</summary>
+    // The length Windows uses for these values; the floor for a fresh array.
     public const int MinimumLength = 12;
 
-    /// <summary>
-    /// The buffer to edit, or <c>null</c> when the current value cannot be safely interpreted as bytes - in
-    /// which case the caller must REFUSE the write, never fall back to a zeroed array.
-    /// </summary>
-    /// <param name="currentValue">What the registry currently holds: a byte array, null (absent), a string
-    /// (the value was rewritten under REG_SZ / REG_EXPAND_SZ), or something else.</param>
-    /// <param name="byteIndex">The index the caller is about to edit; the buffer is always long enough.</param>
+    // Null means the caller must REFUSE the write - never fall back to a zeroed array.
     public static byte[]? Resolve(object? currentValue, int byteIndex)
     {
         int minLength = Math.Max(MinimumLength, byteIndex + 1);
@@ -57,7 +43,6 @@ public static class BinaryValueRecovery
         }
     }
 
-    /// <summary>Whether <paramref name="currentValue"/> is a value we RECOVERED rather than used as-is or
-    /// created fresh. Callers use this only to log the repair; it never changes what is written.</summary>
+    // Only used to log the repair; never changes what is written.
     public static bool IsRecoveredFromString(object? currentValue) => currentValue is string;
 }

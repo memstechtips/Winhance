@@ -7,9 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Tracks the current state of the update InfoBar for language-change re-rendering.
-/// </summary>
 internal enum UpdateInfoBarState
 {
     None,
@@ -20,10 +17,6 @@ internal enum UpdateInfoBarState
     UpdateDownloaded
 }
 
-/// <summary>
-/// Child ViewModel for update checking in the main window.
-/// Manages update InfoBar state, check/install commands.
-/// </summary>
 public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -195,10 +188,7 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Silently checks for updates on startup. Only shows the InfoBar if an update is available.
-    /// No-update and error scenarios are logged but not shown to the user.
-    /// </summary>
+    // No-update and error scenarios are logged but not shown to the user.
     public async Task CheckForUpdatesOnStartupAsync()
     {
         try
@@ -231,19 +221,12 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Dismisses the update InfoBar (called from code-behind on InfoBar.Closed).
-    /// </summary>
     public void DismissUpdateInfoBar()
     {
         IsUpdateInfoBarOpen = false;
         _updateInfoBarState = UpdateInfoBarState.None;
     }
 
-    /// <summary>
-    /// Re-resolves InfoBar title/message from localization based on the current state.
-    /// Called when the InfoBar state is first set and on language change.
-    /// </summary>
     private void RefreshUpdateInfoBarText()
     {
         switch (_updateInfoBarState)

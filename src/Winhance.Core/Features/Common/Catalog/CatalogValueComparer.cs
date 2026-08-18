@@ -1,8 +1,7 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Core-local value equality for detection matching. Numeric-lenient (int/long/byte/bool box
-/// inconsistently across registry reads and config import), structural for REG_BINARY byte arrays, with an
-/// ordinal-string fallback. Lives in Core deliberately - the new model must not depend on Winhance.Infrastructure.</summary>
+// Numeric-lenient because int/long/byte/bool box inconsistently across registry reads and config import;
+// structural for REG_BINARY byte arrays; ordinal-string fallback.
 internal static class CatalogValueComparer
 {
     public static bool AreEqual(object? a, object? b)

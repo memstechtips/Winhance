@@ -6,17 +6,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
-/// <summary>
-/// Builds the Technical Details panel from a <see cref="Setting"/> plus the view-model's resolved
-/// state. Pure: no dispatcher, no logging, no live system reads, so every rule here is unit-testable.
-/// The UI layer only renders what comes back: the regedit button's command is a property on
-/// the view, not something attached to this model afterwards.
-///
-/// Returns the one table the panel shows, or null when a setting has nothing to document. It used
-/// to return a list of sections of polymorphic rows; every one of those row kinds has since been
-/// folded into the table, so the list, the section and the row hierarchy were all wrappers around a
-/// single value.
-/// </summary>
+// Pure: no dispatcher, logging or live reads, so every rule is unit-testable. Null when a setting has nothing to document.
 public static class TechnicalDetailsBuilder
 {
     public static OptionMatrix? Build(
@@ -33,12 +23,8 @@ public static class TechnicalDetailsBuilder
     // The option matrix: options as rows, the values they write as columns
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>
-    /// Registry, scheduled-task and powercfg targets all become columns in ONE table, grouped by the
-    /// destination they write to so it sits directly above the values it owns. Every mechanism shares
-    /// this table rather than each getting a block of its own: a setting that touches both the
-    /// registry and a power plan documents both here, side by side.
-    /// </summary>
+    // Every mechanism shares ONE table, grouped by destination, so a setting that touches both the registry and a
+    // power plan documents both side by side.
     private static OptionMatrix? BuildMatrix(BuildContext ctx)
     {
         var setting = ctx.Setting;
@@ -201,13 +187,6 @@ public static class TechnicalDetailsBuilder
         return Matrix(ctx, groups, columns, options, readingLabel, readingCells);
     }
 
-    /// <summary>
-    /// One row per authored option: the label the user reads, and the three roles - current,
-    /// recommended, Windows default - each with the power context that qualifies it. Shared so a
-    /// setting with no columns states exactly the same roles as one with a grid full of them;
-    /// <paramref name="cells"/> is what the two differ in, and it hands back an empty list when
-    /// there is no column for a value to sit in.
-    /// </summary>
     private static List<MatrixOption> OptionRows(
         BuildContext ctx, bool perContext, Func<int, IReadOnlyList<MatrixCell>> cells)
     {
@@ -234,12 +213,7 @@ public static class TechnicalDetailsBuilder
         return options;
     }
 
-    /// <summary>
-    /// Whether a role lands on this option, and in which power context. A powercfg setting can
-    /// recommend one option plugged in and a different one on battery; everything else has a single
-    /// answer, reported with no qualifier. Agreeing contexts also report no qualifier — "Recommended"
-    /// says more than "Recommended (plugged in), Recommended (on battery)".
-    /// </summary>
+    // Agreeing contexts report no qualifier - "Recommended" says more than "Recommended (plugged in), Recommended (on battery)".
     private static (bool Applies, string Context) RoleFor(
         BuildContext ctx, int index, RoleKind kind, bool perContext)
     {
@@ -254,7 +228,6 @@ public static class TechnicalDetailsBuilder
         return Qualify(ctx, ac, dc);
     }
 
-    /// <summary>Which option the system is on, per context. Two options can each be current.</summary>
     private static (bool Applies, string Context) CurrentFor(BuildContext ctx, int index, bool perContext)
     {
         if (!perContext) return (ctx.IsCurrentState(index), string.Empty);
@@ -269,10 +242,7 @@ public static class TechnicalDetailsBuilder
         return Qualify(ctx, ac, snap.DcValue == index);
     }
 
-    /// <summary>
-    /// A desktop reports no battery and no separate AC/DC support, so there is only one context to
-    /// speak of and qualifying every badge with "plugged in" would be noise.
-    /// </summary>
+    // A desktop reports no battery and no separate AC/DC support, so qualifying every badge with "plugged in" would be noise.
     private static bool SeparateContexts(BuildContext ctx) =>
         ctx.Snapshot.SupportsSeparateACDC && ctx.Snapshot.HasBattery;
 
@@ -301,11 +271,6 @@ public static class TechnicalDetailsBuilder
         return chips;
     }
 
-    /// <summary>
-    /// What applying this setting needs or sets off. These hang off <c>Setting.Apply</c> and the
-    /// links between settings, so they are the same on every option — which is why they belong in
-    /// the setting's own cell rather than in a column that would repeat itself down every row.
-    /// </summary>
     private static IReadOnlyList<MatrixChip> BuildRequirements(BuildContext ctx)
     {
         var chips = new List<MatrixChip>();
@@ -378,18 +343,9 @@ public static class TechnicalDetailsBuilder
         return chips;
     }
 
-    /// <summary>
-    /// An Action runs once, so there is nothing to choose between: it carries no States, the option table was
-    /// skipped entirely, and the registry values it writes ended up in the "Also happens when you apply" band
-    /// underneath. Those writes ARE the action, not something that also happens alongside it, so they belong in
-    /// the table where every other setting's writes are. The shape is the standard one - group header, path,
-    /// regedit button, Option and Role columns - with exactly one row: the action itself.
-    ///
-    /// The writes hang off Setting.Effects rather than Setting.Targets, so each column is built from a RegTarget
-    /// synthesised per RegistryWriteEffect. That mapping is not invented here: ApplyPlanBuilder.BuildAction
-    /// already turns each effect into exactly this RegTarget to perform the write, so the table cannot document
-    /// a shape the apply engine does not perform.
-    /// </summary>
+    // An Action carries no States: one row, the action itself. Its writes hang off Setting.Effects, so each column
+    // is a RegTarget synthesised per RegistryWriteEffect - the same mapping ApplyPlanBuilder.BuildAction uses, so
+    // the table cannot document a shape the engine does not perform.
     private static OptionMatrix? BuildActionMatrix(BuildContext ctx)
     {
         var setting = ctx.Setting;
@@ -445,13 +401,7 @@ public static class TechnicalDetailsBuilder
         return Matrix(ctx, groups, columns, [row]);
     }
 
-    /// <summary>
-    /// The RegTarget an Action's registry write is performed through. The four constructor arguments mirror
-    /// <see cref="ApplyPlanBuilder.BuildAction"/> exactly, so the column documents the write the engine really
-    /// makes. ApplyOnly is added on top: an Action is never detected, so the value is written and never read
-    /// back, and that is what the column's chip says. AppliesTo is carried across so a build-scoped effect
-    /// would earn its "version-specific" chip (no catalog Action scopes one today).
-    /// </summary>
+    // Mirrors ApplyPlanBuilder.BuildAction exactly; ApplyOnly is added because an Action is never detected (written, never read back).
     private static RegTarget AsRegTarget(RegistryWriteEffect write) =>
         new RegTarget(write.ValueName, new[] { write.Path }, write.ValueName, write.Kind)
         {
@@ -460,13 +410,8 @@ public static class TechnicalDetailsBuilder
             AppliesTo = write.AppliesTo,
         };
 
-    /// <summary>
-    /// A numeric setting takes any number in a range, so it has no options to make rows from. The
-    /// rows become the values worth naming: what Windows ships with, what Winhance suggests, and
-    /// what the machine is on now. Recommended and Windows-default are held per power context, so a
-    /// value that differs plugged in from on battery becomes two rows, each carrying its own
-    /// qualifier -- the same rule the powercfg options follow.
-    /// </summary>
+    // No options to make rows from, so the rows are the values worth naming: the Windows default, the Winhance
+    // recommendation and the current value - per power context, the same rule the powercfg options follow.
     private static OptionMatrix? BuildNumericMatrix(BuildContext ctx)
     {
         var setting = ctx.Setting;
@@ -536,7 +481,6 @@ public static class TechnicalDetailsBuilder
         return Matrix(ctx, PowerGroups(ctx, pcfg, columnSpan: 1), columns, options);
     }
 
-    /// <summary>Which contexts a role covers for one value, collapsed to a badge qualifier.</summary>
     private static (bool Applies, string Context) SlotContext(
         BuildContext ctx, IEnumerable<(int Value, RoleSlot Slot, PowerContext Context)> marks,
         RoleSlot slot, bool separate)
@@ -549,10 +493,7 @@ public static class TechnicalDetailsBuilder
 
     private enum RoleSlot { Current, Recommended, Default }
 
-    /// <summary>
-    /// States the range rather than pretending there is a list of options. An open-ended maximum is
-    /// written "0+" rather than printing int.MaxValue, which tells the reader nothing.
-    /// </summary>
+    // An open-ended maximum is written "0+" rather than printing int.MaxValue.
     private static MatrixChip RangeChip(BuildContext ctx, Numeric numeric, string units)
     {
         var bounded = numeric.Max < int.MaxValue;
@@ -564,10 +505,7 @@ public static class TechnicalDetailsBuilder
                 "This setting takes a number rather than a fixed list of options."));
     }
 
-    /// <summary>
-    /// Power plans are chosen whole rather than written value by value, so the rows are the schemes
-    /// themselves. They come from the live dropdown, which is the only place the scheme GUID exists.
-    /// </summary>
+    // The rows come from the live dropdown - the only place the scheme GUID exists.
     private static OptionMatrix? BuildPowerPlanMatrix(BuildContext ctx)
     {
         var options = new List<MatrixOption>();
@@ -633,10 +571,6 @@ public static class TechnicalDetailsBuilder
         },
     ];
 
-    /// <summary>
-    /// The labels and tooltips every matrix carries, whatever built its rows. One place for them, so
-    /// a table built from a numeric range reads exactly like one built from options.
-    /// </summary>
     private static OptionMatrix Matrix(
         BuildContext ctx,
         IReadOnlyList<MatrixColumnGroup> groups,
@@ -689,18 +623,11 @@ public static class TechnicalDetailsBuilder
         DefaultTooltip = ctx.Text(TechnicalDetailKeys.DefaultTooltip, "How Windows ships out of the box"),
     };
 
-    /// <summary>
-    /// True when a setting has something to document even though it has no target to build columns
-    /// from - a script, a fixed registry write, a confirmation prompt, a restart. These settings used
-    /// to get a panel from the old section-based builder; returning null here took it away from them.
-    /// </summary>
     private static bool HasDocumentableContent(BuildContext ctx) =>
         BuildRequirements(ctx).Count > 0 || BuildNotes(ctx).Count > 0 || BuildCodeBlocks(ctx).Count > 0;
 
-    /// <summary>
-    /// Enabled/Disabled for a scheduled-task target. Catalogs author task states as Of(true)/Of(false),
-    /// so the bool payload is the answer; a state that deletes the target counts as disabled.
-    /// </summary>
+    // Catalogs author task states as Of(true)/Of(false), so the bool payload is the answer; a state that deletes the
+    // target counts as disabled.
     private static string TaskStateText(BuildContext ctx, SettingState? state, string key)
     {
         if (state is null || !state.Set.TryGetValue(key, out var value)) return string.Empty;
@@ -717,11 +644,6 @@ public static class TechnicalDetailsBuilder
             : ctx.Text(TechnicalDetailKeys.TaskDisabled, "Disabled");
     }
 
-    /// <summary>
-    /// Apply-time side effects with no column to sit in. A Target has a value per option and belongs
-    /// in the grid; these fire whichever option you pick, so they are listed under the grid rather
-    /// than in a section of their own below the table.
-    /// </summary>
     private static IReadOnlyList<MatrixNote> BuildNotes(BuildContext ctx)
     {
         var notes = new List<MatrixNote>();
@@ -762,21 +684,11 @@ public static class TechnicalDetailsBuilder
         return notes;
     }
 
-    /// <summary>
-    /// What ticking the confirmation checkbox does. The three Action cleaners prompt with a box reading
-    /// "also apply recommended Taskbar / Start Menu settings", and the band under the table is headed
-    /// "Also happens when you apply, if you agree to the prompt" - so this is the one place that can say
-    /// WHICH settings, by name, and what each of them will be set to. One row per setting, from the same
-    /// source the apply funnel uses: the feature's settings minus the trigger, each at its Recommended
-    /// state.
-    ///
-    /// Core-only by construction. ICatalogSettingsRegistry.GetFeatureIdForSetting and GetByFeature both
-    /// index SettingCatalog.ByFeature, which is Core, so this reaches the same list without touching
-    /// Infrastructure. The registry additionally gates on hardware and powercfg existence, which Core
-    /// cannot see; neither feature that owns an Action has a setting gated on either, so the two lists
-    /// agree today. The OS-build gate IS applied here, so a Windows-10-only sibling is not promised on a
-    /// Windows 11 machine.
-    /// </summary>
+    // The one place that can say WHICH settings the confirmation checkbox applies, by name and target state - the
+    // same source as the apply funnel: the feature's settings minus the trigger, each at its Recommended state.
+    // Core-only: ICatalogSettingsRegistry indexes SettingCatalog.ByFeature, which is Core. The registry additionally
+    // gates on hardware and powercfg existence, which Core cannot see; no feature owning an Action has a setting
+    // gated on either, so the two lists agree. The OS-build gate IS applied here.
     private static void AddConfirmCheckboxNotes(BuildContext ctx, List<MatrixNote> notes)
     {
         var setting = ctx.Setting;
@@ -805,14 +717,9 @@ public static class TechnicalDetailsBuilder
         }
     }
 
-    /// <summary>
-    /// The state the recommended pass would move a setting into, named as the user reads it. Resolved the
-    /// same two ways the applier resolves it, so the panel cannot promise a state the apply would not
-    /// reach: a toggle through the build-aware CatalogToggleState.GetRecommended, a selection through the
-    /// first UNCONDITIONAL Recommended role (RecommendedSettingsResolver.GetRecommendedIndex deliberately
-    /// ignores build-scoped ones). Null when nothing is recommended, and for the powercfg sliders, whose
-    /// recommended value is built in Infrastructure - no feature owning an Action has either.
-    /// </summary>
+    // Resolved the same two ways the applier resolves it, so the panel cannot promise a state the apply would not
+    // reach: toggles via the build-aware CatalogToggleState.GetRecommended, selections via the first UNCONDITIONAL
+    // Recommended role. Null for the powercfg sliders, whose recommended value is built in Infrastructure.
     private static string? RecommendedStateLabel(BuildContext ctx, Setting setting)
     {
         if (setting.Control == ControlKind.Toggle)
@@ -840,12 +747,6 @@ public static class TechnicalDetailsBuilder
         return null;
     }
 
-    /// <summary>
-    /// Which feature module owns a setting - the Core half of
-    /// <c>ICatalogSettingsRegistry.GetFeatureIdForSetting</c>, which answers it by indexing this same
-    /// dictionary. Core cannot reach the registry, and does not need to: the mapping is scope-independent
-    /// (a setting belongs to one feature whatever the machine is running).
-    /// </summary>
     private static string? FeatureIdOf(string settingId)
     {
         foreach (var (featureId, settings) in SettingCatalog.ByFeature)
@@ -873,14 +774,9 @@ public static class TechnicalDetailsBuilder
         }
     }
 
-    /// <summary>
-    /// Groups registry targets by their whole path list. The columns and the cells are built by two
-    /// separate passes over the same grouping, so both must key on this -- keying on two different
-    /// expressions would let the two partitions disagree and slide every cell one column over.
-    ///
-    /// NUL joins them because it is the one character a registry path cannot contain. A space would
-    /// make ["A B"] and ["A", "B"] the same key.
-    /// </summary>
+    // Columns and cells are built by two separate passes over the same grouping, so both must key on this. NUL joins
+    // the paths because it is the one character a registry path cannot contain; a space would make ["A B"] and
+    // ["A", "B"] the same key.
     private static string PathKey(RegTarget target) => string.Join('\0', target.Paths);
 
     private static MatrixColumn RegistryColumn(BuildContext ctx, RegTarget reg)
@@ -948,10 +844,6 @@ public static class TechnicalDetailsBuilder
     private static string ValueCell(BuildContext ctx, SettingState state, string key) =>
         state.Set.TryGetValue(key, out var value) ? FormatStateValue(ctx, value) : string.Empty;
 
-    /// <summary>
-    /// The live-readings row. Only built when detection matched no option — when it did, the current
-    /// marker on that option already says what is on the system and a "now" row would restate it.
-    /// </summary>
     private static (string Label, IReadOnlyList<MatrixCell> Cells) BuildReading(
         BuildContext ctx, IReadOnlyList<RegTarget> regTargets, IReadOnlyList<TaskTarget> taskTargets, int columnCount)
     {
@@ -995,10 +887,7 @@ public static class TechnicalDetailsBuilder
     // Scripts and .reg payloads, labelled by the option that runs them
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>
-    /// Scripts first, then .reg payloads, each carrying the heading the view groups them under.
-    /// Ordered by kind rather than by declaration so the two never interleave into one heading.
-    /// </summary>
+    // Ordered by kind rather than by declaration so scripts and .reg payloads never interleave under one heading.
     private static IReadOnlyList<MatrixCodeBlock> BuildCodeBlocks(BuildContext ctx)
     {
         var blocks = new List<MatrixCodeBlock>();
@@ -1087,7 +976,6 @@ public static class TechnicalDetailsBuilder
         return $"builds {range.Min.Build}-{range.Max.Build}";
     }
 
-    /// <summary>Shared lookups for one build pass, so the resolution rules live in one place.</summary>
     private sealed class BuildContext
     {
         private readonly ILocalizationService _loc;
@@ -1115,32 +1003,24 @@ public static class TechnicalDetailsBuilder
         public string Recommended { get; }
         public string Default { get; }
 
-        /// <summary>True when the setting's real work is a .reg import, which makes its RegTargets detection probes.</summary>
+        // A .reg-import setting's RegTargets are detection probes, not what it writes.
         public bool IsRegContentDriven { get; }
 
-        /// <summary>Localized string, or the English fallback.</summary>
         public string Text(string key, string fallback) =>
             _loc.TryGetString(key, out var value) && !string.IsNullOrEmpty(value) ? value : fallback;
 
-        /// <summary>A metadata chip plus the hover text that explains what it means.</summary>
         public MatrixChip Chip(string key, string fallback, string tooltipKey, string tooltipFallback) =>
             new(Text(key, fallback), Text(tooltipKey, tooltipFallback));
 
         public MatrixChip ChipFormat(string key, string fallback, object arg, string tooltipKey, string tooltipFallback) =>
             new(Format(key, fallback, arg), Text(tooltipKey, tooltipFallback));
 
-        /// <summary>
-        /// Substitutes {0} by hand rather than through string.Format. The pattern comes from a
-        /// translation file a human edited, and one stray brace in any of 29 languages would make
-        /// string.Format throw on a machine we'll never see.
-        /// </summary>
+        // Substitutes {0} by hand: the pattern comes from a translation file a human edited, and one stray brace in any
+        // of 29 languages would make string.Format throw on a machine we'll never see.
         public string Format(string key, string fallback, object arg) =>
             Text(key, fallback).Replace("{0}", arg.ToString() ?? string.Empty);
 
-        /// <summary>
-        /// The user-facing name of a state. Selection settings reuse the dropdown label the user just read;
-        /// toggles collapse to On/Off. Never derived by matching English text against a state label.
-        /// </summary>
+        // Never derived by matching English text against a state label.
         public string OptionLabel(int index)
         {
             if (IsToggle)
@@ -1153,15 +1033,11 @@ public static class TechnicalDetailsBuilder
             return index >= 0 && index < Setting.States.Count ? Setting.States[index].Label : string.Empty;
         }
 
-        /// <summary>"When set to X" for a per-state payload, "On Apply" for a setting-level one.</summary>
         public string CodeLabel(int? stateIndex) => stateIndex is int index
             ? Format(TechnicalDetailKeys.CodeWhenSetTo, "When set to {0}", OptionLabel(index))
             : Text(TechnicalDetailKeys.OnApply, "On Apply");
 
-        /// <summary>
-        /// Whether this option is the one the system is on. Never true when detection did not resolve —
-        /// that is what makes the live-readings row the only statement about the current state.
-        /// </summary>
+        // Never true when detection did not resolve - that is what makes the live-readings row the only statement about the current state.
         public bool IsCurrentState(int index)
         {
             if (Snapshot.Outcome != SettingDetectionOutcome.Resolved) return false;

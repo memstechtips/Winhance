@@ -1,21 +1,10 @@
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
-/// <summary>
-/// Shortens a registry path for display in the option matrix's spanning group header.
-///
-/// The header sits directly above the value columns it owns, so its width is charged to those
-/// columns: a 68-character HKEY_LOCAL_MACHINE path would stretch the group far wider than its
-/// values need and push the table into sideways scrolling for no benefit. Abbreviating the hive
-/// is the convention every registry tool uses, and the full path is still what the tooltip shows
-/// and what the Registry Editor button opens -- nothing is lost, only shortened.
-/// </summary>
+// A 68-character HKEY_LOCAL_MACHINE path in the group header would stretch the group far wider than its values
+// need; the full path is still what the tooltip shows and regedit opens.
 public static class RegistryPathFormatter
 {
-    /// <summary>
-    /// Longest first, so HKEY_CURRENT_USER is never mistaken for a prefix of HKEY_CURRENT_CONFIG.
-    /// The separator check below makes the order redundant, but reading top-down should not
-    /// require noticing that.
-    /// </summary>
+    // Longest first, so HKEY_CURRENT_USER is never mistaken for a prefix of HKEY_CURRENT_CONFIG.
     private static readonly (string Hive, string Abbreviation)[] Hives =
     [
         ("HKEY_CURRENT_CONFIG", "HKCC"),
@@ -25,10 +14,6 @@ public static class RegistryPathFormatter
         ("HKEY_USERS", "HKU"),
     ];
 
-    /// <summary>
-    /// Replaces a leading hive name with its short form. Anything else -- a scheduled-task path,
-    /// an already-abbreviated path, a relative key -- is returned unchanged.
-    /// </summary>
     public static string Abbreviate(string? path)
     {
         if (string.IsNullOrEmpty(path)) return string.Empty;

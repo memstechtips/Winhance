@@ -7,19 +7,10 @@ using Xunit.Abstractions;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance (Step 4 of the Windows-defaults audit): each shipped per-build Default config must match the
-/// catalog's WindowsDefault roles 1:1 through <see cref="DefaultConfigProjection"/> - the same projection
-/// <see cref="DefaultConfigGeneratorTests"/> writes the files from, so file and gate cannot disagree.
-///
-/// FORWARD: every Customize/Optimize item resolves to a catalog setting that is available on the build, carries
-/// a WindowsDefault for it, and stores exactly the projected value (slider system-units and powercfg AC/DC
-/// index shapes included). REVERSE: every available catalog setting with a WindowsDefault for the build appears.
-/// This is the WindowsDefault sibling of RecommendedConfigConformanceTests, run once per build because
-/// WindowsDefault roles ARE build-scoped (which is exactly why two Default configs exist).
-///
-/// Run: winhance-harness DefaultConfigConformanceTests
-/// </summary>
+// Each shipped per-build Default config must match the catalog's WindowsDefault roles 1:1 through
+// DefaultConfigProjection - the same projection DefaultConfigGeneratorTests writes the files from, so file and
+// gate cannot disagree. FORWARD and REVERSE, per build, because WindowsDefault roles ARE build-scoped.
+// Run: winhance-harness DefaultConfigConformanceTests
 [Collection(RepoFileWritersCollection.Name)]
 public class DefaultConfigConformanceTests
 {

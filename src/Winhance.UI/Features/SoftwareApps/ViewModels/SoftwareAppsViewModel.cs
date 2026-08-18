@@ -118,13 +118,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public bool HasExternalAppsInConfig => _configReviewBadgeService.IsFeatureInConfig(
         FeatureIds.ExternalApps);
 
-    /// <summary>
-    /// Whether all SoftwareApps sections have been reviewed.
-    /// A section is reviewed when:
-    /// - It's not in the config, OR
-    /// - No items are selected (user chose to apply nothing), OR
-    /// - An action button (Install/Remove) has been selected
-    /// </summary>
+    // A section is reviewed when it is not in the config, OR no items are selected (apply nothing), OR an action
+    // (Install/Remove) has been chosen.
     public bool IsSoftwareAppsReviewed
     {
         get
@@ -186,9 +181,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _configReviewBadgeService.NotifyBadgeStateChanged();
     }
 
-    /// <summary>
-    /// Routes to the current tab's install action checkbox.
-    /// </summary>
     public bool CurrentInstallAction
     {
         get => IsWindowsAppsTabSelected ? IsWindowsAppsInstallAction : IsExternalAppsInstallAction;
@@ -202,9 +194,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    /// <summary>
-    /// Routes to the current tab's remove action checkbox.
-    /// </summary>
     public bool CurrentRemoveAction
     {
         get => IsWindowsAppsTabSelected ? IsWindowsAppsRemoveAction : IsExternalAppsRemoveAction;
@@ -237,17 +226,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string SortNameAscText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameAZ", "Name A-Z");
     public string SortNameDescText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameZA", "Name Z-A");
 
-    /// <summary>
-    /// Hint shown when hovering the Sort button while it is disabled in Table view —
-    /// sorting in Table view is driven by clicking the column headers instead.
-    /// </summary>
     public string SortTableHintText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_TableHint", "Click a column header to sort by it in ascending or descending order.");
 
-    /// <summary>
-    /// The Sort dropdown is only usable in Card and Compact views; in Table view sorting is
-    /// done by clicking a column header (see <see cref="SortTableHintText"/>), so the button
-    /// is disabled there.
-    /// </summary>
+    // In Table view sorting is by clicking a column header, so the button is disabled there.
     public bool IsSortButtonEnabled => !IsTableView;
 
     // Table-view column header texts. Applied to the DataGrid columns in code-behind
@@ -443,7 +424,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     // must stay disabled — app checkboxes are serialized into the saved config instead.
     private bool IsBuilderMode => _applicationModeService.CurrentMode == WinhanceMode.Builder;
 
-    /// <summary>True while the app is in Builder mode (drives the Builder info ribbons).</summary>
     public bool IsBuilderModeActive => IsBuilderMode;
 
     // Autounattend removes Windows apps from the image and can't install external apps
@@ -520,11 +500,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         RemoveSelectedItemsCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>
-    /// One-time event subscription / preference load. Idempotent — guarded by
-    /// <see cref="_isSubscribed"/>. Called from each Initialize* entry point so
-    /// any of them can be the first call without ordering assumptions.
-    /// </summary>
+    // Idempotent; called from each Initialize* entry point so any of them can be the first call without ordering assumptions.
     private void EnsureSubscriptions()
     {
         if (_isSubscribed) return;
@@ -557,11 +533,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         UpdateButtonStates();
     }
 
-    /// <summary>
-    /// Loads only the Windows Apps tab. Called by the cold-start path so the
-    /// startup loading overlay can drop as soon as the fast tab is ready,
-    /// without waiting on the slower External Apps icon resolution.
-    /// </summary>
+    // The cold-start path loads this first so the startup overlay can drop as soon as the fast tab is ready,
+    // without waiting on External Apps icon resolution.
     public async Task InitializeWindowsAppsAsync()
     {
         EnsureSubscriptions();
@@ -572,12 +545,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    /// <summary>
-    /// Loads only the External Apps tab. Cold-start fires this in the background
-    /// (see <see cref="Helpers.StartupUiCoordinator"/>); the tab's per-tab loading
-    /// overlay (bound to <see cref="ExternalAppsViewModel.IsLoading"/>) covers
-    /// the case where the user clicks External Apps before resolution completes.
-    /// </summary>
+    // Cold-start fires this in the background (Helpers.StartupUiCoordinator); the tab's own loading overlay covers
+    // a click before resolution completes.
     public async Task InitializeExternalAppsAsync()
     {
         EnsureSubscriptions();

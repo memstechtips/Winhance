@@ -87,18 +87,9 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Minimum number of path segments (backslash-separated) required in the
-    /// sub-key portion of a registry path before <see cref="DeleteKey"/>
-    /// is allowed. This prevents accidental deletion of top-level hive branches
-    /// like <c>HKLM\SOFTWARE</c>.
-    /// </summary>
+    // Prevents accidental deletion of top-level hive branches like HKLM\SOFTWARE.
     private const int MinDeleteDepth = 2;
 
-    /// <summary>
-    /// Top-level registry branches that must never be deleted via
-    /// <see cref="DeleteKey"/>. Comparison is case-insensitive.
-    /// </summary>
     internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
     {
         @"SOFTWARE\Microsoft\Windows",
@@ -214,8 +205,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>Applies <see cref="BinaryValueRecovery"/> (the pure rule, unit-tested in Core) and logs what
-    /// it decided. Returns null when the caller must REFUSE the write rather than destroy the value.</summary>
+    // Null when the caller must REFUSE the write rather than destroy the value.
     private byte[]? ResolveBinaryEditBuffer(string keyPath, string valueName, object? currentValue, int byteIndex)
     {
         var buffer = BinaryValueRecovery.Resolve(currentValue, byteIndex);
@@ -303,11 +293,8 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Locks a registry key to read-only for SYSTEM and TrustedInstaller,
-    /// preventing Windows from resetting the value.
-    /// Administrators retain full control to allow Winhance to unlock later.
-    /// </summary>
+    // SYSTEM and TrustedInstaller lose write so Windows cannot reset the value; Administrators keep full control so
+    // Winhance can unlock later.
     public bool LockRegistryKey(string keyPath)
     {
         try
@@ -368,10 +355,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Restores default permissions on a registry key, re-enabling
-    /// inheritance and granting SYSTEM full control again.
-    /// </summary>
     public bool UnlockRegistryKey(string keyPath)
     {
         try
@@ -454,12 +437,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
     }
 
-    /// <summary>
-    /// Read-merge-write of one sub-key inside a packed ";"-delimited "key=value" REG_SZ value: ensures the key
-    /// exists, re-reads the current composite value, sets (or, when <paramref name="subValue"/> is null, removes)
-    /// the given sub-key, then writes the merged string back (trailing ";", OrdinalIgnoreCase sub-keys via
-    /// <see cref="ParseCompositeString"/>). The caller resolves the sub-value.
-    /// </summary>
     public bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue)
     {
         try

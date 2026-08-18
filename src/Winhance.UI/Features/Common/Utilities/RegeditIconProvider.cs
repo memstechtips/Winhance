@@ -5,10 +5,7 @@ using Windows.Graphics.Imaging;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Extracts the regedit.exe icon using P/Invoke and caches it as a WinUI3-compatible SoftwareBitmapSource.
-/// Must be called from the UI thread (SoftwareBitmapSource is dispatcher-bound).
-/// </summary>
+// Must be called from the UI thread (SoftwareBitmapSource is dispatcher-bound).
 public static class RegeditIconProvider
 {
     private static SoftwareBitmapSource? _cachedIcon;

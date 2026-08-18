@@ -8,14 +8,8 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-/// <summary>
-/// Backs the pending-restart bar at the bottom of the window.
-///
-/// Winhance no longer restarts Explorer as a side effect of applying a setting - doing so once per
-/// toggle could leave the user with no shell. Settings that need a restart register with
-/// <see cref="IPendingRestartService"/> instead, and this bar is how the user performs the single
-/// restart when they are ready.
-/// </summary>
+// Winhance no longer restarts Explorer as a side effect of applying a setting (once per toggle could leave the
+// user with no shell); this bar is how the user performs the single restart when ready.
 public partial class PendingRestartViewModel : ObservableObject, IDisposable
 {
     private readonly IPendingRestartService _pendingRestartService;
@@ -29,12 +23,11 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     private readonly ISubscriptionToken? _pendingChangedSubscription;
     private bool _disposed;
 
-    /// <summary>True while the bar should be on screen. There is no dismiss - the pending state is
-    /// real, and hiding it would leave the user believing their changes already took effect.</summary>
+    // There is no dismiss - the pending state is real, and hiding it would leave the user believing their changes
+    // already took effect.
     [ObservableProperty]
     public partial bool IsBarVisible { get; set; }
 
-    /// <summary>True while a restart is in flight; the button swaps to a progress ring.</summary>
     [ObservableProperty]
     public partial bool IsRestarting { get; set; }
 
@@ -47,13 +40,12 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string RestartingText { get; set; }
 
-    /// <summary>The pending settings, one per line. This is where the count lives - as a list of
-    /// names, so no localized string has to agree with a number.</summary>
+    // The count lives here as a list of names, so no localized string has to agree with a number.
     [ObservableProperty]
     public partial string TooltipText { get; set; }
 
-    /// <summary>False during a config import or a running task, so a restart cannot land mid-apply.
-    /// The bar stays visible either way - only the button greys out.</summary>
+    // False during a config import or a running task, so a restart cannot land mid-apply; the bar stays visible,
+    // only the button greys out.
     [ObservableProperty]
     public partial bool CanRestart { get; set; }
 
@@ -85,7 +77,6 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         Refresh();
     }
 
-    /// <summary>Re-reads the pending state and rebuilds every displayed string. Safe to call repeatedly.</summary>
     public void Refresh()
     {
         IsBarVisible = _pendingRestartService.IsPending;
@@ -123,10 +114,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Renders the pending setting IDs as localized display names, one per line. Falls back to the
-    /// catalog's English name, then to the raw ID, so an unknown ID degrades rather than throwing.
-    /// </summary>
+    // Falls back to the catalog's English name, then the raw ID, so an unknown ID degrades rather than throwing.
     private string BuildTooltip()
     {
         var names = _pendingRestartService.PendingSettingIds
@@ -147,7 +135,6 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         return string.IsNullOrEmpty(localized) ? setting.Display.Name : localized;
     }
 
-    /// <summary>Returns the localized string, or an empty string when the key is missing.</summary>
     private string Localize(string key) =>
         _localizationService.TryGetString(key, out var value) ? value : string.Empty;
 

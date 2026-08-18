@@ -4,14 +4,11 @@ using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>Builds the power-plan dropdown's option list in the new GUID-valued <see cref="DynamicOption"/> shape.
-/// A faithful port of <c>PowerPlanComboBoxService.GetPowerPlanOptionsAsync</c> (the old index-valued path), so the
-/// new model reproduces the same dropdown: every predefined plan appears (matched to a system plan by GUID, else the
-/// Ultimate-Performance heuristic, else cleaned-name; a not-installed predefined still appears with
-/// ExistsOnSystem=false), then any unmatched custom system plans, all sorted by label. The option's value is the
-/// installed system GUID when present, else the predefined GUID (selecting a not-installed predefined creates/imports
-/// it - that side-effect is the apply path's concern). Labels are the predefined LocalizationKey (PowerPlan_*) or the
-/// custom plan's cleaned name, matching the old DisplayName exactly so the UI's PowerPlan_* localization still applies.</summary>
+// Every predefined plan appears (matched to a system plan by GUID, else the Ultimate-Performance heuristic,
+// else cleaned name; a not-installed predefined still appears with ExistsOnSystem=false), then unmatched custom
+// plans, all sorted by label. Value = the installed GUID when present, else the predefined GUID (selecting a
+// not-installed one creates/imports it on apply). Labels: the predefined PowerPlan_* localization key, or the
+// custom plan's cleaned name.
 internal static class PowerPlanOptions
 {
     public static List<DynamicOption> Build(IReadOnlyList<PowerPlan> systemPlans)

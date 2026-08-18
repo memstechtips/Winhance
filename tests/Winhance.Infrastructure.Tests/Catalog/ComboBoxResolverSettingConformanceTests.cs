@@ -8,21 +8,10 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT conformance for the LIVE
-/// <see cref="ComboBoxResolver.ResolveRawValuesToIndex(Setting, System.Collections.Generic.Dictionary{string, object?})"/>
-/// overload. The overload resolves live registry/powercfg readings to a selection's option index, and is consumed in
-/// production by <see cref="CatalogSettingStateProvider"/> as the value-match BASE under the detection overlay
-/// (the Custom-regression fix). These facts pin the overload's contract against the catalog ALONE:
-///  - ROUND-TRIP: feeding a selection state's own canonical write-values (<see cref="StateValue.WritePayload"/>,
-///    exactly what apply writes for that state, re-keyed for powercfg) back through the resolver resolves to THAT
-///    state's index (first-match) - i.e. detection inverts apply, for every shipped selection state.
-///  - DETECTOR selections (every state carries an empty Set - the DNS / system-tray custom-detector selections)
-///    have no value-match and resolve to index 0.
-///  - A DetectedIndex reading short-circuits to that index regardless of Control.
-///  - FALLBACK: an all-absent reading (allBackingValuesAbsent) or an IsFallback state resolves to the
-///    WindowsDefault option; a present-but-unmatched reading with neither resolves to Custom.
-/// Pure; depends only on the catalog + the real resolver, never the machine.
-/// Run: dotnet test --filter ComboBoxResolverSettingConformance</summary>
+// Pins ResolveRawValuesToIndex against the catalog alone: ROUND-TRIP (a state's own WritePayload resolves back
+// to that state's index - detection inverts apply); DETECTOR selections resolve to 0; a DetectedIndex reading
+// short-circuits; FALLBACK: an all-absent reading or an IsFallback state resolves to the WindowsDefault option,
+// a present-but-unmatched reading to Custom.
 public class ComboBoxResolverSettingConformanceTests
 {
     private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test"];

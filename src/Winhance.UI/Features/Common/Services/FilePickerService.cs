@@ -3,11 +3,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Wraps <see cref="Win32FileDialogHelper"/> so ViewModels can show
-/// file/folder dialogs without holding a Window reference.
-/// The Window is provided via <see cref="IMainWindowProvider"/>.
-/// </summary>
 public class FilePickerService : IFilePickerService
 {
     private readonly IMainWindowProvider _mainWindowProvider;
@@ -17,7 +12,6 @@ public class FilePickerService : IFilePickerService
         _mainWindowProvider = mainWindowProvider;
     }
 
-    /// <inheritdoc />
     public string? PickFile(string[] filters, string? suggestedFileName = null)
     {
         var window = _mainWindowProvider.MainWindow;
@@ -30,7 +24,6 @@ public class FilePickerService : IFilePickerService
         return Win32FileDialogHelper.ShowOpenFilePicker(window, suggestedFileName ?? filterName, filterName, filterPattern);
     }
 
-    /// <inheritdoc />
     public string? PickFolder(string? title = null)
     {
         var window = _mainWindowProvider.MainWindow;
@@ -39,7 +32,6 @@ public class FilePickerService : IFilePickerService
         return Win32FileDialogHelper.ShowFolderPicker(window, title ?? "Select Folder");
     }
 
-    /// <inheritdoc />
     public string? PickSaveFile(string[] filters, string? suggestedFileName = null, string? defaultExtension = null)
     {
         var window = _mainWindowProvider.MainWindow;

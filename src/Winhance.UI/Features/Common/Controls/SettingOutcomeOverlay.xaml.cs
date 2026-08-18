@@ -6,15 +6,8 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Code-behind for <see cref="SettingOutcomeOverlay"/>. Exposes the two inputs every shared input control
-/// passes down - the setting and which power mode this instance edits - and projects the view model's
-/// outcome map into plain bindable properties.
-///
-/// The projected properties exist because x:Bind cannot call a method with a DependencyProperty argument
-/// and re-evaluate when EITHER changes. Recomputing them whenever Setting, Mode, or the setting's own
-/// state changes keeps the markup declarative and the refresh correct.
-/// </summary>
+// The projected properties exist because x:Bind cannot call a method with a DependencyProperty argument and
+// re-evaluate when EITHER changes.
 public sealed partial class SettingOutcomeOverlay : UserControl, INotifyPropertyChanged
 {
     public SettingOutcomeOverlay()
@@ -43,10 +36,9 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         set => SetValue(ModeProperty, value);
     }
 
-    /// <summary>Whether this overlay takes pointer input. False (the default) lets clicks reach the
-    /// control underneath, which every host whose control stays usable needs - and which also means a
-    /// tooltip on this element can never fire, so those hosts put it on the control instead. True when the
-    /// control underneath is inert while unresolved, so intercepting costs nothing and the tooltip works.</summary>
+    // False (default) lets clicks reach the control underneath - which also means a tooltip on this element can
+    // never fire, so those hosts put it on the control instead. True when the control underneath is inert while
+    // unresolved, so intercepting costs nothing and the tooltip works.
     public static readonly DependencyProperty IsInteractiveProperty = DependencyProperty.Register(
         nameof(IsInteractive), typeof(bool), typeof(SettingOutcomeOverlay),
         new PropertyMetadata(false, OnAnyChanged));
@@ -57,8 +49,7 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         set => SetValue(IsInteractiveProperty, value);
     }
 
-    /// <summary>True for a toggle-style host, so the tooltip uses the toggle wording ("click the toggle")
-    /// rather than the selection wording ("pick an option from the list").</summary>
+    // Toggle wording ("click the toggle") vs selection wording ("pick an option from the list").
     public static readonly DependencyProperty IsToggleLikeProperty = DependencyProperty.Register(
         nameof(IsToggleLike), typeof(bool), typeof(SettingOutcomeOverlay),
         new PropertyMetadata(false, OnAnyChanged));
@@ -74,16 +65,14 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
     public double OverlayOpacity { get; private set; } = 1d;
 
-    /// <summary>An Opacity-0 element is still clickable and still announced by Narrator, so while the
-    /// marker is hidden mid-apply both have to be switched off too - otherwise a hover raises a tooltip
-    /// for something invisible and a screen reader reads the stale state.</summary>
+    // An Opacity-0 element is still clickable and still announced by Narrator, so while the marker is hidden
+    // mid-apply both are switched off too.
     public bool OverlayHitTestable { get; private set; }
     public AccessibilityView OverlayAccessibilityView { get; private set; } = AccessibilityView.Content;
     public FluentIcons.Common.Icon OverlayIcon { get; private set; } = FluentIcons.Common.Icon.QuestionCircle;
 
-    /// <summary>Whether the icon is drawn at all. The icons are a severity scale, so a state that is
-    /// simply not on the option list (a detect-only state, named by <see cref="OverlayText"/>) shows the
-    /// name alone - a fault marker beside it would assert a problem that is not there.</summary>
+    // The icons are a severity scale; a state simply not on the option list (a detect-only state, named by
+    // OverlayText) shows the name alone - a fault marker would assert a problem that is not there.
     public Visibility OverlayIconVisibility { get; private set; } = Visibility.Visible;
     public string OverlayText { get; private set; } = string.Empty;
     public string OverlayTooltip { get; private set; } = string.Empty;
@@ -110,9 +99,8 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         _observed = null;
     }
 
-    /// <summary>Refresh on anything that can move the outcome: the outcome itself, the per-mode powercfg
-    /// indices, a language change (which re-raises the localized text properties), and IsApplying, which
-    /// hides the marker for the duration of an apply.</summary>
+    // Anything that can move the outcome: the outcome itself, the per-mode powercfg indices, a language change
+    // (which re-raises the localized text), and IsApplying, which hides the marker during an apply.
     private void OnSettingPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is null

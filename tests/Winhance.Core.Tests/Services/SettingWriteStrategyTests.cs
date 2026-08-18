@@ -8,12 +8,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Services;
 
-/// <summary>
-/// The per-mode write strategies, which the five input handlers used to carry as their own
-/// <c>if (builderMode) { ...; return; }</c> early returns. Testing them here is the point of the
-/// split: those branches sat behind five async UI handlers and were effectively unreachable from a
-/// unit test, which is why two of them could stop recording edits without anything going red.
-/// </summary>
+// The branches these replace sat behind five async UI handlers and were effectively unreachable from a unit
+// test, which is how two of them could stop recording edits without anything going red.
 public class SettingWriteStrategyTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();

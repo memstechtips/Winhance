@@ -6,12 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// A reusable "visit website" link button (native <see cref="HyperlinkButton"/>) shared by the
-/// Software &amp; Apps card, table and compact views. Set <see cref="Url"/>; the control converts
-/// it to a <see cref="Uri"/> for navigation, shows the raw URL as its tooltip, and collapses
-/// itself when the URL is null, empty or not an absolute URI.
-/// </summary>
+// Collapses itself when the URL is null, empty or not an absolute URI; the raw URL is the tooltip.
 public sealed partial class WebsiteLinkButton : UserControl
 {
     public WebsiteLinkButton()
@@ -35,7 +30,6 @@ public sealed partial class WebsiteLinkButton : UserControl
             typeof(WebsiteLinkButton),
             new PropertyMetadata(null, OnUrlChanged));
 
-    /// <summary>The website URL to open. The control hides itself when this is null/empty/invalid.</summary>
     public string? Url
     {
         get => (string?)GetValue(UrlProperty);

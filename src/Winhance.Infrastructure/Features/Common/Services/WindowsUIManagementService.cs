@@ -100,7 +100,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public bool IsShellWindowAlive()
     {
         try
@@ -116,7 +115,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public bool TryGracefulShellExit(int timeoutMs)
     {
         var deadline = Environment.TickCount64 + timeoutMs;
@@ -178,7 +176,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public void BroadcastShellRefresh()
     {
         try
@@ -196,7 +193,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public void BroadcastThemeRefresh()
     {
         try

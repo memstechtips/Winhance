@@ -7,13 +7,8 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Manages app-local UI zoom for the main content area. Emulates a LayoutTransform
-/// (absent in WinUI 3) by inverse-sizing the zoom host (Width = viewport / factor)
-/// and applying a ScaleTransform(factor), which produces DPI-like reflow without
-/// nested scrollbars. Persists the factor via IUserPreferencesService, mirroring
-/// WindowSizeManager.
-/// </summary>
+// Emulates a LayoutTransform (absent in WinUI 3) by inverse-sizing the zoom host (Width = viewport / factor) and
+// applying a ScaleTransform(factor) - DPI-like reflow without nested scrollbars.
 public class UiZoomManager
 {
     private readonly FrameworkElement _viewport; // measures available space (row-4 cell)
@@ -46,7 +41,6 @@ public class UiZoomManager
 
     public double Factor => _factor;
 
-    /// <summary>Reads the persisted factor (sync, startup-safe) and applies it.</summary>
     public void Initialize()
     {
         try
@@ -79,7 +73,6 @@ public class UiZoomManager
         Persist();
     }
 
-    /// <summary>Inverse-sizes the host to the current viewport and applies the scale.</summary>
     public void Apply()
     {
         var w = _viewport.ActualWidth;

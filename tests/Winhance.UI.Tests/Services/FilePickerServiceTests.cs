@@ -6,11 +6,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Services;
 
-/// <summary>
-/// Tests for FilePickerService. Note: Most logic is delegated to the static
-/// Win32FileDialogHelper class which cannot be mocked. These tests cover the
-/// constructor, null window checks, and filter parameter handling.
-/// </summary>
+// Most logic is delegated to the static Win32FileDialogHelper, which cannot be mocked; these cover the
+// null-window checks and filter handling.
 public class FilePickerServiceTests
 {
     private static readonly string[] AllFilesFilter = ["All Files", "*.*"];

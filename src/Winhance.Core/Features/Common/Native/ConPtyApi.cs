@@ -2,12 +2,8 @@ using System.Runtime.InteropServices;
 
 namespace Winhance.Core.Features.Common.Native;
 
-/// <summary>
-/// P/Invoke declarations for Windows Pseudo Console (ConPTY) APIs.
-/// ConPTY makes child processes think stdout is a real terminal,
-/// causing isatty() to return true and enabling real-time progress output.
-/// Available since Windows 10 build 17763 (1809).
-/// </summary>
+// ConPTY makes child processes think stdout is a real terminal (isatty() true), which is what enables real-time
+// progress output. Windows 10 build 17763 (1809) and later.
 public static class ConPtyApi
 {
     // Process creation flags

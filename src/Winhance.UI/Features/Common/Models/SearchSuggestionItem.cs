@@ -1,8 +1,5 @@
 namespace Winhance.UI.Features.Common.Models;
 
-/// <summary>
-/// Represents a search suggestion item for cross-section searching.
-/// </summary>
 public class SearchSuggestionItem
 {
     public string SettingName { get; set; } = string.Empty;

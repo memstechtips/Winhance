@@ -1,11 +1,5 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Validates a Setting's authoring against the structural invariants the detection engine relies on.
-/// Pure; returns ALL violations (empty list = valid). Cross-setting rules - acyclic relationship graphs,
-/// and the resolution of every setting id AND every state LABEL one setting names on another - are checked
-/// separately by ValidateCatalog.
-/// </summary>
 public static class CatalogValidator
 {
     public static IReadOnlyList<CatalogValidationError> Validate(Setting setting)
@@ -94,12 +88,7 @@ public static class CatalogValidator
         return errors;
     }
 
-    /// <summary>
-    /// Cross-setting checks that need the whole catalog: unique ids, every relationship target exists,
-    /// every state LABEL one setting names on another resolves to a real (and, where the relationship
-    /// DEMANDS it, choosable) state on that setting, and the Link relationship graph is acyclic (an
-    /// auto-applied requirement that loops back would recurse without this cycle guard).
-    /// </summary>
+    // The Link graph must be acyclic: an auto-applied requirement that loops back would recurse without this guard.
     public static IReadOnlyList<CatalogValidationError> ValidateCatalog(IReadOnlyList<Setting> settings)
     {
         var errors = new List<CatalogValidationError>();

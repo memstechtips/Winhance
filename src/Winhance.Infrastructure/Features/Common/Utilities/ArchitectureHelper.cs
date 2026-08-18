@@ -2,10 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
-/// <summary>
-/// Shared architecture detection logic used by StoreDownloadService and WinGetInstaller.
-/// Uses OSArchitecture to detect the native OS architecture.
-/// </summary>
 internal static class ArchitectureHelper
 {
     public static string GetCurrentArchitecture()

@@ -251,11 +251,7 @@ public class WinGetInstaller
         }
     }
 
-    /// <summary>
-    /// Returns true if the line is a progress bar (contains Unicode block elements).
-    /// These lines arrive as permanent output via onOutputLine when ConPTY re-emits
-    /// a \r\n terminated progress bar, but they are already handled by onProgressLine.
-    /// </summary>
+    // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
     private static bool IsProgressBarLine(string line)
     {
         foreach (char c in line)
@@ -266,10 +262,6 @@ public class WinGetInstaller
         return false;
     }
 
-    /// <summary>
-    /// Returns true if the winget output line is visual noise (progress bars, spinners, blank lines)
-    /// that should not be written to the log file.
-    /// </summary>
     private static bool IsWinGetOutputNoise(string? line)
     {
         if (string.IsNullOrWhiteSpace(line))
@@ -471,9 +463,6 @@ public class WinGetInstaller
         ReportProgress(95, GetString("Progress_WinGet_ProvisionedSuccessfully"));
     }
 
-    /// <summary>
-    /// Provisions an AppX package machine-wide using the PowerShell Add-AppxProvisionedPackage cmdlet.
-    /// </summary>
     private async Task ProvisionWithPowerShellAsync(
         string packagePath,
         string[]? dependencyPackages,
@@ -507,10 +496,7 @@ public class WinGetInstaller
         await _powerShellRunner.RunScriptAsync(script.ToString(), ct: cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Installs an AppX package for the current user using the PackageManager WinRT API.
-    /// Used as a fallback when DismAddProvisionedAppxPackage is unavailable.
-    /// </summary>
+    // Fallback when DismAddProvisionedAppxPackage is unavailable.
     private async Task InstallWithPackageManagerAsync(
         string packagePath,
         string[]? dependencyPackages,

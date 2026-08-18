@@ -4,9 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>Drives <see cref="CatalogDiscovery"/> over a batch of settings using a fresh, pre-fetched detection
-/// context. Each setting's detection is isolated in a try/catch so one failure cannot abort the batch. The result
-/// is the normalized view (state label or numeric value) keyed by Setting.Id.</summary>
+// Each setting's detection is isolated in a try/catch so one failure cannot abort the batch.
 public sealed class CatalogDetectionService : ICatalogDetectionService
 {
     private readonly ISystemDetectionContextFactory _contextFactory;
@@ -99,10 +97,6 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         return results;
     }
 
-    /// <summary>Builds the live per-registry-target readings for <paramref name="setting"/>: group the RegTargets by
-    /// <c>ValueName ?? "KeyExists"</c>, read each group's paths HKLM-first and keep the first non-null reading
-    /// (REG_BINARY reduced via <see cref="Reduce"/>, key existence as a bool). These feed the config-export
-    /// custom-state path. Null when the setting has no registry targets.</summary>
     private static IReadOnlyDictionary<string, object?>? BuildReadings(Setting setting, IDetectionContext context)
     {
         var regTargets = setting.Targets.OfType<RegTarget>().ToList();
@@ -142,9 +136,7 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         return readings;
     }
 
-    /// <summary>REG_BINARY reduction: a bitmask test reduces to a bool, a single-byte edit to that byte (null when
-    /// the blob is too short); everything else passes through. CompositeStringKey / per-NIC are intentionally NOT
-    /// reduced - the raw value is stored.</summary>
+    // CompositeStringKey / per-NIC are intentionally NOT reduced - the raw value is stored.
     private static object? Reduce(RegTarget target, object? raw)
     {
         if (raw is byte[] blob)
@@ -157,10 +149,7 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
         return raw;
     }
 
-    /// <summary>Reads the raw AC and DC powercfg values for a setting's live <see cref="PowerCfgTarget"/> (the first
-    /// whose AppliesTo admits the current build, mirroring <see cref="CatalogDiscovery"/>'s target filter). Both come
-    /// from the context's already pre-fetched cache (no extra I/O). (null, null) when the setting has no live powercfg
-    /// target - i.e. for every registry/task/custom-detector setting.</summary>
+    // Both from the context's pre-fetched cache (no extra I/O); (null, null) for every registry/task/custom-detector setting.
     private static (int? ac, int? dc) ReadPowerAcDc(Setting setting, IDetectionContext context)
     {
         foreach (var target in setting.Targets)

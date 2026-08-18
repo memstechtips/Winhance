@@ -12,10 +12,6 @@ using Microsoft.UI.Dispatching;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Handles page navigation routing, tag-to-Type mapping, and review mode feature tracking.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class NavigationRouter
 {
     private readonly IConfigReviewService? _configReviewService;
@@ -50,14 +46,6 @@ internal sealed class NavigationRouter
         _dispatcherQueue = dispatcherQueue;
     }
 
-    /// <summary>
-    /// Navigates the content frame to the page corresponding to the given tag.
-    /// Also handles review mode feature-visited tracking for SoftwareApps.
-    /// </summary>
-    /// <param name="frame">The content frame to navigate.</param>
-    /// <param name="tag">The navigation tag (e.g., "SoftwareApps", "Optimize").</param>
-    /// <param name="parameter">Optional navigation parameter.</param>
-    /// <param name="applyNavBadges">Callback to refresh nav badges after subscription.</param>
     public void NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
     {
         StartupLogger.Log("NavigationRouter", $"NavigateToPage called with tag: {tag}");
@@ -100,9 +88,6 @@ internal sealed class NavigationRouter
         }
     }
 
-    /// <summary>
-    /// Gets the navigation tag for the currently displayed page type.
-    /// </summary>
     public string? GetTagForCurrentPage(Type? pageType)
     {
         if (pageType == null) return null;

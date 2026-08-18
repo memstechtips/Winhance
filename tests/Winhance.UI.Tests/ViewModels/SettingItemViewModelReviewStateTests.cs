@@ -12,13 +12,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// Review state now lives in one overlay object behind one nullable reference, so leaving review is
-/// a single assignment rather than a nine-line reset. These tests hold that property: that nothing
-/// survives the exit, that a value written outside a review cannot land at all, and — by
-/// reflection, so it stays true for review properties nobody has written yet — that dropping the
-/// overlay tells the UI about every property that reads from it.
-/// </summary>
+// Nothing survives the exit, a value written outside a review cannot land, and - by reflection, so it stays
+// true for properties nobody has written yet - dropping the overlay notifies every property that reads from it.
 public class SettingItemViewModelReviewStateTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();
@@ -56,10 +51,7 @@ public class SettingItemViewModelReviewStateTests
             _localizationService.Object);
     }
 
-    /// <summary>
-    /// Every public property on the ViewModel that reads the review overlay, discovered rather than
-    /// listed so a review property added later is covered without anyone remembering to come back.
-    /// </summary>
+    // Discovered rather than listed, so a review property added later is covered without anyone remembering to come back.
     private static IReadOnlyList<PropertyInfo> ReviewProjections() =>
         typeof(SettingItemViewModel)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)

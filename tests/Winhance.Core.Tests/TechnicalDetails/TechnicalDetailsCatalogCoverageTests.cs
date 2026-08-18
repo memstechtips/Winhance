@@ -8,22 +8,10 @@ using Xunit.Abstractions;
 
 namespace Winhance.Core.Tests.TechnicalDetails;
 
-/// <summary>
-/// Every setting a user can see should be able to explain itself.
-/// <para>
-/// The single-table rebuild returned null from <c>BuildMatrix</c> whenever a setting had no
-/// registry / scheduled-task / powercfg target to build columns from. Null makes
-/// <c>SettingItemViewModel.HasTechnicalDetails</c> false, which hides the panel AND its toggle bar -
-/// so six real settings silently lost the only window into what they do. The settings that lost it
-/// were exactly the script-driven ones (gaming-dns-server rewrites DNS entirely through PowerShell),
-/// where the panel mattered most.
-/// </para>
-/// <para>
-/// Nothing failed when that happened: no test asserted it, and the symptom - a missing strip on a
-/// card - looks like a rendering bug in the UI layer rather than a null from a pure Core function.
-/// This test is what makes it fail loudly instead.
-/// </para>
-/// </summary>
+// A null from BuildMatrix makes SettingItemViewModel.HasTechnicalDetails false, which hides the panel AND its
+// toggle bar; six script-driven settings (gaming-dns-server rewrites DNS entirely through PowerShell) silently
+// lost the only window into what they do, and the symptom looked like a UI rendering bug rather than a null
+// from a pure Core function.
 public class TechnicalDetailsCatalogCoverageTests
 {
     private readonly ITestOutputHelper _output;
@@ -32,8 +20,7 @@ public class TechnicalDetailsCatalogCoverageTests
 
     private static readonly WinBuild Build = new(26100);
 
-    /// <summary>No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English
-    /// default. Keeps this test about structure rather than about localization.</summary>
+    // No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English default.
     private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
 
     [Fact]
@@ -72,11 +59,7 @@ public class TechnicalDetailsCatalogCoverageTests
             + "writes, whether it asks for confirmation - and returning null hides the whole panel");
     }
 
-    /// <summary>
-    /// The six that regressed, pinned by id. The sweep above would catch them as part of the whole
-    /// catalog, but naming them means a failure says which behaviour broke rather than just "one of
-    /// 400 settings". These are the ones with no targets at all.
-    /// </summary>
+    // Pinned by id so a failure says which behaviour broke rather than "one of 400 settings".
     [Theory]
     [InlineData("gaming-dns-server")]
     [InlineData("system-restore-protection")]
@@ -117,12 +100,8 @@ public class TechnicalDetailsCatalogCoverageTests
             "every row carries one cell per column, and most of these settings have no columns at all");
     }
 
-    /// <summary>
-    /// The roles are the point of the rows. gaming-dns-server names every DNS provider it can set
-    /// and exactly one of those is both what Winhance suggests and what Windows ships with. A panel
-    /// that lists a script per option without saying which one that is has told the reader nothing
-    /// they can act on - and every other setting's panel states all three roles.
-    /// </summary>
+    // gaming-dns-server names every DNS provider it can set and exactly one is both what Winhance suggests and what
+    // Windows ships with; a panel listing a script per option without saying which is that tells the reader nothing actionable.
     [Fact]
     public void TargetLessSetting_KeepsTheRolesOnItsOptions()
     {

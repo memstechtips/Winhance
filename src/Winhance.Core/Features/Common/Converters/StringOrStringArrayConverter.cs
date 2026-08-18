@@ -3,11 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Winhance.Core.Features.Common.Converters;
 
-/// <summary>
-/// Converts a JSON value that may be either a single string or a string array
-/// into a string[]. This handles backward compatibility for config files that
-/// serialized AppxPackageName as a plain string instead of a string array.
-/// </summary>
+// Backward compatibility: older config files serialized AppxPackageName as a plain string.
 public class StringOrStringArrayConverter : JsonConverter<string[]?>
 {
     public override string[]? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

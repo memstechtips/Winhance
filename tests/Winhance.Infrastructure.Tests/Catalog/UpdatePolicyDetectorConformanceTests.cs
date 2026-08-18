@@ -3,13 +3,9 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT conformance for <see cref="UpdatePolicyDetector"/>: over CONSTRUCTED
-/// contexts it asserts the detector resolves the update-policy state correctly (renamed DLLs -> Disabled;
-/// a live pause -> Paused; DeferFeatureUpdates==1 -> the deferred state; else the Windows default),
-/// including the precedence order. Uses the REAL catalog setting's attached detector, so it also proves
-/// the wiring (Detector present, labels match the States). Registry alone cannot read this setting
-/// (Disabled/Paused share NoAutoUpdate=1/AUOptions=1 and Disabled is a filesystem DLL rename), which is
-/// why the detector - not target matching - is the authority.</summary>
+// Registry alone cannot read this setting (Disabled/Paused share NoAutoUpdate=1/AUOptions=1 and Disabled is a
+// filesystem DLL rename), which is why the detector - not target matching - is the authority. Uses the REAL
+// catalog setting's attached detector.
 public class UpdatePolicyDetectorConformanceTests
 {
     private const string Ux = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
@@ -22,8 +18,6 @@ public class UpdatePolicyDetectorConformanceTests
     private static readonly Setting UpdatePolicy =
         SettingCatalog.All.First(s => s.Id == "updates-policy-mode");
 
-    /// <summary>Constructed detection context: only the (keyPath, valueName) pairs supplied read as present; the DLL
-    /// rename flag is explicit. Everything else is absent/false.</summary>
     private sealed class Ctx : IDetectionContext
     {
         private readonly Dictionary<(string, string?), object?> _vals;

@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>Live <see cref="IAsyncEffectRunner"/>: the two apply effects that launch a process.</summary>
 public class WindowsAsyncEffectRunner(
     IPowerShellRunner powerShell,
     IRegImportService regImport,

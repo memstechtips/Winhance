@@ -642,10 +642,8 @@ public class ConfigExportService : IConfigExportService
         return 0;
     }
 
-    /// <summary>Twin of AutounattendXmlGeneratorService.ControlToInputType: populates the PERSISTED
-    /// config-file InputType field from the derived Control. The field is LOAD-BEARING -
-    /// ConfigMigrationService's Toggle->Selection import gates read it and it seeds the view-model InputType on
-    /// config import.</summary>
+    // Twin of AutounattendXmlGeneratorService.ControlToInputType: the persisted InputType field is LOAD-BEARING
+    // (ConfigMigrationService's Toggle->Selection import gates read it, and it seeds the ViewModel InputType on import).
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

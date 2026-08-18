@@ -1,24 +1,10 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Turns a registry target's reads into the single comparable value the detection engine matches
-/// against. Mirror paths fold HKLM-first to the first non-null read; REG_BINARY targets reduce to a bool
-/// (bitmask) or a single byte. Reads go through the injected <see cref="IDetectionContext"/> so this is
-/// testable without a real registry.
-///
-/// A "surgical" target (bitmask, single byte, decimal-string flags, packed composite string) needs a
-/// specific CLR type to reduce at all. When the stored value is present but of the wrong type, the
-/// reading is <see cref="TargetReading.Malformed"/> rather than the raw value: previously such a value
-/// fell through and was returned marked PRESENT, where it could match no state and so surfaced as
-/// "Custom" - reporting a wrong-format value as an unrecognized choice.
-/// </summary>
+// Mirror paths fold HKLM-first to the first non-null read. A present value of the wrong CLR type reads as
+// Malformed, never as the raw value: a wrong-format value must not surface as "Custom".
 public static class RegTargetReader
 {
-    /// <summary>
-    /// Reads <paramref name="target"/> through <paramref name="ctx"/>. A target whose ValueName is null
-    /// encodes its state as key existence, so its reading is (null, key-exists); otherwise the raw value is
-    /// read and reduced.
-    /// </summary>
+    // A target whose ValueName is null encodes its state as key existence.
     public static TargetReading Read(RegTarget target, IDetectionContext ctx)
     {
         // ValueName == null: the state is whether the key exists, not a stored value. Mirror paths fold
@@ -100,8 +86,7 @@ public static class RegTargetReader
         return TargetReading.Of(raw);
     }
 
-    /// <summary>Mirror-path read order: an HKLM path outranks HKCU. Internal so
-    /// <see cref="CatalogDiscovery"/> can name the same winning path when describing a malformed value.</summary>
+    // Internal so CatalogDiscovery can name the same winning path when describing a malformed value.
     internal static IEnumerable<string> OrderHklmFirst(IReadOnlyList<string> paths)
         => paths.OrderByDescending(p => p.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase));
 }

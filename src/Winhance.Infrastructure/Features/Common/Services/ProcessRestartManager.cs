@@ -13,24 +13,18 @@ public class ProcessRestartManager(
     IExplorerRestartService explorerRestartService,
     ILogService logService) : IProcessRestartManager
 {
-    /// <summary>The one restart target that is never executed here - see <see cref="HandleRestartsAsync"/>.</summary>
+    // Explorer is never restarted here; it goes to the pending-restart bar (HandleRestartsAsync).
     private const string ExplorerTarget = "Explorer";
 
-    /// <summary>Past this, a broadcast stops being a Debug detail and becomes a WARNING in the user's
-    /// own log. A silent two-second stall is what started this; a slow broadcast has to announce
-    /// itself.</summary>
+    // Past this a broadcast becomes a WARNING in the user's own log: a silent two-second stall is what started this.
     private const int SlowBroadcastMs = 500;
 
     private int _suppressCount;
 
-    /// <summary>
-    /// Test seam: the most recent backgrounded broadcast. Production never reads it - the broadcast is
-    /// fire-and-forget and observes its own failures internally (see <see cref="RunBroadcast"/>) - but
-    /// the suite needs a deterministic point to await instead of racing the thread pool.
-    /// </summary>
+    // Test seam: production never reads it (the broadcast is fire-and-forget and observes its own failures), but the
+    // suite needs a deterministic point to await instead of racing the thread pool.
     internal Task LastBroadcastTask { get; private set; } = Task.CompletedTask;
 
-    /// <inheritdoc />
     public IDisposable SuppressRestarts()
     {
         Interlocked.Increment(ref _suppressCount);
@@ -50,7 +44,6 @@ public class ProcessRestartManager(
         }
     }
 
-    /// <inheritdoc />
     public Task HandleProcessAndServiceRestartsAsync(Setting setting)
     {
         // The Setting's ApplyBehavior.Restart unifies process/service restarts into one RestartTarget (no
@@ -142,10 +135,7 @@ public class ProcessRestartManager(
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Registers a setting as needing an Explorer restart - unless a config import is running, which
-    /// performs its own single restart at the end and must therefore leave no pending bar behind.
-    /// </summary>
+    // Unless a config import is running - it performs its own single restart at the end and must leave no pending bar behind.
     private void RegisterExplorerPending(string? settingId)
     {
         if (configImportState.IsActive)
@@ -159,33 +149,21 @@ public class ProcessRestartManager(
             pendingRestartService.Register(settingId);
     }
 
-    /// <summary>"theme+generic" or "generic" - which set of messages went out, so the split is visible
-    /// in the field rather than only in the source.</summary>
+    // Which set of messages went out, so the split is visible in the field rather than only in the source.
     private static string BroadcastVariant(bool themeAffecting) =>
         themeAffecting ? "theme+generic" : "generic";
 
-    /// <summary>What the broadcast was for: a named setting, or a coalesced bulk apply.</summary>
     private static string BroadcastScope(string? settingId) =>
         string.IsNullOrEmpty(settingId) ? "(coalesced)" : $"for '{settingId}'";
 
-    /// <summary>Announces a broadcast BEFORE it is sent. Separate from <see cref="RunBroadcast"/> so the
-    /// per-apply path can log it on the caller's thread while the send itself runs on the pool.</summary>
+    // Separate from RunBroadcast so the per-apply path can log on the caller's thread while the send runs on the pool.
     private void LogBroadcastDispatch(bool themeAffecting, string? settingId) =>
         logService.Log(LogLevel.Debug,
             $"[ProcessRestartManager] Broadcasting shell refresh ({BroadcastVariant(themeAffecting)}) {BroadcastScope(settingId)}");
 
-    /// <summary>
-    /// Sends the shell broadcast and TIMES it. Every Explorer-restart setting gets the generic,
-    /// payload-free WM_SETTINGCHANGE; only a theme-affecting setting also gets the expensive theme set.
-    ///
-    /// The timing is the point of this method. A user reading their own log used to see a two-second
-    /// gap with nothing in it and no way to attribute it. Normal runs stay Debug detail; anything at or
-    /// past <see cref="SlowBroadcastMs"/> is promoted to a Warning so the slow case reports itself.
-    ///
-    /// Catches EVERYTHING. On the per-apply path this runs on a background task nobody awaits, so an
-    /// escaping exception would be swallowed by the thread pool and never reach the log - which is the
-    /// exact class of silence this change exists to remove.
-    /// </summary>
+    // TIMES the broadcast: a user reading their own log used to see a two-second gap with nothing in it. Normal runs
+    // stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
+    // this runs on a background task nobody awaits, so an escaping exception would vanish into the thread pool.
     private void RunBroadcast(bool themeAffecting, string? settingId)
     {
         string variant = BroadcastVariant(themeAffecting);
@@ -218,7 +196,6 @@ public class ProcessRestartManager(
                 : $"[ProcessRestartManager] Shell broadcast ({variant}) {scope} took {elapsedMs}ms");
     }
 
-    /// <inheritdoc />
     public Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings)
     {
         if (appliedSettings == null) return Task.CompletedTask;
@@ -247,17 +224,11 @@ public class ProcessRestartManager(
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// True when the setting DECLARES that applying it changes how Windows looks
-    /// (<see cref="WindowsChange.Appearance"/>) - the one thing the expensive half of the broadcast is for.
-    ///
-    /// Reading the declaration is ALL this does. It does not decide whether a broadcast happens at all -
-    /// the Explorer gate in <see cref="HandleRestartsAsync"/> still does that - only which one goes out.
-    /// </summary>
+    // Reads the declaration only; the Explorer gate in HandleRestartsAsync still decides whether a broadcast happens
+    // at all - this decides which one.
     private static bool WantsAppearanceNotice(Setting setting) =>
         setting.Apply.NotifyWindows.HasFlag(WindowsChange.Appearance);
 
-    /// <summary>True when a setting's unified ApplyBehavior.Restart is a process restart of Explorer.</summary>
     private static bool HasExplorerRestart(Setting setting) =>
         setting.Apply.Restart is RestartProcess rp
         && rp.Name.Equals(ExplorerTarget, StringComparison.OrdinalIgnoreCase);

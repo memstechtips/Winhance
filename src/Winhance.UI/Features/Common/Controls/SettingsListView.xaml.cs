@@ -66,11 +66,8 @@ public sealed partial class SettingsListView : UserControl
         PageScrollHelper.Attach(this, ContentScrollView);
     }
 
-    /// <summary>
-    /// Intercepts Tab focus leaving the ListView and redirects it to the next/previous
-    /// setting control within the list. The ListView's built-in TabFocusNavigation=Once
-    /// forces Tab to exit after one stop — this handler overrides that behavior.
-    /// </summary>
+    // The ListView's TabFocusNavigation=Once forces Tab to exit after one stop; this redirects it to the
+    // next/previous setting control inside the list.
     private void ListView_LosingFocus(object sender, LosingFocusEventArgs e)
     {
         if (e.InputDevice != FocusInputDeviceKind.Keyboard) return;
@@ -141,9 +138,6 @@ public sealed partial class SettingsListView : UserControl
         // At the boundary (first or last item) — let focus leave the list naturally
     }
 
-    /// <summary>
-    /// Handles Ctrl+D to toggle Technical Details for the currently focused setting.
-    /// </summary>
     private void TechnicalDetailsAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;

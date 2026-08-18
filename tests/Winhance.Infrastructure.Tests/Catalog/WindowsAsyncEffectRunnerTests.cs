@@ -10,8 +10,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>The two apply effects that launch a process. Split out of WindowsStateWriter so the
-/// synchronous writer never blocks on real async I/O.</summary>
 public class WindowsAsyncEffectRunnerTests
 {
     private readonly Mock<IPowerShellRunner> _powerShell = new();

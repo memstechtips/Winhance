@@ -8,10 +8,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for the review mode bar in the main window.
-/// Manages review mode state, status text, and apply/cancel commands.
-/// </summary>
 public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;

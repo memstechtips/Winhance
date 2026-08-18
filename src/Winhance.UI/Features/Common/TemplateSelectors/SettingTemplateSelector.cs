@@ -5,11 +5,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.TemplateSelectors;
 
-/// <summary>
-/// Selects the appropriate DataTemplate based on the setting's InputType.
-/// This ensures only the relevant control is created for each setting,
-/// rather than creating all controls and hiding the unused ones.
-/// </summary>
 public partial class SettingTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ToggleTemplate { get; set; }
@@ -17,9 +12,8 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
-    /// <summary>Separate-mode powercfg settings. ONE template each now: the on-battery column is bound
-    /// to HasBattery inside the template rather than split into Dual/SingleAC variants, which is what
-    /// let the two halves drift apart.</summary>
+    // ONE template each: the on-battery column is bound to HasBattery inside the template rather than split into
+    // Dual/SingleAC variants, which is what let the two halves drift apart.
     public DataTemplate? PowerSelectionTemplate { get; set; }
     public DataTemplate? PowerNumericTemplate { get; set; }
 

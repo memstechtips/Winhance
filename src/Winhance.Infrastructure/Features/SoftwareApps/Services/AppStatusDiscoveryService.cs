@@ -281,11 +281,7 @@ public class AppStatusDiscoveryService(
         HashSet<string> DisplayNames,
         HashSet<string> AllKeyNames);
 
-    /// <summary>
-    /// Tests whether input matches a pattern containing {version}, {arch}, {locale} placeholders.
-    /// Each placeholder is replaced by a non-greedy wildcard (.+?) for regex matching.
-    /// Patterns without placeholders perform exact case-insensitive comparison.
-    /// </summary>
+    // Each placeholder becomes a non-greedy wildcard; a pattern without placeholders is an exact case-insensitive comparison.
     internal static bool MatchesPattern(string input, string pattern)
     {
         if (string.IsNullOrEmpty(input))

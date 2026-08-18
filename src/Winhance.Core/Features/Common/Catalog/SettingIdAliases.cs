@@ -1,15 +1,8 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Maps a retired config-item setting id to its current canonical <see cref="SettingCatalog"/> id, so OLD
-/// configuration files keep importing even though those ids are no longer standalone settings.
-///
-/// The 6 "This PC folder" settings were split per-OS in the old model (a Windows-11 canonical id
-/// plus a "-win10" Windows-10 variant). The catalog MERGES each pair into ONE build-gated <see cref="Setting"/>
-/// under the canonical id (Windows-11 and Windows-10 targets gated by <c>AppliesTo</c>), so the "-win10" ids are
-/// unpaired. Normalizing them to the canonical id lets an old config resolve, gate (via <see cref="Availability"/>),
-/// and apply through the merged setting on either OS. Applied once in <c>ConfigMigrationService.MigrateConfig</c>.
-/// </summary>
+// Keeps OLD configuration files importing: the 6 This PC folder settings were once split per OS (canonical +
+// "-win10"); the catalog merges each pair into one build-gated Setting, so the -win10 ids normalize to the
+// canonical id. Applied once, in ConfigMigrationService.MigrateConfig.
 public static class SettingIdAliases
 {
     // Retired id -> canonical catalog id. These 6 "-win10" ids are absent from SettingCatalog;
@@ -24,8 +17,6 @@ public static class SettingIdAliases
         ["explorer-customization-thispc-folder-videos-win10"] = "explorer-customization-thispc-folder-videos",
     };
 
-    /// <summary>Returns the canonical catalog id for a (possibly retired) config id, or the input unchanged when it
-    /// is not an alias.</summary>
     public static string Normalize(string id)
         => Aliases.TryGetValue(id, out var canonical) ? canonical : id;
 }

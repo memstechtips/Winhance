@@ -2,10 +2,6 @@ using System.Text;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Emits the script header, logging setup, helper functions, and Start-ProcessAsUser.
-/// These are entirely static string emission with no instance state.
-/// </summary>
 internal static class ScriptPreambleSection
 {
     public static void AppendHeader(StringBuilder sb)

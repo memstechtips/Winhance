@@ -2,9 +2,6 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
-/// <summary>
-/// Handles WinGet CLI-based package install and uninstall operations.
-/// </summary>
 public interface IWinGetPackageInstaller
 {
     Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, string? installerOverride = null, CancellationToken cancellationToken = default);

@@ -259,7 +259,6 @@ public class LocalizationServiceTests
         sut.GetString("SettingGroup_Other").Should().Be("[Sonstige]");
     }
 
-    /// <summary>A service whose Localization folder holds exactly the given language files.</summary>
     private static LocalizationService ServiceWith(params (string Lang, string Json)[] files)
     {
         var mockFs = new Mock<IFileSystemService>();

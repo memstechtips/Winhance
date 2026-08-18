@@ -8,29 +8,17 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Provides application-specific behavior to supplement the default Application class.
-/// </summary>
 public partial class App : Application
 {
     private Window? _mainWindow;
     private IHost? _host;
     private ILogService? _logService;
 
-    /// <summary>
-    /// Gets the main window instance.
-    /// </summary>
     public static Window? MainWindow => (Current as App)?._mainWindow;
 
-    /// <summary>
-    /// Gets the service provider for dependency injection.
-    /// </summary>
     public static IServiceProvider Services => (Current as App)?._host?.Services
         ?? throw new InvalidOperationException("Host not initialized");
 
-    /// <summary>
-    /// Initializes the singleton application object.
-    /// </summary>
     public App()
     {
         StartupLogger.Log("App", "App constructor starting");
@@ -50,9 +38,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Registers all exception handlers for comprehensive error logging.
-    /// </summary>
     private void RegisterExceptionHandlers()
     {
         // AppDomain unhandled exceptions (fatal errors)
@@ -65,9 +50,6 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
     }
 
-    /// <summary>
-    /// Handles fatal AppDomain unhandled exceptions.
-    /// </summary>
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
@@ -75,9 +57,6 @@ public partial class App : Application
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
     }
 
-    /// <summary>
-    /// Handles WinUI 3 unhandled exceptions.
-    /// </summary>
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
@@ -85,9 +64,6 @@ public partial class App : Application
         e.Handled = true; // Prevent crash if possible
     }
 
-    /// <summary>
-    /// Handles unobserved task exceptions.
-    /// </summary>
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
@@ -95,10 +71,6 @@ public partial class App : Application
         e.SetObserved(); // Prevent crash
     }
 
-    /// <summary>
-    /// Invoked when the application is launched.
-    /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         StartupLogger.Log("App", "OnLaunched starting");
@@ -174,9 +146,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the localization system for use with x:Bind in XAML.
-    /// </summary>
     private void InitializeLocalization()
     {
         try
@@ -195,9 +164,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the theme system and loads the saved user preference.
-    /// </summary>
     private void InitializeTheme()
     {
         try

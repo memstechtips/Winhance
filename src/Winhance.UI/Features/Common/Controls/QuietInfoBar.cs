@@ -3,14 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// InfoBar subclass that does not auto-announce as a live region.
-/// The stock InfoBarAutomationPeer hardcodes AutomationLiveSetting.Assertive
-/// in GetLiveSettingCore(), ignoring any AutomationProperties.LiveSetting
-/// set externally. This causes every visible InfoBar to be read aloud when
-/// Narrator enters a page. QuietInfoBar replaces that peer so the banner
-/// is still accessible on focus but doesn't interrupt on page navigation.
-/// </summary>
+// The stock InfoBarAutomationPeer hardcodes AutomationLiveSetting.Assertive in GetLiveSettingCore(), ignoring
+// AutomationProperties.LiveSetting, so every visible InfoBar is read aloud when Narrator enters a page. This peer
+// keeps the banner accessible on focus without interrupting on navigation.
 public partial class QuietInfoBar : InfoBar
 {
     protected override AutomationPeer OnCreateAutomationPeer()

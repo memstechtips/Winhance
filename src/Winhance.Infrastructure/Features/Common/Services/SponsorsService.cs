@@ -5,10 +5,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Fetches sponsor/supporter data from the sponsors branch with a bundled-snapshot fallback.
-/// Results are cached for the lifetime of the session.
-/// </summary>
 public class SponsorsService : ISponsorsService
 {
     private const string LiveUrl = "https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/sponsors.json";
@@ -27,7 +23,6 @@ public class SponsorsService : ISponsorsService
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
     }
 
-    /// <inheritdoc/>
     public async Task<SponsorsDocument?> GetSponsorsAsync(CancellationToken cancellationToken = default)
     {
         if (_cached is not null)
@@ -54,14 +49,12 @@ public class SponsorsService : ISponsorsService
         }
     }
 
-    /// <inheritdoc/>
     public string GetLogoUri(SponsorEntry sponsor)
     {
         string logo = sponsor.Logo ?? string.Empty;
         return $"https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/{logo}";
     }
 
-    /// <inheritdoc/>
     public string? GetBundledLogoPath(SponsorEntry sponsor)
     {
         if (string.IsNullOrEmpty(sponsor.Logo))

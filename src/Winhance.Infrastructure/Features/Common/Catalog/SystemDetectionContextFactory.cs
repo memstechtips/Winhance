@@ -3,8 +3,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>Builds a fresh <see cref="SystemDetectionContext"/> for each detection batch, injecting the live
-/// Windows read services. A new instance per batch keeps each batch's pre-fetch cache isolated.</summary>
 public sealed class SystemDetectionContextFactory : ISystemDetectionContextFactory
 {
     private readonly IWindowsRegistryService _reg;

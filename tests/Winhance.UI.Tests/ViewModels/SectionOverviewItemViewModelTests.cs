@@ -9,12 +9,7 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// The review-badge rules and the view-toggle gating, which used to live in the pages'
-/// UpdateFeatureBadge / UpdateFeatureOverviewPills / UpdateFeatureNewBadge and were untestable
-/// there — they wrote straight into named XAML elements, so nothing could assert them without a
-/// XAML host. The aggregation they sit on is covered separately by FeatureBadgeAggregatorTests.
-/// </summary>
+// These rules used to write straight into named XAML elements, so nothing could assert them without a XAML host.
 public class SectionOverviewItemViewModelTests
 {
     private const string SectionKey = "Privacy";

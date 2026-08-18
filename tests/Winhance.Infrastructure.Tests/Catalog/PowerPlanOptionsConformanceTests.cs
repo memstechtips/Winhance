@@ -4,16 +4,10 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-independent conformance for the power-plan dropdown built by
-/// <see cref="PowerPlanOptions.Build"/> -- the LIVE source of the power-plan options
-/// (SystemDetectionContext -> PowerPlanOptionSource -> the UI dropdown). Without this file the dropdown's
-/// CONTENT would have zero coverage (SystemDetectionContextTests only asserts the context DELEGATES to Build).
-///
-/// The pinned contract: every predefined plan is offered even when NOT installed (ExistsOnSystem=false,
-/// valued by its canonical GUID -- selecting it imports/creates the plan); an installed plan is matched by
-/// GUID, else by cleaned NAME, else (Ultimate Performance only) by the localized-name heuristic, and then
-/// carries the SYSTEM's GUID; unmatched system plans (the user's custom plans) are appended; every value is
-/// lowercased; the list is ordered by Label, and that order IS the dropdown order.</summary>
+// The LIVE source of the power-plan options; without this the dropdown's CONTENT would have zero coverage.
+// Pinned: every predefined plan is offered even when NOT installed (ExistsOnSystem=false, its canonical GUID);
+// an installed plan matches by GUID, else cleaned NAME, else (Ultimate Performance only) the localized-name
+// heuristic, and carries the SYSTEM's GUID; custom plans are appended; values lowercased; ordered by Label = dropdown order.
 public class PowerPlanOptionsConformanceTests
 {
     private const string PowerSaverGuid = "a1841308-3541-4fab-bc81-f71556f20b4a";

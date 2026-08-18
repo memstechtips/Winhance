@@ -4,11 +4,6 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Opens folders in Explorer, reusing an existing window if the folder is already open.
-/// Uses Shell.Application COM interop to enumerate Explorer windows and User32 P/Invoke
-/// to bring a matching window to the foreground.
-/// </summary>
 public class ExplorerWindowManager(
     IProcessExecutor processExecutor,
     ILogService logService) : IExplorerWindowManager

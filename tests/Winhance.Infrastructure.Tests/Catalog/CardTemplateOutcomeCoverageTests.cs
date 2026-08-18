@@ -5,33 +5,18 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Invariant: every settings-card template that shows a value must also report when Winhance could not
-/// place that value.
-///
-/// This exists because of a real bug, twice over. The detection-outcome overlay was added to the toggle
-/// and the registry dropdown, and silently missing from the other eight templates - so a powercfg
-/// dropdown whose value matched no catalog option rendered as an empty, unexplained box while its banner
-/// said the value was unrecognized. Nothing caught it: the UI project cannot be compiled on Linux, and no
-/// test looked at the markup.
-///
-/// The templates have since been consolidated onto shared controls, which makes the omission far less
-/// likely - but "less likely" is not "impossible", and consolidation can be undone by the next person who
-/// needs a one-off layout. This test is the part that does not decay: add an input control to a card
-/// template without an outcome overlay and the harness fails, on Linux, before anyone builds.
-///
-/// It reads the XAML as text on purpose. It must fail for markup that is well-formed and would compile.
-///
-/// Run: winhance-harness CardTemplateOutcomeCoverageTests
-/// </summary>
+// The detection-outcome overlay was added to the toggle and the registry dropdown and silently missing from the
+// other eight templates - a powercfg dropdown whose value matched no option rendered as an empty box while its
+// banner said the value was unrecognized. Nothing caught it: the UI project cannot be compiled on Linux and no
+// test looked at the markup. Reads the XAML as text on purpose - it must fail for markup that is well-formed
+// and would compile. Run: winhance-harness CardTemplateOutcomeCoverageTests
 public class CardTemplateOutcomeCoverageTests
 {
     private readonly ITestOutputHelper _output;
 
     public CardTemplateOutcomeCoverageTests(ITestOutputHelper output) => _output = output;
 
-    /// <summary>Controls that display a detected value to the user. A template hosting any of these owes
-    /// the user an explanation when detection could not place that value.</summary>
+    // A template hosting any of these owes the user an explanation when detection could not place the value.
     private static readonly string[] InputControls =
     {
         "ToggleSwitch", "CheckBox", "NumberBox",
@@ -39,8 +24,7 @@ public class CardTemplateOutcomeCoverageTests
         "local:SettingComboBox", "local:SettingNumberBox",
     };
 
-    /// <summary>Markers that satisfy the invariant: either the overlay control itself, or - for the toggle,
-    /// whose overlay is an interactive Button rather than a passive marker - a binding to the outcome.</summary>
+    // Either the overlay control itself, or - for the toggle, whose overlay is an interactive Button - a binding to the outcome.
     private static readonly string[] OutcomeMarkers =
     {
         "local:SettingOutcomeOverlay",
@@ -49,9 +33,8 @@ public class CardTemplateOutcomeCoverageTests
         "local:SettingNumberBox",  // owns its overlay internally
     };
 
-    /// <summary>The only legitimate exemption: an action button runs a task rather than displaying a
-    /// detected state, so there is no value for detection to fail to place. Adding a name here must be a
-    /// deliberate decision with the same justification, not a way to quiet the test.</summary>
+    // An action button runs a task rather than displaying a detected state. Adding a name here must be a deliberate
+    // decision with the same justification, not a way to quiet the test.
     private static readonly HashSet<string> Exempt = new(StringComparer.Ordinal)
     {
         "ActionSettingTemplate",
@@ -105,7 +88,7 @@ public class CardTemplateOutcomeCoverageTests
             + "written reason if it genuinely displays no detected state.");
     }
 
-    /// <summary>Every exempt name must still exist, so a rename cannot leave a silent hole in the gate.</summary>
+    // A rename must not leave a silent hole in the gate.
     [Fact]
     public void Exempt_templates_still_exist()
     {
@@ -118,9 +101,8 @@ public class CardTemplateOutcomeCoverageTests
             + "the thing it excused:\n  " + string.Join("\n  ", stale));
     }
 
-    /// <summary>Splits the resource dictionary into (template key, body). Nested DataTemplates would break
-    /// a naive split, but the card templates do not nest - and the count assertion above catches it if
-    /// that ever changes.</summary>
+    // Nested DataTemplates would break a naive split, but the card templates do not nest - the count assertion
+    // catches it if that changes.
     private static List<(string Name, string Body)> SplitTemplates(string xaml)
     {
         var result = new List<(string, string)>();

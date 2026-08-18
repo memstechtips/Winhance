@@ -5,18 +5,9 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Models;
 
-/// <summary>
-/// Invariant: every catalog item that should have a hosted icon in the
-/// memstechtips/package-icons repo actually has one. Guards against adding a new
-/// app / capability / optional-feature without hosting its icon - the repo is the
-/// only icon source for external apps, and the not-installed fallback for Windows
-/// apps.
-///
-/// Checked against a committed snapshot of package-icons/manifest.json
-/// (Assets/package-icons-manifest.json, copied to the test output) because tests
-/// cannot hit the network. Refresh that snapshot whenever package-icons changes -
-/// its manifest is the source of truth.
-/// </summary>
+// The repo is the only icon source for external apps and the not-installed fallback for Windows apps; checked
+// against a committed snapshot of package-icons/manifest.json (tests cannot hit the network) - refresh it
+// whenever package-icons changes.
 public class IconCoverageTests
 {
     // Defs that deliberately have NO hosted icon and fall back to a colored Fluent

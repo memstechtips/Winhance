@@ -4,10 +4,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Thin facade that preserves the IConfigurationService contract.
-/// All work is delegated to focused sub-services.
-/// </summary>
 public class ConfigurationService : IConfigurationService
 {
     private readonly ILogService _logService;

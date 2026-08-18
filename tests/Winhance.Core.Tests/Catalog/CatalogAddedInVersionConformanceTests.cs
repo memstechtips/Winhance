@@ -4,10 +4,7 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Contributor typo guard. Every catalog Setting's
-/// <see cref="Display.AddedInVersion"/> - the string that drives the badge via INewBadgeService - must parse as
-/// a System.Version (format YY.MM.DD, optional leading 'v'), or a contributor typo silently breaks the badge with no
-/// other test catching it (CatalogValidator does not check this). Iterates the live catalog; machine-independent.</summary>
+// A contributor typo in AddedInVersion silently breaks the badge and nothing else catches it (CatalogValidator does not check this).
 public class CatalogAddedInVersionConformanceTests
 {
     [Fact]

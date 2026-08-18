@@ -4,25 +4,9 @@ using Windows.Storage.Streams;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-/// <summary>
-/// Detects monochrome PNG icons and produces theme-appropriate companion PNGs
-/// with all opaque RGB replaced by a uniform target color. Alpha is preserved
-/// per-pixel so anti-aliased edges survive intact.
-///
-/// Caller is <see cref="AppIconResolver"/>'s WriteStreamToCacheAsync, which
-/// writes the result(s) alongside the primary cache file as
-/// <c>&lt;name&gt;.light.png</c> and/or <c>&lt;name&gt;.dark.png</c>:
-/// <list type="bullet">
-/// <item><description><b>Mono-light source</b> (white-ish vendor marks):
-/// only <c>.light.png</c> is generated — the primary already renders correctly
-/// in dark mode.</description></item>
-/// <item><description><b>Mono-dark source</b> (dark-grey vendor marks like
-/// Xbox Game Bar): both <c>.light.png</c> AND <c>.dark.png</c> are generated —
-/// the primary's tone (e.g. <c>#333</c>) reads as "faded" against either card
-/// background, so both modes need a synthesized variant.</description></item>
-/// <item><description><b>Mid-grey or colored source</b>: nothing generated.</description></item>
-/// </list>
-/// </summary>
+// Mono-light source (white-ish marks): only .light.png - the primary already renders in dark mode. Mono-dark
+// source (dark-grey marks like Xbox Game Bar): both .light.png AND .dark.png - the primary's #333 tone reads as
+// faded against either card. Mid-grey or coloured: nothing.
 public static class LightVariantSynthesizer
 {
     // Target colors for the synthesized variants. Light-variant: sampled from
@@ -82,17 +66,8 @@ public static class LightVariantSynthesizer
     private const double TwoToneMinBandFraction = 0.10;
     private const double TwoToneMaxTransparentFraction = 0.05;
 
-    /// <summary>
-    /// Returns the synthesized light-mode and dark-mode variants for the
-    /// given primary icon bytes. Each may be <c>null</c> independently. Both
-    /// <c>null</c> means no variant should be written (colored icon, mid-grey,
-    /// or fully-transparent input). Exceptions propagate to the caller —
-    /// <see cref="AppIconResolver"/>'s WriteStreamToCacheAsync wraps the call
-    /// in its own try/catch with a warning log so a synthesizer failure
-    /// produces a debuggable log entry rather than silently dropping both
-    /// variants (the previous catch swallowed WinRT errors during the second
-    /// encode for mono-dark icons, hiding the root cause).
-    /// </summary>
+    // Exceptions propagate on purpose: the caller wraps the call with a warning log, so a synthesizer failure is
+    // debuggable rather than silently dropping both variants (a swallowing catch once hid a WinRT error on the second encode).
     public static async Task<(byte[]? LightVariant, byte[]? DarkVariant)> TryGenerateAsync(
         byte[] primaryBytes,
         CancellationToken ct)
@@ -218,17 +193,8 @@ public static class LightVariantSynthesizer
         return MonochromeClass.NotMonochrome;
     }
 
-    /// <summary>
-    /// Produces re-encoded PNG bytes for one variant. Each call gets its own
-    /// pixel buffer copy and its own <see cref="SoftwareBitmap"/> — no state
-    /// is shared with any other variant produced from the same source. This
-    /// avoids the lifecycle hazard we hit before: after the first encoder
-    /// flush, reusing the same SoftwareBitmap with a new
-    /// <see cref="SoftwareBitmap.CopyFromBuffer"/> would silently fail for
-    /// some inputs (notably mono-dark Xbox Game Bar at 111×114 — the second
-    /// encode threw inside WinRT and the synthesizer's catch dropped both
-    /// variants).
-    /// </summary>
+    // Each variant gets its own pixel buffer and SoftwareBitmap: reusing one SoftwareBitmap after the first encoder
+    // flush silently failed for some inputs (mono-dark Xbox Game Bar at 111x114 threw inside WinRT).
     private static async Task<byte[]> EncodeRecoloredAsync(
         byte[] sourcePixels,
         int width,
@@ -271,10 +237,6 @@ public static class LightVariantSynthesizer
         }
     }
 
-    /// <summary>
-    /// Standard HSL conversion (Wikipedia). Returns (lightness, saturation),
-    /// each in [0, 1]. Hue isn't needed for the detection so we skip it.
-    /// </summary>
     private static (double L, double S) RgbToLightnessSaturation(byte rByte, byte gByte, byte bByte)
     {
         double r = rByte / 255.0;

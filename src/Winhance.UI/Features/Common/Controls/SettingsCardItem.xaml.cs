@@ -9,10 +9,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// A reusable UserControl that displays a SettingItemViewModel in a SettingsCard
-/// with the appropriate control based on the InputType.
-/// </summary>
 public sealed partial class SettingsCardItem : UserControl
 {
     public static readonly DependencyProperty SettingProperty =
@@ -125,9 +121,6 @@ public sealed partial class SettingsCardItem : UserControl
         };
     }
 
-    /// <summary>
-    /// Handles the Loaded event for PowerPlanComboBox to set up event handlers and localized text.
-    /// </summary>
     private void OnPowerPlanComboBoxLoaded(object sender, RoutedEventArgs e)
     {
         if (sender is not PowerPlanComboBox comboBox)

@@ -12,10 +12,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Custom navigation button with icon-over-text layout, selection indicator,
-/// and compact mode support.
-/// </summary>
 public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 {
     // Expanded dimensions
@@ -98,84 +94,56 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     #region Properties
 
-    /// <summary>
-    /// The Fluent System Icon name to display (e.g., "Apps", "Settings").
-    /// Rendered as a colored Fluent icon (IconVariant.Color).
-    /// </summary>
     public string? IconSymbol
     {
         get => (string?)GetValue(IconSymbolProperty);
         set => SetValue(IconSymbolProperty, value);
     }
 
-    /// <summary>
-    /// Optional margin for fine-tuning icon positioning.
-    /// Use this to adjust icons that appear visually off-center.
-    /// </summary>
     public Thickness IconMargin
     {
         get => (Thickness)GetValue(IconMarginProperty);
         set => SetValue(IconMarginProperty, value);
     }
 
-    /// <summary>
-    /// The text label displayed below the icon.
-    /// </summary>
     public string Text
     {
         get => (string)GetValue(TextProperty);
         set => SetValue(TextProperty, value);
     }
 
-    /// <summary>
-    /// Whether this button is currently selected.
-    /// </summary>
     public bool IsSelected
     {
         get => (bool)GetValue(IsSelectedProperty);
         set => SetValue(IsSelectedProperty, value);
     }
 
-    /// <summary>
-    /// Whether the button is locked (reduced opacity, blocks clicks, shows lock icon).
-    /// Used to disable navigation to certain pages during config review mode.
-    /// </summary>
     public bool IsLocked
     {
         get => (bool)GetValue(IsLockedProperty);
         set => SetValue(IsLockedProperty, value);
     }
 
-    /// <summary>
-    /// Whether the button should display in compact mode (icon only).
-    /// </summary>
     public bool IsCompact
     {
         get => (bool)GetValue(IsCompactProperty);
         set => SetValue(IsCompactProperty, value);
     }
 
-    /// <summary>
-    /// Navigation identifier for this button.
-    /// </summary>
     public object? NavigationTag
     {
         get => GetValue(NavigationTagProperty);
         set => SetValue(NavigationTagProperty, value);
     }
 
-    /// <summary>
-    /// Badge value to display. Set to -1 to hide the badge.
-    /// </summary>
+    // -1 hides the badge.
     public int BadgeValue
     {
         get => (int)GetValue(BadgeValueProperty);
         set => SetValue(BadgeValueProperty, value);
     }
 
-    /// <summary>
-    /// Badge status: "Attention", "Success", or "" (hidden).
-    /// </summary>
+    // "Attention", "Success", or "" (hidden).
     public string BadgeStatus
     {
         get => (string)GetValue(BadgeStatusProperty);
@@ -411,9 +379,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     }
 }
 
-/// <summary>
-/// Event args for NavButton click events.
-/// </summary>
 public class NavButtonClickedEventArgs : EventArgs
 {
     public object? NavigationTag { get; }
@@ -424,10 +389,6 @@ public class NavButtonClickedEventArgs : EventArgs
     }
 }
 
-/// <summary>
-/// Automation peer that exposes NavButton as a Button to UI Automation clients
-/// (Narrator etc.) and routes the Invoke pattern through NavButton.InvokeFromAutomation.
-/// </summary>
 public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
 {
     public NavButtonAutomationPeer(NavButton owner) : base(owner) { }

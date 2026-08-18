@@ -441,10 +441,7 @@ public class DirectDownloadService : IDirectDownloadService
         return result.ExitCode;
     }
 
-    /// <summary>
-    /// Reads the ProductCode GUID from an MSI file using the Windows Installer API.
-    /// Opens the package in query-only mode (IGNOREMACHINESTATE) so no install logic runs.
-    /// </summary>
+    // Query-only mode (IGNOREMACHINESTATE) so no install logic runs.
     private static string? GetProductCodeFromMsi(string msiPath)
     {
         const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;

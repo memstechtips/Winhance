@@ -6,10 +6,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Code-behind for <see cref="SettingNumberBox"/>. Projects the view model's per-mode resolution into
-/// bindable properties and routes the NumberBox's events to the right view-model handler for this mode.
-/// </summary>
 public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChanged
 {
     public SettingNumberBox()
@@ -45,11 +41,10 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
     public double Maximum { get; private set; }
     public string InputAutomationName { get; private set; } = string.Empty;
 
-    /// <summary>Only Undetermined covers a numeric - any number the user types is legitimate, so there is
-    /// no "unrecognized value" for this control type.</summary>
+    // Only Undetermined covers a numeric - any number the user types is legitimate, so there is no "unrecognized value" here.
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
 
-    /// <summary>The outcome explanation, on the covering Border (which is what the pointer hits).</summary>
+    // On the covering Border, which is what the pointer hits.
     public string? OutcomeTooltip { get; private set; }
 
     private SettingItemViewModel? _observed;

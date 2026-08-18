@@ -5,9 +5,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Service for managing user preferences stored as JSON.
-/// </summary>
 public class UserPreferencesService : IUserPreferencesService
 {
     private const string PreferencesFileName = "UserPreferences.json";
@@ -288,9 +285,6 @@ public class UserPreferencesService : IUserPreferencesService
         }
     }
 
-    /// <summary>
-    /// Synchronous version for use during startup to avoid async deadlocks on UI thread.
-    /// </summary>
     public T GetPreference<T>(string key, T defaultValue)
     {
         try

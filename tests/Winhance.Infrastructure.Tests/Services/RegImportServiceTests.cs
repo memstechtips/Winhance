@@ -7,9 +7,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>Tests the OTS-aware .reg-import dance in <see cref="RegImportService"/> (a faithful copy of the old
-/// SettingOperationExecutor reg-import block). Both branches (OTS run-as-interactive-user vs cmd.exe) and the
-/// empty-content short-circuit and temp-file cleanup are covered.</summary>
 public class RegImportServiceTests
 {
     private readonly Mock<IInteractiveUserService> _interactiveUser = new();

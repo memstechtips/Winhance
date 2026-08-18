@@ -11,10 +11,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Unit tests for the live <see cref="WindowsStateWriter"/>: each writer method must delegate to the right
-/// WindowsRegistryService primitive / scheduled-task / powercfg / effect service with the right arguments (the byte
-/// logic itself lives in the proven primitives and is covered elsewhere; the native CallNtPowerInformation in the
-/// NativePowerEffect branch is review + apply-smoke gated).</summary>
+// The byte logic lives in the proven primitives and is covered elsewhere; the native CallNtPowerInformation
+// branch is review + apply-smoke gated.
 public class WindowsStateWriterTests
 {
     private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";

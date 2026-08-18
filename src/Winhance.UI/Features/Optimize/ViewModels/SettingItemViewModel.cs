@@ -43,8 +43,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public Setting? Setting { get; set; }
 
-    /// <summary>Per-selection-option warning text from the config, index-aligned with the options
-    /// (null entries = no warning). Fed to the status banner.</summary>
     public IReadOnlyList<string?>? OptionWarnings { get; }
 
     [ObservableProperty]
@@ -68,12 +66,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
 
-    /// <summary>Whether detection placed this setting on a known state, and if not, why not. Drives the
-    /// toggle overlay / selection adornment, its icon and short label, the banner, and - critically -
-    /// whether clicking does anything at all: an <see cref="SettingDetectionOutcome.Undetermined"/> setting
-    /// is rendered but inert, because applying a state over a value we failed to read would write blind.
-    /// Returns to <see cref="SettingDetectionOutcome.Resolved"/> when the user picks a state and the apply
-    /// succeeds, or a refresh resolves a known state.</summary>
+    // Drives the overlay, its icon and label, the banner, and whether clicking does anything at all: an
+    // Undetermined setting is rendered but inert, because applying over a value we failed to read would write blind.
     [ObservableProperty]
     public partial SettingDetectionOutcome Outcome { get; set; }
 
@@ -89,10 +83,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [ObservableProperty]
     public partial InfoBarSeverity StatusBannerSeverity { get; set; }
 
-    /// <summary>Icon override for the status banner: the QuestionCircle color icon while the Custom
-    /// banner shows (coherent with the toggle overlay knob / selection adornment), null otherwise -
-    /// InfoBar treats a null IconSource as "use the severity's native icon", which Warning/Error
-    /// banners must keep. Set ONLY by ApplyBanner (the single banner funnel).</summary>
+    // Null tells InfoBar to use the severity's native icon, which Warning/Error banners must keep. Set ONLY by
+    // ApplyBanner (the single banner funnel).
     [ObservableProperty]
     public partial IconSource? StatusBannerIconSource { get; set; }
 
@@ -155,22 +147,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public bool HasTechnicalDetails => TechnicalDetailMatrix is not null;
 
-    /// <summary>
-    /// Opens the Registry Editor at one of the paths the matrix documents. Surfaced from the manager
-    /// so the panel can pass it down to the table's buttons: the matrix says where a group writes,
-    /// and acting on that is UI behaviour - which is why Core holds no ICommand slot for it.
-    /// </summary>
     public IRelayCommand<string> OpenRegeditCommand => _technicalDetailsManager.OpenRegeditCommand;
 
-    /// <summary>
-    /// Controls visibility of the toggle bar: requires data AND global toggle to be on.
-    /// </summary>
     public bool ShowTechnicalDetailsBar => HasTechnicalDetails && IsTechnicalDetailsGloballyVisible;
 
-    /// <summary>
-    /// Bottom corners rounded only when the expandable content is collapsed;
-    /// when expanded, the content panel below carries the rounded corners.
-    /// </summary>
+    // Bottom corners rounded only while collapsed; when expanded the content panel below carries them.
     public Microsoft.UI.Xaml.CornerRadius TechnicalDetailsToggleCornerRadius =>
         IsTechnicalDetailsExpanded
             ? new Microsoft.UI.Xaml.CornerRadius(0)
@@ -190,7 +171,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string TechnicalDetailsLabel =>
         _localizationService.GetStringOrDefault("View_TechnicalDetails", "Technical Details");
 
-    /// <summary>Toggles the panel. A command so the one shared panel control can bind to it.</summary>
     [RelayCommand]
     public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
@@ -228,10 +208,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [ObservableProperty]
     public partial IReadOnlyList<BadgePillState> BadgeRow { get; set; } = Array.Empty<BadgePillState>();
 
-    /// <summary>
-    /// True if the setting has RecommendedValue/DefaultValue data to compare against.
-    /// False for settings using NativePowerApiSettings, PowerShellScripts, or RegContents only.
-    /// </summary>
     public bool HasBadgeData { get; set; }
 
     public bool ShowInfoBadge => IsInfoBadgeGloballyVisible && HasBadgeData;
@@ -260,29 +236,17 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // combobox option label). The string uses a literal "{0}" token (not .NET composite
     // format), so we use string.Replace at runtime.
 
-    /// <summary>
-    /// Recommended value for the single NumericRange spinner, or null if not available.
-    /// Reads the Always-context Numeric recommended target (system units). Real numerics are all
-    /// powercfg-separate AC/DC, so there is no Always-context value -> this returns null, as before.
-    /// </summary>
+    // Real numerics are all powercfg-separate AC/DC, so there is no Always-context value and this returns null.
     public int? NumericRecommendedValue =>
         Setting?.Numeric?.Recommended.FirstOrDefault(cv => cv.Context == PowerContext.Always) is { } cv
             ? ConvertToSystemUnits(cv.Value) : null;
 
-    /// <summary>
-    /// Default value for the single NumericRange spinner, or null if not available.
-    /// Reads the Always-context Numeric default target (system units); null for powercfg-separate settings.
-    /// </summary>
     public int? NumericDefaultValue =>
         Setting?.Numeric?.WindowsDefault.FirstOrDefault(cv => cv.Context == PowerContext.Always) is { } cv
             ? ConvertToSystemUnits(cv.Value) : null;
 
-    /// <summary>
-    /// AC-side recommended value for Separate PowerCfg NumericRange settings, in SYSTEM units.
-    /// Reconstructed from the per-context Numeric target (display units -> system units),
-    /// so the call sites' ConvertFromSystemUnits re-derives the same display value. Null when
-    /// that mode carries no ContextValue.
-    /// </summary>
+    // SYSTEM units, reconstructed from the per-context Numeric target (display -> system) so the call sites'
+    // ConvertFromSystemUnits re-derives the same display value.
     public int? AcRecommendedValue =>
         PairedNumericValue(Setting?.Numeric?.Recommended, PowerContext.AC);
 
@@ -381,11 +345,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string AcInputAutomationName => $"{Name} ({PluggedInText})";
     public string DcInputAutomationName => $"{Name} ({OnBatteryText})";
 
-    /// <summary>
-    /// True when the NumericRange quick-set buttons should be visible: requires the
-    /// global ShowInfoBadges preference to be on AND at least one of Recommended/Default
-    /// to be available for this setting.
-    /// </summary>
     public bool ShowNumericQuickSetButtons
     {
         get
@@ -401,9 +360,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// Sets the single NumericValue to the Recommended value and runs the apply path.
-    /// </summary>
     public IRelayCommand SetNumericToRecommendedCommand => _setNumericToRecommendedCommand ??=
         new RelayCommand(() =>
         {
@@ -473,17 +429,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private RelayCommand? _setDcNumericToDefaultCommand;
 
     // ───────── Toggle quick-set buttons ─────────
-    /// <summary>
-    /// True if Recommended maps to the enabled state, false if disabled, null if no
-    /// recommendation is set. Derived from the recommended role on the matching state.
-    /// </summary>
     public bool? ToggleRecommendedState =>
         Setting is { } s ? RoleToggleState(s, RoleKind.Recommended, _build) : null;
 
-    /// <summary>
-    /// True if Default maps to the enabled state, false if disabled, null if not derivable.
-    /// Derived from the WindowsDefault role on the matching state.
-    /// </summary>
     public bool? ToggleDefaultState =>
         Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault, _build) : null;
 
@@ -718,16 +666,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     // ───────── Page-level Quick Actions support (bulk recommended/defaults) ─────────
 
-    /// <summary>
-    /// True when this setting has a recommended value reachable through the quick-set
-    /// pipeline. Mirrors the per-card quick-set button availability across all input
-    /// types (PowerPlan is excluded — it has its own recommendation logic).
-    /// </summary>
+    // PowerPlan is excluded - it has its own recommendation logic.
     public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
 
-    /// <summary>
-    /// True when this setting has a default value reachable through the quick-set pipeline.
-    /// </summary>
     public bool HasDefaultQuickSetTarget => HasQuickSetTarget(recommended: false);
 
     private bool HasQuickSetTarget(bool recommended) => InputType switch
@@ -747,18 +688,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => false
     };
 
-    /// <summary>
-    /// Sets this setting's UI to its recommended value by executing the same commands as
-    /// the per-card quick-set buttons. Every path runs through the guarded apply pipeline,
-    /// so in Builder mode this records a builder edit and never touches the system.
-    /// Returns true when a recommended target existed.
-    /// </summary>
+    // Every path runs through the guarded apply pipeline, so in Builder mode this records an edit and never touches the system.
     public bool TrySetToRecommended() => TryExecuteQuickSet(recommended: true);
 
-    /// <summary>
-    /// Sets this setting's UI to its default value via the quick-set pipeline.
-    /// See <see cref="TrySetToRecommended"/> for Builder-mode semantics.
-    /// </summary>
     public bool TrySetToDefault() => TryExecuteQuickSet(recommended: false);
 
     private bool TryExecuteQuickSet(bool recommended)
@@ -819,10 +751,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // where the values live has changed.
     private SettingReviewState? _reviewState;
 
-    /// <summary>
-    /// Whether this card is showing a pending configuration instead of the live system. Setting it
-    /// true opens a fresh review overlay; setting it false drops the overlay and everything in it.
-    /// </summary>
+    // Setting it true opens a fresh review overlay; setting it false drops the overlay and everything in it.
     public bool IsInReviewMode
     {
         get => _reviewState is not null;
@@ -939,26 +868,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public string ReviewActionGroupName => $"{SettingId}_action";
 
-    /// <summary>
-    /// Raised when the user changes the review action approval state.
-    /// </summary>
     public event EventHandler<bool>? ReviewActionApprovalChanged;
 
-    /// <summary>
-    /// Raised when the user changes the review approval state for this setting.
-    /// The ConfigReviewService subscribes to this to update its approval counts.
-    /// </summary>
     public event EventHandler<bool>? ReviewApprovalChanged;
 
-    /// <summary>
-    /// Writes one value into the review overlay, raising PropertyChanged only on a real change, and
-    /// reporting whether anything changed so a caller can run its side effects in the same order the
-    /// generated observable properties used to.
-    ///
-    /// A write while no overlay exists is dropped. Review values belong to the review, and letting
-    /// one land outside it is the contamination this shape exists to prevent — the diff applier sets
-    /// <see cref="IsInReviewMode"/> before anything else for exactly that reason.
-    /// </summary>
+    // A write while no overlay exists is dropped: review values belong to the review, and letting one land outside
+    // it is the contamination this shape prevents - the diff applier sets IsInReviewMode before anything else for that reason.
     private bool SetReviewValue<T>(
         Func<SettingReviewState, T> read,
         Action<SettingReviewState, T> write,
@@ -973,17 +888,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return true;
     }
 
-    /// <summary>
-    /// Re-reads every property that projects off the review overlay. Needed when the overlay itself
-    /// is created or dropped, because the individual values did not change — the object they read
-    /// from did.
-    ///
-    /// This is a list, unlike the state it replaces, but it is a list of notifications rather than
-    /// of resets: a missing line here leaves a card looking stale, which is visible and harmless,
-    /// where a missing reset leaked state into the next mode invisibly.
-    /// <c>SettingItemViewModelReviewStateTests</c> derives the expected set by reflection, so a new
-    /// review property is covered without anyone remembering to come back here.
-    /// </summary>
+    // Needed when the overlay itself is created or dropped: the individual values did not change, the object they
+    // read from did. A missing line here leaves a card looking stale (visible, harmless), where a missing reset
+    // leaked state into the next mode invisibly. SettingItemViewModelReviewStateTests derives the expected set by reflection.
     private void NotifyReviewProjectionsChanged()
     {
         OnPropertyChanged(nameof(HasReviewDiff));
@@ -997,11 +904,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(IsReviewActionRejected));
     }
 
-    /// <summary>
-    /// Drops the review overlay and the subscriptions that fed it, so a subsequent import starts
-    /// clean. Handlers go first: dropping the overlay raises PropertyChanged for the projections,
-    /// and a stale subscriber must not act on those.
-    /// </summary>
+    // Handlers go first: dropping the overlay raises PropertyChanged for the projections, and a stale subscriber
+    // must not act on those.
     public void ClearReviewState()
     {
         ReviewApprovalChanged = null;
@@ -1015,13 +919,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
-    /// <summary>The DECLARED presentation gate's verdict for this card: false only when its
-    /// <see cref="Setting.EnabledWhen"/> names a setting that is currently outside the declared states.
-    /// True (usable) for every card that declares no gate - which is most of them, including every card
-    /// that is merely NESTED under another. Kept as one bool because that is all the view binds to; the
-    /// whole decision is made in BaseSettingsFeatureViewModel, which is the only place that can see the
-    /// other card. Historic name: it predates the gate being declared rather than guessed from the
-    /// UI parent.</summary>
+    // False only when Setting.EnabledWhen names a setting currently outside the declared states; true for every
+    // card that declares no gate - including every card merely NESTED under another. One bool because that is all
+    // the view binds to; the decision is made in BaseSettingsFeatureViewModel, the only place that can see the other card.
     [ObservableProperty]
     public partial bool ParentIsEnabled { get; set; }
 
@@ -1030,20 +930,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
-    /// <summary>The catalog state LABEL this card currently sits on, or null when there is none to name:
-    /// no catalog Setting, no States (an Action / slider / power plan), or a Selection whose detection
-    /// landed on nothing (the -1 Custom sentinel).
-    ///
-    /// This is what a declared gate is compared against - by LABEL, never by index. A toggle answers from
-    /// <see cref="IsSelected"/>, which detection derives from the resolved "Enabled"/"Disabled" label and
-    /// which the refresh paths keep current (a toggle's SelectedValue is only written at load, so reading
-    /// THAT would go stale). A selection answers from <see cref="SelectedValue"/>, whose int IS the state
-    /// index; the label is then read out of the catalog, so a state the option list skips - a detect-only
-    /// one - still names itself here. Only labels the setting really has are ever returned.
-    ///
-    /// Deliberately NOT bindable: it raises no PropertyChanged, because its only reader pulls it
-    /// imperatively straight after writing the state it derives from. Binding it would need
-    /// IsSelected/SelectedValue to notify for it too.</summary>
+    // The state LABEL this card sits on, or null when there is none to name (no catalog Setting, no States, or a
+    // Selection on the -1 Custom sentinel). A declared gate compares against this - by LABEL, never index. A toggle
+    // answers from IsSelected (its SelectedValue is only written at load and would go stale); a selection from
+    // SelectedValue, whose int IS the state index, so a detect-only state still names itself. Deliberately NOT
+    // bindable: its only reader pulls it imperatively straight after writing the state it derives from.
     public string? CurrentStateLabel
     {
         get
@@ -1069,28 +960,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // capability rather than the mode so the write path asks what it is allowed to do, not who it is.
     private bool AuthorsIntent => _applicationModeService.Capabilities().AuthorsIntent;
 
-    /// <summary>Whether this setting asks to be confirmed before it is applied.</summary>
     private bool SettingRequiresConfirmation => Setting?.Apply.RequiresConfirmation ?? false;
 
-    /// <summary>
-    /// Re-applies this setting's authored value over whatever live system state was just written
-    /// into this card.
-    ///
-    /// "What the user authored" and "what the machine currently says" are two different facts, and
-    /// while a mode is authoring, the authored one is what the card must show — because it is what
-    /// Save will write. The recorded edit is the single store for that fact; this method is how a
-    /// card that has just been rebuilt from the machine gets back in step with it.
-    ///
-    /// Call it from every path that writes live state into this ViewModel. Before it existed, a
-    /// reload during Builder — a Windows-version filter toggle or a UI language change both cause
-    /// one — rebuilt every card from the live machine while the recorded edits survived unseen in
-    /// the mode service and were still written on Save, so the saved file silently disagreed with
-    /// the screen.
-    ///
-    /// No-op outside an authoring mode, and no-op for a setting that was never authored. Restores
-    /// only what the record actually holds: an <see cref="SettingDetectionOutcome"/> is set here
-    /// only where the authoring write path derived one from the same value.
-    /// </summary>
+    // While a mode is authoring, the authored value - not what the machine says - is what the card must show,
+    // because it is what Save will write. Call from every path that writes live state into this ViewModel (a
+    // filter toggle or language change rebuilds every card from the machine). No-op outside an authoring mode or
+    // for a setting never authored.
     public void ApplyAuthoredOverlay()
     {
         if (!AuthorsIntent) return;
@@ -1112,12 +987,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// Writes one recorded edit back onto the card, per input shape. The inverse of what the
-    /// handlers record; <c>SettingItemViewModelAuthoredOverlayTests</c> round-trips every shape
-    /// through both directions, so a new input type that records but cannot restore fails there
-    /// rather than silently saving a value the user cannot see.
-    /// </summary>
+    // The inverse of what the handlers record; SettingItemViewModelAuthoredOverlayTests round-trips every shape,
+    // so a new input type that records but cannot restore fails there.
     private void ApplyAuthoredValues(BuilderEdit edit)
     {
         switch (InputType)
@@ -1178,23 +1049,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// Hands one edit to whichever <see cref="ISettingWriteStrategy"/> the active mode calls for.
-    ///
-    /// Resolved per write, not held in a field: the mode changes while this ViewModel stays alive.
-    /// </summary>
+    // Resolved per write, not held in a field: the mode changes while this ViewModel stays alive.
     private Task<SettingWriteResult> WriteAsync(SettingWriteRequest request) =>
         _writeStrategySelector.ForCurrentMode().WriteAsync(request, this);
 
-    /// <summary>
-    /// Marks this setting as touched during the current session, and — in Builder mode — marks the
-    /// Builder session dirty.
-    ///
-    /// Every input handler funnels through here on a write that stuck, which is the point: the
-    /// discard prompt has to fire for authored work even if it produced no serializable
-    /// <c>BuilderEdit</c>. Marking dirty inside each handler's own branch instead is what let two
-    /// of them drift into recording nothing at all — a new input type gets the prompt here for free.
-    /// </summary>
+    // Every input handler funnels through here on a write that stuck: the discard prompt has to fire for authored
+    // work even when it produced no serializable BuilderEdit, and a new input type gets it for free.
     private void MarkChangedThisSession()
     {
         _hasChangedThisSession = true;
@@ -1204,14 +1064,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// When this Selection setting was seeded at the Custom index (live state matched no
-    /// predefined option), the raw state values captured at seed time. Used by Builder-mode
-    /// serialization to emit the custom value without re-reading the system. Null otherwise.
-    /// </summary>
+    // Captured at seed time so Builder-mode serialization can emit the custom value without re-reading the system.
     public Dictionary<string, object>? CapturedCustomStateValues { get; set; }
-    /// <summary>The UI parent this setting nests under: its UiParentId. Null = top-level.
-    /// Single source for IsSubSetting and the parent-child tree-build in BaseSettingsFeatureViewModel.</summary>
     public string? EffectiveUiParentId => Setting?.UiParentId;
 
     public bool IsSubSetting => !string.IsNullOrEmpty(EffectiveUiParentId);
@@ -1258,20 +1112,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // the A11yName(...) bindings already use.
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>Whether the overlay is drawn at all. Every non-Resolved outcome shows it, so a bad state is
-    /// always visible and the toggle column keeps one footprint; only whether it RESPONDS differs
-    /// (see <see cref="IsActionable"/>).</summary>
+    // Every non-Resolved outcome shows it, so a bad state is always visible and the toggle column keeps one
+    // footprint; only whether it RESPONDS differs (IsActionable).
     public bool ShowsStateOverlay => Outcome != SettingDetectionOutcome.Resolved;
 
-    /// <summary>Whether the user can act on this setting. False for
-    /// <see cref="SettingDetectionOutcome.Undetermined"/>: detection failed, so we do not know the current
-    /// value, and offering Enabled/Disabled would write blind over data we could not read. The overlay is
-    /// still drawn - it is simply inert, and the banner explains why.</summary>
+    // False for Undetermined: detection failed, so offering Enabled/Disabled would write blind over data we could
+    // not read; the overlay is drawn but inert.
     public bool IsActionable => Outcome is SettingDetectionOutcome.Custom or SettingDetectionOutcome.Malformed;
 
-    /// <summary>THE outcome-to-icon map. Colour carries the severity at a glance and deliberately matches
-    /// the banner severity: blue question (a choice to make) / yellow exclamation (a real but recoverable
-    /// fault) / red cross (we could not read it). Rendered in the Color variant everywhere.</summary>
+    // Colour carries the severity and matches the banner severity: blue question (a choice to make) / yellow
+    // exclamation (a recoverable fault) / red cross (we could not read it).
     public FluentIcons.Common.Icon OverlayIconFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed => FluentIcons.Common.Icon.ErrorCircle,
@@ -1279,9 +1129,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => FluentIcons.Common.Icon.QuestionCircle,
     };
 
-    /// <summary>The short language-neutral glyph in the overlay's On/Off-content slot, where a real toggle
-    /// shows "On"/"Off". Each matches its icon ("?" / "!" / "x") so the label and the knob never disagree.
-    /// Localizable so a language can substitute a better glyph.</summary>
+    // Each matches its icon ("?" / "!" / "x") so label and knob never disagree; localizable so a language can
+    // substitute a better glyph.
     public string OverlayShortLabelFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed =>
@@ -1291,8 +1140,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => _localizationService.GetStringOrDefault("Common_CustomState_ShortLabel", "?"),
     };
 
-    /// <summary>The localized state NAME ("Custom" / "Malformed" / "Undetermined") - the overlay's
-    /// automation name and the a11y state announcement (SettingsCardItem.GetSettingStateText).</summary>
     public string OverlayStateTextFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed =>
@@ -1309,14 +1156,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => Localized("Common_CustomState") ?? "Not recognized",
     };
 
-    /// <summary>The catalog state the current selection resolved to, WHEN that state is
-    /// <see cref="SettingState.IsDetectOnly"/> - a state detection can land on but the user cannot pick,
-    /// so it is deliberately absent from <see cref="ComboBoxOptions"/> and the ComboBox has no item to
-    /// render for it. Null in every other case, including the -1 Custom sentinel.
-    ///
-    /// The outcome stays <see cref="SettingDetectionOutcome.Resolved"/> - this IS a known state, not a
-    /// value we failed to place - so this raises no banner and no outcome icon. It only tells the card
-    /// which real state name to draw where the missing dropdown item would have been.</summary>
+    // A detect-only state has no ComboBox item, so this tells the card which real state name to draw where the
+    // item would have been; the outcome stays Resolved - no banner, no icon.
     public SettingState? DetectOnlySelectedState =>
         Setting is { } catalogSetting
         && SelectedValue is int stateIndex
@@ -1325,9 +1166,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ? catalogSetting.States[stateIndex]
             : null;
 
-    /// <summary>The localized name of <see cref="DetectOnlySelectedState"/>, resolved through the SAME
-    /// Setting_{id}_Option_{i} key the dropdown would have used - so a state the user cannot pick is named
-    /// exactly as the option list would have named it. Empty when the selection is not on such a state.</summary>
+    // Resolved through the SAME Setting_{id}_Option_{i} key the dropdown would have used.
     public string DetectOnlyStateText
     {
         get
@@ -1346,17 +1185,15 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>Whether THIS mode's current selection sits on a detect-only state. Only the single-value
-    /// mode can: the AC/DC modes carry powercfg option indices, and no powercfg selection authors one.</summary>
+    // Only the single-value mode can: the AC/DC modes carry powercfg option indices, and no powercfg selection
+    // authors a detect-only state.
     private bool IsDetectOnlyForMode(SettingInputMode mode) =>
         mode is not (SettingInputMode.Ac or SettingInputMode.Dc) && DetectOnlySelectedState is not null;
 
-    /// <summary>A localization lookup that returns null for a key the language files do not carry.</summary>
     private string? Localized(string key) =>
         _localizationService.TryGetString(key, out var text) ? text : null;
 
-    /// <summary>The overlay tooltip: the SAME string that outcome's banner shows, so the two can never
-    /// drift. <paramref name="toggleLike"/> picks the toggle or selection wording.</summary>
+    // The SAME string that outcome's banner shows, so the two can never drift.
     public string OverlayTooltipFor(SettingDetectionOutcome outcome, bool toggleLike = true)
     {
         string prefix = outcome switch
@@ -1379,8 +1216,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // in XAML, so the ten templates cannot drift apart again.
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>This mode's effective outcome. Undetermined wins setting-wide; otherwise a mode whose
-    /// resolved index is the Custom sentinel is unrecognized in its own right.</summary>
+    // Undetermined wins setting-wide; otherwise a mode whose resolved index is the Custom sentinel is unrecognized in its own right.
     public SettingDetectionOutcome OutcomeForMode(SettingInputMode mode)
     {
         if (Outcome == SettingDetectionOutcome.Undetermined)
@@ -1413,8 +1249,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public FluentIcons.Common.Icon OverlayIconForMode(SettingInputMode mode) =>
         OverlayIconFor(OutcomeForMode(mode));
 
-    /// <summary>Whether the overlay draws its outcome icon. False for a detect-only state: the icons are a
-    /// severity scale (blue question / yellow exclamation / red cross) and this is not a fault.</summary>
+    // False for a detect-only state: the icons are a severity scale and this is not a fault.
     public bool OverlayShowsIconForMode(SettingInputMode mode) => !IsDetectOnlyForMode(mode);
 
     public string OverlayTextForMode(SettingInputMode mode) =>
@@ -1422,20 +1257,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ? DetectOnlyStateText
             : OverlayStateTextFor(OutcomeForMode(mode));
 
-    /// <summary>Overlay tooltip - the same string that outcome's banner shows. <paramref name="toggleLike"/>
-    /// picks the toggle or selection wording. Empty for a detect-only state: it is a resolved state, so
-    /// there is no failure to explain.</summary>
     public string OverlayTooltipForMode(SettingInputMode mode, bool toggleLike) =>
         IsDetectOnlyForMode(mode)
             ? string.Empty
             : OverlayTooltipFor(OutcomeForMode(mode), toggleLike);
 
-    /// <summary>The ComboBox index for this mode. Single reads the resolved selection; AC/DC read their own
-    /// powercfg index. The Custom sentinel (-1) selects nothing, which is what lets the overlay show.
-    ///
-    /// A DETECT-ONLY state reports the same -1: its state index is real, but the option list has no ITEM at
-    /// that position (the state is skipped, never renumbered), so binding the raw index would point the
-    /// ComboBox past the end of its own items. Selecting nothing is correct - the overlay names the state.</summary>
+    // A DETECT-ONLY state reports -1 too: its state index is real, but the option list has no ITEM there (skipped,
+    // never renumbered), so binding the raw index would point past the end; the overlay names the state.
     public int ComboIndexForMode(SettingInputMode mode) => mode switch
     {
         SettingInputMode.Ac => AcValue,
@@ -1514,8 +1342,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => DefaultValueTooltip,
     };
 
-    /// <summary>Automation name for a quick-set button, qualified with the power context when there is one
-    /// (so a screen reader can tell the plugged-in button from the on-battery one).</summary>
+    // Qualified with the power context so a screen reader can tell the plugged-in button from the on-battery one.
     public string A11yNameForMode(SettingInputMode mode, string? action) => mode switch
     {
         SettingInputMode.Ac => A11yAcName(action),
@@ -1523,13 +1350,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => A11yName(action),
     };
 
-    /// <summary>Closed-state width pin for a powercfg dropdown column. With BOTH the plugged-in and
-    /// on-battery columns shown, letting each grow to its widest item squeezes the left column and clips
-    /// the badges - so they are pinned to 120. With only one column there is nothing to squeeze, so it
-    /// stays auto (NaN).</summary>
     public double PowerColumnWidth(bool hasBattery) => hasBattery ? 120d : double.NaN;
 
-    /// <summary>Automation name for the input control itself.</summary>
     public string InputAutomationNameForMode(SettingInputMode mode) => mode switch
     {
         SettingInputMode.Ac => AcInputAutomationName,
@@ -1537,43 +1359,34 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => Name,
     };
 
-    /// <summary>Opacity of the real ToggleSwitch: invisible (0) while the overlay covers it, fully opaque
-    /// (1) otherwise. Never Collapsed - it must keep occupying its space, or the column reflows.</summary>
+    // Never Collapsed - it must keep occupying its space, or the column reflows.
     public double ToggleOpacityFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved ? 1d : 0d;
 
-    /// <summary>Whether the real ToggleSwitch takes pointer input and tab focus. False while the overlay
-    /// covers it, so the overlay is the only thing reachable.</summary>
+    // False while the overlay covers it, so the overlay is the only thing reachable.
     public bool ToggleInteractiveFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved;
 
-    /// <summary>Keeps the invisible ToggleSwitch out of the automation tree while covered, so Narrator
-    /// announces only the overlay (which carries the state name), not a hidden On/Off switch.</summary>
+    // Keeps the invisible ToggleSwitch out of the automation tree while covered, so Narrator announces only the overlay.
     public AccessibilityView ToggleAccessibilityViewFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved ? AccessibilityView.Content : AccessibilityView.Raw;
 
-    /// <summary>Overlay visibility, bound directly so the template needs no bool-to-Visibility converter.
-    /// Fully qualified: this file imports Microsoft.UI.Xaml.Controls but not Microsoft.UI.Xaml itself.</summary>
+    // Fully qualified: this file imports Microsoft.UI.Xaml.Controls but not Microsoft.UI.Xaml.
     public Microsoft.UI.Xaml.Visibility OverlayVisibilityFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved
             ? Microsoft.UI.Xaml.Visibility.Collapsed
             : Microsoft.UI.Xaml.Visibility.Visible;
 
-    /// <summary>Hides the outcome marker while an apply is in flight - the control underneath already
-    /// shows the value the user just picked, so the stale marker would render on top of it. Opacity, not
-    /// Visibility, so the element stays measured and its host cannot collapse mid-apply. The outcome is
-    /// untouched, so the feature's banner stays until the apply lands.</summary>
+    // Opacity, not Visibility, so the element stays measured and its host cannot collapse mid-apply; the outcome
+    // is untouched, so the feature's banner stays until the apply lands.
     public double OverlayOpacity => IsApplying ? 0d : 1d;
 
     // --- Bindings used by the templates (single-argument forms of the maps above). ---
 
-    /// <summary>The outcome explanation for a selection-style control, or null while resolved. Bound to
-    /// the CONTROL's tooltip rather than the overlay's, because a pass-through overlay never receives the
-    /// pointer and so can never show one.</summary>
+    // On the CONTROL's tooltip, because a pass-through overlay never receives the pointer.
     public string? SelectionOutcomeTooltip =>
         Outcome == SettingDetectionOutcome.Resolved ? null : OverlayTooltipFor(Outcome, toggleLike: false);
 
-    /// <summary>The localized state text for the CURRENT outcome.</summary>
     public string CustomStateText => OverlayStateTextFor(Outcome);
 
 
@@ -1662,11 +1475,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         ComputeBadgeState();
     }
 
-    /// <summary>
-    /// Rebuilds the technical-details panel from the <see cref="Setting"/> model + the VM's resolved
-    /// current state (no live registry reads). Called after the factory finishes populating state and after
-    /// every system-state / event refresh.
-    /// </summary>
     public void RefreshTechnicalDetails()
     {
         var snapshot = new SettingStateSnapshot
@@ -1800,14 +1608,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     // Updates setting state from a fresh system state read (used during navigation refresh)
-    /// <summary>Rebuilds the runtime (non-Builder) power-plan dropdown from the detection
-    /// result's DynamicOptions/DynamicSelection, reconstructing the rich PowerPlanComboBoxOption Tag the bespoke
-    /// PowerPlanComboBox control reads (status dot / [Active] badge / delete-by-GUID). Shared by SettingViewModelFactory
-    /// (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is rebuilt identically from detection on
-    /// BOTH paths - the dropdown is detection-driven, not combobox-service-driven.
-    /// Returns true when it handled the dropdown (a power-plan Selection with DynamicOptions, not an authoring mode); false so
-    /// the caller falls through to normal Selection handling. An authoring mode keeps the factory's index-valued dropdown
-    /// (config-export BuilderEdit serialization), so this returns false there.</summary>
+    // Shared by SettingViewModelFactory (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is
+    // rebuilt identically from detection on BOTH paths. False (caller falls through to normal Selection handling)
+    // when not a power-plan Selection with DynamicOptions, or in an authoring mode, which keeps the factory's
+    // index-valued dropdown for BuilderEdit serialization.
     public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
     {
         if (InputType != InputType.Selection
@@ -1961,9 +1765,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
     }
 
-    /// <summary>Click handler for the neutral detection-outcome overlay (SettingsCardItem's toggle template
-    /// draws it over the invisible ToggleSwitch whenever the setting is unresolved). Inert for
-    /// <see cref="SettingDetectionOutcome.Undetermined"/> - see <see cref="IsActionable"/>.</summary>
     public void OnCustomToggleClicked()
     {
         HandleCustomToggleClickAsync().FireAndForget(_logService);
@@ -2043,12 +1844,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// Sets an invariant-culture NumberFormatter on a NumberBox so that it formats
-    /// and parses values using en-US conventions regardless of the Windows system locale.
-    /// This prevents locale-sensitive formatting (e.g. Russian "50.000" for 50000)
-    /// from causing incorrect values when the user interacts with the control.
-    /// </summary>
+    // Invariant-culture NumberFormatter so the box parses and formats en-US regardless of system locale - Russian
+    // "50.000" for 50000 otherwise produces wrong values.
     public void OnNumberBoxLoaded(object sender)
     {
         if (sender is NumberBox nb)
@@ -2119,14 +1916,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ShowRestartBannerIfNeeded();
     }
 
-    /// <summary>The unresolved-state dialog flow: title = the setting's display name, message explains what
-    /// is wrong, buttons Enabled / Disabled / Cancel with Cancel as the default (safe Enter). Cancel keeps
-    /// the current value and rendering. A pick applies EXACTLY once via
-    /// HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed.
-    ///
-    /// The Malformed message additionally promises the storage format will be repaired, which the apply
-    /// delivers for free: every write passes the catalog's declared RegistryValueKind, and the surgical
-    /// binary writers now recover a wrongly-typed value's bytes instead of discarding them.</summary>
+    // Cancel is the default (safe Enter) and keeps the current value. A pick applies EXACTLY once via
+    // HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed. The Malformed
+    // message promises the storage format will be repaired, which the apply delivers for free: every write passes
+    // the catalog's declared RegistryValueKind.
     private async Task HandleCustomToggleClickAsync()
     {
         // IsActionable is the safety gate: Undetermined never opens the dialog, so we can never
@@ -2226,11 +2019,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>
-    /// The serializable form of a dropdown or slider change, or null when this input carries a
-    /// value shape the config format has no representation for — which the authoring strategy
-    /// reports rather than swallowing.
-    /// </summary>
+    // Null when this input carries a value shape the config format cannot represent - which the authoring strategy
+    // reports rather than swallowing.
     private BuilderEdit? AuthoredEditForValue(object? value) => (InputType, value) switch
     {
         (InputType.Selection, int index) => new BuilderEdit
@@ -2252,10 +2042,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => null,
     };
 
-    /// <summary>
-    /// If a value change was queued while a previous apply was in progress,
-    /// drain and apply it now.
-    /// </summary>
     private async Task ProcessPendingValueAsync()
     {
         var pending = _pendingValue;
@@ -2456,10 +2242,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         UpdateDetectionOutcomeBanner();
     }
 
-    /// <summary>
-    /// Surfaces the Windows-version compatibility message as a Warning banner. Called by the factory for
-    /// non-Selection settings (Selection settings get it through UpdateStatusBanner's compat fallback).
-    /// </summary>
+    // Selection settings get it through UpdateStatusBanner's compat fallback.
     public void ShowCompatibilityBanner()
     {
         if (!string.IsNullOrEmpty(CompatibilityMessage))
@@ -2504,14 +2287,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             : null;
     }
 
-    /// <summary>Shows the banner for a non-Resolved detection outcome, and clears it - only it - once the
-    /// setting resolves. Called from the load/refresh paths, UpdateStatusBanner, and the dialog flow.
-    ///
-    /// Priority, highest first: Undetermined (Error) > the existing compatibility/restart Warnings >
-    /// Malformed (Warning) > Custom (Informational). Undetermined outranks everything because it says we
-    /// could not read the setting at all, which makes any other advice about it unreliable; the existing
-    /// Warnings outrank Malformed because they describe the action the user just took, whereas a malformed
-    /// value is a pre-existing condition.</summary>
+    // Clears only its own banner once the setting resolves. Priority: Undetermined (Error) > existing
+    // compatibility/restart Warnings > Malformed (Warning) > Custom (Informational). Undetermined outranks
+    // everything because we could not read the setting at all; the existing Warnings outrank Malformed because
+    // they describe the action the user just took, whereas a malformed value is a pre-existing condition.
     internal void UpdateDetectionOutcomeBanner()
     {
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
@@ -2537,10 +2316,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    /// <summary>Whether the showing banner is one of OUR outcome banners, so clearing on resolve removes only
-    /// that and never someone else's message. Checked against every outcome's text because the outcome has
-    /// already changed to Resolved by the time we clear - comparing against the current outcome's string
-    /// would miss a banner raised under a different one (e.g. Malformed repaired straight to Resolved).</summary>
+    // Checked against every outcome's text because the outcome has already changed to Resolved by the time we
+    // clear - comparing against the current one would miss a banner raised under a different one.
     private bool IsDetectionOutcomeBannerMessage(string message)
     {
         bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
@@ -2561,10 +2338,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     #region InfoBadge State Computation
 
-    /// <summary>
-    /// Computes the badge state by comparing the current UI state against
-    /// recommended and default values from the Setting model's state roles and AC/DC accessors.
-    /// </summary>
     public void ComputeBadgeState()
     {
         if (!HasBadgeData || Setting == null)
@@ -2785,10 +2558,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return (label, tooltip);
     }
 
-    /// <summary>
-    /// Initializes HasBadgeData from the Setting model: whether the setting has comparable
-    /// recommended/default data (toggle/task state roles, selection state roles, or per-context powercfg values).
-    /// </summary>
     private void InitializeHasBadgeData()
     {
         if (Setting == null)

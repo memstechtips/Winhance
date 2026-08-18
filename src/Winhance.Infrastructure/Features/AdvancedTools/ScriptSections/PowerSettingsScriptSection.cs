@@ -8,9 +8,6 @@ using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellSc
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Handles power plan creation, power settings extraction and application in the generated script.
-/// </summary>
 internal class PowerSettingsScriptSection
 {
     private readonly IPowerSettingsQueryService _powerSettingsQueryService;

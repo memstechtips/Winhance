@@ -6,19 +6,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="WinGetBootstrapper"/>.
-///
-/// WinGetComSession is a concrete class without virtual methods, so it cannot
-/// be mocked with Moq. We instantiate it with a mock ILogService. Because the
-/// COM API (WindowsPackageManagerStandardFactory) is unlikely to be available
-/// in a CI/test environment, EnsureComInitialized() will return false, which
-/// exercises the fallback paths.
-///
-/// WinGetCliRunner uses static methods that check real file system paths (PATH,
-/// WindowsApps, bundled). Tests that rely on these are written to verify the
-/// service's branching logic rather than actual winget availability.
-/// </summary>
+// WinGetComSession is a concrete class without virtual methods, so it cannot be mocked; COM init fails in a
+// test environment, which exercises the fallback paths. Tests verify branching logic, not actual winget availability.
 public class WinGetBootstrapperTests
 {
     private readonly Mock<ILogService> _mockLogService = new();

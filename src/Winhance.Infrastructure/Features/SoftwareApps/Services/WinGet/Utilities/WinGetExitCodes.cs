@@ -2,10 +2,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-/// <summary>
-/// Maps WinGet CLI HRESULT exit codes to <see cref="InstallFailureReason"/>.
-/// Reference: https://github.com/microsoft/winget-cli/blob/master/doc/windows/package-manager/winget/returnCodes.md
-/// </summary>
+// Reference: winget-cli doc/windows/package-manager/winget/returnCodes.md
 public static class WinGetExitCodes
 {
     // Success codes
@@ -37,13 +34,8 @@ public static class WinGetExitCodes
         => exitCode == Ok || exitCode == RestartRequired
         || exitCode == AlreadyInstalled || exitCode == UpdateNotApplicable;
 
-    /// <summary>
-    /// Returns true if the exit code indicates a potential false-positive uninstall failure
-    /// that should be verified by checking whether the package is actually still installed.
-    /// WinGet wraps any non-zero exit code from the underlying uninstaller into
-    /// EXEC_UNINSTALL_COMMAND_FAILED, even when the uninstall actually succeeded
-    /// (e.g. Chromium-based apps always return exit code 19).
-    /// </summary>
+    // WinGet wraps any non-zero uninstaller exit into EXEC_UNINSTALL_COMMAND_FAILED even when the uninstall
+    // succeeded (Chromium-based apps always return 19), so these are verified by checking whether the package is still installed.
     public static bool IsUninstallVerifiable(int exitCode)
         => exitCode == ExecUninstallCommandFailed || exitCode == NoUninstallInfoFound;
 

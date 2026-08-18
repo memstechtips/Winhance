@@ -7,12 +7,8 @@ using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.TechnicalDetails;
 
-/// <summary>
-/// The panel resolves its strings through <see cref="TechnicalDetailKeys"/> constants, which the
-/// existing GetString("literal") scanner in the integration tests can't see. Before this, 26 of the
-/// panel's ~50 strings were never wired to localization at all and rendered English in all 29
-/// languages with nothing to catch it. These tests close that gap.
-/// </summary>
+// The GetString("literal") scanner in the integration tests can't see keys resolved through constants; before
+// this, 26 of the panel's ~50 strings rendered English in all 29 languages with nothing to catch it.
 public class TechnicalDetailKeysCoverageTests
 {
     private static IEnumerable<(string Name, string Key)> AllKeys() =>

@@ -9,17 +9,10 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Code-behind for <see cref="SettingToggleSwitch"/>. Projects the view model's outcome map into bindable
-/// properties and owns the overlay knob's hover animation.
-///
-/// That animation used to live in SettingsCardItem's code-behind and walk the visual tree to find the icon
-/// it animated, because x:Name is not reachable inside a DataTemplate. Here the icon is named, so the walk
-/// (and the generic FindDescendant helper it needed) is gone.
-/// </summary>
+// Owns the overlay knob's hover animation: the icon is named here, which x:Name inside a DataTemplate would not allow.
 public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyChanged
 {
-    /// <summary>Matches the native ToggleSwitch's knob-grow on pointer-over.</summary>
+    // Matches the native ToggleSwitch's knob-grow on pointer-over.
     private const double HoverScale = 1.15;
     private const double RestScale = 1.0;
 
@@ -123,8 +116,7 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
 
     private void OnOverlayPointerEntered(object sender, PointerRoutedEventArgs e) => AnimateKnob(HoverScale);
 
-    /// <summary>Wired to PointerExited AND PointerCanceled AND PointerCaptureLost so the knob can never
-    /// stick enlarged.</summary>
+    // Wired to PointerExited AND PointerCanceled AND PointerCaptureLost so the knob can never stick enlarged.
     private void OnOverlayPointerExited(object sender, PointerRoutedEventArgs e) => AnimateKnob(RestScale);
 
     private void AnimateKnob(double scale)

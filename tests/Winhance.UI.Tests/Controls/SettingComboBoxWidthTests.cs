@@ -4,11 +4,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Controls;
 
-/// <summary>
-/// The pin guards. Width accepts NaN as "auto", but MinWidth and MaxWidth reject it with E_INVALIDARG
-/// ("Value does not fall within the expected range"). MinWidth was bound to the raw pin, so every
-/// unpinned dropdown threw on load - 102 identical unhandled UI exceptions in one session's log.
-/// </summary>
+// MinWidth/MaxWidth reject NaN with E_INVALIDARG; MinWidth was bound to the raw pin, so every unpinned dropdown
+// threw on load - 102 identical unhandled UI exceptions in one session's log.
 public class SettingComboBoxWidthTests
 {
     [Theory]

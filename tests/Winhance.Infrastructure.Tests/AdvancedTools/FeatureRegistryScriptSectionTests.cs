@@ -12,8 +12,7 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
-/// <summary>AppendFeatureGroupRegistryEntries takes the catalog Setting dict, so every fixture here passes
-/// REAL catalog Settings via SettingCatalog.Find.</summary>
+// Every fixture passes REAL catalog Settings via SettingCatalog.Find.
 public class FeatureRegistryScriptSectionTests
 {
     private readonly Mock<ILogService> _logService = new();

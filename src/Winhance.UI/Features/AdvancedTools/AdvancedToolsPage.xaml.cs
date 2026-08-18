@@ -9,9 +9,6 @@ using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
-/// <summary>
-/// Page displaying advanced tools with overview cards and detail navigation.
-/// </summary>
 public sealed partial class AdvancedToolsPage : Page
 {
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()

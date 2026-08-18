@@ -6,9 +6,8 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Task Scheduler COM adapter. Implements two contracts over one connection helper: Winhance's own
-/// tasks (<see cref="IScheduledTaskService"/>) and the state of tasks Windows owns
-/// (<see cref="IScheduledTaskStateService"/>).</summary>
+// Two contracts over one connection helper: Winhance's own tasks (IScheduledTaskService) and the state of tasks
+// Windows owns (IScheduledTaskStateService).
 public class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService)
     : IScheduledTaskService, IScheduledTaskStateService
 {

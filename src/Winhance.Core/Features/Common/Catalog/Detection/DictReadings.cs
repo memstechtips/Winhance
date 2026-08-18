@@ -1,7 +1,5 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>A simple in-memory <see cref="IStateReadings"/> the discovery layer populates per setting:
-/// each target key maps to its reduced value and whether it is present.</summary>
 public sealed class DictReadings : IStateReadings
 {
     private readonly Dictionary<string, (object? Value, bool Present)> _readings = new();

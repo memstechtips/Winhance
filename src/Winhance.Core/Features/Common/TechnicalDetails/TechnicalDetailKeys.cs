@@ -1,10 +1,6 @@
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
-/// <summary>
-/// Every localization key the Technical Details panel asks for, in one place. A test reflects over
-/// these constants and asserts each one exists in en.json and in all 29 language files, so a new
-/// string can't ship as untranslated English the way the old label record's unassigned properties did.
-/// </summary>
+// A test reflects over these constants and asserts each one exists in en.json and in all 29 language files.
 public static class TechnicalDetailKeys
 {
     // Sections
@@ -95,10 +91,9 @@ public static class TechnicalDetailKeys
     public const string ChipHardwareControlledTooltip = "TechnicalDetails_Chip_HardwareControlled_Tooltip";
 
     // Apply-time side effects surfaced in "Before you apply"
-    /// <summary>Heading over the side effects listed under the grid.</summary>
     public const string NotesHeading = "TechnicalDetails_Notes_Heading";
 
-    /// <summary>Used instead when the setting asks first: then these happen only if you agree.</summary>
+    // Used instead when the setting asks first: then these happen only if you agree.
     public const string NotesHeadingConditional = "TechnicalDetails_Notes_Heading_Conditional";
     public const string NotesDetailHeader = "TechnicalDetails_Notes_DetailHeader";
 
@@ -127,7 +122,6 @@ public static class TechnicalDetailKeys
     public const string RelEnables = "TechnicalDetails_Rel_Enables";
     public const string RelControls = "TechnicalDetails_Rel_Controls";
 
-    /// <summary>Applying this setting sets the required one for you -- you don't go and do it first.</summary>
     public const string RelSetAutomatically = "TechnicalDetails_Rel_SetAutomatically";
 
     // Apply behaviour

@@ -4,9 +4,6 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet/AppInstaller bootstrapping, upgrade, and readiness checks.
-/// </summary>
 public class WinGetBootstrapper : IWinGetBootstrapper
 {
     private readonly WinGetComSession _comSession;

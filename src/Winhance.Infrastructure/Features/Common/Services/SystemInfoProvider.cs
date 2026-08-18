@@ -12,11 +12,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class SystemInfoProvider : ISystemInfoProvider
 {
-    /// <summary>
-    /// One WMI query: (scope, WQL) -> the matching rows as plain dictionaries. A null scope
-    /// means the default namespace. Rows are materialised so nothing WMI-shaped escapes this
-    /// file.
-    /// </summary>
+    // Rows are materialised so nothing WMI-shaped escapes this file.
     internal delegate IReadOnlyList<IReadOnlyDictionary<string, object?>> WmiQuery(
         string? scope, string wql);
 
@@ -28,9 +24,8 @@ public class SystemInfoProvider : ISystemInfoProvider
     {
     }
 
-    /// <summary>Test seam: lets the suite feed constructed WMI rows instead of querying the
-    /// live machine. Without it these tests assert on the hardware of whoever runs them.
-    /// </summary>
+    // Test seam: feed constructed WMI rows instead of the live machine - otherwise these tests assert on the
+    // hardware of whoever runs them.
     internal SystemInfoProvider(IInteractiveUserService interactiveUserService, WmiQuery? query)
     {
         _interactiveUserService = interactiveUserService
@@ -38,10 +33,7 @@ public class SystemInfoProvider : ISystemInfoProvider
         _query = query ?? RunWmiQuery;
     }
 
-    /// <summary>
-    /// The live implementation of the seam, and the only place in this file that talks to WMI
-    /// directly. Rows are copied out before the underlying objects are disposed.
-    /// </summary>
+    // Rows are copied out before the underlying objects are disposed.
     private static IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(
         string? scope, string wql)
     {

@@ -1,7 +1,5 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Runs an apply plan against an <see cref="IStateWriter"/> best-effort: every op is attempted,
-/// per-op failures are caught and collected, and an <see cref="ApplyResult"/> summarises the outcome.</summary>
 public static class ApplyExecutor
 {
     public static ApplyResult Execute(ApplyPlan plan, IStateWriter writer)

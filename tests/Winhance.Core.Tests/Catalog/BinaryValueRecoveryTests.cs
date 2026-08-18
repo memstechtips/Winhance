@@ -4,11 +4,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// The recover-or-refuse rule for surgical REG_BINARY edits. These guard a DATA-LOSS bug, not a cosmetic
-/// one: the old code treated "present but not a byte[]" as "absent" and wrote a zeroed array, wiping every
-/// unrelated bit packed into the same value.
-/// </summary>
+// Guards a DATA-LOSS bug: "present but not a byte[]" once read as "absent" and was overwritten with a zeroed
+// array, wiping every unrelated bit packed into the same value.
 public class BinaryValueRecoveryTests
 {
     private static readonly string[] MultiString = ["a", "b"];
@@ -30,10 +27,8 @@ public class BinaryValueRecoveryTests
         Assert.All(buffer, b => Assert.Equal(0, b));
     }
 
-    /// <summary>The real case from Marco's machine (2026-07-27): UserPreferencesMask stored as
-    /// REG_EXPAND_SZ. The bytes were intact - a registry string is UTF-16LE - and displayed as the glyphs
-    /// U+1290 U+8003. Recovery must return those exact bytes, NOT zeros.
-    /// </summary>
+    // The real case: UserPreferencesMask stored as REG_EXPAND_SZ; the bytes were intact (a registry string is
+    // UTF-16LE), displayed as U+1290 U+8003. Recovery must return those exact bytes, NOT zeros.
     [Fact]
     public void String_value_is_recovered_to_its_underlying_utf16_bytes()
     {
@@ -92,8 +87,7 @@ public class BinaryValueRecoveryTests
         Assert.False(BinaryValueRecovery.IsRecoveredFromString(1));
     }
 
-    /// <summary>The whole point, stated as an assertion: recovering and then editing one bit must leave
-    /// every other byte exactly as it was. This is what the old zeroing behaviour destroyed.</summary>
+    // Recovering and then editing one bit must leave every other byte exactly as it was.
     [Fact]
     public void Editing_a_recovered_buffer_preserves_every_unrelated_byte()
     {

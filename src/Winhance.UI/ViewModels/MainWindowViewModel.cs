@@ -10,10 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// ViewModel for the MainWindow, handling title bar commands and state.
-/// Child ViewModels handle task progress, update checking, and review mode.
-/// </summary>
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -28,19 +24,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
 
-    /// <summary>Child ViewModel for task progress display.</summary>
     public TaskProgressViewModel TaskProgress { get; }
 
-    /// <summary>Child ViewModel for update checking.</summary>
     public UpdateCheckViewModel UpdateCheck { get; }
 
-    /// <summary>Child ViewModel for review mode bar.</summary>
     public ReviewModeBarViewModel ReviewModeBar { get; }
 
-    /// <summary>Child ViewModel for the Builder mode bar.</summary>
     public BuilderModeBarViewModel BuilderModeBar { get; }
 
-    /// <summary>The current app-wide interaction mode (for the mode switcher).</summary>
     public WinhanceMode CurrentMode => _applicationModeService.CurrentMode;
     public bool IsNormalMode => CurrentMode == WinhanceMode.Normal;
     public bool IsBuilderModeActive => CurrentMode == WinhanceMode.Builder;
@@ -107,11 +98,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OtsInfoBarMessage = string.Empty;
     }
 
-    /// <summary>
-    /// Performs deferred initialization: subscribes to events and sets initial state.
-    /// Must be called after construction, typically after the caller has subscribed
-    /// to PropertyChanged so that initial state changes are observed.
-    /// </summary>
+    // Call after construction, after the caller has subscribed to PropertyChanged, so initial state changes are observed.
     public void Initialize()
     {
         // Subscribe to theme changes
@@ -151,9 +138,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Handles language changes to update localized strings.
-    /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         // Notify all localized string properties
@@ -187,9 +171,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Initializes the version info string from the version service.
-    /// </summary>
     private void InitializeVersionInfo()
     {
         try
@@ -206,9 +187,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     #region OTS Elevation InfoBar
 
-    /// <summary>
-    /// Initializes the OTS InfoBar if the app is running under OTS elevation.
-    /// </summary>
     private void InitializeOtsInfoBar()
     {
         if (_interactiveUserService.IsOtsElevation)
@@ -218,9 +196,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Refreshes the OTS InfoBar text from localization.
-    /// </summary>
     private void RefreshOtsInfoBarText()
     {
         OtsInfoBarTitle = _localizationService.GetStringOrDefault("InfoBar_OtsElevation_Title", "Running as a different user");
@@ -228,9 +203,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OtsInfoBarMessage = string.Format(messageTemplate, _interactiveUserService.InteractiveUserName);
     }
 
-    /// <summary>
-    /// Dismisses the OTS InfoBar.
-    /// </summary>
     public void DismissOtsInfoBar()
     {
         IsOtsInfoBarOpen = false;
@@ -276,12 +248,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Gets the icon path data for the Windows filter button based on filter state.
-    /// Filter ON = filter-check icon (showing filtered/compatible only)
-    /// Filter OFF = filter-off icon (showing all settings)
-    /// Path data is retrieved from Application resources (FeatureIcons.xaml).
-    /// </summary>
     public string WindowsFilterIcon
     {
         get
@@ -329,11 +295,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     #region Commands
 
-    /// <summary>
-    /// Switch the app-wide mode from the title-bar mode switcher. Confirms first if the
-    /// current mode has unsaved progress (Builder edits, or a pending Config Review).
-    /// Normal → live system; Builder → author without applying; Config Review → import dialog.
-    /// </summary>
+    // Confirms first if the current mode has unsaved progress (Builder edits, or a pending Config Review).
     public async Task RequestSwitchModeAsync(WinhanceMode target)
     {
         if (target == _applicationModeService.CurrentMode)
@@ -412,10 +374,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private const string BuilderIntroDontShowKey = "BuilderModeIntroDontShow";
     private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
 
-    /// <summary>
-    /// Shows the Builder Mode explainer (with a "don't show again" option) unless the user
-    /// has dismissed it. Returns true to proceed into Builder mode, false if the user cancels.
-    /// </summary>
     private Task<bool> ShowBuilderIntroIfNeededAsync()
     {
         return ShowModeIntroIfNeededAsync(
@@ -425,10 +383,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             "Dialog_BuilderIntro_Confirm");
     }
 
-    /// <summary>
-    /// Shows the Config Review explainer (with a "don't show again" option) unless the user
-    /// has dismissed it. Returns true to proceed to the import window, false if the user cancels.
-    /// </summary>
     private Task<bool> ShowConfigReviewIntroIfNeededAsync()
     {
         return ShowModeIntroIfNeededAsync(
@@ -475,27 +429,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsConfigReviewModeActive));
     }
 
-    /// <summary>
-    /// Command to toggle Windows version filter.
-    /// </summary>
     [RelayCommand]
     private async Task ToggleWindowsFilterAsync()
     {
         await _windowsVersionFilterService.ToggleFilterAsync(ReviewModeBar.IsInReviewMode);
     }
 
-    /// <summary>
-    /// Loads the filter preference from user preferences.
-    /// Should be called during initialization.
-    /// </summary>
     public async Task LoadFilterPreferenceAsync()
     {
         await _windowsVersionFilterService.LoadFilterPreferenceAsync();
     }
 
-    /// <summary>
-    /// Command to open the in-app sponsors dialog.
-    /// </summary>
     [RelayCommand]
     private async Task DonateAsync()
     {
@@ -509,9 +453,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Command to open the bug report page.
-    /// </summary>
     [RelayCommand]
     private async Task BugReportAsync()
     {
@@ -526,9 +467,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Command to open the documentation page.
-    /// </summary>
     [RelayCommand]
     private async Task DocsAsync()
     {
@@ -568,9 +506,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Syncs the ViewModel's IsWindowsVersionFilterEnabled property when the service state changes.
-    /// </summary>
     private void OnFilterStateChanged(object? sender, bool isEnabled)
     {
         IsWindowsVersionFilterEnabled = isEnabled;
@@ -580,17 +515,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     #region Theme Handling
 
-    /// <summary>
-    /// Handles theme changes to update the app icon.
-    /// </summary>
     private void OnThemeChanged(object? sender, WinhanceTheme theme)
     {
         UpdateAppIconForTheme();
     }
 
-    /// <summary>
-    /// Updates the app icon based on the current effective theme.
-    /// </summary>
     public void UpdateAppIconForTheme()
     {
         var effectiveTheme = _themeService.GetEffectiveTheme();

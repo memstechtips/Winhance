@@ -1,18 +1,10 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Works out the follow-on applies that one setting change triggers through its relationships - pure; no
-/// I/O. Forward relationships fire only when the owner moves to a non-default ("active") state, matching
-/// the app's existing enable-triggered behaviour.
-/// </summary>
+// Forward relationships fire only when the owner moves to a non-default (active) state.
 public static class RelationshipResolver
 {
-    /// <summary>
-    /// The applies triggered by putting <paramref name="setting"/> into <paramref name="targetStateLabel"/>:
-    /// its Requires prerequisites (only when not already met), its Enables targets (always, force), and the
-    /// children its target state Controls. Empty when the target state is the WindowsDefault (a deactivation)
-    /// or unknown. <paramref name="currentStateOf"/> returns a setting's current state label (null = unknown).
-    /// </summary>
+    // Requires only when not already met; Enables always (force); the children the target state Controls.
+    // Empty when the target state is the WindowsDefault (a deactivation) or unknown.
     public static IReadOnlyList<ApplyAction> ResolveForward(
         Setting setting, string targetStateLabel, Func<string, string?> currentStateOf)
     {
@@ -39,11 +31,7 @@ public static class RelationshipResolver
         return actions;
     }
 
-    /// <summary>
-    /// When <paramref name="changedSettingId"/> moves to <paramref name="newStateLabel"/>, the dependents
-    /// whose Requires link on it is now broken (and that opt into reverse cascade) reset to their own
-    /// default state. Only dependents currently away from their default are reset.
-    /// </summary>
+    // Only dependents currently away from their default are reset.
     public static IReadOnlyList<ApplyAction> ResolveReverseCascade(
         string changedSettingId, string newStateLabel,
         IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf, WinBuild build)
@@ -75,12 +63,8 @@ public static class RelationshipResolver
         return actions;
     }
 
-    /// <summary>
-    /// When <paramref name="changedChildId"/> changes, snap any parent that Controls it to the first of the
-    /// parent's states whose Controls are now ALL satisfied by the children's current states; if no preset state
-    /// matches, the parent drops to its neutral state (the one that imposes no Controls). A parent already in the
-    /// resulting state is left as is.
-    /// </summary>
+    // Snap the parent to the first state whose Controls are all satisfied, else to its neutral state; a parent already
+    // in the resulting state is left alone.
     public static IReadOnlyList<ApplyAction> ResolveReverseSync(
         string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
     {

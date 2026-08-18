@@ -10,9 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM Utility Step 2: XML generation, download, and selection.
-/// </summary>
 public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
@@ -27,9 +24,6 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]

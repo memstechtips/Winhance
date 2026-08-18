@@ -5,10 +5,6 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.SoftwareApps.Services;
 
-/// <summary>
-/// Bridges the WIM feature to the SoftwareApps feature by providing
-/// selected Windows apps without exposing the concrete ViewModel.
-/// </summary>
 public class SelectedAppsProvider : ISelectedAppsProvider
 {
     private readonly WindowsAppsViewModel _windowsAppsViewModel;

@@ -9,9 +9,6 @@ using Windows.UI.ViewManagement;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Service for managing application themes in WinUI 3.
-/// </summary>
 public class ThemeService : IThemeService
 {
     private readonly IUserPreferencesService _userPreferences;
@@ -21,10 +18,8 @@ public class ThemeService : IThemeService
     private readonly UISettings _uiSettings;
     private WinhanceTheme _currentTheme = WinhanceTheme.System;
 
-    /// <inheritdoc />
     public WinhanceTheme CurrentTheme => _currentTheme;
 
-    /// <inheritdoc />
     public event EventHandler<WinhanceTheme>? ThemeChanged;
 
     public ThemeService(
@@ -51,7 +46,6 @@ public class ThemeService : IThemeService
         }
     }
 
-    /// <inheritdoc />
     public void SetTheme(WinhanceTheme theme)
     {
         _currentTheme = theme;
@@ -63,7 +57,6 @@ public class ThemeService : IThemeService
         ThemeChanged?.Invoke(this, theme);
     }
 
-    /// <inheritdoc />
     public void LoadSavedTheme()
     {
         // Load theme preference synchronously to avoid async/await deadlock on UI thread
@@ -96,7 +89,6 @@ public class ThemeService : IThemeService
         return WinhanceTheme.System;
     }
 
-    /// <inheritdoc />
     public ElementTheme GetEffectiveTheme()
     {
         return _currentTheme switch

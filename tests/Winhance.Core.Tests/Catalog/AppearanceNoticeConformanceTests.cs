@@ -4,36 +4,23 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// The appearance notice used to be INFERRED: code looked for a ...\Themes\Personalize registry path and
-/// decided for itself which settings deserved the expensive half of the shell broadcast. It is now DECLARED
-/// on the setting (<see cref="ApplyBehavior.NotifyWindows"/>), next to its confirmation gate and its restart.
-///
-/// This test is the migration's pin. The declared set has to be exactly the set the old inference picked, so
-/// the change provably moved where the fact LIVES without moving which settings pay for the broadcast.
-///
-/// It keeps earning its place afterwards, which is the point of writing it as a rule rather than an id list.
-/// Add a theme setting and forget the declaration, and dark mode silently stops applying live until the shell
-/// restarts. Declare it on a setting that writes no personalisation key, and that setting pays a
-/// per-top-level-window SendMessageTimeout it cannot possibly benefit from. Either way, this fails.
-/// </summary>
+// Pins the migration from an INFERRED appearance notice (any setting writing under Themes\Personalize) to a
+// DECLARED one (ApplyBehavior.NotifyWindows): the declared set must equal the set the old inference picked. Add
+// a theme setting and forget the declaration and dark mode stops applying live until the shell restarts;
+// declare it on a setting that writes no personalisation key and it pays a per-window SendMessageTimeout for nothing.
 public class AppearanceNoticeConformanceTests
 {
-    /// <summary>The registry key Windows keeps light/dark mode and transparency under.</summary>
+    // Where Windows keeps light/dark mode and transparency.
     private const string PersonalizeKeyFragment = @"Themes\Personalize";
 
-    /// <summary>
-    /// The OLD, inferred rule, kept alive here as the ASSERTION rather than as production behaviour: does the
-    /// setting write under the personalisation key? Case-insensitive, because registry paths are authored by
-    /// hand and Windows does not care about their casing. Every path of a mirrored target counts.
-    /// </summary>
+    // The old inferred rule, kept as the ASSERTION: case-insensitive because registry paths are authored by hand;
+    // every path of a mirrored target counts.
     private static bool WritesThePersonalizeKey(Setting setting) =>
         setting.Targets.OfType<RegTarget>().Any(
             target => target.Paths is not null
                 && target.Paths.Any(path => path is not null
                     && path.Contains(PersonalizeKeyFragment, StringComparison.OrdinalIgnoreCase)));
 
-    /// <summary>The NEW, declared rule - what ProcessRestartManager actually reads.</summary>
     private static bool DeclaresAppearanceNotice(Setting setting) =>
         setting.Apply.NotifyWindows.HasFlag(WindowsChange.Appearance);
 

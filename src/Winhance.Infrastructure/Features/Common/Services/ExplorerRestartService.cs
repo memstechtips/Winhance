@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <inheritdoc cref="IExplorerRestartService"/>
 public sealed class ExplorerRestartService : IExplorerRestartService
 {
     private const string ExplorerProcessName = "explorer";
@@ -43,7 +42,7 @@ public sealed class ExplorerRestartService : IExplorerRestartService
     {
     }
 
-    /// <summary>Test seam: lets the suite exercise the poll loops without real delays.</summary>
+    // Test seam: lets the suite exercise the poll loops without real delays.
     internal ExplorerRestartService(
         IWindowsUIManagementService uiManagement,
         IInteractiveUserService interactiveUser,
@@ -58,13 +57,10 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         _delay = delay ?? (ms => Task.Delay(ms));
     }
 
-    /// <inheritdoc />
     public void BroadcastShellRefresh() => _uiManagement.BroadcastShellRefresh();
 
-    /// <inheritdoc />
     public void BroadcastThemeRefresh() => _uiManagement.BroadcastThemeRefresh();
 
-    /// <inheritdoc />
     public async Task<OperationResult> RestartAsync()
     {
         await _gate.WaitAsync().ConfigureAwait(false);
@@ -193,17 +189,10 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         }
     }
 
-    /// <summary>
-    /// Relaunches the shell with the token captured before the kill. Falls back to
-    /// LaunchProcessAsInteractiveUser - a void API that is gated on OTS elevation and degrades to
-    /// Process.Start otherwise, so it is a last resort, not the plan.
-    /// <para>
-    /// Returns nothing on purpose. The fallback cannot report failure, so there is no honest bool to
-    /// hand back; WaitForExplorerAsync is the verdict. The two warnings below are kept distinct
-    /// because they are different faults with different fixes: no token could be captured at all,
-    /// versus a token that was captured and then failed to launch (CreateProcessWithTokenW).
-    /// </para>
-    /// </summary>
+    // Falls back to LaunchProcessAsInteractiveUser - a void API gated on OTS elevation that degrades to
+    // Process.Start otherwise, so a last resort, not the plan. Returns nothing on purpose: the fallback cannot
+    // report failure, so there is no honest bool; WaitForExplorerAsync is the verdict. The two warnings are distinct
+    // faults with different fixes: no token captured, versus a captured token that failed to launch.
     private void TryRelaunch(IShellRelaunchToken? relaunchToken)
     {
         if (relaunchToken is null)
@@ -230,10 +219,8 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         return OperationResult.Failed(message);
     }
 
-    /// <summary>
-    /// Polls for Explorer coming back. Delays FIRST: this is only ever called just after the process
-    /// was killed, so checking before waiting is what produced the false "it is already back".
-    /// </summary>
+    // Delays FIRST: this is only ever called just after the kill, and checking before waiting is what produced the
+    // false "it is already back".
     private async Task<bool> WaitForExplorerAsync(int attempts)
     {
         for (int attempt = 0; attempt < attempts; attempt++)

@@ -5,10 +5,6 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-/// <summary>
-/// Downloads Microsoft Store packages using the store.rg-adguard.net API.
-/// This service bypasses geographic market restrictions by accessing packages directly from Microsoft's CDN.
-/// </summary>
 public class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;

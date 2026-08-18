@@ -2,25 +2,13 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface INewBadgeService
 {
-    /// <summary>
-    /// Initializes the badge baseline. Trigger is data-driven: the highest
-    /// <c>AddedInVersion</c> across the loaded settings registry must have
-    /// increased since the last run for an "effective upgrade" to register.
-    /// This decouples badge behaviour from the csproj &lt;Version&gt; so dev
-    /// builds behave identically to release builds.
-    /// </summary>
-    /// <param name="allAddedInVersions">
-    /// Every <c>AddedInVersion</c> string in the loaded registry. Null / empty
-    /// entries are ignored. Unparseable entries are ignored.
-    /// </param>
+    // Data-driven trigger: the highest AddedInVersion across the loaded registry must have increased since the last
+    // run for an "effective upgrade" to register - decoupled from the csproj <Version> so dev builds behave like
+    // release builds. Null, empty and unparseable entries are ignored.
     void Initialize(IEnumerable<string?> allAddedInVersions);
 
     bool IsSettingNew(string? addedInVersion, string settingId);
 
-    /// <summary>
-    /// Whether NEW badges should be shown globally. Bound to the View → NEW Badges
-    /// toggle. Auto-reset to true when an effective upgrade is detected during
-    /// Initialize().
-    /// </summary>
+    // Auto-reset to true when Initialize detects an effective upgrade.
     bool ShowNewBadges { get; set; }
 }

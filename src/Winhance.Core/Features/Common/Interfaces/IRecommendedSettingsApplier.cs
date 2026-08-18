@@ -5,26 +5,17 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IRecommendedSettingsApplier
 {
-    /// <summary>
-    /// Apply recommended values for an explicit, already OS-filtered set. Suppresses per-setting
-    /// restarts internally and returns the settings actually applied. DOES NOT flush restarts —
-    /// the caller flushes once via IProcessRestartManager.FlushCoalescedRestartsAsync.
-    /// </summary>
+    // Suppresses per-setting restarts internally; does NOT flush - the caller flushes once via FlushCoalescedRestartsAsync.
     Task<IReadOnlyList<Setting>> ApplyRecommendedToSettingsAsync(
         IReadOnlyList<Setting> settings,
         ISettingApplicationService apply,
         IProgress<TaskProgressDetail>? progress = null);
 
-    /// <summary>
-    /// Resolve a feature's settings (excluding the trigger), apply recommended, return applied.
-    /// DOES NOT flush — caller flushes.
-    /// </summary>
+    // Excludes the trigger; does NOT flush.
     Task<IReadOnlyList<Setting>> ApplyRecommendedForFeatureAsync(
         string triggerSettingId,
         ISettingApplicationService apply);
 
-    /// <summary>
-    /// Resolve + apply recommended for a feature AND flush one coalesced restart. Standalone callers.
-    /// </summary>
+    // Also flushes one coalesced restart; for standalone callers.
     Task ApplyRecommendedSettingsForFeatureAsync(string settingId, ISettingApplicationService apply);
 }

@@ -137,12 +137,8 @@ public class AutounattendScriptBuilder
         return scriptContent;
     }
 
-    /// <summary>
-    /// NativePowerApiSettings are applied via a managed Win32 API at runtime (see
-    /// SettingOperationExecutor) and have no emitter in the autounattend pipeline. A setting
-    /// whose only applicable payload is NativePowerApi would silently be skipped in an unattend
-    /// install. Warn loudly so the author notices before shipping.
-    /// </summary>
+    // NativePowerApi settings are applied via a managed Win32 API at runtime and have no emitter in the autounattend
+    // pipeline; a setting whose only payload is NativePowerApi would silently be skipped, so warn loudly.
     private void WarnOnUnreachableNativePowerApiSettings(
         UnifiedConfigurationFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
@@ -198,11 +194,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine();
     }
 
-    /// <summary>
-    /// Emits the SYSTEM/User detection bridge at the start of the $UserCustomizations block.
-    /// This is the ~130-line inline block that detects the logged-in user, checks
-    /// a completion marker, and launches a child process as the interactive user.
-    /// </summary>
     private static void AppendUserDetectionBridge(StringBuilder sb)
     {
         sb.AppendLine("    $runningAsSystem = ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')");
@@ -300,9 +291,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine();
     }
 
-    /// <summary>
-    /// Emits the closing braces and completion marker for the $UserCustomizations block.
-    /// </summary>
     private static void AppendUserDetectionBridgeClosing(StringBuilder sb)
     {
         sb.AppendLine();

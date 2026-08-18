@@ -12,14 +12,8 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
-/// <summary>
-/// Extension methods for registering setting services and dispatcher registries.
-/// </summary>
 public static class SettingServicesExtensions
 {
-    /// <summary>
-    /// Registers all setting services for the Winhance application.
-    /// </summary>
     public static IServiceCollection AddSettingServices(this IServiceCollection services)
     {
         services
@@ -42,9 +36,6 @@ public static class SettingServicesExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers customization setting services.
-    /// </summary>
     public static IServiceCollection AddCustomizationServices(this IServiceCollection services)
     {
         // Register WallpaperService (consumed by ThemeWallpaperApplier)
@@ -57,9 +48,6 @@ public static class SettingServicesExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers optimization setting services.
-    /// </summary>
     public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
     {
         // Register PowerService (keeps factory - IPowerService forwards to the concrete). PowerService only does
@@ -77,9 +65,6 @@ public static class SettingServicesExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers software apps setting services.
-    /// </summary>
     public static IServiceCollection AddSoftwareAppServices(this IServiceCollection services)
     {
         // Software apps services (Singleton - consumed by Singleton ViewModels)

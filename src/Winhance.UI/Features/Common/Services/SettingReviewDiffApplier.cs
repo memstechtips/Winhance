@@ -7,10 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Applies review-mode diff state to a SettingItemViewModel by checking
-/// for eagerly-computed diffs or falling back to on-the-fly diff computation.
-/// </summary>
 public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 {
     private readonly IConfigReviewModeService _configReviewModeService;
@@ -27,7 +23,6 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         _localizationService = localizationService;
     }
 
-    /// <inheritdoc />
     public void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
         var config = _configReviewModeService.ActiveConfig;

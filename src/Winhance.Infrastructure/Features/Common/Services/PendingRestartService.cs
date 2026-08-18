@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <inheritdoc cref="IPendingRestartService"/>
 public sealed class PendingRestartService(IEventBus eventBus, ILogService logService) : IPendingRestartService
 {
     // Settings are applied from background threads, and in parallel during a bulk apply, so every read
@@ -13,19 +12,16 @@ public sealed class PendingRestartService(IEventBus eventBus, ILogService logSer
     private readonly HashSet<string> _pending = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
-    /// <inheritdoc />
     public bool IsPending
     {
         get { lock (_gate) { return _pending.Count > 0; } }
     }
 
-    /// <inheritdoc />
     public IReadOnlyCollection<string> PendingSettingIds
     {
         get { lock (_gate) { return _pending.ToArray(); } }
     }
 
-    /// <inheritdoc />
     public void Register(string settingId)
     {
         if (string.IsNullOrWhiteSpace(settingId))
@@ -42,7 +38,6 @@ public sealed class PendingRestartService(IEventBus eventBus, ILogService logSer
         eventBus.Publish(new PendingRestartChangedEvent { IsPending = true });
     }
 
-    /// <inheritdoc />
     public void Clear()
     {
         lock (_gate)

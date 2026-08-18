@@ -2,15 +2,10 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Maps a highlighted/dim flag to an opacity value. Highlighted (true) returns 1.0; dim (false)
-/// returns a constant 0.35. We use a constant rather than a theme-aware value because
-/// <c>Application.Current.Resources.TryGetValue</c> can't resolve <c>ThemeDictionaries</c>
-/// entries — those resolve only through <c>{ThemeResource}</c> markup on a
-/// <see cref="Microsoft.UI.Xaml.FrameworkElement"/>. If light-mode tuning is required later,
-/// replace this with <c>CommunityToolkit.WinUI.Behaviors.DataTriggerBehavior</c> setting
-/// Opacity to <c>{ThemeResource BadgeDimOpacity}</c> on each pill Border.
-/// </summary>
+// A constant rather than a theme-aware value: Application.Current.Resources.TryGetValue can't resolve
+// ThemeDictionaries entries - those resolve only through {ThemeResource} markup on a FrameworkElement. If
+// light-mode tuning is ever needed, use a DataTriggerBehavior setting Opacity to {ThemeResource BadgeDimOpacity}
+// on each pill Border.
 public sealed partial class BoolToDimOpacityConverter : IValueConverter
 {
     private const double Highlighted = 1.0;

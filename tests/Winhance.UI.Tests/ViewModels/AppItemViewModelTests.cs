@@ -777,12 +777,7 @@ public class AppItemViewModelTests
         raised.Should().NotContain(nameof(AppItemViewModel.IconSource));
     }
 
-    /// <summary>
-    /// PNG-ish junk bytes — sufficient for File.Exists checks and lazy
-    /// BitmapImage URI assignment. The tests in this file only inspect
-    /// `BitmapImage.UriSource.LocalPath`, so the decoder never runs over
-    /// these bytes and their malformed CRC/payload doesn't matter.
-    /// </summary>
+    // PNG-ish junk: the tests only inspect BitmapImage.UriSource.LocalPath, so the decoder never runs over these bytes.
     private static byte[] MinimalPng() => new byte[]
     {
         0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,

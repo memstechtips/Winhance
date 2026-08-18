@@ -3,9 +3,6 @@ using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Handles special feature script sections: user customizations scheduled task and clean start menu layout.
-/// </summary>
 internal static class SpecialFeatureScriptSection
 {
     public static void AppendUserCustomizationsScheduledTask(StringBuilder sb, string indent)

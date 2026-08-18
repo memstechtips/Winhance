@@ -76,36 +76,18 @@ internal static class ClassesDefinition
         },
     };
 
-    /// <summary>
-    /// Get CLSID based on the provided context for the specified type
-    /// </summary>
-    /// <typeparam name="T">Projected class type</typeparam>
-    /// <param name="context">Context</param>
-    /// <returns>CLSID for the provided context and type, or throw an exception if not found.</returns>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     public static Guid GetClsid<T>(ClsidContext context)
     {
         ValidateType<T>();
         return Classes[typeof(T)].GetClsid(context);
     }
 
-    /// <summary>
-    /// Get IID corresponding to the COM object
-    /// </summary>
-    /// <typeparam name="T">Projected class type</typeparam>
-    /// <returns>IID or throw an exception if not found.</returns>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     public static Guid GetIid<T>()
     {
         ValidateType<T>();
         return Classes[typeof(T)].GetIid();
     }
 
-    /// <summary>
-    /// Validate that the provided type is defined.
-    /// </summary>
-    /// <typeparam name="TType">Projected class type</typeparam>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     private static void ValidateType<TType>()
     {
         if (!Classes.ContainsKey(typeof(TType)))

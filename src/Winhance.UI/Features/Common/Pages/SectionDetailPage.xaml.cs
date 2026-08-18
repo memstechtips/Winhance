@@ -7,18 +7,9 @@ using Winhance.UI.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Pages;
 
-/// <summary>
-/// The settings list for one section, whichever section that is.
-///
-/// <para>This replaces ten page types — SoundOptimizePage, TaskbarCustomizePage and the eight
-/// others — that were identical apart from a single binding path
-/// (<c>ViewModel.SoundViewModel.GroupedSettings</c> vs <c>ViewModel.TaskbarViewModel.…</c>).
-/// Which section to show now arrives as a navigation parameter instead of being encoded in the
-/// choice of type, so adding a section no longer means adding two files.</para>
-///
-/// <para>The bindings are built here rather than in XAML because the paths differ per section, and
-/// <c>x:Bind</c> resolves paths at compile time.</para>
-/// </summary>
+// One page type for every section (it replaced ten identical page types differing in one binding path); which
+// section to show arrives as a navigation parameter. The bindings are built here rather than in XAML because the
+// paths differ per section and x:Bind resolves paths at compile time.
 public sealed partial class SectionDetailPage : Page
 {
     public SectionDetailPage()

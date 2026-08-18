@@ -11,11 +11,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// The outcome marker hides for the duration of an apply. Without this the marker stayed on screen for
-/// the whole ~1s write, rendering "Not recognized" on top of the option the user had just picked - two
-/// dropdowns drawn over each other until the apply landed.
-/// </summary>
+// Without this the marker stayed on screen for the whole ~1s write, rendering "Not recognized" on top of the
+// option the user had just picked.
 public class SettingItemViewModelOverlayOpacityTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();

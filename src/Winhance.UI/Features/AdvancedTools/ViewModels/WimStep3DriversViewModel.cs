@@ -9,9 +9,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM Utility Step 3: driver extraction and injection.
-/// </summary>
 public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 {
     private readonly IWimCustomizationService _wimCustomizationService;
@@ -24,9 +21,6 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     private readonly IResourceService _resourceService;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]

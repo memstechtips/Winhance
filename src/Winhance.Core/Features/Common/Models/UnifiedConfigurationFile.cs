@@ -10,20 +10,14 @@ public class UnifiedConfigurationFile
     public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
 }
 
-/// <summary>
-/// Mutable by design: IsIncluded is toggled after construction (e.g., AutounattendXmlGeneratorService)
-/// and Features is assigned from deserialized JSON. These cannot use init-only setters.
-/// </summary>
+// Mutable by design: IsIncluded is toggled after construction and Features is assigned from deserialized JSON.
 public class FeatureGroupSection
 {
     public bool IsIncluded { get; set; } = false;
     public IReadOnlyDictionary<string, ConfigSection> Features { get; set; } = new Dictionary<string, ConfigSection>();
 }
 
-/// <summary>
-/// Mutable by design: IsIncluded is set during config construction/deserialization,
-/// and Items is assigned from deserialized JSON.
-/// </summary>
+// Mutable by design: set during construction/deserialization.
 public class ConfigSection
 {
     public bool IsIncluded { get; set; } = false;

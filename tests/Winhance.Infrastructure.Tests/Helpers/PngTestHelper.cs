@@ -3,11 +3,7 @@ using Windows.Storage.Streams;
 
 namespace Winhance.Infrastructure.Tests.Helpers;
 
-/// <summary>
-/// Synthesizes well-formed PNG bytes in-memory for tests that exercise the
-/// resolver's BitmapDecoder pipeline. Each pixel is BGRA (matches what the
-/// resolver reads with BitmapPixelFormat.Bgra8).
-/// </summary>
+// Pixels are BGRA, matching what the resolver reads with BitmapPixelFormat.Bgra8.
 public static class PngTestHelper
 {
     public delegate (byte B, byte G, byte R, byte A) PixelPainter(int x, int y);

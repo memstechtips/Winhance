@@ -7,11 +7,7 @@ internal static class DismSessionManager
 {
     private static readonly SemaphoreSlim _lock = new(1, 1);
 
-    /// <summary>
-    /// Hard timeout for DISM operations. Native DISM calls cannot be cancelled via
-    /// CancellationToken, so we use Task.WhenAny to abandon the blocking thread
-    /// if it exceeds this deadline.
-    /// </summary>
+    // Native DISM calls cannot be cancelled via CancellationToken, so Task.WhenAny abandons the blocking thread past this deadline.
     private const int HardTimeoutSeconds = 30;
 
     public static async Task<T> ExecuteAsync<T>(

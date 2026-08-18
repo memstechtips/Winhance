@@ -246,16 +246,8 @@ public class ChocolateyService : IChocolateyService
         }
     }
 
-    /// <summary>
-    /// Sweeps Chocolatey's installed list for <paramref name="chocoPackageId"/> and its
-    /// .install / .portable bundle siblings. Uninstalls them with the given <paramref name="flags"/>,
-    /// meta-first so that --remove-dependencies (when included in flags) cascades cleanly without
-    /// triggering the interactive "uninstall sibling as well?" prompt.
-    /// </summary>
-    /// <returns>
-    /// (succeeded, failed, attempted) — attempted=false means the installed-list lookup
-    /// returned empty and the caller should consider its own fallback.
-    /// </returns>
+    // Meta-first so --remove-dependencies cascades cleanly without the interactive "uninstall sibling as well?"
+    // prompt. attempted=false means the installed-list lookup was empty and the caller should consider its own fallback.
     private async Task<(int succeeded, int failed, bool attempted)> SweepChocoUninstallVariantsAsync(
         string chocoPackageId,
         string flags,

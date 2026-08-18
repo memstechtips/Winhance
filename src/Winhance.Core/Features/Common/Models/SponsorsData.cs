@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Represents a single sponsor entry from the sponsors JSON document.
-/// </summary>
 public sealed record SponsorEntry
 {
     [JsonPropertyName("id")]
@@ -41,9 +38,6 @@ public sealed record SponsorEntry
     public string? Until { get; init; }
 }
 
-/// <summary>
-/// Represents a community supporter entry from the sponsors JSON document.
-/// </summary>
 public sealed record SupporterEntry
 {
     [JsonPropertyName("name")]
@@ -53,9 +47,6 @@ public sealed record SupporterEntry
     public string? Since { get; init; }
 }
 
-/// <summary>
-/// Top-level sponsors JSON document.
-/// </summary>
 public sealed record SponsorsDocument
 {
     [JsonPropertyName("updated")]

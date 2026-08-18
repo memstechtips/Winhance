@@ -7,20 +7,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="WinGetPackageInstaller"/>.
-///
-/// WinGetComSession is a concrete class that tries COM initialization. In test
-/// environments, COM will fail (no WindowsPackageManagerStandardFactory available).
-/// WinGetCliRunner uses static methods that invoke real processes.
-///
-/// Tests focus on:
-/// - Input validation (null/empty package IDs)
-/// - Service construction and method signatures
-/// - IsWinGetInstalledAsync behavior with mocked file system
-/// - InstallPackageAsync/UninstallPackageAsync argument validation
-/// - Cancellation handling
-/// </summary>
+// COM init fails in test environments and WinGetCliRunner invokes real processes; tests focus on input
+// validation, mocked-file-system checks and cancellation.
 public class WinGetPackageInstallerTests
 {
     private readonly Mock<ILogService> _mockLogService = new();

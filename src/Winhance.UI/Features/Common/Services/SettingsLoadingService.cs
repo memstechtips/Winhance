@@ -171,21 +171,15 @@ public class SettingsLoadingService : ISettingsLoadingService
         return message;
     }
 
-    /// <summary>The live Windows build for compatibility-message derivation. Read ONCE per load (cached in a
-    /// local before the VM loop), not per setting.</summary>
+    // Read ONCE per load (cached before the VM loop), not per setting.
     private WinBuild LiveBuild() =>
         new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
 
-    /// <summary>
-    /// Builds the Builder-mode power-plan dropdown (INDEX-valued, for config-export's index-based BuilderEdit) from
-    /// the runtime options. PowerPlanOptions.Build (which produces these DynamicOptions) sorts by OrderBy(label),
-    /// so each option's list index is its BuilderEdit index. The rich PowerPlanComboBoxOption Tag mirrors
-    /// SettingItemViewModel.TryApplyDynamicPowerPlanOptions (the live dropdown the bespoke PowerPlanComboBox control
-    /// already reads): ExistsOnSystem/IsActive drive the control visuals, SystemPlan.Guid is the delete target, and the
-    /// option's DisplayName (the raw PowerPlan_ loc key) is re-localized by the delete dialog; SystemPlan.Name is not
-    /// consumed. DisplayText stays the raw loc key - the factory's builder block localizes it. Returns an empty (but
-    /// non-null) result when there are no runtime options.
-    /// </summary>
+    // INDEX-valued, for config-export's index-based BuilderEdit: PowerPlanOptions.Build sorts by label, so each
+    // option's list index is its BuilderEdit index. The Tag mirrors SettingItemViewModel.TryApplyDynamicPowerPlanOptions
+    // (what the PowerPlanComboBox control reads): ExistsOnSystem/IsActive drive the visuals, SystemPlan.Guid is the
+    // delete target, DisplayName is the raw PowerPlan_ key the delete dialog re-localizes. Empty (non-null) when
+    // there are no runtime options.
     private static ComboBoxSetupResult BuildBuilderPowerPlanOptions(SettingStateResult state)
     {
         var result = new ComboBoxSetupResult { Success = true };

@@ -2,9 +2,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Default implementation that delegates to System.IO static methods.
-/// </summary>
 public class FileSystemService : IFileSystemService
 {
     // File operations

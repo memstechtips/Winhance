@@ -13,9 +13,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
-/// <summary>
-/// WIM Utility page for creating custom Windows installation images.
-/// </summary>
 public sealed partial class WimUtilPage : Page
 {
     private readonly ILocalizationService? _localizationService;

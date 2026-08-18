@@ -8,21 +8,10 @@ using Xunit.Abstractions;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// GENERATOR (not an assertion test): regenerates the two shipped Default configs
-/// (<c>Winhance_Default_Config_Windows10_22H2.winhance</c> / <c>..._Windows11_25H2.winhance</c>) from the live
-/// catalog via <see cref="DefaultConfigProjection"/> - Step 3 of the Windows-defaults audit. The old files were
-/// one-shot VM exports and drifted from the catalog's (since-corrected) WindowsDefault roles; from now on the
-/// catalog IS the source and this generator is COMMITTED (the previous one-shot config generator was deleted and
-/// regenerating it cost real time - CatalogProbeManifestGeneratorTests precedent).
-///
-/// Version / CreatedAt / WindowsApps / ExternalApps are carried over verbatim from the existing file (the apps
-/// sections are user-selection data, out of catalog scope). Customize/Optimize are rebuilt wholesale: per-build
-/// availability + WindowsDefault, catalog order within each feature. Output is UTF-8 no BOM, CRLF, the app's own
-/// <see cref="ConfigFileConstants.JsonOptions"/> shape - byte-stable across regenerations of unchanged data.
-///
-/// Run: winhance-harness DefaultConfigGenerator
-/// </summary>
+// GENERATOR: regenerates the two shipped Default configs from the live catalog via DefaultConfigProjection.
+// Version / CreatedAt / WindowsApps / ExternalApps are carried over verbatim (user-selection data);
+// Customize/Optimize are rebuilt wholesale. Output is UTF-8 no BOM, CRLF, byte-stable across regenerations.
+// Run: winhance-harness DefaultConfigGenerator
 [Collection(RepoFileWritersCollection.Name)]
 public class DefaultConfigGeneratorTests
 {

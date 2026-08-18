@@ -7,9 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-/// <summary>
-/// ViewModel for the More menu flyout, providing localized strings and commands.
-/// </summary>
 public partial class MoreMenuViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -62,9 +59,6 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Handles language changes to update localized strings.
-    /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(MenuDocumentation));

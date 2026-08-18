@@ -3,8 +3,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>One row of a feature's outcome banner: the settings sharing an outcome, and how many of
-/// them were left unnamed.</summary>
 public sealed record FeatureOutcomeRow(
     SettingDetectionOutcome Outcome,
     FluentIcons.Common.Icon Icon,
@@ -12,17 +10,13 @@ public sealed record FeatureOutcomeRow(
     IReadOnlyList<string> Names,
     int Remaining);
 
-/// <summary>
-/// Turns a feature's settings into the rows its outcome banner shows. Separate from the control so the
-/// ordering and truncation rules are testable without a XAML application.
-/// </summary>
+// Separate from the control so the ordering and truncation rules are testable without a XAML application.
 public static class FeatureOutcomeRowBuilder
 {
-    /// <summary>Names listed per row before the rest collapse into "+N more". One shared registry value
-    /// can leave eight settings unresolved at once, which would bury the card.</summary>
+    // One shared registry value can leave eight settings unresolved at once, which would bury the card.
     public const int MaxNamesPerKind = 3;
 
-    /// <summary>Worst first, so the rows read worst-to-least.</summary>
+    // Worst first, so the rows read worst-to-least.
     private static readonly SettingDetectionOutcome[] Order =
     {
         SettingDetectionOutcome.Undetermined,

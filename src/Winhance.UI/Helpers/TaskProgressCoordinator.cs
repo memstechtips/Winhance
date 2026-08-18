@@ -8,10 +8,6 @@ using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Coordinates task progress display across 1-3 TaskProgressControl slots.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class TaskProgressCoordinator
 {
     private readonly TaskProgressControl _control1;
@@ -35,9 +31,6 @@ internal sealed class TaskProgressCoordinator
         _dispatcherQueue = dispatcherQueue;
     }
 
-    /// <summary>
-    /// Handles TaskProgressViewModel property changes, updating the primary TaskProgressControl.
-    /// </summary>
     public void HandlePropertyChanged(TaskProgressViewModel tp, string? propertyName)
     {
         if (propertyName == nameof(TaskProgressViewModel.IsLoading))
@@ -114,10 +107,6 @@ internal sealed class TaskProgressCoordinator
         }
     }
 
-    /// <summary>
-    /// Routes multi-script progress updates to the correct TaskProgressControl slot.
-    /// Adds a 2-second delay before hiding a slot on completion.
-    /// </summary>
     public void HandleScriptProgressReceived(int slotIndex, TaskProgressDetail detail)
     {
         var control = slotIndex switch
@@ -155,9 +144,6 @@ internal sealed class TaskProgressCoordinator
         }
     }
 
-    /// <summary>
-    /// Shows/hides multi-script progress controls based on active slot count.
-    /// </summary>
     private void UpdateMultiScriptControls(int activeCount)
     {
         _control1.IsProgressVisible = activeCount >= 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -173,9 +159,6 @@ internal sealed class TaskProgressCoordinator
         _control3.CanCancel = Visibility.Collapsed;
     }
 
-    /// <summary>
-    /// Cancels any pending hide-delay for the given slot.
-    /// </summary>
     private void CancelPendingHide(int slotIndex)
     {
         var old = Interlocked.Exchange(ref _hideDelayCts[slotIndex], null);
@@ -183,9 +166,6 @@ internal sealed class TaskProgressCoordinator
         old?.Dispose();
     }
 
-    /// <summary>
-    /// Hides a TaskProgressControl after the specified delay.
-    /// </summary>
     private async Task HideControlAfterDelayAsync(TaskProgressControl control, int delayMs, CancellationToken cancellationToken)
     {
         try

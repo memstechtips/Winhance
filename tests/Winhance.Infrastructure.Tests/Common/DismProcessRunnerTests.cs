@@ -165,10 +165,7 @@ public class DismProcessRunnerTests
 
     #endregion
 
-    /// <summary>
-    /// A synchronous IProgress implementation for deterministic test assertions.
-    /// Unlike Progress&lt;T&gt;, this invokes the callback immediately on the calling thread.
-    /// </summary>
+    // Unlike Progress<T>, invokes the callback immediately on the calling thread.
     private sealed class SynchronousProgress<T> : IProgress<T>
     {
         private readonly Action<T> _handler;

@@ -8,13 +8,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-INDEPENDENT conformance for the <see cref="CatalogSettingStateProvider"/>. These construct
-/// readings/detection results directly and assert against what Windows ships and the catalog model, never a live
-/// comparison. Covers: the Windows-grounded IsEnabled rule (the <c>IsEnabled_*</c> facts + the
-/// <c>Every_gate_*</c> structural invariants that keep the rule well-defined) and the selection value-match
-/// fallback (the Custom-regression guard).
-///
-/// Run: dotnet test --filter CatalogSettingStateProviderConformance</summary>
+// Machine-independent: readings/detection results are constructed; covers the Windows-grounded IsEnabled rule
+// and the selection value-match fallback.
 public class CatalogSettingStateProviderConformanceTests
 {
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
@@ -120,12 +115,10 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.False(Derive(toggle, null));   // a Custom toggle -> not enabled
     }
 
-    /// <summary>Selections with NO WindowsDefault anchor on ANY build, BY DESIGN: their shipped value is
-    /// locale-dependent (HKCU\Control Panel\International materializes per-locale formats at OOBE), so there
-    /// is no single Windows default to assert (2026-07-23 locale-honesty change; measurement-system's old
-    /// Metric claim was wrong on the en-US gold laptop, which ships Imperial=1). DeriveIsEnabled defers (false)
-    /// and detection reports Custom for unrecognized values. Kept exact both ways: a setting listed here that
-    /// REGAINS an anchor fails below, forcing this pin's conscious removal.</summary>
+    // Selections with NO WindowsDefault anchor on ANY build, BY DESIGN: their shipped value is locale-dependent
+    // (HKCU\Control Panel\International materializes per-locale formats at OOBE) - measurement-system's old Metric
+    // claim was wrong on the en-US gold laptop, which ships Imperial=1. Kept exact both ways: a setting here that
+    // REGAINS an anchor fails, forcing this pin's conscious removal.
     private static readonly IReadOnlyDictionary<string, string> NoWindowsDefaultByDesign = new Dictionary<string, string>
     {
         ["explorer-customization-short-date"] = "locale: format materialized per-locale at OOBE (B3 locale class)",
@@ -216,13 +209,9 @@ public class CatalogSettingStateProviderConformanceTests
             "Every gate-population numeric must carry a WindowsDefault(AC) value. Offenders: " + string.Join(", ", offenders));
     }
 
-    /// <summary>Regression: a selection for which the engine yields NO resolved state label (null -
-    /// StateDetectionEngine found no match, or the label isn't a verbatim option DisplayName) must fall back to the
-    /// value-match the live UI consumed (ResolveRawValuesToIndex over the reads), NOT collapse to the Custom index.
-    /// The old pipeline resolved these via discovery's value-match and the overlay's Selection branch preserved it via
-    /// `return old`; the provider first kept only the label override, so the service dropdowns + delivery optimization
-    /// regressed to Custom in the live UI. Machine-independent: the detection result is mocked, so it fails
-    /// deterministically off-Windows if the value-match base is ever dropped again.</summary>
+    // A selection with NO resolved label must fall back to the value-match over the reads, NOT collapse to Custom -
+    // the service dropdowns + delivery optimization once regressed to Custom in the live UI when only the label
+    // override was kept.
     [Fact]
     public async Task Selection_with_no_resolved_label_falls_back_to_value_match_not_Custom()
     {
@@ -256,10 +245,8 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
     }
 
-    /// <summary>The invariant ResolveSelectionIndex rests on. It resolves a state label to an option index by
-    /// taking the FIRST State whose Label matches (Ordinal) -- which is only well-defined if a selection's Labels
-    /// are DISTINCT and non-empty. This pins the part that matters: duplicate or blank Labels would make the
-    /// first-match resolution ambiguous and silently return the wrong option index.</summary>
+    // ResolveSelectionIndex takes the FIRST State whose Label matches, which is only well-defined if a selection's
+    // Labels are distinct and non-empty.
     [Fact]
     public void Every_selection_has_distinct_non_empty_state_labels()
     {
@@ -283,8 +270,6 @@ public class CatalogSettingStateProviderConformanceTests
                 + "distinct and non-empty:" + "\n" + string.Join("\n", offenders));
     }
 
-    /// <summary>Runs one mocked detection result through the real provider (GetStatesAsync -> Map) and
-    /// returns the mapped state, for the outcome-threading facts below.</summary>
     private static async Task<Winhance.Core.Features.Common.Models.SettingStateResult> MapViaProvider(
         Setting setting, CatalogDetectionResult result)
     {
@@ -302,11 +287,9 @@ public class CatalogSettingStateProviderConformanceTests
         return states[setting.Id];
     }
 
-    /// <summary>Outcome threading, toggle branch. The provider must CARRY the engine's outcome, not
-    /// re-infer it from "StateLabel is null" - that inference is exactly what conflated an unrecognized
-    /// value, a wrong stored type and a detection crash into one indistinguishable "Custom". Success stays
-    /// true throughout: it is a transport-level flag ("the provider produced a result"), not a verdict on
-    /// the setting.</summary>
+    // The provider must CARRY the engine's outcome, not re-infer it from "StateLabel is null" - that inference is
+    // what conflated an unrecognized value, a wrong stored type and a detection crash into one "Custom". Success
+    // stays true throughout: it is a transport-level flag.
     [Fact]
     public async Task Toggle_carries_the_detection_outcome_through()
     {
@@ -353,9 +336,7 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.Equal(SettingDetectionOutcome.Resolved, enabled.Outcome);
     }
 
-    /// <summary>Outcome threading, selection branch: Custom exactly when the RESOLVED index is the Custom
-    /// index - label resolution AND the value-match fallback both failing. A value-match recovery (no label,
-    /// but the reads match an option) is Resolved, not Custom.</summary>
+    // Custom exactly when the RESOLVED index is the Custom index; a value-match recovery is Resolved, not Custom.
     [Fact]
     public async Task Selection_reports_custom_only_when_resolution_lands_on_the_custom_index()
     {
@@ -395,9 +376,8 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.Equal(SettingDetectionOutcome.Resolved, resolved.Outcome);
     }
 
-    /// <summary>A Malformed or Undetermined SELECTION short-circuits: no amount of index resolution can
-    /// rescue a value we could not read, so the outcome must survive the value-match fallback rather than
-    /// being downgraded to Custom (or worse, resolved) by it.</summary>
+    // No amount of index resolution can rescue a value we could not read, so Malformed/Undetermined must survive
+    // the value-match fallback.
     [Fact]
     public async Task Selection_carries_malformed_and_undetermined_past_the_value_match_fallback()
     {

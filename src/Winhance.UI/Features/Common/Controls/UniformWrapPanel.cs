@@ -4,18 +4,10 @@ using Windows.Foundation;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Non-virtualising panel that lays children out in a wrapping grid: every
-/// cell is exactly ItemWidth × ItemHeight, gaps are fixed at ColumnSpacing /
-/// RowSpacing, items are left-aligned within the available width. The
-/// SoftwareAppsPage centres its containing StackPanel (with a MaxWidth
-/// computed from card column count) so that headers, select-all checkboxes,
-/// and the card grid all share the same horizontal extents — matches the
-/// Microsoft Store / Windows Settings card-grid pattern.
-///
-/// Replaces ItemsRepeater + UniformGridLayout, which produced a measure
-/// cycle that snapped the outer ScrollViewer back to the top.
-/// </summary>
+// Every cell exactly ItemWidth x ItemHeight, fixed gaps, left-aligned; the page centres the containing
+// StackPanel with a MaxWidth from the card column count so headers, select-all checkboxes and the grid share the
+// same extents (the Store / Settings card-grid pattern). ItemsRepeater + UniformGridLayout produced a measure
+// cycle that snapped the outer ScrollViewer back to the top.
 public sealed partial class UniformWrapPanel : Panel
 {
     public static readonly DependencyProperty ItemWidthProperty =

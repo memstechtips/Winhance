@@ -17,9 +17,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// Concrete subclass of BaseSettingsFeatureViewModel used for testing.
-/// </summary>
 public class TestableSettingsFeatureViewModel : BaseSettingsFeatureViewModel
 {
     public const string TestModuleId = "TestModule";
@@ -98,10 +95,6 @@ public class BaseSettingsFeatureViewModelTests
             _mockApplicationModeService.Object);
     }
 
-    /// <summary>
-    /// Creates a mock SettingItemViewModel with the given properties.
-    /// Uses the real SettingItemViewModel constructor.
-    /// </summary>
     private SettingItemViewModel CreateSettingItem(
         string settingId,
         string name,

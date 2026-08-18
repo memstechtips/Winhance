@@ -4,25 +4,15 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// The presentation gate is DECLARED, not inferred. Nesting a setting under a UiParentId says where its
-/// card is drawn; whether it stops meaning anything in some of the parent's states is a fact about
-/// Windows that only the setting's author knows, so it is written down in
-/// <see cref="Setting.EnabledWhen"/> and keyed on the target's state LABEL.
-///
-/// What this replaced compared the parent's selected INDEX against zero, in two view-model methods. It
-/// was right for gaming-sysmain-service by coincidence (its "off" state happens to be index 0) and wrong
-/// for theme-mode-windows, whose index 0 is "Light Mode" - so every stock Windows 11 install opened the
-/// Windows Theme page with both sub-toggles greyed out.
-///
-/// These tests pin the AUTHORING - which nested settings claim a gate and which deliberately do not -
-/// because that is the part a future edit can silently get wrong. Machine-independent: pure catalog.
-/// </summary>
+// The gate is DECLARED, not inferred: nesting under a UiParentId only says where the card is drawn. The
+// index-against-zero comparison this replaced was right for gaming-sysmain-service by coincidence and wrong for
+// theme-mode-windows (index 0 is "Light Mode"), so every stock Windows 11 install opened the Windows Theme page
+// with both sub-toggles greyed out. These pin the AUTHORING: which nested settings claim a gate and which
+// deliberately do not.
 public class EnabledWhenConformanceTests
 {
     private static Setting S(string id) => SettingCatalog.All.First(s => s.Id == id);
 
-    /// <summary>Every gate in the shipped catalog, child -> (target, the states it is usable in).</summary>
     public static readonly Dictionary<string, (string Target, string[] States)> Expected = new()
     {
         // Hibernation genuinely owns these: with hiberfil.sys gone there is no hibernate timeout to set,
@@ -50,8 +40,7 @@ public class EnabledWhenConformanceTests
         ["notifications-critical-toast-above-lock"] = ("windows-pushnotifications", new[] { "Enabled" }),
     };
 
-    /// <summary>Nested settings that deliberately declare NO gate - the other half of the authoring, and
-    /// the half a "children of an off parent are dead" instinct keeps re-adding.</summary>
+    // The other half of the authoring, and the half a "children of an off parent are dead" instinct keeps re-adding.
     public static readonly string[] DeliberatelyUngated =
     {
         // THE REPORTED BUG. The master is a preset over two independently meaningful facets; that they

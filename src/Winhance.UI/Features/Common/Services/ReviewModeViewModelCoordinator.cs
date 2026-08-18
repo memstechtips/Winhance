@@ -7,13 +7,6 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Coordinates ViewModel interactions for review mode operations.
-/// Wraps the concrete singleton ViewModels so that services like
-/// <see cref="ConfigReviewOrchestrationService"/> and
-/// <see cref="ConfigApplicationExecutionService"/> can be unit-tested
-/// without depending on concrete ViewModel types.
-/// </summary>
 public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
 {
     private readonly SoftwareAppsViewModel _softwareAppsVM;

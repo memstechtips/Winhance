@@ -6,7 +6,7 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryPrecedenceTests
 {
-    /// <summary>Returns a value per (keyPath, valueName); a pair not in the dict reads as absent.</summary>
+    // A pair not in the dict reads as absent.
     private sealed class Ctx : IDetectionContext
     {
         private readonly Dictionary<(string, string?), object?> _vals;
@@ -29,7 +29,7 @@ public class CatalogDiscoveryPrecedenceTests
     private static readonly string[] ThemesPaths = [@"HKEY_CURRENT_USER\Themes"];
     private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
 
-    /// <summary>privacy-advertising-id shape: preference key + group-policy override + apply-only mirror.</summary>
+    // privacy-advertising-id shape: preference key + group-policy override + apply-only mirror.
     private static Setting AdSetting() => new()
     {
         Id = "ad",

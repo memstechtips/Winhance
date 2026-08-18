@@ -5,9 +5,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Enriches a SettingItemViewModel with hardware detection, cross-group info, and review diff state.
-/// </summary>
 public class SettingViewModelEnricher : ISettingViewModelEnricher
 {
     private readonly IHardwareDetectionService _hardwareDetectionService;
@@ -21,7 +18,6 @@ public class SettingViewModelEnricher : ISettingViewModelEnricher
         _reviewDiffApplier = reviewDiffApplier;
     }
 
-    /// <inheritdoc />
     public async Task DetectBatteryAsync(SettingItemViewModel viewModel)
     {
         // Task.Run at the call site: the first HasBattery() blocks on WMI and this is the UI thread.
@@ -29,7 +25,6 @@ public class SettingViewModelEnricher : ISettingViewModelEnricher
         viewModel.HasBattery = await Task.Run(() => _hardwareDetectionService.HasBattery()) ?? true;
     }
 
-    /// <inheritdoc />
     public void ApplyReviewDiff(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
         _reviewDiffApplier.ApplyReviewDiffToViewModel(viewModel, currentState);

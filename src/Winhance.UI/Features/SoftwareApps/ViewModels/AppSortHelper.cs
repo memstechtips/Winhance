@@ -3,12 +3,8 @@ using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// Single source of truth for app-list ordering, shared by WindowsAppsViewModel
-/// and ExternalAppsViewModel so the two never drift. Applied both to the
-/// AdvancedCollectionView (Table view) and to the in-memory LINQ projections
-/// (Card/Compact views and External category groups).
-/// </summary>
+// Single source of truth for app-list ordering, shared by WindowsAppsViewModel and ExternalAppsViewModel so the
+// two never drift; applied to the AdvancedCollectionView (Table) and the LINQ projections (Card/Compact).
 internal static class AppSortHelper
 {
     public static void ApplySortDescriptions(AdvancedCollectionView view, AppSortMode mode)

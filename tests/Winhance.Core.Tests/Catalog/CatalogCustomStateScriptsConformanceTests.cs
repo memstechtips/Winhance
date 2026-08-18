@@ -4,29 +4,13 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Machine-independent conformance for <see cref="Setting.CustomStateScripts"/> -- the UN-BAKED
-/// setting-level scripts the autounattend script-gen runs for a CUSTOM state (a selection whose live value matches
-/// no preset option, so no state's baked ScriptEffects apply). The emitter substitutes the config item's
-/// CustomStateValues into the placeholders at generation time.
-///
-/// This is the ONLY enforcement of CustomStateScripts for gaming-touch-keyboard-service, which is
-/// precedence-corrected (CatalogDetectionModelConformanceTests.PrecedenceCorrectedIds) and therefore EXEMPT
-/// from the authored-vs-converter structural gate - without it that setting's script payload has ZERO coverage.
-///
-/// The catalog is the source of truth (the authored bodies are Windows-validated), so what this pins is the
-/// DURABLE contract:
-///   1. EXACTLY these 4 settings carry CustomStateScripts, with exactly these per-setting counts (5 entries).
-///      A new script-bearing selection must therefore surface HERE, so its custom-state home gets authored.
-///   2. Each script is non-empty and carries its authored RunContext.
-///   3. THE LOAD-BEARING ONE: gaming-dns-server's scripts keep their placeholders INTACT ({{primary}},
-///      {{secondary}}, {{dohtemplate}}) -- i.e. they are the RAW scripts, never an option-BAKED body. If someone
-///      ever authored the baked form, custom-state generation would hard-code a preset DNS instead of writing the
-///      user's own custom values, silently. That is exactly the regression worth catching, and it
-///      is fully checkable against the catalog alone.
-///   4. The complement: no OTHER setting carries any.</summary>
+// The ONLY enforcement of CustomStateScripts for gaming-touch-keyboard-service (precedence-corrected, so exempt
+// from the structural gate). Pins the durable contract: exactly these 4 settings carry CustomStateScripts (5
+// entries), each non-empty with its RunContext; gaming-dns-server's keep their placeholders INTACT ({{primary}},
+// {{secondary}}, {{dohtemplate}}) - a baked body would hard-code a preset DNS instead of the user's custom
+// values, silently; and no other setting carries any.
 public class CatalogCustomStateScriptsConformanceTests
 {
-    /// <summary>(settingId, script index) -> the authored RunContext. The shipped population, exhaustively.</summary>
     private static readonly (string Id, int Count, RunContext[] Runs)[] Expected =
     {
         ("explorer-customization-shortcut-arrow", 1, new[] { RunContext.System }),
@@ -61,14 +45,9 @@ public class CatalogCustomStateScriptsConformanceTests
         }
     }
 
-    /// <summary>The un-baked guard. gaming-dns-server is the only setting whose custom-state scripts are
-    /// parameterised; its placeholders MUST survive into the catalog, or the emitter would substitute nothing and
-    /// the generated script would carry a hard-coded preset DNS instead of the user's custom values.
-    ///
-    /// Asserted PER ENTRY, deliberately: a blob-level Contains() would let the important half through. entry[1]
-    /// (the DoH script) carries all three placeholders, so baking entry[0] -- the script that actually writes the
-    /// adapter's servers -- would leave a joined blob still containing all three and pass GREEN. Per-entry also
-    /// pins the emit ORDER, which the RunContext table cannot (both entries are RunContext.User).</summary>
+    // Asserted PER ENTRY on purpose: entry[1] (DoH) carries all three placeholders, so baking entry[0] - the script
+    // that actually writes the adapter's servers - would leave a joined blob still containing all three and pass
+    // GREEN. Per-entry also pins the emit ORDER.
     [Fact]
     public void DnsServer_CustomStateScripts_KeepTheirPlaceholders_NeverAnOptionBakedBody()
     {

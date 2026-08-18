@@ -9,26 +9,11 @@ using Xunit.Abstractions;
 
 namespace Winhance.IntegrationTests.Localization;
 
-/// <summary>
-/// Closes the "code ↔ key" gap that <see cref="LocalizationJsonValidityTests"/> leaves open:
-/// those tests only validate the per-language JSON files against <c>en.json</c>; nothing checks
-/// that the keys the C# code actually asks for exist in <c>en.json</c>.
-///
-/// Two complementary checks:
-///   (a) static string-literal keys passed to <c>GetString("...")</c> — these have NO fallback at
-///       the call site, so a miss renders the raw <c>[Key]</c> string in the UI. HARD failure.
-///   (b) computed/catalog keys derived from the shipped catalog <see cref="Setting"/>s via
-///       <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/>. The settings-localization service
-///       resolves these through <c>GetStringOrFallback</c> (see
-///       <c>Winhance.UI.Features.Common.Services.SettingLocalizationService</c>), so a missing key
-///       is NOT a broken-UI bug — it silently falls back to the hardcoded English string baked into
-///       the catalog <see cref="Setting"/>. Because of that, (b) HARD-asserts only the Name and
-///       Description keys (the primary, always-shown UI strings, empirically 100% present today) and
-///       REPORTS the remaining computed keys (options / custom-state / tooltips / warnings / groups)
-///       as informational coverage rather than failing on the many intentional fallbacks.
-///       See the long comment on <see cref="ComputedCatalogKeys_NameAndDescription_MustExist"/>.
-///   (c) dead-key report (soft, non-failing): en.json keys referenced by neither (a) nor (b).
-/// </summary>
+// Closes the "code <-> key" gap: LocalizationJsonValidityTests only validate per-language files against
+// en.json. (a) literal GetString("...") keys have NO fallback at the call site, so a miss renders [Key] - HARD
+// failure. (b) computed catalog keys resolve through GetStringOrFallback, so a miss silently falls back to the
+// English baked into the catalog; only Name and Description are hard-asserted (100% present), the rest are
+// REPORTED. (c) dead-key report, soft.
 public class LocalizationKeyReferenceTests
 {
     private readonly ITestOutputHelper _output;
@@ -55,10 +40,6 @@ public class LocalizationKeyReferenceTests
         return doc.RootElement.EnumerateObject().Select(p => p.Name).ToHashSet();
     }
 
-    /// <summary>
-    /// The full settings catalog the app ships, enumerated from <see cref="SettingCatalog.All"/> (the unified
-    /// catalog Settings) - no DI, no reflection, no runtime registry needed.
-    /// </summary>
     private static IReadOnlyList<Setting> AllSettings() => SettingCatalog.All;
 
     private static IEnumerable<string> AllCsFiles() =>
@@ -108,20 +89,9 @@ public class LocalizationKeyReferenceTests
     // Check (b) — computed/catalog keys.
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>
-    /// HARD-asserts that every shipped setting has its Name and Description localization keys in
-    /// en.json. These are the primary always-shown strings for each setting and are empirically
-    /// 100% present today.
-    ///
-    /// The OTHER keys in <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/> (per-option display,
-    /// tooltip, warning, the per-setting <c>_Option_Custom</c> override, and group keys) are
-    /// deliberately NOT hard-asserted here: the service resolves all of them through
-    /// <c>GetStringOrFallback</c>, so many are intentionally absent and fall back to the hardcoded
-    /// English baked into the catalog (e.g. only 3 of the many ComboBox settings define an
-    /// <c>_Option_Custom</c> key; the 130+ individual DNS-server option display names fall back).
-    /// Hard-asserting those would fail en masse on intentional fallbacks, not real bugs. They are
-    /// reported instead by <see cref="ComputedCatalogKeys_CoverageReport"/>.
-    /// </summary>
+    // Only Name and Description are hard-asserted; the other computed keys are intentionally absent in bulk (3 of
+    // the many ComboBox settings define an _Option_Custom key; the 130+ DNS-server option names fall back), so
+    // hard-asserting them would fail en masse on intentional fallbacks.
     [Fact]
     public void ComputedCatalogKeys_NameAndDescription_MustExist()
     {
@@ -143,13 +113,7 @@ public class LocalizationKeyReferenceTests
             string.Join("\n", missing));
     }
 
-    /// <summary>
-    /// Informational coverage report for the fallback-eligible computed keys. NON-failing: it walks
-    /// the full catalog, collects <see cref="SettingLocalizationKeys.ExpectedKeys(Setting)"/> for each
-    /// setting, and logs which are present / absent in en.json. Group keys use the any-of rule: a
-    /// group counts as covered if the compact OR snake OR cross-group-info ("space → underscore"
-    /// only — the third format built by <c>BuildCrossGroupInfoMessage</c>) variant exists.
-    /// </summary>
+    // Group keys use the any-of rule: compact OR snake OR the cross-group-info ("space -> underscore") variant.
     [Fact]
     public void ComputedCatalogKeys_CoverageReport()
     {
@@ -229,14 +193,8 @@ public class LocalizationKeyReferenceTests
     // Check (c) — dead keys. SOFT, non-failing, informational only.
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>
-    /// Reports en.json keys referenced by NEITHER check (a) literal GetString calls NOR check (b)
-    /// computed catalog keys. NON-failing: many keys are referenced dynamically (XAML bindings,
-    /// interpolated/dynamically-built key names, template/dialog keys) that this static analysis
-    /// cannot see, so a hard assertion would be hopelessly noisy. Keys beginning with <c>_Meta_</c>
-    /// are whitelisted — e.g. <c>_Meta_LanguageDisplayName</c> is read directly by the localization
-    /// service, not via GetString.
-    /// </summary>
+    // Many keys are referenced dynamically (XAML bindings, interpolated key names) that this static analysis cannot
+    // see, so a hard assertion would be hopelessly noisy; _Meta_ keys are whitelisted (read directly by the localization service).
     [Fact]
     public void DeadKeys_Report()
     {

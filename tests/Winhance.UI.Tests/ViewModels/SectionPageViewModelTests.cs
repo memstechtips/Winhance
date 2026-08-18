@@ -10,9 +10,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// Concrete ISectionInfo implementation for testing.
-/// </summary>
 public class TestSectionInfo : ISectionInfo
 {
     public string Key { get; }
@@ -29,9 +26,6 @@ public class TestSectionInfo : ISectionInfo
     }
 }
 
-/// <summary>
-/// Concrete subclass of SectionPageViewModel for testing.
-/// </summary>
 public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo>
 {
     public static readonly IReadOnlyList<TestSectionInfo> TestSections = new List<TestSectionInfo>

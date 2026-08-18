@@ -10,14 +10,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Services;
 
-/// <summary>
-/// Covers the SYSTEM-vs-user pass routing and placeholder substitution in
-/// AutounattendScriptBuilder. Directly exercises BuildWinhancementsScriptAsync and inspects
-/// the generated PowerShell to assert which block (SYSTEM or user) each payload lands in.
-/// The fixtures pass the REAL catalog Setting to the Setting-dict overload. A Selection with no
-/// SelectedIndex reads the un-baked catalog Setting.CustomStateScripts; each asserted script string
-/// below is the CATALOG-sourced bytes.
-/// </summary>
+// The fixtures pass the REAL catalog Setting; a Selection with no SelectedIndex reads the un-baked
+// CustomStateScripts, so each asserted script string is the CATALOG-sourced bytes.
 public class AutounattendScriptBuilderRoutingTests
 {
     // Each opener is emitted at column 0 preceded by a newline — anchor on that to avoid matching

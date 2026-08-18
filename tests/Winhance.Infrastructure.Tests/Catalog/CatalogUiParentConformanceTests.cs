@@ -3,16 +3,10 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Pins the invariant that <see cref="Setting.UiParentId"/> nesting is at most ONE level: a sub-setting's parent is
-/// always a top-level setting (itself carrying no <c>UiParentId</c>). Consumers rely on this - notably the
-/// settings-page orphan-drop (a child renders only inside its parent's expander) and
-/// <c>ConfigReviewService.ComputeFeatureDiffsAsync</c>'s render predicate, which both check only the DIRECT parent.
-/// A future 2-level chain (C -> B -> A, grandparent A dropped by detection) would render C nowhere while the
-/// direct-parent check still counts it - silently reopening the "uncompleteable config review" bug for the deepest
-/// child. This fact fails RED the day someone authors a 2-level chain, forcing them to flatten it or make those
-/// consumers walk the full ancestor chain. Pure; reads the catalog only.
-/// </summary>
+// UiParentId nesting is at most ONE level; the settings-page orphan-drop and ConfigReviewService's render
+// predicate check only the DIRECT parent. A 2-level chain (C -> B -> A, A dropped by detection) would render C
+// nowhere while the direct-parent check still counts it - reopening the "uncompleteable config review" bug for
+// the deepest child.
 public class CatalogUiParentConformanceTests
 {
     [Fact]

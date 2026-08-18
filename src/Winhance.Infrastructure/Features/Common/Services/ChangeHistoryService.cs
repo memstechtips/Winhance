@@ -4,11 +4,8 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Writes the user-facing change receipt to C:\ProgramData\Winhance\ChangeHistory.txt.
-/// Append-only, localized at write time, UTF-8 with BOM, CRLF. Never throws —
-/// a failed receipt write must never block the actual operation.
-/// </summary>
+// C:\ProgramData\Winhance\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
+// Never throws - a failed receipt must never block the operation.
 public class ChangeHistoryService(
     IFileSystemService fileSystemService,
     ILocalizationService localizationService,

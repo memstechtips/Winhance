@@ -9,10 +9,6 @@ using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellSc
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Emits registry entries for feature groups (Optimize/Customize), scheduled tasks,
-/// wallpaper settings, and Windows Update disabled mode hardening.
-/// </summary>
 internal class FeatureRegistryScriptSection
 {
     private readonly RegistryCommandEmitter _registryEmitter;
@@ -204,14 +200,9 @@ internal class FeatureRegistryScriptSection
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
-    /// <summary>Emits the PowerShell-script blocks for a setting's active <see cref="SettingState"/>
-    /// ScriptEffects whose RunContext matches the current pass. Each option's preset ScriptVariables are
-    /// already baked into <see cref="ScriptEffect.Script"/>, with the correct Enabled/Disabled/None script on
-    /// each state, so only the runtime CustomStateValues pass is re-applied here.
-    /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option)
-    /// has no state to resolve, so this emits nothing - that shape needs the UN-BAKED scripts. The production
-    /// loop therefore routes Selection-without-index to <see cref="AppendCustomStateScriptsFromCatalog"/>
-    /// (reading Setting.CustomStateScripts) rather than here.</summary>
+    // Each option's preset ScriptVariables are already baked into ScriptEffect.Script, so only the runtime
+    // CustomStateValues pass is re-applied here. LIMITATION: a Selection with a null SelectedIndex has no state to
+    // resolve, so this emits nothing - the loop routes that shape to AppendCustomStateScriptsFromCatalog.
     internal void AppendPowerShellScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -287,19 +278,11 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Handles the "Custom" Selection shape (no SelectedIndex: the persisted value matched no preset
-    /// option, so no state's baked ScriptEffects apply). Emits from
-    /// <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the UN-BAKED raw
-    /// EnabledScripts + RunContext, guarded by CatalogCustomStateScriptsConformanceTests): per-entry hive
-    /// filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() || IsSelected == true,
-    /// then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge, null values skipped,
-    /// ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive - there is no
-    /// SelectedIndex, so no option ScriptVariables source exists), then the emit block.
-    ///
-    /// DELIBERATE: when useEnabled is FALSE (no CustomStateValues AND IsSelected != true) this emits NOTHING
-    /// rather than a Disabled/RESET script. A config item carrying NO index, NO custom values and NO selection
-    /// expresses no intent, and emitting a reset script for it (e.g. resetting the user's DNS to automatic) is
-    /// the riskier behavior, so it is deliberately suppressed.</summary>
+    // The "Custom" Selection shape (no SelectedIndex): emits from Setting.CustomStateScripts (the UN-BAKED scripts)
+    // with only the runtime CustomStateValues placeholder pass; unmatched placeholders survive, since there is no
+    // SelectedIndex and so no ScriptVariables source. DELIBERATE: with no CustomStateValues and IsSelected != true
+    // this emits NOTHING rather than a reset script - such an item expresses no intent, and resetting e.g. the
+    // user's DNS to automatic is the riskier behaviour.
     internal void AppendCustomStateScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -371,11 +354,7 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Emits an Action setting's registry writes and scripts. The catalog models an Action as
-    /// SETTING-level Effects (no States/Targets): the registry writes come from RegistryWriteEffects and the
-    /// scripts from ScriptEffects. ORDER: the registry pass runs before the script pass. Emits nothing unless
-    /// the Action is selected (matching the Action branch's IsSelected guard). The Action population is
-    /// RegistryWriteEffect/ScriptEffect-only.</summary>
+    // ORDER: the registry pass runs before the script pass. Emits nothing unless the Action is selected.
     internal void AppendActionCommandsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -394,9 +373,7 @@ internal class FeatureRegistryScriptSection
         AppendActionScriptsFromCatalog(sb, catalogSetting, configItem, isHkcu, indent);
     }
 
-    /// <summary>Emits the PowerShell-script blocks for an Action setting's setting-level ScriptEffects whose
-    /// RunContext matches the current hive pass. An Action has no ComboBox options, so the only placeholder
-    /// pass that applies is the runtime CustomStateValues substitution (an Action has no ScriptVariables source).</summary>
+    // An Action has no options, so the only placeholder pass is the runtime CustomStateValues substitution.
     internal void AppendActionScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -448,10 +425,6 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Yields the (TaskPath, /Enable|/Disable, Description) tuples for a setting's scheduled tasks,
-    /// sourcing the task paths from the catalog Setting's <see cref="TaskTarget"/>s (one per scheduled task)
-    /// and the description from <see cref="Display.Description"/>. A setting with no scheduled tasks has no
-    /// TaskTargets, so this yields nothing.</summary>
     internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem)
     {

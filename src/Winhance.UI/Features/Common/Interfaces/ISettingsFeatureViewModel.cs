@@ -4,74 +4,32 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
-/// <summary>
-/// Interface for feature ViewModels that display settings.
-/// </summary>
 public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
 {
-    /// <summary>
-    /// Module identifier for this feature.
-    /// </summary>
     string ModuleId { get; }
 
-    /// <summary>
-    /// Display name for this feature.
-    /// </summary>
     string DisplayName { get; }
 
-    /// <summary>
-    /// Collection of settings in this feature.
-    /// </summary>
     ObservableCollection<SettingItemViewModel> Settings { get; }
 
-    /// <summary>
-    /// Indicates whether this feature has any visible settings (after search filtering).
-    /// </summary>
     bool HasVisibleSettings { get; }
 
-    /// <summary>
-    /// Indicates whether this feature section is expanded.
-    /// </summary>
     bool IsExpanded { get; set; }
 
-    /// <summary>
-    /// Indicates whether settings are currently loading.
-    /// </summary>
     bool IsLoading { get; }
 
-    /// <summary>
-    /// Number of settings in this feature.
-    /// </summary>
     int SettingsCount { get; }
 
-    /// <summary>
-    /// Summary text listing the group names within this feature (for overview cards).
-    /// </summary>
     string GroupDescriptionText { get; }
 
-    /// <summary>
-    /// Settings organized into groups for display in a grouped ListView.
-    /// </summary>
     ObservableCollection<SettingsGroup> GroupedSettings { get; }
 
-    /// <summary>
-    /// Loads all settings for this feature.
-    /// </summary>
     Task LoadSettingsAsync();
 
-    /// <summary>
-    /// Refreshes all settings, reloading their current values.
-    /// </summary>
     Task RefreshSettingsAsync();
 
-    /// <summary>
-    /// Performs a lightweight refresh of setting states from the system without reloading ViewModels.
-    /// </summary>
     Task RefreshSettingStatesAsync();
 
-    /// <summary>
-    /// Applies a search filter to the settings.
-    /// </summary>
     void ApplySearchFilter(string searchText);
 
 }

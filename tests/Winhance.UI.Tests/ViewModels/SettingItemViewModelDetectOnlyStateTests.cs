@@ -13,13 +13,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// A DETECT-ONLY state is a real, resolved state that is deliberately absent from the option list, so the
-/// ComboBox has no item to render for it. Left alone that shows an EMPTY dropdown - strictly worse than the
-/// "Not recognized" it replaced. The card reuses the outcome overlay, which exists precisely because a
-/// control with nothing selected renders an empty content area, to draw the state's own NAME there: no
-/// synthetic option is added to the list, and no fault icon or banner appears, because nothing is wrong.
-/// </summary>
+// A detect-only state has no ComboBox item; left alone that shows an EMPTY dropdown. The card draws the state's
+// own NAME in the outcome overlay: no synthetic option, no fault icon or banner, because nothing is wrong.
 public class SettingItemViewModelDetectOnlyStateTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();

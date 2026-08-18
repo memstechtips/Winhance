@@ -191,10 +191,9 @@ internal static class RecommendedSettingsResolver
     // ---- The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created power
     // plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting, read off the Setting. ----
 
-    /// <summary>The single PowerCfgTarget supplies the subgroup/setting GUIDs; the per-context recommended
-    /// SYSTEM value is the Recommended-role state's Set["Power"] payload (Selection) or Numeric.Recommended
-    /// converted from display back to system units (Slider - e.g. a Minutes slider over a Seconds powercfg
-    /// value). AC/DC fall back to each other.</summary>
+    // Recommended SYSTEM value = the Recommended-role state's Set["Power"] payload (Selection) or
+    // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC fall
+    // back to each other.
     internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
     {
         var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();

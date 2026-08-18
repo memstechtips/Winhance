@@ -4,13 +4,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Services;
 
-/// <summary>
-/// The write strategy for a mode that authors a configuration file instead of changing this
-/// machine: record the edit, apply nothing, confirm nothing, warn about nothing.
-///
-/// It does not touch <see cref="ISettingWriteProgress"/>. Recording is instantaneous, and a
-/// progress ring that flickers on every edit would be a visible defect.
-/// </summary>
+// Records the edit; applies, confirms and warns about nothing. Does not touch ISettingWriteProgress: recording is
+// instantaneous, and a flickering progress ring would be a visible defect.
 public sealed class BuilderSettingWriteStrategy : ISettingWriteStrategy
 {
     private readonly IApplicationModeService _applicationModeService;

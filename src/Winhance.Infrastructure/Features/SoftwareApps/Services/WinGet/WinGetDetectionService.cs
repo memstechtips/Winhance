@@ -6,10 +6,6 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet package detection — installed package enumeration and installer type lookup.
-/// Uses COM API with CLI fallback.
-/// </summary>
 public class WinGetDetectionService : IWinGetDetectionService
 {
     private readonly WinGetComSession _comSession;

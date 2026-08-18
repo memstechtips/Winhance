@@ -5,19 +5,10 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance, the APPLY direction: pressing "Apply Windows Defaults" on a clean machine must leave it clean.
-/// <see cref="CatalogCleanInstallConformanceTests"/> proves a clean install DETECTS as its WindowsDefault; it
-/// never exercises what that state WRITES, and the usual fix for detection (<c>StateValue.Of(x).OrAbsent()</c>)
-/// relaxes reading only - so a state can be green there and still stamp a value onto a target Windows ships
-/// clean. <see cref="SettingState.ResetSet"/> is the cure, and this is the gate that keeps it applied.
-///
-/// For every (setting, target) the fixture recorded as absent under a WindowsDefault state, the reset plan
-/// must contain no write for that target. Each fixture pins its expected writers exactly (SetEquals), so a
-/// NEW writer fails and a pinned one that gets swept fails too until the pin is removed.
-///
-/// Run: winhance-harness CatalogDefaultApplyConformanceTests
-/// </summary>
+// The APPLY direction: pressing "Apply Windows Defaults" on a clean machine must leave it clean.
+// Of(x).OrAbsent() relaxes reading only, so a state can detect green and still stamp a value onto a target
+// Windows ships clean; SettingState.ResetSet is the cure and this keeps it applied. Each fixture pins its
+// expected writers exactly. Run: winhance-harness CatalogDefaultApplyConformanceTests
 public class CatalogDefaultApplyConformanceTests
 {
     private const string Held =

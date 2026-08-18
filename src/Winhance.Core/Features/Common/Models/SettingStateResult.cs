@@ -10,39 +10,19 @@ public sealed record SettingStateResult
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }
 
-    /// <summary>Whether detection placed the setting on a known state and, when it did not, why not:
-    /// unrecognized content (<see cref="SettingDetectionOutcome.Custom"/>), a value stored under the wrong
-    /// registry type (<see cref="SettingDetectionOutcome.Malformed"/>), or a detection failure
-    /// (<see cref="SettingDetectionOutcome.Undetermined"/>). A parallel signal to <see cref="IsEnabled"/>
-    /// (the boolean modified-verdict), never a replacement for it.
-    ///
-    /// Note this is independent of <see cref="Success"/>, which stays a TRANSPORT-level flag ("the provider
-    /// produced a result"). An Undetermined setting still reports Success = true, exactly as a thrown
-    /// detection did before this field existed, so existing Success consumers are unaffected.</summary>
+    // A parallel signal to IsEnabled, never a replacement for it. Independent of Success, which stays a
+    // TRANSPORT-level flag: an Undetermined setting still reports Success = true, so existing consumers are unaffected.
     public SettingDetectionOutcome Outcome { get; init; } = SettingDetectionOutcome.Resolved;
 
-    /// <summary>Diagnostic detail behind a non-resolved <see cref="Outcome"/>. Log/report only.</summary>
     public string? OutcomeDetail { get; init; }
 
-    /// <summary>Raw AC/DC powercfg values for a separate-mode power setting, so the UI
-    /// reads AC/DC from a typed field. Null for non-powercfg settings.</summary>
     public int? AcValue { get; init; }
     public int? DcValue { get; init; }
 
-    /// <summary>For a setting whose options are produced at runtime (an <see cref="IDynamicOptionSource"/>, e.g. the
-    /// power plan): the live options to show, and the current selection's <see cref="DynamicOption.Value"/> (the
-    /// scheme GUID). Null for a normal static-state setting. Threaded by the detection overlay;
-    /// the UI factory binds the dropdown to these (no index round-trip).</summary>
     public IReadOnlyList<DynamicOption>? DynamicOptions { get; init; }
     public string? DynamicSelection { get; init; }
 
-    /// <summary>The active dynamic selection's RAW display NAME (the power plan's OS name). Threaded by the detection
-    /// overlay; null for a non-dynamic setting.</summary>
     public string? DynamicSelectionName { get; init; }
 
-    /// <summary>Live per-registry-target readings, keyed by <c>ValueName ?? "KeyExists"</c>, so the config-export
-    /// custom-state path reads the unrecognized "-1"/Custom registry values from here. Threaded by the detection
-    /// overlay from <see cref="Winhance.Core.Features.Common.Catalog.CatalogDetectionResult.Readings"/>; null for a
-    /// setting with no registry targets or before the overlay runs.</summary>
     public IReadOnlyDictionary<string, object?>? Readings { get; init; }
 }

@@ -33,11 +33,8 @@ public class SettingApplicationService(
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
-    /// <summary>Apply a setting's operations through the catalog engine: <see cref="ApplyRequestResolver"/> resolves
-    /// the request to a plan and <see cref="ApplyExecutor"/> runs it against the live <see cref="IStateWriter"/>.
-    /// Resolve is TOTAL for every reachable request shape (proven by ResolveTotalityAuditTests), so a null plan can
-    /// only be an un-audited/unreachable shape - it is logged and returned as a failed OperationResult rather than
-    /// silently applied.</summary>
+    // Resolve is TOTAL for every reachable request shape (ResolveTotalityAuditTests), so a null plan is an
+    // un-audited shape - logged and returned as a failed OperationResult, never silently applied.
     private async Task<OperationResult> ApplyOperationsAsync(Setting setting, bool enable, object? value, bool resetToDefault)
     {
         // Pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
@@ -264,10 +261,7 @@ public class SettingApplicationService(
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
-    /// <summary>True when a power-plan apply value identifies the Winhance Power Plan.
-    /// The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary
-    /// (ConfigurationApplicationBridgeService). Both forms route through the shared
-    /// <see cref="PowerPlanCatalog.IsWinhancePowerPlan"/> check.</summary>
+    // The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary.
     private static bool IsWinhancePowerPlanValue(object? value) => value switch
     {
         string guid => PowerPlanCatalog.IsWinhancePowerPlan(guid),
@@ -277,13 +271,8 @@ public class SettingApplicationService(
         _ => false,
     };
 
-    /// <summary>
-    /// The state label the catalog setting was just moved into, derived the same way
-    /// <see cref="ApplyRequestResolver"/> derives the apply label. Toggle/CheckBox -> "Enabled"/"Disabled";
-    /// Selection -> the catalog state label at the applied option index; resetToDefault -> the WindowsDefault
-    /// state's label. Returns null when the label cannot be derived (non-index selection value, or no
-    /// WindowsDefault state) so the caller skips relationship resolution rather than guessing.
-    /// </summary>
+    // Null when the label cannot be derived (non-index selection value, no WindowsDefault state), so the caller
+    // skips relationship resolution rather than guessing.
     private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault, WinBuild build)
     {
         if (resetToDefault)
@@ -304,14 +293,8 @@ public class SettingApplicationService(
         return null;
     }
 
-    /// <summary>
-    /// Runs a paired setting's relationships through the <see cref="RelationshipResolver"/>
-    /// engine AFTER the main apply. Resolves forward (Requires/Enables + the target state's Controls), reverse
-    /// parent-sync, and reverse cascade-disable, then applies each follow-on as a LEAF
-    /// (SkipValuePrerequisites = true) so it triggers no further cascade. A shared visited set + self-skip
-    /// prevents loops. Current state is read once from the detection engine and served synchronously to the
-    /// pure resolvers.
-    /// </summary>
+    // Each follow-on is applied as a LEAF (SkipValuePrerequisites = true) so it triggers no further cascade; a
+    // shared visited set + self-skip prevents loops.
     private async Task ApplyCatalogRelationshipsAsync(Setting setting, string? targetLabel)
     {
         if (targetLabel is null)
@@ -444,16 +427,8 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>
-    /// Maps a relationship <c>ApplyAction</c> (target id + desired state label) into an
-    /// <see cref="ApplySettingRequest"/>. The follow-on is always a LEAF (SkipValuePrerequisites = true) so it
-    /// performs no further cascade. A two-state
-    /// Enabled/Disabled target maps the label to Enable; a selection maps the label to the option index (the
-    /// state index, which equals the ComboBox option index by construction). Returns null (logged) when the
-    /// target setting is missing or has no state with that label, so a bad relationship is skipped, never thrown.
-    /// A reverse-cascade action passes <paramref name="isReset"/> = true, so the follow-on applies with
-    /// ResetToDefault = true (deleting a [1,null] target via its ResetSet).
-    /// </summary>
+    // A follow-on is always a LEAF. Null (logged) when the target is missing or has no state with that label - a bad
+    // relationship is skipped, never thrown. State index == ComboBox option index by construction.
     private ApplySettingRequest? ToRequest(string targetId, string label, bool isReset)
     {
         var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
@@ -519,18 +494,11 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>Returns the localized string, or null when the key is missing.</summary>
     private string? ResolveLocalized(string key) =>
         localizationService.TryGetString(key, out var value) ? value : null;
 
-    /// <summary>
-    /// Resolves a Selection option index to a human-readable label, mirroring the UI exactly
-    /// (<c>SettingLocalizationService</c>): a per-option <c>DisplayName</c> that is itself a
-    /// localization key (e.g. power settings' <c>Template_*</c> / <c>PowerPlan_*</c> keys) is
-    /// localized verbatim; otherwise the per-setting <c>Setting_{id}_Option_{index}</c> key is
-    /// used, with the raw <c>DisplayName</c> as the final fallback. Out-of-range indices resolve
-    /// to the localized "Custom" state.
-    /// </summary>
+    // Mirrors SettingLocalizationService: a DisplayName that is itself a key (Template_* / PowerPlan_*) is localized
+    // verbatim; otherwise Setting_{id}_Option_{index}, with the raw DisplayName as the final fallback.
     private string GetOptionLabel(Setting setting, int index)
     {
         if (index < 0 || index >= setting.States.Count)
@@ -543,10 +511,7 @@ public class SettingApplicationService(
         return ResolveLocalized(key) ?? dn;
     }
 
-    /// <summary>
-    /// Best-effort conversion of a JSON-sourced numeric (may be <see cref="long"/>/<see cref="double"/>)
-    /// to an int. Returns null when the value isn't numeric.
-    /// </summary>
+    // A JSON-sourced numeric may box as long or double.
     private static int? TryToInt(object? value)
     {
         if (value == null) return null;
@@ -613,18 +578,9 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>
-    /// Formats the pre-apply state for the change-history receipt. For PowerCfg Separate
-    /// NumericRange settings, <see cref="SettingStateResult.CurrentValue"/> isn't a usable AC/DC
-    /// pair and the typed <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>
-    /// are SYSTEM units (e.g. seconds) — convert them to display units so the "before" matches the
-    /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
-    /// PowerCfg Separate Selection settings get the same treatment: <c>CurrentValue</c> is a single
-    /// AC-only option index, so the raw AC/DC system values are each mapped to an option index and
-    /// rendered to match the config-import after-format byte-for-byte. On battery-less machines the
-    /// DC component is omitted entirely (see <see cref="ComposeAcDc"/>) so before and after agree.
-    /// All other settings defer to <see cref="FormatStateDisplay"/>.
-    /// </summary>
+    // For PowerCfg Separate settings CurrentValue isn't a usable AC/DC pair: the typed AcValue/DcValue are SYSTEM
+    // units, converted here to display units so "before" matches the "after" rendering byte-for-byte (which keeps
+    // no-op detection working). On battery-less machines the DC component is omitted so before and after agree.
     private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
         // Read AC/DC from the typed fields (threaded onto the before-state at the provider read).
@@ -662,20 +618,11 @@ public class SettingApplicationService(
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
 
-    /// <summary>
-    /// Composes an AC/DC receipt fragment. On battery-less machines (<paramref name="hasBattery"/> is
-    /// false) only the AC component is shown — the DC half is never written by PowerCfgApplier there,
-    /// so rendering it would be a phantom. With a battery present, both halves render as before.
-    /// </summary>
+    // On battery-less machines only AC is shown - the DC half is never written by PowerCfgApplier there, so
+    // rendering it would be a phantom.
     private static string ComposeAcDc(string ac, string dc, bool hasBattery) =>
         hasBattery ? $"AC: {ac}, DC: {dc}" : $"AC: {ac}";
 
-    /// <summary>
-    /// Formats a PowerCfg NumericRange AC/DC value pair with a localized unit suffix per value.
-    /// Mirrors <c>SettingLocalizationService.LocalizeUnits</c> so the receipt matches what the UI
-    /// displays on the slider.  When the unit string is null/empty the pair renders without a suffix.
-    /// On battery-less machines only the AC value renders (no phantom DC component).
-    /// </summary>
     private string FormatPowerNumeric(string? units, object? ac, object? dc, bool hasBattery)
     {
         var localizedUnit = LocalizeUnit(units);
@@ -684,11 +631,6 @@ public class SettingApplicationService(
         return ComposeAcDc($"{ac} {localizedUnit}", $"{dc} {localizedUnit}", hasBattery);
     }
 
-    /// <summary>
-    /// Localizes a raw unit string via the same key mapping used by
-    /// <c>SettingLocalizationService.LocalizeUnits</c>.  Returns the raw string
-    /// (or empty) when no localization key exists so the caller can suppress the suffix.
-    /// </summary>
     private string? LocalizeUnit(string? units)
     {
         if (string.IsNullOrEmpty(units)) return null;

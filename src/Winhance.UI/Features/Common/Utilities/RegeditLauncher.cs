@@ -4,9 +4,6 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Launches regedit.exe and navigates to a specific registry path.
-/// </summary>
 public class RegeditLauncher(
     IInteractiveUserService interactiveUserService,
     IProcessExecutor processExecutor,

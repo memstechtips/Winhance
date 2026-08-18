@@ -8,11 +8,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for the Builder mode bar in the main window. Shown while the app is
-/// authoring a config or autounattend.xml from the UI without applying to the system.
-/// Hosts the Config/Autounattend target toggle plus Save and Cancel.
-/// </summary>
 public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -99,7 +94,6 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderCancelButtonText));
     }
 
-    /// <summary>Switch the Builder target to Config (preserves authored selections).</summary>
     public void SelectConfigTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Config);
@@ -108,7 +102,6 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderSaveButtonText));
     }
 
-    /// <summary>Switch the Builder target to Autounattend (preserves authored selections).</summary>
     public void SelectAutounattendTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Autounattend);

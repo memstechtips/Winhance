@@ -17,9 +17,6 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
 public record AppCategory(string GroupName, string DisplayName, string IconGlyph, IReadOnlyList<AppItemViewModel> Apps);
 
-/// <summary>
-/// ViewModel for the External Apps tab in the SoftwareApps feature.
-/// </summary>
 public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider
 {
     private readonly IExternalAppsService _externalAppsService;
@@ -211,25 +208,16 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         return true;
     }
 
-    /// <summary>
-    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
-    /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
     private readonly object _loadGate = new();
     private Task? _loadTask;
 
-    /// <summary>
-    /// Loads app definitions, checks installation status and resolves icons — exactly once.
-    /// Idempotent: startup triggers this from two independent paths — the UI init
-    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
-    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
-    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
-    /// ran concurrently, clobbering the shared Items collection and racing over the
-    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
-    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
-    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
-    /// </summary>
+    // Exactly once, idempotent: startup triggers this from two independent paths (StartupUiCoordinator, and
+    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard let both through -
+    // IsInitialized is only set when the load FINISHES - so two full passes clobbered Items and raced over
+    // icon-cache .tmp files. Now the first caller starts the load and every other caller awaits the same Task, on
+    // the UI thread with a SynchronizationContext so continuations stay UI-affine.
     [RelayCommand]
     public Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -317,14 +305,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
     }
 
-    /// <summary>
-    /// Resolves icons for all current entries via the unified icon pipeline
-    /// (Layer 1a AppX local → Layer 1b Win32 binary → Layer 2a Store CDN →
-    /// Layer 2b WinGet manifest) and notifies their ViewModels so the bound
-    /// Image / FontIcon refresh.
-    /// No-op when no resolver was injected. Failures are logged and swallowed
-    /// — icon resolution must never block the load flow.
-    /// </summary>
+    // No-op when no resolver was injected. Failures are logged and swallowed - icon resolution must never block the load flow.
     private async Task ResolveIconsAsync()
     {
         if (_iconResolver is null) return;
@@ -427,9 +408,6 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }).FireAndForget(_logService);
     }
 
-    /// <summary>
-    /// Installs selected apps with optional confirmation skip (for ConfigurationService compatibility).
-    /// </summary>
     public async Task InstallApps(bool skipConfirmation = false)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();

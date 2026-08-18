@@ -5,14 +5,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Services;
 
-/// <summary>
-/// The write strategy for a mode whose changes reach the live machine: confirm if the setting asks
-/// for it, apply, and report whether it took.
-///
-/// Confirmation lives here rather than in the caller because it is not a property of the input
-/// shape — it is a property of being about to change this machine. A mode that only authors intent
-/// has nothing to warn anyone about, so it never asks.
-/// </summary>
+// Confirmation lives here rather than in the caller because it is a property of being about to change this
+// machine, not of the input shape.
 public sealed class LiveSettingWriteStrategy : ISettingWriteStrategy
 {
     private readonly ISettingApplicationService _settingApplicationService;

@@ -78,7 +78,6 @@ public class AppIconResolverTests : IDisposable
         return Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
     }
 
-    /// <summary>Mirrors AppIconResolver.BuildCacheFileName for path assertions.</summary>
     private static string BuildCacheFileName(string defId, string sourceKey) =>
         $"{defId}.{Sha1HexLower(sourceKey).Substring(0, 8)}.png";
 

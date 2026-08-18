@@ -5,11 +5,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>SettingIds exists so service logic checks setting identity through a named constant instead of a raw
-/// string literal. A constant only earns that job while its value still names a real catalog setting, so this pins
-/// every constant to SettingCatalog.All: rename a catalog id and the constant is silently orphaned, leaving the
-/// service comparing against a value nothing matches -- a live bug no compiler can catch. The constants are
-/// enumerated by reflection so a newly added one is covered without anyone remembering to update this test.</summary>
+// Rename a catalog id and a SettingIds constant is silently orphaned - the service compares against a value
+// nothing matches. Enumerated by reflection so a new constant is covered automatically.
 public class SettingIdConstantsConformanceTests
 {
     private static IReadOnlyList<FieldInfo> SettingIdConstants() =>

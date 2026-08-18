@@ -6,9 +6,6 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Computes navigation badge state during Config Review Mode.
-/// </summary>
 public class NavBadgeService : INavBadgeService
 {
     private readonly IConfigReviewModeService _modeService;

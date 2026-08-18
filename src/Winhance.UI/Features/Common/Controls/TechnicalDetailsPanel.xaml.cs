@@ -5,11 +5,7 @@ using Winhance.Core.Features.Common.TechnicalDetails;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// The Technical Details expander shown under a setting card: a toggle bar plus the built sections.
-/// One control for all three card shapes (plain card, parent expander, child row) — the markup used to
-/// be copy-pasted three times in SettingTemplates.xaml and had already drifted apart.
-/// </summary>
+// One control for all three card shapes: plain card, parent expander, child row.
 public sealed partial class TechnicalDetailsPanel : UserControl
 {
     public TechnicalDetailsPanel()
@@ -95,11 +91,8 @@ public sealed partial class TechnicalDetailsPanel : UserControl
         set => SetValue(ToggleCommandProperty, value);
     }
 
-    /// <summary>
-    /// Forwarded straight through to the OptionMatrixView inside. The regedit buttons live down
-    /// there, but the panel is what the three card templates bind to, so the command passes through
-    /// here on its way from the view-model.
-    /// </summary>
+    // Forwarded to the OptionMatrixView inside: the regedit buttons live down there, but the panel is what the
+    // three card templates bind to.
     public static readonly DependencyProperty RegeditCommandProperty =
         DependencyProperty.Register(
             nameof(RegeditCommand),

@@ -5,9 +5,6 @@ using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-/// <summary>
-/// Service for wallpaper operations.
-/// </summary>
 public class WallpaperService : IWallpaperService
 {
     private readonly ILogService _logService;
@@ -32,7 +29,6 @@ public class WallpaperService : IWallpaperService
         _systemParametersService = systemParametersService;
     }
 
-    /// <inheritdoc/>
     public Task<bool> SetWallpaperAsync(string wallpaperPath)
     {
         try

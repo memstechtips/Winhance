@@ -4,10 +4,7 @@ using static Winhance.Core.Features.Common.Native.ConPtyApi;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-/// <summary>
-/// Runs a process under a Windows Pseudo Console (ConPTY) so that the child
-/// process sees isatty(stdout)==true and outputs real-time progress bars.
-/// </summary>
+// So the child sees isatty(stdout)==true and emits real-time progress bars.
 internal sealed class ConPtyProcess : IDisposable
 {
     private IntPtr _hPC = IntPtr.Zero;
@@ -20,12 +17,8 @@ internal sealed class ConPtyProcess : IDisposable
 
     public int ExitCode { get; private set; } = -1;
 
-    /// <summary>
-    /// Launches the given executable under a ConPTY and reads output,
-    /// classifying lines by VT100 cursor-to-column-1 / \r (progress)
-    /// vs \n (permanent). Cancellation policy is owned by the caller —
-    /// pass a composed token (e.g. wall-clock + idle + caller cancel).
-    /// </summary>
+    // Lines are classified by VT100 cursor-to-column-1 / \r (progress) vs \n (permanent). Cancellation policy is
+    // the caller's - pass a composed token (wall-clock + idle + caller cancel).
     public async Task<WinGetCliRunner.WinGetCliResult> RunAsync(
         string exePath,
         string arguments,
@@ -143,14 +136,8 @@ internal sealed class ConPtyProcess : IDisposable
     private const int MaxCsiLen = 128;
     private const int MaxOscLen = 1024;
 
-    /// <summary>
-    /// Reads from the ConPTY output pipe, stripping VT100 escape sequences.
-    /// Uses a state machine to parse CSI, OSC, and single-char escapes.
-    /// \r and \x1b[G / \x1b[1G are treated as progress-line indicators.
-    /// Progress lines are post-processed to fill in the unfilled bar track
-    /// (winget uses cursor positioning + background colors for this area,
-    /// which are invisible without terminal color support).
-    /// </summary>
+    // \r and \x1b[G / \x1b[1G are progress-line indicators. Progress lines get their unfilled bar track filled in -
+    // winget draws it with cursor positioning + background colours, invisible without terminal colour support.
     private static void ReadConPtyOutput(
         IntPtr pipeHandle,
         StringBuilder outputBuilder,
@@ -294,10 +281,6 @@ internal sealed class ConPtyProcess : IDisposable
         }
     }
 
-    /// <summary>
-    /// Emits the current line as a progress (transient) line if non-empty.
-    /// Applies progress bar post-processing to fill in the unfilled track.
-    /// </summary>
     private static void EmitProgressLine(
         StringBuilder currentLine,
         ref string? lastStringBeforeLF,
@@ -312,12 +295,8 @@ internal sealed class ConPtyProcess : IDisposable
         currentLine.Clear();
     }
 
-    /// <summary>
-    /// Winget's VT progress bar is 30 cells: filled cells use █ (U+2588) and
-    /// partial blocks (U+2589–U+258F), while unfilled cells are rendered via
-    /// background color or cursor positioning — both invisible after VT stripping.
-    /// This method detects the bar and inserts ░ (U+2591) for the unfilled track.
-    /// </summary>
+    // Winget's VT bar is 30 cells: filled cells use U+2588 (partials U+2589-U+258F); unfilled cells are drawn via
+    // background colour or cursor positioning, invisible after VT stripping - so U+2591 is inserted for the track.
     private static string FillProgressBarTrack(string line)
     {
         // Find the contiguous run of block characters (U+2588–U+258F)

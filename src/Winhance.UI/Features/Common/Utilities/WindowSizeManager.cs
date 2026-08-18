@@ -6,10 +6,6 @@ using Windows.Graphics;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Manages window size and position persistence for WinUI 3.
-/// Saves/restores window bounds and maximized state via user preferences.
-/// </summary>
 public class WindowSizeManager
 {
     private readonly AppWindow _appWindow;
@@ -42,9 +38,6 @@ public class WindowSizeManager
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
     }
 
-    /// <summary>
-    /// Initializes window size and position, restoring from preferences if available.
-    /// </summary>
     public async Task InitializeAsync()
     {
         try
@@ -71,10 +64,6 @@ public class WindowSizeManager
         }
     }
 
-    /// <summary>
-    /// Saves current window settings to preferences.
-    /// Called by ApplicationCloseService.BeforeShutdown which properly awaits before exiting.
-    /// </summary>
     public async Task SaveWindowSettingsAsync()
     {
         try

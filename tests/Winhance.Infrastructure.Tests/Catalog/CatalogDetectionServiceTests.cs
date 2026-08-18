@@ -14,8 +14,6 @@ public class CatalogDetectionServiceTests
     private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
     private static readonly string[] HkcuXPath = [@"HKEY_CURRENT_USER\X"];
 
-    /// <summary>A fully-controllable detection context: registry reads and powercfg reads come from the supplied
-    /// delegates; PrefetchAsync just counts its calls.</summary>
     private sealed class FakeContext : IPrefetchableDetectionContext
     {
         public int PrefetchCount;
@@ -190,9 +188,8 @@ public class CatalogDetectionServiceTests
         Assert.False(r.Detected);
     }
 
-    /// <summary>A detection failure is OUR failure. It must report Undetermined, never Custom - Custom is a
-    /// statement about the user's machine ("this value is one we don't recognize") and, critically, an
-    /// ACTIONABLE state whose dialog would apply a value over data we could not read.</summary>
+    // A detection failure is OUR failure: Undetermined, never Custom - Custom is a statement about the user's
+    // machine and an ACTIONABLE state whose dialog would write over data we could not read.
     [Fact]
     public async Task DetectAsync_reports_Undetermined_when_detection_throws()
     {
@@ -207,8 +204,8 @@ public class CatalogDetectionServiceTests
         Assert.Contains("registry exploded", r.OutcomeDetail);
     }
 
-    /// <summary>A wrongly-typed value reports Malformed, and carries the diagnostic naming what the catalog
-    /// expected - the single most useful line in a report about a setting "showing the wrong thing".</summary>
+    // The diagnostic naming what the catalog expected is the single most useful line in a report about a setting
+    // "showing the wrong thing".
     [Fact]
     public async Task DetectAsync_reports_Malformed_for_a_wrongly_typed_binary_value()
     {
@@ -222,8 +219,7 @@ public class CatalogDetectionServiceTests
         Assert.Contains("Binary", r.OutcomeDetail);
     }
 
-    /// <summary>A setting that resolves normally must report Resolved - the default must not leak a problem
-    /// onto healthy settings.</summary>
+    // The default must not leak a problem onto healthy settings.
     [Fact]
     public async Task DetectAsync_reports_Resolved_for_a_healthy_setting()
     {

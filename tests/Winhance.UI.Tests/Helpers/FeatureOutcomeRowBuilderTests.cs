@@ -13,10 +13,7 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Helpers;
 
-/// <summary>
-/// The banner's row rules: which outcomes appear, in what order, and how many names before "+N more".
-/// These ran only through the UserControl before, so they needed a XAML application to reach.
-/// </summary>
+// These ran only through the UserControl before, so they needed a XAML application to reach.
 public class FeatureOutcomeRowBuilderTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();

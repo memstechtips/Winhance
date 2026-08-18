@@ -1,8 +1,5 @@
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
-/// <summary>
-/// Shared power plan identification logic used by PowerService and PowerPlanOptions.
-/// </summary>
 internal static class PowerPlanHelper
 {
     public static bool IsUltimatePerformancePlan(string planName)

@@ -10,11 +10,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// PowerService's live surface is the corrupt-plan cleanup (CleanupCorruptWinhancePlanAsync) plus the
-/// GetActive/GetAvailable/Delete plan queries; power-plan apply runs through the catalog engine, not here.
-/// TryApplySpecialSettingAsync is a dead stub.
-/// </summary>
 public class PowerServiceTests
 {
     private readonly Mock<ILogService> _logService;

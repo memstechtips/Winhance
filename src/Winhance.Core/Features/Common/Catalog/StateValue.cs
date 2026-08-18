@@ -1,10 +1,7 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// The value that means a given <see cref="SettingState"/> for one target. Carries the write payload
-/// AND derives its own detection-accept set, so detect and apply come from one declaration.
-/// Never author an "accepted values" list separately.
-/// </summary>
+// Carries the write payload AND derives its own detection-accept set, so detect and apply come from one
+// declaration - never author an accepted-values list separately.
 public sealed record StateValue
 {
     private StateValue(
@@ -49,10 +46,9 @@ public sealed record StateValue
         new(System.Array.Empty<object?>(), acceptsAbsent: false, acceptsAnyPresent: true,
             writePayload: null, deleteOnWrite: false);
 
-    /// <summary>Relax detection: the key being absent also counts as this state (write is unchanged).</summary>
+    // The key being absent also counts as this state; the write is unchanged.
     public StateValue OrAbsent() => this with { AcceptsAbsent = true };
 
-    /// <summary>True when a live reading satisfies this value. <paramref name="present"/> is false when the key is absent.</summary>
     public bool Matches(object? currentReading, bool present)
     {
         if (!present)

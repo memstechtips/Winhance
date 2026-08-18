@@ -19,16 +19,8 @@ using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
-/// <summary>
-/// Extension methods for registering UI-specific services.
-/// </summary>
 public static class UIServicesExtensions
 {
-    /// <summary>
-    /// Registers UI-specific services for the Winhance WinUI 3 application.
-    /// </summary>
-    /// <param name="services">The service collection to configure</param>
-    /// <returns>The service collection for method chaining</returns>
     public static IServiceCollection AddUIServices(this IServiceCollection services)
     {
         // Dispatcher Service (Singleton - UI thread dispatching)

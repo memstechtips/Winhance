@@ -27,11 +27,6 @@ public class PowerShellRunner : IPowerShellRunner
         _fileSystemService = fileSystemService;
     }
 
-    /// <summary>
-    /// Executes a PowerShell script string via Windows PowerShell 5.1 (powershell.exe).
-    /// The script is written to a temp file, executed, and the temp file is cleaned up.
-    /// Stdout is captured line-by-line for progress reporting (Write-Host output).
-    /// </summary>
     public async Task<string> RunScriptAsync(
         string script,
         IProgress<TaskProgressDetail>? progress = null,
@@ -53,14 +48,6 @@ public class PowerShellRunner : IPowerShellRunner
         }
     }
 
-    /// <summary>
-    /// Executes a short PowerShell script string entirely in memory via
-    /// <c>powershell.exe -EncodedCommand &lt;base64&gt;</c>. No temp file is written.
-    /// The script is encoded as UTF-16-LE then base64 (the format -EncodedCommand expects).
-    /// Throws <see cref="ArgumentException"/> if the script exceeds
-    /// <see cref="MaxEncodedScriptBytes"/> bytes (UTF-16); use
-    /// <see cref="RunScriptAsync"/> for larger scripts.
-    /// </summary>
     public async Task<string> RunScriptInMemoryAsync(
         string script,
         IProgress<TaskProgressDetail>? progress = null,
@@ -91,11 +78,7 @@ public class PowerShellRunner : IPowerShellRunner
         return output.ToString();
     }
 
-    /// <summary>
-    /// Executes a PowerShell script file via Windows PowerShell 5.1 (powershell.exe).
-    /// Stdout is captured line-by-line for progress reporting (Write-Host output).
-    /// If execution policy blocks the script, retries with -EncodedCommand.
-    /// </summary>
+    // If execution policy blocks the script, retries with -EncodedCommand.
     public async Task<string> RunScriptFileAsync(
         string scriptPath,
         string arguments = "",
@@ -219,10 +202,6 @@ public class PowerShellRunner : IPowerShellRunner
             || errorOutput.Contains("is not digitally signed", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// Validates a PowerShell script for syntax errors without executing it.
-    /// Uses PowerShell's built-in Parser.ParseFile() API.
-    /// </summary>
     public async Task ValidateScriptSyntaxAsync(
         string scriptContent,
         CancellationToken ct = default)
@@ -253,10 +232,6 @@ exit 0";
         }
     }
 
-    /// <summary>
-    /// Validates an XML string for well-formedness errors without writing it.
-    /// Uses .NET's XmlReader via PowerShell.
-    /// </summary>
     public async Task ValidateXmlSyntaxAsync(
         string xmlContent,
         CancellationToken ct = default)

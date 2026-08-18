@@ -217,10 +217,7 @@ public class VersionService : IVersionService
         });
     }
 
-    /// <summary>
-    /// Returns the local installer path if WINHANCE_LOCAL_INSTALLER is set and
-    /// points at an existing file, otherwise null. Inert in normal user runs.
-    /// </summary>
+    // WINHANCE_LOCAL_INSTALLER is a dev override; inert in normal user runs.
     private string? TryGetLocalInstallerOverride()
     {
         string? path = Environment.GetEnvironmentVariable(LocalInstallerEnvVar);
@@ -235,20 +232,10 @@ public class VersionService : IVersionService
         return path;
     }
 
-    /// <summary>
-    /// Builds the Inno Setup installer arguments for an in-app silent update.
-    /// Always pins the install directory to <paramref name="appDir"/> via /DIR=
-    /// (issue #649): without /DIR, Inno's UsePreviousAppDir/DefaultDirName chain
-    /// can resolve {app} to C:\Program Files\Winhance for regular installs at a
-    /// custom path, or to ~\Desktop\Winhance for portable installs, silently
-    /// relocating the install. The installer script (Winhance.Installer.iss)
-    /// cooperates by skipping its custom-dir-page sync when /DIR= is passed in
-    /// silent mode.
-    /// </summary>
-    /// <remarks>
-    /// Internal for testability via the test project's InternalsVisibleTo grant.
-    /// Pure function — no side effects.
-    /// </remarks>
+    // Always pins the install directory via /DIR= (issue #649): without it Inno's UsePreviousAppDir/DefaultDirName
+    // chain can resolve {app} to C:\Program Files\Winhance for a custom-path install, or ~\Desktop\Winhance for a
+    // portable one, silently relocating the install. Winhance.Installer.iss skips its custom-dir-page sync when
+    // /DIR= is passed silently.
     internal static string BuildInstallerArgs(string appDir, bool isPortable)
     {
         string dirArg = $"/DIR=\"{appDir.TrimEnd('\\', '/')}\"";

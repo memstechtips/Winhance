@@ -6,21 +6,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="WinGetDetectionService"/>.
-///
-/// WinGetComSession is a concrete class that tries to initialize COM via
-/// WindowsPackageManagerStandardFactory. In a test environment, COM init
-/// will fail, which means methods that call _comSession.EnsureComInitialized()
-/// will take the CLI fallback path. The CLI fallback calls static methods on
-/// WinGetCliRunner which invoke actual processes.
-///
-/// Tests here focus on:
-/// - Verifying the service can be constructed and called without throwing
-/// - Null/empty input handling
-/// - Verifying logging behavior
-/// - Verifying the empty-result fallback when COM and CLI are both unavailable
-/// </summary>
+// COM init fails in a test environment, so methods take the CLI fallback path, which invokes real processes;
+// tests focus on construction, null handling, logging and the empty-result fallback.
 public class WinGetDetectionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();

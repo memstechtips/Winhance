@@ -1,11 +1,10 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>An apply plan partitioned by what the synchronous writer can actually carry out.
-/// <see cref="ApplyExecutor"/> only ever sees <see cref="SyncOps"/>, so an effect that launches a process
-/// cannot reach <see cref="IStateWriter"/>; the caller awaits <see cref="AsyncEffects"/> separately.</summary>
+// Partitioned by what the synchronous writer can carry out: ApplyExecutor only ever sees SyncOps, so an effect that
+// launches a process cannot reach IStateWriter; the caller awaits AsyncEffects separately.
 public sealed record ApplyPlan(IReadOnlyList<ApplyOp> SyncOps, IReadOnlyList<Effect> AsyncEffects)
 {
-    /// <summary>Operations in the whole plan, both halves - what a caller should report as the denominator.</summary>
+    // Both halves: the denominator a caller should report.
     public int Total => SyncOps.Count + AsyncEffects.Count;
 
     public static ApplyPlan From(IReadOnlyList<ApplyOp> ops)

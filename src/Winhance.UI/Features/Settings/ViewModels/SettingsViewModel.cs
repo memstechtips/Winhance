@@ -7,9 +7,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
 
-/// <summary>
-/// ViewModel for the Settings page.
-/// </summary>
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -78,9 +75,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Creates a new instance of the SettingsViewModel.
-    /// </summary>
     public SettingsViewModel(
         ILocalizationService localizationService,
         IThemeService themeService,
@@ -123,9 +117,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Initializes the language options from the available locale files via the localization service.
-    /// </summary>
     private void InitializeLanguages()
     {
         Languages.Clear();
@@ -135,9 +126,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Initializes the theme options.
-    /// </summary>
     private void InitializeThemes()
     {
         Themes.Clear();
@@ -146,9 +134,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         Themes.Add(new ThemeOption(WinhanceTheme.DarkNative, GetThemeDisplayName(WinhanceTheme.DarkNative)));
     }
 
-    /// <summary>
-    /// Gets the localized display name for a theme.
-    /// </summary>
     private string GetThemeDisplayName(WinhanceTheme theme) => theme switch
     {
         WinhanceTheme.System => _localizationService.GetStringOrDefault("Theme_System", "System"),
@@ -157,9 +142,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _ => theme.ToString()
     };
 
-    /// <summary>
-    /// Called when the language changes to update all localized strings.
-    /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         // Update theme display names
@@ -205,9 +187,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public string SystemProtectionDescription => _localizationService.GetStringOrDefault("Settings_SystemProtection_Description", "Create a Windows System Restore point to allow rolling back system changes");
     public string CreateRestorePointButtonText => _localizationService.GetStringOrDefault("Settings_CreateRestorePoint_Button", "Create Restore Point");
 
-    /// <summary>
-    /// Called when the selected theme changes.
-    /// </summary>
     private void OnSelectedThemeChanged(WinhanceTheme value)
     {
         if (_themeService.CurrentTheme != value)
@@ -216,9 +195,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Called when the selected language changes.
-    /// </summary>
     private void OnSelectedLanguageChanged(string value)
     {
         if (string.IsNullOrEmpty(value) || value == _localizationService.CurrentLanguage)
@@ -230,27 +206,18 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Command to import configuration.
-    /// </summary>
     [RelayCommand]
     private async Task ImportConfigAsync()
     {
         await _configurationService.ImportConfigurationAsync();
     }
 
-    /// <summary>
-    /// Command to export configuration.
-    /// </summary>
     [RelayCommand]
     private async Task ExportConfigAsync()
     {
         await _configurationService.ExportConfigurationAsync();
     }
 
-    /// <summary>
-    /// Command to create a system restore point.
-    /// </summary>
     [RelayCommand]
     private async Task CreateRestorePointAsync()
     {
@@ -294,9 +261,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 }
 
-/// <summary>
-/// Represents a theme option for the ComboBox.
-/// </summary>
 public partial class ThemeOption : ObservableObject
 {
     private string _displayText = string.Empty;

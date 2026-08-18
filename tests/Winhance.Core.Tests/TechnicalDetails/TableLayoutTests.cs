@@ -4,10 +4,6 @@ using Xunit;
 
 namespace Winhance.Core.Tests.TechnicalDetails;
 
-/// <summary>
-/// The horizontal arithmetic that used to live inside the panel's ArrangeOverride, where the only
-/// way to check it was a screenshot. Two frozen columns (Option, Role) then three value columns.
-/// </summary>
 public class TableLayoutTests
 {
     private static readonly double[] Widths = [200, 120, 100, 100, 100];   // total 620, frozen edge 320

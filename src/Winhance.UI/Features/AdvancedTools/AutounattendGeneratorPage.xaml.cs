@@ -11,9 +11,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
-/// <summary>
-/// Page for generating autounattend.xml files.
-/// </summary>
 public sealed partial class AutounattendGeneratorPage : Page
 {
     private readonly ILocalizationService? _localizationService;

@@ -7,25 +7,10 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Helpers;
 
-/// <summary>
-/// Regression spec for the "Only Changes" review-mode filter predicate.
-///
-/// <para>
-/// The Optimize and Customize pages use this helper to decide row visibility while the
-/// "Only Changes" toggle is on. Both the Apply-button gate and the <c>x/y reviewed</c>
-/// counter are computed from <see cref="IConfigReviewDiffService"/>'s diff dictionary,
-/// so the filter MUST be computed from the same source. Reading per-ViewModel flags
-/// (which are populated lazily as section ViewModels hydrate) produces the drift that
-/// caused issue #665: counter said <c>5/7</c>, but 2 unreviewed rows were hidden and
-/// unreachable, leaving the Apply button permanently disabled.
-/// </para>
-///
-/// <para>
-/// Any future change that routes the filter through per-VM flags (or any other state
-/// store that can lag the service) will fail these tests, because none of them hand
-/// the helper a SettingItemViewModel — only an id and the service.
-/// </para>
-/// </summary>
+// The Apply-button gate and the x/y counter are computed from IConfigReviewDiffService's diff dictionary, so
+// the filter MUST be computed from the same source; per-VM flags (populated lazily) produced issue #665: the
+// counter said 5/7, but 2 unreviewed rows were hidden and unreachable, leaving Apply permanently disabled. None
+// of these tests hand the helper a ViewModel - only an id and the service.
 public class ReviewModeFilterTests
 {
     // ---------- basic predicate behaviour ----------
@@ -71,18 +56,8 @@ public class ReviewModeFilterTests
 
     // ---------- the issue #665 invariant ----------
 
-    /// <summary>
-    /// The bug-class invariant. Before #665 was fixed, the filter read per-VM flags
-    /// (<c>HasReviewDiff</c> / <c>HasReviewAction</c>) populated lazily by
-    /// <c>SettingReviewDiffApplier</c>. When a sub-page's ViewModels hadn't been hydrated
-    /// at the time the user toggled "Only Changes", those flags were stuck at <c>false</c>
-    /// while the service already knew about the diffs — so rows that still needed review
-    /// were hidden and the Apply button could not be reached.
-    ///
-    /// This test enforces: for every setting id the service reports as part of the review
-    /// queue, the filter shows the row. The helper is given only ids and the service,
-    /// so there is no per-VM flag to consult even if a future regression tried to.
-    /// </summary>
+    // For every id the service reports as part of the queue, the filter shows the row; the helper is given only
+    // ids and the service, so there is no per-VM flag to consult.
     [Fact]
     public void ShouldShowInReviewQueue_VisibilityFollowsServiceNotPerVmFlag()
     {

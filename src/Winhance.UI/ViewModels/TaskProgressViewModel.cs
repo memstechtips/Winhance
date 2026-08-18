@@ -7,10 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for task progress display in the main window.
-/// Manages progress bar state, queue info, and multi-script slots.
-/// </summary>
 public partial class TaskProgressViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -45,10 +41,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial int ActiveScriptCount { get; set; }
 
-    /// <summary>
-    /// Event raised when a multi-script progress update is received.
-    /// Parameters: (slotIndex, detail).
-    /// </summary>
     public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public string CancelButtonLabel =>
@@ -202,9 +194,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>
-    /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
-    /// </summary>
     private async Task ScheduleHideProgressAsync()
     {
         _hideDelayCts?.Cancel();

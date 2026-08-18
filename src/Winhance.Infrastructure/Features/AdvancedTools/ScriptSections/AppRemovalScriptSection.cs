@@ -6,9 +6,6 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Handles scripts directory setup, app removal script embedding, and the Winhance installer script.
-/// </summary>
 internal class AppRemovalScriptSection
 {
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
@@ -149,9 +146,6 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}Write-Log \"Windows Apps removal configuration completed\" \"SUCCESS\"");
     }
 
-    /// <summary>
-    /// Unified helper that replaces the three structurally identical AppendXxxScriptContent methods.
-    /// </summary>
     private void AppendEmbeddedScript(StringBuilder sb, string scriptName, string varPrefix, string scriptContent, string indent)
     {
         sb.AppendLine($"{indent}# Create {scriptName}.ps1 script");

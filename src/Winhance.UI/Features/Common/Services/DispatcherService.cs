@@ -3,29 +3,19 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Implementation of IDispatcherService for WinUI 3.
-/// Provides UI thread dispatching capabilities using DispatcherQueue.
-/// </summary>
-/// <remarks>
-/// This service uses late initialization because DI services are created during
-/// container build, which happens BEFORE the Window exists. DispatcherQueue.GetForCurrentThread()
-/// only works on the UI thread, so the DispatcherQueue must be set after window creation.
-/// </remarks>
+// Late initialization: DI services are created during container build, BEFORE the Window exists, and
+// DispatcherQueue.GetForCurrentThread() only works on the UI thread.
 public class DispatcherService : IDispatcherService
 {
     private DispatcherQueue? _dispatcherQueue;
 
-    /// <inheritdoc/>
     public bool HasThreadAccess => _dispatcherQueue?.HasThreadAccess ?? false;
 
-    /// <inheritdoc/>
     public void Initialize(DispatcherQueue dispatcherQueue)
     {
         _dispatcherQueue = dispatcherQueue ?? throw new ArgumentNullException(nameof(dispatcherQueue));
     }
 
-    /// <inheritdoc/>
     public void RunOnUIThread(Action action)
     {
         EnsureInitialized();
@@ -40,7 +30,6 @@ public class DispatcherService : IDispatcherService
         }
     }
 
-    /// <inheritdoc/>
     public void RunOnUIThread(DispatcherQueuePriority priority, Action action)
     {
         EnsureInitialized();
@@ -55,13 +44,11 @@ public class DispatcherService : IDispatcherService
         }
     }
 
-    /// <inheritdoc/>
     public async Task RunOnUIThreadAsync(Func<Task> asyncAction)
     {
         await RunOnUIThreadAsync(DispatcherQueuePriority.Normal, asyncAction);
     }
 
-    /// <inheritdoc/>
     public async Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction)
     {
         EnsureInitialized();
@@ -95,7 +82,6 @@ public class DispatcherService : IDispatcherService
         await tcs.Task;
     }
 
-    /// <inheritdoc/>
     public Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction)
     {
         EnsureInitialized();

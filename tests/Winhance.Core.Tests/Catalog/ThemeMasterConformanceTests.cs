@@ -4,18 +4,10 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// theme-mode-windows is a Controls MASTER over two facets it does not exclusively own, not a parent that
-/// gates them - the same shape visual-effects-mode already uses. It carries two presets (Light / Dark) plus
-/// a NEUTRAL state for the reading neither preset explains: AppsUseLightTheme and SystemUsesLightTheme are
-/// independent, so light-apps/dark-shell is a real configuration (it is the Windows 10 shipped default) that
-/// this setting has no single write for. That state is IsFallback (detection lands on it and NAMES it, where
-/// the card used to read "Not recognized") and IsDetectOnly (it is not offered as a pick that would write
-/// nothing).
-///
-/// Machine-independent: everything here reads the shipped <see cref="SettingCatalog"/> and the pure
-/// resolvers.
-/// </summary>
+// theme-mode-windows is a Controls MASTER over two facets it does not exclusively own (AppsUseLightTheme and
+// SystemUsesLightTheme are independent): two presets plus a NEUTRAL state for light-apps/dark-shell - the
+// Windows 10 shipped default, which has no single write. That state is IsFallback (detection names it) and
+// IsDetectOnly (not offered as a pick that would write nothing).
 public class ThemeMasterConformanceTests
 {
     private const string Master = "theme-mode-windows";

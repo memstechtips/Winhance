@@ -2,9 +2,6 @@ using Microsoft.Win32;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 
-/// <summary>
-/// Pure utility methods for PowerShell script generation.
-/// </summary>
 internal static class PowerShellScriptUtilities
 {
     public static string SanitizeVariableName(string name)

@@ -112,10 +112,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         };
     }
 
-    /// <summary>
-    /// Runs a process as the interactive user using the stored token.
-    /// Falls back to normal Process.Start if no token is available.
-    /// </summary>
     public async Task<InteractiveProcessResult> RunProcessAsInteractiveUserAsync(
         string fileName,
         string arguments,
@@ -134,9 +130,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Normal process execution (non-OTS fallback).
-    /// </summary>
     private async Task<InteractiveProcessResult> RunProcessNormalAsync(
         string fileName,
         string arguments,
@@ -183,9 +176,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             result.StandardError);
     }
 
-    /// <summary>
-    /// Runs a process as the interactive user using CreateProcessWithTokenW.
-    /// </summary>
     private async Task<InteractiveProcessResult> RunProcessWithTokenAsync(
         string fileName,
         string arguments,
@@ -358,11 +348,7 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Launches a GUI process as the interactive user (fire-and-forget).
-    /// Uses CreateProcessWithTokenW without pipe redirection so the child
-    /// process can create its own window on the interactive user's desktop.
-    /// </summary>
+    // CreateProcessWithTokenW without pipe redirection, so the child can create its own window on the interactive user's desktop.
     public void LaunchProcessAsInteractiveUser(string fileName, string arguments = "")
     {
         if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
@@ -421,10 +407,7 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Fallback 1: Find explorer.exe in the active console session and read its process token SID.
-    /// Also duplicates the token for later use in process creation.
-    /// </summary>
+    // Also duplicates the token for later process creation.
     private string? TryGetSidFromExplorerToken()
     {
         try
@@ -519,9 +502,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Fallback 2: Query WMI Win32_ComputerSystem.UserName and translate to SID.
-    /// </summary>
     private string? TryGetSidFromWmi()
     {
         try
@@ -559,9 +539,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Fallback 3: Use WTS Session API to get the console session's username/domain and translate to SID.
-    /// </summary>
     private string? TryGetSidFromWtsSession()
     {
         try
@@ -660,7 +637,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             "Users", username);
     }
 
-    /// <inheritdoc />
     public IShellRelaunchToken? CaptureShellRelaunchToken()
     {
         // Deliberately NOT gated on _isOtsElevation. When Marco runs Winhance elevated as himself
@@ -733,7 +709,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <inheritdoc cref="IShellRelaunchToken"/>
     private sealed class ShellRelaunchToken(IntPtr token, ILogService logService) : IShellRelaunchToken
     {
         private IntPtr _token = token;

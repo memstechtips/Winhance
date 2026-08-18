@@ -7,38 +7,18 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance: every <see cref="RegTarget.Type"/> the catalog declares must match the type Windows
-/// actually stores that value under, on every clean-install probe capture we hold.
-///
-/// This exists because a wrong declared type is silently destructive rather than merely wrong. A target
-/// with a surgical shape (BitMask / ByteOnly / StringFlagMask / CompositeStringKey) needs a specific CLR
-/// type to reduce at all: when the stored type does not match, detection cannot place the setting on any
-/// state, and before the recover-or-refuse fix the surgical writers would overwrite the whole value with a
-/// zeroed array. So the declared type is load-bearing, and nothing else in the suite checks it - the
-/// clean-install conformance test compares detected STATE, which a type mismatch makes unresolvable rather
-/// than wrong, so it lands in a different bucket.
-///
-/// Provenance of the assertion: run offline against all five probe captures on 2026-07-27 (Win10 19045 +
-/// Win11 26200 x4) - 727 present-value comparisons, 0 mismatches. This test pins that result against the
-/// three committed fixtures so a future catalog edit cannot quietly contradict reality.
-///
-/// Scope: only targets the fixture observed PRESENT. A value absent on a clean install is one Winhance
-/// itself creates, so Winhance chooses its type and it is self-consistent by construction - there is no
-/// external truth to conform to, and asserting one would be inventing evidence.
-///
-/// Run: winhance-harness CatalogTargetTypeConformanceTests
-/// </summary>
+// A wrong declared type is silently destructive: a surgical shape (BitMask / ByteOnly / StringFlagMask /
+// CompositeStringKey) needs a specific CLR type to reduce, and before the recover-or-refuse fix the writers would
+// overwrite the whole value with a zeroed array. Only targets the fixture observed PRESENT are checked - a value
+// absent on a clean install is one Winhance creates, so it chooses its type. Run: winhance-harness CatalogTargetTypeConformanceTests
 public class CatalogTargetTypeConformanceTests
 {
     private readonly ITestOutputHelper _output;
 
     public CatalogTargetTypeConformanceTests(ITestOutputHelper output) => _output = output;
 
-    /// <summary>Declared-vs-observed pairs that are known-good despite differing. Windows stores some values
-    /// as REG_EXPAND_SZ where the catalog declares REG_SZ; both read back as a string, so every string-shaped
-    /// reduction behaves identically and neither detection nor apply is affected. Empty of anything else - if
-    /// a new pair appears here it needs a written reason, not a shrug.</summary>
+    // Windows stores some values as REG_EXPAND_SZ where the catalog declares REG_SZ; both read back as string, so no
+    // reduction is affected. A new pair here needs a written reason.
     private static readonly HashSet<(RegistryValueKind Declared, RegistryValueKind Observed)> BenignPairs = new()
     {
         (RegistryValueKind.String, RegistryValueKind.ExpandString),
@@ -121,8 +101,7 @@ public class CatalogTargetTypeConformanceTests
             + "unsafe:\n" + string.Join("\n", mismatches.Select(kv => $"  {kv.Key}: {kv.Value}")));
     }
 
-    /// <summary>Names the surgical shape, if any, so a failure says outright how much damage a wrong type
-    /// would do rather than leaving the reader to look it up.</summary>
+    // So a failure says outright how much damage a wrong type would do.
     private static string DescribeShape(RegTarget reg)
     {
         if (reg.BitMask is not null) return " (SURGICAL: bitmask - unreadable and unsafe to write)";

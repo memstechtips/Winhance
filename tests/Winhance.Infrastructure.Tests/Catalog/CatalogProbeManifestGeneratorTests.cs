@@ -7,38 +7,19 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// GENERATOR (not an assertion test): dumps the live <see cref="SettingCatalog"/> to JSON and splices that JSON
-/// into <c>extras/probe/Probe-WinhanceDefaults.template.ps1</c>, producing the single self-contained
-/// <c>extras/probe/Probe-WinhanceDefaults.ps1</c> that Marco drops on a clean VM.
-///
-/// WHY IT LIVES IN A TEST PROJECT: the catalog is C# and a PowerShell script cannot read it, so the manifest has to
-/// be produced by real C# iterating <see cref="SettingCatalog.All"/>. Regex-parsing the catalog source is NOT an
-/// acceptable substitute - it silently misses shape (build-scoped roles, mirror paths, binary reductions) that this
-/// walk gets right by construction. The test project is the only thing on the Windows worker that already compiles
-/// against Winhance.Core, so this rides in as a [Fact] and runs via <c>winhance-harness CatalogProbeManifest</c>.
-///
-/// It writes into the repo working tree (via the <see cref="SolutionDir"/> CallerFilePath anchor, the same trick
-/// RecommendedConfigConformanceTests uses so it resolves the repo even when the build output is redirected off a
-/// network share). Both outputs are committed - the previous one-shot config generator was written, used and
-/// deleted, and regenerating it cost real time.
-///
-/// Run: winhance-harness CatalogProbeManifest      (or: dotnet test --filter CatalogProbeManifest)
-/// </summary>
+// GENERATOR, not an assertion: dumps the live catalog to JSON and splices it into
+// extras/probe/Probe-WinhanceDefaults.template.ps1, producing the self-contained probe Marco drops on a clean
+// VM. Lives in a test project because a PowerShell script cannot read the C# catalog and regex-parsing the
+// source misses shape (build-scoped roles, mirror paths, binary reductions); writes into the repo tree via the
+// CallerFilePath anchor. Run: winhance-harness CatalogProbeManifest
 [Collection(RepoFileWritersCollection.Name)]
 public class CatalogProbeManifestGeneratorTests
 {
     private const string ManifestPlaceholder = "@@MANIFEST_JSON@@";
     private const int ManifestSchemaVersion = 1;
 
-    /// <summary>
-    /// Four catalog targets declare <c>Key == ""</c> (they read a key's (Default) value, so there is no value name
-    /// to key off). A target Key is only ever a JOIN HANDLE between a target and the state <c>Set</c> entries that
-    /// reference it - it is never a registry name - so an empty one is substituted for this sentinel wherever it is
-    /// used as a JSON property name. Empty-string property names are at best untested through PS 5.1's
-    /// <c>ConvertFrom-Json</c> / <c>PSObject.Properties</c>, and a silently dropped property would make those
-    /// settings vanish from the probe's finding with no error. The faithful Key is still emitted as <c>key</c>.
-    /// </summary>
+    // Four targets declare Key == "" (they read a key's (Default) value); a Key is only a JOIN HANDLE, never a
+    // registry name, and an empty JSON property name is untested through PS 5.1's ConvertFrom-Json, so it is substituted.
     private const string EmptyKeySentinel = "(target:default-value)";
 
     private static string JoinKey(string key) => key.Length == 0 ? EmptyKeySentinel : key;

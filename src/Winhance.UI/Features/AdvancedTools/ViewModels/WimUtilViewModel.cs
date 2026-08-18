@@ -9,10 +9,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Thin orchestrator ViewModel for the WIM Utility wizard.
-/// Owns wizard navigation state and delegates step-specific work to sub-ViewModels.
-/// </summary>
 public partial class WimUtilViewModel : ObservableObject, IDisposable
 {
     private readonly IOscdimgToolManager _oscdimgToolManager;
@@ -345,14 +341,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Step4State));
     }
 
-    /// <summary>
-    /// Opens the right step panels for the current extraction state. Once the
-    /// ISO is extracted, steps 2-4 expand so the user sees every remaining task
-    /// — including step 4's oscdimg download card — without expanding panels by
-    /// hand. Step 1 is left alone (it stays expanded, showing its result).
-    /// Applied once per completed-extraction state; the user can freely
-    /// collapse/re-expand afterwards. Restarting extraction resets it.
-    /// </summary>
+    // Once the ISO is extracted, steps 2-4 expand so the user sees every remaining task (including step 4's oscdimg
+    // download card); step 1 stays as is. Applied once per completed extraction; restarting extraction resets it.
     private void RefreshStepExpansion()
     {
         if (Step1.IsExtractionComplete)

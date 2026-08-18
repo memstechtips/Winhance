@@ -4,16 +4,10 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Existence gate for settings whose mechanism may not exist on this machine: powercfg GUIDs
-/// (with unhide-via-EnablementKey) and scheduled tasks (registered or not). Originally reproduced the old
-/// PowerSettingsValidationService.FilterSettingsByExistenceAsync for the new catalog model,
-/// branch-for-branch: keep a setting unless it validates existence AND has powercfg targets whose GUIDs are all
-/// absent (after attempting to unhide via the EnablementKey), or a checked target is hardware-controlled. The
-/// enablement write is the constant "Attributes"=0 the old EnablementRegistrySetting wrote, reproduced via
-/// IWindowsRegistryService.SetValue - the same service the old
-/// filter used. The =0 write VALUE is not modelled on PowerCfgTarget (it carries only path/name/type), so it is
-/// hardcoded here; the name/type half is pinned by CatalogPowerExistenceFilterConformanceTests, which also gates
-/// this filter's decisions over constructed probes (machine-independent).</summary>
+// Keep a setting unless it validates existence AND has powercfg targets whose GUIDs are all absent (after
+// attempting to unhide via the EnablementKey), or a checked target is hardware-controlled. The enablement write
+// is the constant "Attributes"=0; that VALUE is not modelled on PowerCfgTarget, so it is hardcoded here
+// (CatalogPowerExistenceFilterConformanceTests pins name/type and gates the decisions).
 public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
 {
     private const string Scheme = "SCHEME_CURRENT";

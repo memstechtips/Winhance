@@ -1,10 +1,5 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Turns "apply state &lt;label&gt; of &lt;setting&gt;" into an ordered list of declarative write ops - the
-/// forward direction of target-by-state. Pure; no I/O. Registry, scheduled-task, powercfg, and per-state
-/// effect targets are all handled here (a powercfg target emits a PowerCfgSetOp per AC/DC context).
-/// </summary>
 public static class ApplyPlanBuilder
 {
     public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null, bool reset = false)
@@ -14,9 +9,6 @@ public static class ApplyPlanBuilder
         return Build(setting, state, build, reset);
     }
 
-    /// <summary>Build the apply plan for an EXPLICIT state (not looked up by label). The label overload above resolves
-    /// the state then delegates here; the custom-state path (<see cref="BuildRegistryCustomState"/>) synthesizes a
-    /// transient state and calls this directly.</summary>
     public static IReadOnlyList<ApplyOp> Build(Setting setting, SettingState state, WinBuild? build = null, bool reset = false)
     {
         var ops = new List<ApplyOp>();
@@ -134,12 +126,8 @@ public static class ApplyPlanBuilder
         return ops;
     }
 
-    /// <summary>Apply plan for a registry-selection CUSTOM state (config-import CustomStateValues: a "Custom" /
-    /// no-option state re-applied as raw per-ValueName registry values). Synthesizes a transient state whose Set maps
-    /// each RegTarget (whose ValueName is present in the dict) to a WRITE (Of) or a DELETE (Absent, for a null captured
-    /// value), then runs the normal per-target apply via <see cref="Build(Setting, SettingState, WinBuild?, bool)"/>.
-    /// Only registry targets are written; the resolver gates this to pure registry selections (no
-    /// effects/tasks/powercfg), so the transient state carries no Effects.</summary>
+    // Synthesizes a transient state mapping each captured ValueName to a write (or a delete for a null value); registry
+    // targets only - the resolver gates this to pure registry selections.
     public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues)
     {
         var set = new Dictionary<string, StateValue>();
@@ -152,10 +140,8 @@ public static class ApplyPlanBuilder
         return Build(setting, new SettingState { Label = "__custom__", Set = set });
     }
 
-    /// <summary>Turns "apply this Action" into write ops. An Action has no state - its setting-level Effects
-    /// run on click. A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's enabled value-write
-    /// emits (via a synthesized single-path target, so the harness renders both sides identically); every other
-    /// effect becomes an EffectOp. Order is the authored Effects order.</summary>
+    // A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's value write emits (via a synthesized single-path
+    // target) so the harness renders both sides identically; every other effect becomes an EffectOp, in authored order.
     public static IReadOnlyList<ApplyOp> BuildAction(Setting setting)
     {
         var ops = new List<ApplyOp>();
@@ -177,8 +163,6 @@ public static class ApplyPlanBuilder
         return ops;
     }
 
-    /// <summary>Apply plan for a numeric (slider) setting: one PowerCfgSetOp per context value, the display value
-    /// converted to system units (the inverse of the converter's system->display).</summary>
     public static IReadOnlyList<ApplyOp> BuildPowerCfgNumeric(Setting setting, IReadOnlyList<ContextValue> values)
     {
         var ops = new List<ApplyOp>();
@@ -189,11 +173,6 @@ public static class ApplyPlanBuilder
         return ops;
     }
 
-    /// <summary>Apply plan for a separate-AC/DC powercfg SELECTION: writes the AC option's value to the AC context and
-    /// the DC option's value to the DC context (asymmetric). Each option's value is that state's
-    /// per-target Set payload - the same value Build(stateLabel) writes to BOTH contexts for the symmetric single-index
-    /// path. An index whose state has no value for the target emits no op for that context (defensive; valid config/UI
-    /// indices always resolve).</summary>
     public static IReadOnlyList<ApplyOp> BuildPowerCfgSelectionAcDc(Setting setting, int acIndex, int dcIndex)
     {
         var ops = new List<ApplyOp>();

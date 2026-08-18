@@ -3,9 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-/// <summary>
-/// Parses WinGet CLI stdout lines for progress information.
-/// </summary>
 public static class WinGetProgressParser
 {
     public enum WinGetPhase
@@ -46,10 +43,7 @@ public static class WinGetProgressParser
         @"^0x[0-9a-fA-F]+\s*:\s*(.+)",
         RegexOptions.Compiled);
 
-    /// <summary>
-    /// Maps bundled winget resource keys to human-readable text.
-    /// Empty string = suppress the line entirely.
-    /// </summary>
+    // Empty string = suppress the line entirely.
     private static readonly Dictionary<string, string> ResourceKeyMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["InstallationDisclaimer1"] = "",
@@ -66,10 +60,6 @@ public static class WinGetProgressParser
         ["InstallingDependencies"] = "Installing dependencies...",
     };
 
-    /// <summary>
-    /// Translates a raw winget output line to human-readable text.
-    /// Returns null for lines that should be suppressed, or the translated/original line.
-    /// </summary>
     public static string? TranslateLine(string? line)
     {
         if (string.IsNullOrWhiteSpace(line))

@@ -13,53 +13,34 @@ using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Builds the option matrix's cells and hands them to <see cref="TechnicalDetailsTable"/> to lay out.
-/// Cells are created in code because the column count is per-setting — a DataTemplate cannot express
-/// "N columns where N comes from the data".
-///
-/// Every visual comes from a named Style, never a brush looked up here: a brush read out of
-/// Application.Resources is captured once and would not follow a light/dark switch.
-/// </summary>
+// Cells are created in code because the column count is per-setting - a DataTemplate cannot express "N columns
+// where N comes from the data". Every visual comes from a named Style, never a brush looked up here: a brush
+// read out of Application.Resources is captured once and would not follow a light/dark switch.
 public sealed partial class OptionMatrixView : UserControl
 {
-    /// <summary>The option name and its role badges stay put while the value columns scroll.</summary>
     private const int FrozenColumns = 2;
 
-    /// <summary>
-    /// Three header rows. The mechanism is named once and spans every column it owns; the paths
-    /// split beneath it, one cell per destination; the value names split again beneath those. Two
-    /// registry paths used to mean two full copies of "Registry" and its description side by side.
-    /// </summary>
+    // Three header rows: the mechanism named once, spanning every column it owns; the paths beneath it, one cell per
+    // destination; the value names beneath those.
     private const int MechanismRow = 0;
     private const int PathRow = 1;
     private const int ColumnHeaderRow = 2;
     private const int FirstOptionRow = 3;
 
-    /// <summary>Matches the Software &amp; Apps table, so the two read as the same control.</summary>
+    // Matches the Software & Apps table, so the two read as the same control.
     private const double OuterCornerRadius = 4;
 
-    /// <summary>Clearance under a code block's last line so the scrollbar doesn't sit on it.</summary>
     private const double CodeScrollbarGutter = 12;
 
-    /// <summary>
-    /// Reserved for the "this is your current setting" marker: the 15px icon plus the gap after it.
-    /// Held open on every row, including rows with no marker, so the labels line up.
-    /// </summary>
+    // Held open on every row, including rows with no marker, so the labels line up.
     private const double CurrentMarkerGutter = 21;
 
-    /// <summary>
-    /// Where the table ends. Both the grid lines and the rounded corners are per-cell decisions
-    /// that need this before the first cell is built, so <see cref="Rebuild"/> sets them up front.
-    /// </summary>
+    // Grid lines and rounded corners are per-cell decisions that need this before the first cell is built.
     private int _lastColumn;
     private int _lastRow;
 
-    /// <summary>
-    /// Whether the grid is the last thing inside the box. Code blocks sit under it but inside the
-    /// same border, and then the grid's bottom edge is an internal boundary rather than the box's
-    /// own -- so the last row keeps both its bottom line and its square corners.
-    /// </summary>
+    // Code blocks sit under the grid inside the same border; then the grid's bottom edge is an internal boundary,
+    // so the last row keeps its bottom line and square corners.
     private bool _gridIsLastElement = true;
 
     public OptionMatrixView()
@@ -84,11 +65,8 @@ public sealed partial class OptionMatrixView : UserControl
     private static void OnMatrixChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((OptionMatrixView)d).Rebuild();
 
-    /// <summary>
-    /// Opens the Registry Editor at the path a button sits beside. It reaches the buttons through
-    /// the control rather than through the matrix so Core carries no ICommand: the model says WHERE
-    /// a group writes, and the control says what clicking does about it.
-    /// </summary>
+    // Reaches the buttons through the control rather than the matrix so Core carries no ICommand: the model says
+    // WHERE a group writes, the control says what clicking does about it.
     public static readonly DependencyProperty RegeditCommandProperty =
         DependencyProperty.Register(
             nameof(RegeditCommand),
@@ -102,11 +80,8 @@ public sealed partial class OptionMatrixView : UserControl
         set => SetValue(RegeditCommandProperty, value);
     }
 
-    /// <summary>
-    /// The buttons are built once, inside Rebuild, so a command that arrives after the matrix has
-    /// to rebuild them -- which of the two bindings lands first is not ours to control, and a
-    /// button built against a null command would stay dead for the life of the card.
-    /// </summary>
+    // The buttons are built once, in Rebuild; which of the two bindings lands first is not ours to control, and a
+    // button built against a null command would stay dead for the life of the card.
     private static void OnRegeditCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((OptionMatrixView)d).Rebuild();
 
@@ -165,30 +140,17 @@ public sealed partial class OptionMatrixView : UserControl
         AddCodeBlocks(matrix);
     }
 
-    /// <summary>
-    /// A matrix with no columns still renders when it carries notes, code or requirement chips -
-    /// that is the whole shape of a script-only setting. Only a genuinely empty one is dropped.
-    /// </summary>
+    // A matrix with no columns still renders when it carries notes, code or requirement chips - the shape of a script-only setting.
     private static bool HasAnythingToShow(OptionMatrix m) =>
         m.Columns.Count > 0 || m.HasNotes || m.HasCode || m.Requirements.Count > 0;
 
-    /// <summary>
-    /// Whether there is anything for the Option and Role headers to head. With neither columns nor
-    /// options they are a header band over two empty columns, which reads as a table that lost its
-    /// rows rather than as a setting documented by its scripts.
-    /// </summary>
+    // With neither columns nor options the Option/Role headers would be a band over two empty columns - a table that lost its rows.
     private static bool HasColumnHeaderRow(OptionMatrix m) =>
         m.Columns.Count > 0 || m.Options.Count > 0;
 
-    /// <summary>
-    /// The scripts and .reg payloads a setting runs, under the grid and outside its column model.
-    /// Each body gets a scroller of its own: a script line is many times wider than any column, and
-    /// letting it size a column left one column enormous and empty. Wrapping is off inside the
-    /// scroller so indentation survives -- it is code, and reflowed code is harder to read than
-    /// scrolled code.
-    /// </summary>
-    /// <summary>Heading plus its one-line description, stacked the way the Options header cell
-    /// already stacks them. Falls back to the bare heading when a section has no description.</summary>
+    // Each body gets a scroller of its own: a script line is many times wider than any column, and letting it size
+    // a column left one column enormous and empty. Wrapping is off inside the scroller so indentation survives -
+    // reflowed code is harder to read than scrolled code.
     private FrameworkElement HeadingContent(string heading, string description)
     {
         var label = new TextBlock { Text = heading, Style = Named("TechDetail.Table.GroupLabel") };
@@ -270,10 +232,7 @@ public sealed partial class OptionMatrixView : UserControl
         }
     }
 
-    /// <summary>
-    /// What else applying does, under the grid rather than in a section below the table. Each spans
-    /// the full width: these are not per-option facts, so they have no column to sit in.
-    /// </summary>
+    // Not per-option facts, so no column to sit in; each spans the full width.
     private int AddNotes(OptionMatrix matrix, int firstRow)
     {
         var width = Table.ColumnCount;
@@ -324,10 +283,6 @@ public sealed partial class OptionMatrixView : UserControl
         return row;
     }
 
-    /// <summary>
-    /// The spanning row: each destination sits directly above the values it owns, with the button
-    /// that opens it. This is what replaced the separate "where this lives" block.
-    /// </summary>
     private void AddGroupHeaders(OptionMatrix matrix)
     {
         // Spans both header bands: what this table is doesn't change between the mechanism row and
@@ -379,11 +334,7 @@ public sealed partial class OptionMatrixView : UserControl
         }
     }
 
-    /// <summary>
-    /// Runs of adjacent groups that share a mechanism. Adjacent only: the mechanism cell spans a
-    /// contiguous block of columns, so two registry groups separated by a scheduled task stay two
-    /// headings rather than one heading reaching across the task in between.
-    /// </summary>
+    // Adjacent only: two registry groups separated by a scheduled task stay two headings rather than one reaching across the task.
     private static List<List<MatrixColumnGroup>> ConsecutiveByKind(IReadOnlyList<MatrixColumnGroup> groups)
     {
         var runs = new List<List<MatrixColumnGroup>>();
@@ -404,10 +355,6 @@ public sealed partial class OptionMatrixView : UserControl
         return runs;
     }
 
-    /// <summary>
-    /// The cell above Option and Role: what this table is, and what applying it needs. It used to be
-    /// empty, with a section header floating above the table saying the first half of it.
-    /// </summary>
     private static Border SettingCell(OptionMatrix matrix)
     {
         var content = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
@@ -440,10 +387,6 @@ public sealed partial class OptionMatrixView : UserControl
         return new Border { Style = Named("TechDetail.Table.HeaderBand"), Child = content };
     }
 
-    /// <summary>
-    /// One destination: what it is called, where it is, and the button that opens it. An instance
-    /// method because the button's command is a dependency property on this control now.
-    /// </summary>
     private FrameworkElement PathLine(MatrixColumnGroup group, MatrixPath path)
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -601,7 +544,6 @@ public sealed partial class OptionMatrixView : UserControl
         }
     }
 
-    /// <summary>The live readings, shown only when detection matched no option.</summary>
     private void AddReadingRow(OptionMatrix matrix, int row)
     {
         var label = new TextBlock { Text = matrix.ReadingLabel, Style = Named("TechDetail.Table.ReadingLabel") };
@@ -641,10 +583,7 @@ public sealed partial class OptionMatrixView : UserControl
         return new Border { Style = Named("TechDetail.Table.Cell"), Child = content };
     }
 
-    /// <summary>
-    /// "Recommended" when it holds whatever the power state, "Recommended (On Battery)" when the
-    /// contexts disagree. Non-power settings never carry a context and read unchanged.
-    /// </summary>
+    // "Recommended" when it holds whatever the power state, "Recommended (On Battery)" when the contexts disagree.
     private static string Qualified(string label, string context) =>
         context.Length > 0 ? $"{label} ({context})" : label;
 
@@ -675,10 +614,7 @@ public sealed partial class OptionMatrixView : UserControl
         return badge;
     }
 
-    /// <summary>
-    /// A caption and the thing it names, on one line. Side by side rather than stacked, because a
-    /// caption on its own line reads as a heading in its own right.
-    /// </summary>
+    // Side by side rather than stacked: a caption on its own line reads as a heading in its own right.
     private static FrameworkElement CaptionedLine(string caption, string text, string textStyle)
     {
         var value = new TextBlock { Text = text, Style = Named(textStyle) };
@@ -690,11 +626,8 @@ public sealed partial class OptionMatrixView : UserControl
         return line;
     }
 
-    /// <summary>
-    /// A header over one of the frozen columns. Centred vertically because this row is as tall as
-    /// the value headers beside it, which carry a caption, a name and a type -- left to itself the
-    /// text sits against the top grid line while everything around it is centred.
-    /// </summary>
+    // Centred vertically because this row is as tall as the value headers beside it (caption + name + type); left
+    // alone the text sits against the top grid line.
     private static Border FrozenHeader(string text) => new()
     {
         Style = Named("TechDetail.Table.HeaderCell"),
@@ -718,12 +651,8 @@ public sealed partial class OptionMatrixView : UserControl
         return border;
     }
 
-    /// <summary>
-    /// Plain text, unless the chip names another setting -- then just that name is a link and the
-    /// prose around it stays prose. Splitting the rendered text rather than storing three fragments
-    /// keeps one source of truth for the sentence, and falls back to plain text if the name is not
-    /// found inside it (a translation that reorders the sentence, say).
-    /// </summary>
+    // Splitting the rendered text rather than storing three fragments keeps one source of truth for the sentence;
+    // falls back to plain text if the name is not found in it (a translation that reorders the sentence).
     private static FrameworkElement ChipContent(MatrixChip chip)
     {
         var at = chip.HasLink ? chip.Text.IndexOf(chip.LinkText, StringComparison.Ordinal) : -1;
@@ -779,22 +708,15 @@ public sealed partial class OptionMatrixView : UserControl
         Table.Children.Add(element);
     }
 
-    /// <summary>
-    /// Grid lines sit on each cell's right and bottom edge. The rightmost column drops its, because
-    /// the box's own border already draws that edge and two 1px lines a pixel apart read as a smudge
-    /// rather than as a line. The bottom row drops its only when the grid IS the last thing in the
-    /// box: with code blocks under it that edge is an internal boundary, and suppressing it there is
-    /// what left the last options row hanging open.
-    /// </summary>
+    // Lines sit on each cell's right and bottom edge. The rightmost column drops its own: the box border already
+    // draws that edge, and two 1px lines a pixel apart read as a smudge. The bottom row drops its only when the grid
+    // IS the last thing in the box; with code blocks under it that edge is an internal boundary, and suppressing it
+    // there left the last options row hanging open.
     private Thickness GridLines(int column, int row, int columnSpan) =>
         new(0, 0, IsLastColumn(column, columnSpan) ? 0 : 1,
             row >= _lastRow && _gridIsLastElement ? 0 : 1);   // L,T,R,B
 
-    /// <summary>
-    /// Rounds only the four cells in the table's corners, to the same radius the Software &amp; Apps
-    /// table uses. A cell can be both first and last when the table is one column wide, so each
-    /// corner is decided on its own rather than by picking a single case.
-    /// </summary>
+    // A cell can be both first and last when the table is one column wide, so each corner is decided on its own.
     private CornerRadius Corners(int column, int row, int columnSpan)
     {
         bool first = column == 0;
@@ -810,7 +732,7 @@ public sealed partial class OptionMatrixView : UserControl
             bottom && first ? OuterCornerRadius : 0);
     }
 
-    /// <summary>A spanning header reaches the edge when its LAST column does, not its first.</summary>
+    // A spanning header reaches the edge when its LAST column does, not its first.
     private bool IsLastColumn(int column, int columnSpan) => column + columnSpan - 1 >= _lastColumn;
 
     private void OnTableMeasured(object? sender, EventArgs e)
@@ -845,7 +767,7 @@ public sealed partial class OptionMatrixView : UserControl
 
     private void OnScroll(object sender, ScrollEventArgs e) => Table.HorizontalOffset = e.NewValue;
 
-    /// <summary>Shift+wheel scrolls sideways, matching how tables behave elsewhere in Windows.</summary>
+    // Shift+wheel scrolls sideways, matching tables elsewhere in Windows.
     protected override void OnPointerWheelChanged(PointerRoutedEventArgs e)
     {
         var point = e.GetCurrentPoint(this);

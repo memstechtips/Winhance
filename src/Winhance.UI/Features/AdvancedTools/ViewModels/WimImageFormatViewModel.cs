@@ -10,10 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM image format detection, WIM/ESD conversion, and deletion.
-/// Receives WorkingDirectory from the parent.
-/// </summary>
 public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 {
     private readonly IWimImageService _wimImageService;
@@ -25,9 +21,6 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]

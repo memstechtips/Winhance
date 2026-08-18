@@ -3,9 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Winhance.UI.Features.AdvancedTools.Models;
 
-/// <summary>
-/// Represents an action card in the WIM Utility wizard.
-/// </summary>
 public partial class WizardActionCard : ObservableObject
 {
     public WizardActionCard()

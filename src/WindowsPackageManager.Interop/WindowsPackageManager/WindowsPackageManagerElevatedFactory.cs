@@ -6,20 +6,8 @@ using WinRT;
 
 namespace WindowsPackageManager.Interop;
 
-/// <summary>
-/// Factory for creating winget COM objects using manual activation
-/// to have them in an elevated context.
-/// </summary>
-/// <remarks>
-/// This needs to be called from an elevated context, or the winget
-/// server will reject the connection.
-///
-/// The WinGetServerManualActivation_CreateInstance function used here is defined in
-/// https://github.com/microsoft/winget-cli/blob/master/src/WinGetServer/WinGetServerManualActivation_Client.cpp
-///
-/// This class is based on what the winget cmdlets do. See
-/// https://github.com/microsoft/winget-cli/blob/master/src/PowerShell/Microsoft.WinGet.Client/Helpers/ComObjectFactory.cs
-/// </remarks>
+// Manual COM activation so the objects live in an elevated context; must be called from an elevated process or
+// the winget server rejects the connection. Based on the winget cmdlets' ComObjectFactory (github.com/microsoft/winget-cli).
 public class WindowsPackageManagerElevatedFactory : WindowsPackageManagerFactory
 {
     // The only CLSID context supported by the DLL we call is Prod.

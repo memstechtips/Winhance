@@ -7,10 +7,8 @@ using Winhance.Core.Features.Optimize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>The live <see cref="IStateWriter"/>: executes an apply plan against the real Windows system. Every method
-/// DELEGATES to the proven WindowsRegistryService primitives / scheduled-task / powercfg / effect services - it
-/// never reimplements byte logic. Registered as a singleton; sync-over-async at the writer boundary (the apply
-/// funnel runs off the UI thread).</summary>
+// Delegates to the proven WindowsRegistryService / task / powercfg / effect services - never reimplements byte
+// logic. Singleton; sync-over-async at the writer boundary (the apply funnel runs off the UI thread).
 [SupportedOSPlatform("windows")]
 public sealed class WindowsStateWriter : IStateWriter
 {

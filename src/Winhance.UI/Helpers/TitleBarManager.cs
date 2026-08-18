@@ -7,10 +7,6 @@ using Windows.Graphics;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Manages title bar passthrough regions, padding, and caption button theming.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class TitleBarManager
 {
     private readonly AppWindow _appWindow;
@@ -22,10 +18,7 @@ internal sealed class TitleBarManager
         _logService = logService;
     }
 
-    /// <summary>
-    /// Sets up passthrough regions for interactive elements in the title bar.
-    /// This prevents double-clicks on buttons from maximizing the window.
-    /// </summary>
+    // Prevents double-clicks on title-bar buttons from maximizing the window.
     public void SetPassthroughRegions(
         FrameworkElement titleBar,
         FrameworkElement paneToggleButton,
@@ -62,9 +55,6 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Adds an element's bounds to the passthrough rectangles list.
-    /// </summary>
     private void AddElementPassthroughRect(FrameworkElement element, double scale, List<RectInt32> rects)
     {
         try
@@ -86,10 +76,6 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Sets the padding columns to account for system caption buttons.
-    /// Handles RTL layout by swapping inset assignments.
-    /// </summary>
     public void SetTitleBarPadding(
         ColumnDefinition leftPaddingColumn,
         ColumnDefinition rightPaddingColumn,
@@ -123,9 +109,6 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Applies theme-aware colors to the caption buttons (minimize, maximize, close).
-    /// </summary>
     public void ApplyThemeToCaptionButtons(ElementTheme currentTheme)
     {
         try

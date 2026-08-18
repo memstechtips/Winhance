@@ -5,9 +5,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Default implementation of <see cref="IProcessExecutor"/> that wraps <see cref="System.Diagnostics.Process"/>.
-/// </summary>
 public class ProcessExecutor : IProcessExecutor
 {
     public async Task<ProcessExecutionResult> ExecuteAsync(

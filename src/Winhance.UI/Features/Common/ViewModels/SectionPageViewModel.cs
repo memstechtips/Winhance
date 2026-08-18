@@ -7,11 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-/// <summary>
-/// Base ViewModel for section-based pages (Optimize, Customize).
-/// Handles initialization, search, navigation, and localization for pages
-/// that display a collection of feature ViewModels organized into sections.
-/// </summary>
 public abstract partial class SectionPageViewModel<TSectionInfo>
     : ObservableObject, ISectionPageViewModel, IDisposable
     where TSectionInfo : ISectionInfo
@@ -25,11 +20,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
 
-    /// <summary>
-    /// One item per section, in declaration order — the source the overview cards and the breadcrumb
-    /// flyout are generated from. Each item derives its own badges from observed state, so nothing
-    /// has to remember to refresh them after a change.
-    /// </summary>
+    // The source the overview cards and the breadcrumb flyout are generated from; each item derives its own badges
+    // from observed state, so nothing has to remember to refresh them.
     public IReadOnlyList<SectionOverviewItemViewModel> OverviewItems { get; private set; } =
         Array.Empty<SectionOverviewItemViewModel>();
 
@@ -45,19 +37,14 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     [ObservableProperty]
     public partial ObservableCollection<SearchSuggestionItem> SearchSuggestions { get; set; }
 
-    /// <summary>Localization key for the page title (e.g., "Category_Optimize_Title").</summary>
     protected abstract string PageTitleKey { get; }
 
-    /// <summary>Localization key for the page description/status text.</summary>
     protected abstract string PageDescriptionKey { get; }
 
-    /// <summary>Fallback text for the breadcrumb root when localization is missing.</summary>
     protected abstract string BreadcrumbRootFallback { get; }
 
-    /// <summary>Log prefix for initialization messages (e.g., "OptimizeViewModel").</summary>
     protected abstract string LogPrefix { get; }
 
-    /// <summary>The section definitions for this page.</summary>
     protected abstract IReadOnlyList<TSectionInfo> SectionDefinitions { get; }
 
     public string PageTitle => _localizationService.GetString(PageTitleKey);
@@ -68,11 +55,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     public bool IsInDetailPage => CurrentSectionKey != "Overview";
     public string CurrentSectionName => GetSectionDisplayName(CurrentSectionKey);
 
-    /// <summary>
-    /// The open section's overview item, or null on the overview itself. Lets the breadcrumb bind its
-    /// icon and review badge to the same derived state the card uses, instead of a second imperative
-    /// path computing the same answers into named elements.
-    /// </summary>
+    // Lets the breadcrumb bind its icon and review badge to the same derived state the card uses, instead of a
+    // second imperative path computing the same answers.
     public SectionOverviewItemViewModel? CurrentSectionItem =>
         OverviewItems.FirstOrDefault(item => item.SectionKey == CurrentSectionKey);
 
@@ -127,10 +111,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Must be called from the derived constructor after SectionDefinitions is available,
-    /// to populate the section-key → VM dictionary.
-    /// </summary>
+    // Call from the derived constructor after SectionDefinitions is available.
     protected void InitializeSectionMappings()
     {
         var byModuleId = _featureViewModels.ToDictionary(vm => vm.ModuleId);
@@ -155,10 +136,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OverviewItems = overviewItems;
     }
 
-    /// <summary>
-    /// Looks up a feature ViewModel by its module ID.
-    /// Useful for derived classes to populate named XAML-bound properties.
-    /// </summary>
     protected ISettingsFeatureViewModel GetFeatureByModuleId(string moduleId)
     {
         return _featureViewModels.First(vm => vm.ModuleId == moduleId);
@@ -222,14 +199,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         return _viewModelBySectionKey.GetValueOrDefault(sectionKey);
     }
 
-    /// <summary>
-    /// Which of this page's sections holds a setting, or null when none does — the setting lives on
-    /// the other page, or under an id this page has never loaded.
-    ///
-    /// Asking the sections is deliberate: they are the only thing that knows what they hold, and a
-    /// separate id-to-section map maintained alongside them would be a second copy of that fact,
-    /// free to drift the moment a setting moves between sections.
-    /// </summary>
+    // Asking the sections is deliberate: they are the only thing that knows what they hold; a separate id-to-section
+    // map would be a second copy of that fact, free to drift the moment a setting moves.
     public string? FindSectionForSetting(string settingId)
     {
         if (string.IsNullOrEmpty(settingId)) return null;

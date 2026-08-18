@@ -4,9 +4,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>
-/// Aggregates a feature's settings into the counts its overview card shows.
-/// </summary>
 public static class FeatureBadgeAggregator
 {
     public static FeatureBadgeSummary Aggregate(ISettingsFeatureViewModel feature)

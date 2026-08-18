@@ -4,14 +4,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Services;
 
-/// <summary>
-/// The write strategy for a mode where the settings are not the user's to change — config review,
-/// where the pending decision is accept or reject, not edit.
-///
-/// The cards are already disabled there, so a write reaching this class means a gate upstream let
-/// one through. Refusing is the safe answer, and the warning is what makes that gap findable
-/// instead of silent.
-/// </summary>
+// The cards are already disabled in review, so a write reaching this class means an upstream gate let one
+// through; refusing is the safe answer, and the warning is what makes the gap findable.
 public sealed class ReadOnlySettingWriteStrategy : ISettingWriteStrategy
 {
     private readonly ILogService _logService;

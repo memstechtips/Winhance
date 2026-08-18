@@ -8,30 +8,18 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// The single projection "what belongs in a per-build Default config, and with what value" - shared by
-/// <see cref="DefaultConfigGeneratorTests"/> (which WRITES the two shipped Default configs from it) and
-/// <see cref="DefaultConfigConformanceTests"/> (which asserts the shipped files match it), so the generator and
-/// the gate cannot disagree. Built on the PRODUCTION default primitives (<see cref="CatalogToggleState.GetDefault"/>,
-/// <c>RecommendedSettingsResolver.GetDefaultIndex(setting, build)</c> / <c>BuildPowerCfgApplyValue(useRecommended:
-/// false)</c>), mirroring the per-<see cref="ControlKind"/> dispatch of RecommendedConfigConformanceTests - never a
-/// hand-copied rule table.
-///
-/// A setting is projected iff it is AVAILABLE on the target build (maximal machine: hardware/existence-gated
-/// settings included - import drops non-applicable ones at the CatalogSettingsRegistry gate) AND carries a
-/// WindowsDefault for that build. Actions and the dynamic power-plan selection have no default state and are
-/// never projected (the old VM-exported files carried Action rows; a Default config restores STATES).
-/// </summary>
+// Shared by the generator (writes) and the conformance test (asserts) so they cannot disagree; built on the
+// PRODUCTION default primitives, never a hand-copied rule table. A setting is projected iff AVAILABLE on the
+// target build (maximal machine; import drops non-applicable ones) AND carries a WindowsDefault for that build.
+// Actions and the dynamic power-plan selection are never projected.
 internal static class DefaultConfigProjection
 {
-    /// <summary>The two shipped Default configs and the build each is generated for.</summary>
     internal static readonly (string FileName, WinBuild Build)[] Targets =
     {
         ("Winhance_Default_Config_Windows10_22H2.winhance", new WinBuild(19045)),
         ("Winhance_Default_Config_Windows11_25H2.winhance", new WinBuild(26200)),
     };
 
-    /// <summary>Feature ids under the Customize section, in shipped-file order.</summary>
     internal static readonly string[] CustomizeFeatures =
     {
         ExplorerCustomizationsCatalog.FeatureId,
@@ -40,7 +28,6 @@ internal static class DefaultConfigProjection
         WindowsThemeCustomizationsCatalog.FeatureId,
     };
 
-    /// <summary>Feature ids under the Optimize section, in shipped-file order.</summary>
     internal static readonly string[] OptimizeFeatures =
     {
         GamingAndPerformanceOptimizationsCatalog.FeatureId,
@@ -51,8 +38,6 @@ internal static class DefaultConfigProjection
         UpdateOptimizationsCatalog.FeatureId,
     };
 
-    /// <summary>The Default-config item for a setting on a build, or null when the setting does not belong in
-    /// that build's Default config (unavailable, or no WindowsDefault to restore).</summary>
     internal static ConfigurationItem? Project(Setting setting, WinBuild build)
     {
         if (!setting.Availability.Allows(build))
@@ -156,8 +141,7 @@ internal static class DefaultConfigProjection
         }
     }
 
-    /// <summary>Repo path of a shipped config, anchored on the compile-time source path (the
-    /// RecommendedConfigConformanceTests trick) so it resolves even with redirected build outputs.</summary>
+    // Anchored on the compile-time source path so it resolves even with redirected build outputs.
     internal static string ConfigPath(string fileName)
         => Path.Combine(SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources", "Configs", fileName);
 

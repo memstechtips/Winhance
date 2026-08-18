@@ -9,13 +9,7 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// WinUI 3 implementation of IDialogService using ContentDialog.
-/// </summary>
-/// <remarks>
-/// This service uses a SemaphoreSlim to ensure only one ContentDialog is shown at a time,
-/// as WinUI 3 throws an exception if multiple ContentDialogs are open simultaneously.
-/// </remarks>
+// A SemaphoreSlim serialises dialogs: WinUI 3 throws if two ContentDialogs are open at once.
 public class DialogService : IDialogService
 {
     private readonly ILocalizationService _localization;
@@ -24,10 +18,7 @@ public class DialogService : IDialogService
     private readonly ISponsorsService _sponsorsService;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
 
-    /// <summary>
-    /// The XamlRoot required for showing ContentDialogs.
-    /// Must be set by MainWindow after content is loaded.
-    /// </summary>
+    // Must be set by MainWindow after content is loaded.
     public XamlRoot? XamlRoot { get; set; }
 
     public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService)
@@ -38,10 +29,7 @@ public class DialogService : IDialogService
         _sponsorsService = sponsorsService;
     }
 
-    /// <summary>
-    /// Applies common dialog configuration: XamlRoot, theme, and a semi-transparent
-    /// background so the window's Mica/Acrylic backdrop shows through the dialog.
-    /// </summary>
+    // A semi-transparent background lets the window's Mica/Acrylic backdrop show through the dialog.
     private void ConfigureDialog(ContentDialog dialog)
     {
         dialog.XamlRoot = XamlRoot;
@@ -72,10 +60,6 @@ public class DialogService : IDialogService
 
     #region Guard Helpers
 
-    /// <summary>
-    /// Acquires the dialog semaphore, checks XamlRoot, and executes the dialog action.
-    /// Returns <paramref name="defaultValue"/> if XamlRoot is null.
-    /// </summary>
     private async Task<T> ExecuteDialogAsync<T>(Func<Task<T>> dialogAction, T defaultValue)
     {
         await _dialogSemaphore.WaitAsync();
@@ -94,9 +78,6 @@ public class DialogService : IDialogService
         }
     }
 
-    /// <summary>
-    /// Acquires the dialog semaphore, checks XamlRoot, and executes a void dialog action.
-    /// </summary>
     private async Task ExecuteDialogAsync(Func<Task> dialogAction)
     {
         await ExecuteDialogAsync(async () => { await dialogAction(); return true; }, true);
@@ -106,9 +87,6 @@ public class DialogService : IDialogService
 
     #region Simple Dialogs
 
-    /// <summary>
-    /// Shared implementation for ShowInformationAsync, ShowWarningAsync, and ShowErrorAsync.
-    /// </summary>
     private async Task ShowSimpleDialogAsync(string message, string title, string buttonText)
     {
         await ExecuteDialogAsync(async () =>

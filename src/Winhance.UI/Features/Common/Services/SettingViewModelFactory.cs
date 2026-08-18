@@ -13,9 +13,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Creates fully-configured SettingItemViewModel instances from setting definitions.
-/// </summary>
 public class SettingViewModelFactory : ISettingViewModelFactory
 {
     private readonly SettingViewModelDependencies _viewModelDeps;
@@ -41,9 +38,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _enricher = enricher;
     }
 
-    /// <summary>
-    /// Creates a fully-configured SettingItemViewModel for the given setting definition and current state.
-    /// </summary>
     public async Task<SettingItemViewModel> CreateAsync(
         Setting setting,
         SettingStateResult currentState,
@@ -255,22 +249,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
-    /// <summary>
-    /// Builds a selection's combobox options from the <see cref="Setting"/> model:
-    /// one option per <see cref="SettingState"/>, localized via the canonical Setting_{id}_Option_{i}
-    /// (and _OptionTooltip_{i}) keys with <c>state.Label</c> as the fallback, and the recommended/default
-    /// flags derived from the state's roles.
-    ///
-    /// The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == the -1
-    /// sentinel) is shown by the card's outcome overlay instead of by a synthetic list entry: a fake
-    /// "Custom" item made an unreadable value read as a deliberate choice, and it was pickable. A
-    /// <see cref="SettingState.IsDetectOnly"/> state is left out for the same reason from the other
-    /// direction: detection can land on it, but choosing it would write nothing.
-    ///
-    /// SKIP, NEVER RENUMBER. A skipped state does not shift the ones after it: every option keeps its own
-    /// STATE index as its Value, because that index is what the drop-down-closed handler applies, what a
-    /// saved .winhance config persists, and what the review diff compares.
-    /// </summary>
+    // The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == -1) is shown by the
+    // card's outcome overlay, not by a synthetic list entry: a fake "Custom" item made an unreadable value read as
+    // a deliberate choice, and it was pickable. An IsDetectOnly state is left out for the same reason from the
+    // other direction. SKIP, NEVER RENUMBER: every option keeps its own STATE index as its Value - that index is
+    // what the drop-down-closed handler applies, what a saved .winhance config persists, and what the review diff compares.
     private void BuildCatalogSelectionOptions(Setting setting, ObservableCollection<ComboBoxDisplayOption> options)
     {
         var states = setting.States;
@@ -345,8 +328,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return null;
     }
 
-    /// <summary>Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService
-    /// .ControlToInputType: derives the VM-facing InputType from the catalog Setting's derived Control.</summary>
+    // Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService .ControlToInputType.
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

@@ -13,8 +13,6 @@ public class ComboBoxResolver : IComboBoxResolver
         _versionService = versionService;
     }
 
-    /// <summary>Resolves live registry/powercfg readings to a selection option index, reading
-    /// States/Targets. Guarded by ComboBoxResolverSettingConformanceTests.</summary>
     public int ResolveRawValuesToIndex(Setting setting, Dictionary<string, object?> rawValues)
     {
         // (a) DetectedIndex from a custom detector (e.g. DnsServer) - catalog-agnostic.
@@ -116,8 +114,7 @@ public class ComboBoxResolver : IComboBoxResolver
         return ComboBoxConstants.CustomStateIndex;
     }
 
-    /// <summary>The RawValues dictionary key for a state's Set entry: a RegTarget's key already IS its
-    /// <c>ValueName ?? "KeyExists"</c>; a PowerCfgTarget's "Power" key re-keys to "PowerCfgValue".</summary>
+    // A RegTarget's key already IS its ValueName ?? "KeyExists"; a PowerCfgTarget's "Power" key re-keys to "PowerCfgValue".
     private static string ReadKeyForTarget(Setting setting, string targetKey)
         => setting.Targets.FirstOrDefault(t => t.Key == targetKey) is PowerCfgTarget ? "PowerCfgValue" : targetKey;
 

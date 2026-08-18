@@ -2,63 +2,25 @@ using Microsoft.UI.Dispatching;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
-/// <summary>
-/// Service for dispatching actions to the UI thread.
-/// Required because WinUI 3 uses DispatcherQueue instead of WPF's Dispatcher.
-/// </summary>
 public interface IDispatcherService
 {
-    /// <summary>
-    /// Initializes the dispatcher service with the DispatcherQueue from the main window.
-    /// Must be called from MainWindow constructor after window is created.
-    /// </summary>
-    /// <param name="dispatcherQueue">The DispatcherQueue from the main window.</param>
+    // Call from the MainWindow constructor after the window is created.
     void Initialize(DispatcherQueue dispatcherQueue);
 
-    /// <summary>
-    /// Gets whether the calling thread has access to the UI thread.
-    /// </summary>
     bool HasThreadAccess { get; }
 
-    /// <summary>
-    /// Runs an action on the UI thread synchronously if already on UI thread,
-    /// or enqueues it if on a background thread.
-    /// </summary>
-    /// <param name="action">The action to run on the UI thread.</param>
+    // Synchronous when already on the UI thread, enqueued otherwise.
     void RunOnUIThread(Action action);
 
-    /// <summary>
-    /// Runs an action on the UI thread with the specified priority.
-    /// </summary>
-    /// <param name="priority">The priority for the dispatcher queue.</param>
-    /// <param name="action">The action to run on the UI thread.</param>
     void RunOnUIThread(DispatcherQueuePriority priority, Action action);
 
-    /// <summary>
-    /// Runs an async action on the UI thread and awaits completion.
-    /// </summary>
-    /// <param name="asyncAction">The async action to run on the UI thread.</param>
-    /// <returns>A task representing the completion of the action.</returns>
     Task RunOnUIThreadAsync(Func<Task> asyncAction);
 
-    /// <summary>
-    /// Runs an async action on the UI thread with the specified priority and awaits completion.
-    /// </summary>
-    /// <param name="priority">The priority for the dispatcher queue.</param>
-    /// <param name="asyncAction">The async action to run on the UI thread.</param>
-    /// <returns>A task representing the completion of the action.</returns>
     Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction);
 
-    /// <summary>
-    /// Runs an async action on the UI thread with a DispatcherQueueSynchronizationContext
-    /// installed for the duration, so that every <c>await</c> inside
-    /// <paramref name="asyncAction"/> marshals its continuation back to the UI thread.
-    /// Use this for multi-stage UI work that may be triggered from a background thread or
-    /// from a bare DispatcherQueue.TryEnqueue callback — neither installs a
-    /// SynchronizationContext of its own, so plain RunOnUIThreadAsync would let
-    /// continuations after genuinely-async awaits resume on thread-pool threads.
-    /// </summary>
-    /// <param name="asyncAction">The async action to run on the UI thread.</param>
-    /// <returns>A task representing the completion of the action.</returns>
+    // Installs a DispatcherQueueSynchronizationContext for the duration, so every await inside marshals back to
+    // the UI thread. Use for multi-stage UI work triggered from a background thread or a bare
+    // DispatcherQueue.TryEnqueue callback - neither installs a SynchronizationContext, so plain RunOnUIThreadAsync
+    // would let continuations after real awaits resume on thread-pool threads.
     Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction);
 }

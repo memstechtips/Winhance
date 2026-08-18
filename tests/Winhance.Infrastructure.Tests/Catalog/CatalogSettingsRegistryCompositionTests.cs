@@ -6,9 +6,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Proves CatalogSettingsRegistry composes the proven membership pieces correctly: per-feature +
-/// flattened membership equals SettingCatalog filtered by CatalogMembershipFilter (existence stubbed to
-/// passthrough), and GetById resolves canonical + -win10 alias + miss. Machine-independent (stubbed probes).</summary>
 public class CatalogSettingsRegistryCompositionTests
 {
     [Fact]

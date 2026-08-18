@@ -5,9 +5,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// ViewModel for the AdvancedTools page, coordinating sub-feature navigation.
-/// </summary>
 public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -16,54 +13,24 @@ public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string CurrentSectionKey { get; set; }
 
-    /// <summary>
-    /// Gets the localized page title.
-    /// </summary>
     public string PageTitle => _localizationService.GetString("Nav_AdvancedTools");
 
-    /// <summary>
-    /// Gets the localized page description.
-    /// </summary>
     public string PageDescription => _localizationService.GetString("Category_AdvancedTools_StatusText");
 
-    /// <summary>
-    /// Gets the localized breadcrumb root text.
-    /// </summary>
     public string BreadcrumbRootText => _localizationService.GetStringOrDefault("Nav_AdvancedTools", "Advanced Tools");
 
-    /// <summary>
-    /// Gets whether navigation is currently on a detail page (not overview).
-    /// </summary>
     public bool IsInDetailPage => CurrentSectionKey != "Overview";
 
-    /// <summary>
-    /// Gets the localized WIM Utility display name for overview card.
-    /// </summary>
     public string WimUtilDisplayName => _localizationService.GetStringOrDefault("WIMUtil_Title", "WIMUtil");
 
-    /// <summary>
-    /// Gets the localized WIM Utility description for overview card.
-    /// </summary>
     public string WimUtilDescription => _localizationService.GetStringOrDefault("WIMUtil_Subtitle", "Create Custom Windows Installation Media");
 
-    /// <summary>
-    /// Gets the localized Autounattend XML display name for overview card.
-    /// </summary>
     public string AutounattendXmlDisplayName => _localizationService.GetStringOrDefault("AdvancedTools_MenuItem_CreateXML", "Create Autounattend XML");
 
-    /// <summary>
-    /// Gets the localized Autounattend XML description for overview card.
-    /// </summary>
     public string AutounattendXmlDescription => _localizationService.GetStringOrDefault("AdvancedTools_GenerateCard_Description", "Generate an autounattend.xml file based on your current Winhance selections to customize Windows during installation.");
 
-    /// <summary>
-    /// Gets the display name of the current section.
-    /// </summary>
     public string CurrentSectionName => GetSectionDisplayName(CurrentSectionKey);
 
-    /// <summary>
-    /// Section definitions for navigation.
-    /// </summary>
     public static readonly IReadOnlyList<AdvancedToolsSectionInfo> Sections = new List<AdvancedToolsSectionInfo>()
     {
         new("WimUtil", "WimUtilIconPath", "WIMUtil"),
@@ -95,9 +62,6 @@ public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(AutounattendXmlDisplayName));
     }
 
-    /// <summary>
-    /// Gets the display name for the specified section key.
-    /// </summary>
     public string GetSectionDisplayName(string sectionKey)
     {
         return sectionKey switch

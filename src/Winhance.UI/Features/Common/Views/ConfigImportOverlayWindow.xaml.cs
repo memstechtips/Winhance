@@ -10,10 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Views;
 
-/// <summary>
-/// A fullscreen overlay window shown during config application.
-/// Uses Win32 interop for semi-transparency and borderless maximized presentation.
-/// </summary>
 public sealed partial class ConfigImportOverlayWindow : Window
 {
     [DllImport("user32.dll")]
@@ -98,9 +94,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
         AnnounceStatus(OverlayStatusText.Text);
     }
 
-    /// <summary>
-    /// Updates the status and detail text on the overlay.
-    /// </summary>
     public void UpdateStatus(string status, string? detail = null)
     {
         DispatcherQueue.TryEnqueue(() =>

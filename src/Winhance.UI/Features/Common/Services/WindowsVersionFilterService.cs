@@ -8,10 +8,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Manages the Windows version filter state, persistence, and review mode interactions.
-/// Extracted from MainWindowViewModel for testability.
-/// </summary>
 public class WindowsVersionFilterService : IWindowsVersionFilterService
 {
     private readonly IUserPreferencesService _preferencesService;
@@ -34,13 +30,10 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         _logService = logService;
     }
 
-    /// <inheritdoc />
     public bool IsFilterEnabled { get; private set; } = true;
 
-    /// <inheritdoc />
     public event EventHandler<bool>? FilterStateChanged;
 
-    /// <inheritdoc />
     public async Task LoadFilterPreferenceAsync()
     {
         try
@@ -60,7 +53,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public async Task<bool> ToggleFilterAsync(bool isInReviewMode)
     {
         // Don't allow toggling during review mode
@@ -124,7 +116,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public void ForceFilterOn()
     {
         if (!IsFilterEnabled)
@@ -135,7 +126,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public async Task RestoreFilterPreferenceAsync()
     {
         var savedPreference = await _preferencesService.GetPreferenceAsync(

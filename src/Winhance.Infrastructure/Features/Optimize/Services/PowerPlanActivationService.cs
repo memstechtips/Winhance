@@ -11,9 +11,6 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-/// <summary>Holds the power-plan activation orchestration: ensure-installed + activate + the power-settings
-/// cache, MINUS the post-activation side-effects (event publish + recommended re-apply) that stay with the
-/// caller. Six leaf dependencies; no PowerService / no IStateWriter reference, so it is DI-cycle-safe.</summary>
 public class PowerPlanActivationService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
@@ -25,11 +22,6 @@ public class PowerPlanActivationService(
     private volatile IReadOnlyList<Setting>? _cachedSettings;
     private readonly object _cacheLock = new object();
 
-    /// <summary>
-    /// Ensures the plan with the given GUID is installed and active (importing a predefined-but-not-installed
-    /// plan first), returning success plus the final activated GUID. The post-activation tail
-    /// (PowerPlanChangedEvent + recommended re-apply) is owned by the caller, not this method.
-    /// </summary>
     public async Task<(bool Success, string ActivatedGuid)> EnsureActivatedAsync(string powerPlanGuid, string? planName = null)
     {
         planName ??= powerPlanGuid;
@@ -148,15 +140,7 @@ public class PowerPlanActivationService(
         }
     }
 
-    /// <summary>
-    /// Imports a predefined power plan onto the system. Uses duplication for built-in
-    /// plans and falls back to backup/restore when duplication fails.
-    /// </summary>
-    /// <returns>
-    /// A <see cref="PowerPlanImportResult"/> indicating success or failure with an
-    /// error message. Never throws; all exceptions are caught and returned as a
-    /// failed result.
-    /// </returns>
+    // Duplication for built-in plans, backup/restore fallback when duplication fails. Never throws.
     public async Task<PowerPlanImportResult> ImportPowerPlanAsync(PredefinedPowerPlan predefinedPlan)
     {
         try
@@ -462,10 +446,7 @@ public class PowerPlanActivationService(
         }
     }
 
-    /// <summary>
-    /// Parses a power scheme GUID from powercfg output.
-    /// Expected format: "Power Scheme GUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  (Name)"
-    /// </summary>
+    // Expected format: "Power Scheme GUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (Name)".
     private static string? ParseGuidFromPowercfgOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output)) return null;
@@ -502,14 +483,6 @@ public class PowerPlanActivationService(
         }
     }
 
-    /// <summary>
-    /// Returns the cached power settings, loading them on first call. Used internally
-    /// by ApplyRecommendedSettingsToPlanAsync when populating a freshly-imported plan.
-    /// </summary>
-    /// <returns>
-    /// The filtered settings for the power feature, or an empty enumerable
-    /// if loading fails (failure is logged, never thrown).
-    /// </returns>
     private Task<IReadOnlyList<Setting>> GetSettingsAsync()
     {
         if (_cachedSettings != null)

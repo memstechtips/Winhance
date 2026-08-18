@@ -3,13 +3,8 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Composes the proven membership pieces into a catalog-sourced registry. Holds the machine CONTEXT (build,
-/// hardware caps, and the powercfg-existence-passed id set) resolved once in InitializeAsync, and answers membership
-/// as a PURE QUERY over (catalog x context x scope) - no mutable filter flag, no frozen per-scope index. Default
-/// scope is current-OS (OS-build gate + hardware + existence); includeOtherOsVersions relaxes ONLY the OS-build gate
-/// (the old CompatibleSettingsRegistry SetFilterEnabled(false) "show settings for other Windows versions" mode),
-/// keeping hardware + existence. Additive when written; the old CompatibleSettingsRegistry stayed authoritative
-/// until the coordinated consumer cutover.</summary>
+// Holds the machine CONTEXT (build, hardware caps, existence-passed id set) resolved once in InitializeAsync,
+// and answers membership as a PURE QUERY over (catalog x context x scope) - no mutable filter flag.
 public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 {
     private readonly IWindowsVersionService _version;
@@ -61,9 +56,6 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         _initialized = true;
     }
 
-    /// <summary>Membership as a pure query over the cached context + scope. Default (includeOtherOsVersions=false) is
-    /// current-OS: OS-build gate AND hardware AND existence. includeOtherOsVersions=true relaxes ONLY the OS-build
-    /// gate; hardware + existence still apply.</summary>
     private bool IsMember(Setting s, bool includeOtherOsVersions)
     {
         var osHwOk = includeOtherOsVersions
@@ -73,12 +65,9 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         return !s.Availability.ValidatesExistence || _existencePassed.Contains(s.Id);
     }
 
-    /// <summary>Guards the pure-query surface: the machine CONTEXT must be resolved (InitializeAsync) before any
-    /// membership query, exactly as the old CompatibleSettingsRegistry threw on uninitialized use. Without this an
-    /// uninitialized registry answers over a default (0,0) build + empty existence set, silently hiding every
-    /// build-gated / powercfg setting - which surfaces downstream as a misleading "Setting not found" on apply
-    /// rather than the real "registry not initialized" cause. Every live consumer queries post-startup, so this
-    /// never fires in practice; it converts a swallowed-init failure into a loud, accurate error.</summary>
+    // Without this an uninitialized registry answers over a default (0,0) build + empty existence set, silently
+    // hiding every build-gated / powercfg setting - which surfaces downstream as a misleading "Setting not found"
+    // on apply. Every live consumer queries post-startup; this converts a swallowed-init failure into a loud, accurate error.
     private void EnsureInitialized()
     {
         if (!_initialized)

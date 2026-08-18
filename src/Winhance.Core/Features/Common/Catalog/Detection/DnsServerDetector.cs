@@ -1,8 +1,5 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Detects the DNS-server selection: an automatic (DHCP) adapter resolves to the automatic state;
-/// a manual primary IPv4 DNS resolves to the state whose server it matches, or Custom when it matches none.
-/// The automatic label and the server-IP to state-label map are injected so the detector is reusable.</summary>
 public sealed class DnsServerDetector : IStateDetector
 {
     private readonly string _automaticLabel;

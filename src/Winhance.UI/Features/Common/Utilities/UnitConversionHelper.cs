@@ -1,14 +1,7 @@
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Shared utility for converting power setting values between system units and display units.
-/// </summary>
 internal static class UnitConversionHelper
 {
-    /// <summary>
-    /// Converts a raw powercfg API value to display units based on the display unit string.
-    /// For example, converts 1200 seconds to 20 minutes when display units are "Minutes".
-    /// </summary>
     public static int ConvertFromSystemUnits(int systemValue, string? displayUnits)
     {
         return displayUnits?.ToLowerInvariant() switch
@@ -26,13 +19,8 @@ internal static class UnitConversionHelper
         };
     }
 
-    /// <summary>
-    /// Inverse of <see cref="ConvertFromSystemUnits"/>: converts a display-units value back to the raw
-    /// powercfg system value. Minutes/hours multiply; milliseconds and everything else are 1:1, so
-    /// ConvertFromSystemUnits(ConvertToSystemUnits(x)) == x for any units. Used by the new-model numeric
-    /// accessors, whose catalog ContextValues are stored in display units, to hand call sites a system
-    /// value the existing ConvertFromSystemUnits then re-derives unchanged.
-    /// </summary>
+    // Minutes/hours multiply; milliseconds and everything else are 1:1, so
+    // ConvertFromSystemUnits(ConvertToSystemUnits(x)) == x for any units.
     public static int ConvertToSystemUnits(int displayValue, string? displayUnits)
     {
         return displayUnits?.ToLowerInvariant() switch

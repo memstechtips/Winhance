@@ -107,13 +107,8 @@ public class ReviewModeViewModelCoordinatorTests
         _fileSystemService.Object,
         _applicationModeService.Object);
 
-    /// <summary>
-    /// Creates the coordinator with real child ViewModels but mocked OptimizeVM/CustomizeVM.
-    /// Since OptimizeViewModel and CustomizeViewModel have complex constructors that need
-    /// many dependencies, and the coordinator accesses them through their public ISettingsFeatureViewModel
-    /// properties, we use a helper that constructs the coordinator with null-safe placeholders
-    /// for those VMs (tests that exercise ReapplyReviewDiffsToExistingSettings will need separate handling).
-    /// </summary>
+    // OptimizeViewModel and CustomizeViewModel need many dependencies, so the coordinator gets null-safe
+    // placeholders for them (tests exercising ReapplyReviewDiffsToExistingSettings need separate handling).
     private (ReviewModeViewModelCoordinator Sut, WindowsAppsViewModel WinVm,
         ExternalAppsViewModel ExtVm, SoftwareAppsViewModel SoftVm)
         CreateSutWithVms()

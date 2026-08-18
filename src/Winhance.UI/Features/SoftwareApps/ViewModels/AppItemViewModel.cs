@@ -8,9 +8,6 @@ using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// ViewModel for an individual app item in the software apps list.
-/// </summary>
 public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposable
 {
     private readonly ItemDefinition _definition;
@@ -101,21 +98,9 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
     private BitmapImage? _iconSource;
     private string? _iconSourcePath;
 
-    /// <summary>
-    /// Lazily-constructed BitmapImage from Definition.IconPath. Cached by path
-    /// value so a change to IconPath produces a fresh BitmapImage on next read.
-    /// Returns null when no icon has been resolved.
-    ///
-    /// IconPath is mutated by IAppIconResolver *after* this ViewModel is bound
-    /// to the UI, so callers that change Definition.IconPath must invoke
-    /// NotifyIconChanged() to refresh the bound Image and FontIcon.
-    /// </summary>
-    /// <summary>
-    /// The theme-resolved path <see cref="IconSource"/> will decode, or null when no icon is
-    /// resolved. Separate from IconSource because path SELECTION is pure logic worth observing on
-    /// its own: constructing a <see cref="BitmapImage"/> needs a WinRT/XAML application context, so
-    /// asserting the choice through IconSource is impossible outside a running app.
-    /// </summary>
+    // Cached by path value so a change to IconPath produces a fresh BitmapImage on next read; IconPath is mutated
+    // by IAppIconResolver AFTER binding, so mutators call NotifyIconChanged(). Separate from IconSource because path
+    // SELECTION is pure logic worth testing on its own - constructing a BitmapImage needs a WinRT/XAML application context.
     public string? ResolvedIconPath
     {
         get
@@ -174,39 +159,20 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         return basePath;
     }
 
-    /// <summary>True when a real app icon is available; false → render fallback glyph.</summary>
     public bool HasIcon => !string.IsNullOrEmpty(Definition.IconPath);
 
-    /// <summary>
-    /// True when the row should render the AppX-style fallback icon (no real
-    /// icon resolved, and the entry is an AppX package or doesn't fit the
-    /// Capability/Optional Feature buckets). Used as visibility for an
-    /// app-shaped icon element in XAML.
-    /// </summary>
     public bool IsAppXFallback =>
         !HasIcon &&
         string.IsNullOrEmpty(Definition.CapabilityName) &&
         string.IsNullOrEmpty(Definition.OptionalFeatureName);
 
-    /// <summary>
-    /// True when the row should render the Capability fallback (no real icon,
-    /// definition has a CapabilityName).
-    /// </summary>
     public bool IsCapabilityFallback =>
         !HasIcon && !string.IsNullOrEmpty(Definition.CapabilityName);
 
-    /// <summary>
-    /// True when the row should render the Optional Feature fallback
-    /// (no real icon, definition has an OptionalFeatureName).
-    /// </summary>
     public bool IsOptionalFeatureFallback =>
         !HasIcon && !string.IsNullOrEmpty(Definition.OptionalFeatureName);
 
-    /// <summary>
-    /// Raises PropertyChanged for IconSource and HasIcon. Call this after mutating
-    /// Definition.IconPath (e.g. after IAppIconResolver.ResolveBatchAsync returns)
-    /// so the bound Image/FontIcon refresh.
-    /// </summary>
+    // Call after mutating Definition.IconPath (e.g. after ResolveBatchAsync) so the bound Image/FontIcon refresh.
     public void NotifyIconChanged()
     {
         _dispatcherService.RunOnUIThread(() =>
@@ -239,49 +205,27 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     public string? WebsiteUrl => Definition.WebsiteUrl;
 
-    /// <summary>True when the app has a non-empty Description; drives Card-view visibility.</summary>
     public bool HasDescription => !string.IsNullOrEmpty(Definition.Description);
 
-    /// <summary>True when the item is marked as carrying an uninstall risk; drives the Card-view "Warning" pill.</summary>
     public bool HasInstabilityWarning => Definition.HasInstabilityWarning;
 
-    /// <summary>Localized label for the Card-view "Warning" pill.</summary>
     public string InstabilityWarningLabel => _localizationService.GetString("Card_Pill_Warning");
 
-    /// <summary>Localized generic instability message shown as the Warning pill's tooltip.</summary>
     public string InstabilityWarningTooltip => _localizationService.GetString("Card_Pill_InstabilityWarning_Tooltip");
 
-    /// <summary>True when the item cannot be reinstalled; drives the "Cannot reinstall" chip in Card view.</summary>
     public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;
 
-    /// <summary>
-    /// Description surfaced as a hover tooltip on the Compact-view icon/name. Null (not empty)
-    /// when there is no description, so no empty tooltip popup appears.
-    /// </summary>
+    // Null (not empty) when there is no description, so no empty tooltip popup appears.
     public string? DescriptionTooltip => HasDescription ? Description : null;
 
-    /// <summary>
-    /// Localized, state-aware tooltip for the install-status badge/icon (installed checkmark or
-    /// not-installed cross). Shown on every install-status indicator across Card, Table and
-    /// Compact views. Re-raised by the <see cref="IsInstalled"/> setter.
-    /// </summary>
     public string InstalledStatusTooltip => _localizationService.GetString(
         IsInstalled ? "Card_Pill_Installed_Tooltip" : "Card_Pill_NotInstalled_Tooltip");
 
-    /// <summary>
-    /// Localized, state-aware tooltip for the reinstallability badge/icon. When the item can be
-    /// reinstalled it explains that removal is reversible; when it can't, it warns that removal is
-    /// permanent. Shown on the reinstallable icon, the "Permanent" flag/badge, across all views.
-    /// </summary>
     public string ReinstallableStatusTooltip => _localizationService.GetString(
         CanBeReinstalled ? "Card_Pill_Reinstallable_Tooltip" : "Card_Pill_NonReinstallable_Tooltip");
 
-    /// <summary>
-    /// Localized category/group display name for External Apps, used by the Group column in the
-    /// table view. Mirrors the lookup in <c>ExternalAppsViewModel.RebuildCategories</c>: the raw
-    /// <see cref="GroupName"/> maps to an <c>ExternalApps_Category_*</c> key (spaces and the
-    /// characters &amp; , ( ) stripped). Falls back to the raw GroupName when no key resolves.
-    /// </summary>
+    // Mirrors ExternalAppsViewModel.RebuildCategories: GroupName -> ExternalApps_Category_* key (spaces and & ( )
+    // stripped), raw GroupName as fallback.
     public string CategoryDisplayName
     {
         get

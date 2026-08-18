@@ -4,24 +4,14 @@ using System.ComponentModel;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// Represents a group of settings for display in a grouped ListView.
-/// Implements IGrouping pattern expected by CollectionViewSource with IsSourceGrouped=True.
-/// Tracks visibility of items to support hiding empty groups during search.
-/// </summary>
+// IGrouping shape expected by CollectionViewSource with IsSourceGrouped=True; tracks item visibility so empty
+// groups hide during search.
 public class SettingsGroup : ObservableCollection<SettingItemViewModel>
 {
     private bool _hasVisibleItems = true;
 
-    /// <summary>
-    /// Gets the group key (localized group name).
-    /// </summary>
     public string Key { get; }
 
-    /// <summary>
-    /// Gets whether this group has any visible items.
-    /// Used to hide group headers when all items are filtered out.
-    /// </summary>
     public bool HasVisibleItems
     {
         get => _hasVisibleItems;
@@ -35,11 +25,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
         }
     }
 
-    /// <summary>
-    /// Creates a new settings group with the specified key and items.
-    /// </summary>
-    /// <param name="key">The group key (group name).</param>
-    /// <param name="items">The settings in this group.</param>
     public SettingsGroup(string key, IEnumerable<SettingItemViewModel> items) : base(items)
     {
         Key = key ?? string.Empty;

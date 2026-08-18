@@ -2,9 +2,6 @@ using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Core.Features.Optimize.Models;
 
-/// <summary>Shared powercfg ComboBox option-sets (label loc-key + PowerCfgValue) and the selection
-/// state-builder for the power catalog. Option-sets are reused across settings with shared loc keys,
-/// so they live here rather than inlined per setting.</summary>
 public static class PowerOptions
 {
     public static readonly (string Label, int Value)[] AmdPowerSlider =
@@ -76,10 +73,6 @@ public static class PowerOptions
     public static readonly (string Label, int Value)[] WirelessPower =
         new (string Label, int Value)[] { ("Template_WirelessPower_Option_0", 0), ("Template_WirelessPower_Option_1", 1), ("Template_WirelessPower_Option_2", 2), ("Template_WirelessPower_Option_3", 3) };
 
-    /// <summary>Builds the per-option selection states for a powercfg selection: one state per option
-    /// carrying the option's PowerCfgValue under the "Power" key, with context-scoped roles
-    /// (Recommended/WindowsDefault per AC and DC) derived from the per-mode recommended/default VALUES,
-    /// in a fixed role order.</summary>
     public static IReadOnlyList<SettingState> SelectionStates(
         (string Label, int Value)[] options, int? recAC, int? recDC, int? defAC, int? defDC,
         IReadOnlyList<Link>? links = null)

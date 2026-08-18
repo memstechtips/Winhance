@@ -4,12 +4,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Reusable content for <c>SettingsCard.Description</c>: shows the setting's description
-/// text on top and the multi-badge row beneath. Used across SettingItemTemplate,
-/// SettingExpanderItemTemplate, and the inner grouped template in SettingTemplates.xaml
-/// to eliminate the previous triplicated StackPanel+ItemsControl.
-/// </summary>
 public sealed partial class SettingDescriptionWithBadges : UserControl
 {
     public SettingDescriptionWithBadges()

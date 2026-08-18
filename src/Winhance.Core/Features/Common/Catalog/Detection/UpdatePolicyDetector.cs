@@ -1,13 +1,9 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Detects the Windows Update policy state, reproducing the old <c>UpdateService</c> special-handler
-/// precedence (<c>GetCurrentUpdatePolicyIndexAsync</c>) from the new detection context - the custom detector the
-/// <see cref="IStateDetector"/> abstraction always named as intended but never built. Registry value-matching
-/// cannot read this setting: the Disabled and Paused states both write <c>NoAutoUpdate=1</c>/<c>AUOptions=1</c>, and
-/// the authoritative Disabled signal is a FILESYSTEM DLL rename, not a stored value. Precedence (highest first):
-/// renamed critical DLLs -> Disabled; a live pause -> Paused; <c>DeferFeatureUpdates == 1</c> -> the deferred
-/// "security-only" state; otherwise the Windows default. The four state labels are supplied explicitly (they must
-/// equal the setting's authored <see cref="SettingState.Label"/>s so the resolved label maps back to an option).</summary>
+// Registry value-matching cannot read this setting: Disabled and Paused both write NoAutoUpdate=1 / AUOptions=1,
+// and the authoritative Disabled signal is a filesystem DLL rename. Precedence: renamed DLLs -> Disabled; a live
+// pause -> Paused; DeferFeatureUpdates == 1 -> the security-only state; else the Windows default. The labels must
+// equal the setting's authored state labels so the result maps back to an option.
 public sealed class UpdatePolicyDetector : IStateDetector
 {
     private const string UxSettings = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
@@ -40,7 +36,6 @@ public sealed class UpdatePolicyDetector : IStateDetector
         return _defaultLabel;
     }
 
-    /// <summary>Mirrors UpdateService.IsUpdatesPaused: any of the four pause markers present means paused.</summary>
     private static bool IsPaused(IDetectionContext context) =>
         context.GetValue(UxSettings, "PauseUpdatesStartTime") != null
         || context.GetValue(UxSettings, "PauseUpdatesExpiryTime") != null

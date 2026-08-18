@@ -20,7 +20,7 @@ public class SystemInfoProviderTests
     private SystemInfoProvider Create(SystemInfoProvider.WmiQuery query) =>
         new(_mockInteractiveUserService.Object, query);
 
-    /// <summary>One WMI row. Keys are matched case-insensitively, as WMI does.</summary>
+    // Keys are matched case-insensitively, as WMI does.
     private static IReadOnlyDictionary<string, object?> Row(
         params (string Key, object? Value)[] fields)
     {
@@ -30,10 +30,7 @@ public class SystemInfoProviderTests
         return row;
     }
 
-    /// <summary>
-    /// A fake query keyed by WMI class name. A query for a class with no entry returns no rows,
-    /// which is what the real WMI does when nothing matches.
-    /// </summary>
+    // A class with no entry returns no rows, which is what real WMI does when nothing matches.
     private static SystemInfoProvider.WmiQuery Wmi(
         params (string ClassName, IReadOnlyDictionary<string, object?>[] Rows)[] table)
     {

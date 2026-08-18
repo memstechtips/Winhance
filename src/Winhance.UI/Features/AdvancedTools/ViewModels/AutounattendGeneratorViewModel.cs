@@ -11,9 +11,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// ViewModel for the Autounattend XML Generator page.
-/// </summary>
 public partial class AutounattendGeneratorViewModel : ObservableObject
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
@@ -23,9 +20,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     private readonly WindowsAppsViewModel _windowsAppsViewModel;
     private Window? _mainWindow;
 
-    /// <summary>
-    /// Gets the localized card header text.
-    /// </summary>
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
 
     public string GenerateCardDescription => _localizationService.GetStringOrDefault("AdvancedTools_GenerateCard_Description", "Generate an autounattend.xml file based on your current Winhance selections to customize Windows during installation.");
@@ -39,9 +33,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsGenerating { get; set; }
 
-    /// <summary>
-    /// Raised when the user wants to navigate to WimUtil after successful generation.
-    /// </summary>
     public event EventHandler? NavigateToWimUtilRequested;
 
     public AutounattendGeneratorViewModel(

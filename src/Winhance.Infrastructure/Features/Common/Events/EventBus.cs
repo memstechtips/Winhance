@@ -4,25 +4,17 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Events;
 
-/// <summary>
-/// Implementation of the event bus that handles publishing and subscribing to domain events
-/// </summary>
 public class EventBus : IEventBus
 {
     private readonly ILogService _logService;
     private readonly Dictionary<Type, List<Subscription>> _subscriptions = new();
     private readonly object _lock = new();
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EventBus"/> class
-    /// </summary>
-    /// <param name="logService">The log service</param>
     public EventBus(ILogService logService)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
     }
 
-    /// <inheritdoc />
     public void Publish<TEvent>(TEvent domainEvent) where TEvent : IDomainEvent
     {
         if (domainEvent == null)
@@ -69,7 +61,6 @@ public class EventBus : IEventBus
         }
     }
 
-    /// <inheritdoc />
     public ISubscriptionToken Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IDomainEvent
     {
         ArgumentNullException.ThrowIfNull(handler);
@@ -77,7 +68,6 @@ public class EventBus : IEventBus
         return AddSubscription(typeof(TEvent), handler, isAsync: false);
     }
 
-    /// <inheritdoc />
     public ISubscriptionToken SubscribeAsync<TEvent>(Func<TEvent, Task> handler) where TEvent : IDomainEvent
     {
         ArgumentNullException.ThrowIfNull(handler);
@@ -85,7 +75,6 @@ public class EventBus : IEventBus
         return AddSubscription(typeof(TEvent), handler, isAsync: true);
     }
 
-    /// <inheritdoc />
     public void Unsubscribe(ISubscriptionToken token)
     {
         ArgumentNullException.ThrowIfNull(token);
@@ -121,9 +110,6 @@ public class EventBus : IEventBus
         return new SubscriptionToken(subscription.Id, eventType, token => Unsubscribe(token));
     }
 
-    /// <summary>
-    /// Represents a subscription to an event
-    /// </summary>
     private class Subscription
     {
         public Guid Id { get; }
@@ -140,9 +126,6 @@ public class EventBus : IEventBus
         }
     }
 
-    /// <summary>
-    /// Implementation of <see cref="ISubscriptionToken"/> that unsubscribes when disposed
-    /// </summary>
     private class SubscriptionToken : ISubscriptionToken
     {
         private readonly Action<ISubscriptionToken> _unsubscribeAction;

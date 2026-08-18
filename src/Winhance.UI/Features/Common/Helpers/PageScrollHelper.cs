@@ -6,46 +6,18 @@ using Windows.System;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>
-/// Applies fast-scroll keyboard handling (PageUp/PageDown/Home/End) to WinUI 3
-/// <see cref="ScrollView"/> hosts.
-///
-/// Background: all of our feature-detail pages host a <see cref="ListView"/> with
-/// inner scrolling disabled inside an outer <see cref="ScrollView"/>. The ListView
-/// consumes PageUp/PageDown for focus traversal, which emergently scrolls the outer
-/// ScrollView all the way to the top/bottom. That's the "broken-feeling" behavior
-/// issue #581 tracks.
-///
-/// This helper replaces that with viewport-sized paging on the outer ScrollView:
-/// PageUp/PageDown scroll by ~one viewport; Home/End jump to the very top/bottom.
-/// Focus does not move — matching mouse-wheel-chord / browser semantics, which is
-/// what the issue requested.
-///
-/// Guards: we do NOT handle the key when the focused element is inside a control
-/// that should own its own paging (open ComboBox popup, AutoSuggestBox with its
-/// suggestion list open, multi-line TextBox, or an enabled nested
-/// ScrollViewer/ScrollView other than the host we were asked to scroll). In those
-/// cases we let the event bubble untouched.
-/// </summary>
+// The feature-detail pages host a ListView with inner scrolling disabled inside an outer ScrollView; the
+// ListView consumes PageUp/PageDown for focus traversal, which scrolls the outer ScrollView all the way to the
+// top/bottom (issue #581). This replaces that with viewport-sized paging; focus does not move. Not handled when
+// the focused element sits inside a control that owns its own paging (open ComboBox popup, AutoSuggestBox with
+// suggestions open, multi-line TextBox, an enabled nested scroller).
 internal static class PageScrollHelper
 {
-    /// <summary>
-    /// Fraction of the viewport a single PageUp/PageDown press scrolls.
-    /// Kept small so content with only modest overflow doesn't jump straight to the end.
-    /// </summary>
+    // Kept small so content with only modest overflow doesn't jump straight to the end.
     private const double PageStepFraction = 0.15;
 
-    /// <summary>
-    /// Attaches fast-scroll handling to <paramref name="keyEventSource"/> for the
-    /// given <paramref name="scrollView"/>.
-    ///
-    /// The inner ListView's built-in KeyDown reacts to PageUp/PageDown by moving
-    /// focus to the first/last visible item, which raises
-    /// <c>BringIntoViewRequested</c> and makes the outer ScrollView jump to the
-    /// extreme. PreviewKeyDown tunnels root → target, so we can set
-    /// <c>e.Handled = true</c> before the ListView's own handler runs. A bubbling
-    /// KeyDown subscription stays as a belt-and-braces fallback.
-    /// </summary>
+    // PreviewKeyDown tunnels root -> target, so e.Handled = true lands before the ListView's own handler moves focus
+    // (which raises BringIntoViewRequested and jumps the ScrollView). A bubbling KeyDown subscription stays as a fallback.
     public static void Attach(UIElement keyEventSource, ScrollView scrollView)
     {
         if (keyEventSource == null || scrollView == null) return;
@@ -61,11 +33,7 @@ internal static class PageScrollHelper
             handledEventsToo: true);
     }
 
-    /// <summary>
-    /// Inspects <paramref name="e"/> and scrolls <paramref name="scrollView"/> if
-    /// the key is PageUp/PageDown/Home/End and no guard applies. Sets
-    /// <c>e.Handled = true</c> only when it actually scrolled.
-    /// </summary>
+    // Sets e.Handled = true only when it actually scrolled.
     public static void HandleKey(ScrollView scrollView, KeyRoutedEventArgs e)
     {
         if (scrollView == null || e == null) return;
@@ -108,18 +76,8 @@ internal static class PageScrollHelper
         key == VirtualKey.Home ||
         key == VirtualKey.End;
 
-    /// <summary>
-    /// Returns true if the focused element (or any ancestor up to, but not
-    /// including, <paramref name="scrollViewHost"/>) is a control that should
-    /// own its own paging behavior.
-    ///
-    /// A nested scroller only "owns the key" if it's actually scrollable — a
-    /// ListView's internal template ScrollViewer with vertical scrolling disabled
-    /// (the exact pattern SettingsListView uses, see the attached
-    /// <c>ScrollViewer.VerticalScrollMode="Disabled"</c>) must NOT block us:
-    /// otherwise every key press gets swallowed by that inert scroller and our
-    /// outer ScrollView never sees the event.
-    /// </summary>
+    // A nested scroller only owns the key if it is actually scrollable - a ListView's internal ScrollViewer with
+    // vertical scrolling disabled (SettingsListView) must NOT block us, or every key press is swallowed by that inert scroller.
     internal static bool ShouldSkipForFocusedElement(DependencyObject? focused, ScrollView scrollViewHost)
     {
         for (var current = focused; current != null; current = VisualTreeHelper.GetParent(current))

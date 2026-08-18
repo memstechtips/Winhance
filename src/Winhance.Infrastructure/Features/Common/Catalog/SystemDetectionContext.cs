@@ -6,11 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>The live detection context: the real Windows reads behind <see cref="IDetectionContext"/>, so the
-/// detection engine can read a machine. Registry, DNS, build and system-restore reads delegate straight through;
-/// the asynchronous reads (scheduled tasks, powercfg values, the active power plan) are pre-fetched per batch by
-/// <see cref="PrefetchAsync"/> and then served synchronously from a cache, keeping the engine and detectors
-/// synchronous. One instance per detection batch - it holds that batch's pre-fetch cache.</summary>
+// One instance per detection batch - it holds that batch's pre-fetch cache.
 public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 {
     private readonly IWindowsRegistryService _reg;
@@ -84,10 +80,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 
-    /// <summary>Mirrors UpdateService.AreCriticalDllsRenamed: the update-policy Disabled state is enforced by renaming
-    /// the two critical DLLs to "_BAK" backups, so it reads as "a _BAK backup exists AND the live DLL is gone". A thin
-    /// direct filesystem read (like the network/registry reads above) - the throwaway/test contexts inherit the false
-    /// default from IDetectionContext, so only this live context touches disk.</summary>
+    // The Disabled update-policy state renames the two critical DLLs to _BAK, so this reads as "a _BAK backup
+    // exists AND the live DLL is gone".
     public bool CriticalUpdateDllsRenamed()
     {
         foreach (var dll in new[] { "WaaSMedicSvc.dll", "wuaueng.dll" })

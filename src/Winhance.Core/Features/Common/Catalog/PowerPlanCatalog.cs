@@ -2,16 +2,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>The predefined Windows power plans Winhance offers: name (used for OS name-matching), the
-/// PowerPlan_* localization key shown in the dropdown, and the canonical scheme GUID -- plus the fixed
-/// Winhance Power Plan GUID and its identity check.
-///
-/// This is CATALOG REFERENCE DATA: the engine consumes it as the SPINE of the power-plan dropdown
-/// (PowerPlanOptions.Build joins these against the machine's installed schemes, fed by PowerPlanOptionSource
-/// via SystemDetectionContext, so an offered-but-not-installed plan still appears and is created on selection).
-///
-/// (Named PowerPlanCatalog, not PowerPlanDefinitions: Common/Models/PowerPlanDefinitions.cs already holds the
-/// PredefinedPowerPlan / PowerPlanComboBoxOption records, and this sits beside SettingCatalog.)</summary>
+// Catalog reference data and the spine of the power-plan dropdown: PowerPlanOptions.Build joins these against the
+// installed schemes, so an offered-but-not-installed plan still appears and is created on selection.
 public static class PowerPlanCatalog
 {
     public static readonly List<PredefinedPowerPlan> BuiltInPowerPlans = new List<PredefinedPowerPlan>
@@ -23,12 +15,9 @@ public static class PowerPlanCatalog
         new("Winhance Power Plan", "Optimized power plan for gaming and performance", "PowerPlan_WinhancePowerPlan_Name", "57696e68-616e-6365-506f-776572000000")
     };
 
-    /// <summary>The fixed GUID of the Winhance Power Plan (the duplicate-from-Ultimate-Performance plan Winhance creates).</summary>
+    // The duplicate-from-Ultimate-Performance plan Winhance creates.
     public const string WinhancePowerPlanGuid = "57696e68-616e-6365-506f-776572000000";
 
-    /// <summary>True when the GUID or friendly name identifies the Winhance Power Plan. Same check as PowerService's
-    /// private IsWinhancePowerPlan; lifted to a shared helper so the apply funnel can gate the recommended-power
-    /// re-apply after a power-plan activation without duplicating the magic GUID.</summary>
     public static bool IsWinhancePowerPlan(string? guid, string? name = null) =>
         string.Equals(guid, WinhancePowerPlanGuid, System.StringComparison.OrdinalIgnoreCase) ||
         string.Equals(name?.Trim(), "Winhance Power Plan", System.StringComparison.OrdinalIgnoreCase);

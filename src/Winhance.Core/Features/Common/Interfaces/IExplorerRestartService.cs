@@ -2,40 +2,20 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// The single owner of restarting Explorer. Every path that needs the shell restarted goes through here
-/// - the setting-apply path, the config-import path and the pending-restart bar.
-///
-/// Two hard-won rules are baked into the implementation:
-///
-/// (1) Restarts are SINGLE-FLIGHT. Overlapping kill/wait cycles race each other - one cycle kills the
-///     Explorer another is waiting for - and repeated shell deaths in a short window make winlogon's
-///     AutoRestartShell stop relaunching it. Together that could leave a user with no shell at all,
-///     recoverable only by starting explorer.exe from Task Manager.
-///
-/// (2) The manual relaunch goes through the INTERACTIVE USER TOKEN, never Process.Start from our own
-///     process. Winhance is always elevated (app.manifest declares requireAdministrator), so a plain
-///     relaunch tries to start the shell at high integrity and the safety net never actually fires.
-/// </summary>
+// Every path that restarts the shell goes through here. Two hard-won rules: (1) restarts are SINGLE-FLIGHT -
+// overlapping kill/wait cycles race each other, and repeated shell deaths in a short window make winlogon's
+// AutoRestartShell stop relaunching it, which can leave the user with no shell at all; (2) the manual relaunch
+// goes through the INTERACTIVE USER TOKEN, never Process.Start from our own process - Winhance is always elevated
+// (requireAdministrator), so a plain relaunch would start the shell at high integrity.
 public interface IExplorerRestartService
 {
-    /// <summary>
-    /// Restarts Explorer and, on success only, clears the pending-restart state. Serialized: concurrent
-    /// callers queue rather than overlap. A failed restart deliberately leaves the pending state intact
-    /// so the user keeps a way to retry.
-    /// </summary>
+    // Clears the pending-restart state on success only; a failed restart leaves it intact so the user keeps a way to retry.
     Task<OperationResult> RestartAsync();
 
-    /// <summary>
-    /// Broadcasts the generic shell-refresh message without restarting anything, so a change that CAN take
-    /// effect live does so immediately. Payload-free and asynchronous, so it costs nothing per window.
-    /// </summary>
+    // Payload-free and asynchronous, so it costs nothing per window.
     void BroadcastShellRefresh();
 
-    /// <summary>
-    /// Broadcasts the theme/colour notifications. The expensive half - one of its three messages carries a
-    /// string payload and must be sent synchronously, at a per-top-level-window timeout - so it is sent only
-    /// for settings that can actually change the theme, and after a shell relaunch.
-    /// </summary>
+    // The expensive half: one of its three messages carries a string payload and must be sent synchronously at a
+    // per-top-level-window timeout - so it is sent only for settings that can change the theme, and after a shell relaunch.
     void BroadcastThemeRefresh();
 }

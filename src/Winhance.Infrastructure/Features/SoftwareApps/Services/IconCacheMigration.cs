@@ -2,9 +2,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-/// <summary>One-time IconCache wipe gated by a .schema sentinel. Bumping
-/// CurrentSchemaVersion forces every machine to purge the cache once on next launch,
-/// so the icon model can change without leaving stale per-source files behind.</summary>
+// Bumping CurrentSchemaVersion forces every machine to purge the cache once on next launch.
 public class IconCacheMigration(ILogService logService)
 {
     public const int CurrentSchemaVersion = 2;

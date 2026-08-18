@@ -52,35 +52,12 @@ public sealed partial class SoftwareAppsPage : Page
         };
     }
 
-    /// <summary>
-    /// Scales the compact-row cell width to match the user's Windows text-scale
-    /// setting (Ease of Access → Make text bigger).
-    ///
-    /// WinUI 3 auto-scales <see cref="TextBlock"/> font sizes via
-    /// <c>IsTextScaleFactorEnabled</c>, but fixed cell widths baked into
-    /// Page.Resources are doubles and stay put. The compact-row layout uses a
-    /// 320dp cell that needs to grow at higher text scale so that fewer
-    /// columns fit horizontally and rows wrap to a longer list — Marco's
-    /// "make it show less columns and a longer list, like it does already
-    /// when the window is sized smaller" behaviour for issue #668.
-    ///
-    /// Page.Resources mutation right after <c>InitializeComponent()</c> works
-    /// because WinUI 3 resolves <c>{StaticResource}</c> inside an
-    /// <see cref="ItemsPanelTemplate"/> at template-instantiation time, and
-    /// the compact UniformWrapPanels haven't materialised yet at this point.
-    /// The existing reflow logic in <see cref="UpdateCompactContentMaxWidth"/>
-    /// also reads <c>CompactItemWidth</c> from Resources at SizeChanged time,
-    /// so it picks up the scaled value automatically.
-    ///
-    /// Card-view tile geometry (CardItemWidth / CardCellHeight /
-    /// CardContentHeight) is intentionally NOT scaled here. The card grid
-    /// keeps its default 420×108 cells at every text scale; instead, the
-    /// AppCardTemplate's inner Grid uses MinHeight (so content can push the
-    /// grid taller when needed) and the UniformWrapPanel treats ItemHeight
-    /// as a floor not a cap (so the row grows to fit the tallest card).
-    /// That way the default scale renders identically to before, and the
-    /// column count doesn't drop at higher scale.
-    /// </summary>
+    // WinUI 3 auto-scales TextBlock font sizes but fixed cell widths in Page.Resources stay put; the compact row's
+    // 320dp cell grows with text scale so fewer columns fit and rows wrap into a longer list (issue #668).
+    // Mutating Page.Resources right after InitializeComponent() works because {StaticResource} inside an
+    // ItemsPanelTemplate resolves at template instantiation, and the compact panels haven't materialised yet.
+    // Card-view geometry is deliberately NOT scaled: the AppCardTemplate's inner Grid uses MinHeight and the
+    // UniformWrapPanel treats ItemHeight as a floor, so cards grow taller without dropping columns.
     private void ApplyTextScaling()
     {
         if (!TextScaleHelper.IsScaled) return;
@@ -112,12 +89,7 @@ public sealed partial class SoftwareAppsPage : Page
         }
     }
 
-    /// <summary>
-    /// Pushes the localized column-header strings from the ViewModel onto both DataGrids,
-    /// matching each column by its <c>Tag</c> (the same value the sort handler uses). The
-    /// untagged selection/spacer columns are left untouched. Called once at construction and
-    /// again whenever the app language changes.
-    /// </summary>
+    // Matches each column by its Tag (the same value the sort handler uses); untagged selection/spacer columns are left alone.
     private void LocalizeColumnHeaders()
     {
         ApplyColumnHeaders(WindowsAppsDataGrid);
@@ -251,15 +223,8 @@ public sealed partial class SoftwareAppsPage : Page
     private void SortNameDesc_Click(object sender, RoutedEventArgs e)
         => ViewModel.SortMode = AppSortMode.NameDesc;
 
-    /// <summary>
-    /// Centres the card-view content column horizontally by clamping the inner
-    /// StackPanel's MaxWidth to exactly cols × CardItemWidth + (cols-1) × ColumnSpacing.
-    /// Result: the section header, Select-all checkboxes, and the card grid all
-    /// share the same horizontal extents — the leftmost card sits flush with the
-    /// header instead of the cards floating in the middle of a left-aligned panel.
-    /// Same pattern Microsoft Store / Settings use: extra space becomes symmetric
-    /// outer margin, new columns appear at width breakpoints.
-    /// </summary>
+    // MaxWidth = cols x CardItemWidth + (cols-1) x ColumnSpacing, so header, Select-all checkboxes and grid share
+    // the same extents; extra space becomes symmetric outer margin (the Store / Settings pattern).
     private void WindowsAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
         => UpdateCardContentMaxWidth(WindowsAppsCardScrollViewer, WindowsAppsCardContentStack);
 
@@ -283,21 +248,9 @@ public sealed partial class SoftwareAppsPage : Page
         contentStack.MaxWidth = contentWidth;
     }
 
-    /// <summary>
-    /// Compact-view counterpart of <see cref="UpdateCardContentMaxWidth"/>.
-    /// Clamps the compact content StackPanel's MaxWidth to exactly
-    /// cols × CompactItemWidth + (cols-1) × ColumnSpacing so the section
-    /// headers, Select-all checkboxes and the row grid share one centred
-    /// column — leftover width becomes symmetric outer margin and columns
-    /// appear at width breakpoints, identical to the card view.
-    ///
-    /// External Apps nests each category's grid inside an Expander, so the
-    /// grid only gets the clamp width minus the Expander's horizontal content
-    /// chrome (border + content padding). <see cref="CompactExternalExpanderChrome"/>
-    /// accounts for that: if category grids show a right-hand gap, lower it;
-    /// if a column wraps away too early, raise it. Windows Apps has no
-    /// Expander, so it passes 0.
-    /// </summary>
+    // External Apps nests each category's grid inside an Expander, so the grid only gets the clamp width minus the
+    // Expander's horizontal content chrome (border + padding); this accounts for that. If category grids show a
+    // right-hand gap, lower it; if a column wraps away too early, raise it. Windows Apps has no Expander and passes 0.
     private const double CompactExternalExpanderChrome = 34.0;
 
     private void WindowsAppsCompactScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)

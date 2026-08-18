@@ -14,10 +14,6 @@ using VirtualKey = Windows.System.VirtualKey;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Custom ComboBox control for Power Plan selection with status indicators,
-/// [Active] badges, and delete functionality.
-/// </summary>
 public sealed partial class PowerPlanComboBox : UserControl
 {
     // Cached brushes for status indicators
@@ -162,14 +158,8 @@ public sealed partial class PowerPlanComboBox : UserControl
         set => SetValue(NotExistsTooltipTextProperty, value);
     }
 
-    /// <summary>
-    /// Event raised when the delete button is clicked for a power plan.
-    /// </summary>
     public event EventHandler<PowerPlanComboBoxOption>? DeleteRequested;
 
-    /// <summary>
-    /// Event raised when the dropdown is closed (selection changed).
-    /// </summary>
     public event EventHandler<object>? DropDownClosed;
 
     public PowerPlanComboBox()
@@ -177,9 +167,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         this.InitializeComponent();
     }
 
-    /// <summary>
-    /// Handles the dropdown opened event to set up visual states for all items.
-    /// </summary>
     private void OnDropDownOpened(object sender, object e)
     {
         // Use DispatcherQueue to ensure the visual tree is ready
@@ -189,9 +176,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         });
     }
 
-    /// <summary>
-    /// Updates the visual state of all items in the ComboBox.
-    /// </summary>
     private void UpdateAllItemVisualStates()
     {
         if (ItemsSource == null) return;
@@ -220,10 +204,7 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Fires DeleteRequested when the user presses Delete on a focused deletable plan in the dropdown.
-    /// Matches the visibility gate of the trash icon: only fires on plans that exist on the system and aren't active.
-    /// </summary>
+    // Matches the visibility gate of the trash icon: only plans that exist on the system and aren't active.
     private void OnItemKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == VirtualKey.Delete
@@ -237,9 +218,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Sets up the visual state for a single item.
-    /// </summary>
     private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption)
     {
         // Find child elements
@@ -279,9 +257,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Handles the delete button click event.
-    /// </summary>
     private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button button && button.Tag is PowerPlanComboBoxOption option)
@@ -290,9 +265,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Handles the dropdown closed event to propagate selection changes.
-    /// </summary>
     private void OnDropDownClosed(object sender, object e)
     {
         if (PowerPlanSelector.SelectedValue is { } value)
@@ -301,10 +273,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Helper method to find a child element by name within a parent element.
-    /// If name is null, returns the first child of the specified type.
-    /// </summary>
     private static T? FindChild<T>(DependencyObject parent, string? childName) where T : FrameworkElement
     {
         var count = VisualTreeHelper.GetChildrenCount(parent);

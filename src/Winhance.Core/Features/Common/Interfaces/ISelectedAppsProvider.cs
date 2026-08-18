@@ -2,10 +2,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// Provides access to the currently selected Windows apps without coupling
-/// the WIM feature directly to the SoftwareApps feature's ViewModel.
-/// </summary>
+// Keeps the WIM feature from coupling to the SoftwareApps ViewModel.
 public interface ISelectedAppsProvider
 {
     Task<IReadOnlyList<ConfigurationItem>> GetSelectedWindowsAppsAsync();

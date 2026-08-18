@@ -8,15 +8,8 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Code-behind for <see cref="SettingComboBox"/>. Projects the view model's per-mode resolution into
-/// bindable properties and routes the ComboBox's events to the right view-model handler for this mode.
-///
-/// The events are routed here rather than bound in markup because the handler differs per mode
-/// (OnComboBoxDropDownClosed / OnACComboBoxDropDownClosed / OnDCComboBoxDropDownClosed) and x:Bind cannot
-/// pick one at runtime. Each of those reads what it needs off the sender, so passing the real ComboBox
-/// through keeps their existing behaviour exactly.
-/// </summary>
+// Events are routed here rather than bound in markup because the handler differs per mode
+// (OnComboBoxDropDownClosed / OnAC... / OnDC...) and x:Bind cannot pick one at runtime.
 public sealed partial class SettingComboBox : UserControl, INotifyPropertyChanged
 {
     public SettingComboBox()
@@ -45,10 +38,9 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         set => SetValue(ModeProperty, value);
     }
 
-    /// <summary>Pins the closed-state width. The AC/DC layout sets 120 because two columns otherwise grow
-    /// to their widest item and squeeze the badges out of the row; everywhere else this stays NaN (auto).
-    /// A lone Width does not survive the remeasure after the popup closes, which is why Width, MinWidth
-    /// and MaxWidth are all driven from it.</summary>
+    // The AC/DC layout pins 120 because two columns otherwise grow to their widest item and squeeze the badges out
+    // of the row; everywhere else NaN (auto). A lone Width does not survive the remeasure after the popup closes,
+    // which is why Width, MinWidth and MaxWidth are all driven from it.
     public static readonly DependencyProperty PinnedWidthProperty = DependencyProperty.Register(
         nameof(PinnedWidth), typeof(double), typeof(SettingComboBox),
         new PropertyMetadata(double.NaN, OnAnyChanged));
@@ -59,15 +51,12 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         set => SetValue(PinnedWidthProperty, value);
     }
 
-    /// <summary>MaxWidth mirrors the pin, but must be PositiveInfinity (not NaN) when unpinned.</summary>
     public double PinnedMaxWidth => MaxWidthForPin(PinnedWidth);
 
-    /// <summary>MinWidth mirrors the pin, but must be 0 (not NaN) when unpinned.</summary>
     public double PinnedMinWidth => MinWidthForPin(PinnedWidth);
 
-    /// <summary>Width alone accepts NaN as "auto"; MinWidth and MaxWidth reject it with E_INVALIDARG
-    /// ("Value does not fall within the expected range"). Static so the guards are testable without a
-    /// XAML application - an unguarded MinWidth threw on every unpinned dropdown.</summary>
+    // Width alone accepts NaN as "auto"; MinWidth and MaxWidth reject it with E_INVALIDARG - an unguarded MinWidth
+    // threw on every unpinned dropdown. Static so the guards are testable without a XAML application.
     public static double MinWidthForPin(double pin) => double.IsNaN(pin) ? 0d : pin;
 
     public static double MaxWidthForPin(double pin) => double.IsNaN(pin) ? double.PositiveInfinity : pin;
@@ -78,8 +67,8 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     public int SelectedIndex { get; private set; } = -1;
     public string InputAutomationName { get; private set; } = string.Empty;
 
-    /// <summary>The outcome explanation, shown on hover of the CONTROL - the overlay passes pointer input
-    /// through, so a tooltip on it could never fire. Null while resolved so no empty tooltip appears.</summary>
+    // On the CONTROL, not the overlay - the overlay passes pointer input through, so a tooltip on it could never
+    // fire. Null while resolved so no empty tooltip appears.
     public string? OutcomeTooltip { get; private set; }
 
     private SettingItemViewModel? _observed;

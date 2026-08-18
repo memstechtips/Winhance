@@ -8,10 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Custom program entry point for single-instance enforcement using AppLifecycle API.
-/// This runs BEFORE WinUI 3 initialization to redirect duplicate instances.
-/// </summary>
+// Runs BEFORE WinUI 3 initialization to redirect duplicate instances.
 public static class Program
 {
     private const string AppKey = "Winhance-SingleInstance-Key";
@@ -60,10 +57,6 @@ public static class Program
         }
     }
 
-    /// <summary>
-    /// Handles single-instance enforcement using AppLifecycle API.
-    /// </summary>
-    /// <returns>True if this is the first instance and should continue, false if another instance is running.</returns>
     private static bool HandleSingleInstance()
     {
         // Declare this instance with a unique key
@@ -81,9 +74,6 @@ public static class Program
         return true;
     }
 
-    /// <summary>
-    /// Redirects activation to an existing instance.
-    /// </summary>
     private static void RedirectActivationTo(AppInstance keyInstance)
     {
         // Get activation args and redirect to existing instance
@@ -100,9 +90,6 @@ public static class Program
         ActivateExistingWindow(keyInstance);
     }
 
-    /// <summary>
-    /// Brings the existing instance's main window to the foreground.
-    /// </summary>
     private static void ActivateExistingWindow(AppInstance keyInstance)
     {
         try
@@ -129,9 +116,6 @@ public static class Program
         }
     }
 
-    /// <summary>
-    /// Handles activation from redirected instances.
-    /// </summary>
     private static void OnActivated(object? sender, AppActivationArguments args)
     {
         // This runs on the main instance when another instance redirects

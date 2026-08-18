@@ -3,15 +3,14 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>A detectable read/write location. Declared ONCE per setting; carries no values. A non-empty
-/// AppliesTo restricts the target to those build ranges (empty = active on every build) so one setting can
-/// carry an OS-specific mechanism.</summary>
+// Declared ONCE per setting and carries no values; AppliesTo restricts it to build ranges so one setting can carry
+// an OS-specific mechanism.
 public abstract record Target(string Key)
 {
     public IReadOnlyList<BuildRange> AppliesTo { get; init; } = System.Array.Empty<BuildRange>();
 }
 
-/// <summary>Registry location. Multiple <see cref="Paths"/> = a mirror (write all, read first non-null).</summary>
+// Multiple Paths = a mirror (write all, read the first non-null).
 public sealed record RegTarget(
     string Key,
     IReadOnlyList<string> Paths,
@@ -31,7 +30,6 @@ public sealed record RegTarget(
     public bool PerMonitor { get; init; }
 }
 
-/// <summary>powercfg setting (AC/DC). Detection reads the AC/DC value via the power query service.</summary>
 public sealed record PowerCfgTarget(
     string Key,
     string SubgroupGuid,
@@ -43,5 +41,4 @@ public sealed record PowerCfgTarget(
     public bool CheckForHardwareControl { get; init; }
 }
 
-/// <summary>Scheduled task. Detection = task enabled/disabled.</summary>
 public sealed record TaskTarget(string Key, string TaskPath) : Target(Key);

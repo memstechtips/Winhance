@@ -4,21 +4,11 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>
-/// Attached property that applies <see cref="TextTrimming.CharacterEllipsis"/>
-/// to an <see cref="AutoSuggestBox"/>'s placeholder text.
-///
-/// WinUI 3's default AutoSuggestBox/TextBox template renders the placeholder
-/// inside a ContentPresenter named "PlaceholderTextContentPresenter" with no
-/// direct TextTrimming knob. To get the placeholder to ellipsize when it
-/// doesn't fit (e.g. the user has bumped system text scale above 100% so the
-/// rendered placeholder outgrows the fixed 220dp search-box width, or a long
-/// translation like the German "Tippen Sie hier, um zu suchen..." is wider
-/// than English), we walk down to the placeholder TextBlock on Loaded and
-/// set TextTrimming + TextWrapping=NoWrap so it always single-lines with "...".
-///
-/// Use as <c>&lt;AutoSuggestBox helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True" /&gt;</c>.
-/// </summary>
+// WinUI 3's AutoSuggestBox/TextBox template renders the placeholder in a ContentPresenter named
+// "PlaceholderTextContentPresenter" with no TextTrimming knob. When it doesn't fit (system text scale above
+// 100% outgrows the fixed 220dp search box; the German "Tippen Sie hier, um zu suchen..." is wider than
+// English) we walk to the placeholder TextBlock on Loaded and set TextTrimming + NoWrap so it single-lines
+// with "...". Use: <AutoSuggestBox helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True" />
 public static class AutoSuggestBoxExtensions
 {
     public static readonly DependencyProperty PlaceholderEllipsisProperty =

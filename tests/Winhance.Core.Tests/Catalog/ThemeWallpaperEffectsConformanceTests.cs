@@ -5,13 +5,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// Plan-5: the OS-divergent default wallpaper for theme-mode-windows lives on the catalog as a per-state,
-/// build-gated <see cref="WallpaperEffect"/> (moved verbatim from the retired WallpaperDefaults). Machine-
-/// independent (reads <see cref="SettingCatalog.All"/>); ThemeWallpaperApplier resolves the active state's
-/// build-matching effect on a theme switch, and the Technical Details panel documents it. Self-contained so
-/// it survives the WallpaperDefaults deletion in the cutover slice.
-/// </summary>
+// The OS-divergent default wallpaper for theme-mode-windows lives on the catalog as a per-state, build-gated
+// WallpaperEffect; ThemeWallpaperApplier resolves the active state's build-matching effect.
 public class ThemeWallpaperEffectsConformanceTests
 {
     private static SettingState State(string label) =>

@@ -7,10 +7,6 @@ using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// A bottom bar control that displays task progress with app name, terminal output,
-/// cancel button, and an indeterminate progress bar.
-/// </summary>
 public sealed partial class TaskProgressControl : UserControl
 {
     #region Dependency Properties

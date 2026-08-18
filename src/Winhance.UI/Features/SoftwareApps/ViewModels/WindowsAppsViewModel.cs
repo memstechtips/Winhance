@@ -15,9 +15,6 @@ using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// ViewModel for the Windows Apps tab in the SoftwareApps feature.
-/// </summary>
 public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProvider
 {
     private readonly IWindowsAppsService _windowsAppsService;
@@ -195,25 +192,16 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         return true;
     }
 
-    /// <summary>
-    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
-    /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
     private readonly object _loadGate = new();
     private Task? _loadTask;
 
-    /// <summary>
-    /// Loads app definitions, checks installation status and resolves icons — exactly once.
-    /// Idempotent: startup triggers this from two independent paths — the UI init
-    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
-    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
-    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
-    /// ran concurrently, clobbering the shared Items collection and racing over the
-    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
-    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
-    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
-    /// </summary>
+    // Exactly once, idempotent: startup triggers this from two independent paths (StartupUiCoordinator, and
+    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard let both through -
+    // IsInitialized is only set when the load FINISHES - so two full passes clobbered Items and raced over
+    // icon-cache .tmp files. Now the first caller starts the load and every other caller awaits the same Task, on
+    // the UI thread with a SynchronizationContext so continuations stay UI-affine.
     [RelayCommand]
     public Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -301,11 +289,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
     }
 
-    /// <summary>
-    /// Resolves AppX icons for installed entries and notifies their ViewModels.
-    /// No-op when no resolver was injected (e.g. legacy test construction).
-    /// Failures are logged and swallowed — icon resolution must never block the load flow.
-    /// </summary>
+    // No-op when no resolver was injected. Failures are logged and swallowed - icon resolution must never block the load flow.
     [RelayCommand]
     private async Task ResolveIconsAsync()
     {
@@ -490,10 +474,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         await RefreshAfterOperationAsync();
     }
 
-    /// <summary>
-    /// Shows removal summary and asks for confirmation.
-    /// </summary>
-    /// <returns>Tuple of (Confirmed, SaveScripts).</returns>
     public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
@@ -508,9 +488,6 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         return (confirmed, checkboxChecked);
     }
 
-    /// <summary>
-    /// Removes selected apps with optional confirmation skip (for ConfigurationService compatibility).
-    /// </summary>
     public async Task RemoveApps(bool skipConfirmation = false, bool saveRemovalScripts = true)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();

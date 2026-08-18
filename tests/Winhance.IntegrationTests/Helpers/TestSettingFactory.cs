@@ -3,9 +3,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.IntegrationTests.Helpers;
 
-/// <summary>
-/// Factory methods for creating test data objects with known values.
-/// </summary>
 public static class TestSettingFactory
 {
     private static readonly string[] TestAppPackages = ["Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2"];

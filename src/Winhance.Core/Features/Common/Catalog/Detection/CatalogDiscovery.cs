@@ -1,19 +1,8 @@
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>
-/// Resolves a setting's current state. A setting with a custom <see cref="IStateDetector"/> delegates to
-/// it; otherwise each registry or scheduled-task target is read and reduced, and the detection engine matches
-/// the readings to a state. Reads go through the injected context so this is testable without a real system.
-/// Only targets live on the context's current build are read (Target.AppliesTo). PowerCfg targets are read by
-/// a later wiring step (power detection is context-keyed, deferred).
-/// </summary>
+// Only targets live on the context's current build are read (Target.AppliesTo); PowerCfg targets are read by a later wiring step.
 public static class CatalogDiscovery
 {
-    /// <summary>
-    /// The setting's current state and, when it resolves to none, the honest reason. Registry reads (and
-    /// key-existence checks for ValueName-less targets) go through <paramref name="context"/>, which also
-    /// serves Tier-2 custom detectors.
-    /// </summary>
     public static SettingDetection Detect(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
     {
         if (setting.Detector is { } detector)
@@ -74,11 +63,7 @@ public static class CatalogDiscovery
         return SettingDetection.FromLabel(StateDetectionEngine.Detect(setting.States, readings, activeKeys));
     }
 
-    /// <summary>Builds the diagnostic line for a malformed target: which value, where, what the catalog
-    /// expects, and what is actually stored. Re-reads the target to name the winning mirror path and its
-    /// live kind - only ever runs on the malformed path, so the extra read costs nothing in the normal
-    /// case. <see cref="IDetectionContext.GetValueKind"/> is optional (default null), so fakes and older
-    /// contexts fall back to naming the CLR type.</summary>
+    // Only runs on the malformed path, so the extra re-read costs nothing in the normal case.
     private static string DescribeKindMismatch(RegTarget reg, IDetectionContext context)
     {
         foreach (var path in RegTargetReader.OrderHklmFirst(reg.Paths))
@@ -94,15 +79,8 @@ public static class CatalogDiscovery
         return $"'{reg.ValueName}' is stored under a type the catalog ({reg.Type}) cannot read";
     }
 
-    /// <summary>Resolves a registry setting's state by precedence: a present group-policy target wins; else the
-    /// first present target; else the first target (so its absence handling still applies). The chosen target's
-    /// value decides which state matches. When nothing matches: a PRESENT deciding value is a value Winhance
-    /// doesn't recognize, so the setting honestly reports Custom (null); an ABSENT deciding value falls to the
-    /// IsFallback state (absence is what fallbacks are for). Mirrors how the old app read these (any single
-    /// authoritative key decides) without its bug of letting a stray lower-precedence key win. A setting whose
-    /// default state is "key absent" carries that absence on the deciding key's StateValue (Absent /
-    /// Of(v).OrAbsent()), so a clean machine resolves to its default through the normal match, not a
-    /// role-based guess.</summary>
+    // Precedence: a present group-policy target wins, else the first present target, else the first target. A PRESENT
+    // value Winhance does not recognize reports Custom (null); an ABSENT deciding value falls to the IsFallback state.
     private static string? DetectByPrecedence(
         IReadOnlyList<SettingState> states, IStateReadings readings, IReadOnlyList<RegTarget> regTargets)
     {
@@ -135,9 +113,6 @@ public static class CatalogDiscovery
         return Present(deciding.Key) ? null : fallback?.Label;
     }
 
-    /// <summary>The raw current value of a numeric (slider) setting for the given context, or null when not
-    /// present. A slider has no enumerated states - its value IS the reading. Reads the setting's single
-    /// PowerCfgTarget (numeric settings are powercfg-backed) through the context.</summary>
     public static int? DetectValue(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)
     {
         foreach (var target in setting.Targets)

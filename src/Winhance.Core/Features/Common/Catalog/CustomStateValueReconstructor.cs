@@ -2,18 +2,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Rebuilds the per-setting "custom-state value bag" (the untyped <c>RawValues</c> dictionary)
-/// from the typed state fields, so the Builder/config-export and autounattend custom-state consumers keep
-/// working. Builds the values the two consumers need (for a Selection resolved to Custom), per mechanism:
-/// <list type="bullet">
-///   <item>registry -> the live per-target <see cref="SettingStateResult.Readings"/>.</item>
-///   <item>powercfg -> <c>ACValue</c>/<c>DCValue</c>/<c>PowerCfgValue</c> rebuilt from the typed
-///     <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>
-///     (<c>PowerCfgValue == ACValue ==</c> the AC reading).</item>
-///   <item>DNS / system-tray detector -> <c>DetectedIndex</c> = the resolved
-///     <see cref="SettingStateResult.CurrentValue"/> (the option index, incl. -1 Custom).</item>
-/// </list>
-/// Callers still apply their own <c>.Where(v =&gt; v != null)</c> filter.</summary>
+// Rebuilds the untyped RawValues bag from the typed fields for the Builder/config-export and autounattend consumers:
+// registry -> Readings; powercfg -> ACValue/DCValue/PowerCfgValue (= AC); DNS / system-tray -> DetectedIndex (incl. -1 Custom).
 public static class CustomStateValueReconstructor
 {
     public static IReadOnlyDictionary<string, object?> Build(Setting setting, SettingStateResult state)

@@ -2,24 +2,11 @@ using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Core.Features.Common.Localization;
 
-/// <summary>
-/// Pure, dependency-free builder for the localization-key strings a
-/// setting resolves at runtime. The key formats here MUST stay
-/// byte-identical to the inline construction in
-/// <c>Winhance.UI.Features.Common.Services.SettingLocalizationService</c> — that service
-/// delegates to this class, and the integration tests reuse it to assert that every key a
-/// setting requests actually exists in <c>en.json</c>.
-///
-/// All key bases use <c>LocalizationId ?? Id</c> (NOT <c>Id</c> alone) so OS-gated setting
-/// variants can share one set of localization entries.
-/// </summary>
+// Key formats MUST stay byte-identical to SettingLocalizationService, which delegates here; the integration
+// tests reuse this to assert every key a setting requests exists in en.json. Key bases use LocalizationId ?? Id
+// so OS-gated setting variants share one set of entries.
 public static class SettingLocalizationKeys
 {
-    /// <summary>
-    /// The localized name for a state detection could not place. One string for every setting - the
-    /// per-setting override key that used to sit alongside this was removed on 2026-07-27 with the
-    /// synthetic "Custom" dropdown entry it named.
-    /// </summary>
     public const string CommonCustomState = "Common_CustomState";
 
     // The catalog Id IS the canonical, alias-normalized id, so it equals LocalizationId ?? Id for every setting.
@@ -32,18 +19,9 @@ public static class SettingLocalizationKeys
     public static string OptionWarning(Setting setting, int index) => $"Setting_{Base(setting)}_OptionWarning_{index}";
 
 
-    /// <summary>
-    /// Compacted group key, e.g. group name "Privacy &amp; Security" -&gt; <c>SettingGroup_PrivacySecurity</c>.
-    /// Spaces and ampersands are removed.
-    /// </summary>
     public static string GroupCompact(string groupName) =>
         $"SettingGroup_{groupName.Replace(" ", "").Replace("&", "")}";
 
-    /// <summary>
-    /// Snake-case group key, e.g. "Content Delivery &amp; Advertising" -&gt;
-    /// <c>SettingGroup_Content_Delivery_Advertising</c>. " &amp; " and " " become "_", "&amp;" becomes "_",
-    /// and runs of "__" collapse to a single "_".
-    /// </summary>
     public static string GroupSnake(string groupName)
     {
         var snakeCaseName = groupName
@@ -59,10 +37,6 @@ public static class SettingLocalizationKeys
         return $"SettingGroup_{snakeCaseName}";
     }
 
-    /// <summary>
-    /// True when <paramref name="value"/> is already a localization key (and so should be used
-    /// verbatim as a lookup key rather than having a per-setting option key constructed for it).
-    /// </summary>
     public static bool IsLocalizationKey(string value)
     {
         return value.StartsWith("Template_") ||
@@ -71,14 +45,9 @@ public static class SettingLocalizationKeys
                value.StartsWith("ServiceOption_");
     }
 
-    /// <summary>
-    /// The COMPLETE set of localization keys this setting requests at runtime.
-    /// Name/Description always; group keys (compact + snake) when <c>Display.GroupName != null</c>;
-    /// the option block (per-setting Custom override + <c>Common_CustomState</c> + per-state option-display/tooltip/
-    /// warning) for a Selection setting (a Toggle, Slider, Action, or dynamic PowerPlan carries no enumerated
-    /// option keys). Per state: OptionDisplay only when the label is NOT itself a localization key;
-    /// OptionTooltip/OptionWarning only when the state carries a non-empty tooltip/warning.
-    /// </summary>
+    // The COMPLETE set a setting requests at runtime: Name/Description always; group keys when GroupName != null;
+    // option keys only for a Selection (a Toggle, Slider, Action or dynamic PowerPlan carries none). Per state:
+    // OptionDisplay only when the label is not itself a key; tooltip/warning only when non-empty.
     public static IEnumerable<string> ExpectedKeys(Setting setting)
     {
         yield return Name(setting);

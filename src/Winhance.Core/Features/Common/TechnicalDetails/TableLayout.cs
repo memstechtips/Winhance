@@ -1,12 +1,7 @@
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
-/// <summary>
-/// Where one cell sits after horizontal scrolling, and how much of its left edge must be clipped
-/// away. <see cref="ClipFromLeft"/> is in the cell's own coordinate space.
-/// </summary>
 public readonly record struct CellPlacement(double X, double Width, double ClipFromLeft)
 {
-    /// <summary>The cell has scrolled entirely behind the frozen columns and should not be drawn.</summary>
     public bool IsHidden => ClipFromLeft >= Width;
 
     public bool NeedsClip => ClipFromLeft > 0 && !IsHidden;
@@ -14,19 +9,10 @@ public readonly record struct CellPlacement(double X, double Width, double ClipF
     public double VisibleWidth => Math.Max(0, Width - ClipFromLeft);
 }
 
-/// <summary>
-/// The horizontal arithmetic for the technical-details table: column offsets, the frozen boundary,
-/// the scroll range, and the clip that keeps scrolled cells out of the frozen region.
-///
-/// This is deliberately pure and UI-free so it can be unit tested. The previous hand-rolled version
-/// of this panel kept frozen columns readable by painting an opaque backdrop over the scrolled cells
-/// at a higher z-index — a painting-order answer to a geometry question, which failed as soon as the
-/// backdrop brush turned out to be semi-transparent. Clipping removes the overlapping pixels
-/// outright, so z-order never enters into it.
-/// </summary>
+// Pure and UI-free so it can be unit tested. Clipping removes the overlapping pixels outright, so z-order never
+// enters into it; painting an opaque backdrop over the scrolled cells failed as soon as the brush was semi-transparent.
 public static class TableLayout
 {
-    /// <summary>Combined width of the leading columns that do not scroll.</summary>
     public static double FrozenWidth(IReadOnlyList<double> columnWidths, int frozenColumnCount)
     {
         ArgumentNullException.ThrowIfNull(columnWidths);
@@ -44,15 +30,8 @@ public static class TableLayout
         return total;
     }
 
-    /// <summary>
-    /// Widens the last column to take up whatever the viewport has left over.
-    ///
-    /// Every column sizes to its own content, so a table with two short value columns stops well
-    /// short of the card holding it and leaves a block of dead space beside it. Only the last column
-    /// grows, which is what keeps the columns before it aligned with the header cells above them.
-    /// Nothing ever shrinks: when the content is already wider than the viewport the widths come
-    /// back untouched and the table scrolls sideways instead.
-    /// </summary>
+    // Only the last column grows, which keeps the earlier columns aligned with their headers; nothing ever shrinks -
+    // wider content scrolls sideways instead.
     public static double[] StretchToViewport(IReadOnlyList<double> columnWidths, double viewportWidth)
     {
         ArgumentNullException.ThrowIfNull(columnWidths);
@@ -70,20 +49,13 @@ public static class TableLayout
         return stretched;
     }
 
-    /// <summary>
-    /// The largest useful scroll offset. Frozen columns occupy viewport space permanently, so the
-    /// scrollable extent reduces to content width minus viewport width.
-    /// </summary>
     public static double MaxOffset(IReadOnlyList<double> columnWidths, double viewportWidth) =>
         Math.Max(0, TotalWidth(columnWidths) - Math.Max(0, viewportWidth));
 
     public static double ClampOffset(double offset, IReadOnlyList<double> columnWidths, double viewportWidth) =>
         Math.Clamp(double.IsNaN(offset) ? 0 : offset, 0, MaxOffset(columnWidths, viewportWidth));
 
-    /// <summary>
-    /// Places one cell, or a header spanning <paramref name="columnSpan"/> columns starting at
-    /// <paramref name="column"/>. A span that begins inside the frozen region is treated as frozen.
-    /// </summary>
+    // A span that begins inside the frozen region is treated as frozen.
     public static CellPlacement Place(
         IReadOnlyList<double> columnWidths,
         int frozenColumnCount,

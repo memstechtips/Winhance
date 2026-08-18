@@ -11,16 +11,8 @@ using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Extensions.DI;
 
-/// <summary>
-/// Extension methods for registering infrastructure services.
-/// </summary>
 public static class InfrastructureServicesExtensions
 {
-    /// <summary>
-    /// Registers infrastructure services for the Winhance application.
-    /// </summary>
-    /// <param name="services">The service collection to configure</param>
-    /// <returns>The service collection for method chaining</returns>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         // Core Infrastructure Services (Singleton - Cross-cutting concerns)

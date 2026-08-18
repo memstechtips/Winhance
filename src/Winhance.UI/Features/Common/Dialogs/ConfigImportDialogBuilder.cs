@@ -10,11 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-/// <summary>
-/// Encapsulates the UI-building logic for the config import options dialog.
-/// Extracted from <see cref="Services.DialogService.ShowConfigImportOptionsDialogAsync"/>
-/// to keep DialogService focused on dialog lifecycle management.
-/// </summary>
 internal class ConfigImportDialogBuilder
 {
     private readonly ILocalizationService _localization;
@@ -43,10 +38,7 @@ internal class ConfigImportDialogBuilder
         _localization = localization;
     }
 
-    /// <summary>
-    /// Builds the ContentDialog with all UI elements. The caller is responsible for
-    /// calling ConfigureDialog and ShowAsync.
-    /// </summary>
+    // The caller is responsible for ConfigureDialog and ShowAsync.
     public ContentDialog Build(XamlRoot xamlRoot)
     {
         bool isDark = (xamlRoot.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
@@ -156,10 +148,7 @@ internal class ConfigImportDialogBuilder
         return _dialog;
     }
 
-    /// <summary>
-    /// Extracts the result from the dialog after it has been shown.
-    /// Must be called after the dialog's ShowAsync returns.
-    /// </summary>
+    // Must be called after ShowAsync returns.
     public (ImportOption? Option, ImportOptions Options) ExtractResult(ContentDialogResult dialogResult)
     {
         if (dialogResult != ContentDialogResult.Primary)
@@ -315,9 +304,6 @@ internal class ConfigImportDialogBuilder
         return cardButton;
     }
 
-    /// <summary>
-    /// Record to hold references to import option controls for result extraction.
-    /// </summary>
     private record ImportOptionControls(
         RadioButton WinAppsInstall,
         RadioButton WinAppsUninstall,

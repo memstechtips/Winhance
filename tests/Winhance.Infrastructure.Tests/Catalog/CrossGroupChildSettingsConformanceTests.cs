@@ -3,18 +3,12 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Pins <see cref="Display.CrossGroupChildSettings"/> (child setting id -> localization key, the source
-/// the UI's cross-group info banner is built from) on the CATALOG side alone. Exactly ONE catalog Setting carries a
-/// cross-group child map - the ads/promotional master, with 8 entries and the known pairs; every other Setting
-/// carries null, never an empty dictionary.
-///
-/// Machine-independent: compiled objects only, no I/O. Run: dotnet test --filter CrossGroupChildSettingsConformance</summary>
+// Exactly ONE catalog Setting carries a cross-group child map (the ads/promotional master); every other carries
+// null, never an empty dictionary.
 public class CrossGroupChildSettingsConformanceTests
 {
     private const string MasterId = "privacy-ads-promotional-master";
 
-    /// <summary>Exactly one catalog Setting carries a cross-group child map; it is the ads/promotional master,
-    /// with 8 entries and the known first/last pairs.</summary>
     [Fact]
     public void CrossGroupChildSettings_CatalogPinsTheOneCrossGroupMap()
     {

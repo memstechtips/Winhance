@@ -123,10 +123,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
-    /// <summary>
-    /// Subscribes to external events. Called from <see cref="LoadSettingsAsync"/> on first load
-    /// to avoid triggering side effects during DI construction.
-    /// </summary>
+    // Called from LoadSettingsAsync on first load, not the constructor, to avoid side effects during DI construction.
     private void SubscribeToEvents()
     {
         if (_isSubscribed) return;
@@ -647,15 +644,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             setting.ParentIsEnabled = IsGateSatisfied(setting);
     }
 
-    /// <summary>One card's gate. TRUE (usable) unless the card declares an EnabledWhen whose named
-    /// setting is loaded here, has a state we can name, and that state is NOT one of the declared ones.
-    ///
-    /// The two "not gated" answers are deliberate. A setting this feature has not loaded cannot be read
-    /// at all, and a card whose own state does not resolve (detection landed on nothing) is not evidence
-    /// that anything else is meaningless - so neither is grounds for taking a control away. A gate is a
-    /// positive claim; it is only made when it can actually be checked. For a toggle parent - which is
-    /// every gate in the catalog but one - the label always resolves, so this is exactly the old
-    /// `parent.IsSelected` and nothing about those cards changes.</summary>
+    // TRUE (usable) unless the card declares an EnabledWhen whose named setting is loaded here, has a state we can
+    // name, and that state is NOT one of the declared ones. The two "not gated" answers are deliberate: a setting
+    // this feature has not loaded cannot be read at all, and a card whose own state does not resolve is not
+    // evidence that anything else is meaningless - so neither is grounds for taking a control away. A gate is a
+    // positive claim, only made when it can actually be checked.
     private bool IsGateSatisfied(SettingItemViewModel item)
     {
         if (item.Setting?.EnabledWhen is not { } gate)

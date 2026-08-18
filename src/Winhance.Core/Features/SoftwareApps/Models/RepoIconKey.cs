@@ -1,11 +1,7 @@
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
-/// <summary>
-/// Maps an ItemDefinition to its icon path inside the package-icons repo, or null
-/// when the app has no hosted icon. external-app-* → external/&lt;winget|choco|stripped-id&gt;;
-/// windows-app-* → windows/&lt;appx-identity&gt;; capability-* → windows/&lt;capability-name&gt;;
-/// feature-* → windows/&lt;optional-feature-name&gt;. All lowercased.
-/// </summary>
+// external-app-* -> external/<winget|choco|stripped-id>; windows-app-* -> windows/<appx-identity>;
+// capability-* / feature-* -> windows/<name>. All lowercased.
 public static class RepoIconKey
 {
     public static string? For(ItemDefinition def)
@@ -44,8 +40,6 @@ public static class RepoIconKey
         return null;
     }
 
-    /// <summary>All AppX-identity candidate paths for a windows app, in order (handles
-    /// defs that declare multiple package names, e.g. GamingApp + XboxApp).</summary>
     public static System.Collections.Generic.IEnumerable<string> WindowsCandidates(ItemDefinition def)
     {
         if (def.AppxPackageName is null) yield break;

@@ -6,9 +6,6 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Tests the pure apply-request -> new-engine-plan bridge. It maps a plain toggle/check-box/selection/Action
-/// to an ApplyPlanBuilder plan via its SettingCatalog peer, and returns null (unreachable in production; the caller fails loudly) for
-/// unpaired / reset / numeric / custom-detector / non-index-selection requests.</summary>
 public class ApplyRequestResolverTests
 {
     private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\SOFTWARE\Test"];

@@ -3,9 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace Winhance.UI.Features.AdvancedTools.Models;
 
-/// <summary>
-/// Represents the state of a wizard step in the WIM Utility wizard.
-/// </summary>
 public class WizardStepState : INotifyPropertyChanged
 {
     private bool _isExpanded;
@@ -90,14 +87,8 @@ public class WizardStepState : INotifyPropertyChanged
 
     public bool IsLocked => !IsAvailable;
 
-    /// <summary>
-    /// Whether the chevron should be visible (not locked and not complete).
-    /// </summary>
     public bool ShowChevron => !IsLocked && !IsComplete;
 
-    /// <summary>
-    /// Rotation angle for the chevron icon.
-    /// </summary>
     public double ChevronRotation => IsExpanded ? 180 : 0;
 
     public event PropertyChangedEventHandler? PropertyChanged;

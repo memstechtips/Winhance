@@ -9,8 +9,6 @@ public interface IUserPreferencesService
     Task<T> GetPreferenceAsync<T>(string key, T defaultValue);
     Task<OperationResult> SetPreferenceAsync<T>(string key, T value);
 
-    /// <summary>
-    /// Synchronous version for use during startup to avoid async deadlocks.
-    /// </summary>
+    // Synchronous, for startup, to avoid async deadlocks.
     T GetPreference<T>(string key, T defaultValue);
 }

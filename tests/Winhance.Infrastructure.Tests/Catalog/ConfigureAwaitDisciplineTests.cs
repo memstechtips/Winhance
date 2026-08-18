@@ -6,15 +6,10 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// The apply engine writes through a SYNCHRONOUS port (IStateWriter), and a few boundaries still bridge
-/// to Task-returning services with GetAwaiter().GetResult(). Those bridges are safe for exactly one
-/// reason: every await beneath them uses ConfigureAwait(false), so no continuation ever tries to return
-/// to a captured SynchronizationContext. Drop that discipline anywhere on the path and a bridge becomes a
-/// hard UI freeze.
-///
-/// Nothing in the compiler enforces it, so this does. It is a rule now, not a habit.
-/// </summary>
+// The apply engine writes through a SYNCHRONOUS port and a few boundaries bridge to Task-returning services
+// with GetAwaiter().GetResult(); those are safe only because every await beneath them uses
+// ConfigureAwait(false). Drop that anywhere on the path and a bridge becomes a hard UI freeze; nothing in the
+// compiler enforces it, so this does.
 public class ConfigureAwaitDisciplineTests
 {
     // Scoped to the apply/detection engine, not the whole solution: WinRT bitmap APIs await

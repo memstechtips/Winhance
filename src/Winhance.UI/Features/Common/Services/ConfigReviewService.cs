@@ -8,12 +8,8 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Manages the app-wide Config Review Mode state.
-/// Registered as a Singleton so state persists across page navigation.
-/// Eagerly computes diffs when entering review mode so badge counts
-/// reflect actual changes from current system state.
-/// </summary>
+// Singleton so state persists across page navigation; diffs are computed eagerly on entering review so badge
+// counts reflect real changes.
 public class ConfigReviewService : IConfigReviewService, IConfigReviewModeService, IConfigReviewDiffService, IConfigReviewBadgeService, IApplicationModeService, IDisposable
 {
     private bool _disposed;
@@ -28,11 +24,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
     private readonly Dictionary<string, BuilderEdit> _builderEdits = new();
 
-    /// <summary>
-    /// Any authored change this Builder session, including input types that do not yet produce a
-    /// serializable <see cref="BuilderEdit"/>. Gates the discard prompt; see
-    /// <see cref="MarkBuilderDirty"/>.
-    /// </summary>
+    // Includes input types that do not yet produce a serializable BuilderEdit; gates the discard prompt.
     private bool _builderDirty;
 
     // Action settings that always need confirmation, even when current matches config
@@ -134,14 +126,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public void EnterBuilderMode(BuilderTarget target) => SetMode(WinhanceMode.Builder, target);
 
-    /// <summary>
-    /// The single entry point for synchronous mode transitions (Normal, Builder). Fully
-    /// exits whatever mode is active — clearing its state and raising its "exited" events so
-    /// subscribers clean up — before entering <paramref name="target"/>. This is the state
-    /// machine's chokepoint: no public method sets <see cref="CurrentMode"/> directly, so the
-    /// modes can never bleed into each other regardless of which transition a caller requests.
-    /// Review entry is async and routes its teardown through <see cref="LeaveCurrentMode"/>.
-    /// </summary>
+    // The single entry point for synchronous mode transitions: fully exits whatever mode is active (clearing its
+    // state, raising its exited events) before entering target. No public method sets CurrentMode directly, so modes
+    // can never bleed into each other. Review entry is async and routes its teardown through LeaveCurrentMode.
     private void SetMode(WinhanceMode target, BuilderTarget builderTarget = BuilderTarget.Config)
     {
         LeaveCurrentMode();
@@ -158,13 +145,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>
-    /// Completely exits the active mode: clears its in-memory state and raises the
-    /// mode-specific "exited" events (so e.g. the orchestration service clears per-setting
-    /// review state). Leaves <see cref="CurrentMode"/> at Normal and does NOT raise
-    /// <see cref="ModeChanged"/> — the caller owns entering the next mode and raising that.
-    /// No-op when already Normal.
-    /// </summary>
+    // Leaves CurrentMode at Normal and does NOT raise ModeChanged - the caller owns entering the next mode. No-op when already Normal.
     private void LeaveCurrentMode()
     {
         // Authored, un-applied edits belong to the session that authored them, and dropping them
@@ -187,10 +168,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    /// <summary>
-    /// Resets the in-memory review artifacts (diffs, counts, active config). Does not
-    /// touch <see cref="CurrentMode"/> or raise events — callers own the transition.
-    /// </summary>
+    // Does not touch CurrentMode or raise events - callers own the transition.
     private void ClearReviewArtifacts()
     {
         ActiveConfig = null;
@@ -440,10 +418,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         TotalConfigItems = total;
     }
 
-    /// <summary>
-    /// Eagerly computes diffs for all Optimize and Customize settings by batch-loading
-    /// current system state and comparing against config values.
-    /// </summary>
     private async Task ComputeEagerDiffsAsync(UnifiedConfigurationFile config)
     {
         var onText = _localizationService.GetStringOrDefault("Common_On", "On");
@@ -583,11 +557,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return string.Format(format, themeName);
     }
 
-    /// <summary>
-    /// Computes diff between current system state and config value for a catalog setting.
-    /// Works with the catalog Setting + SettingStateResult (no ViewModel required).
-    /// Returns display strings, plus raw keys for re-localization on language change.
-    /// </summary>
     private async Task<(bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey)> ComputeEagerDiffAsync(
         Setting setting,
         ConfigurationItem configItem,
@@ -724,11 +693,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    /// <summary>
-    /// Builds the combo box display options for a non-power-plan Selection from its catalog States. The
-    /// current index is read straight off <paramref name="currentValue"/> (already the resolved option index);
-    /// power-plan settings are handled separately via the PowerPlanGuid branch and never reach this method.
-    /// </summary>
+    // Power-plan settings never reach this - they take the PowerPlanGuid branch.
     private static ComboBoxSetupResult BuildComboBoxOptions(Setting setting, object? currentValue)
     {
         var result = new ComboBoxSetupResult();
@@ -768,18 +733,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return result;
     }
 
-    /// <summary>The option carrying STATE index <paramref name="stateIndex"/> as its Value, or null when
-    /// none does. Options are keyed by state index, NOT by their position in the list: BuildComboBoxOptions
-    /// skips detect-only states without renumbering the survivors, so a positional read would return the
-    /// wrong option as soon as a skipped state is not the last one - and would silently hand back an option
-    /// for an index that has none.</summary>
+    // Options are keyed by STATE index, not list position: BuildComboBoxOptions skips detect-only states without
+    // renumbering, so a positional read would return the wrong option as soon as a skipped state is not the last one.
     private static ComboBoxDisplayOption? OptionForStateIndex(ComboBoxSetupResult result, int stateIndex) =>
         stateIndex < 0 ? null : result.Options.FirstOrDefault(o => o.Value is int v && v == stateIndex);
 
-    /// <summary>The raw display key for STATE index <paramref name="stateIndex"/>: the option's DisplayText
-    /// when the state is a choice, and the state's own Label when it is DETECT-ONLY - such a state has no
-    /// option (it is not a choice) but is a real, named state, and rendering the bare index for it would
-    /// print "2" where the card shows "Mixed". Null when the index names no state at all.</summary>
+    // A DETECT-ONLY state has no option but is a real, named state; rendering its bare index would print "2" where
+    // the card shows "Mixed".
     private static string? DisplayKeyForStateIndex(Setting setting, ComboBoxSetupResult result, int stateIndex)
     {
         if (OptionForStateIndex(result, stateIndex) is { } option)
@@ -789,9 +749,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             : null;
     }
 
-    /// <summary>
-    /// Gets a display name for a combo box index using the catalog Setting's combo box setup.
-    /// </summary>
     private async Task<string> GetComboBoxDisplayNameFromCatalogAsync(
         Setting setting,
         int index,
@@ -820,11 +777,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return index >= 0 ? index.ToString() : "Unknown";
     }
 
-    /// <summary>
-    /// Localizes combo box display text by attempting resolution through the localization service.
-    /// Keys like "PowerPlan_Balanced_Name" or "ServiceOption_Disabled" resolve to localized strings;
-    /// plain text like "Programs" is not a key, so it passes through unchanged.
-    /// </summary>
+    // A key resolves; plain text (e.g. "Programs") is not a key and passes through unchanged.
     private string LocalizeComboBoxDisplayText(string displayText)
     {
         if (string.IsNullOrEmpty(displayText))
@@ -835,20 +788,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             : displayText;
     }
 
-    /// <summary>
-    /// Handles language changes by re-localizing all diff display strings.
-    /// Runs synchronously so updated diffs are ready before ViewModels reload settings.
-    /// </summary>
+    // Runs synchronously so updated diffs are ready before ViewModels reload settings.
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         if (!IsInReviewMode) return;
         RelocalizeDisplayStrings();
     }
 
-    /// <summary>
-    /// Re-localizes all diff display strings using stored raw keys.
-    /// Called when the UI language changes during active review mode.
-    /// </summary>
     private void RelocalizeDisplayStrings()
     {
         foreach (var key in _diffs.Keys)
@@ -866,9 +812,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    /// <summary>
-    /// Gets the localization key for a predefined power plan by GUID, or null if not predefined.
-    /// </summary>
     private static string? GetPowerPlanLocalizationKey(string? guid)
     {
         if (string.IsNullOrEmpty(guid)) return null;
@@ -878,10 +821,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return predefined?.LocalizationKey;
     }
 
-    /// <summary>
-    /// Resolves a power plan to a predefined plan entry using GUID first, then name matching.
-    /// Returns null if no match is found.
-    /// </summary>
     private static PredefinedPowerPlan? ResolveToPredefinedPlan(string? guid, string? name)
     {
         var plans = PowerPlanCatalog.BuiltInPowerPlans;
@@ -908,10 +847,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return null;
     }
 
-    /// <summary>
-    /// Looks up a power plan by GUID in predefined plans and returns the localized display name.
-    /// Returns null if no matching predefined plan is found.
-    /// </summary>
     private string? LocalizePowerPlanByGuid(string? guid)
     {
         if (string.IsNullOrEmpty(guid)) return null;
@@ -926,10 +861,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return !string.IsNullOrEmpty(localized) ? localized : predefined.Name;
     }
 
-    /// <summary>
-    /// Normalizes a GUID string for comparison by parsing and re-formatting.
-    /// Handles differences in casing, braces, and formatting.
-    /// </summary>
     private static string NormalizeGuid(string? guid)
     {
         if (string.IsNullOrEmpty(guid)) return string.Empty;

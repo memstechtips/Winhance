@@ -32,12 +32,8 @@ public class ProcessRestartManagerTests
     // restart logic.
     // ---------------------------------------------------------------
 
-    /// <summary>
-    /// Which broadcast a setting gets is DECLARED on it (ApplyBehavior.NotifyWindows), so that is what
-    /// these tests set. The manager no longer looks at Targets to work it out, and the catalog-wide
-    /// conformance test in Winhance.Core.Tests is what pins the declarations to the settings that really
-    /// do write the personalisation key.
-    /// </summary>
+    // Which broadcast a setting gets is DECLARED on it (ApplyBehavior.NotifyWindows); the catalog-wide conformance
+    // test pins the declarations to the settings that really write the personalisation key.
     private static Setting CreateCatalogSetting(
         string id, RestartTarget? restart = null, WindowsChange notify = WindowsChange.None) => new()
     {

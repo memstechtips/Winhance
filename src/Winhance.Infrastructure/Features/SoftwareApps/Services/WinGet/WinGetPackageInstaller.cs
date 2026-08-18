@@ -6,9 +6,6 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet CLI-based package install and uninstall operations.
-/// </summary>
 public class WinGetPackageInstaller : IWinGetPackageInstaller
 {
     // No wall-clock cap (installs/uninstalls can legitimately run long); a stalled
@@ -566,10 +563,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    /// <summary>
-    /// Quick check: runs "winget list --exact --id {packageId}" to see if a package is still installed.
-    /// Returns true if the package is still present.
-    /// </summary>
     private async Task<bool> IsPackageStillInstalledAsync(string packageId, string? source, CancellationToken cancellationToken)
     {
         try
@@ -594,11 +587,7 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    /// <summary>
-    /// Returns true if the line is a progress bar (contains Unicode block elements).
-    /// These lines arrive as permanent output via onOutputLine when ConPTY re-emits
-    /// a \r\n terminated progress bar, but they are already handled by onProgressLine.
-    /// </summary>
+    // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
     private static bool IsProgressBarLine(string line)
     {
         foreach (char c in line)

@@ -9,23 +9,10 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance: the shipped Recommended config (<c>Winhance_Recommended_Config.winhance</c>) must match the in-app
-/// per-setting Recommended states 1:1. The in-app "Apply Recommended" (<c>RecommendedSettingsApplier</c>) is the
-/// PRIMARY path; the config predates it and is kept-but-redundant, so this invariant guarantees the two never
-/// silently diverge (a config entry that would apply a different state than the app recommends).
-///
-/// Reuses the PRODUCTION recommended primitives - <see cref="CatalogToggleState.GetRecommended"/>,
-/// <c>RecommendedSettingsResolver.BuildPowerCfgApplyValue</c> / <c>GetRecommendedIndex</c> /
-/// <c>HasRecommendedValue</c> - mirroring the applier's per-<see cref="ControlKind"/> dispatch, never a hand-copied
-/// rule table (that second source of truth is exactly what this test exists to prevent). Pure + machine-independent:
-/// reads the catalog and the committed config file only. Recommended roles are build-invariant (all unconditional;
-/// only WindowsDefault is ever build-scoped), so a single fixed build is used - matching the single, non-per-OS
-/// Recommended config file.
-///
-/// Scope: the Customize + Optimize sections ONLY. WindowsApps / ExternalApps are user selections, not recommendations.
-/// Run: dotnet test --filter RecommendedConfigConformance
-/// </summary>
+// The shipped Recommended config must match the in-app per-setting Recommended states 1:1; the in-app applier
+// is the PRIMARY path and the config is kept-but-redundant. Reuses the PRODUCTION primitives, never a hand-copied
+// rule table - a second source of truth is exactly what this prevents. Recommended roles are build-invariant, so
+// one fixed build. Customize + Optimize only. Run: dotnet test --filter RecommendedConfigConformance
 public class RecommendedConfigConformanceTests
 {
     private readonly ITestOutputHelper _output;

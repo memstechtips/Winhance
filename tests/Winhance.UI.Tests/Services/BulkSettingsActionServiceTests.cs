@@ -13,12 +13,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="BulkSettingsActionService"/> Apply Recommended / Reset to Default on
-/// Selection settings, plus round-trip agreement with <see cref="SettingItemViewModel"/> badge
-/// state. These lock in the wiring that reads Recommended/WindowsDefault roles from the catalog
-/// Setting's States.
-/// </summary>
 public class BulkSettingsActionServiceTests
 {
     private const string TestSettingId = "test-selection";

@@ -8,10 +8,6 @@ using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Orchestrates the application startup sequence (phases 1-4).
-/// Extracted from MainWindow.xaml.cs for testability.
-/// </summary>
 public class StartupOrchestrator : IStartupOrchestrator
 {
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
@@ -40,7 +36,6 @@ public class StartupOrchestrator : IStartupOrchestrator
         _logService = logService;
     }
 
-    /// <inheritdoc />
     public async Task<StartupResult> RunStartupSequenceAsync(
         IProgress<string> statusProgress,
         IProgress<TaskProgressDetail> detailedProgress)
@@ -162,10 +157,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         return new StartupResult { IsFirstLaunch = isFirstLaunch };
     }
 
-    /// <summary>
-    /// Enumerates <c>AddedInVersion</c> across every catalog setting - the badge service only cares about the
-    /// maximum, and the set is machine-independent, without depending on registry readiness.
-    /// </summary>
+    // The badge service only cares about the maximum, and the set is machine-independent, so this needs no registry readiness.
     private static IEnumerable<string?> CollectAddedInVersions() =>
         SettingCatalog.All.Select(s => s.Display.AddedInVersion);
 }

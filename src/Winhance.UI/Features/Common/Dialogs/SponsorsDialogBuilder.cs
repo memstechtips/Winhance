@@ -8,13 +8,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-/// <summary>
-/// Encapsulates the UI-building logic for the in-app sponsors page dialog.
-/// Mirrors <see cref="ConfigImportDialogBuilder"/>: the builder constructs the
-/// ContentDialog programmatically and exposes <see cref="ExtractResult"/> for the
-/// caller (DialogService) to read after ShowAsync returns. The caller owns
-/// ConfigureDialog, the semaphore, and ShowAsync.
-/// </summary>
+// The caller (DialogService) owns ConfigureDialog, the semaphore and ShowAsync; read ExtractResult after ShowAsync returns.
 internal class SponsorsDialogBuilder
 {
     private const string SupportUrl = "https://store.memstechtips.com/winhance/";
@@ -81,10 +75,6 @@ internal class SponsorsDialogBuilder
         _sponsorsService = sponsorsService;
     }
 
-    /// <summary>
-    /// Builds the ContentDialog. The caller is responsible for calling
-    /// ConfigureDialog and ShowAsync, then <see cref="ExtractResult"/>.
-    /// </summary>
     public ContentDialog Build(SponsorsDocument? data, SponsorsDialogMode mode, XamlRoot xamlRoot)
     {
         _mode = mode;
@@ -166,11 +156,7 @@ internal class SponsorsDialogBuilder
         return _dialog;
     }
 
-    /// <summary>
-    /// Extracts the result after the dialog has been shown.
-    /// SupportClicked is true if the user clicked a support/business button.
-    /// DontShowAgain is the exit-mode checkbox state (always false in Normal mode).
-    /// </summary>
+    // DontShowAgain is always false in Normal mode.
     public (bool SupportClicked, bool DontShowAgain) ExtractResult()
     {
         bool dontShowAgain = _mode == SponsorsDialogMode.Exit && _dontShowAgainCheckbox?.IsChecked == true;
@@ -266,10 +252,7 @@ internal class SponsorsDialogBuilder
         return wrap;
     }
 
-    /// <summary>
-    /// Sponsors with tier (case-insensitive) "gold" or "emerald" and no Until date.
-    /// Emerald first, then gold; stable within tier.
-    /// </summary>
+    // Tier "gold" or "emerald" (case-insensitive) with no Until date; emerald first, then gold, stable within tier.
     private static IEnumerable<SponsorEntry> QualifyingSponsors(SponsorsDocument? data)
     {
         if (data?.Sponsors is not { Count: > 0 } sponsors)
@@ -454,10 +437,7 @@ internal class SponsorsDialogBuilder
         };
     }
 
-    /// <summary>
-    /// Returns a HyperlinkButton for the sponsor URL, but only when it is a
-    /// non-empty absolute https URI. Content is the host without a leading "www.".
-    /// </summary>
+    // Only for a non-empty absolute https URI; content is the host without a leading "www.".
     private HyperlinkButton? BuildUrlLink(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -509,10 +489,6 @@ internal class SponsorsDialogBuilder
     // Supporters
     // -----------------------------------------------------------------------
 
-    /// <summary>
-    /// Row 2 of the modal: the "Recent Supporters" section title plus a small
-    /// secondary how-to-join line directly beneath it.
-    /// </summary>
     private UIElement BuildSupportersHeader(SponsorsDocument? data)
     {
         var section = new StackPanel { Spacing = 2 };
@@ -552,12 +528,7 @@ internal class SponsorsDialogBuilder
         return section;
     }
 
-    /// <summary>
-    /// Row 3 of the modal: content-sized supporter chips packed into wrapping
-    /// rows. Chips are measured individually and packed greedily so each chip
-    /// hugs its name (no dead space after short names), unlike the previous fixed
-    /// 160px uniform cells. The supporter count line lives in the section header.
-    /// </summary>
+    // Chips are measured individually and packed greedily so each hugs its name - no dead space after short names.
     private UIElement BuildSupportersChips(SponsorsDocument? data)
     {
         var section = new StackPanel { Spacing = 8 };
@@ -581,12 +552,6 @@ internal class SponsorsDialogBuilder
         return section;
     }
 
-    /// <summary>
-    /// Measure-and-pack: measure each chip's desired width, then greedily place
-    /// chips left-to-right into horizontal rows, breaking to a new row when the
-    /// next chip would exceed <see cref="ChipRowAvailableWidth"/>. Returns a
-    /// vertical StackPanel of horizontal row StackPanels.
-    /// </summary>
     private StackPanel PackChips(List<Border> chips)
     {
         var rows = new StackPanel
@@ -765,10 +730,7 @@ internal class SponsorsDialogBuilder
     // Helpers
     // -----------------------------------------------------------------------
 
-    /// <summary>
-    /// Resolves a theme-aware brush from the application resources. The dialog's
-    /// RequestedTheme (set by DialogService.ConfigureDialog) drives which theme
-    /// variant these ThemeResource-backed brushes render.
-    /// </summary>
+    // The dialog's RequestedTheme (set by DialogService.ConfigureDialog) drives which theme variant these
+    // ThemeResource-backed brushes render.
     private static Brush GetBrush(string key) => (Brush)Application.Current.Resources[key];
 }

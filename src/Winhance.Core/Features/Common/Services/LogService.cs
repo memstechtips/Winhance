@@ -159,11 +159,6 @@ public class LogService : ILogService, IDisposable
         return _logPath;
     }
 
-    /// <summary>
-    /// Removes log files older than <paramref name="maxAgeDays"/> days and
-    /// caps the total number of log files to <paramref name="maxFiles"/>,
-    /// deleting the oldest files first.
-    /// </summary>
     internal static void CleanupOldLogs(string logDirectory, int maxAgeDays = 30, int maxFiles = 50)
     {
         try

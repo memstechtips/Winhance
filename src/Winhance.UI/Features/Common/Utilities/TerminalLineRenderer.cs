@@ -3,11 +3,8 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Shared rendering logic for terminal output lines.
-/// Used by both the closed TaskProgressControl bar and the Terminal Output dialog
-/// so that progress bars and colored text render identically in both views.
-/// </summary>
+// Used by both the closed TaskProgressControl bar and the Terminal Output dialog so progress bars and coloured
+// text render identically in both.
 internal static class TerminalLineRenderer
 {
     // Terminal-style color brushes
@@ -37,9 +34,6 @@ internal static class TerminalLineRenderer
 
     public static readonly Microsoft.UI.Xaml.Media.FontFamily MonoFont = new("Consolas");
 
-    /// <summary>
-    /// Returns the appropriate foreground brush based on line content.
-    /// </summary>
     public static SolidColorBrush GetLineBrush(string line)
     {
         var trimmed = line.TrimStart();
@@ -70,17 +64,8 @@ internal static class TerminalLineRenderer
         return DefaultBrush;
     }
 
-    /// <summary>
-    /// Creates color-coded Runs for a terminal line.
-    /// Progress bar lines containing both filled (█) and unfilled (░) characters are split
-    /// into multiple Runs so that filled and unfilled portions use the same character
-    /// (consistent height) but different colors.
-    /// </summary>
-    /// <param name="line">The terminal line text.</param>
-    /// <param name="appendNewline">
-    /// True to append a trailing newline (for multi-line dialog view);
-    /// false for single-line inline view.
-    /// </param>
+    // Progress-bar lines with both filled (U+2588) and unfilled (U+2591) characters are split into Runs so both
+    // portions use the same character (consistent height) but different colours.
     public static Run[] CreateLineRuns(string line, bool appendNewline = true)
     {
         var nl = appendNewline ? "\x0a" : "";
@@ -137,11 +122,7 @@ internal static class TerminalLineRenderer
         }];
     }
 
-    /// <summary>
-    /// Detects whether a line looks like a progress bar (contains Unicode block elements).
-    /// Used to catch the duplicate first progress bar line that winget sometimes emits
-    /// with \n before switching to \r.
-    /// </summary>
+    // Catches the duplicate first progress-bar line winget sometimes emits with \n before switching to \r.
     public static bool LooksLikeProgressBar(string line)
     {
         foreach (char c in line)

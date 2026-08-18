@@ -2,8 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
 public interface IRepoIconSource
 {
-    /// <summary>Returns the raw image bytes for a repo path (e.g. "icons/windows/x.png"),
-    /// validated against expectedSha256 when provided, or null on any failure. Never throws.</summary>
+    // Validated against expectedSha256 when provided; null on any failure, never throws.
     System.Threading.Tasks.Task<byte[]?> GetIconBytesAsync(
         string repoPath, string? expectedSha256, System.Threading.CancellationToken ct = default);
 }

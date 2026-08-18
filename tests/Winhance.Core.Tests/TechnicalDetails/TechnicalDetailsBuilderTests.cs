@@ -15,7 +15,7 @@ public class TechnicalDetailsBuilderTests
 {
     private static readonly WinBuild Build = new(26100);
 
-    /// <summary>Returns the key itself, so an assertion can prove which key produced a string.</summary>
+    // Returns the key itself, so an assertion can prove which key produced a string.
     private static ILocalizationService Loc()
     {
         var mock = new Mock<ILocalizationService>();
@@ -24,8 +24,7 @@ public class TechnicalDetailsBuilderTests
         return mock.Object;
     }
 
-    /// <summary>No-setup mock: TryGetString reports every key missing, so every lookup falls back
-    /// to its English default.</summary>
+    // No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English default.
     private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
 
     private static Display Show(string name = "Test") => new() { Name = name, Description = "d" };
@@ -206,7 +205,6 @@ public class TechnicalDetailsBuilderTests
     // The option matrix: options are rows, the values they write are columns
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>Build now returns the one table directly; a null means nothing to document.</summary>
     private static OptionMatrix MatrixOf(OptionMatrix? matrix) =>
         matrix.Should().NotBeNull().And.Subject.As<OptionMatrix>();
 

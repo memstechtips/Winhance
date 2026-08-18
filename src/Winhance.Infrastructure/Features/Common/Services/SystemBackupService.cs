@@ -18,10 +18,7 @@ public class SystemBackupService : ISystemBackupService
     private const int VerificationMaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
 
-    /// <summary>
-    /// Minimum percentage of shadow storage that must be free to create a restore point.
-    /// If free space drops below this threshold, the max size is doubled.
-    /// </summary>
+    // Below this free share of shadow storage, the max size is doubled before creating a restore point.
     private const double MinFreeStoragePercent = 15.0;
 
     public SystemBackupService(
@@ -279,9 +276,6 @@ public class SystemBackupService : ISystemBackupService
         }
     }
 
-    /// <summary>
-    /// Checks shadow storage usage and increases MaxSize if free space is below threshold.
-    /// </summary>
     private async Task EnsureSufficientShadowStorageAsync()
     {
         try
@@ -328,10 +322,6 @@ public class SystemBackupService : ISystemBackupService
         }
     }
 
-    /// <summary>
-    /// Parses vssadmin list shadowstorage output to extract Used and Maximum bytes.
-    /// Returns (-1, -1) if parsing fails.
-    /// </summary>
     private static (long UsedBytes, long MaxBytes) ParseShadowStorageOutput(string output)
     {
         long usedBytes = -1;
@@ -354,10 +344,6 @@ public class SystemBackupService : ISystemBackupService
         return (usedBytes, maxBytes);
     }
 
-    /// <summary>
-    /// Parses a vssadmin line like "Used Shadow Copy Storage space: 9.25 GB (14%)"
-    /// and returns the value in bytes. Returns -1 on failure.
-    /// </summary>
     private static long ParseByteValue(string line)
     {
         // Extract the part after the colon, e.g. " 9.25 GB (14%)"

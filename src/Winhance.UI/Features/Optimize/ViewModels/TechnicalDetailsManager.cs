@@ -8,12 +8,7 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// UI adapter for the Technical Details panel: marshals the build onto the UI thread and hands the
-/// result to the view-model. All the documentation rules live in <see cref="TechnicalDetailsBuilder"/>,
-/// which is pure and unit-tested. The command is no longer attached to the model - it reaches the
-/// buttons as a dependency property on the control, so Core carries no ICommand at all.
-/// </summary>
+// Marshals the build onto the UI thread; the documentation rules live in TechnicalDetailsBuilder, which is pure and unit-tested.
 internal sealed class TechnicalDetailsManager
 {
     private readonly Func<string> _getSettingId;
@@ -46,7 +41,6 @@ internal sealed class TechnicalDetailsManager
         OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
     }
 
-    /// <summary>Rebuilds the panel from the setting model + current-state snapshot, on the UI thread.</summary>
     public void Update(Setting? setting, SettingStateSnapshot snapshot)
     {
         _dispatcherService.RunOnUIThread(DispatcherQueuePriority.Low, () =>
