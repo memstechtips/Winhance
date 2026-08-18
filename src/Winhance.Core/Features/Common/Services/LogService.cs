@@ -68,10 +68,12 @@ public class LogService : ILogService, IDisposable
 
             CleanupOldLogs(logDirectory, maxAgeDays: 30, maxFiles: 50);
 
-            _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
+            lock (_lockObject)
             {
-                AutoFlush = true
-            };
+                _logWriter?.Dispose();
+                _logWriter = null;
+                _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8) { AutoFlush = true };
+            }
 
             if (_systemInfoProvider != null)
             {
