@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
@@ -38,6 +39,7 @@ public static class UIServicesExtensions
         services.AddSingleton<IFilePickerService, FilePickerService>();
 
         services.AddSingleton<ISelectedAppsProvider, SelectedAppsProvider>();
+        services.AddSingleton<IInstallConsent, DialogInstallConsent>();
 
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
 

@@ -16,10 +16,8 @@ public class WindowsAppsServiceTests
     private readonly Mock<IWinGetBootstrapper> _winGetBootstrapper = new();
     private readonly Mock<IAppStatusDiscoveryService> _appStatusDiscoveryService = new();
     private readonly Mock<IStoreDownloadService> _storeDownloadService = new();
-    private readonly Mock<IDialogService> _dialogService = new();
-    private readonly Mock<IUserPreferencesService> _userPreferencesService = new();
+    private readonly Mock<IInstallConsent> _installConsent = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
-    private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
     private readonly Mock<ICatalogSettingStateProvider> _settingStateProvider = new();
 
@@ -29,10 +27,8 @@ public class WindowsAppsServiceTests
         _winGetBootstrapper.Object,
         _appStatusDiscoveryService.Object,
         _storeDownloadService.Object,
-        _dialogService.Object,
-        _userPreferencesService.Object,
+        _installConsent.Object,
         _taskProgressService.Object,
-        _localizationService.Object,
         _settingApplicationService.Object,
         _settingStateProvider.Object);
 
@@ -148,13 +144,9 @@ public class WindowsAppsServiceTests
             .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        _userPreferencesService
-            .Setup(x => x.GetPreferenceAsync("StoreDownloadFallback_DontShowAgain", false))
+        _installConsent
+            .Setup(x => x.AllowFallbackDownloadAsync("Test App"))
             .ReturnsAsync(false);
-
-        _dialogService
-            .Setup(x => x.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var result = await sut.InstallAppAsync(item);
 
@@ -183,8 +175,8 @@ public class WindowsAppsServiceTests
             .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        _userPreferencesService
-            .Setup(x => x.GetPreferenceAsync("StoreDownloadFallback_DontShowAgain", false))
+        _installConsent
+            .Setup(x => x.AllowFallbackDownloadAsync("Test App"))
             .ReturnsAsync(true);
 
         _storeDownloadService

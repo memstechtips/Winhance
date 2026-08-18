@@ -14,15 +14,12 @@ internal class WindowsAppsService(
     IWinGetBootstrapper winGetBootstrapper,
     IAppStatusDiscoveryService appStatusDiscoveryService,
     IStoreDownloadService storeDownloadService,
-    IDialogService dialogService,
-    IUserPreferencesService userPreferencesService,
+    IInstallConsent installConsent,
     ITaskProgressService taskProgressService,
-    ILocalizationService localizationService,
     ISettingApplicationService settingApplicationService,
     ICatalogSettingStateProvider settingStateProvider) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
-    private const string FallbackConfirmationPreferenceKey = "StoreDownloadFallback_DontShowAgain";
 
     public event EventHandler? WinGetReady
     {
@@ -89,20 +86,7 @@ internal class WindowsAppsService(
                 {
                     logService?.LogWarning($"Windows Update DLLs appear to be renamed (Disabled mode). Offering to fix for {item.Name}...");
 
-                    var updateTitle = localizationService.GetStringOrDefault("Dialog_UpdatePolicyBlocking_Title", "Windows Updates Disabled");
-                    var updateMessage = localizationService.GetStringOrDefault("Dialog_UpdatePolicyBlocking_Message", $"The installation of '{item.Name}' could not complete, likely because Windows Updates are disabled.\n\n", item.Name) +
-                        "Disabling Windows Updates prevents app installations from the Microsoft Store from completing.\n\n" +
-                        "Would you like Winhance to change the update policy to 'Paused for a long time' and retry the installation?";
-                    var yesButton = localizationService.GetStringOrDefault("Button_Yes", "Yes");
-                    var noButton = localizationService.GetStringOrDefault("Button_No", "No");
-
-                    var userAccepted = (await dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                    {
-                        Message = updateMessage,
-                        Title = updateTitle,
-                        ConfirmButtonText = yesButton,
-                        CancelButtonText = noButton,
-                    }).ConfigureAwait(false)).Confirmed;
+                    var userAccepted = await installConsent.AllowUpdatePolicyChangeAsync(item.Name).ConfigureAwait(false);
 
                     if (userAccepted)
                     {
@@ -140,43 +124,7 @@ internal class WindowsAppsService(
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 
-                    bool skipConfirmation = false;
-                    skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false).ConfigureAwait(false);
-
-                    bool userConsent = skipConfirmation;
-
-                    if (!skipConfirmation)
-                    {
-                        var title = localizationService.GetStringOrDefault("Dialog_FallbackDownload", "Alternative Download Method");
-                        var message = localizationService.GetStringOrDefault("WindowsApps_Msg_FallbackDownload", $"The package '{item.Name}' could not be found via WinGet, likely due to geographic market restrictions.\n\n", item.Name) +
-                                     $"Winhance can download this package directly from Microsoft's servers using an alternative method (store.rg-adguard.net).\n\n" +
-                                     $"• The package files come directly from Microsoft's official CDN\n" +
-                                     $"• This method is completely legal and safe\n" +
-                                     $"• It bypasses regional restrictions only\n\n" +
-                                     $"Would you like to proceed with the alternative download method?";
-                        var checkboxText = localizationService.GetStringOrDefault("WindowsApps_Checkbox_DontAskAgain", "Don't ask me again for future installations");
-                        var downloadButton = localizationService.GetStringOrDefault("Button_Download", "Download");
-                        var cancelButton = localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
-
-                        var r = await dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                        {
-                            Message = message,
-                            CheckboxText = checkboxText,
-                            Title = title,
-                            ConfirmButtonText = downloadButton,
-                            CancelButtonText = cancelButton,
-                        }).ConfigureAwait(false);
-                        bool confirmed = r.Confirmed;
-                        bool dontShowAgain = r.CheckboxChecked;
-
-                        userConsent = confirmed;
-
-                        if (dontShowAgain)
-                        {
-                            await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true).ConfigureAwait(false);
-                            logService?.LogInformation("User opted to skip fallback confirmation in future");
-                        }
-                    }
+                    var userConsent = await installConsent.AllowFallbackDownloadAsync(item.Name).ConfigureAwait(false);
 
                     if (!userConsent)
                     {
