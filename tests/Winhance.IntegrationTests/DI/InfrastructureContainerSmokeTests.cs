@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
 using Xunit;
 
@@ -101,11 +103,14 @@ public class InfrastructureContainerSmokeTests
         var services = new ServiceCollection();
         services.AddInfrastructureServices();
 
-        // No ValidateOnBuild: WindowsAppsService takes IDialogService, which only the UI layer
-        // registers, so a full graph validation cannot pass on the Infrastructure container alone.
+        // The one contract the host must supply: WindowsAppsService needs a human's answer mid-install, and
+        // only the UI has one. Everything else must resolve from Infrastructure alone.
+        services.AddSingleton(Mock.Of<IInstallConsent>());
+
         var action = () => services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
+            ValidateOnBuild = true,
         });
 
         action.Should().NotThrow("the DI container should build successfully");
