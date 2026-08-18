@@ -67,7 +67,6 @@ public static class WinGetProgressParser
 
         var trimmed = line.Trim();
 
-        // Handle "(n/m) ..." step prefix — translate the rest, re-prepend as "[n/m]"
         var stepMatch = StepPrefixRegex.Match(trimmed);
         if (stepMatch.Success)
         {
@@ -85,7 +84,6 @@ public static class WinGetProgressParser
 
     private static string? TranslateCore(string trimmed)
     {
-        // ReportIdentityFound {Name} [{Id}] ShowVersion {Ver} → "Found: {Name} v{Ver}"
         var identityMatch = ReportIdentityRegex.Match(trimmed);
         if (identityMatch.Success)
         {
@@ -94,7 +92,6 @@ public static class WinGetProgressParser
             return $"Found: {name} v{version}";
         }
 
-        // "Downloading https://..." → "Downloading {filename}..."
         var downloadMatch = DownloadUrlRegex.Match(trimmed);
         if (downloadMatch.Success)
         {
@@ -105,14 +102,12 @@ public static class WinGetProgressParser
                 if (!string.IsNullOrEmpty(filename))
                     return $"Downloading {filename}...";
             }
-            catch { /* URL parsing failed — fall through to generic message */ }
+            catch { }
             return "Downloading...";
         }
 
-        // Exact resource key lookup
         if (ResourceKeyMap.TryGetValue(trimmed, out var mapped))
         {
-            // Empty string means suppress the line
             return string.IsNullOrEmpty(mapped) ? null : mapped;
         }
 
@@ -120,12 +115,10 @@ public static class WinGetProgressParser
         if (trimmed.StartsWith("  - ") || trimmed.StartsWith("      "))
             return trimmed;
 
-        // Hex error codes like "0x8a15000f : ..."
         var hexMatch = HexErrorRegex.Match(trimmed);
         if (hexMatch.Success)
             return $"Error: {hexMatch.Groups[1].Value.Trim()}";
 
-        // Return original line unchanged
         return trimmed;
     }
 
@@ -137,7 +130,6 @@ public static class WinGetProgressParser
         var trimmed = line.Trim();
         var lower = trimmed.ToLowerInvariant();
 
-        // Phase detection from status phrases
         if (lower.Contains("found ") || lower.Contains("package found"))
             return new WinGetProgressInfo(WinGetPhase.Found, null);
 
@@ -154,11 +146,9 @@ public static class WinGetProgressParser
         if (lower.Contains("uninstalling"))
             return new WinGetProgressInfo(WinGetPhase.Uninstalling, null);
 
-        // Try to extract percentage
         var percentMatch = PercentRegex.Match(trimmed);
         if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
         {
-            // Determine phase from context
             var phase = lower.Contains("download") || lower.Contains("██")
                 ? WinGetPhase.Downloading
                 : lower.Contains("install")
@@ -168,7 +158,6 @@ public static class WinGetProgressParser
             return new WinGetProgressInfo(phase, pct);
         }
 
-        // Try byte progress (calculate percentage)
         var byteMatch = ByteProgressRegex.Match(trimmed);
         if (byteMatch.Success &&
             double.TryParse(byteMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var current) &&
@@ -179,7 +168,6 @@ public static class WinGetProgressParser
             return new WinGetProgressInfo(WinGetPhase.Downloading, bytePct);
         }
 
-        // Phase keywords without percentage
         if (lower.Contains("downloading"))
             return new WinGetProgressInfo(WinGetPhase.Downloading, null);
 

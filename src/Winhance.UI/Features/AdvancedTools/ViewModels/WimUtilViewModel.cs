@@ -21,15 +21,11 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     // later refresh from re-opening steps the user has manually collapsed.
     private bool _autoExpandApplied;
 
-    // ── Sub-ViewModels (public for XAML binding) ──────────────────────
-
     public WimStep1ViewModel Step1 { get; }
     public WimImageFormatViewModel ImageFormat { get; }
     public WimStep2XmlViewModel Step2 { get; }
     public WimStep3DriversViewModel Step3 { get; }
     public WimStep4IsoViewModel Step4 { get; }
-
-    // ── Wizard navigation state ──────────────────────────────────────
 
     [ObservableProperty]
     public partial WizardStepState Step1State { get; set; }
@@ -42,8 +38,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial WizardStepState Step4State { get; set; }
-
-    // ── Localization labels (read-only, for XAML) ────────────────────
 
     public string Title => _localizationService.GetStringOrDefault("WIMUtil_Title", "Windows Installation Media Utility");
     public string CheckboxExtractedAlreadyText => _localizationService.GetString("WIMUtil_CheckboxExtractedAlready");
@@ -66,10 +60,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public string TooltipSchneegans => _localizationService.GetString("WIMUtil_Tooltip_Schneegans");
     public string ButtonCreateIsoText => _localizationService.GetString("WIMUtil_ButtonCreateISO");
 
-    // ── Forwarded properties for backward-compatible XAML bindings ───
-    // These delegate to the sub-VMs so existing XAML can still bind to
-    // ViewModel.PropertyName while the XAML migration happens.
-
+    // Forwarders so existing XAML can keep binding to ViewModel.PropertyName instead of the sub-VMs.
     public string SelectedIsoPath => Step1.SelectedIsoPath;
     public string WorkingDirectory => Step1.WorkingDirectory;
     public bool CanStartExtraction => Step1.CanStartExtraction;
@@ -107,8 +98,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WizardActionCard DownloadOscdimgCard => Step4.DownloadOscdimgCard;
     public WizardActionCard SelectOutputCard => Step4.SelectOutputCard;
 
-    // ── Forwarded commands for backward-compatible XAML bindings ─────
-
     public IRelayCommand SelectIsoFileCommand => Step1.SelectIsoFileCommand;
     public IAsyncRelayCommand SelectWorkingDirectoryCommand => Step1.SelectWorkingDirectoryCommand;
     public IAsyncRelayCommand StartIsoExtractionCommand => Step1.StartIsoExtractionCommand;
@@ -130,8 +119,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand DownloadOscdimgCommand => Step4.DownloadOscdimgCommand;
     public IRelayCommand SelectIsoOutputLocationCommand => Step4.SelectIsoOutputLocationCommand;
     public IAsyncRelayCommand CreateIsoCommand => Step4.CreateIsoCommand;
-
-    // ── Constructor ──────────────────────────────────────────────────
 
     public WimUtilViewModel(
         IOscdimgToolManager oscdimgToolManager,
@@ -155,7 +142,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         _dispatcherService = dispatcherService;
         _fileSystemService = fileSystemService;
 
-        // Create sub-ViewModels
         Step1 = new WimStep1ViewModel(
             isoService, taskProgressService, dialogService,
             localizationService, fileSystemService, filePickerService, logService,
@@ -180,7 +166,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             dialogService, localizationService, fileSystemService, filePickerService, logService,
             resourceService);
 
-        // Initialize wizard state
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
         Step3State = new WizardStepState();
@@ -188,10 +173,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
         InitializeStepStates();
 
-        // Subscribe to language changes to update localized strings
         _localizationService.LanguageChanged += OnLanguageChanged;
 
-        // Subscribe to sub-VM property changes to update wizard states
         Step1.PropertyChanged += OnSubViewModelPropertyChanged;
         ImageFormat.PropertyChanged += OnSubViewModelPropertyChanged;
         Step2.PropertyChanged += OnSubViewModelPropertyChanged;
@@ -215,8 +198,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         UpdateStepStates();
         RefreshStepExpansion();
     }
-
-    // ── Wizard navigation ────────────────────────────────────────────
 
     [RelayCommand]
     private void NavigateToStep(string? stepParameter)
@@ -245,8 +226,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         2 or 3 or 4 => Step1.IsExtractionComplete && !ImageFormat.IsConverting,
         _ => false
     };
-
-    // ── Step state management ────────────────────────────────────────
 
     private void InitializeStepStates()
     {
@@ -365,11 +344,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         }
     }
 
-    // ── Sub-VM observation ───────────────────────────────────────────
-
     private void OnSubViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Propagate working directory to sub-VMs that need it
         if (sender == Step1)
         {
             switch (e.PropertyName)
@@ -392,16 +368,13 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             }
         }
 
-        // Forward property changes so XAML bindings on the parent still work
         ForwardPropertyChange(sender, e);
 
-        // Update wizard step states whenever completion flags change
         UpdateStepStates();
     }
 
     private void ForwardPropertyChange(object? sender, PropertyChangedEventArgs e)
     {
-        // Raise PropertyChanged on the parent for forwarded properties
         if (sender == Step1)
         {
             switch (e.PropertyName)
@@ -457,14 +430,12 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        // Update step state titles and status text
         Step1State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select ISO");
         Step2State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step2_Title", "Add XML File");
         Step3State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step3_Title", "Add Drivers");
         Step4State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step4_Title", "Create ISO");
         UpdateStepStates();
 
-        // Raise property changes for all localization label properties
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(CheckboxExtractedAlreadyText));
         OnPropertyChanged(nameof(ButtonSelectFolderText));
@@ -487,24 +458,19 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ButtonCreateIsoText));
     }
 
-    // ── IDisposable ─────────────────────────────────────────────────
-
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
 
-        // Unsubscribe from language changes
         _localizationService.LanguageChanged -= OnLanguageChanged;
 
-        // Unsubscribe from sub-VM PropertyChanged events
         Step1.PropertyChanged -= OnSubViewModelPropertyChanged;
         ImageFormat.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step2.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step3.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step4.PropertyChanged -= OnSubViewModelPropertyChanged;
 
-        // Dispose sub-VMs that implement IDisposable
         (Step2 as IDisposable)?.Dispose();
         (Step3 as IDisposable)?.Dispose();
         (Step4 as IDisposable)?.Dispose();

@@ -32,7 +32,6 @@ public class PowerServiceTests
     [Fact]
     public async Task GetActivePowerPlanAsync_DelegatesToQueryService()
     {
-        // Arrange
         var expectedPlan = new Winhance.Core.Features.Optimize.Models.PowerPlan
         {
             Name = "Balanced",
@@ -43,10 +42,8 @@ public class PowerServiceTests
             .Setup(s => s.GetActivePowerPlanAsync())
             .ReturnsAsync(expectedPlan);
 
-        // Act
         var result = await _sut.GetActivePowerPlanAsync();
 
-        // Assert
         result.Should().NotBeNull();
         result!.Name.Should().Be("Balanced");
         result.Guid.Should().Be("381b4222-f694-41f0-9685-ff5bb260df2e");
@@ -55,15 +52,12 @@ public class PowerServiceTests
     [Fact]
     public async Task GetActivePowerPlanAsync_WhenQueryServiceThrows_ReturnsNull()
     {
-        // Arrange
         _powerSettingsQueryService
             .Setup(s => s.GetActivePowerPlanAsync())
             .ThrowsAsync(new Exception("Query failed"));
 
-        // Act
         var result = await _sut.GetActivePowerPlanAsync();
 
-        // Assert
         result.Should().BeNull();
         _logService.Verify(
             l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting active power plan"))),
@@ -73,7 +67,6 @@ public class PowerServiceTests
     [Fact]
     public async Task GetAvailablePowerPlansAsync_ReturnsPlansList()
     {
-        // Arrange
         var plans = new List<Winhance.Core.Features.Optimize.Models.PowerPlan>
         {
             new() { Name = "Balanced", Guid = "381b4222-f694-41f0-9685-ff5bb260df2e" },
@@ -84,25 +77,20 @@ public class PowerServiceTests
             .Setup(s => s.GetAvailablePowerPlansAsync())
             .ReturnsAsync(plans);
 
-        // Act
         var result = await _sut.GetAvailablePowerPlansAsync();
 
-        // Assert
         result.Should().HaveCount(2);
     }
 
     [Fact]
     public async Task GetAvailablePowerPlansAsync_WhenQueryServiceThrows_ReturnsEmpty()
     {
-        // Arrange
         _powerSettingsQueryService
             .Setup(s => s.GetAvailablePowerPlansAsync())
             .ThrowsAsync(new Exception("Query failed"));
 
-        // Act
         var result = await _sut.GetAvailablePowerPlansAsync();
 
-        // Assert
         result.Should().BeEmpty();
         _logService.Verify(
             l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting available power plans"))),
@@ -123,7 +111,7 @@ public class PowerServiceTests
     [Fact]
     public async Task CleanupCorruptWinhancePlanAsync_CorruptWinhancePlanActive_DeletesGhostAndSwitchesToBalanced()
     {
-        // Arrange — ghost Winhance plan is active with wrong name
+        // Ghost Winhance plan: the Winhance GUID with the wrong name
         var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
         var balancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
 
@@ -158,20 +146,16 @@ public class PowerServiceTests
             .Setup(s => s.DeleteScheme(Guid.Parse(winhanceGuid)))
             .Returns(PowerProf.ERROR_SUCCESS);
 
-        // Act
         await _sut.CleanupCorruptWinhancePlanAsync();
 
-        // Assert — should switch to Balanced before deleting
         _powerSchemeOperations.Verify(
             s => s.SetActiveScheme(Guid.Parse(balancedGuid)),
             Times.Once);
 
-        // Should delete the ghost
         _powerSchemeOperations.Verify(
             s => s.DeleteScheme(Guid.Parse(winhanceGuid)),
             Times.Once);
 
-        // Should invalidate cache
         _powerSettingsQueryService.Verify(
             s => s.InvalidateCache(),
             Times.AtLeastOnce);
@@ -180,7 +164,6 @@ public class PowerServiceTests
     [Fact]
     public async Task CleanupCorruptWinhancePlanAsync_ValidWinhancePlanActive_DoesNotDelete()
     {
-        // Arrange — valid Winhance plan is active
         var winhanceGuid = "57696e68-616e-6365-506f-776572000000";
 
         var validPlan = new PowerPlan
@@ -198,10 +181,8 @@ public class PowerServiceTests
             .Setup(s => s.GetActivePowerPlanAsync())
             .ReturnsAsync(validPlan);
 
-        // Act
         await _sut.CleanupCorruptWinhancePlanAsync();
 
-        // Assert — should NOT delete valid plan
         _powerSchemeOperations.Verify(
             s => s.DeleteScheme(It.IsAny<Guid>()),
             Times.Never);

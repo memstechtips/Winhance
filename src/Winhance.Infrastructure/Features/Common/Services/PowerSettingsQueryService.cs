@@ -224,7 +224,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
                 if (schemeGuid == Guid.Empty) return results;
 
-                // Enumerate Subgroups
                 uint subIndex = 0;
                 uint bufferSize = 16;
                 IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
@@ -241,7 +240,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                             Marshal.Copy(buffer, subBytes, 0, 16);
                             var subGuid = new Guid(subBytes);
 
-                            // Enumerate Settings in Subgroup
                             uint setIndex = 0;
                             uint setBufferSize = 16;
                             IntPtr setBuffer = Marshal.AllocHGlobal((int)setBufferSize);

@@ -82,11 +82,10 @@ internal static class PageScrollHelper
     {
         for (var current = focused; current != null; current = VisualTreeHelper.GetParent(current))
         {
-            // Classic ScrollViewer — skip past it if vertical scrolling is disabled.
             if (current is ScrollViewer svr && svr.VerticalScrollMode != ScrollMode.Disabled)
                 return true;
 
-            // WinUI 3 ScrollView — same deal, and don't claim the host as "nested".
+            // Don't claim the host ScrollView itself as "nested".
             if (current is ScrollView sv
                 && !ReferenceEquals(sv, scrollViewHost)
                 && sv.VerticalScrollMode != ScrollingScrollMode.Disabled)

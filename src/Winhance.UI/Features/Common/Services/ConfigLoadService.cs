@@ -78,7 +78,6 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
             }
 
-            // Migrate legacy config items (e.g. Toggle->Selection conversions)
             _configMigrationService.MigrateConfig(loadedConfig);
 
             if (loadedConfig.Version != "2.0")
@@ -247,7 +246,6 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
             }
 
-            // Migrate legacy config items (e.g. Toggle->Selection conversions)
             _configMigrationService.MigrateConfig(config);
 
             _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
@@ -285,8 +283,7 @@ public class ConfigLoadService : IConfigLoadService
                     // ids with no EXACT catalog match are the 6 merged "-win10" aliases: file/backup loads normalize them
                     // upstream (ConfigMigrationService), and the embedded Recommended/Win10-defaults configs carry them
                     // with values byte-identical to their canonical peers, which the import bridge applies via
-                    // its alias-normalizing GetById (an idempotent duplicate, matching pre-existing Win10
-                    // behaviour). So an id with no catalog peer is skipped silently. The name reads Display.Name.
+                    // its alias-normalizing GetById (an idempotent duplicate). So an id with no catalog peer is skipped silently.
                     var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
                     if (newSetting != null && !newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
                     {

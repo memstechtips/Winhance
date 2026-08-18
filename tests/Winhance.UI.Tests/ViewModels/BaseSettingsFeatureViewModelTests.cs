@@ -56,14 +56,12 @@ public class BaseSettingsFeatureViewModelTests
         _mockEventBus = new Mock<IEventBus>();
         _mockApplicationModeService = new Mock<IApplicationModeService>();
 
-        // Default localization: return the key itself
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _mockLocalizationService.MirrorTryGetString();
 
-        // Dispatcher executes actions synchronously for testing
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
@@ -72,7 +70,6 @@ public class BaseSettingsFeatureViewModelTests
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Returns<Func<Task>>(asyncAction => asyncAction());
 
-        // Event bus subscribe returns a mock subscription token
         _mockEventBus
             .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
@@ -152,7 +149,6 @@ public class BaseSettingsFeatureViewModelTests
             mockDialogService.Object,
             _mockLocalizationService.Object);
 
-        // Set post-construction values for non-Toggle types
         if (inputType == InputType.NumericRange)
             vm.NumericValue = numericValue;
         if (inputType == InputType.Selection && selectedValue != null)
@@ -186,32 +182,25 @@ public class BaseSettingsFeatureViewModelTests
         return collection;
     }
 
-    // ── Constructor Tests ──
-
     [Fact]
     public void Constructor_WithValidDependencies_CreatesInstance()
     {
-        // Act
         var vm = CreateViewModel();
 
-        // Assert
         vm.Should().NotBeNull();
     }
 
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
-        // Act
         var action = () => CreateViewModel();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new TestableSettingsFeatureViewModel(
             null!,
             _mockLogService.Object,
@@ -220,7 +209,6 @@ public class BaseSettingsFeatureViewModelTests
             _mockEventBus.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("settingsLoadingService");
     }
@@ -228,7 +216,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void Constructor_WithNullLogService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new TestableSettingsFeatureViewModel(
             _mockSettingsLoadingService.Object,
             null!,
@@ -237,7 +224,6 @@ public class BaseSettingsFeatureViewModelTests
             _mockEventBus.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("logService");
     }
@@ -245,7 +231,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void Constructor_WithNullLocalizationService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new TestableSettingsFeatureViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -254,7 +239,6 @@ public class BaseSettingsFeatureViewModelTests
             _mockEventBus.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("localizationService");
     }
@@ -262,7 +246,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void Constructor_WithNullDispatcherService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new TestableSettingsFeatureViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -271,7 +254,6 @@ public class BaseSettingsFeatureViewModelTests
             _mockEventBus.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("dispatcherService");
     }
@@ -279,7 +261,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void Constructor_WithNullEventBus_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new TestableSettingsFeatureViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -288,20 +269,15 @@ public class BaseSettingsFeatureViewModelTests
             null!,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("eventBus");
     }
 
-    // ── Default Property Tests ──
-
     [Fact]
     public void Settings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.Settings.Should().NotBeNull();
         vm.Settings.Should().BeEmpty();
     }
@@ -309,10 +285,8 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void GroupedSettings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupedSettings.Should().NotBeNull();
         vm.GroupedSettings.Should().BeEmpty();
     }
@@ -320,143 +294,112 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public void IsLoading_DefaultsToFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsLoading.Should().BeFalse();
     }
 
     [Fact]
     public void IsExpanded_DefaultsToTrue()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void ModuleId_ReturnsTestModuleId()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ModuleId.Should().Be(TestableSettingsFeatureViewModel.TestModuleId);
     }
 
     [Fact]
     public void DisplayName_ReturnsLocalizedString()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString(TestableSettingsFeatureViewModel.TestDisplayNameKey))
             .Returns("Test Feature");
 
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.DisplayName.Should().Be("Test Feature");
     }
 
     [Fact]
     public void SettingsCount_WhenNoSettings_ReturnsZero()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SettingsCount.Should().Be(0);
     }
 
     [Fact]
     public void HasVisibleSettings_WhenNoSettings_ReturnsFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.HasVisibleSettings.Should().BeFalse();
     }
 
     [Fact]
     public void IsVisibleInSearch_WhenNoSettings_ReturnsFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsVisibleInSearch.Should().BeFalse();
     }
-
-    // ── LoadSettingsCommand / ToggleExpandCommand ──
 
     [Fact]
     public void LoadSettingsCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.LoadSettingsCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void ToggleExpandCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ToggleExpandCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void ToggleExpandCommand_TogglesIsExpanded()
     {
-        // Arrange
         var vm = CreateViewModel();
         vm.IsExpanded.Should().BeTrue();
 
-        // Act
         vm.ToggleExpandCommand.Execute(null);
 
-        // Assert
         vm.IsExpanded.Should().BeFalse();
     }
 
     [Fact]
     public void ToggleExpandCommand_TogglesBackToTrue()
     {
-        // Arrange
         var vm = CreateViewModel();
         vm.IsExpanded = false;
 
-        // Act
         vm.ToggleExpandCommand.Execute(null);
 
-        // Assert
         vm.IsExpanded.Should().BeTrue();
     }
-
-    // ── IsExpanded Toggle ──
 
     [Fact]
     public void IsExpanded_WhenSetToFalse_RaisesPropertyChanged()
     {
-        // Arrange
         var vm = CreateViewModel();
         var propertyChangedRaised = false;
         vm.PropertyChanged += (_, e) =>
@@ -465,19 +408,14 @@ public class BaseSettingsFeatureViewModelTests
                 propertyChangedRaised = true;
         };
 
-        // Act
         vm.IsExpanded = false;
 
-        // Assert
         propertyChangedRaised.Should().BeTrue();
     }
-
-    // ── LoadSettingsAsync ──
 
     [Fact]
     public async Task LoadSettingsAsync_SetsIsLoadingTrueDuringLoad()
     {
-        // Arrange
         var vm = CreateViewModel();
         bool wasLoadingDuringLoad = false;
 
@@ -492,10 +430,8 @@ public class BaseSettingsFeatureViewModelTests
                 return new ObservableCollection<SettingItemViewModel>();
             });
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         wasLoadingDuringLoad.Should().BeTrue();
         vm.IsLoading.Should().BeFalse();
     }
@@ -503,7 +439,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_SetsIsLoadingFalseAfterLoad()
     {
-        // Arrange
         var vm = CreateViewModel();
 
         _mockSettingsLoadingService
@@ -513,17 +448,14 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(new ObservableCollection<SettingItemViewModel>());
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.IsLoading.Should().BeFalse();
     }
 
     [Fact]
     public async Task LoadSettingsAsync_PopulatesSettingsCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("setting1", "Setting 1", "Group A"),
@@ -536,10 +468,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.Settings.Should().HaveCount(2);
         vm.SettingsCount.Should().Be(2);
     }
@@ -547,7 +477,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_RebuildGroupedSettings()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", "Group A"),
@@ -560,10 +489,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.GroupedSettings.Should().HaveCount(2);
         vm.GroupedSettings[0].Key.Should().Be("Group A");
         vm.GroupedSettings[1].Key.Should().Be("Group B");
@@ -572,7 +499,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_ConcurrentLoadGuard_DoesNotLoadTwice()
     {
-        // Arrange
         var vm = CreateViewModel();
         var loadCount = 0;
 
@@ -587,18 +513,15 @@ public class BaseSettingsFeatureViewModelTests
                 return new ObservableCollection<SettingItemViewModel>();
             });
 
-        // Act - load twice
         await vm.LoadSettingsAsync();
         await vm.LoadSettingsAsync();
 
-        // Assert - should only load once due to _settingsLoaded guard
         loadCount.Should().Be(1);
     }
 
     [Fact]
     public async Task LoadSettingsAsync_SubscribesToEvents()
     {
-        // Arrange
         var vm = CreateViewModel();
 
         _mockSettingsLoadingService
@@ -608,10 +531,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(new ObservableCollection<SettingItemViewModel>());
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - verify event subscriptions were made
         _mockEventBus.Verify(
             e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()),
             Times.Once);
@@ -626,7 +547,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_OnError_SetsIsLoadingFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
         _mockSettingsLoadingService
@@ -636,10 +556,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ThrowsAsync(new InvalidOperationException("Test error"));
 
-        // Act
         Func<Task> action = () => vm.LoadSettingsAsync();
 
-        // Assert
         await action.Should().ThrowAsync<InvalidOperationException>();
         vm.IsLoading.Should().BeFalse();
     }
@@ -647,7 +565,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_OnError_ResetsSettingsLoadedFlag_AllowsRetry()
     {
-        // Arrange
         var vm = CreateViewModel();
         var callCount = 0;
 
@@ -664,21 +581,17 @@ public class BaseSettingsFeatureViewModelTests
                 return new ObservableCollection<SettingItemViewModel>();
             });
 
-        // Act - first call should fail
         Func<Task> firstCall = () => vm.LoadSettingsAsync();
         await firstCall.Should().ThrowAsync<InvalidOperationException>();
 
-        // Second call should succeed because the flag was reset
         await vm.LoadSettingsAsync();
 
-        // Assert
         callCount.Should().Be(2);
     }
 
     [Fact]
     public async Task LoadSettingsAsync_UsesCorrectModuleId()
     {
-        // Arrange
         var vm = CreateViewModel();
 
         _mockSettingsLoadingService
@@ -688,10 +601,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(new ObservableCollection<SettingItemViewModel>());
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         _mockSettingsLoadingService.Verify(
             s => s.LoadConfiguredSettingsAsync(
                 TestableSettingsFeatureViewModel.TestModuleId,
@@ -700,12 +611,9 @@ public class BaseSettingsFeatureViewModelTests
             Times.Once);
     }
 
-    // ── RefreshSettingsAsync ──
-
     [Fact]
     public async Task RefreshSettingsAsync_ClearsAndReloadsSettings()
     {
-        // Arrange
         var vm = CreateViewModel();
         var firstSettings = CreateSettingsCollection(("s1", "First", "G1"));
         var secondSettings = CreateSettingsCollection(("s2", "Second", "G2"));
@@ -725,10 +633,8 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
         vm.Settings.Should().HaveCount(1);
 
-        // Act
         await vm.RefreshSettingsAsync();
 
-        // Assert
         vm.Settings.Should().HaveCount(1);
         vm.Settings[0].Name.Should().Be("Second");
     }
@@ -750,25 +656,19 @@ public class BaseSettingsFeatureViewModelTests
 
         await vm.LoadSettingsAsync();
 
-        // Act
         await vm.RefreshSettingsAsync();
 
-        // Assert — RefreshSettingsAsync publishes exactly once (LoadSettingsAsync itself does not).
+        // RefreshSettingsAsync publishes exactly once (LoadSettingsAsync itself does not).
         _mockEventBus.Verify(e => e.Publish(It.IsAny<SettingsRefreshedEvent>()), Times.Once);
     }
-
-    // ── RefreshSettingStatesAsync ──
 
     [Fact]
     public async Task RefreshSettingStatesAsync_WhenSettingsNotLoaded_DoesNothing()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act - settings have never been loaded, so this should be a no-op
         await vm.RefreshSettingStatesAsync();
 
-        // Assert
         _mockSettingsLoadingService.Verify(
             s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()),
             Times.Never);
@@ -777,7 +677,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task RefreshSettingStatesAsync_WhenSettingsLoaded_RefreshesStates()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
 
@@ -792,13 +691,10 @@ public class BaseSettingsFeatureViewModelTests
             .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        // Load first
         await vm.LoadSettingsAsync();
 
-        // Act
         await vm.RefreshSettingStatesAsync();
 
-        // Assert
         _mockSettingsLoadingService.Verify(
             s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()),
             Times.Once);
@@ -807,7 +703,7 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task RefreshSettingStatesAsync_InBuilderMode_DoesNotReadSystemState()
     {
-        // Arrange - Builder mode authors un-applied state into the VMs; a navigation
+        // Builder mode authors un-applied state into the VMs; a navigation
         // refresh must not clobber it with live system values.
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
@@ -825,10 +721,8 @@ public class BaseSettingsFeatureViewModelTests
             .Setup(m => m.CurrentMode)
             .Returns(WinhanceMode.Builder);
 
-        // Act
         await vm.RefreshSettingStatesAsync();
 
-        // Assert
         _mockSettingsLoadingService.Verify(
             s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()),
             Times.Never);
@@ -837,7 +731,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task RefreshSettingStatesAsync_UpdatesSettingStatesFromResults()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
 
@@ -859,64 +752,48 @@ public class BaseSettingsFeatureViewModelTests
 
         await vm.LoadSettingsAsync();
 
-        // Act
         await vm.RefreshSettingStatesAsync();
 
-        // Assert - the setting should have been updated via UpdateStateFromSystemState
         // The actual state update is done via the dispatcher mock, which runs synchronously
         _mockDispatcherService.Verify(
             d => d.RunOnUIThread(It.IsAny<Action>()),
             Times.AtLeastOnce);
     }
 
-    // ── ApplySearchFilter ──
-
     [Fact]
     public void ApplySearchFilter_SetsSearchText()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter("test");
 
-        // Assert
         vm.SearchText.Should().Be("test");
     }
 
     [Fact]
     public void ApplySearchFilter_WithNull_SetsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter(null!);
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void ApplySearchFilter_WithEmptyString_SetsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
         vm.ApplySearchFilter("initial");
 
-        // Act
         vm.ApplySearchFilter(string.Empty);
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
-
-    // ── HasVisibleSettings / IsVisibleInSearch ──
 
     [Fact]
     public async Task HasVisibleSettings_WhenSettingsExist_ReturnsTrue()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
 
@@ -927,20 +804,15 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - newly created settings have IsVisible = true by default
         vm.HasVisibleSettings.Should().BeTrue();
         vm.IsVisibleInSearch.Should().BeTrue();
     }
 
-    // ── SettingsCount ──
-
     [Fact]
     public async Task SettingsCount_AfterLoading_ReturnsCorrectCount()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", "G1"),
@@ -954,29 +826,22 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.SettingsCount.Should().Be(3);
     }
-
-    // ── GroupDescriptionText ──
 
     [Fact]
     public void GroupDescriptionText_WhenNoSettings_ReturnsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupDescriptionText.Should().BeEmpty();
     }
 
     [Fact]
     public async Task GroupDescriptionText_WithGroupedSettings_ReturnsGroupNames()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", "Alpha"),
@@ -989,10 +854,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.GroupDescriptionText.Should().Contain("Alpha");
         vm.GroupDescriptionText.Should().Contain("Beta");
     }
@@ -1000,7 +863,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task GroupDescriptionText_WithMoreThan4Groups_AppendEllipsis()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "S1", "Group1"),
@@ -1016,17 +878,14 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.GroupDescriptionText.Should().EndWith(", ...");
     }
 
     [Fact]
     public async Task GroupDescriptionText_WithExactly4Groups_DoesNotAppendEllipsis()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "S1", "Group1"),
@@ -1041,17 +900,14 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.GroupDescriptionText.Should().NotEndWith(", ...");
     }
 
     [Fact]
     public async Task GroupDescriptionText_WithEmptyGroupNames_ReturnsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "S1", ""),
@@ -1064,19 +920,14 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - settings with empty group names do not contribute to GroupDescriptionText
         vm.GroupDescriptionText.Should().BeEmpty();
     }
-
-    // ── GroupedSettings Rebuild ──
 
     [Fact]
     public async Task LoadSettingsAsync_GroupsSettingsByGroupName()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", "Alpha"),
@@ -1090,10 +941,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         vm.GroupedSettings.Should().HaveCount(2);
         vm.GroupedSettings[0].Key.Should().Be("Alpha");
         vm.GroupedSettings[0].Should().HaveCount(2);
@@ -1104,7 +953,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_SettingsWithEmptyGroupName_FallsBackToOtherGroup()
     {
-        // Arrange
         var vm = CreateViewModel();
 
         _mockLocalizationService.MissingKey("SettingGroup_Other");
@@ -1119,10 +967,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - should fall back to "Other" when the key is missing
         vm.GroupedSettings.Should().HaveCount(1);
         vm.GroupedSettings[0].Key.Should().Be("Other");
     }
@@ -1151,42 +997,33 @@ public class BaseSettingsFeatureViewModelTests
         vm.GroupedSettings[0].Key.Should().Be("[Sonstige]");
     }
 
-    // ── Dispose ──
-
     [Fact]
     public void Dispose_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () => vm.Dispose();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () =>
         {
             vm.Dispose();
             vm.Dispose();
         };
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public async Task Dispose_UnsubscribesFromEvents()
     {
-        // Arrange
         var mockSettingToken = new Mock<ISubscriptionToken>();
         var mockFilterToken = new Mock<ISubscriptionToken>();
         var mockReviewToken = new Mock<ISubscriptionToken>();
@@ -1213,10 +1050,8 @@ public class BaseSettingsFeatureViewModelTests
         // Trigger event subscriptions by loading
         await vm.LoadSettingsAsync();
 
-        // Act
         vm.Dispose();
 
-        // Assert - subscription tokens should be disposed
         mockSettingToken.Verify(t => t.Dispose(), Times.Once);
         mockFilterToken.Verify(t => t.Dispose(), Times.Once);
         mockReviewToken.Verify(t => t.Dispose(), Times.Once);
@@ -1225,7 +1060,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task Dispose_ClearsSettingsCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(("s1", "Setting 1", "Group"));
 
@@ -1239,19 +1073,14 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
         vm.Settings.Should().NotBeEmpty();
 
-        // Act
         vm.Dispose();
 
-        // Assert
         vm.Settings.Should().BeEmpty();
     }
-
-    // ── Property Changed Notifications ──
 
     [Fact]
     public async Task LoadSettingsAsync_RaisesPropertyChangedForHasVisibleSettings()
     {
-        // Arrange
         var vm = CreateViewModel();
         var raisedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
@@ -1263,10 +1092,8 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(new ObservableCollection<SettingItemViewModel>());
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         raisedProperties.Should().Contain(nameof(vm.HasVisibleSettings));
         raisedProperties.Should().Contain(nameof(vm.IsVisibleInSearch));
         raisedProperties.Should().Contain(nameof(vm.SettingsCount));
@@ -1276,7 +1103,6 @@ public class BaseSettingsFeatureViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_RaisesPropertyChangedForIsLoading()
     {
-        // Arrange
         var vm = CreateViewModel();
         var raisedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
@@ -1288,14 +1114,12 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(new ObservableCollection<SettingItemViewModel>());
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert
         raisedProperties.Should().Contain(nameof(vm.IsLoading));
     }
 
-    // ── LoadSettingsAsync: InputType population (guards #482 blank page) ──
+    // The InputType-population tests below guard #482 (blank page).
 
     [Fact]
     public async Task LoadSettingsAsync_WithToggleSettings_PopulatesIsSelectedFromState()
@@ -1393,7 +1217,7 @@ public class BaseSettingsFeatureViewModelTests
         vm.HasVisibleSettings.Should().BeTrue();
     }
 
-    // ── RefreshSettingStatesAsync: value updates (guards #483 value corruption) ──
+    // The value-update tests below guard #483 (value corruption).
 
     [Fact]
     public async Task RefreshSettingStatesAsync_ToggleSetting_UpdatesIsSelectedFromNewState()
@@ -1463,8 +1287,7 @@ public class BaseSettingsFeatureViewModelTests
         var settings = new ObservableCollection<SettingItemViewModel>
         {
             // Units are what make the 1800 -> 30 conversion below happen. Without them the helper
-            // leaves Setting.Numeric null and ConvertFromSystemUnits is an identity, which is why
-            // this test asserted a conversion it never actually configured.
+            // leaves Setting.Numeric null and ConvertFromSystemUnits is an identity.
             CreateSettingItem("num1", "Numeric", inputType: InputType.NumericRange,
                 numericValue: 10, numericUnits: "Minutes")
         };
@@ -1489,7 +1312,7 @@ public class BaseSettingsFeatureViewModelTests
 
         await vm.RefreshSettingStatesAsync();
 
-        vm.Settings[0].NumericValue.Should().Be(30); // 1800 seconds / 60 = 30 minutes
+        vm.Settings[0].NumericValue.Should().Be(30);
     }
 
     [Fact]
@@ -1519,7 +1342,7 @@ public class BaseSettingsFeatureViewModelTests
 
         await vm.RefreshSettingStatesAsync();
 
-        vm.Settings[0].IsSelected.Should().BeTrue(); // unchanged due to failed result
+        vm.Settings[0].IsSelected.Should().BeTrue();
     }
 
     [Fact]
@@ -1538,7 +1361,6 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Only return state for t1, not t2
         var refreshStates = new Dictionary<string, SettingStateResult>
         {
             ["t1"] = new SettingStateResult { Success = true, IsEnabled = false }
@@ -1555,8 +1377,6 @@ public class BaseSettingsFeatureViewModelTests
         vm.Settings[0].IsSelected.Should().BeFalse(); // updated
         vm.Settings[1].IsSelected.Should().BeFalse(); // unchanged (no state returned)
     }
-
-    // ── Full lifecycle: load → refresh → values preserved ──
 
     [Fact]
     public async Task FullLifecycle_LoadThenRefreshWithSameValues_PreservesAllTypes()
@@ -1576,7 +1396,6 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Refresh returns the same values
         var refreshStates = new Dictionary<string, SettingStateResult>
         {
             ["t1"] = new SettingStateResult { Success = true, IsEnabled = true },
@@ -1613,7 +1432,6 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Refresh returns different values
         var refreshStates = new Dictionary<string, SettingStateResult>
         {
             ["t1"] = new SettingStateResult { Success = true, IsEnabled = true },
@@ -1631,8 +1449,6 @@ public class BaseSettingsFeatureViewModelTests
         vm.Settings[1].SelectedValue.Should().Be(3);
         vm.Settings[2].NumericValue.Should().Be(75);
     }
-
-    // ── Multiple reload cycles ──
 
     [Fact]
     public async Task RefreshSettingsAsync_DisposesOldSettings_LoadsNewOnes()
@@ -1700,12 +1516,9 @@ public class BaseSettingsFeatureViewModelTests
         vm.GroupedSettings[1].Key.Should().Be("GroupC");
     }
 
-    // ── GroupedSettings Ordering ──
-
     [Fact]
     public async Task LoadSettingsAsync_GroupedSettingsPreservesInsertionOrder()
     {
-        // Arrange
         var vm = CreateViewModel();
         var settings = CreateSettingsCollection(
             ("s1", "S1", "Zebra"),
@@ -1719,17 +1532,13 @@ public class BaseSettingsFeatureViewModelTests
                 It.IsAny<ISettingsFeatureViewModel>()))
             .ReturnsAsync(settings);
 
-        // Act
         await vm.LoadSettingsAsync();
 
-        // Assert - groups should appear in the order settings were encountered, not alphabetically
         vm.GroupedSettings[0].Key.Should().Be("Zebra");
         vm.GroupedSettings[1].Key.Should().Be("Alpha");
         vm.GroupedSettings[2].Key.Should().Be("Middle");
     }
 
-    // ---- the DECLARED presentation gate -----------------------------------------------------------
-    //
     // A card is greyed only when its catalog says so, in EnabledWhen, and only while the setting that
     // names is outside the listed states. Nesting alone gates nothing. What this replaced compared the
     // parent's selected INDEX against zero, which greyed both Windows-theme sub-toggles on every stock

@@ -74,7 +74,6 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9P4CLT2RJ1RS",
                         ChocoPackageId = "musicbee",
                         WebsiteUrl = "https://www.getmusicbee.com/",
-                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -98,7 +97,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "gom-player",
                         MsStoreId = "XP8LKPZT4X0Z0P",
                         WebsiteUrl = "https://www.gomlab.com/",
-                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -152,9 +150,6 @@ public static partial class ExternalAppDefinitions
                         GroupName = "Multimedia (Audio & Video)",
                         ChocoPackageId = "streamlabs-obs",
                         WebsiteUrl = "https://streamlabs.com/",
-                        // Vendor only ships SVG/WebP and the Wikimedia render is a
-                        // narrow wordmark. Embed the on-page Streamlabs Desktop mark
-                        // (base64) so the resolver decodes it via the data: branch.
                     },
                     new ItemDefinition
                     {

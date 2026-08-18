@@ -18,7 +18,6 @@ public class SettingViewModelEnricherTests
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
     private readonly Mock<ISettingReviewDiffApplier> _mockReviewDiffApplier = new();
 
-    // Dependencies for constructing SettingItemViewModel
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
@@ -73,10 +72,6 @@ public class SettingViewModelEnricherTests
             _mockLocalizationService.Object);
     }
 
-    // -------------------------------------------------------
-    // DetectBatteryAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task DetectBatteryAsync_WhenHasBattery_SetsHasBatteryToTrue()
     {
@@ -85,7 +80,7 @@ public class SettingViewModelEnricherTests
             .Returns(true);
 
         var vm = CreateSettingViewModel();
-        vm.HasBattery.Should().BeFalse(); // default state
+        vm.HasBattery.Should().BeFalse();
 
         var service = CreateService();
         await service.DetectBatteryAsync(vm);
@@ -157,10 +152,6 @@ public class SettingViewModelEnricherTests
         vm1.HasBattery.Should().BeTrue();
         vm2.HasBattery.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiff
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiff_DelegatesToReviewDiffApplier()

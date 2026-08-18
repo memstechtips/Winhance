@@ -59,7 +59,6 @@ public class ExternalAppUninstallService(
                 return UninstallMethod.FileSystem;
         }
 
-        // Default: prefer WinGet if available, then Registry
         if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
             return UninstallMethod.WinGet;
 
@@ -111,7 +110,6 @@ public class ExternalAppUninstallService(
 
             if (!success)
             {
-                // Fallback: try Chocolatey if available, then AppX, then registry.
                 // AppX defends against detection mis-classification: if the item carries
                 // an AppxPackageName but DetectedVia routed to WinGet (e.g. a Store-UI
                 // install that winget surfaces as MSIX\... and fails to uninstall by ID),

@@ -108,7 +108,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
 
-            // Safeguard: reject paths that are too shallow (e.g. "SOFTWARE" or "SOFTWARE\Microsoft")
             var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length < MinDeleteDepth)
             {
@@ -117,7 +116,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return false;
             }
 
-            // Safeguard: reject paths that start with a protected root
             foreach (var protectedRoot in ProtectedSubKeyRoots)
             {
                 if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
@@ -239,7 +237,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var currentValue = GetValue(keyPath, valueName);
             var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
             if (currentBytes is null)
-                return false; // unrecoverable type - refuse rather than destroy the value
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -268,7 +266,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var currentValue = GetValue(keyPath, valueName);
             var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
             if (currentBytes is null)
-                return false; // unrecoverable type - refuse rather than destroy the value
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -313,20 +311,16 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Disable inheritance and convert existing rules to explicit
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
 
-            // Remove all existing access rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Grant Administrators full control (so Winhance can unlock later)
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,
@@ -334,7 +328,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant SYSTEM read-only (prevents Windows from writing)
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -373,20 +366,16 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Remove all explicit rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, false, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Re-enable inheritance
             security.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
 
-            // Grant SYSTEM full control
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -395,7 +384,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant Administrators full control
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,

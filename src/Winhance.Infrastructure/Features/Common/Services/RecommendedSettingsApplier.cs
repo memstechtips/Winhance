@@ -2,7 +2,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Helpers; // RecommendedSettingsResolver
+using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -28,10 +28,9 @@ public class RecommendedSettingsApplier(
             {
                 var setting = settings[i];
 
-                // A one-shot Action is not a stateful setting to bulk-recommend (mirrors
-                // BulkSettingsActionService's reset-loop exclusion; Marco 2026-07-03 / 2026-07-08).
-                // Control is the render-kind. An Action carries no recommendable state (the else branch's
-                // BuildPowerCfgApplyValue also returns null for it); this guard is the explicit exclusion.
+                // A one-shot Action is not a stateful setting to bulk-recommend (mirrors BulkSettingsActionService's
+                // reset-loop exclusion). The else branch's BuildPowerCfgApplyValue would return null for it anyway;
+                // this guard is the explicit exclusion.
                 if (setting.Control == ControlKind.Action)
                     continue;
 
@@ -48,8 +47,7 @@ public class RecommendedSettingsApplier(
 
                     if (setting.Control == ControlKind.Toggle)
                     {
-                        // Read the recommended toggle state directly from its Recommended role (build-aware).
-                        if (CatalogToggleState.GetRecommended(setting, currentBuild) is not bool enableValue) continue; // no recommendation
+                        if (CatalogToggleState.GetRecommended(setting, currentBuild) is not bool enableValue) continue;
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id, Enable = enableValue, SkipValuePrerequisites = true
@@ -68,7 +66,7 @@ public class RecommendedSettingsApplier(
                         else
                         {
                             var idx = RecommendedSettingsResolver.GetRecommendedIndex(setting);
-                            if (idx is not int recommendedIndex) continue; // no IsRecommended option
+                            if (idx is not int recommendedIndex) continue;
                             await apply.ApplySettingAsync(new ApplySettingRequest
                             {
                                 SettingId = setting.Id, Enable = true, Value = recommendedIndex, SkipValuePrerequisites = true
@@ -80,7 +78,7 @@ public class RecommendedSettingsApplier(
                         // else-branch population is powercfg NumericRange only (Actions excluded above),
                         // so it uses BuildPowerCfgApplyValue.
                         var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
-                        if (valueToApply == null) continue; // nothing recommended
+                        if (valueToApply == null) continue;
                         await apply.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id, Enable = true, Value = valueToApply, SkipValuePrerequisites = true

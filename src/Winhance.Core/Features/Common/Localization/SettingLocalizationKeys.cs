@@ -61,9 +61,8 @@ public static class SettingLocalizationKeys
 
         if (setting.Control == ControlKind.Selection)
         {
-            // No per-setting Custom-option key any more: the synthetic "Custom" dropdown entry it named
-            // is gone, and its friendlier "Custom (User Defined)" wording was dropped on 2026-07-27 for
-            // asserting a cause we cannot know. Every setting now uses the one CommonCustomState string.
+            // Every setting uses the one CommonCustomState string; a per-setting "Custom (User Defined)" wording would
+            // assert a cause we cannot know.
             yield return CommonCustomState;
 
             for (int i = 0; i < setting.States.Count; i++)

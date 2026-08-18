@@ -23,14 +23,12 @@ public class NewBadgeServiceTests
 
     public NewBadgeServiceTests()
     {
-        // String preference get/set with in-memory backing
         _prefs.Setup(p => p.GetPreference(It.IsAny<string>(), It.IsAny<string>()))
               .Returns((string key, string def) => _store.TryGetValue(key, out var v) ? v : def);
         _prefs.Setup(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<string>()))
               .Callback<string, string>((key, value) => _store[key] = value)
               .ReturnsAsync(OperationResult.Succeeded());
 
-        // Boolean preference get/set with same backing (stored as "True"/"False")
         _prefs.Setup(p => p.GetPreference(It.IsAny<string>(), It.IsAny<bool>()))
               .Returns((string key, bool def) =>
                   _store.TryGetValue(key, out var v) && bool.TryParse(v, out var b) ? b : def);
@@ -41,20 +39,16 @@ public class NewBadgeServiceTests
 
     private NewBadgeService CreateSut() => new NewBadgeService(_prefs.Object, _log.Object);
 
-    // --- Branch A: no stored HighestSeenAddedInVersion (first-ever install OR
-    //     returning user whose prefs predate the badge system — same treatment) ---
+    // Branch A: no stored HighestSeenAddedInVersion (first-ever install OR
+    // returning user whose prefs predate the badge system — same treatment).
 
     [Fact]
     public void NoStoredHighest_AllTaggedSettingsAreNew_AndSeedsHighestOnExit()
     {
-        // Arrange: empty prefs store. Covers both first-ever installs and existing
-        // users whose preferences predate the badge system.
         var sut = CreateSut();
 
-        // Act
         sut.Initialize(new[] { "26.04.10", "26.03.01", (string?)null, "" });
 
-        // Assert: baseline = 0.0.0 → every tagged setting shows as NEW
         sut.IsSettingNew("26.04.10", "s1").Should().BeTrue();
         sut.IsSettingNew("26.03.01", "s2").Should().BeTrue();
 
@@ -101,7 +95,6 @@ public class NewBadgeServiceTests
         sut.IsSettingNew("26.04.17", "s2").Should().BeTrue();
         sut.IsSettingNew("26.03.01", "s3").Should().BeTrue();
 
-        // Both keys must be seeded after recovery.
         _store["NewBadgeBaseline"].Should().Be("0.0.0");
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.21");
     }
@@ -109,7 +102,6 @@ public class NewBadgeServiceTests
     [Fact]
     public void HalfPopulatedState_MissingHighestSeen_RecoversToAllTaggedNew()
     {
-        // Symmetric case: NewBadgeBaseline present but HighestSeen missing.
         _store["NewBadgeBaseline"] = "26.04.17";
 
         var sut = CreateSut();
@@ -122,7 +114,7 @@ public class NewBadgeServiceTests
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.21");
     }
 
-    // --- Branch B: effective upgrade (registry highest > stored) ---
+    // Branch B: effective upgrade (registry highest > stored).
 
     [Fact]
     public void EffectiveUpgrade_ResetsShowNewBadges_AndUpdatesHighestSeen()
@@ -135,18 +127,15 @@ public class NewBadgeServiceTests
 
         sut.Initialize(Versions0301And0420);
 
-        // Baseline = stored (26.03.01); the new 26.04.20 setting should be flagged new
         sut.IsSettingNew("26.04.20", "s1").Should().BeTrue();
         sut.IsSettingNew("26.03.01", "s2").Should().BeFalse();
 
-        // Highest stored has advanced to the new max
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.20");
 
-        // Global toggle forced back on
         sut.ShowNewBadges.Should().BeTrue();
     }
 
-    // --- Branch C: no upgrade since last run ---
+    // Branch C: no upgrade since last run.
 
     [Fact]
     public void NoUpgrade_LoadsStoredBaseline_AndLeavesShowNewBadgesAlone()
@@ -159,14 +148,11 @@ public class NewBadgeServiceTests
 
         sut.Initialize(Versions0420And0301);
 
-        // Nothing exceeds the stored highest; no setting should be new
         sut.IsSettingNew("26.04.20", "s1").Should().BeFalse();
         sut.IsSettingNew("26.03.01", "s2").Should().BeFalse();
 
-        // ShowNewBadges untouched
         sut.ShowNewBadges.Should().BeFalse();
 
-        // HighestSeen unchanged
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.04.20");
     }
 
@@ -199,11 +185,8 @@ public class NewBadgeServiceTests
         sut.IsSettingNew("26.04.17", "s2").Should().BeFalse();
         sut.IsSettingNew("26.03.01", "s3").Should().BeFalse();
 
-        // And HighestSeenAddedInVersion stays at 26.04.21 (no new upgrade).
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.04.21");
     }
-
-    // --- General IsSettingNew behaviour ---
 
     [Fact]
     public void IsSettingNew_ReturnsFalse_WhenAddedInVersionIsNullOrEmpty()

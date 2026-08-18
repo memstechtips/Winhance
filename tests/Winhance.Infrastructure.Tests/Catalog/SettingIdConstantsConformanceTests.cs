@@ -21,7 +21,6 @@ public class SettingIdConstantsConformanceTests
     {
         var constants = SettingIdConstants();
 
-        // Non-vacuity guard: a broken reflection query must not pass by discovering nothing.
         Assert.True(
             constants.Count >= 6,
             $"Expected at least 6 public const string fields on SettingIds, found {constants.Count} -- "

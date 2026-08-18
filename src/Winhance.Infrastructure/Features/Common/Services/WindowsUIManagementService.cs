@@ -211,7 +211,7 @@ public class WindowsUIManagementService : IWindowsUIManagementService
             {
                 // MUST STAY SYNCHRONOUS. lParam is a pointer to the string above and the finally below frees
                 // it, so an asynchronous send would return before the receivers had read it and they would read
-                // freed memory. Only the per-window timeout is reduced (1000ms -> 100ms); SMTO_ABORTIFHUNG stays.
+                // freed memory.
                 //
                 // THIS CALL IS THE COST. SendMessageTimeout charges its timeout PER TOP-LEVEL WINDOW on a
                 // broadcast (Microsoft docs: "if you specify a five second time-out period and there are three

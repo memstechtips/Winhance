@@ -16,7 +16,6 @@ public sealed class ExplorerRestartService : IExplorerRestartService
     private const int ManualRestartAttempts = 20;
     private const int PollDelayMs = 500;
 
-    // How long to wait for the killed Explorer processes to actually exit.
     private const int KillTimeoutMs = 5000;
 
     // How long the polite "please exit" request gets before we stop being polite. Explorer normally goes in
@@ -75,8 +74,6 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         }
         finally
         {
-            // Still runs on every path: a faulted or cancelled core surfaces through the await above, so the
-            // release cannot be skipped.
             _gate.Release();
         }
     }
@@ -109,7 +106,7 @@ public sealed class ExplorerRestartService : IExplorerRestartService
 
                 // ASK FIRST. A graceful exit lets Explorer save the desktop icon layout and folder view
                 // preferences; terminating it throws them away. The message behind this is UNDOCUMENTED, so
-                // it is strictly best-effort - which is why the fallback below is the OLD behaviour, unchanged.
+                // it is strictly best-effort - hence the terminate fallback below.
                 if (_uiManagement.TryGracefulShellExit(GracefulExitTimeoutMs))
                 {
                     _logService.Log(LogLevel.Info, "[ExplorerRestartService] Explorer exited gracefully");

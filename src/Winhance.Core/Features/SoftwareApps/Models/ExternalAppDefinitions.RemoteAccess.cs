@@ -33,9 +33,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["AnyDesk.AnyDesk"],
                         ChocoPackageId = "anydesk",
                         WebsiteUrl = "https://anydesk.com/",
-                        // Vendor site is Cloudflare-protected and Wikimedia only has
-                        // a wide wordmark. Embed the on-page AnyDesk mark (base64) so
-                        // the resolver decodes it via the data: branch.
                     },
                     new ItemDefinition
                     {
@@ -70,9 +67,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vnc-connect",
                         MsStoreId = "XP98VL6ML4GPS9",
                         WebsiteUrl = "https://www.realvnc.com/",
-                        // Icon resolved via MS Store CDN (Layer 2a). The Wikimedia
-                        // RealVNC_Logo is a shared family wordmark — Store has the
-                        // distinct Server vs Viewer marks.
                     },
                     new ItemDefinition
                     {
@@ -85,9 +79,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "vnc-viewer",
                         MsStoreId = "XP99DVCPGKTXNJ",
                         WebsiteUrl = "https://www.realvnc.com/",
-                        // Icon resolved via MS Store CDN (Layer 2a). The Wikimedia
-                        // RealVNC_Logo is a shared family wordmark — Store has the
-                        // distinct Server vs Viewer marks.
                     },
                     new ItemDefinition
                     {

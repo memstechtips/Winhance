@@ -51,8 +51,6 @@ public class WimImageFormatViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesConversionStatusToEmpty()
     {
@@ -95,8 +93,6 @@ public class WimImageFormatViewModelTests : IDisposable
         _sut.ConvertImageCard.Should().NotBeNull();
         _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
     }
-
-    // ── Empty WorkingDirectory guard ──
 
     [Fact]
     public async Task ConvertImageFormatCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
@@ -142,8 +138,6 @@ public class WimImageFormatViewModelTests : IDisposable
             It.IsAny<string>(), It.IsAny<ImageFormat>(),
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
-
-    // ── DetectImageFormatAsync ──
 
     [Fact]
     public async Task DetectImageFormatAsync_WhenWimFormatDetected_SetsCurrentImageFormat()
@@ -213,8 +207,6 @@ public class WimImageFormatViewModelTests : IDisposable
         _sut.ShowConversionCard.Should().BeFalse();
     }
 
-    // ── SafeDetectImageFormatAsync ──
-
     [Fact]
     public async Task SafeDetectImageFormatAsync_SwallowsExceptions()
     {
@@ -238,8 +230,6 @@ public class WimImageFormatViewModelTests : IDisposable
 
         _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Test error")), It.IsAny<Exception>()), Times.AtLeastOnce);
     }
-
-    // ── ConvertImageFormat command ──
 
     [Fact]
     public async Task ConvertImageFormatCommand_WhenCurrentImageFormatIsNull_DoesNothing()
@@ -356,8 +346,6 @@ public class WimImageFormatViewModelTests : IDisposable
         _sut.ConvertImageCard.HasFailed.Should().BeTrue();
     }
 
-    // ── DeleteWim command ──
-
     [Fact]
     public async Task DeleteWimCommand_WhenUserCancels_DoesNotDelete()
     {
@@ -396,8 +384,6 @@ public class WimImageFormatViewModelTests : IDisposable
         _mockWimImageService.Verify(s => s.DetectAllImageFormatsAsync(It.IsAny<string>()), Times.Once);
     }
 
-    // ── DeleteEsd command ──
-
     [Fact]
     public async Task DeleteEsdCommand_WhenUserCancels_DoesNotDelete()
     {
@@ -412,8 +398,6 @@ public class WimImageFormatViewModelTests : IDisposable
             It.IsAny<string>(), It.IsAny<ImageFormat>(),
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
-
-    // ── UpdateConversionCardState ──
 
     [Fact]
     public void UpdateConversionCardState_WhenBothFormatsExist_DisablesCard()
@@ -471,12 +455,10 @@ public class WimImageFormatViewModelTests : IDisposable
         _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
     }
 
-    // ── FormatFileSize ──
-
     [Fact]
     public void FormatFileSize_ConvertsToGB()
     {
-        var result = WimImageFormatViewModel.FormatFileSize(4_294_967_296L); // 4 GB
+        var result = WimImageFormatViewModel.FormatFileSize(4_294_967_296L);
 
         var sep = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
         result.Should().Be($"4{sep}00 GB");
@@ -490,8 +472,6 @@ public class WimImageFormatViewModelTests : IDisposable
         var sep = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
         result.Should().Be($"0{sep}00 GB");
     }
-
-    // ── IDisposable ──
 
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
@@ -512,8 +492,6 @@ public class WimImageFormatViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingIsConverting_RaisesPropertyChanged()

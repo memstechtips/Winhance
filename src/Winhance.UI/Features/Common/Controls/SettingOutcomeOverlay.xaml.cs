@@ -60,8 +60,6 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         set => SetValue(IsToggleLikeProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
     public double OverlayOpacity { get; private set; } = 1d;
 
@@ -139,7 +137,6 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
             nameof(OverlayText), nameof(OverlayTooltip));
     }
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a

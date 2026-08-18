@@ -4,12 +4,10 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-// The markup both section pages share (they were 316 lines each, identical on 311). A UserControl rather than
-// a ResourceDictionary because two of the templates bind Click to code-behind, and a DataTemplate in a shared
-// ResourceDictionary has no x:Class to bind to. Seam with SectionPage: this control owns the elements, the page
-// base owns the behaviour; Chrome hands over the named parts (the template-parts pattern, type-safe instead of
-// GetTemplateChild + cast). The three handlers below fire from inside a DataTemplate whose instances don't exist
-// at wiring time, so they are re-raised with their original sender and args.
+// The markup both section pages share. A UserControl rather than a ResourceDictionary because two of the
+// templates bind Click to code-behind, and a DataTemplate in a shared ResourceDictionary has no x:Class to bind
+// to. Seam with SectionPage: this control owns the elements, the page base owns the behaviour; Chrome hands over
+// the named parts (the template-parts pattern, type-safe instead of GetTemplateChild + cast).
 public sealed partial class SectionPageShell : UserControl
 {
     // Strongly typed on purpose: a mistyped icon name goes through Enum.TryParse and renders nothing - no crash, no
@@ -81,7 +79,7 @@ public sealed partial class SectionPageShell : UserControl
     // The three template-scoped handlers. Their instances are created per item as the ItemsControl
     // realizes them, so the base cannot subscribe to them element-by-element the way it does for the
     // chrome; the control forwards instead. Sender and args pass through untouched - the base reads
-    // the section key off sender.Tag exactly as it did when the template lived in the page.
+    // the section key off sender.Tag.
 
     private void SectionCard_Click(object sender, RoutedEventArgs e) =>
         SectionCardClicked?.Invoke(sender, e);

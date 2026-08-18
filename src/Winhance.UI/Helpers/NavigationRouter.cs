@@ -68,7 +68,6 @@ internal sealed class NavigationRouter
                     : frame.Navigate(pageType);
                 StartupLogger.Log("NavigationRouter", $"Navigate result: {result}");
 
-                // Mark SoftwareApps features as visited when navigating to that page
                 if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
                 {
                     _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);

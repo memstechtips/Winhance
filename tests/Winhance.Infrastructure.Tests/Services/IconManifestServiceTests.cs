@@ -13,7 +13,6 @@ public class IconManifestServiceTests
 {
     private readonly Mock<ILogService> _mockLog = new();
 
-    // Mirrors the strict-handler pattern from AppIconResolverTests:
     // HttpClient.Dispose() calls HttpMessageHandler.Dispose(bool); stub it on Strict mocks.
     private static Mock<HttpMessageHandler> NewStrictHandler()
     {
@@ -35,8 +34,6 @@ public class IconManifestServiceTests
             });
         return handler;
     }
-
-    // ── Happy path ──────────────────────────────────────────────────────────
 
     [Fact]
     public async Task LoadAsync_ValidManifest_ReturnsTrueAndPopulatesLookup()
@@ -97,8 +94,8 @@ public class IconManifestServiceTests
         using var client = new HttpClient(handler.Object);
         var svc = new IconManifestService(client, _mockLog.Object);
 
-        (await svc.LoadAsync()).Should().BeFalse(); // first: 404, not cached
-        (await svc.LoadAsync()).Should().BeTrue();  // retried: 200
+        (await svc.LoadAsync()).Should().BeFalse();
+        (await svc.LoadAsync()).Should().BeTrue();
 
         handler.Protected().Verify(
             "SendAsync",
@@ -144,13 +141,10 @@ public class IconManifestServiceTests
         var svc = new IconManifestService(client, _mockLog.Object);
         await svc.LoadAsync();
 
-        // Path already stripped of "icons/" — still resolves via direct key match.
         var sha = svc.Sha256For("external/7zip.7zip.png");
 
         sha.Should().Be("abc123");
     }
-
-    // ── HTTP failure ─────────────────────────────────────────────────────────
 
     [Fact]
     public async Task LoadAsync_Http404_ReturnsFalse()
@@ -170,7 +164,7 @@ public class IconManifestServiceTests
         var handler = SetupHandler(HttpStatusCode.NotFound);
         using var client = new HttpClient(handler.Object);
         var svc = new IconManifestService(client, _mockLog.Object);
-        await svc.LoadAsync(); // fails
+        await svc.LoadAsync();
 
         var sha = svc.Sha256For("icons/external/7zip.7zip.png");
 
@@ -188,8 +182,6 @@ public class IconManifestServiceTests
 
         _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("404"))), Times.Once);
     }
-
-    // ── Malformed JSON ───────────────────────────────────────────────────────
 
     [Fact]
     public async Task LoadAsync_MalformedJson_ReturnsFalseWithoutThrowing()
@@ -216,8 +208,6 @@ public class IconManifestServiceTests
         result.Should().BeFalse();
     }
 
-    // ── Network exception ────────────────────────────────────────────────────
-
     [Fact]
     public async Task LoadAsync_NetworkException_ReturnsFalseWithoutThrowing()
     {
@@ -236,8 +226,6 @@ public class IconManifestServiceTests
         var result = await svc.LoadAsync();
         result.Should().BeFalse();
     }
-
-    // ── Logging on success ───────────────────────────────────────────────────
 
     [Fact]
     public async Task LoadAsync_Success_LogsInformationWithCount()

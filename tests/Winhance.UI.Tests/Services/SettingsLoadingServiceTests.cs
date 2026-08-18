@@ -57,8 +57,6 @@ public class SettingsLoadingServiceTests
             _mockApplicationModeService.Object);
     }
 
-    // ── LoadConfiguredSettingsAsync ──
-
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ReturnsViewModelsForAllSettings()
     {
@@ -104,7 +102,7 @@ public class SettingsLoadingServiceTests
 
         result.Should().HaveCount(2);
 
-        // L4b mode pin: filter ON (the default here) must request the current-OS scope.
+        // Mode pin: filter ON (the default here) must request the current-OS scope.
         _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", false), Times.Once);
     }
 
@@ -308,8 +306,6 @@ public class SettingsLoadingServiceTests
         receivedCompatibilityMessage.Should().Be("Compatibility_Windows10Only");
     }
 
-    // ── RefreshSettingStatesAsync ──
-
     [Fact]
     public async Task RefreshSettingStatesAsync_WithNoSettings_ReturnsEmptyDictionary()
     {
@@ -330,8 +326,6 @@ public class SettingsLoadingServiceTests
 
         result.Should().BeNullOrEmpty();
     }
-
-    // ── Selection-type combo resolution ──
 
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ResolvesComboBoxForSelectionTypeSettings()
@@ -369,14 +363,11 @@ public class SettingsLoadingServiceTests
         await _sut.LoadConfiguredSettingsAsync(
             "TestFeature", "Loading...", null);
 
-        // G1a: combo-box resolution is no longer a separate IComboBoxResolver pass - a Selection's CurrentValue
-        // comes from GetStatesAsync (its ResolveRawValuesToIndex) plus the catalog detection overlay. Assert the
-        // detection path ran for the selection.
+        // A Selection's CurrentValue comes from GetStatesAsync (its ResolveRawValuesToIndex) plus the catalog
+        // detection overlay, so asserting the detection path ran is what pins combo-box resolution.
         _mockSettingStateProvider.Verify(
             d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()), Times.Once);
     }
-
-    // ── RefreshSettingStatesAsync: combo box resolution + batch verification ──
 
     [Fact]
     public async Task RefreshSettingStatesAsync_SelectionSettings_ResolvesComboBoxValues()
@@ -401,9 +392,8 @@ public class SettingsLoadingServiceTests
 
         var result = await _sut.RefreshSettingStatesAsync(new[] { vm });
 
-        // G1a: the IComboBoxResolver re-resolution was retired; CurrentValue now comes straight from
-        // GetStatesAsync (1 here), with the catalog overlay (a no-op in this test) refining paired settings.
-        // There is no separate resolver pass to overwrite it to 2.
+        // CurrentValue comes straight from GetStatesAsync (1 here), with the catalog overlay (a no-op in this
+        // test) refining paired settings; no separate resolver pass may overwrite it.
         result["SelectSetting"].CurrentValue.Should().Be(1);
     }
 
@@ -475,13 +465,10 @@ public class SettingsLoadingServiceTests
 
         await _sut.RefreshSettingStatesAsync(vms);
 
-        // Batch call: exactly one call with all 3 settings, not 3 individual calls
         _mockSettingStateProvider.Verify(
             d => d.GetStatesAsync(It.Is<IReadOnlyList<Setting>>(l => l.Count == 3)),
             Times.Once);
     }
-
-    // ── Helper ──
 
     private static Setting CreateCatalogSetting(string id)
     {

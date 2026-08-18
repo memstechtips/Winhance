@@ -29,7 +29,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
     {
         Key = key ?? string.Empty;
 
-        // Subscribe to visibility changes on all initial items
         foreach (var item in this)
         {
             item.PropertyChanged += OnItemPropertyChanged;
@@ -41,7 +40,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Unsubscribe from removed items
         if (e.OldItems != null)
         {
             foreach (SettingItemViewModel item in e.OldItems)
@@ -50,7 +48,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
             }
         }
 
-        // Subscribe to new items
         if (e.NewItems != null)
         {
             foreach (SettingItemViewModel item in e.NewItems)

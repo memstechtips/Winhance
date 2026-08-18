@@ -74,7 +74,6 @@ public class CardTemplateOutcomeCoverageTests
         _output.WriteLine($"templates: {templates.Count}, input-bearing: {checkedCount}, "
             + $"exempt: {Exempt.Count}, offenders: {offenders.Count}");
 
-        // Non-vacuity: if nothing was recognised as an input control the test proves nothing.
         Assert.True(checkedCount >= 5,
             $"only {checkedCount} input-bearing templates found - the control names in InputControls no "
             + "longer match the markup, so this test is not actually checking anything.");

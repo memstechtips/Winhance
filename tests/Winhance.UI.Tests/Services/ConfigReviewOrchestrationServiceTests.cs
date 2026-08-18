@@ -71,20 +71,14 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // -------------------------------------------------------
-    // Constructor / Dispose
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_SubscribesToReviewModeChanged()
     {
         var service = CreateService();
 
-        // Verify that we subscribed by raising the event
         _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(false);
         _mockConfigReviewModeService.Raise(r => r.ReviewModeChanged += null, EventArgs.Empty);
 
-        // When review mode is exited (IsInReviewMode=false), it publishes ReviewModeExitedEvent
         _mockEventBus.Verify(
             e => e.Publish(It.IsAny<ReviewModeExitedEvent>()),
             Times.Once);
@@ -96,10 +90,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var service = CreateService();
         service.Dispose();
 
-        // After dispose, raising the event should not cause further calls
         _mockConfigReviewModeService.Raise(r => r.ReviewModeChanged += null, EventArgs.Empty);
 
-        // The event bus publish count should be 0 (no subscribed handler to trigger it)
         _mockEventBus.Verify(
             e => e.Publish(It.IsAny<ReviewModeExitedEvent>()),
             Times.Never);
@@ -114,10 +106,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var act = () => service.Dispose();
         act.Should().NotThrow();
     }
-
-    // -------------------------------------------------------
-    // ReviewModeChanged handler
-    // -------------------------------------------------------
 
     [Fact]
     public void OnReviewModeChanged_WhenEnteringReviewMode_ReappliesDiffs()
@@ -158,10 +146,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
 
         _mockVmCoordinator.Verify(v => v.ReapplyReviewDiffsToExistingSettings(), Times.Never);
     }
-
-    // -------------------------------------------------------
-    // ModeChanged handler (Builder exit)
-    // -------------------------------------------------------
 
     [Fact]
     public void OnApplicationModeChanged_BuilderToNormal_PublishesAuthoringModeExitedEvent()
@@ -211,10 +195,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Never);
     }
 
-    // -------------------------------------------------------
-    // The reload follows the capability, not the mode name
-    // -------------------------------------------------------
-    //
     // Derived from ModeCapabilities rather than listing Builder, so a second authoring mode is
     // covered the moment it declares its capabilities - which is the whole reason the publisher
     // asks AuthorsIntent instead of comparing against WinhanceMode.Builder.
@@ -266,10 +246,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Never,
             failMessage: $"{plainMode} never moved a value without applying it, so nothing is stale");
     }
-
-    // -------------------------------------------------------
-    // EnterReviewModeAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task EnterReviewModeAsync_FiltersIncompatibleSettings()
@@ -418,10 +394,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             d => d.ShowMessage(It.Is<string>(s => s.Contains("Test error")), It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewedConfigAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ApplyReviewedConfigAsync_WhenNotInReviewMode_DoesNothing()
@@ -604,10 +576,6 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
     }
 
-    // -------------------------------------------------------
-    // CancelReviewModeAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task CancelReviewModeAsync_WhenNotInReviewMode_DoesNothing()
     {
@@ -627,16 +595,11 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var service = CreateService();
         await service.CancelReviewModeAsync();
 
-        // Cancel should exit review mode without clearing selections
         _mockConfigAppSelectionService.Verify(
             s => s.ClearWindowsAppsSelectionAsync(),
             Times.Never);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // Policy Cleanup on Windows Defaults via Review Mode
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ApplyReviewedConfigAsync_WindowsDefaults_CallsPolicyCleanup()

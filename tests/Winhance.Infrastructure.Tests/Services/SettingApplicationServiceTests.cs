@@ -204,8 +204,6 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
-        // A paired plain toggle routes through the engine; with the writer succeeding (ctor default), the apply
-        // succeeds.
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
@@ -262,7 +260,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ActionWithApplyRecommended_OneCoalescedRestartForPrimaryPlusRecommended()
     {
-        // Bug A "one restart per click": the primary Action apply and the recommended batch must
+        // "One restart per click": the primary Action apply and the recommended batch must
         // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
         // covering the primary action AND every recommended setting.
         // The recommended applier + the coalesced-restart flush are catalog-Setting typed, and SAS builds the
@@ -287,7 +285,6 @@ public class SettingApplicationServiceTests
             ApplyRecommended = true,
         });
 
-        // One suppress scope wraps both the primary action and the recommended batch.
         _mockRestart.Verify(r => r.SuppressRestarts(), Times.Once);
 
         // The recommended batch runs through the NON-flushing feature core...
@@ -297,25 +294,22 @@ public class SettingApplicationServiceTests
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
 
-        // Exactly one coalesced flush, containing the primary action AND the recommended setting.
         _mockRestart.Verify(r => r.FlushCoalescedRestartsAsync(
             It.Is<IEnumerable<Setting>>(list =>
                 list.Any(s => s.Id == actionId) && list.Any(s => s.Id == "rec1"))),
             Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // The confirmation checkbox: on a setting with NO special handler it means
     // "also apply this feature's recommended settings"
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_CheckboxResultWithNoSpecialHandler_AppliesRecommendedForTheFeature()
     {
         // The config-import path (ConfigurationApplicationBridgeService) passes the confirmation result as
-        // CheckboxResult ALONE - no ApplyRecommended - and CheckboxResult used to be read only by a special
-        // handler, so on a setting with none the tick did nothing at all. A real catalog Action with no
-        // handler registered must now route it to the recommended-for-feature applier.
+        // CheckboxResult ALONE - no ApplyRecommended - so if only a special handler read CheckboxResult, on a
+        // setting with none the tick would do nothing at all. A real catalog Action with no handler registered
+        // must route it to the recommended-for-feature applier.
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
@@ -407,10 +401,6 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------
-    // Unpaired setting -> resolver returns null -> logged OperationResult.Failed
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ApplySettingAsync_UnpairedSetting_ResolverReturnsNull_PropagatesFailedResult()
     {
@@ -444,9 +434,7 @@ public class SettingApplicationServiceTests
             evt => evt.SettingId == "fail-event")), Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // Change history (#367): record setting changes before → after
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_ToggleSuccess_LogsChangeHistoryEntry()
@@ -455,7 +443,6 @@ public class SettingApplicationServiceTests
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
-        // Before-state: discovery reports the toggle currently disabled.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -484,7 +471,6 @@ public class SettingApplicationServiceTests
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
-        // Before-state already matches the requested state (enabled -> enable=true).
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -564,9 +550,7 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------
     // Change history (#367): power AC/DC values + option labels render human-readable
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
@@ -715,7 +699,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // Re-applying the same display values: AC=0, DC=10 (minutes) — no change.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgNumericId,
@@ -831,10 +814,8 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // #367: battery-less machines render AC-only (no phantom DC) +
     //       a no-match raw PowerCfg value renders Custom, never index-by-raw
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_NoBatterySelection_RendersAcOnly()
@@ -862,7 +843,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // After: apply tuple (2, 0). AC changes Never → 9 minutes; entry renders AC-only on both sides.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgSelectionId,
@@ -899,7 +879,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // Apply (0, 1): AC stays option 0 (Never); DC index differs but is suppressed on no-battery.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgSelectionId,
@@ -984,8 +963,8 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 
-    // --- The funnel re-applies Winhance-recommended power settings after a successful switch TO the Winhance
-    //     power plan. The mocked handler registry returns null, so the funnel exercises the engine path here. ---
+    // The funnel re-applies Winhance-recommended power settings after a successful switch TO the Winhance
+    // power plan. The mocked handler registry returns null, so the funnel exercises the engine path here.
 
     [Fact]
     public async Task ApplySettingAsync_WinhancePowerPlanApplied_ReappliesRecommendedPowerSettings()
@@ -1047,11 +1026,9 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Relationship detection is SCOPED (2026-07-31). It used to detect all 414 catalog settings after
-    // every interactive apply - correct, but ~1-2s a click, and it is why power plans and system restore
-    // showed up in the log while the user was on the Taskbar page.
-    // ---------------------------------------------------------------------------------------------
+    // Relationship detection is SCOPED. Detecting all 414 catalog settings after every interactive apply
+    // is correct but costs ~1-2s a click, and puts power plans and system restore in the log while the
+    // user is on the Taskbar page.
 
     [Fact]
     public async Task ApplySettingAsync_SettingWithNoRelationships_DetectsNothing()

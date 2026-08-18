@@ -20,10 +20,6 @@ public class RegistryCommandEmitterTests
         _sut = new RegistryCommandEmitter(_logService.Object);
     }
 
-    // ---------------------------------------------------------------
-    // AppendSelectionCommands
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendSelectionCommands_PowerPlanSelection_SkipsEntirely()
     {
@@ -86,10 +82,6 @@ public class RegistryCommandEmitterTests
             null), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // ApplyResolvedValues - ApplyPerMonitor wraps in ForEach
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendSelectionCommands_ApplyPerMonitor_WrapsInForEachObject()
     {
@@ -111,10 +103,6 @@ public class RegistryCommandEmitterTests
         output.Should().Contain("ForEach-Object");
         output.Should().Contain("$_.PSPath");
     }
-
-    // ---------------------------------------------------------------
-    // AppendRegContentCommandsFromCatalog - mixed-hive rejection
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendRegContentCommandsFromCatalog_MixedHiveContent_Throws()

@@ -19,7 +19,6 @@ public class TaskProgressViewModelTests : IDisposable
 
     public TaskProgressViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -45,8 +44,6 @@ public class TaskProgressViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesDefaultProperties()
     {
@@ -63,7 +60,6 @@ public class TaskProgressViewModelTests : IDisposable
     [Fact]
     public void Constructor_SubscribesToProgressUpdated()
     {
-        // Verify by raising the event and checking that properties update
         _mockTaskProgressService
             .Setup(s => s.IsTaskRunning)
             .Returns(true);
@@ -76,8 +72,6 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.IsLoading.Should().BeTrue();
         _sut.AppName.Should().Be("Installing...");
     }
-
-    // ── Progress Updates: Task Running ──
 
     [Fact]
     public void OnProgressUpdated_TaskRunning_SetsIsLoadingTrue()
@@ -162,13 +156,11 @@ public class TaskProgressViewModelTests : IDisposable
     {
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
 
-        // First set a known AppName
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
             new TaskProgressDetail { StatusText = "Original" });
 
-        // Then send update with empty status text
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
@@ -177,14 +169,11 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.AppName.Should().Be("Original");
     }
 
-    // ── Progress Updates: Task Completion ──
-
     [Fact]
     public void OnProgressUpdated_TaskJustStopped_Failed_KeepsLoadingTrue()
     {
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
 
-        // First, simulate a running task that fails
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
@@ -193,21 +182,18 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.IsTaskFailed.Should().BeTrue();
         _sut.IsLoading.Should().BeTrue();
 
-        // Now task stops
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
             new TaskProgressDetail { StatusText = "" });
 
-        // Failed task should stay visible
         _sut.IsLoading.Should().BeTrue();
     }
 
     [Fact]
     public void OnProgressUpdated_TaskJustStopped_Cancelled_HidesImmediately()
     {
-        // Simulate a running task that reports failure (Progress=0)
         var cts = new CancellationTokenSource();
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
         _mockTaskProgressService.Setup(s => s.CurrentTaskCancellationSource).Returns(cts);
@@ -220,17 +206,14 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.IsTaskFailed.Should().BeTrue();
         _sut.IsLoading.Should().BeTrue();
 
-        // User cancels — token is now cancelled
         cts.Cancel();
 
-        // Task stops
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
             new TaskProgressDetail { StatusText = "" });
 
-        // Should hide immediately, not show "click to see details"
         _sut.IsLoading.Should().BeFalse();
         _sut.IsTaskFailed.Should().BeFalse();
     }
@@ -238,7 +221,6 @@ public class TaskProgressViewModelTests : IDisposable
     [Fact]
     public void OnProgressUpdated_TaskJustStopped_FailedNotCancelled_ShowsClickToSeeDetails()
     {
-        // Simulate a running task with a non-cancelled CTS that reports failure
         var cts = new CancellationTokenSource();
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
         _mockTaskProgressService.Setup(s => s.CurrentTaskCancellationSource).Returns(cts);
@@ -250,18 +232,14 @@ public class TaskProgressViewModelTests : IDisposable
 
         _sut.IsTaskFailed.Should().BeTrue();
 
-        // Task stops (NOT cancelled)
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
             new TaskProgressDetail { StatusText = "" });
 
-        // Failed task should stay visible
         _sut.IsLoading.Should().BeTrue();
     }
-
-    // ── Progress Updates: Queue Display ──
 
     [Fact]
     public void OnProgressUpdated_QueueTotalGreaterThan1_ShowsQueue()
@@ -318,8 +296,6 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.QueueNextItemName.Should().BeEmpty();
     }
 
-    // ── Progress Updates: Multi-Script Mode ──
-
     [Fact]
     public void OnProgressUpdated_MultiScriptMode_UpdatesActiveScriptCount()
     {
@@ -361,14 +337,12 @@ public class TaskProgressViewModelTests : IDisposable
     {
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
 
-        // First, enter multi-script mode
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
             new TaskProgressDetail { ScriptSlotCount = 2, ScriptSlotIndex = 0 });
         _sut.ActiveScriptCount.Should().Be(2);
 
-        // Then, receive completion (ScriptSlotCount = 0, ScriptSlotIndex = -1)
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
@@ -376,8 +350,6 @@ public class TaskProgressViewModelTests : IDisposable
 
         _sut.ActiveScriptCount.Should().Be(0);
     }
-
-    // ── Cancel Command ──
 
     [Fact]
     public void CancelCommand_DelegatesToTaskProgressService()
@@ -387,12 +359,9 @@ public class TaskProgressViewModelTests : IDisposable
         _mockTaskProgressService.Verify(s => s.CancelCurrentTask(), Times.Once);
     }
 
-    // ── CloseFailedTask Command ──
-
     [Fact]
     public void CloseFailedTaskCommand_ResetsLoadingAndFailedState()
     {
-        // Set up failed state
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
@@ -407,8 +376,6 @@ public class TaskProgressViewModelTests : IDisposable
         _sut.IsTaskFailed.Should().BeFalse();
         _sut.IsLoading.Should().BeFalse();
     }
-
-    // ── Localized Labels ──
 
     [Fact]
     public void CancelButtonLabel_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -434,8 +401,6 @@ public class TaskProgressViewModelTests : IDisposable
         changedProperties.Should().Contain(nameof(_sut.CloseButtonLabel));
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_UnsubscribesFromProgressUpdated()
     {
@@ -447,7 +412,6 @@ public class TaskProgressViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising the event should not cause any changes
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,

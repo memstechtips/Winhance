@@ -64,7 +64,6 @@ public class BloatRemovalScriptGeneratorTests
             new List<string>(), new List<string>(),
             includeXboxRegistryFix: true);
 
-        // The script should contain Xbox-related registry content
         script.Should().NotBeNullOrEmpty();
     }
 
@@ -158,7 +157,6 @@ public class BloatRemovalScriptGeneratorTests
 
         var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
 
-        // The updated template should detect Xbox packages and include the fix
         updated.Should().Contain("Microsoft.GamingApp");
     }
 

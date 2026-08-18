@@ -50,8 +50,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _fileSystemService = fileSystemService;
         _applicationModeService = applicationModeService;
 
-        // Initialize partial property defaults (SearchText first since
-        // tab-change handlers forward it to child ViewModels)
+        // SearchText first: the tab-change handlers forward it to the child ViewModels.
         SearchText = string.Empty;
         IsWindowsAppsTabSelected = true;
     }
@@ -91,7 +90,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     [ObservableProperty]
     public partial int ExternalAppsSelectedCount { get; set; }
 
-    // Action choice properties for review mode
     [ObservableProperty]
     public partial bool IsWindowsAppsInstallAction { get; set; }
 
@@ -207,7 +205,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    // Localized text properties
     public string PageTitle => _localizationService.GetString("Category_SoftwareApps_Title");
     public string PageDescription => _localizationService.GetString("Category_SoftwareApps_StatusText");
     public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Search apps...");
@@ -392,7 +389,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
         if (!IsInReviewMode)
         {
-            // Reset action choices when exiting review mode
             IsWindowsAppsInstallAction = false;
             IsWindowsAppsRemoveAction = false;
             IsExternalAppsInstallAction = false;

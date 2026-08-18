@@ -34,7 +34,6 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
     public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)
     {
-        // Fast path: cached snapshot from a prior call this session.
         var cached = _cachedMap;
         if (cached is not null)
             return cached;
@@ -201,7 +200,7 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
                     return p;
             }
         }
-        catch { /* best-effort */ }
+        catch { }
 
         return null;
     }

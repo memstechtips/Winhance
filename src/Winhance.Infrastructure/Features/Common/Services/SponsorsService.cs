@@ -31,7 +31,6 @@ public class SponsorsService : ISponsorsService
         await _fetchLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Double-checked after acquiring the lock.
             if (_cached is not null)
                 return _cached;
 
@@ -66,14 +65,9 @@ public class SponsorsService : ISponsorsService
         if (!File.Exists(fullPath))
             return null;
 
-        // Return an ms-appx URI using forward slashes regardless of platform.
         string uriLogo = sponsor.Logo.Replace('\\', '/');
         return $"ms-appx:///Assets/Sponsors/{uriLogo}";
     }
-
-    // -----------------------------------------------------------------------
-    // Private helpers
-    // -----------------------------------------------------------------------
 
     private async Task<SponsorsDocument?> TryFetchLiveAsync(CancellationToken cancellationToken)
     {

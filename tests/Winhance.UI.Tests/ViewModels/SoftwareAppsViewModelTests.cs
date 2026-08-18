@@ -42,7 +42,6 @@ public class SoftwareAppsViewModelTests
 
     public SoftwareAppsViewModelTests()
     {
-        // Set up dispatcher mocks to execute actions synchronously
         _dispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
@@ -113,8 +112,6 @@ public class SoftwareAppsViewModelTests
             _applicationModeService.Object);
     }
 
-    // --- Constructor / defaults ---
-
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -145,8 +142,6 @@ public class SoftwareAppsViewModelTests
         sut.WindowsAppsViewModel.Should().BeSameAs(winVm);
         sut.ExternalAppsViewModel.Should().BeSameAs(extVm);
     }
-
-    // --- Tab selection ---
 
     [Fact]
     public void SelectWindowsAppsTab_SetsIsWindowsAppsTabSelected()
@@ -190,8 +185,6 @@ public class SoftwareAppsViewModelTests
         sut.IsWindowsAppsTabSelected.Should().BeFalse();
     }
 
-    // --- SearchText forwarding ---
-
     [Fact]
     public void SearchText_WhenWindowsTabSelected_ForwardsToWindowsAppsViewModel()
     {
@@ -214,8 +207,6 @@ public class SoftwareAppsViewModelTests
         sut.ExternalAppsViewModel.SearchText.Should().Be("browser");
     }
 
-    // --- Localized text properties ---
-
     [Fact]
     public void PageTitle_ReturnsLocalizedString()
     {
@@ -231,8 +222,6 @@ public class SoftwareAppsViewModelTests
 
         sut.PageDescription.Should().Be("Category_SoftwareApps_StatusText");
     }
-
-    // --- IsLoading delegation ---
 
     [Fact]
     public void IsLoading_WhenWindowsTabSelected_DelegatesToWindowsAppsViewModel()
@@ -253,8 +242,6 @@ public class SoftwareAppsViewModelTests
 
         sut.IsLoading.Should().BeTrue();
     }
-
-    // --- Review mode action choices ---
 
     [Fact]
     public void IsWindowsAppsActionChosen_WhenInstallActionSet_ReturnsTrue()
@@ -338,8 +325,6 @@ public class SoftwareAppsViewModelTests
         sut.IsExternalAppsInstallAction.Should().BeFalse();
     }
 
-    // --- CurrentInstallAction / CurrentRemoveAction routing ---
-
     [Fact]
     public void CurrentInstallAction_WhenWindowsTabSelected_RoutesToWindowsInstallAction()
     {
@@ -383,8 +368,6 @@ public class SoftwareAppsViewModelTests
 
         sut.IsExternalAppsRemoveAction.Should().BeTrue();
     }
-
-    // --- IsSoftwareAppsReviewed ---
 
     [Fact]
     public void IsSoftwareAppsReviewed_WhenNotInReviewMode_ReturnsFalse()
@@ -436,8 +419,6 @@ public class SoftwareAppsViewModelTests
         sut.IsSoftwareAppsReviewed.Should().BeTrue();
     }
 
-    // --- ReviewWindowsAppsBannerText ---
-
     [Fact]
     public void ReviewWindowsAppsBannerText_WhenInstallAction_ReturnsInstallText()
     {
@@ -464,8 +445,6 @@ public class SoftwareAppsViewModelTests
         sut.ReviewWindowsAppsBannerText.Should().Be("Review_Mode_Select_Action");
     }
 
-    // --- ReviewExternalAppsBannerText ---
-
     [Fact]
     public void ReviewExternalAppsBannerText_WhenInstallAction_ReturnsInstallText()
     {
@@ -483,8 +462,6 @@ public class SoftwareAppsViewModelTests
 
         sut.ReviewExternalAppsBannerText.Should().Be("Review_Mode_Action_Remove");
     }
-
-    // --- Button state management ---
 
     [Fact]
     public void CanInstallItems_InReviewMode_IsFalse()
@@ -508,8 +485,6 @@ public class SoftwareAppsViewModelTests
 
         sut.CanRemoveItems.Should().BeFalse();
     }
-
-    // --- InitializeAsync ---
 
     [Fact]
     public async Task InitializeAsync_LoadsViewPreference()
@@ -550,12 +525,10 @@ public class SoftwareAppsViewModelTests
         var sut = CreateSut();
 
         await sut.InitializeAsync();
-        await sut.InitializeAsync(); // second call should not re-subscribe
+        await sut.InitializeAsync();
 
         _userPreferencesService.Verify(u => u.GetPreference("SoftwareAppsViewMode", "Card"), Times.Once);
     }
-
-    // --- Dispose ---
 
     [Fact]
     public void Dispose_DoesNotThrow()
@@ -566,8 +539,6 @@ public class SoftwareAppsViewModelTests
 
         act.Should().NotThrow();
     }
-
-    // --- SyncSoftwareAppsReviewedState ---
 
     [Fact]
     public void ActionChoice_SyncsSoftwareAppsReviewedState()
@@ -581,8 +552,6 @@ public class SoftwareAppsViewModelTests
         _configReviewBadgeService.VerifySet(s => s.IsSoftwareAppsReviewed = It.IsAny<bool>(), Times.AtLeastOnce);
         _configReviewBadgeService.Verify(s => s.NotifyBadgeStateChanged(), Times.AtLeastOnce);
     }
-
-    // --- ViewMode enum ---
 
     [Fact]
     public async Task DefaultViewMode_IsCard_WhenNoPreferenceSaved()

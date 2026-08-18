@@ -11,7 +11,6 @@ public sealed partial class PendingRestartBar : UserControl
         this.InitializeComponent();
     }
 
-    // Setting it wires the control's DataContext, which every binding in the XAML resolves against.
     public PendingRestartViewModel? ViewModel
     {
         get => DataContext as PendingRestartViewModel;

@@ -76,10 +76,6 @@ public class AutounattendXmlGeneratorServiceTests
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
     }
 
-    // -------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
@@ -87,11 +83,6 @@ public class AutounattendXmlGeneratorServiceTests
 
         act.Should().NotThrow();
     }
-
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - uses selectedAppsProvider
-    // when no apps are passed
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WhenNoAppsProvided_CallsSelectedAppsProvider()
@@ -166,11 +157,6 @@ public class AutounattendXmlGeneratorServiceTests
         _mockSelectedAppsProvider.Verify(p => p.GetSelectedWindowsAppsAsync(), Times.Once);
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - enumerates the catalog
-    // registry with the mode threaded
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_CallsGetAll_CurrentOsScope()
     {
@@ -228,10 +214,6 @@ public class AutounattendXmlGeneratorServiceTests
         _mockCatalogSettingsRegistry.Verify(r => r.GetAll(true), Times.AtLeast(1));
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - logging
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_LogsStartMessage()
     {
@@ -254,10 +236,6 @@ public class AutounattendXmlGeneratorServiceTests
             l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Starting autounattend.xml generation"))),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - exception handling
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WhenExceptionOccurs_LogsErrorAndRethrows()
@@ -309,11 +287,6 @@ public class AutounattendXmlGeneratorServiceTests
         if (File.Exists(outputPath)) File.Delete(outputPath);
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - apps are passed
-    // to configuration
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithSelectedApps_IncludesAppsInConfiguration()
     {
@@ -339,7 +312,6 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        // Verify the service proceeded past app assignment (reached the registry enumeration)
         _mockCatalogSettingsRegistry.Verify(r => r.GetAll(It.IsAny<bool>()), Times.AtLeast(1));
     }
 
@@ -366,11 +338,6 @@ public class AutounattendXmlGeneratorServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - XML validation
-    // failure
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WhenXmlValidationFails_LogsErrorAndRethrows()
     {
@@ -393,11 +360,6 @@ public class AutounattendXmlGeneratorServiceTests
 
         if (File.Exists(outputPath)) File.Delete(outputPath);
     }
-
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - discovery service
-    // interaction for settings with features
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithOptimizeFeatureSettings_CallsDiscoveryService()
@@ -451,11 +413,6 @@ public class AutounattendXmlGeneratorServiceTests
             Times.AtLeastOnce);
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - script builder
-    // validation failure
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WhenScriptValidationFails_LogsErrorAndRethrows()
     {
@@ -479,11 +436,6 @@ public class AutounattendXmlGeneratorServiceTests
 
         if (File.Exists(outputPath)) File.Delete(outputPath);
     }
-
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - unknown features
-    // are skipped
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithUnknownFeature_LogsWarningAndSkips()
@@ -527,11 +479,6 @@ public class AutounattendXmlGeneratorServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // GenerateFromCurrentSelectionsAsync - empty features
-    // are skipped
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GenerateFromCurrentSelectionsAsync_WithEmptyFeatureSettings_SkipsFeature()
     {
@@ -555,7 +502,6 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        // Discovery service should not be called for empty feature settings
         _mockSettingStateProvider.Verify(
             d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()),
             Times.Never);

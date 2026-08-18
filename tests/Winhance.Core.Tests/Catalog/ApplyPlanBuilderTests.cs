@@ -42,13 +42,11 @@ public class ApplyPlanBuilderTests
             new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
             new SettingState { Label = "Manual",   Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } });
 
-        // The protective value (4): unlock, write, lock — in order.
         Assert.Collection(ApplyPlanBuilder.Build(setting, "Disabled"),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op),
             op => Assert.IsType<RegistryLockKeyOp>(op));
 
-        // A non-protective value (3): unlock + write, but NO lock.
         Assert.Collection(ApplyPlanBuilder.Build(setting, "Manual"),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op));
@@ -255,13 +253,11 @@ public class ApplyPlanBuilderTests
             new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Of(1) } },
             new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Absent } });
 
-        // "Off" writes 1 to TcpAckFrequency under every interface sub-key; no plain write op.
         var write = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryPerSubkeyWriteOp>());
         Assert.Equal(@"HKLM\...\Interfaces", write.ParentPath);
         Assert.Equal(1, (int)write.Value);
         Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryWriteOp>());
 
-        // "On" (Absent) deletes the value under every sub-key; no plain delete op.
         Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyDeleteOp>());
         Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryDeleteOp>());
     }

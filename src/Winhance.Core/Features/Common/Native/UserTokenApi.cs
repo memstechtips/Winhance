@@ -4,28 +4,23 @@ namespace Winhance.Core.Features.Common.Native;
 
 public static class UserTokenApi
 {
-    // Token access rights
     public const uint TOKEN_QUERY = 0x0008;
     public const uint TOKEN_DUPLICATE = 0x0002;
     public const uint TOKEN_ASSIGN_PRIMARY = 0x0001;
     public const uint TOKEN_ALL_ACCESS = 0xF01FF;
 
-    // Handle flags
     public const uint HANDLE_FLAG_INHERIT = 0x00000001;
 
-    // Process creation flags
     public const int LOGON_WITH_PROFILE = 0x00000001;
     public const int CREATE_NO_WINDOW = 0x08000000;
     public const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     public const int STARTF_USESTDHANDLES = 0x00000100;
 
-    // Wait constants
     public const uint WAIT_OBJECT_0 = 0x00000000;
     public const uint WAIT_TIMEOUT = 0x00000102;
     public const uint INFINITE = 0xFFFFFFFF;
     public const uint STILL_ACTIVE = 259;
 
-    // advapi32.dll
     [DllImport("advapi32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool OpenProcessToken(
@@ -65,7 +60,6 @@ public static class UserTokenApi
         ref STARTUPINFO lpStartupInfo,
         out PROCESS_INFORMATION lpProcessInformation);
 
-    // kernel32.dll
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool CloseHandle(IntPtr hObject);
@@ -101,7 +95,6 @@ public static class UserTokenApi
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
-    // userenv.dll
     [DllImport("userenv.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool CreateEnvironmentBlock(
@@ -113,7 +106,6 @@ public static class UserTokenApi
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
 
-    // wtsapi32.dll
     [DllImport("wtsapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool WTSQuerySessionInformationW(
@@ -126,7 +118,6 @@ public static class UserTokenApi
     [DllImport("wtsapi32.dll")]
     public static extern void WTSFreeMemory(IntPtr pMemory);
 
-    // Enums
     public enum TOKEN_INFORMATION_CLASS
     {
         TokenUser = 1,
@@ -148,7 +139,6 @@ public static class UserTokenApi
         WTSDomainName = 7,
     }
 
-    // Structs
     [StructLayout(LayoutKind.Sequential)]
     public struct TOKEN_USER
     {

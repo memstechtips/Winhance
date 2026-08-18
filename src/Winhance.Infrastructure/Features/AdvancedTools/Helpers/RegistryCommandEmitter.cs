@@ -83,7 +83,6 @@ internal class RegistryCommandEmitter
 
             foreach (var path in rt.Paths)
             {
-                // Filter by hive
                 bool isHkcuEntry = path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
                 if (isHkcuEntry != isHkcu)
                     continue;
@@ -102,17 +101,13 @@ internal class RegistryCommandEmitter
                     sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
                 }
 
-                // The write value for this target from the active state: WritePayload unless the state deletes
-                // (Absent/DeleteOnWrite) or carries no entry for this target - both map to null.
                 state.Set.TryGetValue(rt.Key, out var sv);
                 object? writeValue = (sv != null && !sv.DeleteOnWrite) ? sv.WritePayload : null;
 
-                // Check if we have a raw value from the registry to use instead of definitions
                 var key = rt.ValueName ?? "KeyExists";
                 object? customValue = null;
                 bool hasCustomValue = configItem.CustomStateValues?.TryGetValue(key, out customValue) == true;
 
-                // Pattern 1: Key-Based Settings (CLSID folders, etc.)
                 // Detection: ValueName is null or empty - these control registry KEY existence, not values
                 if (string.IsNullOrEmpty(rt.ValueName))
                 {
@@ -159,7 +154,6 @@ internal class RegistryCommandEmitter
                     continue;
                 }
 
-                // Pattern 3: Null Value Deletion
                 if (value == null)
                 {
                     sb.AppendLine($"{innerIndent}Remove-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Description '{escapedDescription}'");
@@ -167,7 +161,6 @@ internal class RegistryCommandEmitter
                     continue;
                 }
 
-                // Pattern 4: Regular Value Setting
                 EmitRegistryValueFromTarget(sb, rt, value, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
                 if (isPerSubkey) sb.AppendLine($"{indent}}}");
             }
@@ -193,7 +186,6 @@ internal class RegistryCommandEmitter
            && s_hkcuHeaderRegex.IsMatch(content)
            && s_systemHiveHeaderRegex.IsMatch(content);
 
-    // Each content is hive-routed and mixed-hive-rejected.
     public void AppendRegContentCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool? isEnabled, bool isHkcuPass, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);

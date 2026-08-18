@@ -16,10 +16,6 @@ public class WizardStepStateTests
         };
     }
 
-    // -------------------------------------------------------
-    // Default values
-    // -------------------------------------------------------
-
     [Fact]
     public void DefaultState_IsExpanded_IsFalse()
     {
@@ -52,10 +48,6 @@ public class WizardStepStateTests
         state.StatusText.Should().BeEmpty();
     }
 
-    // -------------------------------------------------------
-    // Simple properties
-    // -------------------------------------------------------
-
     [Fact]
     public void StepNumber_CanBeSet()
     {
@@ -79,10 +71,6 @@ public class WizardStepStateTests
 
         state.Icon.Should().Be("icon1");
     }
-
-    // -------------------------------------------------------
-    // StatusText with PropertyChanged
-    // -------------------------------------------------------
 
     [Fact]
     public void StatusText_Set_RaisesPropertyChanged()
@@ -114,14 +102,10 @@ public class WizardStepStateTests
                 raised = true;
         };
 
-        state.StatusText = "Ready"; // same value
+        state.StatusText = "Ready";
 
         raised.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // IsExpanded with PropertyChanged and ChevronRotation
-    // -------------------------------------------------------
 
     [Fact]
     public void IsExpanded_SetTrue_RaisesPropertyChanged()
@@ -140,7 +124,6 @@ public class WizardStepStateTests
     public void IsExpanded_SetToSameValue_DoesNotRaisePropertyChanged()
     {
         var state = CreateState();
-        // Default is false; set to false again
         var raised = false;
         state.PropertyChanged += (_, _) => raised = true;
 
@@ -148,10 +131,6 @@ public class WizardStepStateTests
 
         raised.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ChevronRotation (computed)
-    // -------------------------------------------------------
 
     [Fact]
     public void ChevronRotation_WhenExpanded_Returns180()
@@ -172,10 +151,6 @@ public class WizardStepStateTests
 
         state.ChevronRotation.Should().Be(0);
     }
-
-    // -------------------------------------------------------
-    // IsAvailable with PropertyChanged, IsLocked, ShowChevron
-    // -------------------------------------------------------
 
     [Fact]
     public void IsAvailable_SetTrue_RaisesPropertyChanged()
@@ -198,14 +173,10 @@ public class WizardStepStateTests
         var raised = false;
         state.PropertyChanged += (_, _) => raised = true;
 
-        state.IsAvailable = false; // default is false
+        state.IsAvailable = false;
 
         raised.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // IsLocked (computed: !IsAvailable)
-    // -------------------------------------------------------
 
     [Fact]
     public void IsLocked_WhenNotAvailable_ReturnsTrue()
@@ -227,10 +198,6 @@ public class WizardStepStateTests
         state.IsLocked.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // IsComplete with PropertyChanged and ShowChevron
-    // -------------------------------------------------------
-
     [Fact]
     public void IsComplete_SetTrue_RaisesPropertyChanged()
     {
@@ -251,14 +218,10 @@ public class WizardStepStateTests
         var raised = false;
         state.PropertyChanged += (_, _) => raised = true;
 
-        state.IsComplete = false; // default is false
+        state.IsComplete = false;
 
         raised.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ShowChevron (computed: !IsLocked && !IsComplete)
-    // -------------------------------------------------------
 
     [Fact]
     public void ShowChevron_WhenAvailableAndNotComplete_ReturnsTrue()
@@ -299,10 +262,6 @@ public class WizardStepStateTests
 
         state.ShowChevron.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // Transition scenarios
-    // -------------------------------------------------------
 
     [Fact]
     public void TransitionFromLockedToAvailable_UpdatesIsLockedAndShowChevron()

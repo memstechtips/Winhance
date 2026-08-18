@@ -41,7 +41,7 @@
             <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#401A7F37"/>
             <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF1A7F37"/>
 
-            <!-- Default: dark on light — fixes pre-existing invisibility bug -->
+            <!-- Default: dark on light -->
             <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>
             <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#33000000"/>
             <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99000000"/>
@@ -65,17 +65,8 @@
 
     </ResourceDictionary.ThemeDictionaries>
 
-    <!--
-    BadgeStyles.xaml
-    Centralized visual definition for the SettingsCard InfoBadge pill.
-    Includes:
-      - Pill Border styles per state (Recommended / Default / Preference), plus the
-        detection-outcome capsules the overview cards use
-      - Foreground brushes matching each pill style
-      - Shared text style
-    -->
 
-    <!-- ==================== Pill Border Base ==================== -->
+    <!-- Pill Border Base -->
     <!--
     Height is pinned so CornerRadius can match half of it and produce a true
     capsule shape. WinUI 3 Border.CornerRadius does not always clamp large
@@ -91,7 +82,7 @@
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
-    <!-- ==================== State-Specific Pill Styles ==================== -->
+    <!-- State-Specific Pill Styles -->
     <Style x:Key="BadgeRecommendedStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgeRecommendedBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeRecommendedBorder}"/>
@@ -108,7 +99,7 @@
     </Style>
 
 
-    <!-- ==================== Software Apps Status Pill Styles ==================== -->
+    <!-- Software Apps Status Pill Styles -->
     <!-- Status badges on the Software Apps cards. Same BadgePillBase capsule as the
          settings badges so the two views share one visual vocabulary. -->
     <Style x:Key="BadgeInstalledStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
@@ -126,7 +117,7 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
     </Style>
 
-    <!-- ==================== NEW Badge Style ==================== -->
+    <!-- NEW Badge Style -->
     <!-- Small red badge used next to setting/feature names to indicate new additions.
          NOT based on BadgePillBase — the NEW badge has its own compact shape. -->
     <Style x:Key="NewBadgeBorderStyle" TargetType="Border">
@@ -142,7 +133,7 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
-    <!-- ==================== Text Style ==================== -->
+    <!-- Text Style -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -176,7 +167,7 @@
         <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
     </Style>
 
-    <!-- ==================== Quick-Set Buttons ==================== -->
+    <!-- Quick-Set Buttons -->
     <!--
     Small borderless icon buttons placed in front of every setting's control. Visible
     only when UserPreferences.ShowInfoBadges is on. The green star matches the

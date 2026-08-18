@@ -7,9 +7,9 @@ using Winhance.UI.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Pages;
 
-// One page type for every section (it replaced ten identical page types differing in one binding path); which
-// section to show arrives as a navigation parameter. The bindings are built here rather than in XAML because the
-// paths differ per section and x:Bind resolves paths at compile time.
+// One page type for every section; which section to show arrives as a navigation parameter. The bindings
+// are built here rather than in XAML because the paths differ per section and x:Bind resolves paths at
+// compile time.
 public sealed partial class SectionDetailPage : Page
 {
     public SectionDetailPage()

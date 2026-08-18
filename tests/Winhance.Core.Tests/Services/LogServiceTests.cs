@@ -161,8 +161,6 @@ public class LogServiceTests
         logContent.Should().NotContain("Timestamp:");
     }
 
-    // ── CleanupOldLogs (BP-7) ──
-
     [Fact]
     public void CleanupOldLogs_DeletesFilesOlderThanMaxAge()
     {
@@ -170,12 +168,10 @@ public class LogServiceTests
         Directory.CreateDirectory(tempDir);
         try
         {
-            // Create an "old" log file with a creation time well in the past
             var oldFile = Path.Combine(tempDir, "Winhance_Log_20200101_000000.log");
             File.WriteAllText(oldFile, "old");
             File.SetCreationTimeUtc(oldFile, DateTime.UtcNow.AddDays(-60));
 
-            // Create a "recent" log file
             var recentFile = Path.Combine(tempDir, "Winhance_Log_20260226_120000.log");
             File.WriteAllText(recentFile, "recent");
 
@@ -197,7 +193,6 @@ public class LogServiceTests
         Directory.CreateDirectory(tempDir);
         try
         {
-            // Create 5 files, all recent
             for (int i = 0; i < 5; i++)
             {
                 var file = Path.Combine(tempDir, $"Winhance_Log_20260226_{i:D6}.log");

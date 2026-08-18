@@ -42,7 +42,6 @@ public class WinGetDetectionService : IWinGetDetectionService
                 _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
             }
 
-            // CLI fallback (uses winget export → JSON)
             _logService?.LogInformation("COM not available, falling back to CLI for installed package detection");
             return await GetInstalledPackageIdsViaCli(cancellationToken).ConfigureAwait(false);
         }
@@ -162,7 +161,6 @@ public class WinGetDetectionService : IWinGetDetectionService
         {
             try
             {
-                // Clean up any previous export file
                 if (_fileSystemService.FileExists(exportPath))
                     _fileSystemService.DeleteFile(exportPath);
 
@@ -247,7 +245,6 @@ public class WinGetDetectionService : IWinGetDetectionService
             }
         }
 
-        // Clean up export file
         try
         {
             if (_fileSystemService.FileExists(exportPath))
@@ -265,7 +262,6 @@ public class WinGetDetectionService : IWinGetDetectionService
 
         try
         {
-            // Try COM first
             if (_comSession.EnsureComInitialized())
             {
                 var package = await FindPackageAsync(packageId, cancellationToken).ConfigureAwait(false);
@@ -279,7 +275,6 @@ public class WinGetDetectionService : IWinGetDetectionService
                 }
             }
 
-            // CLI fallback: parse "winget show" output for Installer Type
             var result = await WinGetCliRunner.RunAsync(
                 $"show --id {packageId} --accept-source-agreements --disable-interactivity",
                 cancellationToken: cancellationToken,

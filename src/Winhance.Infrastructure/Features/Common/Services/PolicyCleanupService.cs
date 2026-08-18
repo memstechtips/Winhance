@@ -58,8 +58,8 @@ public class PolicyCleanupService : IPolicyCleanupService
     {
         var policyPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // The OS-build-relaxed scope (hardware + existence still apply) reproduces the old registry's
-        // GetAllBypassedSettings() - policy keys are cleaned up regardless of the current Windows version.
+        // OS-build-relaxed scope (hardware + existence still apply): policy keys are cleaned up regardless of the
+        // current Windows version.
         var allSettings = _catalogRegistry.GetAll(includeOtherOsVersions: true);
 
         foreach (var featureSettings in allSettings.Values)

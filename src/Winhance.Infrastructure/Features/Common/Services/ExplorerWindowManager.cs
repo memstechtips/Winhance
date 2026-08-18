@@ -57,16 +57,16 @@ public class ExplorerWindowManager(
                         finally
                         {
                             if (window != null)
-                                try { Marshal.ReleaseComObject(window); } catch { /* best-effort COM release */ }
+                                try { Marshal.ReleaseComObject(window); } catch { }
                         }
                     }
                 }
                 finally
                 {
                     if (windows != null)
-                        try { Marshal.ReleaseComObject(windows); } catch { /* best-effort COM release */ }
+                        try { Marshal.ReleaseComObject(windows); } catch { }
                     if (shell != null)
-                        try { Marshal.ReleaseComObject(shell); } catch { /* best-effort COM release */ }
+                        try { Marshal.ReleaseComObject(shell); } catch { }
                 }
             }
         }

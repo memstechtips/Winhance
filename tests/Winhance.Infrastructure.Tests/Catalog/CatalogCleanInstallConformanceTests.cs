@@ -20,11 +20,8 @@ public class CatalogCleanInstallConformanceTests
 
     public CatalogCleanInstallConformanceTests(ITestOutputHelper output) => _output = output;
 
-    // ---------------------------------------------------------------------------------------------
     // Expected divergences, per fixture. Reasons cite the audit findings (docs/2026-07-2*-windows-
     // defaults-*.md). "@AC"/"@DC" suffixes mark powercfg per-context comparisons.
-    // ---------------------------------------------------------------------------------------------
-
     private static readonly IReadOnlyDictionary<string, string> Win10VmExpected = new Dictionary<string, string>
     {
         ["gaming-memory-integrity"] = "hardware-conditional: VBS values absent on incapable/VM hardware; capable hardware writes Enabled=1 (held, no OrAbsent)",
@@ -65,8 +62,6 @@ public class CatalogCleanInstallConformanceTests
     [Fact]
     public void Win11_25H2_post_update_vm_clean_install_detects_windows_defaults()
         => RunFixture("cleaninstall-win11-25h2-post-update-vm.json", PostUpdateVmExpected);
-
-    // ---------------------------------------------------------------------------------------------
 
     private void RunFixture(string fixtureName, IReadOnlyDictionary<string, string> expectedDivergent)
     {
@@ -184,10 +179,6 @@ public class CatalogCleanInstallConformanceTests
     // Anchors on the compile-time source path (RecommendedConfigConformanceTests precedent) so fixtures
     // resolve from the repo even when the build output is redirected off the network share.
     private static string SolutionDir() => RepoPaths.SolutionDir();
-
-    // ---------------------------------------------------------------------------------------------
-    // Fixture model + detection context
-    // ---------------------------------------------------------------------------------------------
 
     private sealed class ProbeFixture
     {
@@ -315,7 +306,6 @@ public class CatalogCleanInstallConformanceTests
         {
             _fixture = fixture;
 
-            // Join catalog targets to fixture readings once, keyed (path \n valueName) / path.
             foreach (var setting in SettingCatalog.All)
             {
                 foreach (var reg in setting.Targets.OfType<RegTarget>())

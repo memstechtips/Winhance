@@ -126,15 +126,12 @@ public sealed partial class SettingsCardItem : UserControl
         if (sender is not PowerPlanComboBox comboBox)
             return;
 
-        // Get the SettingItemViewModel from the Tag
         var settingVm = comboBox.Tag as SettingItemViewModel;
         if (settingVm == null)
             return;
 
-        // Get the parent PowerOptimizationsViewModel
         var powerViewModel = settingVm.ParentFeatureViewModel as PowerOptimizationsViewModel;
 
-        // Set up localized text using the localization service
         try
         {
             var localizationService = App.Services.GetService<ILocalizationService>();
@@ -151,13 +148,11 @@ public sealed partial class SettingsCardItem : UserControl
             // Use default values if localization service is unavailable
         }
 
-        // Wire up the DeleteRequested event to the parent ViewModel's command
         comboBox.DeleteRequested += (s, plan) =>
         {
             powerViewModel?.DeletePowerPlanCommand.Execute(plan);
         };
 
-        // Wire up the DropDownClosed event to handle selection changes
         comboBox.DropDownClosed += (s, value) =>
         {
             settingVm.ApplySelectionValue(value);

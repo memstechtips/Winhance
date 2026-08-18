@@ -88,10 +88,6 @@ public class TableLayoutTests
         TableLayout.ClampOffset(double.NaN, Widths, 500).Should().Be(0);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Frozen cells
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void FrozenCells_DoNotMoveWhenScrolled()
     {
@@ -102,10 +98,6 @@ public class TableLayoutTests
         scrolled.X.Should().Be(200);
         scrolled.NeedsClip.Should().BeFalse("a frozen cell never overlaps anything");
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Scrolling cells — the clip is what keeps them out of the frozen region
-    // ---------------------------------------------------------------------------------------------
 
     [Fact]
     public void ScrollingCell_AtRest_SitsAtItsColumnOffsetWithNoClip()
@@ -142,7 +134,6 @@ public class TableLayoutTests
     [Fact]
     public void ScrollingCell_FullyBehindTheFrozenEdge_IsHidden()
     {
-        // Scrolled a full column width, column 2 is entirely under the frozen region.
         var cell = TableLayout.Place(Widths, Frozen, horizontalOffset: 100, column: 2);
 
         cell.ClipFromLeft.Should().Be(100);
@@ -183,10 +174,6 @@ public class TableLayoutTests
         }
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Spanning headers — a path header sits across the value columns it owns
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void SpanningHeader_TakesTheCombinedWidthOfItsColumns()
     {
@@ -222,10 +209,6 @@ public class TableLayoutTests
 
         span.Width.Should().Be(100, "there is only one column left to span");
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Guards
-    // ---------------------------------------------------------------------------------------------
 
     [Theory]
     [InlineData(-1)]

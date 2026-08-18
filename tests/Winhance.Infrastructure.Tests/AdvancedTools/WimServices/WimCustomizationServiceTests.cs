@@ -42,8 +42,7 @@ public class WimCustomizationServiceTests
             _mockDismRunner.Object);
     }
 
-    #region DownloadUnattendedWinstallXmlAsync - path validation (Issue #506)
-
+    // The DownloadUnattendedWinstallXmlAsync path-validation tests guard issue #506.
     [Fact]
     public async Task DownloadUnattendedWinstallXmlAsync_EmptyDestinationPath_ThrowsArgumentException()
     {
@@ -81,41 +80,30 @@ public class WimCustomizationServiceTests
             .WithParameterName("destinationPath");
     }
 
-    #endregion
-
-    #region AddXmlToImageAsync
-
     [Fact]
     public async Task AddXmlToImageAsync_XmlFileNotFound_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
 
-        // Act
         var result = await _service.AddXmlToImageAsync(@"C:\missing.xml", @"C:\work");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task AddXmlToImageAsync_WorkingDirectoryNotFound_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(false);
 
-        // Act
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\missing_dir");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task AddXmlToImageAsync_ValidInputs_CopiesFileAndReturnsTrue()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -123,10 +111,8 @@ public class WimCustomizationServiceTests
         _mockFileSystem.Setup(fs => fs.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        // Act
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        // Assert
         result.Should().BeTrue();
         _mockFileSystem.Verify(
             fs => fs.WriteAllTextAsync(
@@ -139,57 +125,43 @@ public class WimCustomizationServiceTests
     [Fact]
     public async Task AddXmlToImageAsync_WriteThrows_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("Disk error"));
 
-        // Act
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        // Assert
         result.Should().BeFalse();
     }
-
-    #endregion
-
-    #region AddDriversAsync
 
     [Fact]
     public async Task AddDriversAsync_DriverSourcePathDoesNotExist_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.Is<string>(p => p == @"C:\drivers")))
             .Returns(false);
 
-        // Act
         var result = await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task AddDriversAsync_NoDriversCopied_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
         _mockDriverCategorizer.Setup(dc => dc.CategorizeAndCopyDrivers(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(0);
 
-        // Act
         var result = await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task AddDriversAsync_DriversSuccessfullyCopied_ReturnsTrue()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
         _mockDriverCategorizer.Setup(dc => dc.CategorizeAndCopyDrivers(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -197,12 +169,8 @@ public class WimCustomizationServiceTests
         _mockFileSystem.Setup(fs => fs.CreateDirectory(It.IsAny<string>()));
         _mockFileSystem.Setup(fs => fs.WriteAllText(It.IsAny<string>(), It.IsAny<string>()));
 
-        // Act
         var result = await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
 
-        // Assert
         result.Should().BeTrue();
     }
-
-    #endregion
 }

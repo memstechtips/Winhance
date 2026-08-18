@@ -7,7 +7,6 @@ namespace Winhance.UI.Features.Common.Utilities;
 // text render identically in both.
 internal static class TerminalLineRenderer
 {
-    // Terminal-style color brushes
     public static readonly SolidColorBrush DefaultBrush =
         new(Windows.UI.Color.FromArgb(0xFF, 0xCC, 0xCC, 0xCC));
 
@@ -109,7 +108,6 @@ internal static class TerminalLineRenderer
                     });
                 }
             }
-            // Ensure trailing newline on the last Run
             if (appendNewline && runs.Count > 0 && !runs[^1].Text.EndsWith('\x0a'))
                 runs[^1].Text += "\x0a";
             return runs.ToArray();

@@ -9,7 +9,7 @@ internal static class CatalogValueComparer
         if (a == null && b == null) return true;
         if (a == null || b == null) return false;
         // REG_BINARY values compare by content, not reference (and never via the ToString fallback below,
-        // which would make every byte[] equal to every other). Mirrors the old ValueComparer.
+        // which would make every byte[] equal to every other).
         if (a is byte[] ba && b is byte[] bb) return ba.SequenceEqual(bb);
         if (Equals(a, b)) return true;
         try

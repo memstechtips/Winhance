@@ -42,7 +42,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         if (exePath != null && _fileSystemService.FileExists(exePath))
             return true;
 
-        // Fallback: try COM init (covers edge cases)
         try
         {
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -87,7 +86,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
 
             _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
 
-            // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -217,7 +215,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: HandleProgressLine).ConfigureAwait(false);
 
-            // Emit metadata footer for the task output dialog
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -305,7 +302,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
 
             _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
 
-            // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -330,17 +326,14 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 {
                     try
                     {
-                        // Skip progress bar lines re-emitted as permanent output (see HandleOutputLine comment)
                         if (IsProgressBarLine(line))
                             return;
 
-                        // Translate raw resource keys to human-readable text
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
                         var progress = WinGetProgressParser.ParseLine(line);
                         if (progress != null)
                         {
-                            // Only log phase transitions (Found, Uninstalling, Complete, Error) — skip noisy progress updates
                             if (progress.Phase != lastLoggedPhase
                                 && progress.Phase is WinGetProgressParser.WinGetPhase.Found
                                     or WinGetProgressParser.WinGetPhase.Uninstalling
@@ -400,7 +393,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 onErrorLine: line =>
                 {
                     _logService?.LogWarning($"[{logTag}-err] {line}");
-                    // Surface stderr in the terminal too (see HandleErrorLine comment)
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                     {
                         TerminalOutput = line
@@ -427,7 +419,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     }
                 }).ConfigureAwait(false);
 
-            // Emit metadata footer for the task output dialog
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -492,7 +483,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     return true;
                 }
 
-                // Timed out — uninstaller may require user interaction
                 _logService?.LogWarning($"[{logTag}] {packageId} still detected after 60s wait — uninstaller may require user interaction");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
                 return true; // WinGet did report success; don't block the UI
@@ -540,7 +530,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     return true;
                 }
 
-                // Package is genuinely still installed — fall through to failure reporting
                 _logService?.LogWarning($"[{logTag}] {packageId} is still installed after verification — uninstall truly failed");
             }
 

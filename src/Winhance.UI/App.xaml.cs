@@ -40,13 +40,10 @@ public partial class App : Application
 
     private void RegisterExceptionHandlers()
     {
-        // AppDomain unhandled exceptions (fatal errors)
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
 
-        // WinUI 3 unhandled exceptions (replaces WPF DispatcherUnhandledException)
         this.UnhandledException += OnAppUnhandledException;
 
-        // Unobserved task exceptions
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
     }
 
@@ -61,14 +58,14 @@ public partial class App : Application
     {
         StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
-        e.Handled = true; // Prevent crash if possible
+        e.Handled = true;
     }
 
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
-        e.SetObserved(); // Prevent crash
+        e.SetObserved();
     }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
@@ -76,21 +73,17 @@ public partial class App : Application
         StartupLogger.Log("App", "OnLaunched starting");
         try
         {
-            // Build the host with DI container using CompositionRoot
             StartupLogger.Log("App", "Building DI host...");
             _host = CompositionRoot.CreateWinhanceHost().Build();
             StartupLogger.Log("App", "DI host built successfully");
 
-            // Initialize log service for exception handlers and file logging
             try
             {
                 _logService = Services.GetService<ILogService>();
                 StartupLogger.Log("App", "LogService obtained");
 
-                // Start file logging to C:\ProgramData\Winhance\Logs
                 try
                 {
-                    // Wire up the system info provider for logging
                     if (_logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
                     {
                         var systemInfoProvider = Services.GetService<ISystemInfoProvider>();
@@ -121,7 +114,6 @@ public partial class App : Application
             InitializeLocalization();
             StartupLogger.Log("App", "Localization initialized");
 
-            // Create and activate the main window (loading overlay is visible by default)
             StartupLogger.Log("App", "Creating MainWindow...");
             _mainWindow = new MainWindow();
             StartupLogger.Log("App", "MainWindow created, activating...");
@@ -133,8 +125,6 @@ public partial class App : Application
             InitializeTheme();
             StartupLogger.Log("App", "Theme initialized");
 
-            // Start async startup operations (settings init, backups, scripts)
-            // The loading overlay provides visual feedback while these run
             StartupLogger.Log("App", "Starting startup operations...");
             (_mainWindow as MainWindow)?.StartStartupOperations();
             StartupLogger.Log("App", "Startup operations kicked off - OnLaunched complete");

@@ -19,7 +19,6 @@ public class AutounattendGeneratorViewModelTests
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ILogService> _logService = new();
 
-    // Dependencies for WindowsAppsViewModel
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
     private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
@@ -70,8 +69,6 @@ public class AutounattendGeneratorViewModelTests
             winVm);
     }
 
-    // --- Constructor / defaults ---
-
     [Fact]
     public void Constructor_SetsDefaults()
     {
@@ -79,8 +76,6 @@ public class AutounattendGeneratorViewModelTests
 
         sut.IsGenerating.Should().BeFalse();
     }
-
-    // --- Localized text properties ---
 
     [Fact]
     public void GenerateCardHeader_ReturnsLocalizedString()
@@ -122,8 +117,6 @@ public class AutounattendGeneratorViewModelTests
         sut.GenerateButtonText.Should().Be("WIMUtil_ButtonGenerate");
     }
 
-    // --- Localized text fallback ---
-
     [Fact]
     public void GenerateCardHeader_WhenLocalizationReturnsNull_UsesFallback()
     {
@@ -146,8 +139,6 @@ public class AutounattendGeneratorViewModelTests
         sut.GenerateButtonText.Should().Be("Generate");
     }
 
-    // --- NavigateToWimUtilRequested event ---
-
     [Fact]
     public void NavigateToWimUtilRequested_CanBeSubscribedTo()
     {
@@ -158,8 +149,6 @@ public class AutounattendGeneratorViewModelTests
 
         eventRaised.Should().BeFalse();
     }
-
-    // --- SetMainWindow ---
 
     [Fact]
     public void SetMainWindow_DoesNotThrow()
@@ -173,8 +162,6 @@ public class AutounattendGeneratorViewModelTests
         act.Should().NotThrow();
     }
 
-    // --- GenerateAutounattendXmlCommand ---
-
     [Fact]
     public async Task GenerateAutounattendXmlCommand_WhenUserCancelsConfirmation_DoesNotGenerate()
     {
@@ -184,7 +171,6 @@ public class AutounattendGeneratorViewModelTests
         var sut = CreateSut();
         sut.SetMainWindow(null!);
 
-        // Execute the command
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
         _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
@@ -198,15 +184,12 @@ public class AutounattendGeneratorViewModelTests
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
         var sut = CreateSut();
-        // Do not set main window (it defaults to null)
 
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
         _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
             It.IsAny<string>(), It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Models.ConfigurationItem>>()), Times.Never);
     }
-
-    // --- IsGenerating property ---
 
     [Fact]
     public void IsGenerating_DefaultsFalse()

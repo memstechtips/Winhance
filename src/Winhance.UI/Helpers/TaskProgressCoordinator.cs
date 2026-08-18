@@ -118,7 +118,6 @@ internal sealed class TaskProgressCoordinator
         };
         if (control == null) return;
 
-        // Cancel any pending hide-delay for this slot when new data arrives
         CancelPendingHide(slotIndex);
 
         // Slot completed -- keep visible briefly so the user can see the result

@@ -35,7 +35,6 @@ public class ThemeService : IThemeService
         _mainWindowProvider = mainWindowProvider;
         _uiSettings = new UISettings();
 
-        // Listen for Windows theme changes to update System theme followers
         _uiSettings.ColorValuesChanged += OnWindowsThemeChanged;
 
         // Under OTS, UISettings.ColorValuesChanged tracks the admin's theme.
@@ -68,12 +67,11 @@ public class ThemeService : IThemeService
     {
         try
         {
-            // Use synchronous method to get preference to avoid deadlock
             var themeString = _userPreferences.GetPreference<string>("Theme", string.Empty);
 
             if (string.IsNullOrEmpty(themeString))
             {
-                return WinhanceTheme.System; // Default to following Windows
+                return WinhanceTheme.System;
             }
 
             if (Enum.TryParse<WinhanceTheme>(themeString, out var theme))
@@ -169,7 +167,6 @@ public class ThemeService : IThemeService
 
     private void OnWindowsThemeChanged(UISettings sender, object args)
     {
-        // Only react if we're following system theme
         if (_currentTheme == WinhanceTheme.System)
         {
             // Must dispatch to UI thread

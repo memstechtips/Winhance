@@ -7,7 +7,7 @@
 
     <!--
     A settings-card numeric up-down: its Quick-Set pair, the NumberBox, and its detection-outcome overlay,
-    in ONE place. Replaces four separately hand-written NumberBox declarations.
+    in ONE place.
 
     Unlike a dropdown, any number here is a legitimate value the user may type, so this control never
     reports "unrecognized" - OutcomeForMode only yields Undetermined for a numeric, i.e. detection threw

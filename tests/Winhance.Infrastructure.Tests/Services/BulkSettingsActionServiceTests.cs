@@ -37,18 +37,15 @@ public class BulkSettingsActionServiceTests
 
     public BulkSettingsActionServiceTests()
     {
-        // Default OS setup: Windows 11, build 22621
         _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
         _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22621);
         _mockVersionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
-        // Default: ApplySettingAsync succeeds
         _mockAppService
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Default: SuppressRestarts and FlushCoalescedRestartsAsync succeed. The reset loop builds
-        // its restart set from catalog Settings, so the flush overload takes IEnumerable<Setting>.
+        // The reset loop builds its restart set from catalog Settings, so the flush overload takes IEnumerable<Setting>.
         _mockProcessRestartManager
             .Setup(p => p.SuppressRestarts())
             .Returns(Mock.Of<IDisposable>());
@@ -56,7 +53,6 @@ public class BulkSettingsActionServiceTests
             .Setup(p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()))
             .Returns(Task.CompletedTask);
 
-        // Default: ApplyRecommendedToSettingsAsync returns empty list
         _mockRecommendedApplier
             .Setup(r => r.ApplyRecommendedToSettingsAsync(
                 It.IsAny<IReadOnlyList<Setting>>(),
@@ -64,7 +60,6 @@ public class BulkSettingsActionServiceTests
                 It.IsAny<IProgress<TaskProgressDetail>>()))
             .ReturnsAsync(new List<Setting>());
 
-        // Default: GetString returns the key; BeginBatch returns a no-op disposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -135,11 +130,6 @@ public class BulkSettingsActionServiceTests
     private void SetupRegistry(string id, Setting? setting)
         => _mockRegistry.Setup(r => r.GetById(id, It.IsAny<bool>())).Returns(setting);
 
-    // ---------------------------------------------------------------
-    // Test 1: ApplyRecommendedAsync delegates to IRecommendedSettingsApplier
-    //         and then flushes exactly once.
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ApplyRecommendedAsync_DelegatesToApplier_ThenFlushesOnce()
     {
@@ -172,13 +162,8 @@ public class BulkSettingsActionServiceTests
         applied.Should().Be(2);
     }
 
-    // ---------------------------------------------------------------
-    // Test 2: OS-incompatible settings are excluded before delegating.
-    //         The OS gate lives in the catalog registry, which
-    //         returns null for an OS-incompatible id (GetById), so
-    //         ResolveSettingsAsync's null-skip drops it.
-    // ---------------------------------------------------------------
-
+    // The OS gate lives in the catalog registry, which returns null for an OS-incompatible id (GetById),
+    // so ResolveSettingsAsync's null-skip drops it.
     [Fact]
     public async Task ApplyRecommendedAsync_SkipsRegistryExcluded_BeforeDelegating()
     {
@@ -201,12 +186,6 @@ public class BulkSettingsActionServiceTests
             _mockAppService.Object,
             It.IsAny<IProgress<TaskProgressDetail>>()), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // Test 2b: stateless Actions are excluded from BOTH bulk ops
-    //          (ResolveSettingsAsync), so they are never bulk-reset or
-    //          bulk-recommended (Marco 2026-07-03).
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplyRecommendedAsync_SkipsActions_BeforeDelegating()
@@ -234,22 +213,17 @@ public class BulkSettingsActionServiceTests
     [Fact]
     public async Task ResetToDefaultsAsync_SkipsActions()
     {
-        // A stateless Action is excluded from bulk reset (no ApplySettingAsync for it); a toggle still resets.
         SetupRegistry("clean-action", ActionSetting("clean-action"));
         SetupRegistry("reset-toggle", Toggle("reset-toggle", windowsDefault: true));
 
         var applied = await _service.ResetToDefaultsAsync(CleanActionAndResetToggle);
 
-        applied.Should().Be(1); // only the toggle
+        applied.Should().Be(1);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "reset-toggle" && r.ResetToDefault == true)), Times.Once);
         _mockAppService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
             r.SettingId == "clean-action")), Times.Never);
     }
-
-    // ---------------------------------------------------------------
-    // Test 3: ApplyRecommendedAsync flushes once even when all skipped
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplyRecommendedAsync_NothingApplied_StillFlushesOnce()
@@ -270,16 +244,10 @@ public class BulkSettingsActionServiceTests
             Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // Test 4: ResetToDefaultsAsync forwards the catalog default direction
-    //         as Enable (true/false) for each toggle.
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ResetToDefaultsAsync_AppliesDefaultValues_ToAllSettings()
     {
-        // One toggle whose Windows default is Enabled, one whose default is Disabled. The build-aware reset
-        // engine resolves the per-OS default; the bulk loop forwards the catalog-resolved direction as Enable.
+        // The build-aware reset engine resolves the per-OS default; the bulk loop forwards the catalog-resolved direction as Enable.
         SetupRegistry("enabled-default", Toggle("enabled-default", windowsDefault: true));
         SetupRegistry("disabled-default", Toggle("disabled-default", windowsDefault: false));
 
@@ -302,10 +270,6 @@ public class BulkSettingsActionServiceTests
         )), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // Test 5: a Disabled catalog default resets with Enable=false.
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ResetToDefaultsAsync_DisabledDefaultToggle_ResetsWithEnableFalse()
     {
@@ -321,12 +285,6 @@ public class BulkSettingsActionServiceTests
             r.SkipValuePrerequisites == true
         )), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // Test 6: GetAffectedCountAsync counts only settings whose catalog
-    //         recommended/default contribution is present, and dispatches
-    //         the right predicate per action type.
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task GetAffectedCountAsync_ReturnsCorrectCount_ExcludingAlreadyMatching()
@@ -355,10 +313,6 @@ public class BulkSettingsActionServiceTests
         defaultCount.Should().Be(2);
     }
 
-    // ---------------------------------------------------------------
-    // Test 7: ResetToDefaultsAsync wraps applies in a change-history batch
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ResetToDefaultsAsync_WrapsAppliesInChangeHistoryBatch()
     {
@@ -368,11 +322,6 @@ public class BulkSettingsActionServiceTests
 
         _mockChangeHistory.Verify(h => h.BeginBatch("QuickActions_ResetDefaults"), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // Test 8: ApplyRecommendedAsync passes all resolved types (Toggle +
-    //         Selection + Numeric) to the applier.
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplyRecommendedAsync_PassesAllResolvedTypes_ToApplier()
@@ -401,13 +350,10 @@ public class BulkSettingsActionServiceTests
         captured.Should().Contain(s => s.Id == "numeric-input");
     }
 
-    // ---------------------------------------------------------------
-    // Test 9: bulk reset must NOT call ApplySettingAsync for a PowerPlan setting. power-plan-selection's
-    //         DERIVED Control is PowerPlan (OptionSource != null): it finds no static default and falls
-    //         through WITHOUT applying, but is still counted via the post-chain applied++. Applying it would
-    //         mean a null-plan Failed reset + a spurious event, so the Times.Never below is the regression guard.
-    // ---------------------------------------------------------------
-
+    // Bulk reset must NOT call ApplySettingAsync for a PowerPlan setting. power-plan-selection's
+    // DERIVED Control is PowerPlan (OptionSource != null): it finds no static default and falls
+    // through WITHOUT applying, but is still counted via the post-chain applied++. Applying it would
+    // mean a null-plan Failed reset + a spurious event, so the Times.Never assertion is the regression guard.
     [Fact]
     public async Task ResetToDefaultsAsync_PowerPlanSetting_IsNotApplied()
     {
@@ -421,9 +367,7 @@ public class BulkSettingsActionServiceTests
 
         var applied = await _service.ResetToDefaultsAsync(PowerPlanSelectionOnly);
 
-        // Counted by the post-chain applied++ fall-through.
         applied.Should().Be(1);
-        // The regression guard: no spurious apply.
         _mockAppService.Verify(
             s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
     }

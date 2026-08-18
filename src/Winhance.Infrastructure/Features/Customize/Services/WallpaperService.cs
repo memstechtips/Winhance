@@ -12,7 +12,6 @@ public class WallpaperService : IWallpaperService
     private readonly IWindowsRegistryService _registryService;
     private readonly ISystemParametersService _systemParametersService;
 
-    // P/Invoke constants
     private const int SPI_SETDESKWALLPAPER = 0x0014;
     private const int SPIF_UPDATEINIFILE = 0x01;
     private const int SPIF_SENDCHANGE = 0x02;

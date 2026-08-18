@@ -73,10 +73,6 @@ public class ConfigAppSelectionServiceTests
             _mockThemeService.Object);
     }
 
-    // -------------------------------------------------------
-    // SelectWindowsAppsFromConfigAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task SelectWindowsAppsFromConfigAsync_LoadsItemsIfNotInitialized()
     {
@@ -235,7 +231,7 @@ public class ConfigAppSelectionServiceTests
     public async Task SelectWindowsAppsFromConfigAsync_RespectsIsSelectedFalse()
     {
         var app = CreateAppItemViewModel("app1", "App 1", appxPackageName: ["Package1"]);
-        app.IsSelected = true; // Start selected
+        app.IsSelected = true;
 
         _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockWindowsAppsVM.Setup(v => v.Items)
@@ -258,7 +254,6 @@ public class ConfigAppSelectionServiceTests
         var service = CreateService();
         await service.SelectWindowsAppsFromConfigAsync(configSection);
 
-        // Cleared first, then set to IsSelected=false from config
         app.IsSelected.Should().BeFalse();
     }
 
@@ -279,10 +274,6 @@ public class ConfigAppSelectionServiceTests
 
         app.IsSelected.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ConfirmWindowsAppsRemovalAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ConfirmWindowsAppsRemovalAsync_WhenNoAppsSelected_ReturnsTrueWithSaveScripts()
@@ -316,10 +307,6 @@ public class ConfigAppSelectionServiceTests
         _mockWindowsAppsVM.Verify(v => v.ShowRemovalSummaryAndConfirm(), Times.Once);
     }
 
-    // -------------------------------------------------------
-    // ClearWindowsAppsSelectionAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ClearWindowsAppsSelectionAsync_UnselectsAllApps()
     {
@@ -337,10 +324,6 @@ public class ConfigAppSelectionServiceTests
         app1.IsSelected.Should().BeFalse();
         app2.IsSelected.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // SelectExternalAppsFromConfigAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task SelectExternalAppsFromConfigAsync_LoadsItemsIfNotInitialized()
@@ -407,10 +390,6 @@ public class ConfigAppSelectionServiceTests
         app.IsSelected.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // ProcessExternalAppsInstallationAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ProcessExternalAppsInstallationAsync_WhenSelectedApps_CallsInstallApps()
     {
@@ -457,10 +436,6 @@ public class ConfigAppSelectionServiceTests
         _mockExternalAppsVM.Verify(v => v.InstallApps(It.IsAny<bool>()), Times.Never);
     }
 
-    // -------------------------------------------------------
-    // ProcessExternalAppsRemovalAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ProcessExternalAppsRemovalAsync_WhenSelectedApps_CallsUninstall()
     {
@@ -483,10 +458,6 @@ public class ConfigAppSelectionServiceTests
 
         _mockExternalAppsVM.Verify(v => v.UninstallAppsAsync(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // ProcessExternalAppsFromUserSelectionAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ProcessExternalAppsFromUserSelectionAsync_SelectsByIdList()

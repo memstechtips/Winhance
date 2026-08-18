@@ -43,10 +43,6 @@ public class MoreMenuViewModelTests
             _mockDialogService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor / Initialization
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_InitializesVersionInfo_WithVersionFromService()
     {
@@ -88,10 +84,6 @@ public class MoreMenuViewModelTests
         changedProperties.Should().Contain(nameof(vm.MenuWinhanceScripts));
         changedProperties.Should().Contain(nameof(vm.MenuCloseWinhance));
     }
-
-    // -------------------------------------------------------
-    // Localized string properties
-    // -------------------------------------------------------
 
     [Fact]
     public void MenuDocumentation_ReturnsLocalizedString()
@@ -213,10 +205,6 @@ public class MoreMenuViewModelTests
         vm.MenuChangeHistory.Should().Be("Change History");
     }
 
-    // -------------------------------------------------------
-    // OpenLogsCommand
-    // -------------------------------------------------------
-
     [Fact]
     public async Task OpenLogsCommand_WhenDirectoryDoesNotExist_CreatesItAndOpens()
     {
@@ -270,17 +258,12 @@ public class MoreMenuViewModelTests
 
         var vm = CreateViewModel();
 
-        // Should not throw
         await vm.OpenLogsCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
             l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // OpenChangeHistoryCommand
-    // -------------------------------------------------------
 
     [Fact]
     public async Task OpenChangeHistoryAsync_OpensFileViaShellExecute()
@@ -309,10 +292,6 @@ public class MoreMenuViewModelTests
             l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // OpenScriptsCommand
-    // -------------------------------------------------------
 
     [Fact]
     public async Task OpenScriptsCommand_WhenDirectoryDoesNotExist_CreatesItAndOpens()
@@ -355,10 +334,6 @@ public class MoreMenuViewModelTests
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // CloseApplicationCommand
-    // -------------------------------------------------------
-
     [Fact]
     public async Task CloseApplicationCommand_CallsCheckOperationsAndClose()
     {
@@ -394,10 +369,6 @@ public class MoreMenuViewModelTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // VersionInfo property
-    // -------------------------------------------------------
-
     [Fact]
     public void VersionInfo_Set_RaisesPropertyChanged()
     {
@@ -414,10 +385,6 @@ public class MoreMenuViewModelTests
         raised.Should().BeTrue();
         vm.VersionInfo.Should().Be("Winhance v99.0.0");
     }
-
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()

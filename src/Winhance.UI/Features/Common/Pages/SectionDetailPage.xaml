@@ -8,7 +8,6 @@
     NavigationCacheMode="Disabled">
 
     <!-- The grouped source and the loading/no-results bindings are wired in code-behind: one page
-         serves every section, so the paths they used to bind to (ViewModel.SoundViewModel,
-         ViewModel.TaskbarViewModel, ...) are not knowable here. -->
+         serves every section, so the binding paths differ per section and are not knowable here. -->
     <commonControls:SettingsListView x:Name="SettingsList"/>
 </Page>

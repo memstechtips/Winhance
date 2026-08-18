@@ -6,13 +6,11 @@ public static class FeatureDefinitions
 {
     public static readonly IReadOnlyList<FeatureDefinition> All = new List<FeatureDefinition>()
     {
-        // Customize
         new(FeatureIds.WindowsTheme, "Windows Theme", "Customize"),
         new(FeatureIds.Taskbar, "Taskbar", "Customize"),
         new(FeatureIds.StartMenu, "Start Menu", "Customize"),
         new(FeatureIds.ExplorerCustomization, "Explorer", "Customize"),
 
-        // Optimize
         new(FeatureIds.Privacy, "Privacy & Security", "Optimize"),
         new(FeatureIds.Power, "Power", "Optimize"),
         new(FeatureIds.GamingPerformance, "Gaming & Performance", "Optimize"),
@@ -20,7 +18,6 @@ public static class FeatureDefinitions
         new(FeatureIds.Notifications, "Notifications", "Optimize"),
         new(FeatureIds.Sound, "Sound", "Optimize"),
 
-        // SoftwareApps
         new(FeatureIds.WindowsApps, "Windows Apps", "SoftwareApps"),
         new(FeatureIds.ExternalApps, "External Apps", "SoftwareApps")
     };

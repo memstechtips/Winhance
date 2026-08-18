@@ -30,7 +30,6 @@ public class AppxIconSourceTests
         var firstFullName = map.Values.First();
 
         // Some framework packages have no app list entry → null is acceptable.
-        // We only assert that the call completes without throwing.
         var act = async () => await sut.GetLogoStreamAsync(firstFullName, new Size(48, 48));
         await act.Should().NotThrowAsync();
     }

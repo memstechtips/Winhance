@@ -104,7 +104,6 @@ internal sealed partial class TechnicalDetailsTable : Panel
         }
         _rowHeights = new double[Math.Max(0, rowCount)];
 
-        // Pass 1: single-column cells establish the column widths.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -113,8 +112,8 @@ internal sealed partial class TechnicalDetailsTable : Panel
                 _columnWidths[info.Column] = Math.Max(_columnWidths[info.Column], element.DesiredSize.Width);
         }
 
-        // Pass 2: a spanning header widens its LAST column if the group needs more room than its
-        // members give it, so the group and its columns always agree on where the group ends.
+        // A spanning header widens its LAST column if the group needs more room than its members give
+        // it, so the group and its columns always agree on where the group ends.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -127,7 +126,6 @@ internal sealed partial class TechnicalDetailsTable : Panel
             if (shortfall > 0) _columnWidths[last] += shortfall;
         }
 
-        // Row heights, now that widths are settled. Single-row cells establish them...
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -135,8 +133,8 @@ internal sealed partial class TechnicalDetailsTable : Panel
             _rowHeights[info.Row] = Math.Max(_rowHeights[info.Row], element.DesiredSize.Height);
         }
 
-        // ...then a row-spanning cell grows its LAST row if the rows it covers don't add up to what
-        // it needs. Same rule as the column pass above, so the two stay easy to reason about together.
+        // A row-spanning cell grows its LAST row if the rows it covers don't add up to what it needs.
+        // Same rule as the column pass above, so the two stay easy to reason about together.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;

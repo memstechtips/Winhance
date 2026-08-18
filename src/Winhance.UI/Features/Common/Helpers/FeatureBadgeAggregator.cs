@@ -42,10 +42,10 @@ public static class FeatureBadgeAggregator
                 if (anyDefault) defaultCount++;
             }
 
-            // Detection outcomes are read from the OUTCOME itself, not inferred from the badge row. The old
-            // code derived a single "Custom" count from the pills, which could only ever report one kind of
-            // problem and depended on the badge row being built first. Counted for EVERY setting, not only
-            // those with badge data: a setting we could not read still needs surfacing on the overview.
+            // Detection outcomes are read from the OUTCOME itself, not inferred from the badge row, which
+            // could only ever report one kind of problem and would depend on the badge row being built first.
+            // Counted for EVERY setting, not only those with badge data: a setting we could not read still
+            // needs surfacing on the overview.
             switch (s.Outcome)
             {
                 case SettingDetectionOutcome.Custom: unrecognized++; break;

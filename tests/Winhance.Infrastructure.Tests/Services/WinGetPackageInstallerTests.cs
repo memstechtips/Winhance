@@ -31,7 +31,6 @@ public class WinGetPackageInstallerTests
             _mockInteractiveUserService.Object,
             _mockFileSystemService.Object);
 
-        // Default setup: localization returns the key as-is
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -40,21 +39,15 @@ public class WinGetPackageInstallerTests
             .Returns((string key, object[] args) => key);
     }
 
-    // --- IsWinGetInstalledAsync ---
-
     [Fact]
     public async Task IsWinGetInstalledAsync_WhenExeExistsOnFileSystem_ReturnsTrue()
     {
-        // Arrange: WinGetCliRunner.GetWinGetExePath uses File.Exists internally,
-        // but the service also checks via _fileSystemService.FileExists.
-        // If GetWinGetExePath returns a path and FileExists returns true, it should be true.
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
 
-        // Act
         var result = await _sut.IsWinGetInstalledAsync();
 
-        // Assert: if winget.exe is found on this system (PATH or bundled),
+        // If winget.exe is found on this system (PATH or bundled),
         // the file system mock will confirm it exists. If winget.exe is NOT
         // found at all, GetWinGetExePath returns null and FileExists won't
         // be called, falling through to COM (which will fail in test env).
@@ -65,17 +58,13 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task IsWinGetInstalledAsync_WhenExeDoesNotExist_FallsBackToCom()
     {
-        // Arrange: no winget.exe on file system, COM will also fail
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
 
-        // Mark COM as timed out so it fails immediately
         _comSession.ComInitTimedOut = true;
 
-        // Act
         var result = await _sut.IsWinGetInstalledAsync();
 
-        // Assert: with no exe and COM timed out, should return false
         // Note: GetWinGetExePath uses File.Exists (static), so if winget IS
         // on the system, it will be found regardless of our mock. In that case,
         // our FileExists(false) mock would trigger, and it would fall to COM check.
@@ -86,19 +75,17 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task IsWinGetInstalledAsync_WhenCancelled_ReturnsFalseOrThrows()
     {
-        // Arrange
         using var cts = new CancellationTokenSource();
         cts.Cancel();
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act & Assert: should return false (catches all exceptions)
+        // Should return false (catches all exceptions)
         // or might throw OperationCanceledException depending on timing
         try
         {
             var result = await _sut.IsWinGetInstalledAsync(cts.Token);
-            // Method catches all exceptions and returns false
             result.Should().BeFalse();
         }
         catch (OperationCanceledException)
@@ -107,15 +94,12 @@ public class WinGetPackageInstallerTests
         }
     }
 
-    // --- InstallPackageAsync ---
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
     public async Task InstallPackageAsync_WithNullOrEmptyPackageId_ThrowsArgumentException(string? packageId)
     {
-        // Act & Assert
         var act = () => _sut.InstallPackageAsync(packageId!);
 
         await act.Should().ThrowAsync<ArgumentException>()
@@ -125,16 +109,13 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task InstallPackageAsync_WhenWinGetNotInstalled_ReturnsWinGetNotAvailable()
     {
-        // Arrange: ensure IsWinGetInstalledAsync returns false
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act: this will call IsWinGetInstalledAsync which should return false
-        // when winget is not on the system
         var result = await _sut.InstallPackageAsync("Test.Package");
 
-        // Assert: if winget IS available on this machine, it would try to
+        // If winget IS available on this machine, it would try to
         // actually install "Test.Package" which would fail differently.
         // If winget is NOT available, it returns WinGetNotAvailable.
         if (!result.Success && result.FailureReason == InstallFailureReason.WinGetNotAvailable)
@@ -143,21 +124,17 @@ public class WinGetPackageInstallerTests
             result.FailureReason.Should().Be(InstallFailureReason.WinGetNotAvailable);
             result.ErrorMessage.Should().Contain("WinGet CLI not found");
         }
-        // If winget IS on the system, the install will try to run and fail differently
     }
 
     [Fact]
     public async Task InstallPackageAsync_UsesDisplayNameWhenProvided()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         var result = await _sut.InstallPackageAsync("Test.Package", displayName: "My App");
 
-        // Assert: verify progress was updated with the display name
         _mockTaskProgressService.Verify(
             t => t.UpdateProgress(It.IsAny<int>(), It.IsAny<string>()),
             Times.AtLeastOnce);
@@ -166,15 +143,13 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task InstallPackageAsync_DefaultsDisplayNameToPackageId()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         var result = await _sut.InstallPackageAsync("Test.Package");
 
-        // Assert: progress should have been updated at least for prerequisites check
+        // The 10% progress update is the prerequisites check
         _mockTaskProgressService.Verify(
             t => t.UpdateProgress(10, It.IsAny<string>()),
             Times.Once);
@@ -183,21 +158,16 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task InstallPackageAsync_UpdatesProgressForPrerequisites()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         await _sut.InstallPackageAsync("Test.Package");
 
-        // Assert: first progress update should be at 10% for checking prerequisites
         _mockLocalization.Verify(
             l => l.GetString("Progress_WinGet_CheckingPrerequisites", It.IsAny<object[]>()),
             Times.Once);
     }
-
-    // --- UninstallPackageAsync ---
 
     [Theory]
     [InlineData(null)]
@@ -205,7 +175,6 @@ public class WinGetPackageInstallerTests
     [InlineData("  ")]
     public async Task UninstallPackageAsync_WithNullOrEmptyPackageId_ThrowsArgumentException(string? packageId)
     {
-        // Act & Assert
         var act = () => _sut.UninstallPackageAsync(packageId!);
 
         await act.Should().ThrowAsync<ArgumentException>()
@@ -215,15 +184,13 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task UninstallPackageAsync_WhenWinGetNotInstalled_ReturnsFalse()
     {
-        // Arrange: ensure IsWinGetInstalledAsync returns false
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         var result = await _sut.UninstallPackageAsync("Test.Package");
 
-        // Assert: if winget is not available, should return false
+        // If winget is not available, the result is false
         if (!result)
         {
             result.Should().BeFalse();
@@ -236,15 +203,12 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task UninstallPackageAsync_UsesDisplayNameWhenProvided()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         var result = await _sut.UninstallPackageAsync("Test.Package", displayName: "My App");
 
-        // Assert: progress was updated
         _mockTaskProgressService.Verify(
             t => t.UpdateProgress(It.IsAny<int>(), It.IsAny<string>()),
             Times.AtLeastOnce);
@@ -253,21 +217,16 @@ public class WinGetPackageInstallerTests
     [Fact]
     public async Task UninstallPackageAsync_UpdatesProgressForPrerequisites()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        // Act
         await _sut.UninstallPackageAsync("Test.Package");
 
-        // Assert
         _mockLocalization.Verify(
             l => l.GetString("Progress_WinGet_CheckingPrerequisitesUninstall", It.IsAny<object[]>()),
             Times.Once);
     }
-
-    // --- PackageInstallResult model tests ---
 
     [Fact]
     public void PackageInstallResult_Succeeded_HasCorrectProperties()

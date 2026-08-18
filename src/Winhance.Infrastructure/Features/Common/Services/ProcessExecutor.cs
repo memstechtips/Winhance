@@ -69,7 +69,7 @@ public class ProcessExecutor : IProcessExecutor
 
         using var registration = ct.Register(() =>
         {
-            try { process.Kill(); } catch { /* best-effort kill on cancellation */ }
+            try { process.Kill(); } catch { }
         });
 
         var readOutput = Task.Run(async () =>

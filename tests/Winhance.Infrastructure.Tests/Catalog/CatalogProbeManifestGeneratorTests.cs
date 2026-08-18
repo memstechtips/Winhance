@@ -60,7 +60,6 @@ public class CatalogProbeManifestGeneratorTests
         string readable = BuildManifestJson(settings, featureBySettingId, catalogHash, indented: true);
         _output.WriteLine($"catalogHash       : {catalogHash}");
 
-        // --- Guarantees the PowerShell here-string depends on -------------------------------------------------
         // The script embeds this in @'...'@. A line consisting of "'@" would terminate it early, and PS 5.1
         // mis-parses some non-ASCII. Utf8JsonWriter's default encoder escapes both apostrophes and non-ASCII,
         // so these assertions should hold by construction - they are here to fail loudly if that ever changes.
@@ -69,7 +68,6 @@ public class CatalogProbeManifestGeneratorTests
         Assert.DoesNotContain('\'', compact);
         Assert.True(compact.All(c => c < 128), "manifest JSON contains non-ASCII - it cannot be embedded safely.");
 
-        // Round-trips as valid JSON.
         using (var doc = JsonDocument.Parse(compact))
         {
             Assert.Equal(settings.Count, doc.RootElement.GetProperty("settings").GetArrayLength());

@@ -54,7 +54,7 @@ public static class RegTargetReader
                 return TargetReading.Malformed;
             if (long.TryParse(flagStr, out var flags))
                 return TargetReading.Of((flags & flagMask) == flagMask);
-            return TargetReading.Absent; // right type, unparseable content - treat as absent, as before
+            return TargetReading.Absent; // right type, unparseable content - treat as absent
         }
 
         // REG_BINARY bit test -> bool
@@ -64,7 +64,7 @@ public static class RegTargetReader
                 return TargetReading.Malformed;
             if (maskBlob.Length > maskIdx)
                 return TargetReading.Of((maskBlob[maskIdx] & mask) == mask);
-            return TargetReading.Absent; // right type, blob too short - as before
+            return TargetReading.Absent; // right type, blob too short
         }
 
         // REG_BINARY single byte
@@ -74,7 +74,7 @@ public static class RegTargetReader
                 return TargetReading.Malformed;
             if (byteBlob.Length > byteIdx)
                 return TargetReading.Of(byteBlob[byteIdx]);
-            return TargetReading.Absent; // right type, blob too short - as before
+            return TargetReading.Absent; // right type, blob too short
         }
 
         // Plain value. Deliberately NOT type-checked against RegTarget.Type: CatalogValueComparer is

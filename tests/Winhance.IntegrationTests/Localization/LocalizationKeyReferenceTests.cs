@@ -45,10 +45,6 @@ public class LocalizationKeyReferenceTests
     private static IEnumerable<string> AllCsFiles() =>
         Directory.EnumerateFiles(SrcDir, "*.cs", SearchOption.AllDirectories);
 
-    // ---------------------------------------------------------------------------------------------
-    // Check (a) — static literal keys. HARD failure.
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void StaticLiteralLocalizationKeys_MustExistInEnglish()
     {
@@ -85,10 +81,6 @@ public class LocalizationKeyReferenceTests
             string.Join("\n", missing));
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Check (b) — computed/catalog keys.
-    // ---------------------------------------------------------------------------------------------
-
     // Only Name and Description are hard-asserted; the other computed keys are intentionally absent in bulk (3 of
     // the many ComboBox settings define an _Option_Custom key; the 130+ DNS-server option names fall back), so
     // hard-asserting them would fail en masse on intentional fallbacks.
@@ -120,7 +112,6 @@ public class LocalizationKeyReferenceTests
         var enKeys = EnglishKeys();
         var settings = AllSettings();
 
-        // Group-key "any of" acceptable set, including the cross-group-info third format.
         var groupNames = settings
             .Where(s => s.Display.GroupName != null)
             .Select(s => s.Display.GroupName!)
@@ -141,7 +132,6 @@ public class LocalizationKeyReferenceTests
             else uncoveredGroups.Add($"{g}  (tried: {string.Join(", ", variants.Distinct())})");
         }
 
-        // Non-group computed keys (Name/Description are covered by the hard test above).
         var groupVariantSet = groupNames
             .SelectMany(g => new[]
             {
@@ -189,10 +179,6 @@ public class LocalizationKeyReferenceTests
         true.Should().BeTrue();
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Check (c) — dead keys. SOFT, non-failing, informational only.
-    // ---------------------------------------------------------------------------------------------
-
     // Many keys are referenced dynamically (XAML bindings, interpolated key names) that this static analysis cannot
     // see, so a hard assertion would be hopelessly noisy; _Meta_ keys are whitelisted (read directly by the localization service).
     [Fact]
@@ -202,7 +188,6 @@ public class LocalizationKeyReferenceTests
 
         var referenced = new HashSet<string>();
 
-        // (a) literals
         foreach (var file in AllCsFiles())
         {
             var text = File.ReadAllText(file);
@@ -210,7 +195,6 @@ public class LocalizationKeyReferenceTests
                 referenced.Add(m.Groups[1].Value);
         }
 
-        // (b) computed catalog keys (all variants, including all group formats)
         foreach (var s in AllSettings())
         {
             foreach (var key in SettingLocalizationKeys.ExpectedKeys(s))

@@ -36,10 +36,6 @@ public class ThemeServiceTests
             _mockMainWindowProvider.Object);
     }
 
-    // -------------------------------------------------------
-    // CurrentTheme default
-    // -------------------------------------------------------
-
     [Fact]
     public void CurrentTheme_DefaultsToSystem()
     {
@@ -47,10 +43,6 @@ public class ThemeServiceTests
 
         service.CurrentTheme.Should().Be(WinhanceTheme.System);
     }
-
-    // -------------------------------------------------------
-    // SetTheme
-    // -------------------------------------------------------
 
     [Fact]
     public void SetTheme_UpdatesCurrentTheme()
@@ -121,10 +113,6 @@ public class ThemeServiceTests
 
         receivedSender.Should().BeSameAs(service);
     }
-
-    // -------------------------------------------------------
-    // LoadSavedTheme
-    // -------------------------------------------------------
 
     [Fact]
     public void LoadSavedTheme_WithValidPreference_SetsCurrentTheme()
@@ -210,10 +198,6 @@ public class ThemeServiceTests
         service.CurrentTheme.Should().Be(WinhanceTheme.System);
     }
 
-    // -------------------------------------------------------
-    // GetEffectiveTheme mapping
-    // -------------------------------------------------------
-
     [Fact]
     public void GetEffectiveTheme_WhenLightNative_ReturnsLight()
     {
@@ -233,10 +217,6 @@ public class ThemeServiceTests
 
         service.GetEffectiveTheme().Should().Be(Microsoft.UI.Xaml.ElementTheme.Dark);
     }
-
-    // -------------------------------------------------------
-    // OTS-aware registry reading
-    // -------------------------------------------------------
 
     [Fact]
     public void Constructor_WhenOtsElevation_SubscribesToSettingAppliedEvent()
@@ -262,10 +242,6 @@ public class ThemeServiceTests
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // SettingAppliedEvent handling
-    // -------------------------------------------------------
-
     [Fact]
     public void OnSettingApplied_WhenNotThemeMode_DoesNothing()
     {
@@ -280,7 +256,6 @@ public class ThemeServiceTests
         var service = CreateService();
         capturedHandler.Should().NotBeNull();
 
-        // Publish an unrelated setting event; no crash expected
         var unrelatedEvent = new SettingAppliedEvent("some-other-setting", true);
         capturedHandler!.Invoke(unrelatedEvent);
 
@@ -301,19 +276,13 @@ public class ThemeServiceTests
 
         var service = CreateService();
 
-        // Set theme to DarkNative (not System), so the handler should bail early
         service.SetTheme(WinhanceTheme.DarkNative);
 
         var themeEvent = new SettingAppliedEvent("theme-mode-windows", true);
         capturedHandler!.Invoke(themeEvent);
 
-        // With DarkNative active, the handler should not try to apply System theme
         // Just verify no exception is thrown
     }
-
-    // -------------------------------------------------------
-    // Multiple theme changes fire events correctly
-    // -------------------------------------------------------
 
     [Fact]
     public void SetTheme_MultipleTimes_FiresEventEachTime()
@@ -331,10 +300,6 @@ public class ThemeServiceTests
         receivedThemes[1].Should().Be(WinhanceTheme.DarkNative);
         receivedThemes[2].Should().Be(WinhanceTheme.System);
     }
-
-    // -------------------------------------------------------
-    // SaveThemePreferenceAsync error handling
-    // -------------------------------------------------------
 
     [Fact]
     public void SetTheme_WhenSavePreferenceThrows_DoesNotThrow()

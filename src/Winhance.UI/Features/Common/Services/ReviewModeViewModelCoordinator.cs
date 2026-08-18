@@ -69,7 +69,6 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
             {
                 foreach (var setting in featureVm.Settings)
                 {
-                    // Clear any stale review state first
                     setting.ClearReviewState();
                     // Build currentState from the VM's actual displayed values
                     // so the fallback ComputeDiff sees accurate state, not defaults
@@ -78,7 +77,6 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
                         IsEnabled = setting.IsSelected,
                         CurrentValue = setting.SelectedValue
                     };
-                    // Re-apply the new diff
                     _reviewDiffApplier.ApplyReviewDiffToViewModel(setting, currentState);
                 }
             }

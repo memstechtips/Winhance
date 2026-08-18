@@ -52,8 +52,6 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         set => SetValue(KindProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public Visibility ButtonsVisibility { get; private set; } = Visibility.Collapsed;
     public IRelayCommand? RecommendedCommand { get; private set; }
     public IRelayCommand? DefaultCommand { get; private set; }
@@ -137,7 +135,6 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         nameof(RecommendedTooltip), nameof(DefaultTooltip),
         nameof(RecommendedAutomationName), nameof(DefaultAutomationName));
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a

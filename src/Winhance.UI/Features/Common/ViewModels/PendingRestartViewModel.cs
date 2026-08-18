@@ -8,7 +8,7 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-// Winhance no longer restarts Explorer as a side effect of applying a setting (once per toggle could leave the
+// Winhance does not restart Explorer as a side effect of applying a setting (once per toggle could leave the
 // user with no shell); this bar is how the user performs the single restart when ready.
 public partial class PendingRestartViewModel : ObservableObject, IDisposable
 {

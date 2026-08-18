@@ -50,7 +50,6 @@ public class WindowSizeManager
                 CenterOnScreen();
             }
 
-            // Start tracking normal bounds after initial positioning
             RecordNormalBounds();
             SubscribeToWindowChanges();
         }
@@ -80,7 +79,6 @@ public class WindowSizeManager
             if (state == OverlappedPresenterState.Maximized)
             {
                 prefs[UserPreferenceKeys.WindowMaximized] = true;
-                // Save tracked normal bounds (pre-maximize size/position)
                 prefs[UserPreferenceKeys.WindowWidth] = (double)_normalWidth;
                 prefs[UserPreferenceKeys.WindowHeight] = (double)_normalHeight;
                 prefs[UserPreferenceKeys.WindowLeft] = (double)_normalX;
@@ -273,7 +271,6 @@ public class WindowSizeManager
         if (!_isTrackingBounds)
             return;
 
-        // Only record bounds when the window is in normal (restored) state
         if (args.DidPositionChange || args.DidSizeChange)
         {
             var presenter = sender.Presenter as OverlappedPresenter;

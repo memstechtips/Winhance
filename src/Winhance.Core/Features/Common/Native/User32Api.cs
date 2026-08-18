@@ -4,7 +4,6 @@ namespace Winhance.Core.Features.Common.Native;
 
 public static class User32Api
 {
-    // Window message constants
     public const int HWND_BROADCAST = 0xffff;
     public const uint WM_SYSCOLORCHANGE = 0x0015;
     public const uint WM_SETTINGCHANGE = 0x001A;
@@ -16,10 +15,8 @@ public static class User32Api
     // value appears in long-standing AutoHotkey samples. Best-effort by construction: callers keep the kill as fallback.
     public const uint WM_SHELL_GRACEFUL_EXIT = 0x5B4;
 
-    // SendMessageTimeout flags
     public const uint SMTO_ABORTIFHUNG = 0x0002;
 
-    // Window management constants
     public const int SW_RESTORE = 9;
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]

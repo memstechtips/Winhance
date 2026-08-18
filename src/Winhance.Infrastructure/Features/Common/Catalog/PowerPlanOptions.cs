@@ -29,7 +29,6 @@ internal static class PowerPlanOptions
                         string.Equals(PowerPlanHelper.CleanPlanName(sp.Name), predefined.Name, StringComparison.OrdinalIgnoreCase));
             }
 
-            // A not-installed predefined still appears (ExistsOnSystem=false), valued by the predefined GUID.
             string guid = match?.Guid ?? predefined.Guid;
             options.Add(new DynamicOption(predefined.LocalizationKey, guid.ToLowerInvariant(), ExistsOnSystem: match is not null));
 
@@ -46,8 +45,7 @@ internal static class PowerPlanOptions
         foreach (var sp in unmatched)
             options.Add(new DynamicOption(PowerPlanHelper.CleanPlanName(sp.Name), (sp.Guid ?? string.Empty).ToLowerInvariant()));
 
-        // Match the old service: sort the whole list by the display label (loc key for predefined, cleaned name for
-        // custom) and that order is the dropdown order.
+        // Sorted by display label (loc key for predefined, cleaned name for custom); that order is the dropdown order.
         return options.OrderBy(o => o.Label).ToList();
     }
 }

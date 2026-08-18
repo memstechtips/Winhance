@@ -3,7 +3,6 @@ namespace Winhance.Core.Features.Common.TechnicalDetails;
 // A test reflects over these constants and asserts each one exists in en.json and in all 29 language files.
 public static class TechnicalDetailKeys
 {
-    // Sections
     public const string SectionOptions = "TechnicalDetails_Section_Options";
     public const string SectionOptionsDescription = "TechnicalDetails_Section_Options_Description";
     public const string SectionScripts = "TechnicalDetails_Section_Scripts";
@@ -12,7 +11,6 @@ public static class TechnicalDetailKeys
     public const string SectionRegContentDescription = "TechnicalDetails_Section_RegContent_Description";
     public const string SectionPowerPlansDescription = "TechnicalDetails_Section_PowerPlans_Description";
 
-    // Table headers
     public const string ColumnOption = "TechnicalDetails_Column_Option";
     public const string ColumnRole = "TechnicalDetails_Column_Role";
 
@@ -54,7 +52,6 @@ public static class TechnicalDetailKeys
     public const string ReadingUnreadable = "TechnicalDetails_Reading_Unreadable";
     public const string ReadingAbsent = "TechnicalDetails_Reading_Absent";
 
-    // Shared value labels
     public const string Current = "TechnicalDetails_Current";
     public const string Recommended = "TechnicalDetails_Recommended";
     public const string Default = "TechnicalDetails_DefaultValue";
@@ -66,7 +63,6 @@ public static class TechnicalDetailKeys
     public const string DeletesKey = "TechnicalDetails_DeletesKey";
     public const string OpenRegedit = "TechnicalDetails_OpenRegedit";
 
-    // Metadata chips — each has a tooltip explaining what it means.
     public const string ChipGroupPolicy = "TechnicalDetails_Chip_GroupPolicy";
     public const string ChipGroupPolicyTooltip = "TechnicalDetails_Chip_GroupPolicy_Tooltip";
     public const string ChipDetectionOnly = "TechnicalDetails_Chip_DetectionOnly";
@@ -101,11 +97,9 @@ public static class TechnicalDetailKeys
     public const string EffectNativePower = "TechnicalDetails_Effect_NativePower";
     public const string EffectWallpaper = "TechnicalDetails_Effect_Wallpaper";
 
-    // Task state
     public const string TaskEnabled = "TechnicalDetails_Task_Enabled";
     public const string TaskDisabled = "TechnicalDetails_Task_Disabled";
 
-    // Power
     public const string PowerCfgSubgroup = "TechnicalDetails_PowerCfg_Subgroup";
     public const string PowerCfgSetting = "TechnicalDetails_PowerCfg_Setting";
     // Shared with the AC/DC controls on the card itself, so the panel says the same thing they do.
@@ -114,17 +108,14 @@ public static class TechnicalDetailKeys
     public const string PowerPlanInstalled = "TechnicalDetails_PowerPlan_Installed";
     public const string PowerPlanNotInstalled = "TechnicalDetails_PowerPlan_NotInstalled";
 
-    // Scripts / reg content, labelled by the option they belong to
     public const string CodeWhenSetTo = "TechnicalDetails_Code_WhenSetTo";
 
-    // Relationships
     public const string RelRequires = "TechnicalDetails_Rel_Requires";
     public const string RelEnables = "TechnicalDetails_Rel_Enables";
     public const string RelControls = "TechnicalDetails_Rel_Controls";
 
     public const string RelSetAutomatically = "TechnicalDetails_Rel_SetAutomatically";
 
-    // Apply behaviour
     public const string ApplyConfirmation = "TechnicalDetails_Apply_Confirmation";
     public const string ApplyConfirmationDetail = "TechnicalDetails_Apply_ConfirmationDetail";
     public const string ApplyReboot = "TechnicalDetails_Apply_Reboot";
@@ -136,7 +127,6 @@ public static class TechnicalDetailKeys
     public const string ApplyRestartChipDeferred = "TechnicalDetails_Apply_RestartChip_Deferred";
     public const string ApplyRestartChipService = "TechnicalDetails_Apply_RestartChip_Service";
 
-    // Generic on/off, shared with the rest of the app
     public const string On = "Common_On";
     public const string Off = "Common_Off";
 }

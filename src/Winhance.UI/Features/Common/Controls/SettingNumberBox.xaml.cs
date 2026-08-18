@@ -34,8 +34,6 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         set => SetValue(ModeProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public double NumericValue { get; private set; }
     public double Minimum { get; private set; }
     public double Maximum { get; private set; }
@@ -103,7 +101,6 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
                nameof(InputAutomationName), nameof(OverlayVisibility), nameof(OutcomeTooltip));
     }
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a
@@ -119,9 +116,6 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         foreach (var name in names)
             handler(this, new PropertyChangedEventArgs(name));
     }
-
-
-    // --- Event routing ---------------------------------------------------------------------------
 
     private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender);
 

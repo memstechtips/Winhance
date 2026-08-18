@@ -89,7 +89,6 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // WinGet fallback for apps not found by PackageManager
                 var undetectedApps = apps
                     .Where(a => !result.ContainsKey(a.Id) || !result[a.Id])
                     .Where(a => (a.WinGetPackageId != null && a.WinGetPackageId.Length > 0) || !string.IsNullOrEmpty(a.MsStoreId))
@@ -117,7 +116,6 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // Mark remaining unfound apps as not installed
                 foreach (var app in apps)
                 {
                     if (!result.ContainsKey(app.Id))
@@ -281,7 +279,6 @@ public class AppStatusDiscoveryService(
         HashSet<string> DisplayNames,
         HashSet<string> AllKeyNames);
 
-    // Each placeholder becomes a non-greedy wildcard; a pattern without placeholders is an exact case-insensitive comparison.
     internal static bool MatchesPattern(string input, string pattern)
     {
         if (string.IsNullOrEmpty(input))
@@ -298,8 +295,6 @@ public class AppStatusDiscoveryService(
         });
     }
 
-    #region External Apps Detection
-
     public async Task<Dictionary<string, bool>> GetExternalAppsInstallationStatusAsync(IEnumerable<ItemDefinition> definitions)
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -312,10 +307,9 @@ public class AppStatusDiscoveryService(
         {
             int wingetCount = 0, chocoCount = 0, appxCount = 0, registryCount = 0, fileSystemCount = 0;
 
-            // Fetched lazily below and reused in Phase 4 to avoid a second registry scan.
+            // Fetched lazily and reused by the registry fallback to avoid a second registry scan.
             RegistryUninstallInfo? sharedRegInfo = null;
 
-            // Phase 1: WinGet detection for apps with WinGetPackageId or MsStoreId
             var appsWithWinGetId = definitionList
                 .Where(d => (d.WinGetPackageId != null && d.WinGetPackageId.Length > 0) || !string.IsNullOrEmpty(d.MsStoreId))
                 .ToList();
@@ -326,7 +320,7 @@ public class AppStatusDiscoveryService(
 
                 if (winGetIds != null)
                 {
-                    // If any Phase 1 app also carries a registry disambiguator, pull the registry
+                    // If any WinGet-candidate app also carries a registry disambiguator, pull the registry
                     // uninstall info up front so we can require winget+registry agreement below.
                     // WinGet's installed-package list can false-positive when a sibling build
                     // (e.g. AutoHotkey v1 installed via direct URL) shares the vendor's uninstall
@@ -385,7 +379,6 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            // Phase 2: Chocolatey detection for apps not found by WinGet
             var appsForChocoCheck = definitionList
                 .Where(d => !string.IsNullOrEmpty(d.ChocoPackageId)
                     && (!result.ContainsKey(d.Id) || !result[d.Id]))
@@ -423,7 +416,6 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            // Phase 3: AppX detection for apps with AppxPackageName
             var appsWithAppxName = definitionList
                 .Where(d => d.AppxPackageName?.Length > 0)
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
@@ -444,7 +436,6 @@ public class AppStatusDiscoveryService(
                 }
             }
 
-            // Phase 4: Registry fallback for apps not detected via WinGet, Chocolatey, or AppX
             var appsForRegistryCheck = definitionList
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
                 .ToList();
@@ -453,7 +444,6 @@ public class AppStatusDiscoveryService(
             {
                 var regInfo = sharedRegInfo ?? await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
 
-                // Pass 1: Exact def.Name match against KeyNames
                 foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
                     if (regInfo.KeyNames.Contains(def.Name))
@@ -465,7 +455,6 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // Pass 2: Exact def.Name match against DisplayNames
                 foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
                 {
                     if (regInfo.DisplayNames.Contains(def.Name))
@@ -477,7 +466,6 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // Pass 3: RegistrySubKeyName pattern match against AllKeyNames
                 foreach (var def in appsForRegistryCheck
                     .Where(d => !string.IsNullOrEmpty(d.RegistrySubKeyName))
                     .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
@@ -492,7 +480,6 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // Pass 4: RegistryDisplayName pattern match against DisplayNames
                 foreach (var def in appsForRegistryCheck
                     .Where(d => !string.IsNullOrEmpty(d.RegistryDisplayName))
                     .Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))
@@ -507,14 +494,12 @@ public class AppStatusDiscoveryService(
                     }
                 }
 
-                // Mark remaining undetected items as false
                 foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id)))
                 {
                     result[def.Id] = false;
                 }
             }
 
-            // Phase 5: File system path detection for portable apps
             var appsWithDetectionPaths = definitionList
                 .Where(d => d.DetectionPaths?.Length > 0)
                 .Where(d => !result.ContainsKey(d.Id) || !result[d.Id])
@@ -620,6 +605,4 @@ public class AppStatusDiscoveryService(
 
         return new RegistryUninstallInfo(keyNames, displayNames, allKeyNames);
     }
-
-    #endregion
 }

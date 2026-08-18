@@ -44,11 +44,9 @@ public class OscdimgToolManager : IOscdimgToolManager
     {
         var searchPaths = new[]
         {
-            // ADK paths
             @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
             @"C:\Program Files (x86)\Windows Kits\11\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
             @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\oscdimg.exe",
-            // Winget Links paths
             @"C:\Program Files\WinGet\Links\oscdimg.exe",
             _fileSystemService.CombinePath(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -63,7 +61,6 @@ public class OscdimgToolManager : IOscdimgToolManager
             }
         }
 
-        // Scan winget Packages directories for Microsoft.OSCDIMG
         var wingetPackageDirs = new[]
         {
             @"C:\Program Files\WinGet\Packages",

@@ -8,7 +8,6 @@ public static partial class ExternalAppDefinitions
     {
         var allItems = new List<ItemDefinition>();
 
-        // Add all category items
         allItems.AddRange(Browsers.GetBrowsers().Items);
         allItems.AddRange(DocumentViewers.GetDocumentViewers().Items);
         allItems.AddRange(MessagingEmailCalendar.GetMessagingEmailCalendar().Items);

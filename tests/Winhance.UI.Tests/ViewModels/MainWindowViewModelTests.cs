@@ -20,7 +20,6 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilterService = new();
 
-    // Child ViewModel dependencies
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -38,7 +37,6 @@ public class MainWindowViewModelTests : IDisposable
 
     public MainWindowViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -51,22 +49,18 @@ public class MainWindowViewModelTests : IDisposable
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => null!);
 
-        // Default theme
         _mockThemeService
             .Setup(t => t.GetEffectiveTheme())
             .Returns(ElementTheme.Dark);
 
-        // Default version info
         _mockVersionService
             .Setup(v => v.GetCurrentVersion())
             .Returns(new VersionInfo { Version = "v25.05.01" });
 
-        // Default interactive user service (not OTS)
         _mockInteractiveUserService
             .Setup(i => i.IsOtsElevation)
             .Returns(false);
 
-        // Create child ViewModels
         _taskProgressViewModel = new TaskProgressViewModel(
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
@@ -125,8 +119,6 @@ public class MainWindowViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesDefaultProperties()
     {
@@ -149,8 +141,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.ReviewModeBar.Should().BeSameAs(_reviewModeBarViewModel);
     }
 
-    // ── Initialize ──
-
     [Fact]
     public void Initialize_SubscribesToThemeChangedEvent()
     {
@@ -158,7 +148,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.Initialize();
 
-        // Raise the theme changed event and verify the icon updates
         _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
         _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
 
@@ -218,8 +207,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.IsOtsInfoBarOpen.Should().BeFalse();
     }
 
-    // ── Theme Handling ──
-
     [Fact]
     public void UpdateAppIconForTheme_DarkTheme_SetsWhiteIcon()
     {
@@ -242,8 +229,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.AppIconSource.Should().Contain("black");
     }
 
-    // ── OTS InfoBar ──
-
     [Fact]
     public void DismissOtsInfoBar_SetsIsOtsInfoBarOpenToFalse()
     {
@@ -262,8 +247,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.IsOtsInfoBarOpen.Should().BeFalse();
     }
-
-    // ── Localized Strings with Fallbacks ──
 
     [Fact]
     public void AppTitle_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -342,15 +325,12 @@ public class MainWindowViewModelTests : IDisposable
         sut.NavMoreText.Should().Be("More");
     }
 
-    // ── Windows Filter Tooltip ──
-
     [Fact]
     public void WindowsFilterTooltip_WhenFilterEnabled_ContainsON()
     {
         var sut = CreateSut();
         sut.IsWindowsVersionFilterEnabled = true;
 
-        // The fallback strings contain "ON" or specific text
         sut.WindowsFilterTooltip.Should().Contain("ON");
     }
 
@@ -362,8 +342,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.WindowsFilterTooltip.Should().Contain("OFF");
     }
-
-    // ── Review Mode / Filter Cross-Cutting ──
 
     [Fact]
     public void IsWindowsFilterButtonEnabled_ReturnsTrueWhenNotInReviewMode()
@@ -418,15 +396,11 @@ public class MainWindowViewModelTests : IDisposable
         var sut = CreateSut();
         sut.Initialize();
 
-        // Enter review mode first
         _reviewModeBarViewModel.IsInReviewMode = true;
-        // Exit review mode
         _reviewModeBarViewModel.IsInReviewMode = false;
 
         _mockWindowsVersionFilterService.Verify(f => f.RestoreFilterPreferenceAsync(), Times.Once);
     }
-
-    // ── Language Change ──
 
     [Fact]
     public void LanguageChanged_NotifiesLocalizedStringProperties()
@@ -451,8 +425,6 @@ public class MainWindowViewModelTests : IDisposable
         changedProperties.Should().Contain(nameof(sut.DocsTooltip));
     }
 
-    // ── Filter State Changed ──
-
     [Fact]
     public void FilterStateChanged_UpdatesIsWindowsVersionFilterEnabled()
     {
@@ -464,8 +436,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.IsWindowsVersionFilterEnabled.Should().BeFalse();
     }
-
-    // ── LoadFilterPreferenceAsync ──
 
     [Fact]
     public async Task LoadFilterPreferenceAsync_DelegatesToService()
@@ -481,8 +451,6 @@ public class MainWindowViewModelTests : IDisposable
         _mockWindowsVersionFilterService.Verify(f => f.LoadFilterPreferenceAsync(), Times.Once);
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_UnsubscribesFromEvents()
     {
@@ -491,9 +459,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising theme changed should not update the icon
-        // (we can verify this indirectly by ensuring no exception is thrown
-        //  and the icon stays as it was before the event)
         var iconBeforeEvent = sut.AppIconSource;
         _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
         _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
@@ -501,12 +466,10 @@ public class MainWindowViewModelTests : IDisposable
         sut.AppIconSource.Should().Be(iconBeforeEvent);
     }
 
-    // ── Leaving Builder mode: the discard prompt ──
-    //
-    // The prompt used to be gated on GetBuilderEdits().Count > 0. NumericRange and AC/DC power
-    // settings are authored into the UI but do not produce a serializable BuilderEdit, so a
-    // session that had only moved sliders reported zero edits, skipped the prompt, and had its
-    // authoring discarded silently by the (correct, intended) reload on Builder exit.
+    // Leaving Builder mode: the discard prompt must key off HasBuilderChanges, not GetBuilderEdits().Count.
+    // NumericRange and AC/DC power settings are authored into the UI but do not produce a serializable
+    // BuilderEdit, so a slider-only session reports zero edits; gating on the count skips the prompt and
+    // the (correct, intended) reload on Builder exit discards the authoring silently.
 
     [Fact]
     public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChangesButNoRecordedEdits_Prompts()

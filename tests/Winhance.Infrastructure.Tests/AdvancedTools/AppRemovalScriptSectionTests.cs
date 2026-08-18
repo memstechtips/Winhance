@@ -10,10 +10,6 @@ public class AppRemovalScriptSectionTests
 {
     private readonly AppRemovalScriptSection _sut = new();
 
-    // ---------------------------------------------------------------
-    // AppendScriptsDirectorySetup
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendScriptsDirectorySetup_ContainsScriptsDirectory()
     {
@@ -69,10 +65,6 @@ public class AppRemovalScriptSectionTests
         lines[0].Should().StartWith("$scriptsDir");
     }
 
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Regular apps
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_RegularApps_EmitsRemovalSection()
     {
@@ -93,10 +85,6 @@ public class AppRemovalScriptSectionTests
         output.Should().Contain("BloatRemoval");
     }
 
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Edge removal
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_EdgeApp_EmitsEdgeRemoval()
     {
@@ -115,10 +103,6 @@ public class AppRemovalScriptSectionTests
         var output = sb.ToString();
         output.Should().Contain("EdgeRemoval");
     }
-
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - OneDrive removal
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_OneDriveApp_EmitsOneDriveRemoval()
@@ -139,10 +123,6 @@ public class AppRemovalScriptSectionTests
         output.Should().Contain("OneDriveRemoval");
     }
 
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Capabilities
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_Capability_IncludedInScript()
     {
@@ -161,10 +141,6 @@ public class AppRemovalScriptSectionTests
         var output = sb.ToString();
         output.Should().Contain("BloatRemoval");
     }
-
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Optional features
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_OptionalFeature_IncludedInScript()
@@ -185,10 +161,6 @@ public class AppRemovalScriptSectionTests
         output.Should().Contain("BloatRemoval");
     }
 
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Multiple packages
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_AppWithMultiplePackages_IncludesAllPackages()
     {
@@ -207,10 +179,6 @@ public class AppRemovalScriptSectionTests
         var output = sb.ToString();
         output.Should().Contain("BloatRemoval");
     }
-
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Scheduled task registration
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_EmitsScheduledTaskRegistration()
@@ -232,10 +200,6 @@ public class AppRemovalScriptSectionTests
         output.Should().Contain("Winhance");
     }
 
-    // ---------------------------------------------------------------
-    // AppendBloatRemovalScriptAsync - Mixed apps
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendBloatRemovalScriptAsync_MixedApps_EmitsAllSections()
     {
@@ -254,10 +218,6 @@ public class AppRemovalScriptSectionTests
         output.Should().Contain("EdgeRemoval");
         output.Should().Contain("OneDriveRemoval");
     }
-
-    // ---------------------------------------------------------------
-    // AppendWinhanceInstallerScriptContent
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendWinhanceInstallerScriptContent_ContainsInstallerScript()

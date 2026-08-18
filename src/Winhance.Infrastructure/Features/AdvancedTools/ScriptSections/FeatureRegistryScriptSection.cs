@@ -71,7 +71,6 @@ internal class FeatureRegistryScriptSection
 
             if (!hasEntriesForCurrentHive) continue;
 
-            // Get the feature display name for the section header
             var featureDisplayName = GetFeatureDisplayName(featureId);
 
             sb.AppendLine();
@@ -80,10 +79,8 @@ internal class FeatureRegistryScriptSection
             sb.AppendLine($"{indent}# ============================================================================");
             sb.AppendLine();
 
-            // Process each setting in the feature
             foreach (var configItem in configSection.Items)
             {
-                // Alias-normalized lookup of the paired catalog Setting in the dict (see the presence gate above).
                 var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
                 if (setting == null)
                 {
@@ -91,9 +88,7 @@ internal class FeatureRegistryScriptSection
                     continue;
                 }
 
-                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power
-                // Settings section). Presence off the catalog Setting (PowerCfgTarget vs RegTarget/
-                // RegistryWriteEffect).
+                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power Settings section).
                 bool powerCfgOnly = AutounattendMechanismPresence.HasPowerCfg(setting)
                     && !AutounattendMechanismPresence.HasRegistry(setting);
                 if (powerCfgOnly)
@@ -103,7 +98,6 @@ internal class FeatureRegistryScriptSection
                 // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
                 bool actionHandledByCatalog = false;
 
-                // Dispatch off the catalog Control.
                 if (setting.Control == ControlKind.Toggle)
                 {
                     // Every toggle routes through the catalog emitter (AppendToggleCommandsFromCatalog) with
@@ -154,8 +148,6 @@ internal class FeatureRegistryScriptSection
 
                 foreach (var configItem in configSection.Items)
                 {
-                    // The scheduled-task paths + description come from the catalog Setting (TaskTarget +
-                    // Display.Description), looked up in the dict by the alias-normalized id.
                     var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
                     if (setting != null)
                     {
@@ -234,7 +226,6 @@ internal class FeatureRegistryScriptSection
 
         foreach (var scriptEffect in activeState.Effects.OfType<ScriptEffect>())
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
             {
                 continue;
@@ -242,8 +233,6 @@ internal class FeatureRegistryScriptSection
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution only. The option's preset ScriptVariables are already
-            // baked into ScriptEffect.Script.
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 foreach (var kvp in customValues)
@@ -294,7 +283,6 @@ internal class FeatureRegistryScriptSection
         // expressing intent to configure, not to reset.
         bool useEnabled = configItem.CustomStateValues?.Count > 0 || configItem.IsSelected == true;
 
-        // The deliberate no-intent behavior documented above: a no-intent shape emits nothing.
         if (!useEnabled)
         {
             return;
@@ -302,7 +290,6 @@ internal class FeatureRegistryScriptSection
 
         foreach (var scriptEffect in catalogSetting.CustomStateScripts)
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
             {
                 continue;
@@ -310,10 +297,7 @@ internal class FeatureRegistryScriptSection
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution - the ONLY placeholder source on this path (no SelectedIndex
-            // means no preset option, so no ScriptVariables merge source exists): OrdinalIgnoreCase keys, null
-            // values skipped, ToString() ?? "", literal {{key}} Replace; unmatched placeholders survive (the DNS
-            // DoH script self-guards on a literal {{dohtemplate}}).
+            // Unmatched placeholders survive: the DNS DoH script self-guards on a literal {{dohtemplate}}.
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -362,14 +346,11 @@ internal class FeatureRegistryScriptSection
         bool isHkcu,
         string indent)
     {
-        // Action one-shot: emit only when the user selected it (matches the Action branch's IsSelected == true guard).
         if (configItem.IsSelected != true)
             return;
 
-        // Registry pass runs before the script pass.
         _registryEmitter.AppendActionRegistryCommandsFromCatalog(sb, catalogSetting, isHkcu, indent);
 
-        // Script pass: setting-level ScriptEffects.
         AppendActionScriptsFromCatalog(sb, catalogSetting, configItem, isHkcu, indent);
     }
 
@@ -383,14 +364,11 @@ internal class FeatureRegistryScriptSection
     {
         foreach (var scriptEffect in catalogSetting.Effects.OfType<ScriptEffect>())
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
                 continue;
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution only (an Action has no ComboBox-option ScriptVariables, so
-            // that source is absent).
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 foreach (var kvp in customValues)

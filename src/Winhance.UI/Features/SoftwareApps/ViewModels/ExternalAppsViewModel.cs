@@ -58,8 +58,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         ItemsView.Filter = FilterItem;
         AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
-        // Initialize partial property defaults (after Items/ItemsView,
-        // since OnSearchTextChanged uses ItemsView)
+        // Must come after ItemsView: OnSearchTextChanged uses it.
         StatusText = "Ready";
         SearchText = string.Empty;
     }
@@ -214,9 +213,9 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     private Task? _loadTask;
 
     // Exactly once, idempotent: startup triggers this from two independent paths (StartupUiCoordinator, and
-    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard let both through -
-    // IsInitialized is only set when the load FINISHES - so two full passes clobbered Items and raced over
-    // icon-cache .tmp files. Now the first caller starts the load and every other caller awaits the same Task, on
+    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard is not enough -
+    // IsInitialized is only set when the load FINISHES - so two full passes would clobber Items and race over
+    // icon-cache .tmp files. The first caller starts the load and every other caller awaits the same Task, on
     // the UI thread with a SynchronizationContext so continuations stay UI-affine.
     [RelayCommand]
     public Task LoadAppsAndCheckInstallationStatusAsync()

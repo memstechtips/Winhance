@@ -39,8 +39,7 @@ public static class StateDetectionEngine
                 return state.Label;
         }
 
-        // Nothing matched: resolve to the catch-all fallback state if the setting declares one
-        // (replaces ResolveUnmatchedToDefault), else Custom.
+        // Nothing matched: resolve to the catch-all fallback state if the setting declares one, else Custom.
         return fallback?.Label;
     }
 }

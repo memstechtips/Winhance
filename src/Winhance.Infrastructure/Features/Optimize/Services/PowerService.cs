@@ -13,7 +13,7 @@ public class PowerService(
 {
 
     // Dead stub, always false: power-plan apply runs through the catalog engine (ApplyRequestResolver ->
-    // PowerPlanActivateOp -> WindowsStateWriter), so PowerService is no longer an apply handler.
+    // PowerPlanActivateOp -> WindowsStateWriter), so PowerService is not an apply handler.
     public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
 
@@ -34,7 +34,6 @@ public class PowerService(
             {
                 logService.Log(LogLevel.Warning, $"[PowerService] Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
 
-                // If the ghost is active, switch to Balanced first
                 if (matchingPlan.IsActive)
                 {
                     var balancedGuid = Guid.Parse("381b4222-f694-41f0-9685-ff5bb260df2e");

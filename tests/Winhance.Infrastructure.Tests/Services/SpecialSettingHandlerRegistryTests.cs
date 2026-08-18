@@ -1,4 +1,3 @@
-// File: tests/Winhance.Infrastructure.Tests/Services/SpecialSettingHandlerRegistryTests.cs
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;

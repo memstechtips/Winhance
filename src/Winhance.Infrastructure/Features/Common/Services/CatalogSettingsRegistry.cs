@@ -37,8 +37,8 @@ public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 
         // Resolve powercfg existence ONCE over the OS-version-INDEPENDENT candidate set (hardware-passing settings
         // that validate existence). Existence is machine-state (GUID presence), orthogonal to the OS-build gate, so
-        // one resolution serves BOTH scopes and matches the old registry's bypass-set existence pass. FilterAsync
-        // keeps a setting that passed (or does not require) existence; cache the surviving ids.
+        // one resolution serves BOTH scopes. FilterAsync keeps a setting that passed (or does not require) existence;
+        // cache the surviving ids.
         var candidates = SettingCatalog.All
             .Where(s => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, _caps) && s.Availability.ValidatesExistence)
             .ToList();

@@ -12,8 +12,6 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-// Nothing survives the exit, a value written outside a review cannot land, and - by reflection, so it stays
-// true for properties nobody has written yet - dropping the overlay notifies every property that reads from it.
 public class SettingItemViewModelReviewStateTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();
@@ -72,8 +70,6 @@ public class SettingItemViewModelReviewStateTests
         vm.IsReviewActionApproved = true;
         return vm;
     }
-
-    // ── The overlay is the state ──
 
     [Fact]
     public void IsInReviewMode_ReflectsWhetherAnOverlayExists()
@@ -156,8 +152,6 @@ public class SettingItemViewModelReviewStateTests
         sut.IsReviewApproved.Should().BeFalse(
             because: "review values belong to a review; one landing outside it is the contamination the overlay prevents");
     }
-
-    // ── Behaviour the old observable properties had, preserved ──
 
     [Fact]
     public void ApprovingAfterRejecting_ClearsTheRejection()

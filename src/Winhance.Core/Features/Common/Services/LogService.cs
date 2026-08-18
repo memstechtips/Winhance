@@ -56,7 +56,6 @@ public class LogService : ILogService, IDisposable
     {
         try
         {
-            // Ensure directory exists
             var logDirectory = Path.GetDirectoryName(_logPath);
             if (logDirectory != null)
             {
@@ -67,16 +66,13 @@ public class LogService : ILogService, IDisposable
                 throw new InvalidOperationException("Log directory path is null.");
             }
 
-            // Clean up old log files before creating a new one
             CleanupOldLogs(logDirectory, maxAgeDays: 30, maxFiles: 50);
 
-            // Create or overwrite log file
             _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
             {
                 AutoFlush = true
             };
 
-            // Write initial log header with diagnostic info
             if (_systemInfoProvider != null)
             {
                 var info = _systemInfoProvider.Collect();
@@ -103,7 +99,6 @@ public class LogService : ILogService, IDisposable
         }
         catch (Exception ex)
         {
-            // Re-throw so caller can handle/log the error
             throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
         }
     }
@@ -173,21 +168,19 @@ public class LogService : ILogService, IDisposable
 
             var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
 
-            // Delete files older than maxAgeDays
             for (int i = logFiles.Count - 1; i >= 0; i--)
             {
                 if (logFiles[i].CreationTimeUtc < cutoff)
                 {
                     try { logFiles[i].Delete(); logFiles.RemoveAt(i); }
-                    catch { /* best-effort cleanup */ }
+                    catch { }
                 }
             }
 
-            // If still over maxFiles, delete the oldest
             while (logFiles.Count > maxFiles)
             {
                 try { logFiles[0].Delete(); }
-                catch { /* best-effort cleanup */ }
+                catch { }
                 logFiles.RemoveAt(0);
             }
         }
@@ -213,7 +206,6 @@ public class LogService : ILogService, IDisposable
         }
     }
 
-    // Implement IDisposable pattern to ensure logs are stopped
     public void Dispose()
     {
         StopLog();

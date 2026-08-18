@@ -36,7 +36,6 @@ public class VersionService : IVersionService
     {
         try
         {
-            // Get the assembly version
             Assembly assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
             string? location = assembly.Location;
 
@@ -50,14 +49,12 @@ public class VersionService : IVersionService
             var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0";
 
-            // Trim any build metadata (anything after the + symbol)
             int plusIndex = version.IndexOf('+');
             if (plusIndex > 0)
             {
                 version = version.Substring(0, plusIndex);
             }
 
-            // If the version doesn't start with 'v', add it
             if (!version.StartsWith('v'))
             {
                 version = $"v{version}";
@@ -74,7 +71,6 @@ public class VersionService : IVersionService
 
     public async Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
-        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
@@ -98,7 +94,6 @@ public class VersionService : IVersionService
                     ? "Checking for updates..."
                     : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
-                // Get the latest release information from GitHub API
                 using var request = new HttpRequestMessage(HttpMethod.Get, _latestReleaseApiUrl);
                 request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
                 HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -107,7 +102,6 @@ public class VersionService : IVersionService
                 string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(responseBody);
 
-                // Extract the tag name (version) from the response
                 string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
                 string htmlUrl = doc.RootElement.GetProperty("html_url").GetString() ?? string.Empty;
                 DateTime publishedAt = doc.RootElement.TryGetProperty("published_at", out JsonElement publishedElement) &&
@@ -117,7 +111,6 @@ public class VersionService : IVersionService
 
                 var latestVersion = VersionInfo.FromTag(tagName);
 
-                // Compare with current version
                 VersionInfo currentVersion = GetCurrentVersion();
                 latestVersion = latestVersion with { IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion) };
 
@@ -159,7 +152,6 @@ public class VersionService : IVersionService
 
     public async Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
     {
-        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
@@ -172,7 +164,6 @@ public class VersionService : IVersionService
 
         _logService.Log(LogLevel.Info, "Downloading update...");
 
-        // Create a temporary file to download the installer
         string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
 
         // Download the installer using streaming to avoid loading the entire file into memory
@@ -217,7 +208,6 @@ public class VersionService : IVersionService
         });
     }
 
-    // WINHANCE_LOCAL_INSTALLER is a dev override; inert in normal user runs.
     private string? TryGetLocalInstallerOverride()
     {
         string? path = Environment.GetEnvironmentVariable(LocalInstallerEnvVar);
@@ -246,7 +236,6 @@ public class VersionService : IVersionService
 
     private VersionInfo CreateDefaultVersion()
     {
-        // Create a default version based on the current date
         DateTime now = DateTime.Now;
         string versionTag = $"v{now.Year - 2000:D2}.{now.Month:D2}.{now.Day:D2}";
 

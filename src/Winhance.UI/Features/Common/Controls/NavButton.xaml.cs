@@ -14,7 +14,6 @@ namespace Winhance.UI.Features.Common.Controls;
 
 public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 {
-    // Expanded dimensions
     private const double ExpandedWidth = 70;
     private const double ExpandedHeight = 60;
 
@@ -24,8 +23,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<NavButtonClickedEventArgs>? Clicked;
-
-    #region Dependency Properties
 
     public static readonly DependencyProperty IconSymbolProperty =
         DependencyProperty.Register(
@@ -90,10 +87,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(NavButton),
             new PropertyMetadata(string.Empty, OnBadgePropertyChanged));
 
-    #endregion
-
-    #region Properties
-
     public string? IconSymbol
     {
         get => (string?)GetValue(IconSymbolProperty);
@@ -154,7 +147,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     private const double ExpandedIconSize = 20;
     private const double CompactIconSize = 16;
 
-    // Computed properties for bindings
     public double ActualButtonWidth => IsCompact ? CompactWidth : ExpandedWidth;
     public double ActualButtonHeight => IsCompact ? CompactHeight : ExpandedHeight;
     public double IconSize => IsCompact ? CompactIconSize : ExpandedIconSize;
@@ -163,13 +155,9 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
     public double ContentOpacity => IsLocked ? 0.4 : 1.0;
 
-    // Icon visibility - show the Fluent icon when a symbol name is set
     public Visibility FluentIconVisibility => !string.IsNullOrEmpty(IconSymbol) ? Visibility.Visible : Visibility.Collapsed;
 
-    // Badge visibility
     public Visibility BadgeVisibility => BadgeValue >= 0 || BadgeStatus == "SuccessIcon" ? Visibility.Visible : Visibility.Collapsed;
-
-    #endregion
 
     private bool _isPointerOver;
     private bool _isFocused;
@@ -180,7 +168,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         this.InitializeComponent();
         UpdateVisualState();
 
-        // Keyboard and focus accessibility
         KeyDown += NavButton_KeyDown;
         GotFocus += NavButton_GotFocus;
         LostFocus += NavButton_LostFocus;
@@ -219,8 +206,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         _isFocused = false;
         UpdateVisualState();
     }
-
-    #region Property Change Handlers
 
     private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -299,7 +284,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         {
             button.NotifyPropertyChanged(nameof(FluentIconVisibility));
 
-            // Parse the Fluent icon name and apply it to the FluentIcon element.
             // Icon is an enum, so it can't be x:Bind'd directly from the string DP.
             if (!string.IsNullOrEmpty(button.IconSymbol) && button.ButtonFluentIcon is not null
                 && Enum.TryParse<FluentIcons.Common.Icon>(button.IconSymbol, ignoreCase: true, out var fluentIcon))
@@ -308,10 +292,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             }
         }
     }
-
-    #endregion
-
-    #region Pointer Events
 
     private void RootGrid_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
@@ -327,7 +307,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Block interaction when locked
         if (IsLocked) return;
 
         RootGrid.CapturePointer(e.Pointer);
@@ -337,41 +316,29 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     {
         RootGrid.ReleasePointerCapture(e.Pointer);
 
-        // Block interaction when locked
         if (IsLocked) return;
 
-        // Only fire click if pointer is still over the button
         if (_isPointerOver)
         {
             Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
         }
     }
 
-    #endregion
-
-    #region Visual State Management
-
     private void UpdateVisualState()
     {
-        // Determine background based on state
         if (IsSelected)
         {
-            // Selected state: use tertiary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
         }
         else if ((_isPointerOver || _isFocused) && !IsLocked)
         {
-            // Hover/Focus state: use secondary fill
             BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
         }
         else
         {
-            // Normal state: transparent
             BackgroundBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         }
     }
-
-    #endregion
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
     {

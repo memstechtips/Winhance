@@ -3,8 +3,8 @@ namespace Winhance.Core.Features.Common.Catalog;
 public sealed record ApplyBehavior
 {
     public bool RequiresConfirmation { get; init; }
-    public bool RequiresReboot { get; init; }            // old RequiresRestart (system)
-    public RestartTarget? Restart { get; init; }         // old RestartProcess / RestartService, unified
+    public bool RequiresReboot { get; init; }
+    public RestartTarget? Restart { get; init; }
 
     public WindowsChange NotifyWindows { get; init; }
 

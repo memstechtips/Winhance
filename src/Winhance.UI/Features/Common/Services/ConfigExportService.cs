@@ -362,7 +362,6 @@ public class ConfigExportService : IConfigExportService
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
     {
-        // The show-other-Windows-versions scope is threaded explicitly onto the catalog registry read.
         var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         int totalOptimizeSettings = 0;
@@ -387,8 +386,7 @@ public class ConfigExportService : IConfigExportService
                 continue;
             }
 
-            // Read state from the full-state provider via its catalog Setting overload. This service reads no
-            // RawValues (custom-state goes through Readings).
+            // This service reads no RawValues; custom-state goes through Readings.
             var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
@@ -402,12 +400,6 @@ public class ConfigExportService : IConfigExportService
                     InputType = ControlToInputType(setting.Control)
                 };
 
-                // The loop variable IS the catalog Setting, so the export dispatch reads it directly (Control /
-                // PowerCfgTarget.Mode). Selection maps to Control in {Selection, PowerPlan} (power-plan is
-                // Control.PowerPlan, exported via the Selection path). The InputType persistence WRITE above
-                // STAYS and is LOAD-BEARING: ConfigMigrationService gates its Toggle->Selection import
-                // migrations on the persisted configItem.InputType, and it seeds the view-model InputType on
-                // config import (SettingItemViewModel) - the exact ControlToInputType map keeps those readers correct.
                 bool isToggle = setting.Control == ControlKind.Toggle;
                 bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
                 bool isNumericRange = setting.Control == ControlKind.Slider;
@@ -578,7 +570,6 @@ public class ConfigExportService : IConfigExportService
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
         GetSelectionStateFromState(Setting setting, SettingStateResult? state)
     {
-        // The "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
         bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
         if (!isSelection)
             return (null, null, null, null);
@@ -605,7 +596,6 @@ public class ConfigExportService : IConfigExportService
             // Read the live custom-state registry values from Readings (keyed by ValueName ?? "KeyExists").
             if (state.Readings != null)
             {
-                // Source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists").
                 var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {

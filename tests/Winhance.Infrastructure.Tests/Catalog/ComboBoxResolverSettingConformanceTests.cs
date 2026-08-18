@@ -144,7 +144,7 @@ public class ComboBoxResolverSettingConformanceTests
     {
         var resolver = new ComboBoxResolver(StubVersion());
         // Same shape, but option C is ALSO the IsFallback catch-all -> even a present, unmatched reading resolves
-        // to it (the old ResolveUnmatchedToDefault behaviour; ComboBoxResolver.cs:241).
+        // to it (ComboBoxResolver.cs:241).
         var setting = MakeRegSelection(windowsDefaultIndex: 2, fallbackIndex: 2);
         Assert.Equal(2, resolver.ResolveRawValuesToIndex(setting, new Dictionary<string, object?> { ["Val"] = 999 }));
     }

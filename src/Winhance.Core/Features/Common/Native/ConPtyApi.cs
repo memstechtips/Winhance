@@ -6,15 +6,11 @@ namespace Winhance.Core.Features.Common.Native;
 // progress output. Windows 10 build 17763 (1809) and later.
 public static class ConPtyApi
 {
-    // Process creation flags
     public const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
     public const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
 
-    // Pseudo console flags
     public const uint PSEUDOCONSOLE_INHERIT_CURSOR = 0x1;
 
-    // Thread attribute
-    // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016
     public static readonly IntPtr PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = (IntPtr)0x00020016;
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -84,8 +80,6 @@ public static class ConPtyApi
         ref SECURITY_ATTRIBUTES lpPipeAttributes,
         uint nSize);
 
-    // Structs
-
     [StructLayout(LayoutKind.Sequential)]
     public struct COORD
     {
@@ -147,7 +141,6 @@ public static class ConPtyApi
         public int dwThreadId;
     }
 
-    // Wait constants
     public const uint WAIT_OBJECT_0 = 0x00000000;
     public const uint INFINITE = 0xFFFFFFFF;
     public const uint STILL_ACTIVE = 259;

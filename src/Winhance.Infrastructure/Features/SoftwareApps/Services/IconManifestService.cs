@@ -23,7 +23,6 @@ public class IconManifestService(HttpClient httpClient, ILogService logService) 
         lock (_loadGate)
         {
             var existing = _loadTask;
-            // Reuse a still-running load, or a completed one that succeeded.
             if (existing is not null && (!existing.IsCompleted || existing.Result))
                 return existing;
             return _loadTask = LoadCoreAsync(ct);

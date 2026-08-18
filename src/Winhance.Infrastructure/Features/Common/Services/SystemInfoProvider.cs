@@ -99,7 +99,6 @@ public class SystemInfoProvider : ISystemInfoProvider
             var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "Unknown";
 
-            // Trim build metadata
             int plusIndex = version.IndexOf('+');
             if (plusIndex > 0)
                 version = version.Substring(0, plusIndex);
@@ -179,7 +178,6 @@ public class SystemInfoProvider : ISystemInfoProvider
 
             foreach (var row in rows)
             {
-                // DeviceType
                 try
                 {
                     if (row.GetValueOrDefault("PCSystemType") != null)
@@ -198,15 +196,13 @@ public class SystemInfoProvider : ISystemInfoProvider
                         };
                     }
 
-                    // Detect virtual machines from Model/Manufacturer
                     string model = (row.GetValueOrDefault("Model") as string ?? "").Trim();
                     string manufacturer = (row.GetValueOrDefault("Manufacturer") as string ?? "").Trim();
                     if (IsVirtualMachine(model, manufacturer))
                         deviceType += " (Virtual Machine)";
                 }
-                catch { /* field failure */ }
+                catch { }
 
-                // RAM
                 try
                 {
                     if (row.GetValueOrDefault("TotalPhysicalMemory") != null)
@@ -216,9 +212,8 @@ public class SystemInfoProvider : ISystemInfoProvider
                         ram = $"{totalGb} GB";
                     }
                 }
-                catch { /* field failure */ }
+                catch { }
 
-                // Domain
                 try
                 {
                     if (row.GetValueOrDefault("PartOfDomain") != null)
@@ -235,10 +230,9 @@ public class SystemInfoProvider : ISystemInfoProvider
                         }
                     }
                 }
-                catch { /* field failure */ }
+                catch { }
             }
 
-            // Fallback to ChassisTypes if PCSystemType wasn't conclusive
             if (deviceType == "Unknown" || deviceType.StartsWith("Other"))
             {
                 try
@@ -247,7 +241,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                     if (chassisResult != "Unknown")
                         deviceType = chassisResult;
                 }
-                catch { /* fallback failure */ }
+                catch { }
             }
         }
         catch
@@ -296,7 +290,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 }
             }
         }
-        catch { /* fallback failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -315,7 +309,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 return cores > 0 ? $"{name} ({cores} cores)" : name;
             }
         }
-        catch { /* query failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -356,7 +350,6 @@ public class SystemInfoProvider : ISystemInfoProvider
         if (dacType.Equals("Internal", StringComparison.OrdinalIgnoreCase))
             return "Integrated";
 
-        // Name-based heuristics for integrated GPUs
         if (nameLower.Contains("intel") && (nameLower.Contains("uhd") || nameLower.Contains("hd graphics")
             || nameLower.Contains("iris")))
             return "Integrated";
@@ -412,7 +405,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 };
             }
         }
-        catch { /* P/Invoke failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -433,7 +426,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 return enabled == 1 ? "Enabled" : "Disabled";
             }
         }
-        catch { /* registry failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -457,7 +450,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 }
             }
         }
-        catch { /* WMI failure — TPM may not exist */ }
+        catch { }
 
         return "Not Detected";
     }

@@ -28,10 +28,6 @@ public class ConfigurationServiceTests
             _mockDialogService.Object);
     }
 
-    // -------------------------------------------------------
-    // ExportConfigurationAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ExportConfigurationAsync_DelegatesToConfigExportService()
     {
@@ -40,10 +36,6 @@ public class ConfigurationServiceTests
 
         _mockConfigExportService.Verify(e => e.ExportConfigurationAsync(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // ImportConfigurationAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ImportConfigurationAsync_WhenUserCancels_DoesNotProceed()
@@ -81,8 +73,8 @@ public class ConfigurationServiceTests
         await service.ImportConfigurationAsync();
 
         _mockConfigLoadService.Verify(l => l.LoadAndValidateConfigurationFromFileAsync(), Times.Once);
-        // L5: the import entry point ensure-inits the CATALOG registry (idempotent InitializeAsync) --
-        // the degraded-startup self-heal (7d/7f precedent). Red if the ensure-init call is dropped.
+        // The import entry point ensure-inits the catalog registry (idempotent InitializeAsync) as the
+        // degraded-startup self-heal. Red if the ensure-init call is dropped.
         _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
     }
 
@@ -220,10 +212,6 @@ public class ConfigurationServiceTests
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // CreateUserBackupConfigAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task CreateUserBackupConfigAsync_DelegatesToExportService()
     {
@@ -232,10 +220,6 @@ public class ConfigurationServiceTests
 
         _mockConfigExportService.Verify(e => e.CreateUserBackupConfigAsync(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewedConfigAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ApplyReviewedConfigAsync_DelegatesToOrchestrationService()
@@ -247,10 +231,6 @@ public class ConfigurationServiceTests
             r => r.ApplyReviewedConfigAsync(),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // CancelReviewModeAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task CancelReviewModeAsync_DelegatesToOrchestrationService()

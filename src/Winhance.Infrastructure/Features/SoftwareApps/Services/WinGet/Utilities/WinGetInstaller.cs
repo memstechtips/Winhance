@@ -1,5 +1,3 @@
-// Native C# WinGet installer using PowerShell Add-AppxProvisionedPackage for machine-wide provisioning,
-// with PackageManager WinRT API fallback.
 using System.IO.Compression;
 using System.Text;
 using Windows.Management.Deployment;
@@ -35,14 +33,12 @@ public class WinGetInstaller
     public async Task<(bool Success, string Message)> InstallAsync(
         CancellationToken cancellationToken = default)
     {
-        // Option 1: Use bundled winget to install Microsoft.AppInstaller (fastest, no download needed)
         var bundledResult = await TryInstallViaBundledWinGetAsync(cancellationToken).ConfigureAwait(false);
         if (bundledResult.Success)
         {
             return bundledResult;
         }
 
-        // Option 2a: Try to provision the existing staged App Installer package
         ReportProgress(0, GetString("Progress_WinGet_CheckingExisting"));
         var existingResult = await TryProvisionExistingPackageAsync(cancellationToken).ConfigureAwait(false);
         if (existingResult.Success)
@@ -50,7 +46,6 @@ public class WinGetInstaller
             return existingResult;
         }
 
-        // Option 2b: Download from GitHub and provision
         _logService?.LogInformation("No existing App Installer package found, downloading from GitHub...");
 
         var tempDir = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinGetInstall");
@@ -65,7 +60,6 @@ public class WinGetInstaller
             var installerPath = _fileSystemService.CombinePath(tempDir, InstallerFileName);
             var licensePath = _fileSystemService.CombinePath(tempDir, LicenseFileName);
 
-            // Download all files in parallel (0-45%)
             // Only the installer (largest file) drives the progress bar; deps & license download silently alongside it.
             ReportProgress(0, GetString("Progress_WinGet_DownloadingComponents"));
             await Task.WhenAll(
@@ -74,12 +68,10 @@ public class WinGetInstaller
                 DownloadFileAsync($"{GitHubBaseUrl}/{LicenseFileName}", licensePath, "License", false, 0, 0, cancellationToken)
             ).ConfigureAwait(false);
 
-            // Extract dependencies (45-55%)
             ReportProgress(45, GetString("Progress_WinGet_ExtractingDependencies"));
             var extractPath = _fileSystemService.CombinePath(tempDir, "Dependencies");
             await ExtractDependenciesAsync(dependenciesPath, extractPath).ConfigureAwait(false);
 
-            // Provision for all users (55-100%)
             ReportProgress(55, GetString("Progress_WinGet_InstallingMachineWide"));
             await InstallProvisionedAsync(installerPath, extractPath, licensePath, cancellationToken).ConfigureAwait(false);
 
@@ -133,18 +125,14 @@ public class WinGetInstaller
                 {
                     try
                     {
-                        // Skip progress bar lines re-emitted as permanent output by ConPTY's \r\n handling
                         if (IsProgressBarLine(line))
                             return;
 
-                        // Translate raw resource keys to human-readable text
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
-                        // Log the translated line (skip noise and suppressed lines)
                         if (!IsWinGetOutputNoise(line) && displayLine != null)
                             _logService?.LogInformation($"[bundled-winget] {displayLine}");
 
-                        // Parse progress and report to the TaskProgressControl terminal output
                         var parsed = WinGetProgressParser.ParseLine(line);
                         if (parsed != null)
                         {
@@ -186,7 +174,6 @@ public class WinGetInstaller
                     }
                     catch (Exception ex)
                     {
-                        // Never let progress reporting errors kill the install
                         _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
                     }
                 },
@@ -273,7 +260,6 @@ public class WinGetInstaller
         if (trimmed.Contains('█') || trimmed.Contains('▒'))
             return true;
 
-        // Spinner characters (single char lines like " - ", " \ ", " | ", " / ")
         if (trimmed.Length <= 2 && (trimmed == "-" || trimmed == "\\" || trimmed == "|" || trimmed == "/"))
             return true;
 
@@ -287,7 +273,6 @@ public class WinGetInstaller
         {
             _logService?.LogInformation("Checking for existing staged App Installer package...");
 
-            // Look for existing App Installer package in common locations
             var existingPackagePath = FindExistingAppInstallerPackage();
 
             if (string.IsNullOrEmpty(existingPackagePath))
@@ -317,14 +302,10 @@ public class WinGetInstaller
 
     private string? FindExistingAppInstallerPackage()
     {
-        // Common locations where App Installer package might exist
         var searchPaths = new[]
         {
-            // Windows provisioning packages directory
             @"C:\Windows\Provisioning\Packages",
-            // System apps staging area
             @"C:\Windows\SystemApps",
-            // InboxApps staging (Windows 10/11)
             @"C:\Windows\InboxApps",
         };
 
@@ -348,13 +329,11 @@ public class WinGetInstaller
                     var files = _fileSystemService.GetFiles(basePath, pattern, SearchOption.AllDirectories);
                     if (files.Length > 0)
                     {
-                        // Return the most recently modified file
                         return files.OrderByDescending(f => _fileSystemService.GetLastWriteTime(f)).First();
                     }
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    // Skip directories we can't access
                 }
                 catch (Exception ex)
                 {
@@ -432,7 +411,6 @@ public class WinGetInstaller
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Get architecture-specific dependencies
         var arch = Common.Utilities.ArchitectureHelper.GetCurrentArchitecture();
         var allAppxFiles = _fileSystemService.GetFiles(dependenciesPath, "*.appx", SearchOption.AllDirectories);
         var dependencyPackages = allAppxFiles
@@ -445,7 +423,6 @@ public class WinGetInstaller
             ? new[] { licensePath }
             : null;
 
-        // Try PowerShell Add-AppxProvisionedPackage first, fall back to PackageManager WinRT API
         try
         {
             ReportProgress(60, GetString("Progress_WinGet_Provisioning"));
@@ -510,7 +487,6 @@ public class WinGetInstaller
         {
             dependencyUris = dependencyPackages.Select(p => new Uri(p)).ToList();
 
-            // Install dependencies first individually (some may already be installed)
             foreach (var depUri in dependencyUris)
             {
                 try

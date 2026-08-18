@@ -29,7 +29,6 @@ public class ConfigMigrationService : IConfigMigrationService
     {
         if (config == null) return;
 
-        // Walk Customize features
         if (config.Customize?.Features != null)
         {
             foreach (var kvp in config.Customize.Features)
@@ -38,7 +37,6 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk Optimize features
         if (config.Optimize?.Features != null)
         {
             foreach (var kvp in config.Optimize.Features)
@@ -47,10 +45,8 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk WindowsApps
         MigrateSection(config.WindowsApps, "WindowsApps");
 
-        // Walk ExternalApps
         MigrateSection(config.ExternalApps, "ExternalApps");
     }
 
@@ -91,11 +87,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // The "action" option (e.g., "Remove")
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // The "default" option (e.g., "Keep"/"Show")
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -134,11 +130,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == false)
         {
-            item.SelectedIndex = 2; // Force Deny — what the user intended
+            item.SelectedIndex = 2;
         }
         else
         {
-            item.SelectedIndex = 0; // User in Control (default)
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -157,11 +153,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // Transparent
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // Windows default
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;

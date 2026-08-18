@@ -23,10 +23,6 @@ public class SettingStatusBannerManagerTests
         _manager = new SettingStatusBannerManager(_mockLocalizationService.Object);
     }
 
-    // ──────────────────────────────────────────────────
-    // ComputeBannerForValue
-    // ──────────────────────────────────────────────────
-
     [Fact]
     public void ComputeBannerForValue_IntValue_NoWarningsNoCrossGroupNoCompat_ReturnsClear()
     {
@@ -72,7 +68,6 @@ public class SettingStatusBannerManagerTests
     {
         var optionWarnings = new string?[] { null, "Security risk!" };
 
-        // index 0 has no warning
         var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 2, null);
 
         result.Should().NotBeNull();
@@ -93,7 +88,6 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_WithCrossGroupMessage_NonCustomIndex_ReturnsClear()
     {
-        // index 0 is not the Custom option
         var result = _manager.ComputeBannerForValue(0, null, "Cross-group info message", 3, null);
 
         result.Should().NotBeNull();
@@ -129,42 +123,31 @@ public class SettingStatusBannerManagerTests
         result!.Value.Message.Should().BeNull();
     }
 
-    // ──────────────────────────────────────────────────
-    // GetRestartBanner
-    // ──────────────────────────────────────────────────
-
     [Fact]
     public void GetRestartBanner_NoRestartRequired_ReturnsNull()
     {
-        // Act
         var result = _manager.GetRestartBanner(false, true);
 
-        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public void GetRestartBanner_NotChangedThisSession_ReturnsNull()
     {
-        // Act
         var result = _manager.GetRestartBanner(true, hasChangedThisSession: false);
 
-        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public void GetRestartBanner_RequiresRestartAndChangedThisSession_ReturnsWarningBanner()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Common_RestartRequired"))
             .Returns("Restart your PC to apply changes.");
 
-        // Act
         var result = _manager.GetRestartBanner(true, hasChangedThisSession: true);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Value.Message.Should().Be("Restart your PC to apply changes.");
         result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
@@ -173,24 +156,16 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void GetRestartBanner_RequiresRestartAndChanged_CallsLocalizationService()
     {
-        // Act
         _manager.GetRestartBanner(true, hasChangedThisSession: true);
 
-        // Assert
         _mockLocalizationService.Verify(l => l.GetString("Common_RestartRequired"), Times.Once);
     }
-
-    // ──────────────────────────────────────────────────
-    // BannerState record struct
-    // ──────────────────────────────────────────────────
 
     [Fact]
     public void BannerState_Clear_HasNullMessageAndInformationalSeverity()
     {
-        // Act
         var clear = SettingStatusBannerManager.BannerState.Clear;
 
-        // Assert
         clear.Message.Should().BeNull();
         clear.Severity.Should().Be(InfoBarSeverity.Informational);
     }

@@ -42,7 +42,6 @@ public class StartupOrchestrator : IStartupOrchestrator
     {
         bool isFirstLaunch = false;
 
-        // 1. Initialize the catalog settings registry
         statusProgress.Report("Loading_InitializingSettings");
         StartupLogger.Log("StartupOrchestrator", "Phase 1: Initializing settings registry...");
         try
@@ -82,7 +81,6 @@ public class StartupOrchestrator : IStartupOrchestrator
             _logService.LogWarning($"Startup phase 1 failed: {ex.Message}");
         }
 
-        // 2. User backup config (first-run only)
         try
         {
             var backupCompleted = _preferencesService.GetPreference(
@@ -123,7 +121,6 @@ public class StartupOrchestrator : IStartupOrchestrator
             _logService.LogWarning($"User backup config failed: {ex.Message}");
         }
 
-        // 3. Script migration
         try
         {
             statusProgress.Report("Loading_MigratingScripts");
@@ -137,7 +134,6 @@ public class StartupOrchestrator : IStartupOrchestrator
             _logService.LogWarning($"Script migration failed: {ex.Message}");
         }
 
-        // 4. Script updates
         try
         {
             statusProgress.Report("Loading_CheckingScripts");

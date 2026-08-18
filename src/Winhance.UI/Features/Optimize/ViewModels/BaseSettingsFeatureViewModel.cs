@@ -36,7 +36,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
-    // Related-card refresh coalescing (Item B): a burst of relationship applies is drained once by a ~300ms
+    // Related-card refresh coalescing: a burst of relationship applies is drained once by a ~300ms
     // UI-thread debounce timer. The pending set is guarded (mutated off the UI thread in QueueRelatedRefresh,
     // drained on the UI thread in OnRelatedRefreshTick); the timer is created and driven only on the UI thread.
     private readonly object _relatedRefreshLock = new();
@@ -113,7 +113,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _applicationModeService = applicationModeService ?? throw new ArgumentNullException(nameof(applicationModeService));
 
-        // Initialize partial property defaults
         Settings = new ObservableCollection<SettingItemViewModel>();
         GroupedSettings = new ObservableCollection<SettingsGroup>();
         IsExpanded = true;
@@ -225,8 +224,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         RefreshRelatedStatesAsync(subset).FireAndForget(_logService);
     }
 
-    // Re-reads the given subset's live state via the existing lightweight primitive and applies each result on the
-    // UI thread - the body of RefreshSettingStatesAsync scoped to a subset. Swallow-logs failures.
     private async Task RefreshRelatedStatesAsync(IReadOnlyList<SettingItemViewModel> subset)
     {
         try
@@ -250,7 +247,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    // (a) Registry-surface overlap: the applied setting WROTE some (path, valueName) pairs (its ApplyOnly targets
+    // Registry-surface overlap: the applied setting WROTE some (path, valueName) pairs (its ApplyOnly targets
     // are included - they are written), and the candidate READS an overlapping pair, so the candidate's card is now
     // stale. The candidate side EXCLUDES its own ApplyOnly targets - written on apply but never read on detect, so
     // overlap through them cannot stale the card. Every entry of Paths (a mirror list) is compared,
@@ -283,8 +280,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         return pairs;
     }
 
-    // (b) UiParent family: the candidate is a sibling under the applied setting's (non-null) UiParent, the applied
-    // setting's parent, or a child whose UiParentId is the applied setting.
     private static bool IsUiParentFamily(Setting applied, Setting candidate)
     {
         if (!string.IsNullOrEmpty(applied.UiParentId)
@@ -356,10 +351,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
 
-            // Reset the loaded flag to allow reloading
             _settingsLoaded = false;
 
-            // Clear and reload settings
             if (Settings?.Any() == true)
             {
                 foreach (var setting in Settings.OfType<IDisposable>())
@@ -420,7 +413,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                             setting.UpdateVisibility(value);
                         }
 
-                        // If parent matches search, show all its children too
                         foreach (var kvp in _childrenByParentId)
                         {
                             if (_settingsById.TryGetValue(kvp.Key, out var parent) && parent.IsVisible)
@@ -430,7 +422,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                             }
                         }
 
-                        // If any child matches search, ensure its parent is visible
                         foreach (var kvp in _childrenByParentId)
                         {
                             if (kvp.Value.Any(c => c.IsVisible))
@@ -494,7 +485,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 if (!string.IsNullOrEmpty(setting.SettingId))
                     newSettingsById[setting.SettingId] = setting;
 
-                // Index children by their parent ID for fast lookup when parent changes
                 var parentId = setting.EffectiveUiParentId;
                 if (!string.IsNullOrEmpty(parentId))
                 {
@@ -509,7 +499,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _settingsById = newSettingsById;
             _childrenByParentId = newChildrenByParentId;
 
-            // Populate Children collections on parent ViewModels for SettingsExpander rendering
             foreach (var kvp in newChildrenByParentId)
             {
                 if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
@@ -613,28 +602,23 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    // ---------------------------------------------------------------------------------------------
     // THE PRESENTATION GATE - one implementation, four callers.
     //
     // A card is greyed only when its catalog DECLARES an EnabledWhen and the setting that names is
-    // currently outside the declared states. Nesting under a UiParentId no longer gates anything:
+    // currently outside the declared states. Nesting under a UiParentId does not gate anything:
     // "nested under" and "meaningless unless" are different facts, and only the setting's author knows
-    // the second one. What this replaced was a comparison of the parent's selected INDEX against zero,
-    // written out twice - positional superstition that greyed both Windows-theme sub-toggles on every
-    // stock Windows 11 install, because "Light Mode" happens to be state 0.
+    // the second one. Do not gate on the parent's selected INDEX being non-zero either - that greyed both
+    // Windows-theme sub-toggles on every stock Windows 11 install, because "Light Mode" happens to be state 0.
     //
     // Every path that can move a card's state in NORMAL mode ends here: the initial load, an apply
-    // event, the navigation refresh (RefreshSettingStatesAsync) and the related-refresh debounce. The
-    // last two never touched the gate before, so a child that changed its parent left every sibling
-    // holding a stale verdict until the page was rebuilt. Recomputing the whole list costs one pass
-    // over a few dozen cards, so there is no reason to work out which cards could have changed.
+    // event, the navigation refresh (RefreshSettingStatesAsync) and the related-refresh debounce.
+    // Recomputing the whole list costs one pass over a few dozen cards, so there is no reason to work
+    // out which cards could have changed.
     //
-    // Builder mode is the one gap left, unchanged: it authors un-applied state with no
+    // Builder mode is the one gap: it authors un-applied state with no
     // SettingAppliedEvent, and both refresh paths deliberately skip it so a live re-read cannot clobber
     // what the user is authoring - so a gate holds its load-time verdict until Builder exit, which
     // reloads from live state anyway.
-    // ---------------------------------------------------------------------------------------------
-
     private void RefreshDeclaredGates()
     {
         if (Settings is null)

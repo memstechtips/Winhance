@@ -59,7 +59,7 @@ public class CatalogDiscoveryPrecedenceTests
     [Fact]
     public void Preference_on_with_absent_mirror_reads_enabled() // the 29-diff bug case
     {
-        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 }); // Enabled=1; GP + mirror absent
+        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
         Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
@@ -67,14 +67,14 @@ public class CatalogDiscoveryPrecedenceTests
     public void Group_policy_override_wins_over_preference()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Gpo, "DisabledByGroupPolicy")] = 1 });
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // GP forces off despite Enabled=1
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Nothing_present_falls_to_default_on_fallback()
     {
-        var ctx = new Ctx(new()); // everything absent
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // default-on via .OrAbsent fallback
+        var ctx = new Ctx(new());
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]

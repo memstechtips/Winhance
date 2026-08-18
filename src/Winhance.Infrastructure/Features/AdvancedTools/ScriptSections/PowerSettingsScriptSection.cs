@@ -222,9 +222,6 @@ internal class PowerSettingsScriptSection
             if (catalogSetting.Id == SettingIds.PowerPlanSelection)
                 continue;
 
-            // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
-            // keyed by the powercfg SettingGuid.
-
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
             if (powerCfgTargets.Count == 0)
                 continue;

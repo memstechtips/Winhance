@@ -33,10 +33,6 @@ public class WindowsVersionFilterServiceTests
             _mockLogService.Object);
     }
 
-    // -------------------------------------------------------
-    // IsFilterEnabled default
-    // -------------------------------------------------------
-
     [Fact]
     public void IsFilterEnabled_DefaultsToTrue()
     {
@@ -44,10 +40,6 @@ public class WindowsVersionFilterServiceTests
 
         service.IsFilterEnabled.Should().BeTrue();
     }
-
-    // -------------------------------------------------------
-    // LoadFilterPreferenceAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task LoadFilterPreferenceAsync_LoadsPreferenceFromStore()
@@ -133,10 +125,6 @@ public class WindowsVersionFilterServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // ToggleFilterAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ToggleFilterAsync_WhenInReviewMode_ReturnsFalse()
     {
@@ -171,7 +159,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false }); // Confirmed, checkbox not checked
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false });
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -191,7 +179,7 @@ public class WindowsVersionFilterServiceTests
     {
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
-            .ReturnsAsync(true); // Don't show again
+            .ReturnsAsync(true);
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -219,7 +207,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false }); // Cancelled
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
         var service = CreateService();
         var originalState = service.IsFilterEnabled;
@@ -243,7 +231,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = true }); // Confirmed and checkbox checked
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = true });
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<bool>()))
@@ -271,7 +259,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false }); // Confirmed but checkbox not checked
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false });
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -291,19 +279,19 @@ public class WindowsVersionFilterServiceTests
     {
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
-            .ReturnsAsync(true); // Skip dialog
+            .ReturnsAsync(true);
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
         var service = CreateService();
-        service.IsFilterEnabled.Should().BeTrue(); // Default is true
+        service.IsFilterEnabled.Should().BeTrue();
 
         var result = await service.ToggleFilterAsync(isInReviewMode: false);
 
         result.Should().BeTrue();
-        service.IsFilterEnabled.Should().BeFalse(); // Toggled to false
+        service.IsFilterEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -470,7 +458,6 @@ public class WindowsVersionFilterServiceTests
 
         var service = CreateService();
 
-        // Should not throw; fallback strings are used
         await service.ToggleFilterAsync(isInReviewMode: false);
 
         _mockDialogService.Verify(
@@ -483,15 +470,11 @@ public class WindowsVersionFilterServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // ForceFilterOn
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ForceFilterOn_WhenFilterAlreadyEnabled_DoesNothing()
     {
         var service = CreateService();
-        service.IsFilterEnabled.Should().BeTrue(); // Already true
+        service.IsFilterEnabled.Should().BeTrue();
 
         bool eventFired = false;
         service.FilterStateChanged += (_, _) => eventFired = true;
@@ -505,7 +488,6 @@ public class WindowsVersionFilterServiceTests
     [Fact]
     public async Task ForceFilterOn_WhenFilterDisabled_EnablesFilter()
     {
-        // First disable the filter via toggle
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
             .ReturnsAsync(true);
@@ -514,10 +496,9 @@ public class WindowsVersionFilterServiceTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         var service = CreateService();
-        await service.ToggleFilterAsync(isInReviewMode: false); // Now false
+        await service.ToggleFilterAsync(isInReviewMode: false);
         service.IsFilterEnabled.Should().BeFalse();
 
-        // Reset mock call tracking
         _mockEventBus.Invocations.Clear();
 
         service.ForceFilterOn();
@@ -539,7 +520,7 @@ public class WindowsVersionFilterServiceTests
             .ReturnsAsync(OperationResult.Succeeded());
 
         var service = CreateService();
-        await service.ToggleFilterAsync(isInReviewMode: false); // Now false
+        await service.ToggleFilterAsync(isInReviewMode: false);
 
         bool? receivedState = null;
         service.FilterStateChanged += (_, state) => receivedState = state;
@@ -549,38 +530,28 @@ public class WindowsVersionFilterServiceTests
         receivedState.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // RestoreFilterPreferenceAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task RestoreFilterPreferenceAsync_WhenSavedPreferenceDiffers_RestoresIt()
     {
-        // Service starts with IsFilterEnabled = true
         var service = CreateService();
 
-        // ForceFilterOn was called (no change since already true), but saved pref is false
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, true))
             .ReturnsAsync(false);
 
-        // First toggle to false so we can test restore back to the saved pref
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
             .ReturnsAsync(true);
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, false))
             .ReturnsAsync(OperationResult.Succeeded());
-        await service.ToggleFilterAsync(isInReviewMode: false); // Now false
+        await service.ToggleFilterAsync(isInReviewMode: false);
 
-        // Force back on
-        service.ForceFilterOn(); // Now true
+        service.ForceFilterOn();
         service.IsFilterEnabled.Should().BeTrue();
 
-        // Clear invocations for clean verification
         _mockEventBus.Invocations.Clear();
 
-        // Restore should bring it back to saved value (false)
         await service.RestoreFilterPreferenceAsync();
 
         service.IsFilterEnabled.Should().BeFalse();
@@ -597,7 +568,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, true))
-            .ReturnsAsync(true); // Same as current
+            .ReturnsAsync(true);
 
         await service.RestoreFilterPreferenceAsync();
 
@@ -607,14 +578,11 @@ public class WindowsVersionFilterServiceTests
     [Fact]
     public async Task RestoreFilterPreferenceAsync_FiresFilterStateChangedEvent_WhenStateChanges()
     {
-        // Start with filter enabled (default true), force the saved pref to be false
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, true))
             .ReturnsAsync(false);
 
-        // We need to make IsFilterEnabled different from saved. Force it to true first via LoadFilter with true
         var service = CreateService();
-        // Default is true, saved is false, so they differ
 
         bool? receivedState = null;
         service.FilterStateChanged += (_, state) => receivedState = state;
@@ -624,16 +592,12 @@ public class WindowsVersionFilterServiceTests
         receivedState.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // Double-toggle returns to original state
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ToggleFilterAsync_TwiceReturnsToOriginalState()
     {
         _mockPreferencesService
             .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
-            .ReturnsAsync(true); // Skip dialog
+            .ReturnsAsync(true);
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.EnableWindowsVersionFilter, It.IsAny<bool>()))
@@ -648,10 +612,6 @@ public class WindowsVersionFilterServiceTests
         service.IsFilterEnabled.Should().Be(originalState);
     }
 
-    // -------------------------------------------------------
-    // User cancels dialog but checkbox was checked
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ToggleFilterAsync_UserCancelsButChecksBox_SavesDontShowButDoesNotToggle()
     {
@@ -665,7 +625,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = true }); // Cancelled but checkbox checked
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = true });
 
         _mockPreferencesService
             .Setup(p => p.SetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, true))
@@ -679,7 +639,6 @@ public class WindowsVersionFilterServiceTests
         result.Should().BeFalse();
         service.IsFilterEnabled.Should().Be(originalState);
 
-        // The "don't show" pref should still be saved even though toggle was cancelled
         _mockPreferencesService.Verify(
             p => p.SetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, true),
             Times.Once);

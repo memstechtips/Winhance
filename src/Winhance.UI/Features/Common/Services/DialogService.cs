@@ -29,7 +29,6 @@ public class DialogService : IDialogService
         _sponsorsService = sponsorsService;
     }
 
-    // A semi-transparent background lets the window's Mica/Acrylic backdrop show through the dialog.
     private void ConfigureDialog(ContentDialog dialog)
     {
         dialog.XamlRoot = XamlRoot;
@@ -58,8 +57,6 @@ public class DialogService : IDialogService
         };
     }
 
-    #region Guard Helpers
-
     private async Task<T> ExecuteDialogAsync<T>(Func<Task<T>> dialogAction, T defaultValue)
     {
         await _dialogSemaphore.WaitAsync();
@@ -83,10 +80,6 @@ public class DialogService : IDialogService
         await ExecuteDialogAsync(async () => { await dialogAction(); return true; }, true);
     }
 
-    #endregion
-
-    #region Simple Dialogs
-
     private async Task ShowSimpleDialogAsync(string message, string title, string buttonText)
     {
         await ExecuteDialogAsync(async () =>
@@ -105,7 +98,6 @@ public class DialogService : IDialogService
 
     public void ShowMessage(string message, string title = "")
     {
-        // Fire-and-forget for non-async message display
         _ = ShowInformationAsync(message, title);
     }
 
@@ -117,8 +109,6 @@ public class DialogService : IDialogService
 
     public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
         => await ShowSimpleDialogAsync(message, title, buttonText);
-
-    #endregion
 
     public async Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode)
     {
@@ -202,7 +192,6 @@ public class DialogService : IDialogService
                     IsChecked = confirmationRequest.CheckboxInitiallyChecked
                 };
 
-                // Announce checkbox state changes to Narrator
                 checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
                     $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}",
@@ -225,7 +214,7 @@ public class DialogService : IDialogService
                 SecondaryButtonText = confirmationRequest.SecondaryButtonText,
                 CloseButtonText = confirmationRequest.CancelButtonText,
                 // A three-button dialog defaults Enter to Cancel (the safe choice); the classic
-                // two-button shape keeps Primary, as before.
+                // two-button shape keeps Primary.
                 DefaultButton = confirmationRequest.SecondaryButtonText is null
                     ? ContentDialogButton.Primary
                     : ContentDialogButton.Close

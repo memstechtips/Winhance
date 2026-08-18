@@ -34,8 +34,6 @@ public class WindowsStateWriterTests
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
         new("key", new[] { Path }, valueName, kind);
 
-    // --- WriteRegistry: CreateKey-first, then SetValue ---
-
     [Fact]
     public void WriteRegistry_CreatesKeyThenSetsValue()
     {
@@ -47,9 +45,6 @@ public class WindowsStateWriterTests
         _reg.Verify(r => r.CreateKey(Path), Times.Once);
         _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
     }
-
-    // --- ActivatePowerPlan: delegate to IPowerPlanActivationService.EnsureActivatedAsync
-    //     (import-if-missing + activate + InvalidateCache); a cheap guard still rejects an invalid GUID. ---
 
     [Fact]
     public void ActivatePowerPlan_DelegatesToActivationService_AndReturnsTrueOnSuccess()
@@ -67,7 +62,6 @@ public class WindowsStateWriterTests
     [Fact]
     public void ActivatePowerPlan_ReturnsFalse_OnInvalidGuid()
     {
-        // The cheap up-front guard rejects an unparseable GUID without reaching the activation service.
         _sut.ActivatePowerPlan("not-a-guid").Should().BeFalse();
 
         _activation.Verify(a => a.EnsureActivatedAsync(It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
@@ -93,8 +87,6 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
     }
-
-    // --- DeleteRegistry: named value -> DeleteValue; ValueName-less -> DeleteKey ---
 
     [Fact]
     public void DeleteRegistry_NamedValue_DeletesValue()
@@ -147,8 +139,6 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.LockRegistryKey(Path), Times.Once);
     }
-
-    // --- Binary surgical edits: CreateKey-first, then Modify ---
 
     [Fact]
     public void SetRegistryBit_CreatesKeyThenModifiesBit()
@@ -203,8 +193,6 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.SetCompositeSubValue(Path, ValueName, "SubKey", "1"), Times.Once);
     }
-
-    // --- Per-sub-key (per-NIC / per-monitor): live enumeration, write/delete under each ---
 
     [Fact]
     public void WriteRegistryPerSubkey_EnumeratesAndWritesUnderEachSubkey()
@@ -265,8 +253,6 @@ public class WindowsStateWriterTests
         _reg.Verify(r => r.DeleteValue(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    // --- Scheduled task: enable/disable, result.Success passthrough ---
-
     [Fact]
     public void SetTask_WhenEnabled_EnablesTask()
     {
@@ -297,13 +283,9 @@ public class WindowsStateWriterTests
         _sut.SetTask(new TaskTarget("key", @"\MS\Win\Foo"), enabled: true).Should().BeFalse();
     }
 
-    // --- RunEffect: dispatch each effect to the right service (NativePowerEffect calls the static PowerProf
-    //     P/Invoke directly, so it is review + apply-smoke gated, not unit-tested here). ---
-
     // Script and .reg effects launch a process, so ApplyExecutor defers them to IAsyncEffectRunner and
     // they must never reach this synchronous writer. If one does, that is a routing bug: it fails loudly
     // rather than falling through to the permissive unknown-effect default.
-
     [Fact]
     public void RunEffect_Script_IsRejected_BecauseItShouldHaveBeenDeferred()
     {

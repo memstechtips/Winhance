@@ -41,10 +41,8 @@ public class TechnicalDetailsBuilderTests
         Options = optionLabels.Select(l => new ComboBoxDisplayOption(l, 0)).ToList(),
     };
 
-    // ---------------------------------------------------------------------------------------------
     // Scheduled tasks — the catalog authors Of(true)/Of(false), so DeleteOnWrite is false for BOTH
     // states. Reading DeleteOnWrite made every task setting report "On" for current/recommended/default.
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting TaskSetting() => new()
     {
@@ -68,10 +66,8 @@ public class TechnicalDetailsBuilderTests
         ],
     };
 
-    // ---------------------------------------------------------------------------------------------
     // Script labels — a Selection whose states aren't literally named "Enabled"/"Disabled" used to
     // render every script block as "On Enable" because the label was matched against English text.
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting ThreeStateScriptSetting() => new()
     {
@@ -132,10 +128,6 @@ public class TechnicalDetailsBuilderTests
         blocks.Should().OnlyContain(b => b.Kind == CodeKind.PowerShell);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Options — values are named, so a bare "5, 1" can't happen
-    // ---------------------------------------------------------------------------------------------
-
     private static Setting TwoKeySelection() => new()
     {
         Id = "uac",
@@ -162,9 +154,7 @@ public class TechnicalDetailsBuilderTests
         ],
     };
 
-    // ---------------------------------------------------------------------------------------------
     // .reg-driven settings — the RegTarget is a detection probe, not the change
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting RegContentSetting() => new()
     {
@@ -200,10 +190,6 @@ public class TechnicalDetailsBuilderTests
         code.Should().OnlyContain(b => b.Kind == CodeKind.RegFile);
         code.Select(b => b.Label).Should().Equal("When set to On", "When set to Off");
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // The option matrix: options are rows, the values they write are columns
-    // ---------------------------------------------------------------------------------------------
 
     private static OptionMatrix MatrixOf(OptionMatrix? matrix) =>
         matrix.Should().NotBeNull().And.Subject.As<OptionMatrix>();
@@ -325,10 +311,6 @@ public class TechnicalDetailsBuilderTests
         matrix.Options.Should().OnlyContain(o => o.Cells[scriptColumn].IsCheck);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The live-readings row exists only when no option matched
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void Reading_IsAbsentWhenDetectionResolvedToAnOption()
     {
@@ -373,10 +355,6 @@ public class TechnicalDetailsBuilderTests
         matrix.ReadingLabel.Should().Be("Winhance could not read this");
         matrix.ReadingCells.Select(c => c.Text).Should().Equal("unknown", "unknown");
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Column groups: the destination sits directly above the values it owns
-    // ---------------------------------------------------------------------------------------------
 
     [Fact]
     public void Group_CarriesTheMechanismAndThePath()
@@ -569,9 +547,6 @@ public class TechnicalDetailsBuilderTests
         matrix.Options.Where(o => o.IsCurrent).Select(o => o.Label)
             .Should().BeEquivalentTo(["15 Minutes", "5 Minutes"]);
     }
-    // ---------------------------------------------------------------------------------------------
-    // Power — the DC line is omitted when the machine has no battery
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting PowerNumericSetting() => new()
     {
@@ -588,12 +563,6 @@ public class TechnicalDetailsBuilderTests
         },
     };
 
-
-
-    // ---------------------------------------------------------------------------------------------
-    // Sections
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void Build_WithNoSetting_ReturnsNothing()
     {
@@ -605,8 +574,6 @@ public class TechnicalDetailsBuilderTests
     {
         var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["A", "B"]);
 
-        // Build used to return a list of sections of polymorphic rows. Every row kind has since been
-        // folded into the table, so there is one thing to return and one thing to assert on.
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
 
         matrix.Columns.Should().NotBeEmpty();
@@ -642,11 +609,6 @@ public class TechnicalDetailsBuilderTests
             "Explorer is no longer killed on apply -- the user restarts it from the banner when ready");
 
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Actions -- one row, the values they write as columns, and the confirm checkbox described
-    // underneath rather than the action's own writes
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting ActionSetting() => new()
     {

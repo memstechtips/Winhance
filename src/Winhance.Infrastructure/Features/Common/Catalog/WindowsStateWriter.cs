@@ -18,8 +18,7 @@ public sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerPlanActivationService _activation;
     private readonly ILogService _log;
 
-    // No IPowerShellRunner / IRegImportService here any more: the two effects that used them launch a
-    // process, so they are deferred to IAsyncEffectRunner instead of being blocked on at this boundary.
+    // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
     public WindowsStateWriter(
         IWindowsRegistryService reg,
         IScheduledTaskStateService tasks,
@@ -34,12 +33,8 @@ public sealed class WindowsStateWriter : IStateWriter
         _log = log;
     }
 
-    // --- Registry: delegate to the primitives (CreateKey, SetValue, DeleteValue,
-    //     DeleteKey, ModifyBinaryBit, ModifyBinaryByte, SetCompositeSubValue, GetSubKeyNames). ---
-
     public bool WriteRegistry(RegTarget target, string path, object value)
     {
-        // Plain-value path: CreateKey parent first, then SetValue.
         if (!_reg.CreateKey(path))
             return false;
         return _reg.SetValue(path, target.ValueName!, value, target.Type);
@@ -56,7 +51,6 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool EnsureRegistryKey(RegTarget target, string path)
     {
-        // Key-existence "on" state: create the key.
         return _reg.CreateKey(path);
     }
 
@@ -66,7 +60,6 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set)
     {
-        // Bit branch: CreateKey first, then ModifyBinaryBit (12-byte default array handled inside).
         if (!_reg.CreateKey(path))
             return false;
         return _reg.ModifyBinaryBit(path, target.ValueName!, byteIndex, bitMask, set);
@@ -74,7 +67,6 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value)
     {
-        // Byte branch: CreateKey first, then ModifyBinaryByte.
         if (!_reg.CreateKey(path))
             return false;
         return _reg.ModifyBinaryByte(path, target.ValueName!, byteIndex, value);
@@ -82,7 +74,6 @@ public sealed class WindowsStateWriter : IStateWriter
 
     public bool SetRegistryStringFlag(RegTarget target, string path, int flagMask, int absentBase, bool set)
     {
-        // Flag branch: read-modify-write of a decimal-string flags value, preserving unrelated bits.
         // An absent or unparseable current value starts from the OS-default base rather than 0.
         if (!_reg.CreateKey(path))
             return false;
@@ -102,7 +93,6 @@ public sealed class WindowsStateWriter : IStateWriter
     public bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value)
     {
         // Per-NIC / per-monitor: enumerate the parent's sub-keys LIVE per call and write the value under each.
-        // No sub-keys -> false.
         var subKeys = _reg.GetSubKeyNames(parentPath);
         if (subKeys.Length == 0)
         {
@@ -140,19 +130,13 @@ public sealed class WindowsStateWriter : IStateWriter
         return allSucceeded;
     }
 
-    // --- Scheduled task ---
-
     public bool SetTask(TaskTarget target, bool enabled) =>
         _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
-
-    // --- Powercfg ---
 
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
         // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the
         // native P/Invoke already lives and is exercised by the powercfg apply-smoke.
         _powerCfg.WriteValueIndex(target, context, value);
-
-    // --- Effects (apply-only side-effects a state runs on apply) ---
 
     public bool RunEffect(Effect effect)
     {
@@ -173,7 +157,6 @@ public sealed class WindowsStateWriter : IStateWriter
                 return PowerProf.CallNtPowerInformation(n.InformationLevel, ref value, 1, IntPtr.Zero, 0) == 0;
 
             case RegistryWriteEffect w:
-                // Apply-only registry write (an Action's enabled-branch value write): CreateKey then SetValue.
                 if (!_reg.CreateKey(w.Path))
                     return false;
                 return _reg.SetValue(w.Path, w.ValueName, w.Value, w.Kind);
@@ -184,14 +167,10 @@ public sealed class WindowsStateWriter : IStateWriter
         }
     }
 
-    // --- Power plan (dynamic-option) activation ---
-
     public bool ActivatePowerPlan(string guid)
     {
-        // Delegate to IPowerPlanActivationService: import-if-missing for a predefined-but-not-installed plan,
-        // then activate, then InvalidateCache. A cheap guard rejects an empty/unparseable GUID up front (keeps
-        // EnsureActivatedAsync's empty-GUID throw off the sync-over-async boundary). Sync-over-async at the
-        // writer boundary.
+        // EnsureActivatedAsync imports a predefined-but-not-installed plan first, then activates and invalidates the cache.
+        // The guard keeps its empty-GUID throw off the sync-over-async boundary.
         if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out _))
         {
             _log.Log(LogLevel.Error, $"[WindowsStateWriter] ActivatePowerPlan: invalid GUID '{guid}'");

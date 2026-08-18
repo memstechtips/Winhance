@@ -99,7 +99,7 @@ internal sealed class ConPtyProcess : IDisposable
                 using var proc = System.Diagnostics.Process.GetProcessById(pi.dwProcessId);
                 proc.Kill(entireProcessTree: true);
             }
-            catch { /* Best-effort process kill — process may have already exited */ }
+            catch { }
         });
 
         var readTask = Task.Run(() =>
@@ -129,7 +129,6 @@ internal sealed class ConPtyProcess : IDisposable
             string.Empty); // ConPTY merges stderr into stdout
     }
 
-    // VT100 parser states
     private enum VtState { Normal, EscSeen, Csi, Osc }
 
     // Safety limits — abandon malformed sequences that exceed these lengths
@@ -238,7 +237,6 @@ internal sealed class ConPtyProcess : IDisposable
                         break;
                 }
 
-                // Normal mode
                 if (c == '\x1b')
                 {
                     vtState = VtState.EscSeen;
@@ -299,7 +297,6 @@ internal sealed class ConPtyProcess : IDisposable
     // background colour or cursor positioning, invisible after VT stripping - so U+2591 is inserted for the track.
     private static string FillProgressBarTrack(string line)
     {
-        // Find the contiguous run of block characters (U+2588–U+258F)
         int barStart = -1;
         int barEnd = -1;
         for (int i = 0; i < line.Length; i++)
@@ -311,21 +308,20 @@ internal sealed class ConPtyProcess : IDisposable
             }
             else if (barStart >= 0)
             {
-                break; // End of contiguous block run
+                break;
             }
         }
 
         if (barStart < 0)
-            return line; // No block characters — not a progress bar
+            return line;
 
         int filledCount = barEnd - barStart + 1;
 
-        // Winget bar width is 30 cells
         const int BarWidth = 30;
         int unfilledCount = BarWidth - filledCount;
 
         if (unfilledCount <= 0)
-            return line; // Bar is full or wider — no track to add
+            return line;
 
         // Find where the text content starts after the bar area.
         // Skip any trailing spaces (these are the invisible unfilled area
@@ -336,12 +332,12 @@ internal sealed class ConPtyProcess : IDisposable
 
         // Rebuild: [prefix before bar][filled blocks][░ unfilled track][  text]
         var sb = new StringBuilder(line.Length + unfilledCount);
-        sb.Append(line, 0, barEnd + 1);          // Everything up to and including last block
-        sb.Append('\u2591', unfilledCount);        // ░ unfilled track
+        sb.Append(line, 0, barEnd + 1);
+        sb.Append('\u2591', unfilledCount);
         if (afterBar < line.Length)
         {
-            sb.Append("  ");                       // Separator
-            sb.Append(line, afterBar, line.Length - afterBar); // Remaining text
+            sb.Append("  ");
+            sb.Append(line, afterBar, line.Length - afterBar);
         }
 
         return sb.ToString();

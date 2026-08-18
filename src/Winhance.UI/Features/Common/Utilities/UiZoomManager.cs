@@ -11,8 +11,8 @@ namespace Winhance.UI.Features.Common.Utilities;
 // applying a ScaleTransform(factor) - DPI-like reflow without nested scrollbars.
 public class UiZoomManager
 {
-    private readonly FrameworkElement _viewport; // measures available space (row-4 cell)
-    private readonly FrameworkElement _zoomHost; // inverse-sized + scaled content host
+    private readonly FrameworkElement _viewport;
+    private readonly FrameworkElement _zoomHost;
     private readonly ScaleTransform _scale;
     private readonly IUserPreferencesService _preferences;
     private readonly ILogService _logService;

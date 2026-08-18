@@ -17,16 +17,13 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     private bool _lastTerminalLineWasProgress;
     private CancellationTokenSource? _cancellationSource;
 
-    // Queue sticky state
     private int _queueTotal;
     private int _queueCurrent;
     private string? _queueNextItemName;
 
-    // Multi-script slot state
     private int _activeScriptSlotCount;
     private string[]? _scriptSlotNames;
 
-    // Skip-next flag
     private volatile bool _skipNextRequested;
 
     public bool IsTaskRunning => _isTaskRunning;
@@ -49,7 +46,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
     public CancellationTokenSource StartTask(string taskName, bool isIndeterminate = false)
     {
-        // Cancel any existing task
         CancelCurrentTask();
 
         if (string.IsNullOrEmpty(taskName))
@@ -69,7 +65,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}"); // Corrected Log call
+        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}");
         AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
         OnProgressChanged(
             new TaskProgressDetail
@@ -104,12 +100,12 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             _logService.Log(
                 LogLevel.Info,
                 $"Task progress ({progressPercentage}%): {statusText}"
-            ); // Corrected Log call
+            );
             AddLogMessage($"Task progress ({progressPercentage}%): {statusText}");
         }
         else
         {
-            _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%"); // Corrected Log call
+            _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%");
             AddLogMessage($"Task progress: {progressPercentage}%");
         }
         OnProgressChanged(
@@ -146,10 +142,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         _isIndeterminate = detail.IsIndeterminate;
 
-        // Accumulate terminal output lines for the details dialog,
-        // filtering out noise (blank lines).
-        // Always remove the last progress line
-        // before adding ANY new line. This handles:
+        // Always remove the last progress line before adding ANY new line. This handles:
         //   progress → progress: replacement (progress bar filling)
         //   progress → permanent: cleanup (stale progress/spinner removed)
         //   permanent → permanent: normal append
@@ -184,7 +177,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         if (!string.IsNullOrEmpty(detail.DetailedMessage))
         {
-            _logService.Log(detail.LogLevel, detail.DetailedMessage); // Corrected Log call
+            _logService.Log(detail.LogLevel, detail.DetailedMessage);
             AddLogMessage(detail.DetailedMessage);
         }
         OnProgressChanged(detail);
@@ -204,7 +197,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}"); // Corrected Log call
+        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}");
         AddLogMessage($"Task completed: {_currentStatusText}");
 
         OnProgressChanged(
@@ -216,7 +209,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             }
         );
 
-        // Dispose cancellation token source
         _cancellationSource?.Dispose();
         _cancellationSource = null;
     }
@@ -272,7 +264,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Multi-script task started with {scriptNames.Length} slots");
 
-        // Fire initial progress for each slot
         for (int i = 0; i < scriptNames.Length; i++)
         {
             ProgressUpdated?.Invoke(this, new TaskProgressDetail
@@ -298,11 +289,9 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             detail.ScriptSlotIndex = slotIndex;
             detail.ScriptSlotCount = slotCount;
 
-            // Prefix terminal output with script name when multiple scripts run in parallel
             if (slotName != null && slotCount > 1 && !string.IsNullOrEmpty(detail.TerminalOutput))
                 detail.TerminalOutput = $"[{slotName}] {detail.TerminalOutput}";
 
-            // Accumulate terminal output for the details dialog
             if (!string.IsNullOrEmpty(detail.TerminalOutput)
                 && !IsTerminalNoise(detail.TerminalOutput))
             {
@@ -363,14 +352,12 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     // Multi-script updates (ScriptSlotCount > 0) bypass the sticky-queue logic.
     protected virtual void OnProgressChanged(TaskProgressDetail detail)
     {
-        // Multi-script updates bypass sticky queue logic entirely
         if (detail.ScriptSlotCount > 0)
         {
             ProgressUpdated?.Invoke(this, detail);
             return;
         }
 
-        // Update sticky queue state if incoming detail has queue info
         if (detail.QueueTotal > 0)
         {
             _queueTotal = detail.QueueTotal;
@@ -378,7 +365,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             _queueNextItemName = detail.QueueNextItemName;
         }
 
-        // Always populate queue info from sticky state if we're in a queue
         if (_queueTotal > 1)
         {
             detail.QueueTotal = _queueTotal;
@@ -397,7 +383,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         return string.IsNullOrEmpty(trimmed);
     }
 
-    // At the cap the oldest 10% of lines are discarded.
     private void AddTerminalOutputLine(string line)
     {
         if (_terminalOutputLines.Count >= MaxTerminalOutputLines)

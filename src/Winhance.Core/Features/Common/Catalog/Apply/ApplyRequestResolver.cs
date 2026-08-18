@@ -113,10 +113,9 @@ public static class ApplyRequestResolver
                 // per-ValueName values for a "Custom"/no-option state). Route to BuildRegistryCustomState for a PLAIN
                 // registry selection - every target a plain-value RegTarget (no per-NIC/monitor/composite, with a
                 // ValueName). This applies the raw per-ValueName registry values ONLY: a per-option PowerShell script
-                // is NOT run on a Custom-state import, because a "Custom" state is not one of the named options
-                // (Marco 2026-07-03 - the old executor ran an arbitrary enable-direction script here, which was
-                // incoherent for a no-option state). The normal option apply (int index) still runs the option's
-                // script via the state's Effects; only this raw custom-state re-apply is registry-only.
+                // is NOT run on a Custom-state import, because a "Custom" state is not one of the named options.
+                // The normal option apply (int index) still runs the option's script via the state's Effects; only this raw
+                // custom-state re-apply is registry-only.
                 if (value is Dictionary<string, object> customValues
                     && setting.Targets.Count > 0
                     && setting.Targets.All(t => t is RegTarget
@@ -152,7 +151,7 @@ public static class ApplyRequestResolver
                 }
                 return null;
 
-            default: // anything else
+            default:
                 return null;
         }
     }

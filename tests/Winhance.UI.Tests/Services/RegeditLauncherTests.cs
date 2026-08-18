@@ -20,10 +20,6 @@ public class RegeditLauncherTests
             _mockLogService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
@@ -31,10 +27,6 @@ public class RegeditLauncherTests
 
         act.Should().NotThrow();
     }
-
-    // -------------------------------------------------------
-    // OpenAtPath - normal mode
-    // -------------------------------------------------------
 
     [Fact]
     public void OpenAtPath_InNormalMode_CallsShellExecuteForRegedit()
@@ -59,7 +51,6 @@ public class RegeditLauncherTests
         }
         catch
         {
-            // Best-effort - the method silently catches all exceptions
         }
 
         // In normal mode, ShellExecuteAsync should have been called (or attempted)
@@ -74,7 +65,6 @@ public class RegeditLauncherTests
 
         var sut = CreateSut();
 
-        // This should not throw - the method catches all exceptions
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
     }
 
@@ -108,10 +98,6 @@ public class RegeditLauncherTests
         sut.OpenAtPath(@"Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft");
     }
 
-    // -------------------------------------------------------
-    // OpenAtPath - OTS mode
-    // -------------------------------------------------------
-
     [Fact]
     public void OpenAtPath_InOtsMode_CallsLaunchProcessAsInteractiveUser()
     {
@@ -130,7 +116,6 @@ public class RegeditLauncherTests
             // Registry write may fail in test context, but the method catches all exceptions
         }
 
-        // In OTS mode, it should try to launch as interactive user
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser("regedit.exe", ""),
             Times.AtMostOnce);
@@ -147,7 +132,6 @@ public class RegeditLauncherTests
 
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // Without token, should NOT use LaunchProcessAsInteractiveUser
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
@@ -164,15 +148,10 @@ public class RegeditLauncherTests
 
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // Without SID, OTS condition is false
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
-
-    // -------------------------------------------------------
-    // OpenAtPath - exception handling
-    // -------------------------------------------------------
 
     [Fact]
     public void OpenAtPath_WhenExceptionOccurs_DoesNotThrow()
@@ -188,7 +167,6 @@ public class RegeditLauncherTests
 
         var act = () => sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // The method should silently catch all exceptions
         act.Should().NotThrow();
     }
 
@@ -197,8 +175,6 @@ public class RegeditLauncherTests
     {
         var sut = CreateSut();
 
-        // Null path might cause issues in string operations but
-        // the method catches all exceptions
         var act = () => sut.OpenAtPath(null!);
 
         act.Should().NotThrow();

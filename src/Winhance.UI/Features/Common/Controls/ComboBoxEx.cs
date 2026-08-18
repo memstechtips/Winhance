@@ -23,7 +23,6 @@ public partial class ComboBoxEx : ComboBox
         // ListView for navigation between settings cards instead of cycling selection
         if (!IsDropDownOpen && (e.Key == VirtualKey.Up || e.Key == VirtualKey.Down))
         {
-            // Don't call base — let the event bubble for ListView navigation
             return;
         }
 
@@ -32,7 +31,6 @@ public partial class ComboBoxEx : ComboBox
 
     protected override void OnDropDownOpened(object e)
     {
-        // Use cached width, or fall back to ActualWidth if not yet measured
         var widthToApply = _cachedWidth > 0 ? _cachedWidth : ActualWidth;
         if (widthToApply > 0)
             Width = widthToApply;

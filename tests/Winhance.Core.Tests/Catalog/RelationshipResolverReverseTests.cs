@@ -25,12 +25,9 @@ public class RelationshipResolverReverseTests
                 : states.Select(s => s.HasRole(RoleKind.WindowsDefault) ? s : s with { Links = links }).ToList(),
         };
 
-    // ---- reverse cascade ----
-
     [Fact]
     public void Broken_requirement_resets_an_active_dependent()
     {
-        // dependent "a" requires "b" in "On"; a is currently active ("On"); b just moved to "Off"
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
         var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
             id => id == "a" ? "On" : "Off", default);
@@ -41,7 +38,6 @@ public class RelationshipResolverReverseTests
     public void Requirement_still_met_resets_nothing()
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        // b moved to "On" - still satisfies the requirement
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On", default));
     }
 
@@ -49,7 +45,6 @@ public class RelationshipResolverReverseTests
     public void Dependent_already_at_default_is_not_reset()
     {
         var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        // requirement broken (b=Off) but a is already at its default "Off"
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => "Off", default));
     }
 
@@ -61,8 +56,6 @@ public class RelationshipResolverReverseTests
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => id == "a" ? "On" : "Off", default));
     }
 
-    // ---- reverse sync ----
-
     [Fact]
     public void Parent_snaps_when_all_children_match_an_option()
     {
@@ -71,7 +64,6 @@ public class RelationshipResolverReverseTests
             St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
             St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
         });
-        // both children currently Off -> matches "Deny"; parent currently "Allow"
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id == "p" ? "Allow" : "Off");
         Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny" && !x.IsReset);
@@ -85,7 +77,6 @@ public class RelationshipResolverReverseTests
             St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
             St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
         });
-        // c1 Off, c2 On -> matches neither option fully
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id switch { "c1" => "Off", "c2" => "On", _ => "Allow" }));
     }
@@ -98,7 +89,6 @@ public class RelationshipResolverReverseTests
             St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
             St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
         });
-        // children all Off (matches Deny) and parent already "Deny"
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
             id => id == "p" ? "Deny" : "Off"));
     }

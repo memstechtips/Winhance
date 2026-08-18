@@ -28,7 +28,6 @@ public class RecommendedConfigConformanceTests
     {
         var config = LoadRecommendedConfig();
 
-        // In-scope items: the two settings feature-group sections only (NOT WindowsApps / ExternalApps).
         var items = config.Customize.Features.Values
             .Concat(config.Optimize.Features.Values)
             .SelectMany(section => section.Items)
@@ -38,7 +37,6 @@ public class RecommendedConfigConformanceTests
         var presentCanonicalIds = new HashSet<string>(StringComparer.Ordinal);
         int checkedWithRecommendation = 0;
 
-        // FORWARD: every config item that maps to a setting WITH a recommendation must store the recommended value.
         foreach (var item in items)
         {
             var canonicalId = SettingIdAliases.Normalize(item.Id);
@@ -72,7 +70,6 @@ public class RecommendedConfigConformanceTests
                 $"[missing] recommended setting '{setting.Id}' ({setting.Control}) is absent from the Recommended config.");
         }
 
-        // Guardrails against a vacuous pass (a scoping / deserialization regression).
         Assert.True(items.Count > 100, $"only {items.Count} settings items read from the config - scoping/deserialization bug.");
         Assert.True(checkedWithRecommendation > 50, $"only {checkedWithRecommendation} items had a recommendation to check - population bug.");
 
@@ -96,7 +93,7 @@ public class RecommendedConfigConformanceTests
         switch (setting.Control)
         {
             case ControlKind.Action:
-                return (false, null); // Actions are excluded from Apply-Recommended (Marco, 2026-07-08).
+                return (false, null); // Actions are excluded from Apply-Recommended.
 
             case ControlKind.PowerPlan:
                 // power-plan-selection's recommended plan is owned by PowerPlanActivationService, not a per-setting
@@ -105,7 +102,7 @@ public class RecommendedConfigConformanceTests
 
             case ControlKind.Toggle:
             {
-                var rec = CatalogToggleState.GetRecommended(setting, Build); // bool?
+                var rec = CatalogToggleState.GetRecommended(setting, Build);
                 if (rec is null)
                     return (false, null);
                 if (item.IsSelected != rec)
@@ -115,8 +112,6 @@ public class RecommendedConfigConformanceTests
 
             case ControlKind.Slider:
             {
-                // Numeric sliders are powercfg. BuildPowerCfgApplyValue emits AC/DC in DISPLAY units, but the config
-                // stores SYSTEM units (ConfigExportService writes the raw state.AcValue/DcValue), so convert first.
                 var expected = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                 if (expected is null)
                     return (false, null);
@@ -128,8 +123,6 @@ public class RecommendedConfigConformanceTests
             {
                 var expected = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                 if (expected is not null)
-                    // powercfg selection: option INDICES (no unit conversion) - separate stored under ACIndex/DCIndex,
-                    // combined stored under SelectedIndex.
                     return (true, CompareSelectionAcDc(expected, item));
 
                 var idx = RecommendedSettingsResolver.GetRecommendedIndex(setting); // registry selection

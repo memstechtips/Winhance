@@ -135,7 +135,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string OffText { get; set; } = "Off";
     public string ActionButtonText { get; set; } = "Apply";
 
-    // Technical Details panel
     [ObservableProperty]
     public partial bool IsTechnicalDetailsExpanded { get; set; }
 
@@ -187,7 +186,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // version filter is off). Surfaced as a Warning banner.
     public string? CompatibilityMessage { get; set; }
 
-    // New setting badge
     [ObservableProperty]
     public partial bool IsNew { get; set; }
 
@@ -201,7 +199,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     partial void OnIsNewChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
     partial void OnIsNewBadgeGloballyVisibleChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
 
-    // InfoBadge properties
     [ObservableProperty]
     public partial bool IsInfoBadgeGloballyVisible { get; set; }
 
@@ -222,14 +219,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(ShowDcSelectionQuickSetButtons));
     }
 
-    // ───────── Quick-set buttons ─────────
-    //
-    // Every setting card shows "Set to Recommended" / "Set to Default" buttons in front
+    // Quick-set buttons: every setting card shows "Set to Recommended" / "Set to Default" buttons in front
     // of its control when the ShowInfoBadges preference is on AND the setting has at
-    // least one of Recommended/Default defined. Values come from:
-    //   • RegistrySetting.RecommendedValue / DefaultValue        → Toggle / Numeric
-    //   • ComboBoxOption.IsRecommended / IsDefault               → Selection
-    //   • PowerCfgSetting.RecommendedValueAC/DC / DefaultValueAC/DC → AC/DC Numeric + Selection
+    // least one of Recommended/Default defined.
     //
     // Tooltips use the localized "Set to Recommended ({0})" / "Set to Default ({0})"
     // template — {0} is the target value's display form (number, On/Off text, or
@@ -275,7 +267,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         var template = _localizationService?.GetString(key);
         if (!string.IsNullOrEmpty(template))
             return template.Replace("{0}", value?.ToString() ?? string.Empty);
-        // Fallback if the key is missing
         return key == "InfoBadge_Numeric_SetToRecommended_Tooltip"
             ? $"Set to Recommended ({value})"
             : $"Set to Default ({value})";
@@ -313,7 +304,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ConvertFromSystemUnits(def))
             : string.Empty;
 
-    // -- Accessibility names (issue #647 follow-up) ------------------------------------
+    // Accessibility names (issue #647 follow-up).
     // The quick-set buttons inside SettingsCardItem inherit no context from their
     // parent SettingsCard, so Narrator was announcing only the action ("Set to
     // Recommended button") without saying which setting it applied to. These helpers
@@ -428,7 +419,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         });
     private RelayCommand? _setDcNumericToDefaultCommand;
 
-    // ───────── Toggle quick-set buttons ─────────
     public bool? ToggleRecommendedState =>
         Setting is { } s ? RoleToggleState(s, RoleKind.Recommended, _build) : null;
 
@@ -489,8 +479,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 HandleToggleAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
         });
     private RelayCommand? _setToggleToDefaultCommand;
-
-    // ───────── Selection quick-set buttons (single ComboBox) ─────────
 
     // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
     // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
@@ -563,8 +551,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
         });
     private RelayCommand? _setSelectionToDefaultCommand;
-
-    // ───────── AC/DC Selection quick-set buttons (PowerCfg Separate + Single AC) ─────────
 
     public int? AcSelectionRecommendedIndex =>
         Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.AC) : null;
@@ -664,8 +650,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
 
-    // ───────── Page-level Quick Actions support (bulk recommended/defaults) ─────────
-
     // PowerPlan is excluded - it has its own recommendation logic.
     public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
 
@@ -728,8 +712,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-
-    // Advanced unlock support
     [ObservableProperty]
     public partial bool IsLocked { get; set; }
 
@@ -738,17 +720,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string ClickToUnlockText => _localizationService.GetStringOrDefault("Common_ClickToUnlock", "Click to unlock");
     public IAsyncRelayCommand UnlockCommand { get; }
 
-    // ── Review-mode state ──
-    //
+    // Review-mode state.
     // All of it lives behind one nullable reference, so leaving review is a single assignment to
     // null and nothing has to be reset field by field. That is the point of the shape: the previous
     // one was nine separate observable properties cleared by a nine-line ClearReviewState(), which
     // put every future review field one forgotten line away from surviving into the next mode — a
     // leak with no symptom where it was introduced. A field added to SettingReviewState cannot
     // outlive the review, because nothing clears fields at all.
-    //
-    // The properties below stay exactly as the XAML and the diff applier already know them; only
-    // where the values live has changed.
     private SettingReviewState? _reviewState;
 
     // Setting it true opens a fresh review overlay; setting it false drops the overlay and everything in it.
@@ -797,7 +775,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 IsReviewRejected = false;
 
             OnPropertyChanged(nameof(IsReviewDecisionMade));
-            // Notify the ConfigReviewService when approval changes
             ReviewApprovalChanged?.Invoke(this, value);
         }
     }
@@ -814,7 +791,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 IsReviewApproved = false;
 
             OnPropertyChanged(nameof(IsReviewDecisionMade));
-            // When rejecting, notify with approved=false
             if (value)
                 ReviewApprovalChanged?.Invoke(this, false);
         }
@@ -1098,7 +1074,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private bool IsPowerCfgSetting =>
         Setting?.Targets.OfType<PowerCfgTarget>().Any() == true;
 
-    // ---------------------------------------------------------------------------------------------
     // Detection-outcome presentation.
     //
     // The overlay does not REPLACE the ToggleSwitch, it covers it. The switch is always measured, so the
@@ -1110,7 +1085,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // would eventually disagree. All of it is consumed with x:Bind function-call syntax in
     // SettingsCardItem.xaml, which re-evaluates whenever Outcome raises PropertyChanged - the same pattern
     // the A11yName(...) bindings already use.
-    // ---------------------------------------------------------------------------------------------
 
     // Every non-Resolved outcome shows it, so a bad state is always visible and the toggle column keeps one
     // footprint; only whether it RESPONDS differs (IsActionable).
@@ -1146,13 +1120,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             Localized("Common_MalformedState") ?? "Wrong format",
         SettingDetectionOutcome.Undetermined =>
             Localized("Common_UndeterminedState") ?? "Couldn't read",
-        // One wording for every setting. The per-setting "Custom (User Defined)" override was dropped on
-        // 2026-07-27: it said the same thing in different words, and "User Defined" asserted a cause we
-        // cannot know - a debloat tool, an OEM image or a policy could equally have set the value. The
-        // banner carries the reassuring tone ("you can leave it as it is"); this label only has to be
-        // accurate. "Custom" itself is reserved for states the catalog genuinely offers as a CHOICE
-        // (system tray icons, visual effects, ads), so a detected value we cannot place says
-        // "Not recognized" instead - one word, one meaning.
+        // One wording for every setting, and not "User Defined": that asserts a cause we cannot know - a
+        // debloat tool, an OEM image or a policy could equally have set the value. The banner carries the
+        // reassuring tone ("you can leave it as it is"); this label only has to be accurate. "Custom" itself
+        // is reserved for states the catalog genuinely offers as a CHOICE (system tray icons, visual effects,
+        // ads), so a detected value we cannot place says "Not recognized" instead - one word, one meaning.
         _ => Localized("Common_CustomState") ?? "Not recognized",
     };
 
@@ -1205,7 +1177,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return _localizationService.GetStringOrDefault(prefix + (toggleLike ? "Toggle" : "Selection"), string.Empty);
     }
 
-    // ---------------------------------------------------------------------------------------------
     // Per-MODE resolution. A Separate-mode powercfg setting edits two values (AC and DC) that can be
     // unrecognized independently: the sleep-after setting can sit on a catalog option while plugged in
     // and on some arbitrary number on battery. Outcome is a setting-level verdict from the AC read, so
@@ -1213,8 +1184,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     //
     // Rule: a failure to READ is setting-wide (we could not talk to powercfg at all), but a value we do
     // not recognize is per-mode. Everything the shared input controls need is resolved here rather than
-    // in XAML, so the ten templates cannot drift apart again.
-    // ---------------------------------------------------------------------------------------------
+    // in XAML, so the ten templates cannot drift apart.
 
     // Undetermined wins setting-wide; otherwise a mode whose resolved index is the Custom sentinel is unrecognized in its own right.
     public SettingDetectionOutcome OutcomeForMode(SettingInputMode mode)
@@ -1239,7 +1209,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // for the opposite reason - not "we could not place this value" but "this value IS a known state that
     // is not on the list". So it draws the state's own NAME, with no outcome icon and no tooltip: nothing
     // is wrong, and a fault marker would say otherwise. No synthetic option is added to the dropdown -
-    // that was the fake-"Custom" entry removed on 2026-07-27, and it was pickable.
+    // it would be pickable.
 
     public Microsoft.UI.Xaml.Visibility OverlayVisibilityForMode(SettingInputMode mode) =>
         IsDetectOnlyForMode(mode)
@@ -1381,8 +1351,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // is untouched, so the feature's banner stays until the apply lands.
     public double OverlayOpacity => IsApplying ? 0d : 1d;
 
-    // --- Bindings used by the templates (single-argument forms of the maps above). ---
-
     // On the CONTROL's tooltip, because a pass-through overlay never receives the pointer.
     public string? SelectionOutcomeTooltip =>
         Outcome == SettingDetectionOutcome.Resolved ? null : OverlayTooltipFor(Outcome, toggleLike: false);
@@ -1419,7 +1387,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
         _localizationService.LanguageChanged += OnLanguageChanged;
 
-        // Unpack config data
         Setting = config.Setting;
         _build = config.Build;
         OptionWarnings = config.OptionWarnings;
@@ -1437,7 +1404,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OffText = config.OffText;
         ActionButtonText = config.ActionButtonText;
 
-        // Initialize remaining defaults
         Status = string.Empty;
         ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>();
         MaxValue = 100;
@@ -1449,7 +1415,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         RunActionCommand = new AsyncRelayCommand(RunActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
 
-        // Check if this setting is new in the current release
         IsNew = _newBadgeService?.IsSettingNew(
             config.Setting.Display.AddedInVersion, config.SettingId) == true;
 
@@ -1470,7 +1435,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             _localizationService,
             _build);
 
-        // Initialize badge data availability and compute initial state
         InitializeHasBadgeData();
         ComputeBadgeState();
     }
@@ -1607,7 +1571,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    // Updates setting state from a fresh system state read (used during navigation refresh)
     // Shared by SettingViewModelFactory (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is
     // rebuilt identically from detection on BOTH paths. False (caller falls through to normal Selection handling)
     // when not a power-plan Selection with DynamicOptions, or in an authoring mode, which keeps the factory's
@@ -1673,9 +1636,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                     break;
                 case InputType.Selection:
                     // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
-                    // the same way the factory builds it on load. This fixes the latent clobber where the
-                    // generic `SelectedValue = state.CurrentValue` below set the wrong value for a power plan (its
-                    // CurrentValue is not the active scheme GUID).
+                    // the same way the factory builds it on load. The generic `SelectedValue = state.CurrentValue` below
+                    // would set the wrong value for a power plan (its CurrentValue is not the active scheme GUID).
                     if (TryApplyDynamicPowerPlanOptions(state))
                         break;
 
@@ -1756,8 +1718,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         var displayUnits = Setting?.Numeric?.Units;
         return UnitConversionHelper.ConvertToSystemUnits(displayValue, displayUnits);
     }
-
-    #region UI Event Handlers
 
     public void OnToggleSwitchToggled(object sender)
     {
@@ -1864,10 +1824,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return formatter;
     }
 
-    #endregion
-
-    #region Apply Logic
-
     private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false, bool fromCustomState = false)
     {
         if (IsApplying || _isUpdatingFromEvent) return;
@@ -1956,7 +1912,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return;
         }
 
-        // Queue the value if another apply is in progress instead of dropping it
         if (IsApplying)
         {
             _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: queuing pending value {value} for {SettingId}");
@@ -2001,7 +1956,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
                 if (intValue != ComboBoxConstants.CustomStateIndex)
                 {
-                    // Picking a real option resolves the setting; there is no synthetic list entry to strip.
                     Outcome = SettingDetectionOutcome.Resolved;
                 }
             }
@@ -2182,10 +2136,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    #endregion
-
-    #region Advanced Unlock
-
     private async Task HandleUnlockAsync()
     {
         if (!IsLocked) return;
@@ -2217,7 +2167,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             await _userPreferencesService.SetPreferenceAsync("AdvancedPowerSettingsUnlocked", true);
             _logService.Log(LogLevel.Info, "User permanently unlocked advanced power settings");
 
-            // Unlock all other advanced settings in the same feature
             if (ParentFeatureViewModel != null)
             {
                 foreach (var setting in ParentFeatureViewModel.Settings.OfType<SettingItemViewModel>())
@@ -2230,10 +2179,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             }
         }
     }
-
-    #endregion
-
-    #region Status Banner
 
     public void UpdateStatusBanner(object? value)
     {
@@ -2334,10 +2279,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return false;
     }
 
-    #endregion
-
-    #region InfoBadge State Computation
-
     public void ComputeBadgeState()
     {
         if (!HasBadgeData || Setting == null)
@@ -2391,8 +2332,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 // AC/DC selection - compare the live AC/DC option index against the recommended/
                 // default index derived from the context-scoped state roles (state order == option
                 // order, 1:1; the role tags the option whose PowerCfgValue matched the per-mode value).
-                // On battery-less systems DC isn't writable by PowerCfgApplier and the DC control isn't
-                // shown - skip DC comparisons or a system-state refresh would visibly flip the badge.
                 if (AcSelectionRecommendedIndex is int rai && AcValue != rai)
                     matchesRecommended = false;
                 if (considerDc && DcSelectionRecommendedIndex is int rdi && DcValue != rdi)
@@ -2451,15 +2390,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 row.Add(new BadgePillState(SettingBadgeKind.Default, IsHighlighted: matchesDefault, label, tooltip));
             }
 
-            // NO Custom pill. It used to mean two different things at once - "detection couldn't place
-            // this" and "this value is neither Recommended nor Default" - and both are now said better
-            // elsewhere. The first is the control's own icon plus its banner, which name WHICH kind of
-            // problem instead of flattening all three to the word "Custom". The second needs no pill at
-            // all: Recommended and Default sitting dim together already says "at neither", so the pill was
-            // only ever restating them. Dropping it also ends the collision where "Custom" named both a
-            // value-comparison verdict and a detection outcome, and it makes every control type and every
-            // mechanism - registry, powercfg, scheduled task - behave identically, with no special case
-            // for the numeric up-down where any value is legitimately the user's own.
+            // NO Custom pill, deliberately. It would say two things at once - "detection couldn't place this" and
+            // "this value is neither Recommended nor Default" - and both are said better elsewhere: the first by the
+            // control's own icon plus its banner, which name WHICH kind of problem instead of flattening all three to
+            // the word "Custom"; the second by Recommended and Default sitting dim together, which already says
+            // "at neither". A Custom pill would also collide with "Custom" the detection outcome, and every control
+            // type and mechanism - registry, powercfg, scheduled task - behaves identically with no special case
+            // for the numeric up-down, where any value is legitimately the user's own.
         }
 
         BadgeRow = row;
@@ -2583,10 +2520,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         HasBadgeData = hasToggleData || hasSelectionData || hasPowerCfgData;
     }
 
-    #endregion
-
-    #region Technical Details
-
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         // The panel bakes its localized strings in at build time, so it has to be rebuilt on a
@@ -2623,6 +2556,4 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
         base.Dispose(disposing);
     }
-
-    #endregion
 }

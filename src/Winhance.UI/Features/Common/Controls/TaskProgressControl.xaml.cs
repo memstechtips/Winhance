@@ -9,8 +9,6 @@ namespace Winhance.UI.Features.Common.Controls;
 
 public sealed partial class TaskProgressControl : UserControl
 {
-    #region Dependency Properties
-
     public static readonly DependencyProperty AppNameProperty =
         DependencyProperty.Register(
             nameof(AppName),
@@ -88,10 +86,6 @@ public sealed partial class TaskProgressControl : UserControl
             typeof(TaskProgressControl),
             new PropertyMetadata(null));
 
-    #endregion
-
-    #region Properties
-
     public string AppName
     {
         get => (string)GetValue(AppNameProperty);
@@ -158,8 +152,6 @@ public sealed partial class TaskProgressControl : UserControl
         set => SetValue(ShowDetailsCommandProperty, value);
     }
 
-    #endregion
-
     public TaskProgressControl()
     {
         this.InitializeComponent();
@@ -211,7 +203,6 @@ public sealed partial class TaskProgressControl : UserControl
         var rtb = control.TerminalLineRichText;
         if (rtb == null) return;
 
-        // Clear existing content and rebuild with color-coded runs
         rtb.Blocks.Clear();
         if (string.IsNullOrEmpty(text)) return;
 

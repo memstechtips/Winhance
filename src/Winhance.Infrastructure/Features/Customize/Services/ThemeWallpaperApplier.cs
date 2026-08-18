@@ -40,9 +40,7 @@ public sealed class ThemeWallpaperApplier(
         // A DETECT-ONLY state ("Mixed", index 2) is NOT an apply target: it carries no Set, and the
         // relationship reverse-sync hands this handler exactly that index when the two theme children
         // disagree. It is handled (return true) but writes nothing - the mix IS the children's own
-        // states, and there is nothing for the master to write. The code this replaced read
-        // `index == 1 ? Dark : Light`, so ANY other index silently applied Light Mode, which would have
-        // clobbered the child the user had just changed.
+        // states, and there is nothing for the master to write.
         var themeState = selectionIndex >= 0 && selectionIndex < catalogSetting.States.Count
             ? catalogSetting.States[selectionIndex]
             : null;
@@ -70,8 +68,6 @@ public sealed class ThemeWallpaperApplier(
         {
             try
             {
-                // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect:
-                // pick the effect whose AppliesTo admits the live build.
                 var liveBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
                 var wallpaperPath = themeState.Effects
                     .OfType<WallpaperEffect>()

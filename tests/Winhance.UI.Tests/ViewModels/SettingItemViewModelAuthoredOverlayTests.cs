@@ -116,8 +116,6 @@ public class SettingItemViewModelAuthoredOverlayTests
         Outcome = SettingDetectionOutcome.Resolved,
     };
 
-    // ── The bug: a rebuild from live state must not lose authored values ──
-
     [Fact]
     public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredToggle()
     {
@@ -129,7 +127,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             IsSelected = true,
         };
 
-        // The machine says off. The user authored on.
         sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
 
         sut.IsSelected.Should().BeTrue(
@@ -179,8 +176,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             because: "the screen and the file are the same fact read from the same store");
     }
 
-    // ── Round-trip: what the write path records, the overlay restores ──
-
     [Fact]
     public void RoundTrip_Toggle()
     {
@@ -192,7 +187,6 @@ public class SettingItemViewModelAuthoredOverlayTests
         authoring.IsSelected.Should().BeTrue();
         _authored.Should().ContainKey("rt-toggle");
 
-        // The reload: a fresh card seeded from the live machine, which still says off.
         var reloaded = CreateSut(Config(setting, InputType.Toggle, isSelected: false));
         reloaded.ApplyAuthoredOverlay();
 
@@ -232,8 +226,6 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         reloaded.NumericValue.Should().Be(authoring.NumericValue);
     }
-
-    // ── The overlay belongs to the authoring mode and nothing else ──
 
     [Fact]
     public void OutsideAnAuthoringMode_TheOverlayIsANoOp()

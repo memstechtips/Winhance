@@ -8,11 +8,10 @@ public static class CompositionRoot
 {
     public static IServiceCollection ConfigureWinhanceServices(this IServiceCollection services)
     {
-        // Register services in dependency order
         services
-            .AddInfrastructureServices() // Infrastructure implementations
-            .AddSettingServices()        // Setting services (Customization, Optimization, SoftwareApps)
-            .AddUIServices();            // UI-specific services (ThemeService, etc.)
+            .AddInfrastructureServices()
+            .AddSettingServices()
+            .AddUIServices();
 
         return services;
     }

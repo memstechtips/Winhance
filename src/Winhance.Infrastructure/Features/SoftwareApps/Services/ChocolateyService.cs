@@ -129,7 +129,6 @@ public class ChocolateyService : IChocolateyService
 
                 if (alreadyInstalled)
                 {
-                    // Cleanup didn't fully clear the ghost; don't pretend the install succeeded.
                     _logService.LogError($"Chocolatey still reports '{chocoPackageId}' as already-installed after ghost-cleanup. Install did not run.");
                     return false;
                 }
@@ -218,8 +217,7 @@ public class ChocolateyService : IChocolateyService
                     .ConfigureAwait(false);
 
             // Fallback: installed-list lookup may have returned empty (timeout / choco glitch).
-            // Try the bare ID directly so existing behavior is preserved when the variant sweep
-            // can't see anything to act on.
+            // Try the bare ID directly when the variant sweep can't see anything to act on.
             if (!attempted)
             {
                 _logService.LogInformation($"Uninstalling '{chocoPackageId}' via Chocolatey (bare-ID fallback)...");
@@ -406,12 +404,10 @@ public class ChocolateyService : IChocolateyService
 
     private string? FindChocoExecutable()
     {
-        // Check the standard installation path first
         var standardPath = @"C:\ProgramData\chocolatey\bin\choco.exe";
         if (_fileSystemService.FileExists(standardPath))
             return standardPath;
 
-        // Scan PATH
         var pathEnv = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrEmpty(pathEnv))
             return null;

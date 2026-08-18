@@ -28,8 +28,6 @@ public class ThemeMasterConformanceTests
         }
     }
 
-    // ---- state ORDER is a public contract -------------------------------------------------------
-
     [Fact]
     public void The_two_presets_keep_their_original_indexes_and_the_neutral_state_is_APPENDED()
     {
@@ -40,8 +38,6 @@ public class ThemeMasterConformanceTests
 
         states.Select(st => st.Label).Should().Equal("Light Mode", "Dark Mode", "Mixed");
     }
-
-    // ---- the presets declare what the children must be ------------------------------------------
 
     [Theory]
     [InlineData("Light Mode", "Enabled")]
@@ -63,8 +59,6 @@ public class ThemeMasterConformanceTests
         foreach (var entry in preset.Controls!)
             S(entry.Key).States.Select(st => st.Label).Should().Contain(entry.Value);
     }
-
-    // ---- the neutral state ----------------------------------------------------------------------
 
     [Fact]
     public void The_neutral_state_is_detect_only_fallback_and_writes_nothing()
@@ -107,13 +101,11 @@ public class ThemeMasterConformanceTests
         StateDetectionEngine.Detect(S(Master).States, readings).Should().Be(expected);
     }
 
-    // ---- reverse sync ---------------------------------------------------------------------------
-
     [Fact]
     public void ResolveReverseSync_snaps_the_master_to_the_neutral_state_when_the_children_disagree()
     {
-        // The STOP condition the plan named: a detect-only state has to be selectable as the neutral snap
-        // target. ResolveReverseSync picks "the first state imposing no Controls", which is exactly it.
+        // A detect-only state has to be selectable as the neutral snap target. ResolveReverseSync picks "the
+        // first state imposing no Controls", which is exactly it.
         var actions = RelationshipResolver.ResolveReverseSync(Apps, SettingCatalog.All, id => id switch
         {
             Apps => "Disabled",
@@ -142,8 +134,6 @@ public class ThemeMasterConformanceTests
         actions.Should().ContainSingle(a => a.SettingId == Master && a.StateLabel == expectedPreset);
     }
 
-    // ---- A3: the Explorer restart is gone, the appearance broadcast is not ----------------------
-
     [Theory]
     [InlineData(Master)]
     [InlineData(Apps)]
@@ -151,8 +141,8 @@ public class ThemeMasterConformanceTests
     [InlineData("theme-transparency")]
     public void Theme_settings_declare_the_appearance_broadcast_and_no_process_restart(string id)
     {
-        // Marco verified on Windows (2026-07-31) that the appearance broadcast alone applies the change.
-        // The restart only raised the pending-restart bar for a repaint Windows was already doing.
+        // Verified on Windows: the appearance broadcast alone applies the change; the restart only raised the
+        // pending-restart bar for a repaint Windows was already doing.
         var setting = S(id);
 
         setting.Apply.Restart.Should().BeNull();

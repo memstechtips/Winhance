@@ -82,8 +82,6 @@ public class WimUtilViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesSubViewModels()
     {
@@ -139,8 +137,6 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4State.IsAvailable.Should().BeFalse();
     }
 
-    // ── Localization labels ──
-
     [Fact]
     public void Title_ReturnsLocalizationStringForWimUtilTitle()
     {
@@ -152,8 +148,6 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.CheckboxExtractedAlreadyText.Should().Be("WIMUtil_CheckboxExtractedAlready");
     }
-
-    // ── NavigateToStep ──
 
     [Fact]
     public void NavigateToStepCommand_NullParameter_DoesNotChangeStep()
@@ -194,13 +188,10 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void NavigateToStepCommand_Step2WhenNotAvailable_DoesNotNavigate()
     {
-        // Step2 is not available until extraction is complete
         _sut.NavigateToStepCommand.Execute("2");
 
         _sut.Step2State.IsExpanded.Should().BeFalse();
     }
-
-    // ── OnNavigatedToAsync ──
 
     [Fact]
     public async Task OnNavigatedToAsync_ChecksOscdimgAvailabilityAndUpdatesStep4()
@@ -226,8 +217,6 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step4.IsOscdimgAvailable.Should().BeFalse();
     }
 
-    // ── Forwarded properties ──
-
     [Fact]
     public void SelectedIsoPath_ForwardsToStep1()
     {
@@ -251,8 +240,6 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.OutputIsoPath.Should().Be(_sut.Step4.OutputIsoPath);
     }
-
-    // ── Forwarded commands ──
 
     [Fact]
     public void SelectIsoFileCommand_ForwardsToStep1()
@@ -284,8 +271,6 @@ public class WimUtilViewModelTests : IDisposable
         _sut.CreateIsoCommand.Should().BeSameAs(_sut.Step4.CreateIsoCommand);
     }
 
-    // ── Property change propagation ──
-
     [Fact]
     public void WhenStep1WorkingDirectoryChanges_PropagatesWorkingDirectoryToAllSubViewModels()
     {
@@ -312,8 +297,6 @@ public class WimUtilViewModelTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
@@ -329,7 +312,6 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void Dispose_UnsubscribesFromSubVMPropertyChangedEvents()
     {
-        // After dispose, changing Step1 properties should not propagate to parent
         _sut.Dispose();
 
         var raised = false;
@@ -343,8 +325,6 @@ public class WimUtilViewModelTests : IDisposable
 
         raised.Should().BeFalse();
     }
-
-    // ── HasExtractedIsoAlready forwarding ──
 
     [Fact]
     public void HasExtractedIsoAlready_SetOnParent_SetsOnStep1()

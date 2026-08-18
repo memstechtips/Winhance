@@ -26,10 +26,6 @@ public class PowerSettingsScriptSectionTests
             _logService.Object);
     }
 
-    // ---------------------------------------------------------------
-    // FindPowerPlanSetting
-    // ---------------------------------------------------------------
-
     [Fact]
     public void FindPowerPlanSetting_NoPowerFeature_ReturnsNull()
     {
@@ -127,10 +123,6 @@ public class PowerSettingsScriptSectionTests
         result!.PowerPlanGuid.Should().Be("test-guid-1234");
     }
 
-    // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - No power plan and no power settings
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_NoPowerPlanNoSettings_ReturnsFalse()
     {
@@ -148,10 +140,6 @@ public class PowerSettingsScriptSectionTests
 
         result.Should().BeFalse();
     }
-
-    // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - With power plan setting
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_WithPowerPlan_EmitsPowerPlanCreation()
@@ -200,10 +188,6 @@ public class PowerSettingsScriptSectionTests
         output.Should().Contain("custom-plan-guid");
         output.Should().Contain("My Power Plan");
     }
-
-    // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - With power settings data
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_WithPowerSettings_EmitsSettingsArray()
@@ -261,10 +245,6 @@ public class PowerSettingsScriptSectionTests
         output.Should().Contain("Specifies the period of inactivity before Windows turns off the display");
         output.Should().Contain("powercfg");
     }
-
-    // ---------------------------------------------------------------
-    // AppendPowerSettingsSectionAsync - Skips battery-required settings
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_BatteryRequired_NoBattery_SkipsSetting()

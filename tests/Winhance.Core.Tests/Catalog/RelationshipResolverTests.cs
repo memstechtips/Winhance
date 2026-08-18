@@ -80,7 +80,7 @@ public class RelationshipResolverTests
     {
         var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
             new Link("b", LinkKind.Enables, "On"));
-        var actions = RelationshipResolver.ResolveForward(s, "On", id => "On"); // b already On
+        var actions = RelationshipResolver.ResolveForward(s, "On", id => "On");
         var act = Assert.Single(actions, x => x.SettingId == "b");
         Assert.True(act.Force);
         Assert.Equal("On", act.StateLabel);
@@ -140,7 +140,6 @@ public class RelationshipResolverTests
     [Fact]
     public void ReverseSync_no_action_when_parent_already_at_target()
     {
-        // no preset matches and the master is already at the neutral "Custom" -> nothing to do.
         string? Cur(string id) => id switch { "c1" => "Off", "c2" => "On", "m" => "Custom", _ => null };
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
     }

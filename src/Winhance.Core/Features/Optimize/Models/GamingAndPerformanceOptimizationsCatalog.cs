@@ -3746,7 +3746,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             },
             // Flags is a decimal-string bitmask; 0x04 = MKF_HOTKEYACTIVE. Fresh installs ship "62"
             // (bit set), so detection tests the bit and apply edits ONLY the bit, preserving the
-            // user's other MouseKeys options (the old fixed "126"/"130" writes clobbered them).
+            // user's other MouseKeys options.
             Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\MouseKeys" }, "Flags", RegistryValueKind.String) { StringFlagMask = 0x04, StringFlagAbsentBase = 62 } },
             States = new[]
             {

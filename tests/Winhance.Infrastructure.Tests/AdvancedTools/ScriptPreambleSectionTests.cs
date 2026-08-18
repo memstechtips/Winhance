@@ -7,9 +7,6 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class ScriptPreambleSectionTests
 {
-    // ---------------------------------------------------------------
-    // AppendHeader
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendHeader_ContainsSynopsisBlock()
@@ -47,10 +44,6 @@ public class ScriptPreambleSectionTests
         output.Should().Contain("Winhancements.ps1");
     }
 
-    // ---------------------------------------------------------------
-    // AppendLoggingSetup
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendLoggingSetup_ContainsLogPath()
     {
@@ -87,10 +80,6 @@ public class ScriptPreambleSectionTests
         output.Should().Contain("User Customizations Only");
         output.Should().Contain("System Customizations");
     }
-
-    // ---------------------------------------------------------------
-    // AppendHelperFunctions
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendHelperFunctions_ContainsGetTargetUser()
@@ -183,10 +172,6 @@ public class ScriptPreambleSectionTests
         sb.ToString().Should().Contain("function Start-ProcessAsUser");
     }
 
-    // ---------------------------------------------------------------
-    // AppendStartProcessAsUser
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendStartProcessAsUser_ContainsWin32Interop()
     {
@@ -210,10 +195,6 @@ public class ScriptPreambleSectionTests
         sb.ToString().Should().Contain("WTSGetActiveConsoleSessionId");
     }
 
-    // ---------------------------------------------------------------
-    // AppendCompletionBlock
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendCompletionBlock_ContainsCompletedMessage()
     {
@@ -235,10 +216,6 @@ public class ScriptPreambleSectionTests
 
         sb.ToString().Should().Contain("================");
     }
-
-    // ---------------------------------------------------------------
-    // Integration: all preamble sections together
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AllPreambleSections_CombinedOutput_IsNonEmpty()

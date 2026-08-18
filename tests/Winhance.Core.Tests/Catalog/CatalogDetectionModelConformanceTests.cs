@@ -56,8 +56,6 @@ public class CatalogDetectionModelConformanceTests
         return CatalogDiscovery.Detect(Catalog[id], new Ctx(dict)).Label;
     }
 
-    // ---- Path constants (verbatim from the catalog) -------------------------------------------------------------
-
     private const string AdPref = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo";
     private const string AdCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo";
     private const string AdGpoHklm = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo";
@@ -71,15 +69,13 @@ public class CatalogDetectionModelConformanceTests
     private const string InkCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization";
     private const string InkAccepted = @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings";
 
-    // ============================================================================================================
     //  The 6 detection-corrected settings (OrAbsent + ApplyOnly). These must hold ON A CLEAN MACHINE too.
-    // ============================================================================================================
 
     [Fact]
     public void Advertising_id_precedence() // CPSS Value is an apply-only mirror; the GP tier wins
     {
         Assert.Equal("Enabled", Detect("privacy-advertising-id"));                                   // clean -> ads on (default)
-        Assert.Equal("Disabled", Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));          // pref off, no policy
+        Assert.Equal("Disabled", Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));
         // GP disables while a stale pref says on: policy wins. (OLD `.Any` wrongly reports Enabled here.)
         Assert.Equal("Disabled", Detect("privacy-advertising-id",
             (AdPref, "Enabled", 1), (AdGpoHklm, "DisabledByGroupPolicy", 1)));
@@ -91,7 +87,7 @@ public class CatalogDetectionModelConformanceTests
     public void Diagnostics_precedence() // one preference + group-policy telemetry keys
     {
         Assert.Equal("Enabled", Detect("privacy-diagnostics"));                                      // clean -> telemetry on
-        Assert.Equal("Disabled", Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0))); // GP off
+        Assert.Equal("Disabled", Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0)));
         // a stale ShowedToastAtLevel=3 pref does not keep it "on" once the GP disables telemetry (OLD bug)
         Assert.Equal("Disabled", Detect("privacy-diagnostics",
             (DiagToast, "ShowedToastAtLevel", 3), (DiagTelemetryHklm, "AllowTelemetry", 0)));
@@ -139,7 +135,7 @@ public class CatalogDetectionModelConformanceTests
         // CPSS Value is tagged a policy tier (the connected-privacy store the Win11 Settings app binds to); the two
         // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
-        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));           // Win11 CPSS on
+        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));
         // CPSS is authoritative on Win11: Value=0 wins even over a stale AcceptedPrivacyPolicy=1
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary",
             (InkCpss, "Value", 0), (InkAccepted, "AcceptedPrivacyPolicy", 1)));
@@ -148,10 +144,8 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 0)));
     }
 
-    // ============================================================================================================
     //  Single GPO-mirror toggles (no catalog change). Clean -> default-on; a disable applied to ONE policy hive
     //  reads Disabled (mirror folds HKLM-first) - the exact case where OLD `.Any` falsely reports Enabled.
-    // ============================================================================================================
 
     [Theory]
     // id, hkcu policy path, value name, the "disabled" value (the recommended write)
@@ -172,11 +166,6 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Enabled", Detect(id));                                                  // clean -> default-on
         Assert.Equal("Disabled", Detect(id, (hkcuPath, valueName, disabledValue)));           // recommended applied to the user hive
     }
-
-    // ============================================================================================================
-    //  Multi-target precedence toggles, already correct (no catalog change): clean -> default-on; a preference or
-    //  policy in its off value -> Disabled.
-    // ============================================================================================================
 
     [Fact]
     public void Feedback_frequency_clean_on_and_policy_off()
@@ -206,10 +195,8 @@ public class CatalogDetectionModelConformanceTests
             (@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0)));
     }
 
-    // ============================================================================================================
     //  Explorer ThisPC-tree toggles (no catalog change): the only discriminating key is IsPinnedToNameSpaceTree
     //  (Of(1).OrAbsent() vs Of(0)); the other two keys accept absence in both states.
-    // ============================================================================================================
 
     [Theory]
     [InlineData("explorer-customization-gallery", @"HKEY_CURRENT_USER\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}")]
@@ -219,10 +206,6 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Enabled", Detect(id));                                                   // clean -> shown (default)
         Assert.Equal("Disabled", Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
     }
-
-    // ============================================================================================================
-    //  Apply-engine invariant guarding the powercfg writer
-    // ============================================================================================================
 
     // ApplyPlanBuilder emits one PowerCfgSetOp per context for EVERY powercfg target and the writer writes each
     // unconditionally (battery-gating only DC) - correct for PowerModeSupport.Separate. An ACOnly/DCOnly setting

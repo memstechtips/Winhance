@@ -103,7 +103,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         var title = _localizationService.GetString("Dialog_TerminalOutput_Title");
         await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
 
-        // After the dialog is closed, dismiss the progress control if the task is no longer running
         if (!_taskProgressService.IsTaskRunning)
         {
             IsTaskFailed = false;
@@ -117,7 +116,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         {
             if (detail.ScriptSlotCount > 0)
             {
-                // Multi-script mode: update slot count and raise per-slot event
                 ActiveScriptCount = detail.ScriptSlotCount;
                 ScriptProgressReceived?.Invoke(detail.ScriptSlotIndex, detail);
             }
@@ -133,7 +131,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
 
                 if (isNowRunning)
                 {
-                    // Cancel any pending hide-delay from a previous task
                     _hideDelayCts?.Cancel();
                     _hideDelayCts = null;
                     IsTaskFailed = false;
@@ -149,13 +146,11 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                 }
                 else if (wasRunning)
                 {
-                    // Task just stopped running -- handle completion
                     var wasCancelled = _taskProgressService.CurrentTaskCancellationSource
                         ?.IsCancellationRequested == true;
 
                     if (wasCancelled)
                     {
-                        // Cancelled by user: hide the control immediately
                         IsTaskFailed = false;
                         IsLoading = false;
                     }
@@ -167,7 +162,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                     }
                     else
                     {
-                        // Success: show the completion state briefly, then hide after 2 seconds
                         if (!string.IsNullOrEmpty(detail.StatusText))
                             AppName = detail.StatusText;
                         LastTerminalLine = detail.TerminalOutput ?? string.Empty;
@@ -175,7 +169,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                     }
                 }
 
-                // Queue display
                 if (detail.QueueTotal > 1)
                 {
                     IsQueueVisible = true;

@@ -26,7 +26,7 @@ public class EventBus : IEventBus
         lock (_lock)
         {
             if (!_subscriptions.TryGetValue(eventType, out subscriptions))
-                return; // No subscribers
+                return;
 
             // Create a copy to avoid modification during enumeration
             subscriptions = subscriptions.ToList();
@@ -38,7 +38,6 @@ public class EventBus : IEventBus
             {
                 if (subscription.IsAsync)
                 {
-                    // Fire the async handler and observe the Task for errors
                     var task = ((Func<TEvent, Task>)subscription.Handler)(domainEvent);
                     task.ContinueWith(t =>
                     {
@@ -85,7 +84,6 @@ public class EventBus : IEventBus
             {
                 subscriptions.RemoveAll(s => s.Id == token.SubscriptionId);
 
-                // Remove the event type if there are no more subscriptions
                 if (subscriptions.Count == 0)
                     _subscriptions.Remove(token.EventType);
             }
@@ -129,7 +127,7 @@ public class EventBus : IEventBus
     private class SubscriptionToken : ISubscriptionToken
     {
         private readonly Action<ISubscriptionToken> _unsubscribeAction;
-        private int _isDisposed; // 0 = not disposed, 1 = disposed
+        private int _isDisposed;
 
         public Guid SubscriptionId { get; }
         public Type EventType { get; }

@@ -5,8 +5,6 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 
 internal static class AutounattendMechanismPresence
 {
-    // ---- catalog -----------------------------------------------------------------------------------
-
     // A detectable RegTarget's Paths (a mirror = one target, many paths) OR an apply-only RegistryWriteEffect's Path:
     // an Action's registry writes are modelled as Effects, never Targets, so both must be checked. The powercfg
     // EnablementKey is a nested RegTarget, not a top-level Target, so it is correctly excluded.

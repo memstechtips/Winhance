@@ -45,7 +45,6 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _dialogService = dialogService;
         VersionInfo = "Winhance";
 
-        // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
 
         InitializeVersionInfo();
@@ -85,8 +84,6 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         }
     }
 
-    #region Localized Strings
-
     public string MenuDocumentation =>
         _localizationService.GetStringOrDefault("Tooltip_Documentation", "Documentation");
 
@@ -110,10 +107,6 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
 
     public string MenuCloseWinhance =>
         _localizationService.GetStringOrDefault("Menu_CloseWinhance", "Close Winhance");
-
-    #endregion
-
-    #region Commands
 
     [RelayCommand]
     private async Task OpenDocsAsync()
@@ -226,6 +219,4 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
             _logService.LogError($"Error closing application: {ex.Message}", ex);
         }
     }
-
-    #endregion
 }

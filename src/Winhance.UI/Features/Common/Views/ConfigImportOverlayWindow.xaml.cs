@@ -33,11 +33,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
     {
         this.InitializeComponent();
 
-        // Set initial text
         OverlayStatusText.Text = statusText;
         OverlayDetailText.Text = detailText ?? string.Empty;
 
-        // Set branding
         OverlayLogo.Source = new BitmapImage(
             new Uri("ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"));
 
@@ -53,7 +51,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
             OverlayTaglineText.Text = "";
         }
 
-        // Configure window after activation
         this.Activated += OnActivated;
     }
 
@@ -65,7 +62,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
 
         try
         {
-            // Remove title bar
             ExtendsContentIntoTitleBar = true;
 
             var hwnd = WindowNative.GetWindowHandle(this);
@@ -74,10 +70,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
             var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             _ = SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
 
-            // Set window opacity to ~90% (0xE6 = 230) — matches WPF's #E6000000
+            // Window opacity ~90% (0xE6 = 230).
             SetLayeredWindowAttributes(hwnd, 0, 230, LWA_ALPHA);
 
-            // Borderless, always-on-top, maximized
             if (AppWindow.Presenter is OverlappedPresenter presenter)
             {
                 presenter.SetBorderAndTitleBar(false, false);
@@ -90,7 +85,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
             _logService?.LogDebug($"Failed to configure overlay window: {ex.Message}");
         }
 
-        // Announce initial status text to Narrator
         AnnounceStatus(OverlayStatusText.Text);
     }
 

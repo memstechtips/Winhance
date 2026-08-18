@@ -5,14 +5,10 @@ namespace Winhance.Core.Features.Common.Native;
 
 public static class DismApi
 {
-    // --- Constants ---
-
     public const string DISM_ONLINE_IMAGE_PATH = "DISM_{53BFAE52-B167-4E2F-A258-0A37B57FF845}";
     public const int DismLogErrors = 0;
     public const int DismStateInstalled = 4;
     public const int S_OK = 0;
-
-    // --- Delegate ---
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate void DismProgressCallback(uint current, uint total, IntPtr userData);
@@ -20,8 +16,6 @@ public static class DismApi
     // No-op callback required by the DISM servicing engine to pump its internal state machine.
     // Passing null for the progress callback on write operations causes the engine to hang.
     public static readonly DismProgressCallback NoOpProgressCallback = (_, _, _) => { };
-
-    // --- Structs ---
 
     // Pack = 4 is required: the native DISM structs are 12 bytes on x64
     // (IntPtr 8 + int 4), not 16. Default managed packing pads to 16,
@@ -67,8 +61,6 @@ public static class DismApi
         public uint DefaultLanguageIndex;
         public IntPtr CustomizedInfo;
     }
-
-    // --- P/Invoke Functions ---
 
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int DismInitialize(
@@ -144,8 +136,6 @@ public static class DismApi
         [MarshalAs(UnmanagedType.LPWStr)] string imageFilePath,
         out IntPtr imageInfo,
         out uint count);
-
-    // --- Helpers ---
 
     public static T[] MarshalArray<T>(IntPtr ptr, uint count) where T : struct
     {

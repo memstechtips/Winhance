@@ -94,18 +94,14 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _backupService = backupService;
         _taskProgressService = taskProgressService;
 
-        // Initialize languages from the localization service
         InitializeLanguages();
 
-        // Initialize themes
         InitializeThemes();
 
-        // Load current selections
         _selectedLanguage = _localizationService.CurrentLanguage ?? "en";
         _selectedTheme = _themeService.CurrentTheme;
         _selectedThemeOption = Themes.FirstOrDefault(t => t.Theme == _selectedTheme);
 
-        // Subscribe to language changes to update theme display names
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
 
@@ -144,13 +140,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        // Update theme display names
         foreach (var theme in Themes)
         {
             theme.DisplayText = GetThemeDisplayName(theme.Theme);
         }
 
-        // Notify UI to refresh all localized strings
         OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(PageDescription));
         OnPropertyChanged(nameof(GeneralLabel));
@@ -169,7 +163,6 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CreateRestorePointButtonText));
     }
 
-    // Localized string properties for x:Bind
     public string PageTitle => _localizationService.GetStringOrDefault("Settings_Title", "Settings");
     public string PageDescription => _localizationService.GetStringOrDefault("Settings_Description", "Configure Winhance Application Preferences");
     public string GeneralLabel => _localizationService.GetStringOrDefault("Category_General", "General");

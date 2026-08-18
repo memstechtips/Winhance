@@ -13,7 +13,6 @@ namespace Winhance.UI.Tests.Helpers;
 // of these tests hand the helper a ViewModel - only an id and the service.
 public class ReviewModeFilterTests
 {
-    // ---------- basic predicate behaviour ----------
 
     [Fact]
     public void ShouldShowInReviewQueue_WhenServiceHasDiff_ReturnsTrue()
@@ -35,8 +34,6 @@ public class ReviewModeFilterTests
         ReviewModeFilter.ShouldShowInReviewQueue("setting-not-in-config", service.Object).Should().BeFalse();
     }
 
-    // ---------- null safety ----------
-
     [Fact]
     public void ShouldShowInReviewQueue_WhenServiceIsNull_ReturnsFalse()
     {
@@ -50,11 +47,8 @@ public class ReviewModeFilterTests
     {
         var service = new Mock<IConfigReviewDiffService>();
         ReviewModeFilter.ShouldShowInReviewQueue(settingId, service.Object).Should().BeFalse();
-        // Guard: the predicate must short-circuit before querying the service.
         service.Verify(s => s.GetDiffForSetting(It.IsAny<string>()), Times.Never);
     }
-
-    // ---------- the issue #665 invariant ----------
 
     // For every id the service reports as part of the queue, the filter shows the row; the helper is given only
     // ids and the service, so there is no per-VM flag to consult.

@@ -52,7 +52,6 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithWindowsApps_ContainsAppRemoval()
     {
-        // Arrange
         var config = new UnifiedConfigurationFile
         {
             WindowsApps = TestSettingFactory.CreateSection(true,
@@ -61,10 +60,8 @@ public class ScriptBuilderTests
         };
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
         script.Should().Contain("Clipchamp.Clipchamp");
         script.Should().Contain("Get-AppxPackage");
     }
@@ -72,14 +69,11 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_Script_HasBalancedBraces()
     {
-        // Arrange
         var config = TestSettingFactory.CreateFullConfig();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
         var openBraces = script.Count(c => c == '{');
         var closeBraces = script.Count(c => c == '}');
         openBraces.Should().Be(closeBraces,
@@ -89,14 +83,11 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_Script_ContainsRequiredStructure()
     {
-        // Arrange
         var config = TestSettingFactory.CreateFullConfig();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
         script.Should().Contain("Write-Log");
         script.Should().Contain("$scriptsDir");
         script.Should().Contain("$UserCustomizations");
@@ -106,16 +97,12 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_EmptyConfig_ProducesMinimalScript()
     {
-        // Arrange
         var config = new UnifiedConfigurationFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
         script.Should().NotBeNullOrEmpty();
-        // Even empty config should have the header/setup structure
         script.Should().Contain("Write-Log");
         script.Should().Contain("if (-not $UserCustomizations)");
         script.Should().Contain("if ($UserCustomizations)");
@@ -124,9 +111,9 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithOptimizeFeatures_ContainsRegistryCommands()
     {
-        // Arrange - an Optimize toggle. The pipeline runs on the catalog Setting dict, so the
-        // fixture passes the REAL catalog toggle security-remote-assistance (HKLM DWORD fAllowToGetHelp)
-        // directly; the emit reads the CATALOG RegTarget and state values.
+        // The pipeline runs on the catalog Setting dict, so the fixture passes the REAL catalog toggle
+        // security-remote-assistance (HKLM DWORD fAllowToGetHelp) directly; the emit reads the CATALOG RegTarget
+        // and state values.
         var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
         var config = new UnifiedConfigurationFile
         {
@@ -141,10 +128,8 @@ public class ScriptBuilderTests
             ["Privacy"] = new[] { SettingCatalog.Find("security-remote-assistance")! },
         };
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert
         script.Should().Contain("Set-RegistryValue");
         script.Should().Contain("fAllowToGetHelp");
     }
@@ -152,7 +137,7 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithPowerSettings_ContainsPowerCfgCommands()
     {
-        // Arrange - the REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
+        // The REAL catalog setting power-display-timeout (PowerOptimizationsCatalog.cs:
         // subgroup 7516b95f-f776-4464-8c53-06167f40cc99, setting 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e,
         // no hardware gate) rides the Setting dict directly; the emit reads the catalog
         // PowerCfgTarget GUIDs and takes the AC/DC values from the bulk query mock.
@@ -178,7 +163,6 @@ public class ScriptBuilderTests
             ["Power"] = new[] { SettingCatalog.Find("power-display-timeout")! },
         };
 
-        // Set up mock to return AC/DC values for the catalog setting GUID
         _powerSettingsQuery
             .Setup(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>
@@ -186,10 +170,8 @@ public class ScriptBuilderTests
                 ["3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e"] = (1800, 900),
             });
 
-        // Act
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // Assert - the emitted entry carries the catalog PowerCfgTarget GUIDs
         script.Should().Contain("powercfg");
         script.Should().Contain("7516b95f-f776-4464-8c53-06167f40cc99");
         script.Should().Contain("3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e");

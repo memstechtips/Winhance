@@ -13,13 +13,11 @@ public sealed partial class IconConverter : IValueConverter
         string? iconName = null;
         string iconPack = "Material";
 
-        // Check if value is a string (direct icon name)
         if (value is string strValue)
         {
             iconName = strValue;
             iconPack = parameter?.ToString() ?? "Material";
         }
-        // Check if value is an object with Icon and IconPack properties (like SettingItemViewModel)
         else if (value != null)
         {
             var type = value.GetType();
@@ -32,7 +30,7 @@ public sealed partial class IconConverter : IValueConverter
 
         if (string.IsNullOrEmpty(iconName))
         {
-            return null; // Return null so no icon is shown
+            return null;
         }
 
         return iconPack.ToLowerInvariant() switch
@@ -45,10 +43,8 @@ public sealed partial class IconConverter : IValueConverter
 
     private static IconElement? CreateMaterialPathIcon(string iconName)
     {
-        // Try to parse the icon name as MaterialIconKind enum
         if (Enum.TryParse<MaterialIconKind>(iconName, ignoreCase: true, out var iconKind))
         {
-            // Get the SVG path data for this icon
             var pathData = MaterialIconDataProvider.GetData(iconKind);
 
             if (!string.IsNullOrEmpty(pathData))

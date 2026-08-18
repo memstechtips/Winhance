@@ -10,10 +10,8 @@ public class SystemInfoProviderTests
 {
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
 
-    #region WMI test seam
-
-    // The WMI-backed fields used to be asserted against whatever hardware ran the suite, so they
-    // failed outright wherever WMI is degraded - and proved almost nothing when they passed.
+    // Asserting the WMI-backed fields against whatever hardware runs the suite fails outright wherever
+    // WMI is degraded - and proves almost nothing when it passes.
     // These helpers push constructed rows through the provider's internal query seam instead, so
     // the assertions are about Winhance's parsing.
 
@@ -46,10 +44,6 @@ public class SystemInfoProviderTests
         };
     }
 
-    #endregion
-
-    #region Constructor
-
     [Fact]
     public void Constructor_NullInteractiveUserService_ThrowsArgumentNullException()
     {
@@ -66,10 +60,6 @@ public class SystemInfoProviderTests
 
         provider.Should().NotBeNull();
     }
-
-    #endregion
-
-    #region Collect — resilience
 
     [Fact]
     public void Collect_DoesNotThrow()
@@ -109,10 +99,6 @@ public class SystemInfoProviderTests
         info.DomainJoined.Should().Be("Unknown");
         info.Tpm.Should().Be("Not Detected");
     }
-
-    #endregion
-
-    #region Field-specific assertions
 
     [Fact]
     public void Collect_Architecture_IsRecognizedValue()
@@ -254,6 +240,4 @@ public class SystemInfoProviderTests
 
         info.SecureBoot.Should().BeOneOf("Enabled", "Disabled", "Not Supported", "Unknown");
     }
-
-    #endregion
 }

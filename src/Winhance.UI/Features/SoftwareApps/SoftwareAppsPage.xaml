@@ -16,8 +16,7 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <!-- ============================================================
-             Icon sizing knobs (Software & Apps tabs).
+        <!-- Icon sizing knobs (Software & Apps tabs).
              Each view has its OWN icon-size pair — they are NOT shared:
                • CompactIconSize / CompactFallbackFontSize        → Compact view
                  (Windows Apps + External Apps compact lists)
@@ -28,8 +27,7 @@
              icon is resolved; sized to fill the icon cell (~ icon size)
              so fallbacks read at the same size as resolved icons.
              Also tune AppItemViewModel.cs `DecodePixelWidth` (≈ 2× your
-             largest icon size) for HiDPI sharpness.
-             ============================================================ -->
+             largest icon size) for HiDPI sharpness. -->
         <x:Double x:Key="CompactIconSize">20</x:Double>
         <x:Double x:Key="CompactFallbackFontSize">20</x:Double>
         <x:Double x:Key="DataGridIconSize">20</x:Double>
@@ -407,15 +405,15 @@
             </Setter>
         </Style>
 
-        <!-- Fix 2: Remove header-to-row separator line -->
+        <!-- Removes the header-to-row separator line -->
         <SolidColorBrush x:Key="GridLinesBrush" Color="Transparent"/>
 
-        <!-- Fix 3A: Remove cell focus visuals (white/black rectangles on click) -->
+        <!-- Removes cell focus visuals (white/black rectangles on click) -->
         <SolidColorBrush x:Key="DataGridCellFocusVisualPrimaryBrush" Color="Transparent"/>
         <SolidColorBrush x:Key="DataGridCellFocusVisualSecondaryBrush" Color="Transparent"/>
         <SolidColorBrush x:Key="DataGridCurrencyVisualPrimaryBrush" Color="Transparent"/>
 
-        <!-- Fix 3B: Custom DataGridRow style with accent selection border.
+        <!-- DataGridRow style with accent selection border.
              Uses standard WinUI 3 brushes instead of DataGrid-internal theme resources
              (DataGridRow*BackgroundColor etc. are not in scope at page level). -->
         <Style x:Key="SelectionRowStyle" TargetType="controls:DataGridRow">
@@ -591,8 +589,7 @@
 
                     <!-- Content: name row, description, then status badges below
                          the description — mirrors the Optimize/Customize settings
-                         card layout. Name row no longer shares space with the pills,
-                         so long names no longer get clipped. -->
+                         card layout. -->
                     <Grid Grid.Column="2" VerticalAlignment="Center" MinWidth="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1286,19 +1283,12 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
-                                                         pre-fix visual: each row's content sits at its natural width
-                                                         and the UniformWrapPanel slot's leftover space is empty on the
-                                                         right, just like the Microsoft Store / card-view pattern. The
-                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
-                                                         cap is what makes CharacterEllipsis actually trigger (a plain
-                                                         horizontal StackPanel measures every child with infinite width,
-                                                         which is why long names were clipping mid-glyph before issue
-                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
-                                                         then ellipsizes; the warning Viewbox sits immediately after,
-                                                         not pinned to the far right of the cell.
-                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell): each row's content sits at its natural width, the
+                                                         Microsoft Store / card-view pattern. The name TextBlock's MaxWidth=CompactNameMaxWidth is what
+                                                         makes CharacterEllipsis actually trigger - a plain horizontal StackPanel measures every child with
+                                                         infinite width; the warning Viewbox sits immediately after the name, not pinned to the far right
+                                                         of the cell. Outer Margin nudges the row down to match the WinUI 3 CheckBox glyph's built-in
+                                                         vertical offset. -->
                                                     <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
@@ -1385,19 +1375,12 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
-                                                         pre-fix visual: each row's content sits at its natural width
-                                                         and the UniformWrapPanel slot's leftover space is empty on the
-                                                         right, just like the Microsoft Store / card-view pattern. The
-                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
-                                                         cap is what makes CharacterEllipsis actually trigger (a plain
-                                                         horizontal StackPanel measures every child with infinite width,
-                                                         which is why long names were clipping mid-glyph before issue
-                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
-                                                         then ellipsizes; the warning Viewbox sits immediately after,
-                                                         not pinned to the far right of the cell.
-                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell): each row's content sits at its natural width, the
+                                                         Microsoft Store / card-view pattern. The name TextBlock's MaxWidth=CompactNameMaxWidth is what
+                                                         makes CharacterEllipsis actually trigger - a plain horizontal StackPanel measures every child with
+                                                         infinite width; the warning Viewbox sits immediately after the name, not pinned to the far right
+                                                         of the cell. Outer Margin nudges the row down to match the WinUI 3 CheckBox glyph's built-in
+                                                         vertical offset. -->
                                                     <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
@@ -1484,19 +1467,12 @@
                                             <DataTemplate>
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="4,3" FontSize="16"
                                                          AutomationProperties.Name="{Binding Name}">
-                                                    <!-- Auto-sized Grid (NOT stretched to the cell) restores the
-                                                         pre-fix visual: each row's content sits at its natural width
-                                                         and the UniformWrapPanel slot's leftover space is empty on the
-                                                         right, just like the Microsoft Store / card-view pattern. The
-                                                         name TextBlock has MaxWidth=CompactNameMaxWidth — that finite
-                                                         cap is what makes CharacterEllipsis actually trigger (a plain
-                                                         horizontal StackPanel measures every child with infinite width,
-                                                         which is why long names were clipping mid-glyph before issue
-                                                         #668). With the cap in place, name auto-sizes up to ~210dp and
-                                                         then ellipsizes; the warning Viewbox sits immediately after,
-                                                         not pinned to the far right of the cell.
-                                                         Outer Margin nudges the row down to match the WinUI 3 CheckBox
-                                                         glyph's built-in vertical offset (tune 3 → 2/4 if needed). -->
+                                                    <!-- Auto-sized Grid (NOT stretched to the cell): each row's content sits at its natural width, the
+                                                         Microsoft Store / card-view pattern. The name TextBlock's MaxWidth=CompactNameMaxWidth is what
+                                                         makes CharacterEllipsis actually trigger - a plain horizontal StackPanel measures every child with
+                                                         infinite width; the warning Viewbox sits immediately after the name, not pinned to the far right
+                                                         of the cell. Outer Margin nudges the row down to match the WinUI 3 CheckBox glyph's built-in
+                                                         vertical offset. -->
                                                     <Grid Margin="0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>

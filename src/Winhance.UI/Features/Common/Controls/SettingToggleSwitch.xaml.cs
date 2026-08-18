@@ -32,8 +32,6 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
         set => SetValue(SettingProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public bool IsOn { get; private set; }
     public string OnText { get; private set; } = string.Empty;
     public string OffText { get; private set; } = string.Empty;
@@ -108,8 +106,6 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
             nameof(OverlayText), nameof(OverlayTooltip));
     }
 
-    // --- Interaction -----------------------------------------------------------------------------
-
     private void OnToggled(object sender, RoutedEventArgs e) => Setting?.OnToggleSwitchToggled(sender);
 
     private void OnOverlayClicked(object sender, RoutedEventArgs e) => Setting?.OnCustomToggleClicked();
@@ -137,8 +133,6 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
         }
         storyboard.Begin();
     }
-
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

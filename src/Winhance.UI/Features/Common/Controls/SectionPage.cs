@@ -114,8 +114,6 @@ public abstract class SectionPage : Page
         _applicationModeService = App.Services.GetService<IApplicationModeService>();
     }
 
-    // ── Navigation ──
-
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         try
@@ -149,7 +147,6 @@ public abstract class SectionPage : Page
                 // from the settings they observe, so an apply reaches them without this page.
             }
 
-            // Ensure we're showing overview on initial navigation
             PageViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
 
@@ -159,7 +156,6 @@ public abstract class SectionPage : Page
             SetDropdownLabels();
             await InitializeViewTogglesAsync();
 
-            // Re-apply Show Only Changes filter if still active from before navigation
             if (_showOnlyChanges)
                 ApplyShowOnlyChangesFilter();
 
@@ -211,7 +207,6 @@ public abstract class SectionPage : Page
             typeof(SectionDetailPage),
             new SectionDetailNavigation(sectionKey, searchText, PageViewModel, item.Feature));
 
-        // Mark feature as visited when user actually navigates into it
         if (_configReviewService?.IsInReviewMode == true && FeatureIdFor(sectionKey) is { } featureId)
         {
             _configReviewService.MarkFeatureVisited(featureId);
@@ -259,8 +254,6 @@ public abstract class SectionPage : Page
         }
     }
 
-    // ── Overview card / flyout handlers (bound from the item templates via Tag) ──
-
     protected void SectionCard_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string sectionKey })
@@ -284,8 +277,6 @@ public abstract class SectionPage : Page
         DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
     }
 
-    // ── Search ──
-
     // Suggestions carry the section that holds the setting, so this resolves without consulting the ViewModel.
     protected void SearchBox_SuggestionChosen(
         AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
@@ -302,8 +293,6 @@ public abstract class SectionPage : Page
         if (args.ChosenSuggestion is SearchSuggestionItem suggestion)
             NavigateToSection(suggestion.SectionKey, suggestion.SettingName);
     }
-
-    // ── Menu labels ──
 
     private string Localized(string key, string fallback) =>
         _localizationService?.TryGetString(key, out var value) == true ? value : fallback;
@@ -330,8 +319,6 @@ public abstract class SectionPage : Page
 
         UpdateQuickActionsForReviewMode();
     }
-
-    // ── View menu ──
 
     private IEnumerable<SettingItemViewModel> AllSettings() =>
         PageViewModel.OverviewItems.SelectMany(item => item.Feature.Settings);
@@ -398,8 +385,6 @@ public abstract class SectionPage : Page
             await _userPreferencesService.SetPreferenceAsync(key, value);
     }
 
-    // ── Show Only Changes filter (review mode) ──
-
     protected void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
     {
         _showOnlyChanges = _chrome.ShowOnlyChangesToggle.IsChecked;
@@ -414,9 +399,9 @@ public abstract class SectionPage : Page
             {
                 // Visibility is decided by the service's diff dictionary — the same
                 // source that drives TotalChanges / ReviewedChanges and the Apply gate.
-                // Reading per-VM flags here used to drift behind the service when a
-                // sub-page's ViewModels hadn't been hydrated yet, hiding rows the user
-                // still needed to review (issue #665). See ReviewModeFilter for context.
+                // Per-VM flags lag behind the service when a sub-page's ViewModels haven't been hydrated
+                // yet and would hide rows the user still needs to review (issue #665). See ReviewModeFilter
+                // for context.
                 setting.IsVisible = ReviewModeFilter.ShouldShowInReviewQueue(
                     setting.SettingId, _configReviewService);
             }
@@ -437,8 +422,6 @@ public abstract class SectionPage : Page
         return items.SelectMany(i => i.Feature.Settings);
     }
 
-    // ── Quick Actions ──
-    //
     // The try/catch is not optional here: async void means an escaped exception is unobserved and
     // takes the process down. Every path below ends at ContentDialog.ShowAsync(), which throws when a
     // second dialog opens while one is already showing - a double-click on the flyout item.
@@ -512,7 +495,7 @@ public abstract class SectionPage : Page
             else setting.TrySetToDefault();
         }
 
-        // No explicit re-aggregation here any more: the overview cards observe these settings, so a
+        // No explicit re-aggregation here: the overview cards observe these settings, so a
         // Builder edit reaches them even though nothing publishes SettingAppliedEvent.
     }
 

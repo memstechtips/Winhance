@@ -96,9 +96,7 @@
         <Grid>
         <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
 
-            <!-- ═══════════════════════════════════════════════════════ -->
-            <!-- STEP 1: Select ISO                                     -->
-            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 1: Select ISO -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -226,7 +224,7 @@
                                 MinWidth="160"
                                 Margin="0,8,0,12"/>
 
-                        <!-- ═══ Conversion Section ═══ -->
+                        <!-- Conversion Section -->
                         <StackPanel Visibility="{x:Bind ViewModel.ShowConversionCard, Mode=OneWay}">
 
                             <TextBlock Text="{x:Bind ViewModel.OptionalConvertText}"
@@ -330,9 +328,7 @@
             </Border>
 
 
-            <!-- ═══════════════════════════════════════════════════════ -->
-            <!-- STEP 2: Add XML File                                   -->
-            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 2: Add XML File -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -496,9 +492,7 @@
             </Border>
 
 
-            <!-- ═══════════════════════════════════════════════════════ -->
-            <!-- STEP 3: Add Drivers                                    -->
-            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 3: Add Drivers -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -583,9 +577,7 @@
             </Border>
 
 
-            <!-- ═══════════════════════════════════════════════════════ -->
-            <!-- STEP 4: Create ISO                                     -->
-            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- STEP 4: Create ISO -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"

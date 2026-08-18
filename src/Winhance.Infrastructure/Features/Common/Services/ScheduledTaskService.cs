@@ -39,7 +39,7 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
             for (var i = _objects.Count - 1; i >= 0; i--)
             {
                 try { Marshal.ReleaseComObject(_objects[i]); }
-                catch { /* best-effort COM release */ }
+                catch { }
             }
         }
     }
@@ -52,8 +52,6 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         taskService.Connect();
         return taskService;
     }
-
-    // --- Winhance's own tasks (IScheduledTaskService) ---
 
     public async Task<OperationResult> RegisterScheduledTaskAsync(RemovalScript script)
     {
@@ -271,8 +269,6 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
 
         return taskDefinition;
     }
-
-    // --- State of tasks Windows owns (IScheduledTaskStateService) ---
 
     public IReadOnlyDictionary<string, bool?> GetTasksEnabled(IReadOnlyCollection<string> taskPaths)
     {

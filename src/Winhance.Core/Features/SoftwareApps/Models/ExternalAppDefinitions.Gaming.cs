@@ -47,8 +47,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "goggalaxy",
                         MsStoreId = "XPFFXW40W60KCF",
                         WebsiteUrl = "https://www.gogalaxy.com/en/",
-                        // Icon resolved via MS Store CDN (Layer 2a). Vendor only ships
-                        // SVG and the Wikimedia render is the wide GOG.com wordmark.
                     },
                     new ItemDefinition
                     {
@@ -62,7 +60,6 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.blizzard.com/apps/battle.net/desktop",
                         RegistryDisplayName = "Battle.net",
                         RegistrySubKeyName = "Battle.net",
-                        // Icon resolved via MS Store CDN (Layer 2a) from MsStoreId.
                         // MsStoreId is "XP..."-prefixed: a Win32 installer distributed via the
                         // Store, not an MSIX/UWP package, so it writes a classic Uninstall key
                         // (HKLM_WOW6432) and needs registry detection, not AppxPackageName.
@@ -109,7 +106,6 @@ public static partial class ExternalAppDefinitions
                         WebsiteUrl = "https://www.ubisoft.com/ubisoft-connect",
                         RegistryDisplayName = "Ubisoft Connect",
                         RegistrySubKeyName = "Uplay",   // legacy subkey name; DisplayName is "Ubisoft Connect"
-                        // Icon resolved via MS Store CDN (Layer 2a) from MsStoreId.
                         // "XP..."-prefixed Store ID = Win32-via-Store, so it writes a classic
                         // Uninstall key and needs registry detection, not AppxPackageName.
                     },

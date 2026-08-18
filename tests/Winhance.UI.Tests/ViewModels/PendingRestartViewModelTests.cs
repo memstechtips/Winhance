@@ -97,7 +97,6 @@ public class PendingRestartViewModelTests
     [Fact]
     public async Task RestartCommand_OnSuccess_HidesBar()
     {
-        // Pending until the service clears it, then not.
         var pending = true;
         _mockPending.Setup(p => p.IsPending).Returns(() => pending);
         _mockRestart.Setup(r => r.RestartAsync())

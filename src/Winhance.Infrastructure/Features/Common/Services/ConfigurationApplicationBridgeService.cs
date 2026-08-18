@@ -157,8 +157,6 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
         // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgTarget and pass
         // through unchanged.
-        // The gate + units read the Setting's PowerCfgTarget presence and the
-        // GetPowerCfgDisplayUnits(Setting) overload.
         bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
 
@@ -182,9 +180,6 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return null;
     }
 
-    // Converts a stored system-unit numeric value to display units for PowerCfg NumericRange
-    // settings, reusing RecommendedSettingsResolver's conversion table. Leaves the value
-    // untouched for non-PowerCfg settings or non-numeric values.
     private static object? ConvertToDisplayIfPowerCfg(object? value, bool isPowerCfg, string? displayUnits)
     {
         if (!isPowerCfg || value == null)
@@ -281,8 +276,6 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return waves;
     }
 
-    // The config-import wave-ordering dependency set: the Setting's aggregated Requires-Link
-    // OtherIds.
     private static List<string> GetWaveDependencyIds(Setting setting)
         => setting.States
             .SelectMany(st => st.Links)
@@ -310,9 +303,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
-            // Confirmation + input-kind dispatch read the registry-paired Setting directly
-            // (Apply.RequiresConfirmation / Control). Control in {Selection, PowerPlan} both route the
-            // Selection value path: the bridge does NOT skip power-plan-selection (Control.PowerPlan).
+            // Control.PowerPlan routes through the Selection value path: the bridge does NOT skip power-plan-selection.
             bool requiresConfirmation = setting.Apply.RequiresConfirmation;
             bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
             bool isNumericRange = setting.Control == ControlKind.Slider;
@@ -358,7 +349,6 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     return (ApplyStatus.Applied, item.Name);
                 }
 
-                // The Action's operations are the Setting's Effects.
                 // Enable=true matches the runtime button-click flow (RunActionAsync).
                 await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {

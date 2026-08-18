@@ -20,8 +20,6 @@ public class ScheduledTaskServiceTests
         _service = new ScheduledTaskService(_mockLog.Object, _mockFileSystem.Object);
     }
 
-    // --- RegisterScheduledTaskAsync ---
-
     [Fact]
     public async Task RegisterScheduledTaskAsync_NullScript_ReturnsFailure()
     {
@@ -69,8 +67,6 @@ public class ScheduledTaskServiceTests
         // in a test environment, but we can verify the pre-COM setup logic works
         var result = await _service.RegisterScheduledTaskAsync(script);
 
-        // The method will fail at COM interop (CreateTaskService), but we can verify
-        // EnsureScriptFileExists was called
         _mockFileSystem.Verify(f => f.CreateDirectory(@"C:\ProgramData\Winhance\Scripts"), Times.Once);
         _mockFileSystem.Verify(f => f.WriteAllText(script.ActualScriptPath, script.Content), Times.Once);
     }
@@ -107,17 +103,11 @@ public class ScheduledTaskServiceTests
 
         _mockFileSystem.Setup(f => f.FileExists(script.ActualScriptPath)).Returns(false);
 
-        // EnsureScriptFileExists has guard: !string.IsNullOrEmpty(script.Content)
         var result = await _service.RegisterScheduledTaskAsync(script);
 
         _mockFileSystem.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    // Skipped: environment-dependent. The service talks to the real Task Scheduler
-    // COM API ("Schedule.Service") with no mockable seam. The test assumes COM is
-    // unavailable in the test host, but on a real Windows machine the registration
-    // succeeds (Success == true) and creates an actual scheduled task as a side effect.
-    // Re-enable once ScheduledTaskService exposes an injectable COM wrapper to mock.
     [Fact(Skip = "Environment-dependent: hits real Task Scheduler COM (no mockable seam) and has side effects; needs an injectable COM wrapper to run deterministically.")]
     public async Task RegisterScheduledTaskAsync_ComFailure_ReturnsFailedResult()
     {
@@ -131,20 +121,14 @@ public class ScheduledTaskServiceTests
 
         _mockFileSystem.Setup(f => f.FileExists(script.ActualScriptPath)).Returns(true);
 
-        // In a test environment, COM will fail. The method should handle this gracefully.
         var result = await _service.RegisterScheduledTaskAsync(script);
 
-        // Should return failed (COM not available in test environment)
         result.Success.Should().BeFalse();
     }
-
-    // --- UnregisterScheduledTaskAsync ---
 
     [Fact]
     public async Task UnregisterScheduledTaskAsync_ComFailure_ReturnsResult()
     {
-        // In a unit test environment, COM interop calls will fail.
-        // The method wraps everything in try/catch so it should not throw.
         var result = await _service.UnregisterScheduledTaskAsync("SomeTask");
 
         // Will either succeed (Winhance folder not found => returns Succeeded)
@@ -155,18 +139,14 @@ public class ScheduledTaskServiceTests
     [Fact]
     public async Task UnregisterScheduledTaskAsync_ReturnsResult_WithoutThrowing()
     {
-        // Verify that the method is robust against all types of failures
         var action = () => _service.UnregisterScheduledTaskAsync("NonExistentTask");
 
         await action.Should().NotThrowAsync();
     }
 
-    // --- IsTaskRegisteredAsync ---
-
     [Fact]
     public async Task IsTaskRegisteredAsync_ComFailure_ReturnsFalse()
     {
-        // In a test environment, COM fails. The catch block returns false.
         var result = await _service.IsTaskRegisteredAsync("SomeTask");
 
         result.Should().BeFalse();
@@ -188,7 +168,7 @@ public class ScheduledTaskServiceTests
         result.Should().BeFalse();
     }
 
-    // --- SetTaskEnabled (synchronous: the Task Scheduler COM call blocks) ---
+    // SetTaskEnabled is synchronous: the Task Scheduler COM call blocks.
 
     [Fact]
     public void SetTaskEnabled_Enable_ComFailure_ReturnsFailedResult()
@@ -225,7 +205,7 @@ public class ScheduledTaskServiceTests
         action.Should().NotThrow();
     }
 
-    // --- GetTasksEnabled (batched over one connection) ---
+    // GetTasksEnabled is batched over one connection.
 
     [Fact]
     public void GetTasksEnabled_NoPaths_ReturnsEmptyWithoutConnecting()
@@ -257,15 +237,12 @@ public class ScheduledTaskServiceTests
         action.Should().NotThrow();
     }
 
-    // --- RunScheduledTaskAsync ---
-
     [Fact]
     public async Task RunScheduledTaskAsync_ComFailure_ReturnsFailedResult()
     {
         var result = await _service.RunScheduledTaskAsync("SomeTask");
 
         result.Should().NotBeNull();
-        // Will fail due to COM not being available
         result.Success.Should().BeFalse();
     }
 
@@ -277,14 +254,12 @@ public class ScheduledTaskServiceTests
         await action.Should().NotThrowAsync();
     }
 
-    // --- SplitTaskPath (tested indirectly via public methods) ---
     // SplitTaskPath is private static, but its logic is exercised through SetTaskEnabled/GetTasksEnabled.
 
     [Fact]
     public void SetTaskEnabled_WithFullPath_ParsesFolderAndName()
     {
         // The path "\Microsoft\Windows\Test\TaskName" should split to folder="\Microsoft\Windows\Test" name="TaskName"
-        // COM will fail in test env, but we verify no exception
         var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\TaskName", enabled: true);
 
         result.Should().NotBeNull();

@@ -59,11 +59,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "discord",
                         MsStoreId = "XPDC2RH70K22MN",
                         WebsiteUrl = "https://discord.com/",
-                        // Vendor brand page only ships SVG/ZIP and the Wikimedia
-                        // render keeps rotting (Discord_color_D.svg has been
-                        // rehashed/removed twice already). Embed the on-page
-                        // Symbol mark so the resolver decodes it via the data:
-                        // branch — locked-in and immune to URL rot.
                     },
                     new ItemDefinition
                     {

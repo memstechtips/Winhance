@@ -9,7 +9,6 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-// These rules used to write straight into named XAML elements, so nothing could assert them without a XAML host.
 public class SectionOverviewItemViewModelTests
 {
     private const string SectionKey = "Privacy";
@@ -36,8 +35,6 @@ public class SectionOverviewItemViewModelTests
         _reviewMode.Object,
         _localization.Object);
 
-    // ── Review badge ──
-
     [Fact]
     public void OutsideReviewMode_NoReviewBadgeShows_EvenWhenTheFeatureHasDiffs()
     {
@@ -62,7 +59,6 @@ public class SectionOverviewItemViewModelTests
 
         sut.IsReviewPendingBadgeVisible.Should().BeTrue();
         sut.IsReviewSuccessBadgeVisible.Should().BeFalse();
-        // 2 unreviewed of 5 total — the badge counts what is left to do, not what exists.
         sut.ReviewPendingCount.Should().Be(2);
     }
 
@@ -108,8 +104,8 @@ public class SectionOverviewItemViewModelTests
     [Fact]
     public void EnteringReviewMode_UpdatesTheBadgeWithoutAnyoneCallingRefresh()
     {
-        // The point of the rewrite: the card reacts to the service, rather than waiting for a page
-        // to remember to push new values into a named element.
+        // The card must react to the service itself, rather than wait for a page to remember to push new
+        // values into a named element.
         _reviewMode.Setup(r => r.IsInReviewMode).Returns(false);
         var sut = CreateSut();
         sut.IsReviewPendingBadgeVisible.Should().BeFalse();
@@ -140,8 +136,6 @@ public class SectionOverviewItemViewModelTests
         sut.IsReviewPendingBadgeVisible.Should().BeFalse();
     }
 
-    // ── View-menu gating ──
-
     [Fact]
     public void AFeatureWithNoBadgeData_ShowsNoPills()
     {
@@ -165,8 +159,6 @@ public class SectionOverviewItemViewModelTests
         // A review decision is not optional detail — View > InfoBadges must not hide it.
         sut.IsReviewSuccessBadgeVisible.Should().BeTrue();
     }
-
-    // ── Lifetime ──
 
     [Fact]
     public void Dispose_UnsubscribesFromTheServices()

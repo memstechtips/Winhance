@@ -28,8 +28,6 @@ public class WindowsAppUninstallServiceTests
         _multiScriptProgressService.Object,
         _changeHistoryService.Object);
 
-    // --- UninstallAppAsync ---
-
     [Fact]
     public async Task UninstallAppAsync_AppNotFound_ReturnsFailed()
     {
@@ -226,8 +224,6 @@ public class WindowsAppUninstallServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("Something broke");
     }
-
-    // --- UninstallAppsAsync ---
 
     [Fact]
     public async Task UninstallAppsAsync_EmptyList_ReturnsFailed()
@@ -461,8 +457,6 @@ public class WindowsAppUninstallServiceTests
         result.ErrorMessage.Should().Contain("cancelled");
     }
 
-    // --- UninstallAppsInParallelAsync ---
-
     [Fact]
     public async Task UninstallAppsInParallelAsync_EmptyList_ReturnsFailed()
     {
@@ -614,7 +608,6 @@ public class WindowsAppUninstallServiceTests
 
         result.Success.Should().BeTrue();
         result.Result.Should().Be(2);
-        // Slot names: "EdgeRemoval" + "BloatRemoval"
         _multiScriptProgressService.Verify(
             x => x.StartMultiScriptTask(It.Is<string[]>(s =>
                 s.Length == 2 && s[0] == "EdgeRemoval" && s[1] == "BloatRemoval")),
@@ -748,7 +741,6 @@ public class WindowsAppUninstallServiceTests
         var result = await sut.UninstallAppsInParallelAsync(apps);
 
         result.Success.Should().BeFalse();
-        // Verify cleanup still called even when exception occurs (finally block)
         _multiScriptProgressService.Verify(x => x.CompleteMultiScriptTask(), Times.Once);
     }
 }

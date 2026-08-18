@@ -81,8 +81,6 @@ public class AppIconResolverTests : IDisposable
     private static string BuildCacheFileName(string defId, string sourceKey) =>
         $"{defId}.{Sha1HexLower(sourceKey).Substring(0, 8)}.png";
 
-    // ===== Candidate selection / no-op cases =====
-
     [Fact]
     public async Task ResolveBatchAsync_SkipsDefinitionWithNoRoutableIdentity()
     {
@@ -128,8 +126,6 @@ public class AppIconResolverTests : IDisposable
         _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>()), Times.AtLeastOnce);
     }
 
-    // ===== Layer 1: AppX extraction =====
-
     [Fact]
     public async Task ResolveBatchAsync_WindowsApp_PackageInInstalledMap_ExtractsViaAppx()
     {
@@ -148,7 +144,6 @@ public class AppIconResolverTests : IDisposable
         File.Exists(expectedPath).Should().BeTrue();
         File.ReadAllText(expectedPath).Should().Be("PNG-app1");
 
-        // Repo must NOT be consulted when AppX extraction succeeds.
         _mockRepoSource.Verify(
             r => r.GetIconBytesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -252,8 +247,6 @@ public class AppIconResolverTests : IDisposable
             Times.Once);
     }
 
-    // ===== Layer 3: package-icons repo =====
-
     [Fact]
     public async Task ResolveBatchAsync_ExternalApp_FetchesFromRepo_StampsIconPath()
     {
@@ -294,7 +287,7 @@ public class AppIconResolverTests : IDisposable
         var expectedRepoPath = "icons/windows/microsoft.windowscalculator.png";
 
         _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>()); // not installed
+            .ReturnsAsync(new Dictionary<string, string>());
         _mockManifest.Setup(m => m.LoadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _mockManifest.Setup(m => m.Sha256For(expectedRepoPath)).Returns("ca1c0a5e");
         _mockRepoSource.Setup(r => r.GetIconBytesAsync(expectedRepoPath, "ca1c0a5e", It.IsAny<CancellationToken>()))
@@ -302,7 +295,6 @@ public class AppIconResolverTests : IDisposable
 
         await _resolver.ResolveBatchAsync(new[] { def }, applyThemeAdaptation: true);
 
-        // Sha known → cache key is "repo:" + sha.
         var expectedCache = Path.Combine(_tempCacheDir, BuildCacheFileName(def.Id, "repo:ca1c0a5e"));
         def.IconPath.Should().Be(expectedCache);
         File.ReadAllText(expectedCache).Should().Be("PNG-repo-calc");
@@ -318,8 +310,6 @@ public class AppIconResolverTests : IDisposable
     [Fact]
     public async Task ResolveBatchAsync_WindowsApp_Installed_DoesNotCallRepo()
     {
-        // windows-app-* present in the installed map resolves via AppX; the repo
-        // must NOT be touched.
         var def = Def("windows-app-calc", appxName: "Microsoft.WindowsCalculator");
         var fullName = "Microsoft.WindowsCalculator_1.0.0_x64__abc";
 
@@ -429,8 +419,6 @@ public class AppIconResolverTests : IDisposable
             Times.Never);
     }
 
-    // ===== Layer 2: capabilities & optional features via repo =====
-
     [Fact]
     public async Task ResolveBatchAsync_Capability_FetchesFromRepo_StampsIconPath()
     {
@@ -483,8 +471,6 @@ public class AppIconResolverTests : IDisposable
             r => r.GetIconBytesAsync(expectedRepoPath, "feedface", It.IsAny<CancellationToken>()),
             Times.Once);
     }
-
-    // ===== Light/dark variant generation (theme adaptation) =====
 
     [Fact]
     public async Task ResolveBatchAsync_WhiteAppxIcon_WritesLightVariantSibling()
@@ -629,8 +615,6 @@ public class AppIconResolverTests : IDisposable
         decoder.PixelWidth.Should().Be(20, "theme adaptation off → backplate is not cropped");
         decoder.PixelHeight.Should().Be(20, "theme adaptation off → backplate is not cropped");
     }
-
-    // ===== Helpers =====
 
     private static async Task<BitmapDecoder> DecodeAsync(string path)
     {

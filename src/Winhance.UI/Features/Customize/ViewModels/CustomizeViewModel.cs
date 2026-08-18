@@ -19,10 +19,7 @@ public partial class CustomizeViewModel : SectionPageViewModel<CustomizeSectionI
     // as written. The order is the one the page has always shipped with and is Marco's call, not
     // alphabetical and not derivable — so do not "tidy" it. Sections_AreInTheOrderTheUserSees pins it.
     //
-    // Icon keys are the PathIcon resources the overview cards and breadcrumb resolve. They used to
-    // be the "…IconGlyph" font-glyph keys, which no surface ever rendered — CustomizePage.xaml.cs
-    // kept its own second table of "…IconPath" keys for the icons actually shown, and the two were
-    // free to disagree. One table now.
+    // Icon keys are the PathIcon resources the overview cards and breadcrumb resolve.
     public static readonly IReadOnlyList<CustomizeSectionInfo> Sections = new List<CustomizeSectionInfo>()
     {
         new("WindowsTheme", "WindowsThemeIconPath", "Windows Theme", FeatureIds.WindowsTheme),

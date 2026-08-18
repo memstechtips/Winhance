@@ -62,20 +62,14 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
-            // Read technical details preference once for all settings
             var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(
                 Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
             _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            // The full-state provider returns each setting's resolved state. Custom-state comes from the typed
-            // fields (SettingViewModelFactory rebuilds CapturedCustomStateValues via the reconstructor).
             var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
 
-            // The compatibility message is derived from the catalog Availability against the live build;
-            // read the build once per load.
             var liveBuild = LiveBuild();
 
-            // Create ViewModels for all settings (skip any whose state the detection provider could not resolve -- Success == false)
             foreach (var setting in settingsList)
             {
                 if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)
@@ -120,9 +114,9 @@ public class SettingsLoadingService : ISettingsLoadingService
     {
         var settingsList = settings.ToList();
 
-        // The VM no longer carries its setting model. Re-source the catalog Settings for this
-        // refresh from the catalog registry, keyed by each VM's owning feature module and filtered to the VMs
-        // on screen - the same registry + scope as the initial load, so the settings are identical.
+        // Re-source the catalog Settings for this refresh from the catalog registry, keyed by each VM's owning
+        // feature module and filtered to the VMs on screen - the same registry + scope as the initial load, so
+        // the settings are identical.
         var wantedIds = new HashSet<string>(settingsList.Select(s => s.SettingId));
         var catalogSettings = settingsList
             .Select(s => s.ParentFeatureViewModel?.ModuleId)
@@ -137,7 +131,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         if (catalogSettings.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
-        // Read from the full-state provider.
         var batchStates = await _settingStateProvider.GetStatesAsync(catalogSettings);
 
         return batchStates;

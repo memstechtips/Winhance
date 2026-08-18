@@ -20,12 +20,10 @@ public class RecommendedSettingsApplierTests
 
     public RecommendedSettingsApplierTests()
     {
-        // Default OS: Windows 11 build 22621
         _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
         _mockVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(22621);
         _mockVersionService.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
 
-        // SuppressRestarts returns a real no-op disposable
         _mockProcessRestartManager
             .Setup(p => p.SuppressRestarts())
             .Returns(Mock.Of<IDisposable>());
@@ -99,11 +97,6 @@ public class RecommendedSettingsApplierTests
             .Returns(featureSettings);
     }
 
-    // ------------------------------------------------------------------
-    // (a) ApplyRecommendedToSettingsAsync applies each recommended setting
-    //     and returns the applied list.
-    // ------------------------------------------------------------------
-
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_CallsApplyPerSetting_ReturnsAppliedList()
     {
@@ -137,11 +130,6 @@ public class RecommendedSettingsApplierTests
             Times.Never);
     }
 
-    // ------------------------------------------------------------------
-    // (b) Selection with a Recommended role IS applied with Value = the
-    //     recommended state index.
-    // ------------------------------------------------------------------
-
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_SelectionWithRecommended_AppliesWithIndex()
     {
@@ -163,7 +151,6 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_SelectionWithNoRecommended_IsSkipped()
     {
-        // A Selection with no Recommended role on any state (and no powercfg target) is skipped.
         var selection = new Setting
         {
             Id = "sel-no-rec",
@@ -185,11 +172,7 @@ public class RecommendedSettingsApplierTests
         result.Should().BeEmpty();
     }
 
-    // ------------------------------------------------------------------
-    // (c) SuppressRestarts is used; FlushCoalescedRestartsAsync is NOT
-    //     called by ApplyRecommendedToSettingsAsync (core never flushes).
-    // ------------------------------------------------------------------
-
+    // The core method never flushes; only ApplyRecommendedSettingsForFeatureAsync flushes, exactly once.
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_OpensSuppressScope_DoesNotFlush()
     {
@@ -203,10 +186,6 @@ public class RecommendedSettingsApplierTests
             p => p.FlushCoalescedRestartsAsync(It.IsAny<IEnumerable<Setting>>()),
             Times.Never);
     }
-
-    // ------------------------------------------------------------------
-    // (d) ApplyRecommendedSettingsForFeatureAsync DOES flush exactly once.
-    // ------------------------------------------------------------------
 
     [Fact]
     public async Task ApplyRecommendedSettingsForFeatureAsync_FlushesExactlyOnce()
@@ -257,10 +236,6 @@ public class RecommendedSettingsApplierTests
             .WithMessage("*unknown-id*");
     }
 
-    // ------------------------------------------------------------------
-    // Error resilience: individual setting failure continues the loop.
-    // ------------------------------------------------------------------
-
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_IndividualFailure_ContinuesWithRemaining()
     {
@@ -286,7 +261,7 @@ public class RecommendedSettingsApplierTests
     [Fact]
     public async Task ApplyRecommendedToSettingsAsync_ActionSetting_IsExcluded()
     {
-        // A one-shot Action (no states) is not a stateful setting to bulk-recommend (Marco 2026-07-08). In the
+        // A one-shot Action (no states) is not a stateful setting to bulk-recommend. In the
         // catalog model an Action carries no recommendable state, so Apply-Recommended never applies it - the
         // Control==Action guard makes that exclusion explicit.
         var action = ActionSetting("action-id");

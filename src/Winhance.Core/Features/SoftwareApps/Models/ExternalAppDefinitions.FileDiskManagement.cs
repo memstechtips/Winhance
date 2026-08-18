@@ -69,8 +69,6 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "teracopy",
                         MsStoreId = "XPDCCPPSK2XPQW",
                         WebsiteUrl = "https://www.codesector.com/teracopy",
-                        // Icon resolved via MS Store CDN (Layer 2a). No usable
-                        // catalog URL — vendor site only ships SVG.
                     },
                     new ItemDefinition
                     {
@@ -103,9 +101,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],
                         ChocoPackageId = "bulkrenameutility",
                         WebsiteUrl = "https://www.bulkrenameutility.co.uk/",
-                        // Vendor's `bru.svg` icon-only mark fits a square cell better
-                        // than `brulogo.png` (wordmark). Embed a PNG render of the
-                        // SVG since the resolver can't decode SVG directly.
                     },
                     new ItemDefinition
                     {
@@ -117,18 +112,7 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "iobit-unlocker",
                         WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php",
                     },
-                    // HiBit is unavailable for download due to conflict in the region
-                    /*
-                    new ItemDefinition
-                    {
-                        Id = "external-app-hibit-uninstaller",
-                        Name = "HiBit Uninstaller",
-                        Description = "Completely Uninstall Stubborn Software, Windows Apps & Browser Extension",
-                        GroupName = "File & Disk Management",
-                        WinGetPackageId = ["HiBitSoftware.HiBitUninstaller"],
-                        WebsiteUrl = "https://www.hibitsoft.ir/Uninstaller.html"
-                    },
-                    */
+                    // HiBit Uninstaller (HiBitSoftware.HiBitUninstaller) is not listed: unavailable for download due to conflict in the region.
                     new ItemDefinition
                     {
                         Id = "external-app-sandisk-dashboard",

@@ -7,16 +7,13 @@ public static class CatalogValidator
         var errors = new List<CatalogValidationError>();
         var id = setting.Id;
 
-        // R5: no duplicate Target.Key
         foreach (var k in setting.Targets.GroupBy(t => t.Key).Where(g => g.Count() > 1).Select(g => g.Key))
             errors.Add(new CatalogValidationError(id, $"Duplicate target key '{k}'."));
 
-        // R1: at most one IsFallback state
         var fallbackCount = setting.States.Count(s => s.IsFallback);
         if (fallbackCount > 1)
             errors.Add(new CatalogValidationError(id, $"At most one state may set IsFallback; found {fallbackCount}."));
 
-        // R2: per context, at most one Recommended and one WindowsDefault
         foreach (var ctx in setting.Contexts)
         {
             var rec = setting.States.Count(s => s.HasRole(RoleKind.Recommended, ctx));
@@ -27,11 +24,10 @@ public static class CatalogValidator
                 errors.Add(new CatalogValidationError(id, $"At most one WindowsDefault state per context ({ctx}); found {def}."));
         }
 
-        // R3: every non-fallback state must have a non-empty Set (else it is undetectable)
         foreach (var s in setting.States.Where(s => !s.IsFallback && s.Set.Count == 0))
             errors.Add(new CatalogValidationError(id, $"State '{s.Label}' has an empty Set and is not IsFallback — it would be undetectable."));
 
-        // R7: a detect-only state is not a choice, so it cannot be RECOMMENDED or be what Windows
+        // A detect-only state is not a choice, so it cannot be RECOMMENDED or be what Windows
         // ships - both roles are claims about a state the user can end up in deliberately. Read the raw
         // Roles rather than HasRole so a BUILD-SCOPED role is caught too (HasRole deliberately ignores those).
         foreach (var st in setting.States.Where(st => st.IsDetectOnly))
@@ -39,7 +35,7 @@ public static class CatalogValidator
                 errors.Add(new CatalogValidationError(id,
                     $"State '{st.Label}' is IsDetectOnly and cannot carry the {role.Kind} role - it is not a state the user can choose."));
 
-        // R4: each state's Set keys must line up with the detectable target keys.
+        // Each state's Set keys must line up with the detectable target keys.
         // A non-fallback state must cover EVERY target (so two states can't ambiguously both match by
         // one omitting a discriminating key). A fallback state is the last-resort catch-all, so it may
         // carry a partial (or empty) representative Set — it's exempt from the "missing" check. Any
@@ -60,7 +56,6 @@ public static class CatalogValidator
             }
         }
 
-        // Self-references: a setting cannot relate to itself. (Links now live per-state.)
         foreach (var l in setting.States.SelectMany(st => st.Links).Where(l => l.OtherId == id))
             errors.Add(new CatalogValidationError(id, $"Link cannot target its own setting (self-loop) — kind {l.Kind}."));
         foreach (var st in setting.States)
@@ -71,7 +66,7 @@ public static class CatalogValidator
         if (setting.EnabledWhen?.OtherId == id)
             errors.Add(new CatalogValidationError(id, "EnabledWhen cannot reference its own setting."));
 
-        // R6: setting-level Effects are the Action mechanism - a stateless one-shot, never detected. If a
+        // Setting-level Effects are the Action mechanism - a stateless one-shot, never detected. If a
         // setting carries any, it must have no States, Targets, or Detector. Conversely a setting that detects
         // nothing (no States, no Targets, no Detector) and does nothing (no Effects) is an authoring bug. A
         // range setting (a Target, no states, no effects) is exempt because it has a Target.
@@ -115,12 +110,11 @@ public static class CatalogValidator
             // state nothing may DEMAND. Two questions about the same lookup, so they are asked together
             // for each of the three ways a label crosses a setting boundary.
             //
-            // "Does it exist" was missing until now - only the setting ID was ever checked - so a label
-            // that matched no state failed silently and permanently: gaming-performance-prefetch required
-            // gaming-sysmain-service in "Enabled", a label that setting has never had (its states are
-            // Disabled/Manual/Automatic), so ResolveReverseCascade saw a requirement that could never be
-            // met and reset Prefetch to its Windows default on ANY SysMain change. A dangling label is
-            // never intentional - it is a rename or a copy/paste - and it produces behaviour no reader of
+            // Without the existence check a label that matches no state fails silently and permanently:
+            // gaming-performance-prefetch once required gaming-sysmain-service in "Enabled", a label that setting
+            // has never had (its states are Disabled/Manual/Automatic), so ResolveReverseCascade saw a requirement
+            // that could never be met and reset Prefetch to its Windows default on ANY SysMain change. A dangling
+            // label is never intentional - it is a rename or a copy/paste - and it produces behaviour no reader of
             // the catalog would predict.
             //
             // "Is it detect-only" applies to Controls and Links but NOT to EnabledWhen: those two DEMAND a

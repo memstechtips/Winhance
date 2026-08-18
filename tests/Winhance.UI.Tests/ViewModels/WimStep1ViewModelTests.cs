@@ -53,8 +53,6 @@ public class WimStep1ViewModelTests
             _mockResourceService.Object);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesSelectedIsoPathToEmpty()
     {
@@ -109,8 +107,6 @@ public class WimStep1ViewModelTests
     {
         _sut.IsExtractionComplete.Should().BeFalse();
     }
-
-    // ── SelectIsoFile command ──
 
     [Fact]
     public void SelectIsoFileCommand_WhenFileSelected_SetsSelectedIsoPath()
@@ -171,8 +167,6 @@ public class WimStep1ViewModelTests
 
         _sut.SelectedIsoPath.Should().BeEmpty();
     }
-
-    // ── SelectWorkingDirectory command ──
 
     [Fact]
     public async Task SelectWorkingDirectoryCommand_WhenCancelled_DoesNotChangeWorkingDirectory()
@@ -280,8 +274,6 @@ public class WimStep1ViewModelTests
         _sut.WorkingDirectory.Should().BeEmpty();
     }
 
-    // ── ValidateExtractedIsoDirectory ──
-
     [Fact]
     public async Task ValidateExtractedIsoDirectory_DriveRoot_ReturnsFalse()
     {
@@ -293,8 +285,6 @@ public class WimStep1ViewModelTests
 
         result.Should().BeFalse();
     }
-
-    // ── OnHasExtractedIsoAlreadyChanged ──
 
     [Fact]
     public void WhenHasExtractedIsoAlreadySetToTrue_UpdatesSelectDirectoryCardDescription()
@@ -312,8 +302,6 @@ public class WimStep1ViewModelTests
 
         _sut.SelectDirectoryCard.Description.Should().NotBe("WIMUtil_Label_SelectExtracted");
     }
-
-    // ── StartIsoExtraction command ──
 
     [Fact]
     public async Task StartIsoExtractionCommand_OnSuccess_SetsIsExtractionComplete()
@@ -436,8 +424,6 @@ public class WimStep1ViewModelTests
 
         _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.Once);
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingSelectedIsoPath_RaisesPropertyChanged()

@@ -19,10 +19,6 @@ public static class TechnicalDetailsBuilder
         return BuildMatrix(new BuildContext(setting, snapshot, loc, build));
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The option matrix: options as rows, the values they write as columns
-    // ---------------------------------------------------------------------------------------------
-
     // Every mechanism shares ONE table, grouped by destination, so a setting that touches both the registry and a
     // power plan documents both side by side.
     private static OptionMatrix? BuildMatrix(BuildContext ctx)
@@ -67,8 +63,7 @@ public static class TechnicalDetailsBuilder
                 Kind = MatrixGroupKind.Registry,
                 Description = ctx.Text(TechnicalDetailKeys.DescRegistry,
                     "Read to determine which option is active, and written when you apply one."),
-                // Every path, not just the first: a mirrored value really is written to all of them,
-                // and saying so is what the "mirrored" chip used to gesture at without the detail.
+                // Every path, not just the first: a mirrored value really is written to all of them.
                 Paths = [.. byPaths.First().Paths.Select(p => new MatrixPath(p, pathLabel))],
                 StartColumn = start,
                 ColumnSpan = columns.Count - start,
@@ -266,8 +261,8 @@ public static class TechnicalDetailsBuilder
                 TechnicalDetailKeys.ChipHardwareControlledTooltip,
                 "Your PC's firmware or drivers can override this, so Windows may not honour the value."));
         // No "separate on battery" chip. On a machine with a battery the role badges already say
-        // "(On Battery)" where the contexts differ, and on one without -- where it was still being
-        // shown -- there is no battery for anything to be separate on.
+        // "(On Battery)" where the contexts differ, and on one without there is no battery for anything
+        // to be separate on.
         return chips;
     }
 
@@ -287,9 +282,8 @@ public static class TechnicalDetailsBuilder
         switch (apply.Restart)
         {
             case RestartProcess process:
-                // Winhance defers this now: applying raises the bar at the bottom of the window and
-                // the user restarts when ready. "Restarts a process" described the old behaviour,
-                // which killed the shell out from under them.
+                // Winhance defers this: applying raises the bar at the bottom of the window and the user
+                // restarts when ready, so the chip must not claim Winhance restarts the process for you.
                 chips.Add(new MatrixChip(
                     ctx.Format(TechnicalDetailKeys.ApplyRestartChip, "{0} restart", process.Name),
                     ctx.Format(TechnicalDetailKeys.ApplyRestartChipDeferred,
@@ -653,9 +647,9 @@ public static class TechnicalDetailsBuilder
         {
             switch (effect)
             {
-                // An Action's registry writes are the action itself and now have a column each in the
-                // table above. Repeating them here said the action's own work "also happens when you
-                // apply", which is exactly what made this band read as a list of side effects.
+                // An Action's registry writes are the action itself and have a column each in the table above.
+                // Repeating them here would say the action's own work "also happens when you apply", which makes
+                // this band read as a list of side effects.
                 case RegistryWriteEffect when isAction:
                     break;
                 case RegistryWriteEffect write:
@@ -799,9 +793,8 @@ public static class TechnicalDetailsBuilder
             chips.Add(ctx.Chip(TechnicalDetailKeys.ChipApplyOnly, "written, not read",
                 TechnicalDetailKeys.ChipApplyOnlyTooltip,
                 "Winhance writes this value when you apply, but does not read it back to decide the current state."));
-        // No "mirrored" chip: the group header above this column now lists every path the value is
-        // written to, each with its own button. A chip saying "there is more than one place" was a
-        // worse answer than showing the places.
+        // No "mirrored" chip: the group header above this column lists every path the value is written to,
+        // each with its own button - a better answer than a chip saying "there is more than one place".
         if (reg.ByteIndex is int byteIndex)
             chips.Add(ctx.ChipFormat(TechnicalDetailKeys.ChipPartOfValue, "byte {0}", byteIndex,
                 TechnicalDetailKeys.ChipPartOfValueTooltip,
@@ -879,14 +872,6 @@ public static class TechnicalDetailsBuilder
         return (label, cells);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Power (powercfg) — its own section, since AC/DC does not fit the option matrix
-    // ---------------------------------------------------------------------------------------------
-
-    // ---------------------------------------------------------------------------------------------
-    // Scripts and .reg payloads, labelled by the option that runs them
-    // ---------------------------------------------------------------------------------------------
-
     // Ordered by kind rather than by declaration so scripts and .reg payloads never interleave under one heading.
     private static IReadOnlyList<MatrixCodeBlock> BuildCodeBlocks(BuildContext ctx)
     {
@@ -919,10 +904,6 @@ public static class TechnicalDetailsBuilder
             }
         }
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Value formatting
-    // ---------------------------------------------------------------------------------------------
 
     private static string FormatStateValue(BuildContext ctx, StateValue value)
     {

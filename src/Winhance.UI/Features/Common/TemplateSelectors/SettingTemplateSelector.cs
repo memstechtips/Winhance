@@ -27,7 +27,6 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 return PowerPlanTemplate;
             }
 
-            // Check for AC/DC dual controls (power settings with Separate mode)
             if (vm.SupportsSeparateACDC)
             {
                 if (vm.InputType == InputType.Selection)
@@ -46,7 +45,7 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 // member and all three ControlToInputType maps fall through to Toggle, so a CheckBox
                 // view model cannot exist. The enum member survives only because ConfigurationItem
                 // persists InputType into .winhance files. It falls to the Toggle default below.
-                _ => ToggleTemplate // Default fallback
+                _ => ToggleTemplate
             };
         }
 

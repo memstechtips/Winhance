@@ -114,8 +114,6 @@ public class CatalogRelationshipValidatorTests
         Assert.Empty(CatalogValidator.ValidateCatalog(new[] { a, b }));
     }
 
-    // ---- every state LABEL one setting names on another must resolve ----------------------------
-    //
     // Naming a state that does not exist is silently permanent: the demand can never be met, so the
     // relationship engine acts on a broken requirement forever. That is what shipped for
     // gaming-performance-prefetch, whose Requires named a SysMain state ("Enabled") that setting has
@@ -160,8 +158,6 @@ public class CatalogRelationshipValidatorTests
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { master, child }),
             e => e.Message.Contains("is not a state"));
     }
-
-    // ---- EnabledWhen: the declared presentation gate ---------------------------------------------
 
     [Fact]
     public void EnabledWhen_targeting_a_missing_setting_is_an_error()
@@ -211,8 +207,6 @@ public class CatalogRelationshipValidatorTests
 
         Assert.Empty(CatalogValidator.ValidateCatalog(new[] { child, parent }));
     }
-
-    // ---- the shipped catalog ---------------------------------------------------------------------
 
     [Fact]
     public void The_shipped_catalog_passes_every_cross_setting_rule_but_the_known_cycle()

@@ -94,7 +94,7 @@ public static class ApplyPlanBuilder
                                     ops.Add(new RegistryLockKeyOp(reg, path));
                             }
                             else if (sv.AcceptsAnyPresent)
-                                ops.Add(new RegistryEnsureKeyOp(reg, path)); // Exists: ensure key/value present
+                                ops.Add(new RegistryEnsureKeyOp(reg, path));
                             // else: nothing concrete to write (defensive; the validator should prevent this)
                         }
                     }
@@ -107,8 +107,7 @@ public static class ApplyPlanBuilder
 
                 case PowerCfgTarget pc:
                     // A powercfg SELECTION applies the chosen option's int value to BOTH the AC and DC contexts
-                    // (the symmetric single-index semantics). Pull the StateValue for this target the same way the
-                    // RegTarget branch does (by the target's Key), then cast its WritePayload to the option's int.
+                    // (the symmetric single-index semantics).
                     if (state.Set.TryGetValue(pc.Key, out var pv) && pv.WritePayload is { } powerPayload)
                     {
                         int value = Convert.ToInt32(powerPayload);

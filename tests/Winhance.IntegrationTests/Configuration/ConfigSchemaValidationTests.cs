@@ -53,11 +53,9 @@ public class ConfigSchemaValidationTests
         var root = doc.RootElement;
         var errors = new List<string>();
 
-        // Validate items in WindowsApps, ExternalApps
         ValidateItemsInSection(root, "WindowsApps", fileName, errors);
         ValidateItemsInSection(root, "ExternalApps", fileName, errors);
 
-        // Validate items in Customize.Features and Optimize.Features
         ValidateItemsInFeatureGroup(root, "Customize", fileName, errors);
         ValidateItemsInFeatureGroup(root, "Optimize", fileName, errors);
 

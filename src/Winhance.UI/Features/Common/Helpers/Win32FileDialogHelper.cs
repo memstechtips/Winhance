@@ -7,8 +7,6 @@ namespace Winhance.UI.Features.Common.Helpers;
 // WinRT file pickers fail under admin elevation, so this uses COM IFileDialog.
 public static class Win32FileDialogHelper
 {
-    #region COM Interfaces and GUIDs
-
     private static readonly Guid CLSID_FileOpenDialog = new("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7");
     private static readonly Guid CLSID_FileSaveDialog = new("C0B4E2F3-BA21-4773-8DBA-335EC946EB8B");
 
@@ -109,8 +107,6 @@ public static class Win32FileDialogHelper
         IntPtr pbc,
         ref Guid riid,
         out IShellItem ppv);
-
-    #endregion
 
     public static string? ShowFolderPicker(Window window, string title)
     {

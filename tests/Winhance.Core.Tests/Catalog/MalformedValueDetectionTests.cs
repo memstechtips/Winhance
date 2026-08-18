@@ -54,8 +54,6 @@ public class MalformedValueDetectionTests
         },
     };
 
-    // ----------------------------------------------------------------------------------- reader level
-
     [Fact]
     public void Bitmask_target_holding_a_string_is_a_kind_mismatch_and_not_present()
     {
@@ -118,13 +116,11 @@ public class MalformedValueDetectionTests
         Assert.True(StateValue.Of(1).Matches(reading.Value, reading.Present));
     }
 
-    // ------------------------------------------------------------------------------- reader edge cases
-
     [Fact]
     public void A_short_blob_is_absent_not_malformed()
     {
-        // Right type, just too short for the byte index: unchanged pre-existing behaviour, and genuinely
-        // different from a wrong type - there is nothing to repair.
+        // Right type, just too short for the byte index - genuinely different from a wrong type: there is
+        // nothing to repair.
         var reading = RegTargetReader.Read(BitTarget(), new Ctx(new byte[] { 0x00 }));
         Assert.False(reading.KindMismatch);
         Assert.False(reading.Present);
@@ -148,8 +144,6 @@ public class MalformedValueDetectionTests
         Assert.False(reading.KindMismatch);
         Assert.False(reading.Present);
     }
-
-    // -------------------------------------------------------------------------------- discovery level
 
     [Fact]
     public void A_malformed_target_makes_the_setting_report_Malformed()

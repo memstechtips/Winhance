@@ -21,11 +21,9 @@ public static class SettingServicesExtensions
             .AddOptimizationServices()
             .AddSoftwareAppServices();
 
-        // Id-keyed dispatcher registries — settingId → handler mapping.
         // power-plan-selection is NOT registered as an apply handler, so the apply funnel falls through to the
         // catalog engine (ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan ->
-        // IPowerPlanActivationService.EnsureActivatedAsync). PowerService stays registered in the DISCOVERY
-        // registry below (detection still uses it).
+        // IPowerPlanActivationService.EnsureActivatedAsync).
         services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
             {
@@ -38,11 +36,9 @@ public static class SettingServicesExtensions
 
     public static IServiceCollection AddCustomizationServices(this IServiceCollection services)
     {
-        // Register WallpaperService (consumed by ThemeWallpaperApplier)
         services.AddSingleton<IWallpaperService, WallpaperService>();
 
-        // Register ThemeWallpaperApplier (special handler for theme-mode-windows;
-        // the explorer refresh is declarative via the Setting's RestartProcess).
+        // ThemeWallpaperApplier's explorer refresh is declarative via the Setting's RestartProcess.
         services.AddSingleton<ThemeWallpaperApplier>();
 
         return services;
@@ -50,8 +46,6 @@ public static class SettingServicesExtensions
 
     public static IServiceCollection AddOptimizationServices(this IServiceCollection services)
     {
-        // Register PowerService (keeps factory - IPowerService forwards to the concrete). PowerService only does
-        // detection + GetActive/GetAvailable/Delete, so it takes just its three live dependencies.
         services.AddSingleton<PowerService>(sp => new PowerService(
             sp.GetRequiredService<ILogService>(),
             sp.GetRequiredService<IPowerSettingsQueryService>(),
@@ -59,7 +53,6 @@ public static class SettingServicesExtensions
         ));
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
 
-        // Register UpdateService
         services.AddSingleton<UpdateService>();
 
         return services;
@@ -67,54 +60,38 @@ public static class SettingServicesExtensions
 
     public static IServiceCollection AddSoftwareAppServices(this IServiceCollection services)
     {
-        // Software apps services (Singleton - consumed by Singleton ViewModels)
         services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
         services.AddSingleton<IExternalAppsService, ExternalAppsService>();
         services.AddSingleton<IAppInstallationService, AppInstallationService>();
         services.AddSingleton<IWindowsAppUninstallService, WindowsAppUninstallService>();
 
-        // AppX package source (PackageManager COM → WMI → PowerShell fallback)
         services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
 
-        // AppX icon source (PackageManager + AppListEntry.DisplayInfo.GetLogo,
-        // covers current-user / all-users / provisioned scopes)
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
 
-        // Package-icons repo (jsDelivr @main): hosted, sha256-verified icons for
-        // external-app-* and windows-app-* entries. Replaces the retired live
-        // Microsoft Store CDN icon source.
         services.AddSingleton<IRepoIconSource, RepoIconSource>();
         services.AddSingleton<IIconManifestService, IconManifestService>();
 
-        // App icon resolver (cache-first, called from WindowsAppsViewModel after install-status discovery)
         services.AddSingleton<IAppIconResolver, AppIconResolver>();
 
-        // App Status Discovery Service (Singleton - Expensive operation)
         services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
 
-        // WinGet decomposed services
         services.AddSingleton<WinGetComSession>();
         services.AddSingleton<IWinGetBootstrapper, WinGetBootstrapper>();
         services.AddSingleton<IWinGetDetectionService, WinGetDetectionService>();
         services.AddSingleton<IWinGetPackageInstaller, WinGetPackageInstaller>();
 
-        // Chocolatey Services (Fallback package manager)
         services.AddSingleton<IChocolateyService, ChocolateyService>();
 
-        // App Uninstall Service
         services.AddSingleton<IExternalAppUninstallService, ExternalAppUninstallService>();
 
-        // Store Download Service (Fallback for market-restricted apps)
         services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
 
-        // Direct Download Service (For non-WinGet apps)
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
 
-        // Legacy Capability and Optional Feature Services (Singleton)
         services.AddSingleton<ILegacyCapabilityService, LegacyCapabilityService>();
         services.AddSingleton<IOptionalFeatureService, OptionalFeatureService>();
 
-        // App Removal Service (Singleton - Simplified removal logic)
         services.AddSingleton<IBloatRemovalService, BloatRemovalService>();
 
         return services;

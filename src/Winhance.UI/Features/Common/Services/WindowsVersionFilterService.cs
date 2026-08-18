@@ -55,12 +55,10 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
     public async Task<bool> ToggleFilterAsync(bool isInReviewMode)
     {
-        // Don't allow toggling during review mode
         if (isInReviewMode) return false;
 
         try
         {
-            // Check if we should show explanation dialog
             var dontShowAgain = await _preferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
 
@@ -90,15 +88,12 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 if (!result.Confirmed) return false;
             }
 
-            // Toggle state
             IsFilterEnabled = !IsFilterEnabled;
 
-            // Persist preference
             await _preferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.EnableWindowsVersionFilter,
                 IsFilterEnabled);
 
-            // Publish event for all subscribers (pages/viewmodels) to refresh
             _eventBus.Publish(new FilterStateChangedEvent(IsFilterEnabled));
 
             FilterStateChanged?.Invoke(this, IsFilterEnabled);

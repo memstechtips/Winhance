@@ -171,7 +171,6 @@ public class LocalizationService : ILocalizationService
                 options.Add(new LanguageOption(code, displayName));
             }
 
-            // English first, then the rest alphabetically by DisplayName
             var enOption = options.FirstOrDefault(o => o.Code == "en");
             var rest = options
                 .Where(o => o.Code != "en")

@@ -15,7 +15,7 @@ internal class SponsorsDialogBuilder
 
     // Sponsor cards layout. The grid is locked to exactly CardColumns columns
     // that fill the usable content width, so cards never leave dead space on the
-    // right (Marco's round-2 note). The chip packer assumes ~760px of usable
+    // right. The chip packer assumes ~760px of usable
     // width (ContentDialogMaxWidth 860 minus dialog chrome/padding); the card
     // width budget is set 12px BELOW that on purpose — UniformWrapPanel derives
     // its column count from the real measured width, and sizing cards to exactly
@@ -43,14 +43,12 @@ internal class SponsorsDialogBuilder
     private const double ChipColumnSpacing = 8d;
     private const double ChipRowSpacing = 8d;
 
-    // Scrollable-region height caps for the fixed-structure modal.
     private const double SponsorScrollMaxHeight = 300d;
     private const double SupportersScrollMaxHeight = 120d;
 
     private const int MaxSupporters = 48;
     private const int CountdownSeconds = 3;
 
-    // Tier accent colors (used for borders, chips, monograms).
     private static readonly Windows.UI.Color EmeraldColor = Windows.UI.Color.FromArgb(0xFF, 0x50, 0xC8, 0x78);
     private static readonly Windows.UI.Color GoldColor = Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xD7, 0x00);
     private static readonly Windows.UI.Color BadgeForeground = Windows.UI.Color.FromArgb(0xFF, 0x16, 0x13, 0x00);
@@ -58,11 +56,9 @@ internal class SponsorsDialogBuilder
     private readonly ILocalizationService _localization;
     private readonly ISponsorsService _sponsorsService;
 
-    // Result state
     private CheckBox? _dontShowAgainCheckbox;
     private bool _supportClicked;
 
-    // Exit-mode countdown state
     private SponsorsDialogMode _mode;
     private bool _countdownDone;
     private int _countdownRemaining = CountdownSeconds;
@@ -148,7 +144,6 @@ internal class SponsorsDialogBuilder
         Grid.SetRow(disclaimer, 5);
         root.Children.Add(disclaimer);
 
-        // Exit mode appends a don't-show-again checkbox into row 6.
         ConfigureButtonsAndMode(root);
 
         _dialog.Content = root;
@@ -162,10 +157,6 @@ internal class SponsorsDialogBuilder
         bool dontShowAgain = _mode == SponsorsDialogMode.Exit && _dontShowAgainCheckbox?.IsChecked == true;
         return (_supportClicked, dontShowAgain);
     }
-
-    // -----------------------------------------------------------------------
-    // Header
-    // -----------------------------------------------------------------------
 
     private UIElement BuildHeader(bool isDark)
     {
@@ -218,10 +209,6 @@ internal class SponsorsDialogBuilder
         return header;
     }
 
-    // -----------------------------------------------------------------------
-    // Sponsor cards
-    // -----------------------------------------------------------------------
-
     private UIElement BuildSponsorCards(SponsorsDocument? data)
     {
         var wrap = new Controls.UniformWrapPanel
@@ -241,8 +228,7 @@ internal class SponsorsDialogBuilder
         }
 
         // Ghost "Your company here" slots keep the grid a clean rectangle and
-        // always show at least one full row of invitations (Marco's round-2 note:
-        // real badges, then a row of empty slots below). Fill the current partial
+        // always show at least one full row of invitations. Fill the current partial
         // row; if the real cards already fill complete rows, add a whole ghost row.
         int remainder = cardCount % CardColumns;
         int ghostCount = remainder == 0 ? CardColumns : CardColumns - remainder;
@@ -288,7 +274,6 @@ internal class SponsorsDialogBuilder
         if (sponsor.Example)
             cardContent.Children.Add(BuildExampleBadge(tierColor));
 
-        // Tier chip.
         cardContent.Children.Add(new TextBlock
         {
             Text = (sponsor.Tier ?? string.Empty).ToUpperInvariant(),
@@ -298,10 +283,8 @@ internal class SponsorsDialogBuilder
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
-        // Logo (or monogram fallback).
         cardContent.Children.Add(BuildLogo(sponsor, tierColor));
 
-        // Name.
         cardContent.Children.Add(new TextBlock
         {
             Text = sponsor.Name,
@@ -313,15 +296,12 @@ internal class SponsorsDialogBuilder
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
-        // City (optional).
         if (!string.IsNullOrEmpty(sponsor.City))
             cardContent.Children.Add(BuildSecondaryLine(sponsor.City));
 
-        // Contact (optional).
         if (!string.IsNullOrEmpty(sponsor.Contact))
             cardContent.Children.Add(BuildSecondaryLine(sponsor.Contact));
 
-        // URL (https-only) link.
         var urlLink = BuildUrlLink(sponsor.Url);
         if (urlLink != null)
             cardContent.Children.Add(urlLink);
@@ -342,8 +322,8 @@ internal class SponsorsDialogBuilder
         // Content-sized pill: explicit Center so the Border hugs its text rather
         // than inheriting the parent StackPanel's default horizontal stretch
         // (which rendered the pill stretched edge-to-edge across the card).
-        // Pill geometry matches the Software Apps card badges. CornerRadius 999 was dropped:
-        // at the rendered pill height it produced subpixel/clipping artefacts.
+        // Pill geometry matches the Software Apps card badges. Not CornerRadius 999: at the rendered pill
+        // height it produces subpixel/clipping artefacts.
         return new Border
         {
             Background = new SolidColorBrush(tierColor),
@@ -485,10 +465,6 @@ internal class SponsorsDialogBuilder
         };
     }
 
-    // -----------------------------------------------------------------------
-    // Supporters
-    // -----------------------------------------------------------------------
-
     private UIElement BuildSupportersHeader(SponsorsDocument? data)
     {
         var section = new StackPanel { Spacing = 2 };
@@ -509,9 +485,6 @@ internal class SponsorsDialogBuilder
             TextWrapping = TextWrapping.Wrap
         });
 
-        // Count line: how many supporters are shown (capped at MaxSupporters).
-        // Replaces the old count-free "…and many more" overflow line. Shown only
-        // when there is at least one supporter to display.
         int supporterCount = data?.Supporters?.Count ?? 0;
         if (supporterCount > 0)
         {
@@ -547,8 +520,6 @@ internal class SponsorsDialogBuilder
 
         section.Children.Add(PackChips(chipBorders));
 
-        // The overflow/count line moved up to the supporters header
-        // (Sponsors_RecentCount), so the chip region renders just the chips.
         return section;
     }
 
@@ -568,8 +539,6 @@ internal class SponsorsDialogBuilder
             chip.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
             double chipWidth = chip.DesiredSize.Width;
 
-            // Width this chip would add to the row, including the inter-chip gap
-            // when the row already has at least one chip.
             double added = currentRow == null ? chipWidth : ChipColumnSpacing + chipWidth;
 
             if (currentRow == null || currentRowWidth + added > ChipRowAvailableWidth)
@@ -612,15 +581,10 @@ internal class SponsorsDialogBuilder
         };
     }
 
-    // -----------------------------------------------------------------------
-    // CTA row + disclaimer
-    // -----------------------------------------------------------------------
-
     private UIElement BuildCtaRow()
     {
-        // Single CTA: the "For business" button was removed in the design
-        // revision (it sent users to a separate page that confused the primary
-        // ask). Only "Support Winhance" remains.
+        // Single CTA on purpose: a separate "For business" button sent users to a page that
+        // confused the primary ask.
         var supportButton = new Button
         {
             Content = _localization.GetString("Sponsors_SupportButton"),
@@ -659,10 +623,6 @@ internal class SponsorsDialogBuilder
         };
     }
 
-    // -----------------------------------------------------------------------
-    // Buttons + mode wiring
-    // -----------------------------------------------------------------------
-
     private void ConfigureButtonsAndMode(Grid root)
     {
         if (_mode == SponsorsDialogMode.Normal)
@@ -671,8 +631,6 @@ internal class SponsorsDialogBuilder
             return;
         }
 
-        // Exit mode: don't-show-again checkbox in the dedicated bottom row (6),
-        // and a countdown-gated close button.
         _dontShowAgainCheckbox = new CheckBox
         {
             Content = _localization.GetString("Sponsors_DontShowAgain")
@@ -725,10 +683,6 @@ internal class SponsorsDialogBuilder
             _countdownTimer = null;
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
 
     // The dialog's RequestedTheme (set by DialogService.ConfigureDialog) drives which theme variant these
     // ThemeResource-backed brushes render.

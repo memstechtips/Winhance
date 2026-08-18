@@ -74,10 +74,6 @@ public class ConfigExportServiceTests
             _mockAutounattendGenerator.Object);
     }
 
-    // -------------------------------------------------------
-    // CreateConfigurationFromSystemAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task CreateConfigurationFromSystemAsync_ReturnsVersion2Config()
     {
@@ -183,7 +179,6 @@ public class ConfigExportServiceTests
         var service = CreateService();
         var result = await service.CreateConfigurationFromSystemAsync(isBackup: true);
 
-        // In backup mode, only installed apps should appear (not selected ones)
         result.WindowsApps.Items.Should().ContainSingle()
             .Which.Id.Should().Be("app1");
     }
@@ -208,7 +203,6 @@ public class ConfigExportServiceTests
         var service = CreateService();
         var result = await service.CreateConfigurationFromSystemAsync(isBackup: false);
 
-        // In normal mode, only selected apps should appear
         result.WindowsApps.Items.Should().ContainSingle()
             .Which.Id.Should().Be("app2");
     }
@@ -229,13 +223,8 @@ public class ConfigExportServiceTests
         var service = CreateService();
         var result = await service.CreateConfigurationFromSystemAsync(isBackup: true);
 
-        // External apps are not included in backups
         result.ExternalApps.Items.Should().BeEmpty();
     }
-
-    // -------------------------------------------------------
-    // ExportConfigurationAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ExportConfigurationAsync_WhenNoMainWindow_ShowsError()
@@ -267,10 +256,6 @@ public class ConfigExportServiceTests
             d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // CreateUserBackupConfigAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task CreateUserBackupConfigAsync_CreatesBackupDirectory()
@@ -319,10 +304,6 @@ public class ConfigExportServiceTests
             l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Test error"))),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------
 
     private AppItemViewModel CreateAppItemViewModel(
         string id, string name,

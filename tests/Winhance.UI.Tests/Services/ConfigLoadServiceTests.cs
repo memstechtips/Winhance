@@ -34,14 +34,11 @@ public class ConfigLoadServiceTests
             _mockConfigImportState.Object);
     }
 
-    // -------------------------------------------------------
-    // DetectIncompatibleSettings
     // Gating is the catalog Availability model over the LIVE SettingCatalog (static, not
     // mockable), so fixtures use REAL catalog ids + mocked build numbers - machine-independent, since
     // Availability is authored data. Real ids used: privacy-timeline-suggestions (Windows10-gated,
     // "Timeline Suggestions"), start-recommended-section (Windows11-gated, "Recommended section"),
     // explorer-context-menu-compress-to (builds 26100+, 24H2), gaming-game-mode (ungated).
-    // -------------------------------------------------------
 
     [Fact]
     public void DetectIncompatibleSettings_WithEmptyConfig_ReturnsEmptyList()
@@ -246,10 +243,6 @@ public class ConfigLoadServiceTests
         result.Should().BeEmpty();
     }
 
-    // -------------------------------------------------------
-    // FilterConfigForCurrentSystem
-    // -------------------------------------------------------
-
     [Fact]
     public void FilterConfigForCurrentSystem_RemovesCatalogIncompatible_KeepsCompatible()
     {
@@ -348,10 +341,6 @@ public class ConfigLoadServiceTests
         result.ExternalApps.Items.Should().ContainSingle();
     }
 
-    // -------------------------------------------------------
-    // LoadUserBackupConfigurationAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task LoadUserBackupConfigurationAsync_WhenDirectoryDoesNotExist_ShowsMessageAndReturnsNull()
     {
@@ -399,10 +388,6 @@ public class ConfigLoadServiceTests
         result.Should().BeNull();
         _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // LoadAndValidateConfigurationFromFileAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task LoadAndValidateConfigurationFromFileAsync_WhenNoMainWindow_ReturnsNull()

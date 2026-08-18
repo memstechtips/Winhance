@@ -46,27 +46,19 @@ public class ProcessRestartManager(
 
     public Task HandleProcessAndServiceRestartsAsync(Setting setting)
     {
-        // The Setting's ApplyBehavior.Restart unifies process/service restarts into one RestartTarget (no
-        // setting sets both). Reuse the CollectRestartTargets extraction (0/1 process, 0/1 service), then run
-        // the shared restart logic.
         var (processes, services) = CollectRestartTargets(new[] { setting });
 
         // Which broadcast this setting deserves is DECLARED BY THE SETTING (ApplyBehavior.NotifyWindows),
-        // next to its confirmation gate and its restart. This used to be inferred here from the registry
-        // paths the setting happens to write - the same fact, but reverse-engineered rather than stated.
+        // next to its confirmation gate and its restart - not inferred from the registry paths it writes.
         return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id,
             WantsAppearanceNotice(setting));
     }
 
-    // Shared restart logic (process/service handled independently), parameterised by the extracted
-    // (process, service, id).
-    //
-    // Explorer is deliberately NOT restarted here. Applying a setting used to kill the shell, so a user
-    // toggling several Explorer tweaks in a row triggered several kills within seconds - overlapping
-    // restart cycles, plus winlogon's AutoRestartShell giving up after repeated shell deaths, could
-    // leave them with no shell at all. Instead we broadcast (so anything that CAN take effect live
-    // does) and register the setting; the user restarts once, when they choose, from the
-    // pending-restart bar.
+    // Explorer is deliberately NOT restarted here. Killing the shell per setting means a user toggling
+    // several Explorer tweaks in a row triggers several kills within seconds - overlapping restart
+    // cycles, plus winlogon's AutoRestartShell giving up after repeated shell deaths, could leave them
+    // with no shell at all. Instead we broadcast (so anything that CAN take effect live does) and
+    // register the setting; the user restarts once, when they choose, from the pending-restart bar.
     private Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId,
         bool themeAffecting)
     {
@@ -206,7 +198,7 @@ public class ProcessRestartManager(
         // Explorer never restarts as part of a bulk apply either - the whole point of deferring is that
         // the USER decides when the shell goes down. Register every Explorer-carrying setting and drop
         // the target from the flush set. Skipping this would quietly reintroduce the kill through every
-        // bulk path (apply-recommended, reset-section), which is the bug this change exists to remove.
+        // bulk path (apply-recommended, reset-section).
         if (processes.Remove(ExplorerTarget))
         {
             // ONE broadcast for the whole batch, and it carries the theme set only when at least one of

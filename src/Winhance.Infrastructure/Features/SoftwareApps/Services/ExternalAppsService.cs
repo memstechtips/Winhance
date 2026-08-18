@@ -53,7 +53,6 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            // Build ordered source list: WinGet → MsStore → Choco
             var sources = new List<(string packageId, string source)>();
 
             if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
@@ -93,7 +92,6 @@ public class ExternalAppsService(
                 }
             }
 
-            // Chocolatey fallback when ChocoPackageId is defined
             if (!string.IsNullOrEmpty(item.ChocoPackageId))
             {
                 logService.LogInformation($"Attempting Chocolatey install for '{item.Name}' with '{item.ChocoPackageId}'");
@@ -131,7 +129,6 @@ public class ExternalAppsService(
                 }
             }
 
-            // Direct download fallback when WinGet/Store/Chocolatey all failed
             if (item.ExternalApp?.DownloadUrl != null)
             {
                 logService.LogInformation($"All package manager installs failed for '{item.Name}', attempting direct download fallback");
@@ -283,7 +280,6 @@ public class ExternalAppsService(
             if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;
 
-            // Also check without "tools" subfolder
             packageDir = fileSystemService.CombinePath(basePath, chocoPackageId);
             if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;

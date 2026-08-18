@@ -101,7 +101,6 @@ public static class RegeditIconProvider
                         Array.Copy(bits, (height - 1 - y) * stride, flipped, y * stride, stride);
                     }
 
-                    // Create SoftwareBitmap from pixel data
                     var softwareBitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Premultiplied);
                     softwareBitmap.CopyFromBuffer(flipped.AsBuffer());
 

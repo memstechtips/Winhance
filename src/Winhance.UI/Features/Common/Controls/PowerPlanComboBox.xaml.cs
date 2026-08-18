@@ -16,7 +16,6 @@ namespace Winhance.UI.Features.Common.Controls;
 
 public sealed partial class PowerPlanComboBox : UserControl
 {
-    // Cached brushes for status indicators
     private static readonly SolidColorBrush ExistsBrush = new(Color.FromArgb(255, 0, 200, 60));
     private static readonly SolidColorBrush NotExistsBrush = new(Color.FromArgb(255, 200, 40, 0));
 
@@ -27,14 +26,12 @@ public sealed partial class PowerPlanComboBox : UserControl
             typeof(PowerPlanComboBox),
             new PropertyMetadata(null, OnItemsSourceChanged));
 
-    // Tracks the last CollectionChanged handler so we can unsubscribe when the collection changes
     private NotifyCollectionChangedEventHandler? _collectionChangedHandler;
 
     private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not PowerPlanComboBox control) return;
 
-        // Unsubscribe from the old collection
         if (e.OldValue is ObservableCollection<ComboBoxDisplayOption> oldCollection && control._collectionChangedHandler != null)
         {
             oldCollection.CollectionChanged -= control._collectionChangedHandler;
@@ -189,7 +186,6 @@ public sealed partial class PowerPlanComboBox : UserControl
             var powerPlanOption = option.Tag as PowerPlanComboBoxOption;
             if (powerPlanOption == null) continue;
 
-            // Find the Grid in the item template
             var grid = FindChild<Grid>(container, null);
             if (grid == null) continue;
 
@@ -220,12 +216,10 @@ public sealed partial class PowerPlanComboBox : UserControl
 
     private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption)
     {
-        // Find child elements
         var statusIndicator = FindChild<Ellipse>(grid, "StatusIndicator");
         var activeBadge = FindChild<TextBlock>(grid, "ActiveBadge");
         var deleteButton = FindChild<Button>(grid, "DeleteButton");
 
-        // Set status indicator color and tooltip
         if (statusIndicator != null)
         {
             statusIndicator.Fill = powerPlanOption.ExistsOnSystem ? ExistsBrush : NotExistsBrush;
@@ -233,14 +227,12 @@ public sealed partial class PowerPlanComboBox : UserControl
                 powerPlanOption.ExistsOnSystem ? ExistsTooltipText : NotExistsTooltipText);
         }
 
-        // Set [Active] badge visibility and text
         if (activeBadge != null)
         {
             activeBadge.Visibility = powerPlanOption.IsActive ? Visibility.Visible : Visibility.Collapsed;
             activeBadge.Text = ActiveBadgeText;
         }
 
-        // Set delete button visibility: visible only when exists AND not active
         if (deleteButton != null)
         {
             deleteButton.Visibility = (powerPlanOption.ExistsOnSystem && !powerPlanOption.IsActive)
@@ -250,7 +242,6 @@ public sealed partial class PowerPlanComboBox : UserControl
             ToolTipService.SetToolTip(deleteButton, DeleteTooltipText);
             AutomationProperties.SetName(deleteButton, DeleteTooltipText);
 
-            // Wire up the click handler and set the tag for identifying the plan
             deleteButton.Tag = powerPlanOption;
             deleteButton.Click -= OnDeleteButtonClick;
             deleteButton.Click += OnDeleteButtonClick;

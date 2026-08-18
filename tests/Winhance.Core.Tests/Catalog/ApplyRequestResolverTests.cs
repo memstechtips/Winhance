@@ -69,8 +69,6 @@ public class ApplyRequestResolverTests
         public string? Detect(Setting setting, IDetectionContext context) => null;
     }
 
-    // ---- Null returns (unreachable production shapes; the caller fails loudly) ----
-
     [Fact]
     public void Unpaired_def_returns_null()
     {
@@ -226,8 +224,6 @@ public class ApplyRequestResolverTests
             resetToDefault: false, new[] { SelectionSetting() });
         Assert.Null(plan);
     }
-
-    // ---- Handled (produce the same plan ApplyPlanBuilder would) ----
 
     [Fact]
     public void Toggle_enable_builds_enabled_plan()
@@ -415,7 +411,6 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Powercfg_selection_acdc_out_of_range_index_returns_null()
     {
-        // An out-of-range AC/DC index is not representable -> returns null.
         var setting = PowerCfgSelectionSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 9),
             resetToDefault: false, new[] { setting });
@@ -481,8 +476,8 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Non_separate_powercfg_selection_acdc_returns_null()
     {
-        // The old PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
-        // given an AC/DC value throws NotSupportedException there). The new routing mirrors that gate: a non-Separate
+        // PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
+        // given an AC/DC value throws NotSupportedException there). The resolver mirrors that gate: a non-Separate
         // powercfg selection returns null rather than writing both contexts. (No such setting exists
         // today - all catalog powercfg settings are Separate - this guards the invariant if one is ever added.)
         var setting = new Setting
@@ -508,8 +503,8 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Non_powercfg_selection_acdc_dict_returns_null()
     {
-        // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path - it stays on the old
-        // apply: an AC/DC dict is Dictionary<string,object?>, distinct from a CustomStateValues Dictionary<string,object>.
+        // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path, so it is not
+        // representable: an AC/DC dict is Dictionary<string,object?>, distinct from a CustomStateValues Dictionary<string,object>.
         var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
             resetToDefault: false, new[] { SelectionSetting() });
@@ -532,7 +527,7 @@ public class ApplyRequestResolverTests
     [Fact]
     public void Registry_selection_custom_state_with_effects_routes_registry_only()
     {
-        // A1 (Marco 2026-07-03): a plain registry selection whose states carry effects (a per-option script) routes
+        // A plain registry selection whose states carry effects (a per-option script) routes
         // its custom-state to BuildRegistryCustomState - the raw registry values ONLY. The per-option script is NOT
         // run on a "Custom"/no-option import (a Custom state is not a named option); the normal option apply still
         // runs the script via the state's Effects.
@@ -571,12 +566,10 @@ public class ApplyRequestResolverTests
         Assert.Null(plan);
     }
 
-    // ---- Edge-1: retired "-win10" alias ids normalize to the canonical merged setting ----
-
     [Fact]
     public void Win10_alias_id_normalizes_to_canonical_merged_setting_enabled()
     {
-        // Edge-1: on Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
+        // On Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
         // alias-normalizes it to the canonical MERGED catalog Setting and builds it with the live (Win10) build gate
         // - the same path config-import already uses - instead of missing (unpaired) and returning null.
         const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
@@ -604,8 +597,6 @@ public class ApplyRequestResolverTests
 
         Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win10), plan);
     }
-
-    // ---- Edge-2: no-WindowsDefault reset falls through to the normal apply resolution ----
 
     [Fact]
     public void Reset_no_windows_default_selection_index_falls_through()
@@ -666,8 +657,8 @@ public class ApplyRequestResolverTests
     public void Reset_this_pc_toggle_win10_alias_routes_via_fall_through()
     {
         // On Windows 10 the UI applies the merged This PC toggle under its retired -win10 id; the bulk reset
-        // dispatches the default direction (Enabled for the key-existence Win10 variant). Alias-normalize (Edge-1) +
-        // the reset fall-through (Edge-2) route it to Build the Enabled state with the Win10 build gate.
+        // dispatches the default direction (Enabled for the key-existence Win10 variant). Alias-normalize +
+        // the reset fall-through route it to Build the Enabled state with the Win10 build gate.
         const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
         const string canonicalId = "explorer-customization-thispc-folder-desktop";
         var win10 = new WinBuild(19045);

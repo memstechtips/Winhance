@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.Common.Catalog;
 public sealed record Setting
 {
     public required string Id { get; init; }                         // the contract: configs + loc keys key off this
-    public required Display Display { get; init; }                   // everything the user sees
+    public required Display Display { get; init; }
 
     public IReadOnlyList<PowerContext> Contexts { get; init; } = new[] { PowerContext.Always };
     public IReadOnlyList<Target> Targets { get; init; } = System.Array.Empty<Target>();
@@ -24,8 +24,8 @@ public sealed record Setting
 
     public IDynamicOptionSource? OptionSource { get; init; }
 
-    public Availability Availability { get; init; } = Availability.Everywhere;   // gating
-    public ApplyBehavior Apply { get; init; } = ApplyBehavior.None;              // confirmation + restart
+    public Availability Availability { get; init; } = Availability.Everywhere;
+    public ApplyBehavior Apply { get; init; } = ApplyBehavior.None;
 
     // Forward relationships (Requires/Enables) live on SettingState.Links - they are a property of the
     // state that triggers them, like Controls. ResolveReverseCascade/CatalogValidator read States.SelectMany(Links).

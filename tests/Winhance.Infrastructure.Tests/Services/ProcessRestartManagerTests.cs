@@ -27,11 +27,6 @@ public class ProcessRestartManagerTests
             _mockLog.Object);
     }
 
-    // ---------------------------------------------------------------
-    // The catalog-Setting overload extracts (process, service) from ApplyBehavior.Restart and runs the
-    // restart logic.
-    // ---------------------------------------------------------------
-
     // Which broadcast a setting gets is DECLARED on it (ApplyBehavior.NotifyWindows); the catalog-wide conformance
     // test pins the declarations to the settings that really write the personalisation key.
     private static Setting CreateCatalogSetting(
@@ -56,10 +51,8 @@ public class ProcessRestartManagerTests
         _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------
     // Explorer: broadcast + register, NEVER kill. Applying a setting must not take the shell down -
-    // several toggles in a row used to do exactly that and could leave the user with no shell.
-    // ---------------------------------------------------------------
+    // several toggles in a row could otherwise leave the user with no shell.
 
     [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_Explorer_RegistersPendingAndNeverKills()
@@ -67,9 +60,9 @@ public class ProcessRestartManagerTests
         var setting = CreateCatalogSetting("cat-explorer", new RestartProcess("Explorer"));
 
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
-        // The broadcast is deliberately fire-and-forget now (it used to block the caller - the UI
-        // thread on an interactive apply - for seconds), so the suite awaits the task it dispatched
-        // rather than racing the thread pool.
+        // The broadcast is deliberately fire-and-forget (blocking the caller - the UI thread on an interactive
+        // apply - would cost seconds), so the suite awaits the task it dispatched rather than racing the
+        // thread pool.
         await _sut.LastBroadcastTask;
 
         _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
@@ -131,11 +124,9 @@ public class ProcessRestartManagerTests
             "no setting in the batch declares WindowsChange.Appearance");
     }
 
-    // ---------------------------------------------------------------
     // The broadcast SPLIT. Three of the four messages are theme/colour notifications, and one of
     // those must be sent synchronously at a per-top-level-window timeout - seconds on a busy
     // desktop. Only a setting that can actually change the theme has any reason to pay for it.
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_ThemeSetting_BroadcastsThemeAndGeneric()
@@ -169,10 +160,10 @@ public class ProcessRestartManagerTests
     [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_NotifyWithoutRestart_StillBroadcasts()
     {
-        // The regression this pins: the broadcast used to live INSIDE the isExplorer branch, so the
-        // moment the theme settings' (unnecessary) Explorer restart was removed they stopped being
-        // announced at all and the theme silently stopped applying. Declaring a notice and needing a
-        // restart are independent facts; a setting may do either without the other.
+        // The regression this pins: if the broadcast lived INSIDE the isExplorer branch, a theme setting
+        // with no Explorer restart would never be announced and the theme would silently stop applying.
+        // Declaring a notice and needing a restart are independent facts; a setting may do either
+        // without the other.
         var setting = CreateCatalogSetting("cat-notify-only", restart: null, notify: WindowsChange.Appearance);
 
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
@@ -202,11 +193,9 @@ public class ProcessRestartManagerTests
         _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // LEGIBILITY. The reason this work happened at all is that a two-second stall produced no log
-    // output, so the broadcast now says which variant ran and how long it took - and a failure on
-    // the background task must still reach the log rather than dying unobserved on the thread pool.
-    // ---------------------------------------------------------------
+    // LEGIBILITY. A silent two-second stall is undiagnosable, so the broadcast logs which variant ran
+    // and how long it took - and a failure on the background task must still reach the log rather
+    // than dying unobserved on the thread pool.
 
     [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_Explorer_LogsTheBroadcastVariantAndElapsedTime()
@@ -254,10 +243,8 @@ public class ProcessRestartManagerTests
             "a failed broadcast must not cost the user the pending-restart bar");
     }
 
-    // ---------------------------------------------------------------
-    // Non-Explorer targets are deliberately unchanged: none of them is the shell, and all return
+    // Non-Explorer targets restart immediately: none of them is the shell, and all return
     // instantly, so deferring them would cost the user a click for no benefit.
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_Setting_NonExplorerProcess_KillsProcess()

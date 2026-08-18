@@ -15,13 +15,11 @@ public class RegeditLauncher(
         {
             var navigatePath = registryPath;
 
-            // Normalize short hive names to long names for regedit
             if (navigatePath.StartsWith("HKCU\\", StringComparison.OrdinalIgnoreCase))
                 navigatePath = $"HKEY_CURRENT_USER\\{navigatePath[5..]}";
             else if (navigatePath.StartsWith("HKLM\\", StringComparison.OrdinalIgnoreCase))
                 navigatePath = $"HKEY_LOCAL_MACHINE\\{navigatePath[5..]}";
 
-            // Normalize path with "Computer\" prefix if not present
             var fullPath = navigatePath.StartsWith("Computer\\", StringComparison.OrdinalIgnoreCase)
                 ? navigatePath
                 : $"Computer\\{navigatePath}";
@@ -38,7 +36,6 @@ public class RegeditLauncher(
                     $@"{sid}\Software\Microsoft\Windows\CurrentVersion\Applets\Regedit");
                 key?.SetValue("LastKey", fullPath);
 
-                // Launch regedit as the interactive user
                 interactiveUserService.LaunchProcessAsInteractiveUser("regedit.exe");
             }
             else

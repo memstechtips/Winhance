@@ -38,8 +38,6 @@ public class UpdateCheckViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesDefaultProperties()
     {
@@ -50,8 +48,6 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut.IsRelaunchButtonVisible.Should().BeFalse();
         _sut.IsUpdateCheckInProgress.Should().BeFalse();
     }
-
-    // ── CheckForUpdatesCommand ──
 
     [Fact]
     public async Task CheckForUpdatesCommand_UpdateAvailable_ShowsInfoBar()
@@ -153,21 +149,16 @@ public class UpdateCheckViewModelTests : IDisposable
             .Setup(v => v.GetCurrentVersion())
             .Returns(new VersionInfo { Version = "v25.05.01" });
 
-        // Start first check
         var task1 = _sut.CheckForUpdatesCommand.ExecuteAsync(null);
 
-        // Try to start another check while the first is in progress
         var task2 = _sut.CheckForUpdatesCommand.ExecuteAsync(null);
         await task2; // This should complete immediately
 
-        // The version service should only have been called once
         _mockVersionService.Verify(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()), Times.Once);
 
         tcs.SetResult(new VersionInfo { Version = "v25.05.01", IsUpdateAvailable = false });
         await task1;
     }
-
-    // ── CheckForUpdatesOnStartupAsync ──
 
     [Fact]
     public async Task CheckForUpdatesOnStartupAsync_UpdateAvailable_ShowsInfoBar()
@@ -212,8 +203,6 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut.IsUpdateInfoBarOpen.Should().BeFalse();
     }
 
-    // ── InstallUpdateCommand ──
-
     [Fact]
     public async Task InstallUpdateCommand_Success_ShowsRelaunchButton()
     {
@@ -221,7 +210,6 @@ public class UpdateCheckViewModelTests : IDisposable
             .Setup(v => v.DownloadAndInstallUpdateAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        // First get an update available state
         _sut.IsUpdateActionButtonVisible = true;
 
         await _sut.InstallUpdateCommand.ExecuteAsync(null);
@@ -260,7 +248,6 @@ public class UpdateCheckViewModelTests : IDisposable
 
         var commandTask = _sut.InstallUpdateCommand.ExecuteAsync(null);
 
-        // During download: action button hidden, relaunch not yet visible
         _sut.IsUpdateActionButtonVisible.Should().BeFalse();
         _sut.IsRelaunchButtonVisible.Should().BeFalse();
         _sut.UpdateInfoBarTitle.Should().Contain("Downloading");
@@ -268,12 +255,9 @@ public class UpdateCheckViewModelTests : IDisposable
         tcs.SetResult();
         await commandTask;
 
-        // After download: relaunch button visible
         _sut.IsRelaunchButtonVisible.Should().BeTrue();
         _sut.UpdateInfoBarTitle.Should().Contain("Update Ready");
     }
-
-    // ── DismissUpdateInfoBar ──
 
     [Fact]
     public void DismissUpdateInfoBar_ClosesInfoBar()
@@ -284,8 +268,6 @@ public class UpdateCheckViewModelTests : IDisposable
 
         _sut.IsUpdateInfoBarOpen.Should().BeFalse();
     }
-
-    // ── Localized Strings ──
 
     [Fact]
     public void InstallNowButtonText_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -298,8 +280,6 @@ public class UpdateCheckViewModelTests : IDisposable
     {
         _sut.RelaunchButtonText.Should().Be("Relaunch");
     }
-
-    // ── Language Change ──
 
     [Fact]
     public void LanguageChanged_NotifiesInstallNowButtonText()
@@ -316,7 +296,6 @@ public class UpdateCheckViewModelTests : IDisposable
     [Fact]
     public async Task LanguageChanged_WhenInfoBarOpen_RefreshesInfoBarText()
     {
-        // Set up an update available state
         _mockVersionService
             .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new VersionInfo { Version = "v25.06.01", IsUpdateAvailable = true });
@@ -327,7 +306,6 @@ public class UpdateCheckViewModelTests : IDisposable
         await _sut.CheckForUpdatesCommand.ExecuteAsync(null);
         var originalTitle = _sut.UpdateInfoBarTitle;
 
-        // Now simulate language change with a new localization value
         _mockLocalizationService
             .Setup(l => l.GetString("Dialog_Update_Title"))
             .Returns("Mise a jour disponible");
@@ -344,11 +322,8 @@ public class UpdateCheckViewModelTests : IDisposable
 
         _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
 
-        // Title should remain as initialized (empty string)
         _sut.UpdateInfoBarTitle.Should().BeEmpty();
     }
-
-    // ── IDisposable ──
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()
@@ -360,7 +335,6 @@ public class UpdateCheckViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising language changed should not cause property notifications
         var changedProperties = new List<string>();
         sut.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 

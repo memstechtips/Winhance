@@ -49,12 +49,10 @@ public class AutounattendScriptBuilder
 
         var sb = new StringBuilder();
 
-        // 1. Header and setup
         ScriptPreambleSection.AppendHeader(sb);
         ScriptPreambleSection.AppendLoggingSetup(sb);
         ScriptPreambleSection.AppendHelperFunctions(sb);
 
-        // 2. Build if (-not $UserCustomizations) block
         sb.AppendLine();
         sb.AppendLine("if (-not $UserCustomizations) {");
         sb.AppendLine();
@@ -68,61 +66,49 @@ public class AutounattendScriptBuilder
 
         _appRemovalSection.AppendWinhanceInstallerScriptContent(sb, "    ");
 
-        // 2b. Power settings
         await _powerSettingsSection.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ").ConfigureAwait(false);
 
-        // 2c. HKLM registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
             _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
-        // 2d. HKLM registry entries from Customize
         if (config.Customize.Features.Any())
         {
             _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
-        // 2e. Clean Start Menu Layout (always included)
         SpecialFeatureScriptSection.AppendCleanStartMenuSection(sb, "    ");
 
-        // 2f. Register UserCustomizations scheduled task
         SpecialFeatureScriptSection.AppendUserCustomizationsScheduledTask(sb, "    ");
 
-        // 2g. System-wide custom script placeholder
         AppendCustomScriptPlaceholder(sb, "    ", "SYSTEM WIDE");
 
         sb.AppendLine("}");
         sb.AppendLine();
 
-        // 3. Build if ($UserCustomizations) block
         sb.AppendLine("if ($UserCustomizations) {");
         sb.AppendLine();
         AppendUserDetectionBridge(sb);
 
-        // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
             _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
-        // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
             _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
-        // 3c. User-specific custom script placeholder
         AppendCustomScriptPlaceholder(sb, "            ", "USER SPECIFIC");
 
         AppendUserDetectionBridgeClosing(sb);
 
-        // 4. Completion block
         ScriptPreambleSection.AppendCompletionBlock(sb);
 
         var scriptContent = sb.ToString();
 
-        // Validate the generated script has no PowerShell syntax errors
         try
         {
             await _powerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
@@ -156,8 +142,7 @@ public class AutounattendScriptBuilder
             {
                 if (!selectedIds.Contains(setting.Id)) continue;
 
-                // Native-power presence + the autounattend fallback are read off the catalog Setting
-                // (Targets/Effects). Native power is authored on only one setting (power-hibernation-enable).
+                // Native power is authored on only one setting (power-hibernation-enable).
                 bool hasNativePower = AutounattendMechanismPresence.HasNativePower(setting);
                 if (!hasNativePower) continue;
 

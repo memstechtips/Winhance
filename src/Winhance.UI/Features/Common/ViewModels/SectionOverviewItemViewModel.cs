@@ -9,10 +9,10 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-// Recomputed from observed state rather than pushed into named XAML elements: every code path that could change
-// a setting used to have to remember to call the updaters, and two paths didn't (returning from a sub-page,
-// Builder bulk actions). Mirrors FeatureOutcomeBanner's observe/detach shape - same feature, same settings,
-// same invalidation triggers.
+// Recomputed from observed state rather than pushed into named XAML elements: pushing means every code path
+// that could change a setting has to remember to call the updaters, and paths get missed (returning from a
+// sub-page, Builder bulk actions). Mirrors FeatureOutcomeBanner's observe/detach shape - same feature, same
+// settings, same invalidation triggers.
 public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDisposable
 {
     private readonly IConfigReviewBadgeService _badgeService;
@@ -56,7 +56,7 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         Refresh();
     }
 
-    // ── Global view toggles (View menu). Set by the page; each one re-derives the card. ──
+    // Set by the page; each one re-derives the card.
 
     [ObservableProperty]
     public partial bool AreInfoBadgesVisible { get; set; } = true;
@@ -67,8 +67,6 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
     partial void OnAreInfoBadgesVisibleChanged(bool value) => Refresh();
 
     partial void OnAreNewBadgesVisibleChanged(bool value) => Refresh();
-
-    // ── Derived, bound state ──
 
     [ObservableProperty]
     public partial bool IsReviewSuccessBadgeVisible { get; set; }
@@ -159,8 +157,6 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
 
     private string Localized(string key, string fallback) =>
         _localizationService.TryGetString(key, out var value) ? value : fallback;
-
-    // ── Observation ──
 
     private void Attach()
     {

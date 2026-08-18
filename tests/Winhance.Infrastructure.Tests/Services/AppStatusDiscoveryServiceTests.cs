@@ -67,8 +67,6 @@ public class AppStatusDiscoveryServiceTests
         DetectionPaths = detectionPaths,
     };
 
-    // --- GetInstallationStatusBatchAsync ---
-
     [Fact]
     public async Task GetInstallationStatusBatchAsync_EmptyDefinitions_ReturnsEmptyDictionary()
     {
@@ -81,55 +79,39 @@ public class AppStatusDiscoveryServiceTests
     [Fact]
     public async Task GetInstallationStatusBatchAsync_ReturnsCaseInsensitiveDictionary()
     {
-        // With empty definitions to confirm the dictionary uses the right comparer
         var result = await _service.GetInstallationStatusBatchAsync(Array.Empty<ItemDefinition>());
 
         result.Should().NotBeNull();
-        // The dictionary should be created with OrdinalIgnoreCase comparer
         result.Comparer.Should().Be(StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task GetInstallationStatusBatchAsync_WhenExceptionOccursInternallyAndCaughtAtTopLevel_ReturnsAllFalse()
     {
-        // Create apps that will cause an exception path at the top-level try/catch.
-        // Since the service calls platform APIs internally, we test the catch-all behavior
-        // by providing definitions that go through the appx path (which uses PackageManager COM).
-        // In a test environment, the PackageManager will likely fail, triggering fallback paths.
         var definitions = new List<ItemDefinition>
         {
             CreateAppxDefinition("app1", "Microsoft.TestApp1"),
             CreateAppxDefinition("app2", "Microsoft.TestApp2"),
         };
 
-        // This test verifies the method doesn't throw when internal operations fail.
-        // The PackageManager and fallback WMI/PowerShell paths will fail in a unit test environment.
         var result = await _service.GetInstallationStatusBatchAsync(definitions);
 
         result.Should().NotBeNull();
-        // In a test environment where PackageManager is unavailable, apps should be marked false
         result.Should().ContainKey("app1");
         result.Should().ContainKey("app2");
     }
 
-    // --- InvalidateCache ---
-
     [Fact]
     public void InvalidateCache_ClearsWinGetPackageIdCache()
     {
-        // InvalidateCache should complete without throwing
         _service.InvalidateCache();
 
-        // After invalidation, next call to GetOrFetchWinGetPackageIdsAsync will re-fetch.
-        // We verify this indirectly: calling invalidate then checking external apps
-        // should trigger a fresh WinGet fetch.
         _service.InvalidateCache(); // Should be idempotent
     }
 
     [Fact]
     public async Task InvalidateCache_CausesWinGetRefetch_WhenExternalAppsChecked()
     {
-        // Setup WinGet as ready and returning a package set
         _mockWinGetBootstrapper
             .Setup(w => w.EnsureWinGetReadyAsync())
             .ReturnsAsync(true);
@@ -142,22 +124,16 @@ public class AppStatusDiscoveryServiceTests
             CreateExternalAppDefinition("ext1", "Test App", winGetPackageIds: TestAppId)
         };
 
-        // First call populates cache
         await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
-        // Invalidate cache
         _service.InvalidateCache();
 
-        // Second call should re-fetch
         await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
-        // WinGet detection should have been called twice (once for each external check)
         _mockWinGetDetection.Verify(
             w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
-
-    // --- GetExternalAppsInstallationStatusAsync ---
 
     [Fact]
     public async Task GetExternalAppsInstallationStatusAsync_EmptyDefinitions_ReturnsEmptyDictionary()
@@ -230,7 +206,6 @@ public class AppStatusDiscoveryServiceTests
     [Fact]
     public async Task GetExternalAppsInstallationStatusAsync_ChocolateyFallback_WhenWinGetNotFound()
     {
-        // WinGet doesn't find the app
         _mockWinGetBootstrapper
             .Setup(w => w.EnsureWinGetReadyAsync())
             .ReturnsAsync(true);
@@ -238,7 +213,6 @@ public class AppStatusDiscoveryServiceTests
             .Setup(w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<string>());
 
-        // Chocolatey finds the app
         _mockChocolatey
             .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<string> { "vlc" });
@@ -310,7 +284,6 @@ public class AppStatusDiscoveryServiceTests
             .Setup(c => c.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<string>());
 
-        // App without WinGet ID, choco ID, or registry match
         var definitions = new List<ItemDefinition>
         {
             CreateExternalAppDefinition("ext-unknown", "Unknown App")
@@ -325,7 +298,6 @@ public class AppStatusDiscoveryServiceTests
     [Fact]
     public async Task GetExternalAppsInstallationStatusAsync_TopLevelException_ReturnsAllFalse()
     {
-        // Force WinGet bootstrapper to throw to trigger the top-level catch
         _mockWinGetBootstrapper
             .Setup(w => w.EnsureWinGetReadyAsync())
             .ThrowsAsync(new InvalidOperationException("Critical failure"));
@@ -358,17 +330,13 @@ public class AppStatusDiscoveryServiceTests
             CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: PkgIdQualified)
         };
 
-        // Call twice
         await _service.GetExternalAppsInstallationStatusAsync(definitions);
         await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
-        // WinGet detection should only be called once due to caching
         _mockWinGetDetection.Verify(
             w => w.GetInstalledPackageIdsAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
-
-    // --- MatchesPattern ---
 
     [Theory]
     [InlineData("MediaMonkey 5", "MediaMonkey {version}", true)]
@@ -388,7 +356,6 @@ public class AppStatusDiscoveryServiceTests
     [InlineData("Microsoft Visual C++ v14 Redistributable (x64) - 14.51.36247", "Microsoft Visual C++ 2015-2022 Redistributable (x64) - {version}|Microsoft Visual C++ v14 Redistributable (x64) - {version}", true)]
     [InlineData("Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.38.33135", "Microsoft Visual C++ 2015-2022 Redistributable (x64) - {version}|Microsoft Visual C++ v14 Redistributable (x64) - {version}", true)]
     [InlineData("VLC media player", "VLC media player", true)]
-    // Negative cases
     [InlineData("MediaMonkey 5", "VLC media player", false)]
     [InlineData("GIMP 3.0.8-2", "Audacity {version}", false)]
     [InlineData("Microsoft .NET Runtime - 5.0.17 (x64)", "Microsoft .NET Runtime - 3.1.{version} ({arch})|Microsoft .NET Core Runtime - 3.1.{version} ({arch})", false)]
@@ -399,8 +366,6 @@ public class AppStatusDiscoveryServiceTests
         var result = AppStatusDiscoveryService.MatchesPattern(input, pattern);
         result.Should().Be(expected);
     }
-
-    // --- GetExternalAppsInstallationStatusAsync: AppX detection ---
 
     [Fact]
     public async Task GetExternalAppsInstallationStatusAsync_AppXDetectsApp_ReturnsTrueWithDetectedViaAppX()
@@ -498,11 +463,8 @@ public class AppStatusDiscoveryServiceTests
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
         result["ext-fake"].Should().BeTrue();
-        // Should be detected via WinGet (higher priority), not AppX
         definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.WinGet);
     }
-
-    // --- GetExternalAppsInstallationStatusAsync: FileSystem detection ---
 
     [Fact]
     public async Task GetExternalAppsInstallationStatusAsync_FileSystemDetectsExistingDirectory_ReturnsTrue()
@@ -598,7 +560,6 @@ public class AppStatusDiscoveryServiceTests
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
         result["ext-portable"].Should().BeTrue();
-        // Should be detected via WinGet, not FileSystem (WinGet has higher priority)
         definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.WinGet);
     }
 }

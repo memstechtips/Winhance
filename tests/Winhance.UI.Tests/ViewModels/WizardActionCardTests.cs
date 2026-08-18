@@ -7,10 +7,6 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WizardActionCardTests
 {
-    // -------------------------------------------------------
-    // Constructor / Default values
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -29,10 +25,6 @@ public class WizardActionCardTests
         card.IsProcessing.Should().BeFalse();
         card.ButtonCommand.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // Simple property setters with PropertyChanged
-    // -------------------------------------------------------
 
     [Fact]
     public void Icon_Set_RaisesPropertyChanged()
@@ -147,10 +139,6 @@ public class WizardActionCardTests
         card.ButtonCommand.Should().BeSameAs(command);
     }
 
-    // -------------------------------------------------------
-    // IconPath / UsePathIcon interaction
-    // -------------------------------------------------------
-
     [Fact]
     public void IconPath_WhenSetToNonEmpty_SetsUsePathIconTrue()
     {
@@ -165,7 +153,7 @@ public class WizardActionCardTests
     public void IconPath_WhenSetToEmpty_SetsUsePathIconFalse()
     {
         var card = new WizardActionCard();
-        card.IconPath = "M0,0 L10,10"; // first set to non-empty
+        card.IconPath = "M0,0 L10,10";
 
         card.IconPath = "";
 
@@ -183,17 +171,12 @@ public class WizardActionCardTests
         card.UsePathIcon.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // Mutual exclusion: IsComplete / HasFailed / IsProcessing
-    // -------------------------------------------------------
-
     [Fact]
     public void IsComplete_SetTrue_ClearsIsProcessingAndHasFailed()
     {
         var card = new WizardActionCard();
         card.IsProcessing = true;
-        card.HasFailed = false; // IsProcessing was cleared by HasFailed; reset state manually
-        // Start fresh
+        card.HasFailed = false;
         var card2 = new WizardActionCard();
 
         card2.IsComplete = true;
@@ -235,7 +218,7 @@ public class WizardActionCardTests
         var card = new WizardActionCard();
         card.IsProcessing = true;
 
-        card.IsComplete = false; // Setting to false should not trigger the clearing logic
+        card.IsComplete = false;
 
         card.IsProcessing.Should().BeTrue();
     }
@@ -261,10 +244,6 @@ public class WizardActionCardTests
 
         card.IsComplete.Should().BeTrue();
     }
-
-    // -------------------------------------------------------
-    // State transition sequences
-    // -------------------------------------------------------
 
     [Fact]
     public void ProcessingToComplete_Transition()
@@ -304,15 +283,11 @@ public class WizardActionCardTests
         card.HasFailed = true;
         card.HasFailed.Should().BeTrue();
 
-        card.IsProcessing = true; // retry
+        card.IsProcessing = true;
         card.IsProcessing.Should().BeTrue();
         card.HasFailed.Should().BeFalse();
         card.IsComplete.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // PropertyChanged notifications for state flags
-    // -------------------------------------------------------
 
     [Fact]
     public void IsComplete_SetTrue_RaisesPropertyChanged()
@@ -350,10 +325,6 @@ public class WizardActionCardTests
         changedProperties.Should().Contain(nameof(card.IsProcessing));
     }
 
-    // -------------------------------------------------------
-    // Mutual exclusion cross-notifications
-    // -------------------------------------------------------
-
     [Fact]
     public void IsComplete_SetTrue_RaisesPropertyChangedForCleared_IsProcessing()
     {
@@ -365,7 +336,6 @@ public class WizardActionCardTests
 
         card.IsComplete = true;
 
-        // IsProcessing should have been set to false, generating a PropertyChanged
         changedProperties.Should().Contain(nameof(card.IsProcessing));
     }
 

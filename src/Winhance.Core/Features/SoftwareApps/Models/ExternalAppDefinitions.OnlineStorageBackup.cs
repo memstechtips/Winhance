@@ -91,7 +91,6 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://hekasoft.com/?download=112",
                             FallbackDownloadUrl = "https://hekasoft.com/?download=612",
                         },
-                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                 }
             };

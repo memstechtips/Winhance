@@ -13,11 +13,9 @@ public static class AvailabilityCompatibility
         if (builds.Count == 0 || availability.Allows(build))
             return null;
 
-        // Rule 1 -- Windows 10 machine, every range requires Windows 11 or later.
         if (build < Windows11Boundary && builds.All(r => r.Min >= Windows11Boundary))
             return "Compatibility_Windows11Only";
 
-        // Rule 2 -- Windows 11 machine, every range ends inside Windows 10.
         if (build >= Windows11Boundary && builds.All(r => r.Max <= Windows10Ceiling))
             return "Compatibility_Windows10Only";
 
@@ -30,7 +28,6 @@ public static class AvailabilityCompatibility
             bool minIsInterior = r.Min > new WinBuild(0) && r.Min != Windows11Boundary;
             bool maxIsBounded = r.Max.Build != int.MaxValue;
 
-            // Rule 3 window case.
             if (minIsInterior && maxIsBounded)
                 return "Compatibility_BuildRange|" + FormatRange(r);
 
@@ -50,7 +47,6 @@ public static class AvailabilityCompatibility
                 : $"Compatibility_MaxBuild|{r.Max.Build}.{r.Max.Revision}";
         }
 
-        // Rule 4 -- multiple ranges join with " or ".
         return "Compatibility_BuildRange|" + string.Join(" or ", builds.Select(FormatRange));
     }
 

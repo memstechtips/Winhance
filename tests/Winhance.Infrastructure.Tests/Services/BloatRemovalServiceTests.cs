@@ -44,8 +44,6 @@ public class BloatRemovalServiceTests
         RemovalScript = removalScript,
     };
 
-    // --- ExecuteDedicatedScriptAsync ---
-
     [Fact]
     public async Task ExecuteDedicatedScriptAsync_EdgeApp_CreatesAndRunsEdgeRemovalScript()
     {
@@ -185,8 +183,6 @@ public class BloatRemovalServiceTests
             It.Is<string>(s => s.Contains("Executing dedicated removal script"))), Times.Once);
     }
 
-    // --- ExecuteBloatRemovalAsync ---
-
     [Fact]
     public async Task ExecuteBloatRemovalAsync_NoItems_ReturnsSuccess()
     {
@@ -230,7 +226,6 @@ public class BloatRemovalServiceTests
     [Fact]
     public async Task ExecuteBloatRemovalAsync_SkipsDedicatedScriptApps()
     {
-        // Apps with RemovalScript should be excluded from BloatRemoval (they use dedicated scripts)
         var apps = new List<ItemDefinition>
         {
             CreateDedicatedScriptApp("windows-app-edge", "Edge", () => "# script"),
@@ -238,7 +233,6 @@ public class BloatRemovalServiceTests
 
         var result = await _service.ExecuteBloatRemovalAsync(apps);
 
-        // Since dedicated script apps are filtered out, there should be no items
         result.Should().Be(RemovalOutcome.Success);
         _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("No items to process"))), Times.Once);
     }
@@ -271,7 +265,6 @@ $specialApps = @()";
         var result = await _service.ExecuteBloatRemovalAsync(apps);
 
         result.Should().Be(RemovalOutcome.Success);
-        // Verify the merged content is written
         _mockFileSystem.Verify(f => f.WriteAllTextAsync(
             It.IsAny<string>(),
             It.Is<string>(content => content.Contains("Microsoft.NewApp") && content.Contains("Microsoft.ExistingApp")),
@@ -321,8 +314,6 @@ $specialApps = @()";
 
         result.Should().Be(RemovalOutcome.Failed);
     }
-
-    // --- PersistRemovalScriptsAsync ---
 
     [Fact]
     public async Task PersistRemovalScriptsAsync_RegistersScheduledTaskForDedicatedScript()
@@ -429,7 +420,7 @@ $specialApps = @()";
     [Fact]
     public async Task PersistRemovalScriptsAsync_RegistersBloatRemovalTask_WhenScriptExists()
     {
-        var apps = new List<ItemDefinition>(); // No dedicated script apps
+        var apps = new List<ItemDefinition>();
 
         _mockFileSystem
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))
@@ -451,8 +442,6 @@ $specialApps = @()";
                 rs.Name == "BloatRemoval" &&
                 rs.RunOnStartup == false)), Times.Once);
     }
-
-    // --- RemoveItemsFromScriptAsync ---
 
     [Fact]
     public async Task RemoveItemsFromScriptAsync_ScriptDoesNotExist_ReturnsTrue()
@@ -500,7 +489,6 @@ $specialApps = @()";
         var result = await _service.RemoveItemsFromScriptAsync(itemsToRemove);
 
         result.Should().BeTrue();
-        // Verify the updated content no longer contains the removed app but keeps the remaining one
         _mockFileSystem.Verify(f => f.WriteAllTextAsync(
             It.IsAny<string>(),
             It.Is<string>(content =>
@@ -544,7 +532,6 @@ $specialApps = @()";
         var result = await _service.RemoveItemsFromScriptAsync(itemsToRemove);
 
         result.Should().BeTrue();
-        // When script becomes empty, cleanup artifacts (unregister task + delete file)
         _mockScheduledTask.Verify(s => s.UnregisterScheduledTaskAsync("BloatRemoval"), Times.Once);
         _mockFileSystem.Verify(f => f.DeleteFile(It.Is<string>(p => p.Contains("BloatRemoval.ps1"))), Times.Once);
     }
@@ -573,8 +560,6 @@ $specialApps = @()";
             It.IsAny<Exception>()), Times.Once);
     }
 
-    // --- CleanupAllRemovalArtifactsAsync ---
-
     [Fact]
     public async Task CleanupAllRemovalArtifactsAsync_CleansUpAllThreeTasksAndScripts()
     {
@@ -591,12 +576,10 @@ $specialApps = @()";
 
         await _service.CleanupAllRemovalArtifactsAsync();
 
-        // Verify all three scheduled tasks are unregistered
         _mockScheduledTask.Verify(s => s.UnregisterScheduledTaskAsync("EdgeRemoval"), Times.Once);
         _mockScheduledTask.Verify(s => s.UnregisterScheduledTaskAsync("OneDriveRemoval"), Times.Once);
         _mockScheduledTask.Verify(s => s.UnregisterScheduledTaskAsync("BloatRemoval"), Times.Once);
 
-        // Verify all three script files are deleted
         _mockFileSystem.Verify(f => f.DeleteFile(It.Is<string>(p => p.Contains("EdgeRemoval.ps1"))), Times.Once);
         _mockFileSystem.Verify(f => f.DeleteFile(It.Is<string>(p => p.Contains("OneDriveRemoval.ps1"))), Times.Once);
         _mockFileSystem.Verify(f => f.DeleteFile(It.Is<string>(p => p.Contains("BloatRemoval.ps1"))), Times.Once);
@@ -629,7 +612,6 @@ $specialApps = @()";
             .Setup(s => s.IsTaskRegisteredAsync(It.IsAny<string>()))
             .ThrowsAsync(new Exception("COM failure"));
 
-        // Should not throw despite internal errors
         var action = () => _service.CleanupAllRemovalArtifactsAsync();
 
         await action.Should().NotThrowAsync();

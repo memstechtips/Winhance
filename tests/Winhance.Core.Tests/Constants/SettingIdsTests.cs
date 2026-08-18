@@ -6,8 +6,6 @@ namespace Winhance.Core.Tests.Constants;
 
 public class SettingIdsTests
 {
-    // The def id-parity facts are gone; the id contract is now pinned by the catalog authoring/conformance
-    // suites. What remains here are two invariants: the constants are non-empty and distinct.
     [Fact]
     public void Constants_AreNonEmpty()
     {

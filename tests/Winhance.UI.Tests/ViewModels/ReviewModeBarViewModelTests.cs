@@ -23,7 +23,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
     public ReviewModeBarViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -53,8 +52,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesDefaultProperties()
     {
@@ -62,8 +59,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().BeEmpty();
         _sut.CanApplyReviewedConfig.Should().BeFalse();
     }
-
-    // ── Localized Strings with Fallbacks ──
 
     [Fact]
     public void ReviewModeTitleText_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -89,8 +84,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeDescriptionText.Should().Contain("Review the changes below");
     }
 
-    // ── Review Mode Changed Event ──
-
     [Fact]
     public void ReviewModeChanged_EnterReviewMode_UpdatesIsInReviewMode()
     {
@@ -106,14 +99,12 @@ public class ReviewModeBarViewModelTests : IDisposable
     [Fact]
     public void ReviewModeChanged_ExitReviewMode_UpdatesIsInReviewMode()
     {
-        // First enter review mode
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);
         _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
         _sut.IsInReviewMode.Should().BeTrue();
 
-        // Now exit
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(false);
@@ -133,8 +124,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _sut.ReviewModeStatusText.Should().BeEmpty();
     }
-
-    // ── Status Text ──
 
     [Fact]
     public void StatusText_WhenInReviewModeWithChanges_ShowsReviewedCount()
@@ -195,18 +184,14 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().Contain("No configuration items");
     }
 
-    // ── Approval Count Changed Event ──
-
     [Fact]
     public void ApprovalCountChanged_UpdatesStatusTextAndCanApply()
     {
-        // Enter review mode first
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);
         _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
 
-        // Update diff counts
         _mockConfigReviewDiffService
             .Setup(d => d.TotalChanges)
             .Returns(3);
@@ -217,7 +202,6 @@ public class ReviewModeBarViewModelTests : IDisposable
             .Setup(d => d.ApprovedChanges)
             .Returns(2);
 
-        // Mock badge service for full review
         _mockConfigReviewBadgeService
             .Setup(b => b.IsSoftwareAppsReviewed)
             .Returns(true);
@@ -232,8 +216,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _sut.ReviewModeStatusText.Should().Contain("3");
     }
-
-    // ── CanApplyReviewedConfig ──
 
     [Fact]
     public void CanApplyReviewedConfig_NotInReviewMode_ReturnsFalse()
@@ -332,8 +314,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.CanApplyReviewedConfig.Should().BeTrue();
     }
 
-    // ── ApplyReviewedConfigCommand ──
-
     [Fact]
     public async Task ApplyReviewedConfigCommand_DelegatesToConfigurationService()
     {
@@ -357,8 +337,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         await act.Should().NotThrowAsync();
     }
-
-    // ── CancelReviewModeCommand ──
 
     [Fact]
     public async Task CancelReviewModeCommand_UserConfirms_CallsCancelReviewMode()
@@ -387,8 +365,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
     }
 
-    // ── Badge State Changed Event ──
-
     [Fact]
     public void BadgeStateChanged_UpdatesCanApplyReviewedConfig()
     {
@@ -414,8 +390,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _sut.CanApplyReviewedConfig.Should().BeTrue();
     }
-
-    // ── Language Change ──
 
     [Fact]
     public void LanguageChanged_WhenInReviewMode_NotifiesLocalizedProperties()
@@ -446,8 +420,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         changedProperties.Should().NotContain(nameof(_sut.ReviewModeTitleText));
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_UnsubscribesFromEvents()
     {
@@ -463,7 +435,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising review mode changed should not update IsInReviewMode
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);

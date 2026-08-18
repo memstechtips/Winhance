@@ -190,7 +190,6 @@ public class UserPreferencesService : IUserPreferencesService
                     return typedValue;
                 }
 
-                // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                 if (typeof(T) == typeof(bool) && value != null)
                 {
                     string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
@@ -312,7 +311,6 @@ public class UserPreferencesService : IUserPreferencesService
                     return typedValue;
                 }
 
-                // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                 if (typeof(T) == typeof(bool) && value != null)
                 {
                     string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;

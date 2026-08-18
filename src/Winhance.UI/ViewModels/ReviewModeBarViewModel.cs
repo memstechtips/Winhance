@@ -124,20 +124,16 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // All Optimize/Customize settings must be explicitly reviewed (accept or reject)
         bool allSettingsReviewed = _configReviewDiffService.TotalChanges == 0
             || _configReviewDiffService.ReviewedChanges >= _configReviewDiffService.TotalChanges;
 
-        // SoftwareApps action choices must be made for sections that have items
         bool softwareAppsReviewed = _configReviewBadgeService.IsSoftwareAppsReviewed
             || (!_configReviewBadgeService.IsFeatureInConfig(FeatureIds.WindowsApps)
                 && !_configReviewBadgeService.IsFeatureInConfig(FeatureIds.ExternalApps));
 
-        // All Optimize features must be fully reviewed
         bool optimizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Optimize")
             || !FeatureDefinitions.OptimizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
 
-        // All Customize features must be fully reviewed
         bool customizeReviewed = _configReviewBadgeService.IsSectionFullyReviewed("Customize")
             || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
 
@@ -154,7 +150,6 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
 
         if (_configReviewDiffService.TotalChanges > 0)
         {
-            // Show reviewed/total count and how many will be applied
             var format = _localizationService.GetStringOrDefault("Review_Mode_Status_Format", "{0} of {1} reviewed ({2} will be applied)");
             ReviewModeStatusText = string.Format(format,
                 _configReviewDiffService.ReviewedChanges,
@@ -163,7 +158,6 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         }
         else if (_configReviewDiffService.TotalConfigItems > 0)
         {
-            // Config has items but all match current state
             ReviewModeStatusText = _localizationService.GetStringOrDefault("Review_Mode_Status_AllMatch", "All settings already match config");
         }
         else

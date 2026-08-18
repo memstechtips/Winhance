@@ -121,8 +121,6 @@ public sealed partial class OptionMatrixView : UserControl
             ? FirstOptionRow + rowsBelowHeaders - 1
             : (HasColumnHeaderRow(matrix) ? ColumnHeaderRow : MechanismRow);
 
-        // The code blocks sit under the grid, inside the same box but outside the column model, so
-        // the grid's bottom edge is only the box's own when nothing follows it.
         _gridIsLastElement = !matrix.HasCode;
 
         AddGroupHeaders(matrix);
@@ -318,7 +316,6 @@ public sealed partial class OptionMatrixView : UserControl
             Place(band, FrozenColumns + first.StartColumn, MechanismRow, span, rowSpan);
         }
 
-        // The paths split beneath the mechanism: one cell per group, each naming its own destination.
         foreach (var group in matrix.Groups)
         {
             if (!group.HasPaths) continue;
@@ -411,8 +408,6 @@ public sealed partial class OptionMatrixView : UserControl
         {
             var open = new Button
             {
-                // The control's own command rather than the model's: an ICommand slot on a Core
-                // record was the single System.Windows reference in the whole of Winhance.Core.
                 Command = RegeditCommand,
                 CommandParameter = path.Full,
                 Style = Named("TechDetail.Table.RegeditButton"),
@@ -423,10 +418,8 @@ public sealed partial class OptionMatrixView : UserControl
                     Children = { new FontIcon { Glyph = "", FontSize = 12 } },
                 },
             };
-            // The model can no longer know whether a command exists - the ICommand slot moved
-            // off the Core record - so a consumer that binds Matrix and forgets RegeditCommand
-            // would render a button that looks live and does nothing. Every call site binds it
-            // today; this is the guard for the next one. A command arriving later rebuilds these
+            // A consumer that binds Matrix and forgets RegeditCommand would render a button that looks
+            // live and does nothing; this is the guard for that. A command arriving later rebuilds these
             // buttons, so the disable is not sticky.
             if (RegeditCommand is null) open.IsEnabled = false;
             ToolTipService.SetToolTip(open, group.OpenRegeditTooltip);

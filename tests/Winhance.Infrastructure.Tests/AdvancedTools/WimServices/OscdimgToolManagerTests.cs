@@ -46,21 +46,16 @@ public class OscdimgToolManagerTests
             _mockDismRunner.Object);
     }
 
-    #region GetOscdimgPath
-
     [Fact]
     public void GetOscdimgPath_FoundInAdkPath_ReturnsPath()
     {
-        // Arrange - make the first ADK path return true
         _mockFileSystem
             .Setup(fs => fs.FileExists(It.Is<string>(
                 p => p.Contains("Windows Kits") && p.Contains("amd64"))))
             .Returns(true);
 
-        // Act
         var result = _service.GetOscdimgPath();
 
-        // Assert
         result.Should().Contain("Windows Kits");
         result.Should().Contain("oscdimg.exe");
     }
@@ -68,97 +63,69 @@ public class OscdimgToolManagerTests
     [Fact]
     public void GetOscdimgPath_NotFoundAnywhere_ReturnsEmptyString()
     {
-        // Arrange - no files exist
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(false);
 
-        // Act
         var result = _service.GetOscdimgPath();
 
-        // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
     public void GetOscdimgPath_FoundInWingetPackagesDir_ReturnsPath()
     {
-        // Arrange - known search paths return false
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
-        // WinGet packages directory exists
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.Is<string>(p => p.Contains("WinGet\\Packages"))))
             .Returns(true);
         _mockFileSystem.Setup(fs => fs.GetDirectories(
             It.Is<string>(p => p.Contains("WinGet\\Packages")),
             It.Is<string>(p => p.Contains("Microsoft.OSCDIMG"))))
             .Returns(WinGetOscdimgPackageDir);
-        // The candidate inside the matched dir
         _mockFileSystem.Setup(fs => fs.FileExists(It.Is<string>(
             p => p.Contains("Microsoft.OSCDIMG_1.0") && p.Contains("oscdimg.exe"))))
             .Returns(true);
 
-        // Act
         var result = _service.GetOscdimgPath();
 
-        // Assert
         result.Should().Contain("Microsoft.OSCDIMG_1.0");
         result.Should().Contain("oscdimg.exe");
     }
 
-    #endregion
-
-    #region IsOscdimgAvailableAsync
-
     [Fact]
     public async Task IsOscdimgAvailableAsync_PathFound_ReturnsTrue()
     {
-        // Arrange
         _mockFileSystem
             .Setup(fs => fs.FileExists(It.Is<string>(p => p.Contains("Windows Kits"))))
             .Returns(true);
 
-        // Act
         var result = await _service.IsOscdimgAvailableAsync();
 
-        // Assert
         result.Should().BeTrue();
     }
 
     [Fact]
     public async Task IsOscdimgAvailableAsync_PathNotFound_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(false);
 
-        // Act
         var result = await _service.IsOscdimgAvailableAsync();
 
-        // Assert
         result.Should().BeFalse();
     }
-
-    #endregion
-
-    #region EnsureOscdimgAvailableAsync
 
     [Fact]
     public async Task EnsureOscdimgAvailableAsync_AlreadyAvailable_ReturnsTrueWithoutInstalling()
     {
-        // Arrange - oscdimg already available
         _mockFileSystem
             .Setup(fs => fs.FileExists(It.Is<string>(p => p.Contains("Windows Kits"))))
             .Returns(true);
 
-        // Act
         var result = await _service.EnsureOscdimgAvailableAsync();
 
-        // Assert
         result.Should().BeTrue();
-        // Should not have tried to install anything
         _mockWinGetInstaller.Verify(
             w => w.IsWinGetInstalledAsync(It.IsAny<CancellationToken>()),
             Times.Never);
     }
-
-    #endregion
 }

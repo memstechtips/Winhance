@@ -81,8 +81,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task<string> RenderConfigToXmlAsync(UnifiedConfigurationFile config, string outputPath)
     {
-        // Enumerate the catalog registry with the show-other-Windows-versions scope threaded
-        // explicitly. The Setting dict binds the script builder's catalog overload directly.
         var allSettings = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         var scriptContent = await _scriptBuilder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -91,7 +89,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         var finalXml = InjectScriptIntoTemplate(xmlTemplate, scriptContent);
 
-        // Validate the final XML is well-formed
         try
         {
             await _powerShellRunner.ValidateXmlSyntaxAsync(finalXml);
@@ -128,7 +125,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
     private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
     {
-        // The show-other-Windows-versions scope is threaded explicitly onto the catalog registry read.
         var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
         int totalOptimizeSettings = 0;
@@ -153,7 +149,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                 continue;
             }
 
-            // Read state from the full-state provider via its catalog Setting overload.
             var states = await _settingStateProvider.GetStatesAsync(settings);
 
             var items = settings.Select(setting =>
@@ -167,12 +162,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     InputType = ControlToInputType(setting.Control)
                 };
 
-                // The loop variable IS the catalog Setting, so the dispatch reads it directly (Control /
-                // PowerCfgTarget.Mode). Selection maps to Control in {Selection, PowerPlan} (power-plan is
-                // Control.PowerPlan, exported via the Selection path). The InputType persistence WRITE above
-                // STAYS and is LOAD-BEARING: ConfigMigrationService's import gates read the persisted field
-                // and it seeds the view-model InputType on config import - the exact ControlToInputType map
-                // keeps them correct.
                 bool isToggle = setting.Control == ControlKind.Toggle;
                 bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
                 bool isPowerCfgSeparate = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Mode == PowerModeSupport.Separate;
@@ -230,7 +219,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     setting.Id != SettingIds.PowerPlanSelection &&
                     state != null)
                 {
-                    // Rebuild the custom-state bag from the typed fields; the loop variable IS the catalog Setting.
                     var custom = CustomStateValueReconstructor.Build(setting, state)
                         .Where(v => v.Value != null)
                         .ToDictionary(k => k.Key, v => v.Value!);
@@ -282,7 +270,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private (int? selectedIndex, Dictionary<string, object>? customStateValues, string? powerPlanGuid, string? powerPlanName)
         GetSelectionStateFromState(Setting setting, SettingStateResult? state)
     {
-        // The "is this a Selection?" guard reads the catalog Control (Selection incl. power-plan).
         bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
         if (!isSelection)
             return (null, null, null, null);
@@ -306,11 +293,9 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         {
             var customValues = new Dictionary<string, object>();
 
-            // Read the live custom-state registry values from Readings (keyed by ValueName ?? "KeyExists").
             // (This GetSelectionStateFromState custom-state result is discarded by the autounattend.)
             if (state.Readings != null)
             {
-                // Source the custom-state registry KEYS from the catalog RegTargets (ValueName ?? "KeyExists").
                 var regKeys = setting.Targets.OfType<RegTarget>().Select(rt => rt.ValueName ?? "KeyExists");
                 foreach (var key in regKeys)
                 {
@@ -336,8 +321,6 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
 
         var intValue = Convert.ToInt32(value);
 
-        // Resolve the powercfg AC/DC value to an option index off the catalog States' Set["Power"]
-        // (ConvertPowerCfg builds one State per option).
         for (int i = 0; i < setting.States.Count; i++)
         {
             if (setting.States[i].Set.TryGetValue("Power", out var sv) &&

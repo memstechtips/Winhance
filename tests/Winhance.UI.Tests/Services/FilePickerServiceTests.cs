@@ -21,10 +21,6 @@ public class FilePickerServiceTests
         return new FilePickerService(_mockMainWindowProvider.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_WithValidProvider_DoesNotThrow()
     {
@@ -39,16 +35,11 @@ public class FilePickerServiceTests
         // Verifying the provider is stored by exercising a method that uses it
         var sut = CreateSut();
 
-        // The provider should be used - calling PickFile with null window returns null
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
         var result = sut.PickFile(AllFilesFilter);
 
         result.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // PickFile - null window handling
-    // -------------------------------------------------------
 
     [Fact]
     public void PickFile_WhenMainWindowIsNull_ReturnsNull()
@@ -86,10 +77,6 @@ public class FilePickerServiceTests
         result.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // PickFolder - null window handling
-    // -------------------------------------------------------
-
     [Fact]
     public void PickFolder_WhenMainWindowIsNull_ReturnsNull()
     {
@@ -125,10 +112,6 @@ public class FilePickerServiceTests
 
         result.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // PickSaveFile - null window handling
-    // -------------------------------------------------------
 
     [Fact]
     public void PickSaveFile_WhenMainWindowIsNull_ReturnsNull()
@@ -183,10 +166,6 @@ public class FilePickerServiceTests
 
         result.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // MainWindowProvider interaction
-    // -------------------------------------------------------
 
     [Fact]
     public void PickFile_AccessesMainWindowProperty()

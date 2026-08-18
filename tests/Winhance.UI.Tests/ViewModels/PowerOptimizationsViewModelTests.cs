@@ -33,12 +33,10 @@ public class PowerOptimizationsViewModelTests
         _mockApplicationModeService = new Mock<IApplicationModeService>();
         _mockPowerService = new Mock<IPowerService>();
 
-        // Set up localization to return the key itself by default
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
 
-        // Set up dispatcher to execute actions synchronously for testing
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
@@ -64,64 +62,52 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithValidDependencies_CreatesInstance()
     {
-        // Act
         var vm = CreateViewModel();
 
-        // Assert
         vm.Should().NotBeNull();
     }
 
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
-        // Act
         var action = () => CreateViewModel();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void ModuleId_ReturnsPower()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ModuleId.Should().Be(FeatureIds.Power);
     }
 
     [Fact]
     public void DisplayName_ReturnsLocalizedPowerName()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Feature_Power_Name"))
             .Returns("Power");
 
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.DisplayName.Should().Be("Power");
     }
 
     [Fact]
     public void DeletePowerPlanCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.DeletePowerPlanCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void Settings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.Settings.Should().NotBeNull();
         vm.Settings.Should().BeEmpty();
     }
@@ -129,99 +115,78 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void IsLoading_DefaultsToFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsLoading.Should().BeFalse();
     }
 
     [Fact]
     public void IsExpanded_DefaultsToTrue()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void SettingsCount_WhenNoSettings_ReturnsZero()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SettingsCount.Should().Be(0);
     }
 
     [Fact]
     public void LoadSettingsCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.LoadSettingsCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void ToggleExpandCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ToggleExpandCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void ApplySearchFilter_SetsSearchText()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter("power");
 
-        // Assert
         vm.SearchText.Should().Be("power");
     }
 
     [Fact]
     public void ApplySearchFilter_WithNull_SetsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter(null!);
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public async Task DeletePowerPlanAsync_WithNullPlan_ReturnsWithoutAction()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         await vm.DeletePowerPlanAsync(null);
 
-        // Assert - no dialog or service calls expected
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
@@ -230,7 +195,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public async Task DeletePowerPlanAsync_WithActivePlan_ShowsInformationDialog()
     {
-        // Arrange
         var vm = CreateViewModel();
         var activePlan = new PowerPlanComboBoxOption
         {
@@ -239,10 +203,8 @@ public class PowerOptimizationsViewModelTests
             ExistsOnSystem = true,
         };
 
-        // Act
         await vm.DeletePowerPlanAsync(activePlan);
 
-        // Assert
         _mockDialogService.Verify(
             d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
@@ -251,7 +213,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public async Task DeletePowerPlanAsync_WithPlanNotOnSystem_ShowsInformationDialog()
     {
-        // Arrange
         var vm = CreateViewModel();
         var offlinePlan = new PowerPlanComboBoxOption
         {
@@ -261,10 +222,8 @@ public class PowerOptimizationsViewModelTests
             SystemPlan = null,
         };
 
-        // Act
         await vm.DeletePowerPlanAsync(offlinePlan);
 
-        // Assert
         _mockDialogService.Verify(
             d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
@@ -273,37 +232,30 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Dispose_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () => vm.Dispose();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () =>
         {
             vm.Dispose();
             vm.Dispose();
         };
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new PowerOptimizationsViewModel(
             null!,
             _mockLogService.Object,
@@ -314,7 +266,6 @@ public class PowerOptimizationsViewModelTests
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("settingsLoadingService");
     }
@@ -322,7 +273,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithNullLogService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new PowerOptimizationsViewModel(
             _mockSettingsLoadingService.Object,
             null!,
@@ -333,7 +283,6 @@ public class PowerOptimizationsViewModelTests
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("logService");
     }
@@ -341,7 +290,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithNullLocalizationService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new PowerOptimizationsViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -352,7 +300,6 @@ public class PowerOptimizationsViewModelTests
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("localizationService");
     }
@@ -360,7 +307,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithNullDispatcherService_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new PowerOptimizationsViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -371,7 +317,6 @@ public class PowerOptimizationsViewModelTests
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("dispatcherService");
     }
@@ -379,7 +324,6 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithNullEventBus_ThrowsArgumentNullException()
     {
-        // Act
         var action = () => new PowerOptimizationsViewModel(
             _mockSettingsLoadingService.Object,
             _mockLogService.Object,
@@ -390,7 +334,6 @@ public class PowerOptimizationsViewModelTests
             _mockPowerService.Object,
             _mockApplicationModeService.Object);
 
-        // Assert
         action.Should().Throw<ArgumentNullException>()
             .WithParameterName("eventBus");
     }
@@ -398,10 +341,8 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void GroupedSettings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupedSettings.Should().NotBeNull();
         vm.GroupedSettings.Should().BeEmpty();
     }
@@ -409,10 +350,8 @@ public class PowerOptimizationsViewModelTests
     [Fact]
     public void GroupDescriptionText_WhenNoSettings_ReturnsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupDescriptionText.Should().BeEmpty();
     }
 }

@@ -39,78 +39,58 @@ public class IsoServiceTests
             _mockOscdimgManager.Object);
     }
 
-    #region ValidateIsoFileAsync
-
     [Fact]
     public async Task ValidateIsoFileAsync_FileDoesNotExist_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
 
-        // Act
         var result = await _service.ValidateIsoFileAsync(@"C:\test.iso");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task ValidateIsoFileAsync_WrongExtension_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.GetExtension(It.IsAny<string>())).Returns(".txt");
 
-        // Act
         var result = await _service.ValidateIsoFileAsync(@"C:\test.txt");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task ValidateIsoFileAsync_FileTooSmall_ReturnsFalse()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.GetExtension(It.IsAny<string>())).Returns(".iso");
         _mockFileSystem.Setup(fs => fs.GetFileSize(It.IsAny<string>())).Returns(512); // < 1MB
 
-        // Act
         var result = await _service.ValidateIsoFileAsync(@"C:\test.iso");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task ValidateIsoFileAsync_ValidIsoFile_ReturnsTrue()
     {
-        // Arrange
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.GetExtension(It.IsAny<string>())).Returns(".iso");
         _mockFileSystem.Setup(fs => fs.GetFileSize(It.IsAny<string>())).Returns(5_000_000_000L);
 
-        // Act
         var result = await _service.ValidateIsoFileAsync(@"C:\test.iso");
 
-        // Assert
         result.Should().BeTrue();
     }
-
-    #endregion
-
-    #region CreateIsoAsync
 
     [Theory]
     [InlineData("")]
     [InlineData(null)]
     public async Task CreateIsoAsync_EmptyOrNullWorkingDirectory_ReturnsFalse(string? workingDirectory)
     {
-        // Act
         var result = await _service.CreateIsoAsync(workingDirectory!, @"C:\output.iso");
 
-        // Assert
         result.Should().BeFalse();
         _mockOscdimgManager.Verify(m => m.GetOscdimgPath(), Times.Never);
     }
@@ -118,21 +98,17 @@ public class IsoServiceTests
     [Fact]
     public async Task CreateIsoAsync_OscdimgNotAvailable_ReturnsFalse()
     {
-        // Arrange
         _mockOscdimgManager.Setup(m => m.GetOscdimgPath()).Returns(string.Empty);
         _mockOscdimgManager.Setup(m => m.IsOscdimgAvailableAsync()).ReturnsAsync(false);
 
-        // Act
         var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output.iso");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task CreateIsoAsync_BootFileNotFound_ReturnsFalse()
     {
-        // Arrange
         _mockOscdimgManager.Setup(m => m.GetOscdimgPath()).Returns(@"C:\tools\oscdimg.exe");
         _mockOscdimgManager.Setup(m => m.IsOscdimgAvailableAsync()).ReturnsAsync(true);
         _mockFileSystem.Setup(fs => fs.GetFiles(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<System.IO.SearchOption>()))
@@ -142,12 +118,8 @@ public class IsoServiceTests
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
         _mockFileSystem.Setup(fs => fs.GetDirectoryName(It.IsAny<string>())).Returns(@"C:\output");
 
-        // Act
         var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
 
-        // Assert
         result.Should().BeFalse();
     }
-
-    #endregion
 }

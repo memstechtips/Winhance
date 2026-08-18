@@ -113,7 +113,6 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             return null;
         }
 
-        // A setting absent from the active scheme's read set reads as not present.
         if (!_powerCache.TryGetValue(settingGuid, out var values))
             return null;
 
@@ -180,10 +179,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
 
             var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            // The dropdown list (predefined plans incl. not-installed, localized labels, custom plans, sorted)
-            // in GUID-valued shape.
             _installedPlans = PowerPlanOptions.Build(plans);
-            // The active plan's RAW OS name (availablePlans.FirstOrDefault(IsActive).Name).
             _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
 
             _planPrefetched = true;

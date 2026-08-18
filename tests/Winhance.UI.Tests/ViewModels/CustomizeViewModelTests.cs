@@ -59,7 +59,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void Constructor_WithValidDependencies_CreatesInstance()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -67,17 +66,14 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.Should().NotBeNull();
     }
 
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
-        // Arrange
         var featureViewModels = CreateFeatureViewModels();
 
-        // Act
         var action = () => new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -85,14 +81,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Sections_ContainsFourEntries()
     {
-        // Assert
         CustomizeViewModel.Sections.Should().HaveCount(4);
     }
 
@@ -109,7 +103,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void Sections_ContainsExplorerSection()
     {
-        // Assert
         CustomizeViewModel.Sections
             .Should().Contain(s => s.Key == "Explorer" && s.ModuleId == FeatureIds.ExplorerCustomization);
     }
@@ -117,7 +110,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void Sections_ContainsStartMenuSection()
     {
-        // Assert
         CustomizeViewModel.Sections
             .Should().Contain(s => s.Key == "StartMenu" && s.ModuleId == FeatureIds.StartMenu);
     }
@@ -125,7 +117,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void Sections_ContainsTaskbarSection()
     {
-        // Assert
         CustomizeViewModel.Sections
             .Should().Contain(s => s.Key == "Taskbar" && s.ModuleId == FeatureIds.Taskbar);
     }
@@ -133,7 +124,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void Sections_ContainsWindowsThemeSection()
     {
-        // Assert
         CustomizeViewModel.Sections
             .Should().Contain(s => s.Key == "WindowsTheme" && s.ModuleId == FeatureIds.WindowsTheme);
     }
@@ -141,7 +131,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void ExplorerViewModel_IsAssignedFromFeatureViewModels()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -149,7 +138,6 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.ExplorerViewModel.Should().NotBeNull();
         vm.ExplorerViewModel.ModuleId.Should().Be(FeatureIds.ExplorerCustomization);
     }
@@ -157,7 +145,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void StartMenuViewModel_IsAssignedFromFeatureViewModels()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -165,7 +152,6 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.StartMenuViewModel.Should().NotBeNull();
         vm.StartMenuViewModel.ModuleId.Should().Be(FeatureIds.StartMenu);
     }
@@ -173,7 +159,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void TaskbarViewModel_IsAssignedFromFeatureViewModels()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -181,7 +166,6 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.TaskbarViewModel.Should().NotBeNull();
         vm.TaskbarViewModel.ModuleId.Should().Be(FeatureIds.Taskbar);
     }
@@ -189,7 +173,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void WindowsThemeViewModel_IsAssignedFromFeatureViewModels()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -197,7 +180,6 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.WindowsThemeViewModel.Should().NotBeNull();
         vm.WindowsThemeViewModel.ModuleId.Should().Be(FeatureIds.WindowsTheme);
     }
@@ -205,7 +187,6 @@ public class CustomizeViewModelTests
     [Fact]
     public void PageTitle_ReturnsLocalizedString()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Category_Customize_Title"))
             .Returns("Customize");
@@ -217,14 +198,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Act & Assert
         vm.PageTitle.Should().Be("Customize");
     }
 
     [Fact]
     public void PageDescription_ReturnsLocalizedString()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Category_Customize_StatusText"))
             .Returns("Customize your system");
@@ -236,14 +215,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Act & Assert
         vm.PageDescription.Should().Be("Customize your system");
     }
 
     [Fact]
     public void BreadcrumbRootText_ReturnsLocalizedTitleOrFallback()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Category_Customize_Title"))
             .Returns("Customize");
@@ -255,14 +232,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Act & Assert
         vm.BreadcrumbRootText.Should().Be("Customize");
     }
 
     [Fact]
     public void CurrentSectionKey_DefaultsToOverview()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -270,14 +245,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.CurrentSectionKey.Should().Be("Overview");
     }
 
     [Fact]
     public void IsLoading_DefaultsToTrue()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -285,14 +258,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.IsLoading.Should().BeTrue();
     }
 
     [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
-        // Arrange & Act
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -300,14 +271,12 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void Dispose_DoesNotThrow()
     {
-        // Arrange
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -315,17 +284,14 @@ public class CustomizeViewModelTests
             _mockBadgeService.Object,
             _mockReviewModeService.Object);
 
-        // Act
         var action = () => vm.Dispose();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void OnNavigatedFrom_ClearsSearchText()
     {
-        // Arrange
         var vm = new CustomizeViewModel(
             _mockLogService.Object,
             _mockLocalizationService.Object,
@@ -335,10 +301,8 @@ public class CustomizeViewModelTests
 
         vm.SearchText = "test";
 
-        // Act
         vm.OnNavigatedFrom();
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
 }

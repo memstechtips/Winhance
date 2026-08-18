@@ -44,10 +44,8 @@ public class ExplorerRestartServiceTests
         _mockPending.Verify(p => p.Clear(), Times.Once);
     }
 
-    // ---------------------------------------------------------------------------------------------
     // Regressions from the 2026-07-28 report: Marco's Explorer was killed and never came back, and
     // the bar disappeared as though the restart had worked.
-    // ---------------------------------------------------------------------------------------------
 
     [Fact]
     public async Task RestartAsync_NeverUsesTheNonWaitingKill()
@@ -200,11 +198,8 @@ public class ExplorerRestartServiceTests
         maxConcurrent.Should().Be(1, "overlapping restarts are what left users with no shell");
     }
 
-    // ---------------------------------------------------------------------------------------------
     // The captured token can be harvested successfully and STILL fail to launch (CreateProcessWithTokenW
-    // returns false). That is a different fault from "no token was captured", and until these tests
-    // existed nothing exercised it - TryLaunch was only ever stubbed to succeed.
-    // ---------------------------------------------------------------------------------------------
+    // returns false). That is a different fault from "no token was captured".
 
     [Fact]
     public async Task RestartAsync_WhenTheCapturedTokenFailsToLaunch_StillTriesTheInteractiveUserFallback()
@@ -249,12 +244,9 @@ public class ExplorerRestartServiceTests
         _mockPending.Verify(p => p.Clear(), Times.Never);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Graceful exit (2026-07-31). Explorer is ASKED to leave first, so it flushes the desktop icon
+    // Graceful exit. Explorer is ASKED to leave first, so it flushes the desktop icon
     // layout and folder view preferences on the way out; terminating it throws all of that away. The
-    // message behind it is undocumented, so the kill stays as the fallback and the fallback is exactly
-    // the old behaviour.
-    // ---------------------------------------------------------------------------------------------
+    // message behind it is undocumented, so the kill stays as the fallback.
 
     [Fact]
     public async Task RestartAsync_WhenTheGracefulExitSucceeds_DoesNotKillExplorer()

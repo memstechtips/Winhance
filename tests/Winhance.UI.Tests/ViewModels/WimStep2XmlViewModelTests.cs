@@ -56,8 +56,6 @@ public class WimStep2XmlViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesSelectedXmlPathToEmpty()
     {
@@ -98,12 +96,11 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.WorkingDirectory.Should().BeEmpty();
     }
 
-    // ── Empty WorkingDirectory guard (Issue #506) ──
+    // The empty-WorkingDirectory guard (issue #506).
 
     [Fact]
     public async Task DownloadUnattendedWinstallXmlCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
     {
-        // WorkingDirectory defaults to empty
         await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
 
         _mockDialogService.Verify(d => d.ShowWarningAsync(
@@ -119,7 +116,6 @@ public class WimStep2XmlViewModelTests : IDisposable
     [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
     {
-        // WorkingDirectory defaults to empty
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
         _mockDialogService.Verify(d => d.ShowWarningAsync(
@@ -133,7 +129,6 @@ public class WimStep2XmlViewModelTests : IDisposable
     [Fact]
     public async Task SelectXmlFileCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
     {
-        // WorkingDirectory defaults to empty
         await _sut.SelectXmlFileCommand.ExecuteAsync(null);
 
         _mockDialogService.Verify(d => d.ShowWarningAsync(
@@ -143,8 +138,6 @@ public class WimStep2XmlViewModelTests : IDisposable
             It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         _sut.IsXmlAdded.Should().BeFalse();
     }
-
-    // ── GenerateWinhanceXml command ──
 
     [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotGenerate()
@@ -217,8 +210,6 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         _sut.GenerateWinhanceXmlCard.HasFailed.Should().BeTrue();
     }
-
-    // ── DownloadUnattendedWinstallXml command ──
 
     [Fact]
     public async Task DownloadUnattendedWinstallXmlCommand_OnSuccess_SetsIsXmlAdded()
@@ -330,8 +321,6 @@ public class WimStep2XmlViewModelTests : IDisposable
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // ── SelectXmlFile command ──
-
     [Fact]
     public async Task SelectXmlFileCommand_WhenCancelled_DoesNothing()
     {
@@ -357,8 +346,6 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         _sut.IsXmlAdded.Should().BeFalse();
     }
-
-    // ── ClearOtherXmlCardCompletions ──
 
     [Fact]
     public void ClearOtherXmlCardCompletions_ExceptGenerate_ClearsDownloadAndSelect()
@@ -402,8 +389,6 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.SelectXmlCard.IsComplete.Should().BeTrue();
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
@@ -426,8 +411,6 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingIsXmlAdded_RaisesPropertyChanged()

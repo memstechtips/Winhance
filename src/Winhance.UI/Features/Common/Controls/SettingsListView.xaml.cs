@@ -60,7 +60,6 @@ public sealed partial class SettingsListView : UserControl
         this.InitializeComponent();
         SettingsListViewControl.LosingFocus += ListView_LosingFocus;
 
-        // Wire PageUp/PageDown fast-scroll and Home/End jump on the outer ScrollView.
         // Listening on the UserControl root lets us see the key even after the inner
         // ListView marks it handled during focus traversal (issue #581).
         PageScrollHelper.Attach(this, ContentScrollView);
@@ -72,9 +71,7 @@ public sealed partial class SettingsListView : UserControl
     {
         if (e.InputDevice != FocusInputDeviceKind.Keyboard) return;
 
-        // Determine the navigation direction:
-        // Direction=Next → Tab forward, Direction=Previous → Shift+Tab backward,
-        // Direction=None with New=null → ListView couldn't find next item (treat as forward)
+        // Direction=None with New=null means the ListView couldn't find a next item - treat as forward.
         bool isForward;
         if (e.Direction == FocusNavigationDirection.Next)
             isForward = true;
@@ -85,7 +82,6 @@ public sealed partial class SettingsListView : UserControl
         else
             return; // Arrow key navigation or other — don't intercept
 
-        // Find which ListViewItem the currently focused element is inside
         var oldElement = e.OldFocusedElement as DependencyObject;
         if (oldElement == null) return;
 
@@ -95,7 +91,6 @@ public sealed partial class SettingsListView : UserControl
 
         if (current is not ListViewItem currentItem) return;
 
-        // If focus is moving within the same ListViewItem, don't intercept
         if (e.NewFocusedElement is DependencyObject newElement)
         {
             DependencyObject? newParent = newElement;
@@ -107,7 +102,6 @@ public sealed partial class SettingsListView : UserControl
         var currentIndex = SettingsListViewControl.IndexFromContainer(currentItem);
         if (currentIndex < 0) return;
 
-        // Search for the next/previous item that has a focusable control
         var itemCount = SettingsListViewControl.Items.Count;
         var step = isForward ? 1 : -1;
 
@@ -145,23 +139,19 @@ public sealed partial class SettingsListView : UserControl
         var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
         if (focused == null) return;
 
-        // Walk up to find the ListViewItem containing the focused element
         DependencyObject? current = focused;
         while (current != null && current is not ListViewItem)
             current = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(current);
 
         if (current is not ListViewItem listViewItem) return;
 
-        // Get the SettingItemViewModel from the item's data context
         var dataItem = SettingsListViewControl.ItemFromContainer(listViewItem);
         if (dataItem is not SettingItemViewModel vm) return;
 
-        // Only toggle if the setting has technical details and they're globally visible
         if (!vm.ShowTechnicalDetailsBar) return;
 
         vm.ToggleTechnicalDetails();
 
-        // Announce the new state and details content to Narrator
         var localizationService = App.Services.GetService<ILocalizationService>();
         var stateText = vm.IsTechnicalDetailsExpanded
             ? localizationService.GetStringOrDefault("TechnicalDetails_On", "Technical Details: On")
@@ -169,7 +159,6 @@ public sealed partial class SettingsListView : UserControl
 
         var announcement = $"{vm.Name}: {stateText}";
 
-        // When expanding, append the technical details content so Narrator reads it
         if (vm.IsTechnicalDetailsExpanded && vm.TechnicalDetailMatrix is not null)
         {
             var details = string.Join(". ",

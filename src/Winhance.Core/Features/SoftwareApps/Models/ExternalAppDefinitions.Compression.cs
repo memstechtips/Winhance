@@ -23,8 +23,6 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["7zip.7zip"],
                         ChocoPackageId = "7zip",
                         WebsiteUrl = "https://www.7-zip.org/",
-                        // Wikimedia renders of 7-Zip's SVGs were too small/wordmark-
-                        // heavy in a square cell. Embed the on-page icon mark instead.
                     },
                     new ItemDefinition
                     {

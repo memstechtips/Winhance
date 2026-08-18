@@ -25,10 +25,6 @@ public class AdvancedToolsViewModelTests
         return new AdvancedToolsViewModel(_mockLocalization.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor / Initialization
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_DefaultsToOverview()
     {
@@ -53,10 +49,6 @@ public class AdvancedToolsViewModelTests
         changedProperties.Should().Contain(nameof(vm.WimUtilDescription));
         changedProperties.Should().Contain(nameof(vm.AutounattendXmlDisplayName));
     }
-
-    // -------------------------------------------------------
-    // Localized string properties
-    // -------------------------------------------------------
 
     [Fact]
     public void PageTitle_ReturnsLocalizedString()
@@ -190,10 +182,6 @@ public class AdvancedToolsViewModelTests
         vm.AutounattendXmlDescription.Should().Be("Generate XML");
     }
 
-    // -------------------------------------------------------
-    // IsInDetailPage
-    // -------------------------------------------------------
-
     [Fact]
     public void IsInDetailPage_WhenOverview_ReturnsFalse()
     {
@@ -212,10 +200,6 @@ public class AdvancedToolsViewModelTests
         vm.IsInDetailPage.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // CurrentSectionKey changes
-    // -------------------------------------------------------
-
     [Fact]
     public void CurrentSectionKey_Changed_RaisesIsInDetailPageAndCurrentSectionName()
     {
@@ -229,10 +213,6 @@ public class AdvancedToolsViewModelTests
         changedProperties.Should().Contain(nameof(vm.IsInDetailPage));
         changedProperties.Should().Contain(nameof(vm.CurrentSectionName));
     }
-
-    // -------------------------------------------------------
-    // GetSectionDisplayName
-    // -------------------------------------------------------
 
     [Fact]
     public void GetSectionDisplayName_WimUtil_ReturnsLocalized()
@@ -278,10 +258,6 @@ public class AdvancedToolsViewModelTests
         vm.GetSectionDisplayName("WimUtil").Should().Be("WIMUtil");
     }
 
-    // -------------------------------------------------------
-    // CurrentSectionName
-    // -------------------------------------------------------
-
     [Fact]
     public void CurrentSectionName_ReflectsCurrentSectionKey()
     {
@@ -303,10 +279,6 @@ public class AdvancedToolsViewModelTests
         vm.CurrentSectionName.Should().Be("Overview");
     }
 
-    // -------------------------------------------------------
-    // Static Sections list
-    // -------------------------------------------------------
-
     [Fact]
     public void Sections_ContainsExpectedEntries()
     {
@@ -320,10 +292,6 @@ public class AdvancedToolsViewModelTests
         AdvancedToolsViewModel.Sections[1].IconResourceKey.Should().Be("AutounattendXmlIconPath");
         AdvancedToolsViewModel.Sections[1].DisplayName.Should().Be("Create Autounattend XML");
     }
-
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()

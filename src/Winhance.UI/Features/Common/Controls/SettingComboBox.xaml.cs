@@ -61,8 +61,6 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
 
     public static double MaxWidthForPin(double pin) => double.IsNaN(pin) ? double.PositiveInfinity : pin;
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public ObservableCollection<ComboBoxDisplayOption>? Options { get; private set; }
     public int SelectedIndex { get; private set; } = -1;
     public string InputAutomationName { get; private set; } = string.Empty;
@@ -123,7 +121,6 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
             nameof(PinnedMinWidth), nameof(PinnedMaxWidth));
     }
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a
@@ -139,9 +136,6 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         foreach (var name in names)
             handler(this, new PropertyChangedEventArgs(name));
     }
-
-
-    // --- Event routing ---------------------------------------------------------------------------
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

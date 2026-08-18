@@ -51,10 +51,8 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             return new SettingStateResult { Success = false, ErrorMessage = "no detection result" };
         }
 
-        // Common fields for every input type (no untyped RawValues - the registry readings are on Readings
-        // and the powercfg AC/DC on the typed AcValue/DcValue fields). A setting is Success by default - a
-        // legitimate Custom state has Detected=false but still reports Success=true, so Success must NOT track
-        // r.Detected. IsEnabled is derived from the model alone (see DeriveIsEnabled).
+        // A legitimate Custom state has Detected=false but still reports Success=true, so Success must NOT track
+        // r.Detected.
         var result = new SettingStateResult
         {
             Success = true,
@@ -65,8 +63,6 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             Readings = r.Readings,
         };
 
-        // The power-plan (a dynamic-option source) carries its options/selection on the result; its CurrentValue
-        // resolves to the literal 0.
         if (catalogSetting.OptionSource is not null)
         {
             return result with
@@ -112,8 +108,6 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 var reads = CustomStateValueReconstructor.Build(catalogSetting, result)
                     .ToDictionary(kv => kv.Key, kv => kv.Value);
                 var valueMatchIndex = _comboBoxResolver.ResolveRawValuesToIndex(catalogSetting, reads);
-                // Custom exactly when the RESOLVED index is the Custom index - label resolution and the
-                // value-match fallback both failed to place the selection on a known option.
                 return result with
                 {
                     CurrentValue = valueMatchIndex,
@@ -123,11 +117,10 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 };
 
             case ControlKind.Slider:
-                // The slider's value IS the raw AC powercfg value index (r.Value); both box int?/null.
+                // The slider's value IS the raw AC powercfg value index (r.Value).
                 return result with { CurrentValue = r.Value };
 
             default:
-                // Action (and any other) carries no detectable state; leave CurrentValue null.
                 return result;
         }
     }
@@ -185,8 +178,7 @@ public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         return resolved is null || !IsWindowsDefaultState(resolved);
     }
 
-    // First match by Label (Ordinal), else CustomStateIndex (-1). Every_selection_has_distinct_non_empty_state_labels
-    // pins the property this depends on.
+    // Every_selection_has_distinct_non_empty_state_labels pins the distinct-label property this depends on.
     private static int ResolveSelectionIndex(Setting setting, string? label)
     {
         if (label is not null)

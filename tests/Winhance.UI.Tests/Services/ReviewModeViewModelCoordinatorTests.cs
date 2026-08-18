@@ -12,7 +12,6 @@ namespace Winhance.UI.Tests.Services;
 
 public class ReviewModeViewModelCoordinatorTests
 {
-    // Mocks for child ViewModels' dependencies
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
     private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
@@ -117,11 +116,6 @@ public class ReviewModeViewModelCoordinatorTests
         var extVm = CreateExternalAppsVm();
         var softVm = CreateSoftwareAppsVm(winVm, extVm);
 
-        // We cannot easily create OptimizeViewModel/CustomizeViewModel without their full
-        // dependency graph (they're concrete classes with complex constructors).
-        // For properties that the coordinator accesses (HasSelectedWindowsApps, etc.),
-        // we use the real VMs. ReapplyReviewDiffsToExistingSettings tests would require
-        // mocking the feature VMs, which is covered below with null checks.
         var sut = new ReviewModeViewModelCoordinator(
             softVm, winVm, extVm,
             null!, null!, _reviewDiffApplier.Object, _winDispatcherService.Object);
@@ -138,8 +132,6 @@ public class ReviewModeViewModelCoordinatorTests
         AppxPackageName = new[] { "Microsoft.Test" },
         IsInstalled = isInstalled
     };
-
-    // --- HasSelectedWindowsApps ---
 
     [Fact]
     public void HasSelectedWindowsApps_WhenNoItems_ReturnsFalse()
@@ -164,8 +156,6 @@ public class ReviewModeViewModelCoordinatorTests
         sut.HasSelectedWindowsApps.Should().BeTrue();
     }
 
-    // --- HasSelectedExternalApps ---
-
     [Fact]
     public void HasSelectedExternalApps_WhenNoItems_ReturnsFalse()
     {
@@ -188,8 +178,6 @@ public class ReviewModeViewModelCoordinatorTests
 
         sut.HasSelectedExternalApps.Should().BeTrue();
     }
-
-    // --- Action properties ---
 
     [Fact]
     public void IsWindowsAppsInstallAction_DelegatesToSoftwareAppsViewModel()
@@ -231,8 +219,6 @@ public class ReviewModeViewModelCoordinatorTests
         sut.IsExternalAppsRemoveAction.Should().BeTrue();
     }
 
-    // --- GetSelectedExternalAppIds ---
-
     [Fact]
     public void GetSelectedExternalAppIds_WhenNoItems_ReturnsEmptyList()
     {
@@ -261,8 +247,6 @@ public class ReviewModeViewModelCoordinatorTests
         result.Should().Contain("ext1");
     }
 
-    // --- RemoveWindowsAppsAsync ---
-
     [Fact]
     public async Task RemoveWindowsAppsAsync_DelegatesToWindowsAppsViewModel()
     {
@@ -277,12 +261,9 @@ public class ReviewModeViewModelCoordinatorTests
         // Since no items are selected, RemoveApps should return early
         await sut.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: false);
 
-        // Verify it was called (even if no items selected, it should not throw)
         _windowsAppUninstallService.Verify(s => s.UninstallAppsInParallelAsync(
             It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()), Times.Never);
     }
-
-    // --- InstallWindowsAppsAsync ---
 
     [Fact]
     public async Task InstallWindowsAppsAsync_DelegatesToWindowsAppsViewModel()
@@ -301,8 +282,6 @@ public class ReviewModeViewModelCoordinatorTests
         _winDialogService.Verify(d => d.ShowWarningAsync(
             It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
-
-    // --- Action state defaults ---
 
     [Fact]
     public void ActionStates_DefaultToFalse()

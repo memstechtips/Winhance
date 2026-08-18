@@ -24,11 +24,10 @@ public class NewBadgeService : INewBadgeService
 
     public void Initialize(IEnumerable<string?> allAddedInVersions)
     {
-        // Keep writing LastRunVersion for future migration use — it no longer drives badges.
+        // LastRunVersion is kept only for future migration use; it does not drive badges.
         var currentAssemblyVersion = GetAppVersion();
         _prefs.SetPreferenceAsync("LastRunVersion", currentAssemblyVersion);
 
-        // Compute the highest AddedInVersion present in the loaded registry.
         Version? highestInRegistry = null;
         if (allAddedInVersions != null)
         {
@@ -46,11 +45,10 @@ public class NewBadgeService : INewBadgeService
         var storedHighestStr  = _prefs.GetPreference(UserPreferenceKeys.HighestSeenAddedInVersion, "");
         var storedBaselineStr = _prefs.GetPreference("NewBadgeBaseline", "");
 
-        // Branch A: uninitialized state — first-ever install, returning user whose
-        // preferences predate the badge system, OR a half-populated state where one
-        // of the two keys is missing (or unparseable). All roads lead to: baseline =
-        // 0.0.0, every tagged setting renders as NEW, both keys get seeded so the
-        // next launch has a consistent pair.
+        // Uninitialized state — first-ever install, returning user whose preferences predate the
+        // badge system, OR a half-populated state where one of the two keys is missing (or
+        // unparseable). All roads lead to: baseline = 0.0.0, every tagged setting renders as NEW,
+        // both keys get seeded so the next launch has a consistent pair.
         var highestOk  = TryParseVersion(storedHighestStr,  out var storedHighest);
         var baselineOk = TryParseVersion(storedBaselineStr, out var storedBaseline);
         if (!highestOk || !baselineOk)
@@ -69,7 +67,6 @@ public class NewBadgeService : INewBadgeService
             return;
         }
 
-        // Branch B: effective upgrade detected — new settings added to the registry since last run.
         if (highestInRegistry is not null && highestInRegistry > storedHighest)
         {
             _baseline = storedHighest;
@@ -84,8 +81,8 @@ public class NewBadgeService : INewBadgeService
             return;
         }
 
-        // Branch C: no upgrade since last run — use the stored NewBadgeBaseline so NEW
-        // badges persist across app launches until the next upgrade.
+        // No upgrade since last run — use the stored NewBadgeBaseline so NEW badges persist across
+        // app launches until the next upgrade.
         _baseline = storedBaseline;
         _logService.LogDebug(
             $"[NewBadge] No upgrade. Baseline={_baseline}, ShowNewBadges={ShowNewBadges}.");
@@ -107,7 +104,6 @@ public class NewBadgeService : INewBadgeService
         var attr = Assembly.GetEntryAssembly()?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         var version = attr?.InformationalVersion ?? "0.0.0";
-        // Strip leading 'v' and any '+commithash' suffix
         version = version.TrimStart('v');
         var plusIndex = version.IndexOf('+');
         if (plusIndex >= 0)

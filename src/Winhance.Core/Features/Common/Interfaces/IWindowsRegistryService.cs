@@ -16,7 +16,7 @@ public interface IWindowsRegistryService
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
 
-    // --- Apply primitives, exposed for the catalog IStateWriter (see WindowsStateWriter).
+    // Apply primitives for the catalog IStateWriter (WindowsStateWriter).
 
     bool CreateKey(string keyPath);
 

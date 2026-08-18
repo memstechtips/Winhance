@@ -13,7 +13,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Helpers;
 
-// These ran only through the UserControl before, so they needed a XAML application to reach.
 public class FeatureOutcomeRowBuilderTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();
@@ -158,8 +157,6 @@ public class FeatureOutcomeRowBuilderTests
         row.Label.Should().Be("TRANSLATED");
         row.Label.Should().Be(setting.OverlayStateTextFor(SettingDetectionOutcome.Malformed));
     }
-
-    // ── helpers ──
 
     private ISettingsFeatureViewModel Feature(params SettingItemViewModel[] settings)
     {

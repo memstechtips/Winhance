@@ -42,7 +42,7 @@ public static class WindowsThemeCustomizationsCatalog
                     Controls = new Dictionary<string, string> { ["theme-mode-apps"] = "Enabled", ["theme-mode-system"] = "Enabled" },
                     Set = new Dictionary<string, StateValue> { ["AppsUseLightTheme"] = Of(1), ["SystemUsesLightTheme"] = Of(1) },
                     // The default light-mode wallpaper (applied only when the user opts into "also change the
-                    // wallpaper"); OS-divergent, so per-OS via AppliesTo. Moved here from the retired WallpaperDefaults.
+                    // wallpaper"); OS-divergent, so per-OS via AppliesTo.
                     Effects = new Effect[]
                     {
                         new WallpaperEffect(@"C:\Windows\Web\Wallpaper\Windows\img0.jpg") { AppliesTo = new[] { BuildRange.Windows11 } },
@@ -91,11 +91,10 @@ public static class WindowsThemeCustomizationsCatalog
                 AddedInVersion = "26.07.22",
             },
             UiParentId = "theme-mode-windows",
-            // NO EnabledWhen. This is the bug fix: the two facets are independently meaningful in
-            // EVERY state of the master above - that is exactly why "Mixed" has to exist - so nesting
-            // them under it must not grey them. The old code guessed the gate from the state INDEX
-            // (index != 0), and Light Mode is index 0, so every stock Windows 11 install opened this
-            // page with both sub-toggles dead.
+            // NO EnabledWhen: the two facets are independently meaningful in EVERY state of the master
+            // above - that is exactly why "Mixed" has to exist - so nesting them under it must not grey them.
+            // (Gating on the state index would kill both sub-toggles on every stock Windows 11 install, where
+            // Light Mode is index 0.)
             Apply = new() { NotifyWindows = WindowsChange.Appearance },
             Targets = new Target[]
             {
@@ -133,11 +132,10 @@ public static class WindowsThemeCustomizationsCatalog
                 AddedInVersion = "26.07.22",
             },
             UiParentId = "theme-mode-windows",
-            // NO EnabledWhen. This is the bug fix: the two facets are independently meaningful in
-            // EVERY state of the master above - that is exactly why "Mixed" has to exist - so nesting
-            // them under it must not grey them. The old code guessed the gate from the state INDEX
-            // (index != 0), and Light Mode is index 0, so every stock Windows 11 install opened this
-            // page with both sub-toggles dead.
+            // NO EnabledWhen: the two facets are independently meaningful in EVERY state of the master
+            // above - that is exactly why "Mixed" has to exist - so nesting them under it must not grey them.
+            // (Gating on the state index would kill both sub-toggles on every stock Windows 11 install, where
+            // Light Mode is index 0.)
             Apply = new() { NotifyWindows = WindowsChange.Appearance },
             Targets = new Target[]
             {
@@ -173,8 +171,8 @@ public static class WindowsThemeCustomizationsCatalog
                 Icon = MaterialIcons.Opacity,
                 IsSubjectivePreference = true,
             },
-            // No Restart: transparency has never declared one, and the notice is not a restart -
-            // it is the true statement that applying this changes how Windows looks.
+            // No Restart: the notice is not a restart - it is the true statement that applying this changes
+            // how Windows looks.
             Apply = new() { NotifyWindows = WindowsChange.Appearance },
             Targets = new Target[]
             {

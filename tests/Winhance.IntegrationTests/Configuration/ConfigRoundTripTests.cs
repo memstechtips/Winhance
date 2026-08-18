@@ -19,14 +19,11 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_FullConfig_PreservesAllFields()
     {
-        // Arrange
         var original = TestSettingFactory.CreateFullConfig();
 
-        // Act
         var json = JsonSerializer.Serialize(original, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         deserialized.Should().NotBeNull();
         deserialized!.Version.Should().Be(original.Version);
         deserialized.CreatedAt.Should().Be(original.CreatedAt);
@@ -47,7 +44,6 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_ToggleItems_PreservesIsSelected()
     {
-        // Arrange
         var config = new UnifiedConfigurationFile
         {
             Customize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
@@ -59,11 +55,9 @@ public class ConfigRoundTripTests
             }),
         };
 
-        // Act
         var json = JsonSerializer.Serialize(config, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         var items = deserialized!.Customize.Features["TestFeature"].Items;
         items.Should().HaveCount(3);
         items[0].IsSelected.Should().BeTrue();
@@ -74,7 +68,6 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_SelectionItems_PreservesSelectedIndex()
     {
-        // Arrange
         var customState = new Dictionary<string, object> { ["mode"] = "advanced", ["level"] = 5 };
         var powerSettings = new Dictionary<string, object> { ["planGuid"] = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" };
         var item = TestSettingFactory.CreateSelectionItem("sel1", "Power Plan",
@@ -88,11 +81,9 @@ public class ConfigRoundTripTests
             }),
         };
 
-        // Act
         var json = JsonSerializer.Serialize(config, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         var result = deserialized!.Optimize.Features["Power"].Items[0];
         result.SelectedIndex.Should().Be(3);
         result.InputType.Should().Be(InputType.Selection);
@@ -105,7 +96,6 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_AppItems_PreservesAppxFields()
     {
-        // Arrange
         var item = TestSettingFactory.CreateAppItem("app1", "Calculator",
             appxPackageName: CalculatorPackages,
             winGetPackageId: "Microsoft.WindowsCalculator",
@@ -116,11 +106,9 @@ public class ConfigRoundTripTests
             WindowsApps = TestSettingFactory.CreateSection(true, item),
         };
 
-        // Act
         var json = JsonSerializer.Serialize(config, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         var result = deserialized!.WindowsApps.Items[0];
         result.AppxPackageName.Should().BeEquivalentTo(CalculatorPackages);
         result.WinGetPackageId.Should().Be("Microsoft.WindowsCalculator");
@@ -130,9 +118,7 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_NullProperties_OmittedFromJson()
     {
-        // Arrange
         var item = TestSettingFactory.CreateToggleItem("t1", "Simple Toggle", true);
-        // These should all be null and omitted from JSON
         item.AppxPackageName.Should().BeNull();
 
         var config = new UnifiedConfigurationFile
@@ -143,12 +129,9 @@ public class ConfigRoundTripTests
             }),
         };
 
-        // Act
         var json = JsonSerializer.Serialize(config, Options);
 
-        // Assert — null properties should not appear in JSON at all
         json.Should().NotContain("\"AppxPackageName\"");
-        // SubPackages property was removed
         json.Should().NotContain("\"WinGetPackageId\"");
         json.Should().NotContain("\"CapabilityName\"");
         json.Should().NotContain("\"SelectedIndex\"");
@@ -159,7 +142,6 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_CaseInsensitive_DeserializesCorrectly()
     {
-        // Arrange — manually construct JSON with different casing
         var json = """
         {
             "version": "2.0",
@@ -181,10 +163,8 @@ public class ConfigRoundTripTests
         }
         """;
 
-        // Act
         var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         config.Should().NotBeNull();
         config!.Version.Should().Be("2.0");
         config.WindowsApps.IsIncluded.Should().BeTrue();
@@ -195,31 +175,25 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_DateTime_PreservesCreatedAt()
     {
-        // Arrange
         var original = new UnifiedConfigurationFile
         {
             CreatedAt = new DateTime(2025, 12, 25, 10, 30, 45, DateTimeKind.Utc),
         };
 
-        // Act
         var json = JsonSerializer.Serialize(original, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         deserialized!.CreatedAt.Should().Be(original.CreatedAt);
     }
 
     [Fact]
     public void RoundTrip_EmptyConfig_ProducesValidJson()
     {
-        // Arrange
         var original = new UnifiedConfigurationFile();
 
-        // Act
         var json = JsonSerializer.Serialize(original, Options);
         var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         json.Should().NotBeNullOrEmpty();
         deserialized.Should().NotBeNull();
         deserialized!.Version.Should().Be("2.0");
@@ -232,7 +206,7 @@ public class ConfigRoundTripTests
     [Fact]
     public void Deserialize_AppxPackageName_AsString_ConvertsToArray()
     {
-        // Arrange — simulates legacy config format where AppxPackageName was a plain string
+        // Older configs stored AppxPackageName as a plain string.
         var json = """
         {
             "Version": "2.0",
@@ -254,10 +228,8 @@ public class ConfigRoundTripTests
         }
         """;
 
-        // Act
         var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         config.Should().NotBeNull();
         config!.WindowsApps.Items.Should().HaveCount(1);
         config.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(TestAppPackage);
@@ -266,7 +238,6 @@ public class ConfigRoundTripTests
     [Fact]
     public void Deserialize_AppxPackageName_AsArray_WorksNormally()
     {
-        // Arrange — current format where AppxPackageName is a string array
         var json = """
         {
             "Version": "2.0",
@@ -288,10 +259,8 @@ public class ConfigRoundTripTests
         }
         """;
 
-        // Act
         var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         config.Should().NotBeNull();
         config!.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(
             TestAppPackages);
@@ -303,17 +272,14 @@ public class ConfigRoundTripTests
     [InlineData("Winhance_Recommended_Config.winhance")]
     public void EmbeddedConfigFile_DeserializesWithoutErrors(string fileName)
     {
-        // Arrange — read embedded config files from disk (same files embedded in UI project)
         var configDir = Path.Combine(
             TestContext.SolutionDir,
             "src", "Winhance.UI", "Features", "Common", "Resources", "Configs");
         var filePath = Path.Combine(configDir, fileName);
         var json = File.ReadAllText(filePath);
 
-        // Act
         var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
 
-        // Assert
         config.Should().NotBeNull();
         config!.Version.Should().Be("2.0");
 

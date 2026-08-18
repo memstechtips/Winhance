@@ -23,7 +23,6 @@ public class ConfigurationItemTests
         item.WinGetPackageId.Should().BeNull();
         item.CapabilityName.Should().BeNull();
         item.OptionalFeatureName.Should().BeNull();
-        // SubPackages was removed - all package names are now in AppxPackageName array
         item.SelectedIndex.Should().BeNull();
         item.CustomStateValues.Should().BeNull();
         item.PowerSettings.Should().BeNull();
@@ -70,7 +69,6 @@ public class ConfigurationItemTests
         json.Should().NotContain("\"AppxPackageName\"");
         json.Should().NotContain("\"WinGetPackageId\"");
         json.Should().NotContain("\"CapabilityName\"");
-        // SubPackages property was removed
         json.Should().NotContain("\"PowerSettings\"");
     }
 

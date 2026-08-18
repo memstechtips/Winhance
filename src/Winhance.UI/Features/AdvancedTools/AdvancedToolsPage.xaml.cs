@@ -113,7 +113,6 @@ public sealed partial class AdvancedToolsPage : Page
         }
     }
 
-    // Overview card click handlers
     private void WimUtilCard_Click(object sender, RoutedEventArgs e)
     {
         NavigateToSection("WimUtil");
@@ -124,7 +123,6 @@ public sealed partial class AdvancedToolsPage : Page
         NavigateToSection("AutounattendXml");
     }
 
-    // Breadcrumb handlers
     private void BreadcrumbOverview_Click(object sender, RoutedEventArgs e)
     {
         NavigateToOverview();

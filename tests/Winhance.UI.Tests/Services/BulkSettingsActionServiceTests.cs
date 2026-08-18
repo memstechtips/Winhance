@@ -72,7 +72,6 @@ public class BulkSettingsActionServiceTests
                 {
                     if (s.Control == ControlKind.Selection)
                     {
-                        // Find the Recommended-role state index.
                         int recIdx = -1;
                         for (int i = 0; i < s.States.Count; i++)
                             if (s.States[i].HasRole(RoleKind.Recommended)) { recIdx = i; break; }
@@ -127,8 +126,6 @@ public class BulkSettingsActionServiceTests
         };
     }
 
-    // ── Apply / Reset: direct service behavior ──
-
     [Fact]
     public async Task ApplyRecommended_Selection_WritesRecommendedIndex()
     {
@@ -181,15 +178,12 @@ public class BulkSettingsActionServiceTests
             Times.Once);
     }
 
-    // ── Round-trip: apply service + SettingItemViewModel.ComputeBadgeState() agree ──
-
     [Fact]
     public async Task ApplyRecommended_Selection_RoundTrip_ViewModelShowsRecommendedBadge()
     {
         var setting = MakeSelectionSetting(recommendedIndex: 1, defaultIndex: 0);
         var sut = CreateSut(setting);
 
-        // Capture the Value the apply service writes.
         object? writtenValue = null;
         _applicationService
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
@@ -238,8 +232,6 @@ public class BulkSettingsActionServiceTests
             because: "ResetToDefault wrote the IsDefault option index, and ComputeBadgeState " +
                      "must agree that the effective selection matches Default.");
     }
-
-    // ── SettingItemViewModel construction helper (mirrors SettingItemViewModelTests) ──
 
     private static SettingItemViewModel CreateSettingItemViewModel(Setting setting)
     {

@@ -62,8 +62,6 @@ public class AutounattendScriptBuilderRoutingTests
     private static Dictionary<string, IReadOnlyList<Setting>> SingleSetting(string featureId, Setting setting)
         => new() { [featureId] = new[] { setting } };
 
-    // --- Helpers to locate content within SYSTEM vs user blocks -------------------------------
-
     private static (string systemBlock, string userBlock) SplitPasses(string script)
     {
         // `if (-not $UserCustomizations) {` is unique to the outer guard. `if ($UserCustomizations) {`
@@ -75,10 +73,6 @@ public class AutounattendScriptBuilderRoutingTests
         userIdx.Should().BeGreaterThan(systemIdx, $"userIdx ({userIdx}) should be after systemIdx ({systemIdx}). Context around userIdx:\n{script.Substring(System.Math.Max(0, userIdx - 30), System.Math.Min(200, script.Length - System.Math.Max(0, userIdx - 30)))}");
         return (script.Substring(systemIdx, userIdx - systemIdx), script.Substring(userIdx));
     }
-
-    // ------------------------------------------------------------------------------------------
-    // PS script routing
-    // ------------------------------------------------------------------------------------------
 
     [Fact]
     public async Task PowerShellScript_MarkedUser_LandsInUserPassOnly()
@@ -137,10 +131,7 @@ public class AutounattendScriptBuilderRoutingTests
         user.Should().NotContain("TextInputHost");
     }
 
-    // ------------------------------------------------------------------------------------------
-    // DNS custom state substitution (#582 bug 1)
-    // ------------------------------------------------------------------------------------------
-
+    // The two DNS facts below guard #582 (bug 1): custom-state substitution.
     // Both DNS script shapes read the CATALOG - a Selection WITH an index reads the option state's
     // converter-BAKED ScriptEffects, and one with NO index (a "Custom" DNS) reads the un-baked
     // Setting.CustomStateScripts; the asserted strings in the facts below are catalog-sourced bytes.
@@ -223,14 +214,6 @@ public class AutounattendScriptBuilderRoutingTests
         script.Should().NotContain("SystemTrayChevronVisibility");
     }
 
-    // ------------------------------------------------------------------------------------------
-    // Registry routing unchanged — sanity check that HKLM regs still land in system pass
-    // ------------------------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------------------------
-    // RegContents routing and mixed-hive rejection
-    // ------------------------------------------------------------------------------------------
-
     [Fact]
     public async Task RegContents_SystemHiveContent_RoutesToSystemPassOnly()
     {
@@ -268,10 +251,6 @@ public class AutounattendScriptBuilderRoutingTests
         system.Should().Contain(@"HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance").And.Contain("fAllowToGetHelp");
         user.Should().NotContain("fAllowToGetHelp");
     }
-
-    // ------------------------------------------------------------------------------------------
-    // PS-only settings emit Enable/Disable into the SYSTEM block
-    // ------------------------------------------------------------------------------------------
 
     [Fact]
     public async Task PowerShellOnly_Setting_EmitsEnabledScript_IntoSystemBlock()

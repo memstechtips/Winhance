@@ -91,7 +91,6 @@ public class CatalogTargetTypeConformanceTests
         foreach (var kv in mismatches)
             _output.WriteLine($"  mismatch: {kv.Key} - {kv.Value}");
 
-        // Non-vacuity: a fixture-loading or key-shape regression would silently compare nothing and pass.
         Assert.True(compared >= 100,
             $"only {compared} type comparisons ran - fixture or key-matching regression, not a clean result.");
 

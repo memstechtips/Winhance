@@ -5,7 +5,6 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public record ItemDefinition : BaseDefinition
 {
-    // Immutable definition properties
     public string[]? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
     public string? MsStoreId { get; init; }
@@ -37,6 +36,5 @@ public record ItemDefinition : BaseDefinition
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
 
-    // Null for capabilities, optional features and not-installed AppX entries.
     public string? IconPath { get; set; }
 }

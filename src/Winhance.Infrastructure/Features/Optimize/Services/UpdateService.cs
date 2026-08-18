@@ -23,7 +23,6 @@ public class UpdateService(
         return false;
     }
 
-    // Every mode re-resolves the updates-policy-mode Setting internally.
     public async Task ApplyUpdatesPolicyModeAsync(object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)
@@ -329,11 +328,8 @@ public class UpdateService(
 
     private void ApplyRegistrySettingsForIndex(int index)
     {
-        // The bounds check reads the States (authored one-per-option, so the length matches the option count).
-        // Apply the registry block through the apply engine (ApplyPlanBuilder + ApplyExecutor). The
-        // updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
-        // the chosen mode; its Set encodes that mode's per-option registry writes. The bespoke service/DLL/task
-        // orchestration around this call stays as-is.
+        // The updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
+        // the chosen mode; its Set encodes that mode's per-option registry writes.
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {

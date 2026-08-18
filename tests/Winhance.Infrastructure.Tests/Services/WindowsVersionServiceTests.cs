@@ -16,8 +16,6 @@ public class WindowsVersionServiceTests
         _sut = new WindowsVersionService(_mockLog.Object);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_NullLogService_ThrowsArgumentNullException()
     {
@@ -27,12 +25,9 @@ public class WindowsVersionServiceTests
             .WithParameterName("logService");
     }
 
-    // ── GetWindowsBuildNumber ──
-
     [Fact]
     public void GetWindowsBuildNumber_ReturnsPositiveValue()
     {
-        // On any real Windows machine, the build number should be positive
         var buildNumber = _sut.GetWindowsBuildNumber();
 
         buildNumber.Should().BeGreaterThan(0);
@@ -56,8 +51,6 @@ public class WindowsVersionServiceTests
 
         result.Should().Be(expected);
     }
-
-    // ── IsWindows11 ──
 
     [Fact]
     public void IsWindows11_ReturnsBoolBasedOnBuildNumber()

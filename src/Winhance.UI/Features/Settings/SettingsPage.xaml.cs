@@ -11,7 +11,6 @@ public sealed partial class SettingsPage : Page
 
     public SettingsPage()
     {
-        // Resolve ViewModel from DI container
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
 
         this.InitializeComponent();

@@ -119,7 +119,6 @@ public class ConfigMigrationServiceTests
 
         _sut.MigrateConfig(config);
 
-        // Already a Selection, should not be changed
         item.InputType.Should().Be(InputType.Selection);
         item.SelectedIndex.Should().Be(2);
     }

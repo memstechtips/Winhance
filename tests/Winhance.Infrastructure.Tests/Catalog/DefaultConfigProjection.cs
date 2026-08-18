@@ -89,7 +89,6 @@ internal static class DefaultConfigProjection
                     };
                 }
 
-                // Registry selection: the build-aware WindowsDefault state index.
                 int? idx = RecommendedSettingsResolver.GetDefaultIndex(setting, build);
                 if (idx is null)
                     return null;

@@ -34,9 +34,9 @@ public sealed class SystemTrayDetector : IStateDetector
         if (total == 0)
             return null;                 // Custom (no IsPromoted values)
         if (promoted == total)
-            return _showAllLabel;        // all shown
+            return _showAllLabel;
         if (promoted == 0)
-            return _hideAllLabel;        // all hidden
+            return _hideAllLabel;
         return null;                     // Custom (mixed)
     }
 }

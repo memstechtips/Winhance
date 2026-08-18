@@ -9,9 +9,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
-// Slice B2: LocalizeSetting (+ its GetLocalized* / Localize* helpers) was retired; display localization moved to
-// SettingViewModelFactory on the catalog path (covered by LocalizeDisplayReadSwapEquivalenceTests +
-// SettingViewModelFactoryTests). This service now only builds the cross-group info banner, so only those tests remain.
 public class SettingLocalizationServiceTests
 {
     private readonly Mock<ILocalizationService> _localizationService = new();
@@ -34,7 +31,6 @@ public class SettingLocalizationServiceTests
         _catalogSettingsRegistry.Object,
         _windowsVersionFilter.Object);
 
-    // L2b: the service takes the catalog Setting now (the cross-group map lives on Display per Slice L2).
     private static Setting CreateTestSetting(
         string id = "test-setting",
         Dictionary<string, string>? crossGroupChildSettings = null) => new()
@@ -48,8 +44,6 @@ public class SettingLocalizationServiceTests
             CrossGroupChildSettings = crossGroupChildSettings,
         },
     };
-
-    // --- BuildCrossGroupInfoMessage ---
 
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenNoCustomProperties_ReturnsNull()
@@ -125,7 +119,7 @@ public class SettingLocalizationServiceTests
             ["unknown-child1"] = "Setting_Unknown_Name"
         };
 
-        // An id outside the mode-scoped catalog membership resolves to null (was: feature-index miss)
+        // An id outside the mode-scoped catalog membership resolves to null.
         _catalogSettingsRegistry.Setup(r => r.GetById("unknown-child1", It.IsAny<bool>()))
             .Returns((Setting?)null);
 

@@ -45,13 +45,10 @@ public static class WinGetCliRunner
     // 1.4) hard-exit on old versions.
     public static string? GetWinGetExePath(IInteractiveUserService? interactiveUserService = null)
     {
-        // 1. Bundled (preferred — registration-free, version-locked).
         var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
         if (File.Exists(bundledPath))
             return bundledPath;
 
-        // 2. System fallback — only reached if the bundled CLI is missing
-        //    (corrupted Winhance install, dev build, etc.).
         if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
         {
             // Under OTS, the admin's PATH points at admin's WindowsApps. Resolve
@@ -93,8 +90,6 @@ public static class WinGetCliRunner
             return File.Exists(interactiveWinGet);
         }
 
-        // Non-OTS: standard check
-        // 1. System PATH
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
@@ -103,7 +98,7 @@ public static class WinGetCliRunner
                 return true;
         }
 
-        // 2. WindowsApps (standard MSIX install location, may not be on PATH)
+        // WindowsApps (standard MSIX install location, may not be on PATH)
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var windowsAppsPath = Path.Combine(localAppData, "Microsoft", "WindowsApps", "winget.exe");
         return File.Exists(windowsAppsPath);
@@ -253,10 +248,9 @@ public static class WinGetCliRunner
 
             process.Start();
 
-            // Kill process tree on cancellation
             using var registration = linkedCts.Token.Register(() =>
             {
-                try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
+                try { process.Kill(entireProcessTree: true); } catch { }
             });
 
             // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
@@ -302,7 +296,7 @@ public static class WinGetCliRunner
     {
         if (cts == null) return;
         try { cts.CancelAfter(idleTimeoutMs); }
-        catch (ObjectDisposedException) { /* race with cleanup; idle no longer relevant */ }
+        catch (ObjectDisposedException) { } // race with cleanup; idle no longer relevant
     }
 
     // Classifies lines by terminator: \r -> progress (transient, onProgressLine); \n -> permanent (onOutputLine);
@@ -355,7 +349,6 @@ public static class WinGetCliRunner
             }
         }
 
-        // Flush remaining content at EOF
         if (currentLine.Length > 0)
         {
             string line = currentLine.ToString();

@@ -24,8 +24,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     private MoreMenuViewModel? _moreMenuViewModel;
     private ILogService? _logService;
 
-    #region Dependency Properties
-
     public static readonly DependencyProperty IsPaneOpenProperty =
         DependencyProperty.Register(
             nameof(IsPaneOpen),
@@ -46,10 +44,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             typeof(MainWindowViewModel),
             typeof(NavSidebar),
             new PropertyMetadata(null));
-
-    #endregion
-
-    #region Properties
 
     public bool IsPaneOpen
     {
@@ -75,33 +69,26 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     public Thickness NavPanelPadding => IsPaneOpen ? new Thickness(5, 0, 5, 0) : new Thickness(4, 0, 4, 0);
 
-    #endregion
-
     public NavSidebar()
     {
         this.InitializeComponent();
         InitializeNavButtonDictionary();
 
-        // Get MoreMenuViewModel and apply localized text to flyout after control is loaded
         this.Loaded += NavSidebar_Loaded;
     }
 
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        // Get MoreMenuViewModel for flyout commands and text
         _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
         _logService = App.Services.GetService<ILogService>();
 
-        // Apply localized text to More menu flyout items
         ApplyMoreMenuLocalizedText();
 
-        // Subscribe to MoreMenuViewModel property changes to update flyout text
         if (_moreMenuViewModel != null)
         {
             _moreMenuViewModel.PropertyChanged += OnMoreMenuViewModelPropertyChanged;
         }
 
-        // Subscribe to flyout closed event to restore selection
         if (MoreMenuFlyout != null)
         {
             MoreMenuFlyout.Closed += MoreMenuFlyout_Closed;
@@ -110,7 +97,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     private void OnMoreMenuViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Re-apply flyout text when MoreMenuViewModel properties change (language change)
         ApplyMoreMenuLocalizedText();
     }
 
@@ -210,8 +196,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #region Property Change Handlers
-
     private static void OnIsPaneOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is NavSidebar sidebar)
@@ -230,10 +214,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Event Handlers
-
     private void NavButton_Clicked(object sender, NavButtonClickedEventArgs e)
     {
         var tag = e.NavigationTag?.ToString();
@@ -244,18 +224,10 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Public Methods
-
     public void TogglePane()
     {
         IsPaneOpen = !IsPaneOpen;
     }
-
-    #endregion
-
-    #region Selection Management
 
     private void UpdateSelectionState()
     {
@@ -311,8 +283,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             button.BadgeStatus = string.Empty;
         }
     }
-
-    #endregion
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
     {

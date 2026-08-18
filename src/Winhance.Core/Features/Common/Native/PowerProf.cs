@@ -4,8 +4,6 @@ namespace Winhance.Core.Features.Common.Native;
 
 public static class PowerProf
 {
-    // P/Invoke definitions for PowrProf.dll
-
     [DllImport("PowrProf.dll", SetLastError = true)]
     public static extern uint PowerEnumerate(
         IntPtr RootPowerKey,
@@ -95,8 +93,6 @@ public static class PowerProf
         ref Guid PowerSettingGuid,
         out uint ValueIncrement);
 
-    // --- Write-side power scheme APIs ---
-
     [DllImport("PowrProf.dll", SetLastError = true)]
     public static extern uint PowerWriteACValueIndex(
         IntPtr RootPowerKey, ref Guid SchemeGuid,
@@ -140,8 +136,6 @@ public static class PowerProf
         IntPtr RootPowerKey,
         [MarshalAs(UnmanagedType.LPWStr)] string ImportFileNamePath,
         out IntPtr DestinationSchemeGuid);
-
-    // --- System power capabilities ---
 
     [DllImport("PowrProf.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.U1)]
@@ -206,8 +200,6 @@ public static class PowerProf
         PowerSystemMaximum = 7
     }
 
-    // --- Hibernation toggle ---
-
     [DllImport("PowrProf.dll", SetLastError = true)]
     public static extern uint CallNtPowerInformation(
         int InformationLevel,
@@ -218,7 +210,6 @@ public static class PowerProf
 
     public const int SystemReserveHiberFile = 10;
 
-    // Constants
     public const uint ACCESS_SCHEME = 16;
     public const uint ACCESS_SUBGROUP = 17;
     public const uint ACCESS_INDIVIDUAL_SETTING = 18;

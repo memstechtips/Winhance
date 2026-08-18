@@ -44,7 +44,6 @@ public sealed partial class WimUtilPage : Page
     {
         base.OnNavigatedTo(e);
 
-        // Initialize the ViewModel
         await ViewModel.OnNavigatedToAsync();
 
         // Live-region announcements when wizard action cards transition state (issue #647).

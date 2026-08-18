@@ -31,17 +31,14 @@ public class SettingLocalizationService : ISettingLocalizationService
             return null;
         }
 
-        // Group child settings by feature and group
         var groupedSettings = new Dictionary<string, List<string>>();
 
         foreach (var (childSettingId, localizationKey) in crossGroupSettings)
         {
             try
             {
-                // One catalog GetById resolves the child setting; a null means the id is not in the
-                // mode-scoped membership (the skip condition). The show-other-Windows-versions mode is threaded
-                // explicitly; none of the authored cross-group child ids is alias-affected, so Normalize is
-                // identity here.
+                // A null means the id is not in the mode-scoped membership (the skip condition). None of the
+                // authored cross-group child ids is alias-affected, so Normalize is identity here.
                 var childSetting = _catalogSettingsRegistry.GetById(
                     childSettingId, includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
@@ -78,7 +75,7 @@ public class SettingLocalizationService : ISettingLocalizationService
     }
 
     // The English strings here are real fallbacks, not decoration: GetString returns the "[key]"
-    // marker for a missing key and never null, so the `??` these replaced could never fire.
+    // marker for a missing key and never null, so a `??` on it could never fire.
     private string GetFeatureName(string settingId)
     {
         if (settingId.StartsWith("privacy-"))

@@ -28,13 +28,9 @@ public class SettingApplicationService(
     ICatalogSettingStateProvider settingStateProvider,
     IConfigImportState configImportState) : ISettingApplicationService
 {
-    // The live Windows build, threaded into ApplyRequestResolver.Resolve / ResolveTargetLabel to gate
-    // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses.
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
-    // Resolve is TOTAL for every reachable request shape (ResolveTotalityAuditTests), so a null plan is an
-    // un-audited shape - logged and returned as a failed OperationResult, never silently applied.
     private async Task<OperationResult> ApplyOperationsAsync(Setting setting, bool enable, object? value, bool resetToDefault)
     {
         // Pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
@@ -171,9 +167,6 @@ public class SettingApplicationService(
             using (processRestartManager.SuppressRestarts())
             {
                 operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-                // The recommended applier returns catalog Settings, so the coalesced restart set is built from
-                // Settings. The primary Action's restart targets come from its catalog Setting (renderSetting =
-                // Find(settingId)); the Setting-taking flush overload reads the unified ApplyBehavior.Restart.
                 if (renderSetting != null) toRestart.Add(renderSetting);
 
                 var recApplied = await recommendedSettingsApplier
@@ -279,7 +272,6 @@ public class SettingApplicationService(
             // Build-aware so a merged setting's OS-divergent WindowsDefault resolves for the live OS (see ApplyRequestResolver).
             return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
 
-        // A two-state Enabled/Disabled target is a toggle/check-box; map enable straight to its label.
         bool isToggle = setting.States.Any(s => s.Label == "Enabled") && setting.States.Any(s => s.Label == "Disabled");
         if (isToggle)
             return enable ? "Enabled" : "Disabled";
@@ -314,9 +306,6 @@ public class SettingApplicationService(
         //                           it then reads that parent and every child its states Control.
         //   ResolveReverseCascade - a dependent can only act when one of its states declares
         //                           Requires(this id, ReverseCascade: true).
-        //
-        // What this replaces was correct but detected all 414 settings after EVERY interactive apply, which
-        // is why power plans and system restore appear in the log while the user is on the Taskbar page.
         var syncParents = SettingCatalog.All
             .Where(p => p.States.Any(st => st.Controls?.ContainsKey(setting.Id) == true))
             .ToList();
@@ -337,9 +326,8 @@ public class SettingApplicationService(
         // across 414 settings, so most applies stop here having read nothing.
         if (!forwardPossible && syncParents.Count == 0 && cascadeDependents.Count == 0)
         {
-            // SAY SO. This path used to return in silence, which made the scoping fix - the one that
-            // stopped every interactive apply detecting all 414 settings - invisible and unverifiable
-            // from a user's log.
+            // SAY SO: a silent return here would make the scoping (skipping detection for unrelated applies)
+            // invisible and unverifiable from a user's log.
             logService.Log(LogLevel.Debug,
                 $"[SettingApplicationService] Relationship scope for '{setting.Id}': 0 related settings - detection skipped");
             return;
@@ -556,8 +544,8 @@ public class SettingApplicationService(
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             case ControlKind.Slider:
-                // After-values are display units (the bridge fix converts on import; UI/recommended
-                // paths already supply display units) — render as-is, with unit suffix when available.
+                // After-values are display units (the config bridge converts on import; UI/recommended paths already
+                // supply display units) — render as-is, with unit suffix when available.
                 if (value is Dictionary<string, object?> acdcNum
                     && acdcNum.TryGetValue("ACValue", out var acNum)
                     && acdcNum.TryGetValue("DCValue", out var dcNum)
@@ -583,8 +571,6 @@ public class SettingApplicationService(
     // no-op detection working). On battery-less machines the DC component is omitted so before and after agree.
     private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
-        // Read AC/DC from the typed fields (threaded onto the before-state at the provider read).
-        // These are SYSTEM PowerCfg values (an enum/code), not option indices.
         int? acInt = state.AcValue;
         int? dcInt = state.DcValue;
 

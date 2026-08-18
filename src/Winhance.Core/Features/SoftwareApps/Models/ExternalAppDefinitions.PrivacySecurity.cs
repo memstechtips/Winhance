@@ -86,9 +86,6 @@ public static partial class ExternalAppDefinitions
                             DownloadUrl = "https://pub.teleguard.com/teleguard-desktop-latest.exe",
                             RequiresDirectDownload = true,
                         },
-                        // Vendor doesn't expose a stable raw logo URL — the on-page logo is
-                        // a base64 data URI on teleguard.com. Embed it directly here so the
-                        // resolver can decode it at first run (Layer 2b's data: branch).
                     },
                     new ItemDefinition
                     {

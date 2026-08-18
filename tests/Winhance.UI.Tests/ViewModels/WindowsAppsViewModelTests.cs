@@ -59,8 +59,6 @@ public class WindowsAppsViewModelTests
         IsInstalled = isInstalled
     };
 
-    // --- Constructor / defaults ---
-
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -83,8 +81,6 @@ public class WindowsAppsViewModelTests
         sut.ItemsView.Should().NotBeNull();
     }
 
-    // --- HasSelectedItems ---
-
     [Fact]
     public void HasSelectedItems_WhenNoItems_ReturnsFalse()
     {
@@ -93,8 +89,6 @@ public class WindowsAppsViewModelTests
         sut.HasSelectedItems.Should().BeFalse();
     }
 
-    // --- IsAllSelected ---
-
     [Fact]
     public void IsAllSelected_WhenNoItems_ReturnsFalse()
     {
@@ -102,8 +96,6 @@ public class WindowsAppsViewModelTests
 
         sut.IsAllSelected.Should().BeFalse();
     }
-
-    // --- Localized section headers ---
 
     [Fact]
     public void SectionAppsHeader_ReturnsLocalizedString()
@@ -136,8 +128,6 @@ public class WindowsAppsViewModelTests
 
         sut.SelectAllLabel.Should().Be("Common_SelectAll");
     }
-
-    // --- LoadAppsAndCheckInstallationStatusAsync ---
 
     [Fact]
     public async Task LoadAppsAndCheckInstallationStatusAsync_LoadsItems()
@@ -189,7 +179,6 @@ public class WindowsAppsViewModelTests
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        // The error is logged; finalization still sets "Loaded 0 items"
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Error loading app definitions")),
             It.IsAny<Exception>()), Times.Once);
@@ -217,8 +206,6 @@ public class WindowsAppsViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
-    // --- LoadItemsAsync ---
-
     [Fact]
     public async Task LoadItemsAsync_DelegatesToLoadAppsAndCheckInstallationStatus()
     {
@@ -232,8 +219,6 @@ public class WindowsAppsViewModelTests
 
         sut.IsInitialized.Should().BeTrue();
     }
-
-    // --- RefreshInstallationStatusAsync ---
 
     [Fact]
     public async Task RefreshInstallationStatusAsync_WhenNotInitialized_SetsWaitMessage()
@@ -262,8 +247,6 @@ public class WindowsAppsViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
-    // --- InstallAppsAsync ---
-
     [Fact]
     public async Task InstallAppsAsync_WhenNoItemsSelected_ShowsWarning()
     {
@@ -282,8 +265,6 @@ public class WindowsAppsViewModelTests
             It.IsAny<string>()), Times.Once);
     }
 
-    // --- RemoveAppsAsync ---
-
     [Fact]
     public async Task RemoveAppsAsync_WhenNoItemsSelected_ShowsWarning()
     {
@@ -301,8 +282,6 @@ public class WindowsAppsViewModelTests
             It.Is<string>(s => s.Contains("select at least one")),
             It.IsAny<string>()), Times.Once);
     }
-
-    // --- ClearSelections ---
 
     [Fact]
     public async Task ClearSelections_DeselectsAllItems()
@@ -328,8 +307,6 @@ public class WindowsAppsViewModelTests
         sut.HasSelectedItems.Should().BeFalse();
     }
 
-    // --- SelectedItemsChanged event ---
-
     [Fact]
     public async Task SelectedItemsChanged_RaisedWhenItemSelectionChanges()
     {
@@ -348,8 +325,6 @@ public class WindowsAppsViewModelTests
 
         eventRaised.Should().BeTrue();
     }
-
-    // --- ToggleSelectAll ---
 
     [Fact]
     public async Task ToggleSelectAll_SelectsAllItems()
@@ -387,17 +362,13 @@ public class WindowsAppsViewModelTests
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        // Select all first
         sut.ToggleSelectAllCommand.Execute(null);
         sut.IsAllSelected.Should().BeTrue();
 
-        // Toggle again to deselect
         sut.ToggleSelectAllCommand.Execute(null);
 
         sut.Items.Should().OnlyContain(i => !i.IsSelected);
     }
-
-    // --- ToggleSelectAllInstalled ---
 
     [Fact]
     public async Task ToggleSelectAllInstalled_SelectsOnlyInstalledItems()
@@ -423,8 +394,6 @@ public class WindowsAppsViewModelTests
         notInstalledItem.IsSelected.Should().BeFalse();
     }
 
-    // --- ToggleSelectAllNotInstalled ---
-
     [Fact]
     public async Task ToggleSelectAllNotInstalled_SelectsOnlyNotInstalledItems()
     {
@@ -449,8 +418,6 @@ public class WindowsAppsViewModelTests
         notInstalledItem.IsSelected.Should().BeTrue();
     }
 
-    // --- CheckInstallationStatusAsync ---
-
     [Fact]
     public async Task CheckInstallationStatusAsync_UpdatesInstalledStatus()
     {
@@ -464,8 +431,6 @@ public class WindowsAppsViewModelTests
 
         sut.Items[0].IsInstalled.Should().BeTrue();
     }
-
-    // --- Dispose ---
 
     [Fact]
     public void Dispose_DoesNotThrow()
@@ -490,7 +455,6 @@ public class WindowsAppsViewModelTests
 
         sut.Dispose();
 
-        // After dispose, items should still be accessible but the ViewModel should be disposed
         sut.Items.Should().NotBeNull();
     }
 }

@@ -50,7 +50,7 @@
         <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
 
-    <!-- ==================== Option matrix ====================
+    <!-- Option matrix
 
          These are STYLES rather than brushes set in code-behind: the table is built in C#, and a
          brush fetched from Application.Resources is resolved once and then frozen, so it would not

@@ -23,7 +23,6 @@ public static class Program
             StartupLogger.Log("Program", $"CurrentDirectory: {Environment.CurrentDirectory}");
             StartupLogger.Log("Program", $"BaseDirectory: {AppContext.BaseDirectory}");
 
-            // Handle single-instance BEFORE any WinUI 3 initialization
             StartupLogger.Log("Program", "Checking single instance...");
             if (!HandleSingleInstance())
             {
@@ -32,12 +31,10 @@ public static class Program
             }
             StartupLogger.Log("Program", "Single instance check passed");
 
-            // This is the first (or only) instance - proceed with normal WinUI 3 startup
             StartupLogger.Log("Program", "Initializing COM wrappers...");
             WinRT.ComWrappersSupport.InitializeComWrappers();
             StartupLogger.Log("Program", "COM wrappers initialized");
 
-            // Initialize the WinUI 3 application
             StartupLogger.Log("Program", "Starting WinUI 3 Application.Start...");
             Microsoft.UI.Xaml.Application.Start(p =>
             {
@@ -59,24 +56,20 @@ public static class Program
 
     private static bool HandleSingleInstance()
     {
-        // Declare this instance with a unique key
         var keyInstance = AppInstance.FindOrRegisterForKey(AppKey);
 
         if (!keyInstance.IsCurrent)
         {
-            // Another instance owns this key - redirect to it
             RedirectActivationTo(keyInstance);
             return false;
         }
 
-        // This is the first instance - register for activation from other instances
         keyInstance.Activated += OnActivated;
         return true;
     }
 
     private static void RedirectActivationTo(AppInstance keyInstance)
     {
-        // Get activation args and redirect to existing instance
         var args = AppInstance.GetCurrent().GetActivatedEventArgs();
 
         // Run redirection on background thread (required for STA compliance)
@@ -86,7 +79,6 @@ public static class Program
         });
         redirectTask.Wait();
 
-        // Bring existing window to foreground using reliable Win32 approach
         ActivateExistingWindow(keyInstance);
     }
 
@@ -120,6 +112,5 @@ public static class Program
     {
         // This runs on the main instance when another instance redirects
         // The window is already being brought to foreground by the other instance
-        // Additional handling can be added here if needed (e.g., process command line args)
     }
 }

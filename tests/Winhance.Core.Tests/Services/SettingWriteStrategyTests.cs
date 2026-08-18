@@ -61,8 +61,6 @@ public class SettingWriteStrategyTests
         _applyService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Failed("nope"));
 
-    // ── Live ──
-
     [Fact]
     public async Task Live_AppliesToTheMachineAndReportsApplied()
     {
@@ -198,8 +196,6 @@ public class SettingWriteStrategyTests
         _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<BuilderEdit>()), Times.Never);
     }
 
-    // ── Builder ──
-
     [Fact]
     public async Task Builder_RecordsTheEditAndReportsRecorded()
     {
@@ -244,8 +240,6 @@ public class SettingWriteStrategyTests
         _logService.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception?>()), Times.Once);
     }
 
-    // ── Read-only ──
-
     [Fact]
     public async Task ReadOnly_RefusesWithoutApplyingOrRecording()
     {
@@ -265,8 +259,6 @@ public class SettingWriteStrategyTests
 
         progress.Transitions.Should().BeEmpty();
     }
-
-    // ── Selection ──
 
     [Theory]
     [InlineData(WinhanceMode.Normal, typeof(LiveSettingWriteStrategy))]

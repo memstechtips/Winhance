@@ -59,8 +59,6 @@ public class WimStep3DriversViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Constructor ──
-
     [Fact]
     public void Constructor_InitializesAreDriversAddedToFalse()
     {
@@ -86,8 +84,6 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory.Should().BeEmpty();
     }
-
-    // ── Empty WorkingDirectory guard ──
 
     [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
@@ -116,8 +112,6 @@ public class WimStep3DriversViewModelTests : IDisposable
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
         _sut.AreDriversAdded.Should().BeFalse();
     }
-
-    // ── ExtractAndAddSystemDrivers command ──
 
     [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenUserCancels_DoesNotExtract()
@@ -223,8 +217,6 @@ public class WimStep3DriversViewModelTests : IDisposable
         wasProcessing.Should().BeTrue();
         wasDisabled.Should().BeTrue();
     }
-
-    // ── SelectAndAddCustomDrivers command ──
 
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenCancelled_DoesNothing()
@@ -378,8 +370,6 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.IsEnabled.Should().BeTrue();
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
@@ -401,8 +391,6 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingAreDriversAdded_RaisesPropertyChanged()

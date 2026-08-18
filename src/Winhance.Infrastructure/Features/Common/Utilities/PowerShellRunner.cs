@@ -44,7 +44,7 @@ public class PowerShellRunner : IPowerShellRunner
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 
@@ -103,7 +103,6 @@ public class PowerShellRunner : IPowerShellRunner
 
             if (IsExecutionPolicyError(errorText) && string.IsNullOrEmpty(arguments))
             {
-                // Attempt fallback: read script content and re-run as -EncodedCommand
                 var scriptContent = await _fileSystemService.ReadAllTextAsync(scriptPath, ct).ConfigureAwait(false);
 
                 // Guard: Base64 of Unicode doubles size; Windows command line limit ~32K
@@ -129,7 +128,6 @@ public class PowerShellRunner : IPowerShellRunner
                 if (retryExitCode == 0 || retryErrors.Length == 0)
                     return retryOutput.ToString();
 
-                // Both attempts failed
                 throw new ExecutionPolicyException(
                     $"Execution policy blocked script file and -EncodedCommand fallback also failed (exit code {retryExitCode}):\n{retryErrors}");
             }
@@ -186,7 +184,7 @@ public class PowerShellRunner : IPowerShellRunner
                 if (!process.HasExited)
                     process.Kill(entireProcessTree: true);
             }
-            catch { /* process may have already exited */ }
+            catch { }
         });
 
         await process.WaitForExitAsync(ct).ConfigureAwait(false);
@@ -206,13 +204,11 @@ public class PowerShellRunner : IPowerShellRunner
         string scriptContent,
         CancellationToken ct = default)
     {
-        // Write script to temp file for parsing
         var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
         try
         {
             await _fileSystemService.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
 
-            // Use PowerShell's parser to check for syntax errors
             var parseScript = @"
 $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile('" + tempFile.Replace("'", "''") + @"', [ref]$null, [ref]$errors)
@@ -228,7 +224,7 @@ exit 0";
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 
@@ -260,7 +256,7 @@ try {
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 

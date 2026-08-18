@@ -38,19 +38,16 @@ public class AppxPackageSource(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // External cancellation — propagate immediately
             throw;
         }
         catch (OperationCanceledException)
         {
             logService.LogWarning("PackageManager enumeration timed out after 15s, falling back to WMI");
 
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
             var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
             if (wmiResult.Count > 0)
                 return wmiResult;
 
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
             logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
             return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
         }
@@ -58,12 +55,10 @@ public class AppxPackageSource(
         {
             logService.LogWarning($"PackageManager failed ({ex.Message}), falling back to WMI");
 
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
             var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
             if (wmiResult.Count > 0)
                 return wmiResult;
 
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
             logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
             return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
         }

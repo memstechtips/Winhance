@@ -29,13 +29,11 @@ internal sealed class SettingStatusBannerManager
     {
         if (value is not int selectedIndex)
         {
-            // Keep an existing compatibility banner (return null = don't change) when one applies; otherwise clear.
             if (string.IsNullOrEmpty(compatibilityMessage))
                 return BannerState.Clear;
             return null;
         }
 
-        // Per-option warning text (e.g., update policy security warnings), index-aligned with the options.
         if (optionWarnings is { } w
             && selectedIndex >= 0 && selectedIndex < w.Count
             && w[selectedIndex] is { } warning)
@@ -47,7 +45,6 @@ internal sealed class SettingStatusBannerManager
         if (!string.IsNullOrEmpty(crossGroupInfoMessage))
             return ComputeCrossGroupBanner(selectedIndex, crossGroupInfoMessage, optionCount);
 
-        // Windows-version compatibility message (shown when the version filter is off).
         if (!string.IsNullOrEmpty(compatibilityMessage))
             return new BannerState(compatibilityMessage, InfoBarSeverity.Warning);
 
@@ -87,7 +84,6 @@ internal sealed class SettingStatusBannerManager
         if (optionCount == 0)
             return BannerState.Clear;
 
-        // Check if "Custom" option is selected (last index or special custom state index)
         var customOptionIndex = optionCount - 1;
         bool isCustomState = selectedIndex == customOptionIndex ||
             selectedIndex == ComboBoxConstants.CustomStateIndex;

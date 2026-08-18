@@ -30,7 +30,6 @@ public class AutounattendScriptBuilderTests
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
         _hardwareDetectionService.Setup(s => s.HasBattery()).Returns(false);
 
-        // Syntax validation succeeds by default
         _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
             .Returns(Task.CompletedTask);
 
@@ -42,10 +41,6 @@ public class AutounattendScriptBuilderTests
             new Mock<IWindowsVersionService>().Object);
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Empty config
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_EmptyConfig_ProducesValidScript()
     {
@@ -56,10 +51,6 @@ public class AutounattendScriptBuilderTests
 
         result.Should().NotBeNullOrEmpty();
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains header
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsHeader()
@@ -73,10 +64,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("param(");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains logging setup
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsLoggingSetup()
     {
@@ -88,10 +75,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("function Write-Log");
         result.Should().Contain("$LogPath");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains helper functions
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsHelperFunctions()
@@ -105,10 +88,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("function Start-ProcessAsUser");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains if (-not $UserCustomizations) block
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsSystemBlock()
     {
@@ -119,10 +98,6 @@ public class AutounattendScriptBuilderTests
 
         result.Should().Contain("if (-not $UserCustomizations)");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains if ($UserCustomizations) block
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserBlock()
@@ -135,10 +110,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("if ($UserCustomizations)");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains completion block
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCompletionBlock()
     {
@@ -149,10 +120,6 @@ public class AutounattendScriptBuilderTests
 
         result.Should().Contain("Script Completed");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains custom script placeholders
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCustomScriptPlaceholders()
@@ -168,10 +135,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("# End here");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains scripts directory setup
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsScriptsDirectorySetup()
     {
@@ -182,10 +145,6 @@ public class AutounattendScriptBuilderTests
 
         result.Should().Contain("$scriptsDir");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains Winhance installer
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsWinhanceInstaller()
@@ -198,10 +157,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("Install Winhance.lnk");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains Clean Start Menu
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCleanStartMenu()
     {
@@ -213,10 +168,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("START MENU LAYOUT");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains UserCustomizations scheduled task
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserCustomizationsTask()
     {
@@ -227,10 +178,6 @@ public class AutounattendScriptBuilderTests
 
         result.Should().Contain("WinhanceUserCustomizations");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Contains user detection bridge
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserDetectionBridge()
@@ -245,10 +192,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("UserCustomizationsApplied");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Validates script syntax
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_CallsValidateScriptSyntax()
     {
@@ -260,10 +203,6 @@ public class AutounattendScriptBuilderTests
         _powerShellRunner.Verify(r => r.ValidateScriptSyntaxAsync(
             It.IsAny<string>(), default), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Syntax validation failure throws
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_SyntaxValidationFails_Throws()
@@ -279,10 +218,6 @@ public class AutounattendScriptBuilderTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Syntax error*");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - With WindowsApps items
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithWindowsApps_EmitsAppRemoval()
@@ -308,10 +243,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("WINDOWS APPS REMOVAL");
         result.Should().Contain("BloatRemoval");
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - With Optimize features (HKLM)
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithOptimizeFeatures_EmitsHklmRegistryEntries()
@@ -353,10 +284,6 @@ public class AutounattendScriptBuilderTests
         result.Should().Contain("fAllowToGetHelp");
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - With Customize features (HKCU)
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithCustomizeFeatures_EmitsHkcuInUserBlock()
     {
@@ -394,15 +321,10 @@ public class AutounattendScriptBuilderTests
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
 
-        // The HKCU entries should appear after "if ($UserCustomizations)"
         var userBlockIndex = result.IndexOf("if ($UserCustomizations)");
         var custValIndex = result.IndexOf("AutoGameModeEnabled", userBlockIndex);
         custValIndex.Should().BeGreaterThan(userBlockIndex);
     }
-
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Logs success on valid syntax
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ValidSyntax_LogsSuccess()
@@ -418,10 +340,6 @@ public class AutounattendScriptBuilderTests
             null), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync - Logs error on failed syntax
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task BuildWinhancementsScriptAsync_FailedSyntax_LogsError()
     {
@@ -432,16 +350,13 @@ public class AutounattendScriptBuilderTests
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         try { await _sut.BuildWinhancementsScriptAsync(config, allSettings); }
-        catch { /* expected */ }
+        catch { }
 
         _logService.Verify(l => l.Log(
             LogLevel.Error,
             It.Is<string>(s => s.Contains("failed PowerShell syntax validation")),
             null), Times.Once);
     }
-    // ---------------------------------------------------------------
-    // BuildWinhancementsScriptAsync (Setting dict) pipeline pins
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task BuildWinhancementsScriptAsync_SettingDict_RealPowerSetting_EmitsCatalogPowerCfgTargets()

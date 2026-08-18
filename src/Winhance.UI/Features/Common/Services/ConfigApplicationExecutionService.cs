@@ -67,7 +67,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
             }
 
-            // Build selected sections from what's available in the config
             var selectedSections = new List<string>();
 
             bool hasWindowsApps = config.WindowsApps.Items.Count > 0;
@@ -102,13 +101,11 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 return;
             }
 
-            // Pre-select Windows Apps from config
             bool saveRemovalScripts = true;
             if (hasWindowsApps)
             {
                 await _configAppSelectionService.SelectWindowsAppsFromConfigAsync(config.WindowsApps);
 
-                // Only confirm removal when uninstall is selected
                 if (dialogOptions.ProcessWindowsAppsRemoval)
                 {
                     var (shouldContinue, saveScripts) = await _configAppSelectionService.ConfirmWindowsAppsRemovalAsync();
@@ -122,13 +119,11 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 }
             }
 
-            // Pre-select External Apps from config
             if (hasExternalApps)
             {
                 await _configAppSelectionService.SelectExternalAppsFromConfigAsync(config.ExternalApps);
             }
 
-            // Use the user's dialog choices, validated against config availability
             var importOptions = new ImportOptions
             {
                 ProcessWindowsAppsRemoval = hasWindowsApps && selectedSections.Contains("WindowsApps") && dialogOptions.ProcessWindowsAppsRemoval,
@@ -141,7 +136,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 IsWindowsDefaults = dialogOptions.IsWindowsDefaults,
             };
 
-            // Add action-only subsections for Customize actions that the user enabled
             var actionOnlySubsections = new HashSet<string>();
             if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
             {
@@ -163,7 +157,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             }
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
-            // Show overlay during config application
             var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
@@ -191,7 +184,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 _overlayService.HideOverlay();
             }
 
-            // Show success message and wait for user dismissal
             await ShowImportSuccessMessage();
 
             // Process Windows Apps installation AFTER overlay is hidden (shows confirmation dialog)
@@ -241,14 +233,13 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         var parallelTasks = new List<Task>();
 
-        // Branch 1: Bloat removal (no Task.Run - ViewModel needs UI thread for property change notifications)
+        // No Task.Run: the ViewModel needs the UI thread for property change notifications.
         if (shouldRemoveApps)
         {
             _logService.Log(LogLevel.Info, "Processing Windows Apps removal (parallel branch)");
             parallelTasks.Add(_vmCoordinator.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: saveRemovalScripts));
         }
 
-        // Branch 2: All settings (Optimize + Customize in parallel within)
         if (hasOptimize || hasCustomize)
         {
             parallelTasks.Add(ApplyAllSettingsGroupsAsync(config, selectedSections, options, hasOptimize, hasCustomize));
@@ -256,7 +247,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         await Task.WhenAll(parallelTasks);
 
-        // Always restart explorer at the end to apply all changes
         _overlayService.UpdateStatus(
             _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings..."),
             _localizationService.GetStringOrDefault("Config_Import_Status_RestartingExplorer", "Restarting Explorer..."));
@@ -280,7 +270,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         bool hasOptimize,
         bool hasCustomize)
     {
-        // Count total features across both groups for progress reporting
         int totalFeatures = 0;
         if (hasOptimize && config.Optimize?.Features != null)
         {
@@ -292,7 +281,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             totalFeatures += config.Customize.Features
                 .Count(f => selectedSections.Contains($"Customize_{f.Key}"));
         }
-        // Count action-only subsections that aren't already in the feature groups
         var actionOnlyExtras = options.ActionOnlySubsections
             .Where(s =>
             {
@@ -312,7 +300,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         totalFeatures += actionOnlyExtras.Count;
 
         if (totalFeatures == 0)
-            totalFeatures = 1; // Avoid division by zero in display
+            totalFeatures = 1; // avoids a 0/0 display
 
         int completedFeatures = 0;
 
@@ -390,7 +378,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         var processedFeatureKeys = new HashSet<string>();
         var featureTasks = new List<Task<bool>>();
 
-        // Phase 1: Features from the config file
         if (featureGroup?.Features != null)
         {
             foreach (var feature in featureGroup.Features)
@@ -409,7 +396,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 bool isActionOnly = options.ActionOnlySubsections.Contains(featureKey);
                 var actionItems = BuildActionItems(options, featureName);
 
-                // Capture for closure
                 var capturedFeatureName = featureName;
                 var capturedSection = section;
 
@@ -417,7 +403,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 {
                     bool featureSuccess = true;
 
-                    // Execute action commands first if any
                     if (actionItems.Count > 0)
                     {
                         var actionSection = new ConfigSection
@@ -440,7 +425,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                         }
                     }
 
-                    // Apply regular settings if not action-only
                     if (!isActionOnly)
                     {
                         _logService.Log(LogLevel.Info, $"Applying {capturedSection.Items.Count} settings from {groupName} > {capturedFeatureName}");
@@ -463,7 +447,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             }
         }
 
-        // Phase 2: Action-only subsections not already in the config features
         var unprocessedActionOnly = selectedSections
             .Where(s => s.StartsWith($"{groupName}_") &&
                        options.ActionOnlySubsections.Contains(s) &&
@@ -475,7 +458,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             var featureName = featureKey.Substring(groupName.Length + 1);
             var actionItems = BuildActionItems(options!, featureName);
 
-            // Handle WindowsTheme action-only case
             if (options?.ApplyThemeWallpaper == true && featureName == FeatureIds.WindowsTheme)
             {
                 actionItems.Add(new ConfigurationItem
@@ -525,7 +507,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             }));
         }
 
-        // Run all features in the group in parallel
         var results = await Task.WhenAll(featureTasks);
         return results.All(r => r);
     }

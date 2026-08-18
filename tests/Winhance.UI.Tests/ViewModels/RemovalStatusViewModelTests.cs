@@ -23,8 +23,6 @@ public class RemovalStatusViewModelTests
         _logService.Object,
         _fileSystemService.Object);
 
-    // --- Constructor ---
-
     [Fact]
     public void Constructor_SetsProperties()
     {
@@ -60,8 +58,6 @@ public class RemovalStatusViewModelTests
 
         sut.RemoveCommand.Should().NotBeNull();
     }
-
-    // --- StartStatusMonitoringAsync ---
 
     [Fact]
     public async Task StartStatusMonitoringAsync_WhenScriptExists_SetsIsActiveTrue()
@@ -125,8 +121,6 @@ public class RemovalStatusViewModelTests
         sut.IsActive.Should().BeFalse();
     }
 
-    // --- RemoveCommand ---
-
     [Fact]
     public async Task RemoveCommand_WhenTaskRegistered_UnregistersTask()
     {
@@ -166,8 +160,6 @@ public class RemovalStatusViewModelTests
         _fileSystemService.Verify(f => f.DeleteFile(@"C:\Scripts\BloatRemoval.ps1"), Times.AtLeastOnce);
     }
 
-    // --- PropertyChanged notifications ---
-
     [Fact]
     public async Task StartStatusMonitoringAsync_RaisesPropertyChanged_ForIsLoading()
     {
@@ -204,8 +196,6 @@ public class RemovalStatusViewModelTests
         changedProperties.Should().Contain("IsActive");
     }
 
-    // --- Dispose ---
-
     [Fact]
     public void Dispose_DoesNotThrow()
     {
@@ -230,7 +220,6 @@ public class RemovalStatusViewModelTests
 
         await sut.StartStatusMonitoringAsync();
 
-        // IsActive should remain false after dispose, since monitoring should be skipped
         sut.IsActive.Should().BeFalse();
     }
 

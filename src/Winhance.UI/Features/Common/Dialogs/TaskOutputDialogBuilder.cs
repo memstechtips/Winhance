@@ -15,13 +15,11 @@ internal class TaskOutputDialogBuilder
     private readonly ILocalizationService _localization;
     private readonly ITaskProgressService _taskProgressService;
 
-    // Live update state
     private bool _isSubscribed;
     private bool _lastLineWasProgress;
     private int _lastLineRunCount = 1;
     private EventHandler<TaskProgressDetail>? _liveHandler;
 
-    // UI elements needed for live updates
     private Paragraph _paragraph = null!;
     private ScrollViewer _scrollViewer = null!;
     private List<string> _allLines = null!;
@@ -35,11 +33,8 @@ internal class TaskOutputDialogBuilder
     // The caller owns ConfigureDialog, StartLiveUpdates (if the task is running), ShowAsync and StopLiveUpdates.
     public ContentDialog Build(XamlRoot xamlRoot, string title, IReadOnlyList<string> logMessages)
     {
-        // Mutable list of all lines -- snapshot + live additions.
-        // Used by Copy to Clipboard at click time.
         _allLines = new List<string>(logMessages);
 
-        // Build a single RichTextBlock with one Paragraph containing Runs.
         // Unlike individual TextBlocks, RichTextBlock renders block characters
         // with consistent line height -- no overlapping artifacts.
         _paragraph = new Paragraph();
@@ -70,7 +65,6 @@ internal class TaskOutputDialogBuilder
             Padding = new Thickness(14, 10, 14, 10)
         };
 
-        // Auto-scroll to bottom on initial load
         _scrollViewer.Loaded += (_, _) =>
             _scrollViewer.ChangeView(null, _scrollViewer.ScrollableHeight, null, true);
 

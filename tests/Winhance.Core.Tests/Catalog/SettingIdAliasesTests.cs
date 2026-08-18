@@ -36,8 +36,8 @@ public class SettingIdAliasesTests
         foreach (var win10Id in Win10ThisPcSources)
         {
             var canonical = SettingIdAliases.Normalize(win10Id);
-            Assert.NotEqual(win10Id, canonical); // it WAS aliased
-            Assert.Contains(canonical, catalogIds); // and its target is a real catalog setting
+            Assert.NotEqual(win10Id, canonical);
+            Assert.Contains(canonical, catalogIds);
         }
     }
 

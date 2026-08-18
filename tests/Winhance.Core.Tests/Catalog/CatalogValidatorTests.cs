@@ -105,7 +105,7 @@ public class CatalogValidatorTests
     {
         var s = Make(
             new[] { Reg("Start", "Start"), Reg("Preload", "IsInputAppPreloadEnabled") },
-            new[] { St("Manual", new() { ["Start"] = StateValue.Of(3) }) }); // missing "Preload"
+            new[] { St("Manual", new() { ["Start"] = StateValue.Of(3) }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
     }
 
@@ -148,7 +148,7 @@ public class CatalogValidatorTests
             new[]
             {
                 St("Known",   new() { ["Start"] = StateValue.Of(3), ["Preload"] = StateValue.Of(1) }),
-                St("Default", new() { ["Start"] = StateValue.Of(2) }, fallback: true), // only 1 of 2 keys
+                St("Default", new() { ["Start"] = StateValue.Of(2) }, fallback: true),
             });
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
     }
@@ -227,8 +227,6 @@ public class CatalogValidatorTests
         };
         Assert.Empty(CatalogValidator.Validate(s));
     }
-
-    // ---- IsDetectOnly: a state detection can resolve to but the user cannot choose ----------------
 
     private static Setting WithId(string id, IReadOnlyList<SettingState> states) =>
         new()

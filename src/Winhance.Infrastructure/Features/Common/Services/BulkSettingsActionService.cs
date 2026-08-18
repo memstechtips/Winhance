@@ -135,7 +135,7 @@ public class BulkSettingsActionService(
                 logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to reset default for '{setting.Id}': {ex.Message}");
             }
         }
-        } // end SuppressRestarts scope
+        }
 
         await processRestartManager.FlushCoalescedRestartsAsync(appliedForRestart).ConfigureAwait(false);
 
@@ -205,9 +205,7 @@ public class BulkSettingsActionService(
                 }
 
                 // Stateless one-shot Actions have no default/recommended STATE, so they are excluded from the bulk
-                // "Reset to Defaults" / "Apply Recommended" ops (and their affected-count). Their old-executor reset
-                // was an incoherent else-branch accident; a one-shot action is not a stateful setting to bulk-reset
-                // or bulk-recommend. This also makes the resolver's Action-reset path unreachable (Marco 2026-07-03).
+                // "Reset to Defaults" / "Apply Recommended" ops (and their affected-count).
                 if (setting.Control == ControlKind.Action)
                 {
                     continue;

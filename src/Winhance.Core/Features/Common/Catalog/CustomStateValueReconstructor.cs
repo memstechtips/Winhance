@@ -12,12 +12,10 @@ public static class CustomStateValueReconstructor
         // one ever carried both registry + a detector).
         var values = new Dictionary<string, object?>();
 
-        // Registry: the per-target readings become the bag's registry keys.
         if (state.Readings is { } readings)
             foreach (var kv in readings)
                 values[kv.Key] = kv.Value;
 
-        // Powercfg: write ACValue=acValue, DCValue=dcValue, PowerCfgValue=acValue.
         if (setting.Targets.OfType<PowerCfgTarget>().Any() && state.AcValue is int ac)
         {
             values["ACValue"] = ac;
@@ -25,7 +23,6 @@ public static class CustomStateValueReconstructor
             values["PowerCfgValue"] = ac;
         }
 
-        // DNS / system-tray: store the resolved CurrentValue as DetectedIndex.
         if (setting.Detector is DnsServerDetector or SystemTrayDetector && state.CurrentValue is int idx)
             values["DetectedIndex"] = idx;
 

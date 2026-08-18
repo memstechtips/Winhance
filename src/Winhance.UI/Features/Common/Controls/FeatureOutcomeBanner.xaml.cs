@@ -72,13 +72,10 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         set => SetValue(LocalizationProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public Visibility BannerVisibility { get; private set; } = Visibility.Collapsed;
     public bool IsBannerOpen { get; private set; }
     public string BannerMessage { get; private set; } = string.Empty;
 
-    // --- Staying current -------------------------------------------------------------------------
     // The banner subscribes to everything that can change what it shows rather than relying on the
     // host to call Refresh, which went stale silently whenever a caller was missed.
 
@@ -248,7 +245,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             ? text
             : fallback;
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay needs a notification source; without one the compiler emits WMC1506.
 
     public event PropertyChangedEventHandler? PropertyChanged;

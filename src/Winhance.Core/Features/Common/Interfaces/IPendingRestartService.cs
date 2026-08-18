@@ -1,8 +1,8 @@
 namespace Winhance.Core.Features.Common.Interfaces;
 
-// Winhance deliberately no longer restarts Explorer as a side effect of applying a setting: once per toggle meant
-// several shell kills within seconds, which could leave the user with no shell at all. The restart is deferred to
-// an explicit user action (IExplorerRestartService). Stores ids only; localizing them is the UI's job.
+// Winhance deliberately does not restart Explorer as a side effect of applying a setting: once per toggle would
+// mean several shell kills within seconds, which could leave the user with no shell at all. The restart is deferred
+// to an explicit user action (IExplorerRestartService). Stores ids only; localizing them is the UI's job.
 public interface IPendingRestartService
 {
     void Register(string settingId);

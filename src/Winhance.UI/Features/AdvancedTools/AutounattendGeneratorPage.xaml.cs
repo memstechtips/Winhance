@@ -36,7 +36,6 @@ public sealed partial class AutounattendGeneratorPage : Page
             ViewModel.SetMainWindow(App.MainWindow);
         }
 
-        // Wire up navigation to WimUtil via parent AdvancedToolsPage
         ViewModel.NavigateToWimUtilRequested += OnNavigateToWimUtilRequested;
 
         // Live-region announcements for screen readers (issue #647).
@@ -74,7 +73,6 @@ public sealed partial class AutounattendGeneratorPage : Page
 
     private void OnNavigateToWimUtilRequested(object? sender, EventArgs e)
     {
-        // Find parent AdvancedToolsPage via frame hierarchy and navigate to WimUtil
         if (Frame?.Parent is FrameworkElement parentElement)
         {
             var parent = parentElement;

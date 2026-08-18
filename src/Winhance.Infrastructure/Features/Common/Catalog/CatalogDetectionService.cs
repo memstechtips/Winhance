@@ -157,7 +157,7 @@ public sealed class CatalogDetectionService : ICatalogDetectionService
             if (target is not PowerCfgTarget power)
                 continue;
             if (power.AppliesTo.Count > 0 && !power.AppliesTo.Any(r => r.Contains(context.CurrentBuild)))
-                continue; // target not live on this build
+                continue;
             return (
                 context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, PowerContext.AC),
                 context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, PowerContext.DC));

@@ -27,8 +27,7 @@
         <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
 
         <!-- Template for Toggle settings -->
-        <!-- ==========================================================================================
-             WHEN A CONTROL GETS ITS OWN UserControl, AND WHEN IT STAYS INLINE
+        <!-- WHEN A CONTROL GETS ITS OWN UserControl, AND WHEN IT STAYS INLINE
              (the rule, so the mix below reads as a decision rather than as drift)
 
              Extract to a shared control when EITHER is true:
@@ -46,27 +45,17 @@
 
              Either way, CardTemplateOutcomeCoverageTests enforces that any template hosting an input
              control also reports a value Winhance could not place - so correctness never depends on
-             which side of this rule a control falls.
-             ========================================================================================== -->
+             which side of this rule a control falls. -->
 
         <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <local:SettingToggleSwitch Setting="{x:Bind}"/>
         </DataTemplate>
 
         <!-- Template for Selection settings -->
-        <!-- ==========================================================================================
-             Selection and Numeric settings. Both come in three flavours - one value, or a powercfg
-             setting split into plugged-in and on-battery values - and each flavour used to be its own
-             hand-written template: four ComboBox declarations and four NumberBox declarations across
-             eight templates. The overlay that reports a setting Winhance could not place had been added
-             to one of them and forgotten on the other seven, which is how a powercfg dropdown ended up
-             rendering blank with no explanation.
-
-             They are now instances of ONE control each (local:SettingComboBox / local:SettingNumberBox),
-             which owns its Quick-Set pair, its input, and its outcome overlay together. The AC-only and
-             AC+DC layouts are one template apiece, with the battery column bound to HasBattery rather
-             than split across two nearly identical copies.
-             ========================================================================================== -->
+        <!-- Selection and Numeric settings come in three flavours - one value, or a powercfg setting split into
+             plugged-in and on-battery values. Each is ONE control (local:SettingComboBox / local:SettingNumberBox)
+             owning its Quick-Set pair, its input and its outcome overlay; the AC-only and AC+DC layouts are one
+             template apiece, with the battery column bound to HasBattery. -->
 
         <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
             <local:SettingComboBox Setting="{x:Bind}" Mode="Single"/>

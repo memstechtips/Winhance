@@ -4,7 +4,6 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 public class FileSystemService : IFileSystemService
 {
-    // File operations
     public bool FileExists(string path) => File.Exists(path);
     public string ReadAllText(string path) => File.ReadAllText(path);
     public Task<string> ReadAllTextAsync(string path, CancellationToken ct = default) => File.ReadAllTextAsync(path, ct);
@@ -22,7 +21,6 @@ public class FileSystemService : IFileSystemService
     public void SetFileAttributes(string path, FileAttributes attributes) => new FileInfo(path).Attributes = attributes;
     public DateTime GetLastWriteTime(string path) => File.GetLastWriteTime(path);
 
-    // Directory operations
     public bool DirectoryExists(string path) => Directory.Exists(path);
     public void CreateDirectory(string path) => Directory.CreateDirectory(path);
     public void DeleteDirectory(string path, bool recursive = false) => Directory.Delete(path, recursive);
@@ -31,7 +29,6 @@ public class FileSystemService : IFileSystemService
     public string[] GetDirectories(string path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
         => Directory.GetDirectories(path, searchPattern, searchOption);
 
-    // Path operations
     public string GetTempPath() => Path.GetTempPath();
     public string CombinePath(params string[] paths) => Path.Combine(paths);
     public string GetFileName(string path) => Path.GetFileName(path);

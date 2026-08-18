@@ -18,8 +18,6 @@ public class WindowsRegistryServiceTests
         _sut = new WindowsRegistryService(_mockLog.Object, _mockInteractiveUser.Object);
     }
 
-    // ── DeleteKey safeguards (BP-3) ──
-
     [Theory]
     [InlineData(@"HKLM\SOFTWARE")]
     [InlineData(@"HKCU\Software")]

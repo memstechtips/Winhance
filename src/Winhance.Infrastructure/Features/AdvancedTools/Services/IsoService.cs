@@ -47,11 +47,10 @@ public class IsoService : IIsoService
             return Task.FromResult(false);
         }
 
-        // Check if it's a valid ISO by attempting to read it
         try
         {
             var fileSize = _fileSystemService.GetFileSize(isoPath);
-            if (fileSize < 1024 * 1024) // Less than 1MB
+            if (fileSize < 1024 * 1024)
             {
                 _logService.LogError("ISO file is too small to be valid");
                 return Task.FromResult(false);
@@ -330,7 +329,6 @@ public class IsoService : IIsoService
                 throw new Exception($"oscdimg.exe failed with exit code: {exitCode}");
             }
 
-            // Verify ISO was created
             if (!_fileSystemService.FileExists(outputPath))
             {
                 _logService.LogError("ISO file was not created");

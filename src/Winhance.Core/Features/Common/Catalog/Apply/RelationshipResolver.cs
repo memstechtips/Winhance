@@ -40,9 +40,9 @@ public static class RelationshipResolver
 
         foreach (var dependent in allSettings)
         {
-            // The dependent's Requires now live on its states; it relies on changedSettingId only if its CURRENT
-            // state declares that Requires. (Equivalent to the old setting-level check: the links sit on the active/
-            // non-default states, and a dependent away from its default is exactly one in such a state.)
+            // The dependent's Requires live on its states; it relies on changedSettingId only if its CURRENT
+            // state declares that Requires (the links sit on the active/non-default states, and a dependent away
+            // from its default is exactly one in such a state).
             var currentLabel = currentStateOf(dependent.Id);
             var currentState = currentLabel is null
                 ? null
@@ -81,7 +81,7 @@ public static class RelationshipResolver
             // the parent drops to its neutral state - the one that imposes NO preset (no Controls), e.g. each
             // master's "Custom". Identify it by "imposes no Controls", NOT by role: that neutral is WindowsDefault
             // for privacy-ads-promotional-master but Recommended for visual-effects-mode (whose WindowsDefault
-            // "Let Windows choose" carries its own preset). This replaces the old per-child "force master to Custom".
+            // "Let Windows choose" carries its own preset).
             string? target = null;
             foreach (var state in parent.States.Where(s => s.Controls is { Count: > 0 }))
             {

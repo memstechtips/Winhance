@@ -183,12 +183,10 @@ internal sealed class StartupUiCoordinator
             _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
         }
 
-        // Hide overlay and mark startup complete
         markStartupComplete();
         loadingOverlay.Visibility = Visibility.Collapsed;
         StartupLogger.Log("StartupUiCoordinator", "Startup complete, overlay hidden");
 
-        // Show first-launch restore point offer if this is the first launch
         try
         {
             if (IsFirstLaunch)
@@ -205,7 +203,6 @@ internal sealed class StartupUiCoordinator
         // Pre-warm the sponsors cache so the exit dialog opens instantly even offline.
         App.Services.GetService<ISponsorsService>()?.GetSponsorsAsync().FireAndForget(_logService!);
 
-        // Check for updates silently (only shows InfoBar if update available)
         var viewModel = getViewModel();
         if (viewModel != null)
         {

@@ -30,7 +30,6 @@ public class AppIconResolver : IAppIconResolver
     // when displayed at 40 logical pixels on a 200% DPI screen.
     private static readonly Size LogoSize = new(96, 96);
 
-    // ====== TRIM TUNING KNOBS ======
     // Pixels with alpha at or below this threshold are treated as transparent
     // when computing the trim bounding box. The Square44x44Logo PNGs returned
     // by DisplayInfo.GetLogo for installed AppX packages typically have
@@ -44,7 +43,6 @@ public class AppIconResolver : IAppIconResolver
     // manually wipe %ProgramData%\Winhance\IconCache so cached files re-extract.
     private const byte AlphaTrimThreshold = 32;
 
-    // ====== BACKPLATE DETECTION KNOBS ======
     // Two unrelated icon sources ship art on a uniform opaque background:
     //   - Sticky Notes (and similar UWP icons) come back from AppX GetLogo
     //     as a small shape on a fully-opaque colored card.
@@ -123,8 +121,7 @@ public class AppIconResolver : IAppIconResolver
             //   - AppX names → installed-package extraction (Layer 1).
             //   - external-app-* / windows-app-* / capability-* / feature-* ids whose
             //     RepoIconKey resolves → package-icons repo (Layer 2).
-            // MsStoreId is no longer an icon identity (the live Store API was
-            // removed); it remains on the definition for the installer.
+            // MsStoreId is not an icon identity; it stays on the definition for the installer.
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
                          || RepoIconKey.For(d) is not null
@@ -142,7 +139,7 @@ public class AppIconResolver : IAppIconResolver
             // manifest is the authoritative list of hosted icons, so the repo
             // layer can skip guaranteed-404 fetches for paths it doesn't list.
             // A failed load (offline) leaves manifestLoaded false → repo fetches
-            // still run unconditionally as a best-effort, exactly as before, and
+            // still run unconditionally as a best-effort, and
             // RepoIconSource still validates whatever bytes come back.
             bool manifestLoaded = false;
             if (_manifest is not null)
@@ -180,8 +177,6 @@ public class AppIconResolver : IAppIconResolver
             int repoResolved = 0;
             if (_repoSource is not null)
             {
-                // Parallel (bounded): repo fetches are network round-trips on the
-                // blocking startup path; a serial loop over ~50 icons freezes the UI.
                 var repoCandidates = candidates.Where(d => d.IconPath is null).ToList();
                 if (repoCandidates.Count > 0)
                 {

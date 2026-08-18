@@ -63,7 +63,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public WinhanceMode CurrentMode { get; private set; } = WinhanceMode.Normal;
     public BuilderTarget CurrentBuilderTarget { get; private set; } = BuilderTarget.Config;
 
-    // Legacy view retained for existing callers; now derived from CurrentMode.
     public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
     public UnifiedConfigurationFile? ActiveConfig { get; private set; }
@@ -93,13 +92,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _visitedFeatures.Clear();
         CurrentMode = WinhanceMode.ConfigReview;
 
-        // First compute total config item counts and populate _featuresInConfig
         ComputeConfigItemCounts(config);
 
-        // Eagerly compute diffs for all Optimize and Customize settings
         await ComputeEagerDiffsAsync(config);
 
-        // Auto-mark features with 0 diffs as visited (nothing to review)
         foreach (var featureId in _featuresInConfig.Keys)
         {
             if (FeatureDefinitions.OptimizeFeatures.Contains(featureId) ||
@@ -350,7 +346,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             _ => Array.Empty<string>()
         };
 
-        // Only consider features that are in the config
         var relevantFeatures = featureIds.Where(f => _featuresInConfig.ContainsKey(f)).ToList();
         if (relevantFeatures.Count == 0) return false;
 
@@ -366,10 +361,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         var featureDiffs = _diffs.Values.Where(d => d.FeatureModuleId == featureId).ToList();
         if (featureDiffs.Count == 0)
         {
-            return true; // No diffs means already matching config
+            return true;
         }
 
-        // All diffs must be explicitly reviewed (accept or reject)
         return featureDiffs.All(d => d.IsReviewed);
     }
 
@@ -377,7 +371,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         int total = 0;
 
-        // WindowsApps
         if (config.WindowsApps.IsIncluded && config.WindowsApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.WindowsApps] = config.WindowsApps.Items.Count;
@@ -385,7 +378,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             total += config.WindowsApps.Items.Count;
         }
 
-        // ExternalApps
         if (config.ExternalApps.IsIncluded && config.ExternalApps.Items.Count > 0)
         {
             _configItemCounts[FeatureIds.ExternalApps] = config.ExternalApps.Items.Count;
@@ -393,7 +385,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             total += config.ExternalApps.Items.Count;
         }
 
-        // Optimize features
         foreach (var kvp in config.Optimize.Features)
         {
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
@@ -404,7 +395,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             }
         }
 
-        // Customize features
         foreach (var kvp in config.Customize.Features)
         {
             if (kvp.Value.IsIncluded && kvp.Value.Items.Count > 0)
@@ -423,14 +413,12 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         var onText = _localizationService.GetStringOrDefault("Common_On", "On");
         var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");
 
-        // Process Optimize features
         foreach (var feature in config.Optimize.Features)
         {
             if (!feature.Value.IsIncluded || feature.Value.Items.Count == 0) continue;
             await ComputeFeatureDiffsAsync(feature.Key, feature.Value.Items, onText, offText);
         }
 
-        // Process Customize features
         foreach (var feature in config.Customize.Features)
         {
             if (!feature.Value.IsIncluded || feature.Value.Items.Count == 0) continue;
@@ -446,15 +434,12 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         try
         {
-            // Get the catalog settings for this feature. Review always wants the compatibility filter ON,
-            // and GetByFeature's default scope is current-OS.
+            // Review always wants the compatibility filter ON, and GetByFeature's default scope is current-OS.
             var settings = _catalogSettingsRegistry.GetByFeature(featureId);
             var settingMap = settings.ToDictionary(s => s.Id);
 
-            // Batch-load current system states
             var settingList = settings.ToList();
-            // Read state from the full-state provider via its catalog Setting overload. This service reads no
-            // RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
+            // This service reads no RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
             var batchStates = await _settingStateProvider.GetStatesAsync(settingList);
 
             // Mirror the settings-page render predicate so the review never counts/diffs a setting the user
@@ -478,8 +463,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 if (!settingMap.TryGetValue(configItem.Id, out var setting))
                     continue;
 
-                // Skip settings the settings page will not render (failed detection / orphaned sub-setting)
-                // so nothing uncompleteable is counted toward the review completion gate.
                 if (!renderedIds.Contains(setting.Id))
                     continue;
 
@@ -487,16 +470,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     ? state
                     : new SettingStateResult();
 
-                // Check if this is a special action setting
                 bool isActionSetting = ActionSettingIds.Contains(configItem.Id);
 
-                // For start-menu-clean, only register the one matching the current Windows version
                 if (configItem.Id == SettingIds.StartMenuCleanWin10 && _windowsVersionService.IsWindows11())
                     continue;
                 if (configItem.Id == SettingIds.StartMenuCleanWin11 && !_windowsVersionService.IsWindows11())
                     continue;
 
-                // Compute diff
                 var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
                     setting, configItem, currentState, onText, offText).ConfigureAwait(false);
 
@@ -564,7 +544,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         string onText,
         string offText)
     {
-        // Dispatch off the catalog Control (Selection incl. power-plan -> the Selection value path).
         // ControlKind.Toggle covers Toggle + CheckBox (no setting is CheckBox).
         var control = setting.Control;
         switch (control)
@@ -585,7 +564,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             case ControlKind.Selection:
             case ControlKind.PowerPlan:
             {
-                // Resolve the current index via combo box setup for accurate display
                 var comboResult = BuildComboBoxOptions(setting, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
@@ -593,7 +571,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 if (configItem.PowerPlanGuid != null)
                 {
                     // Read the active scheme GUID from DynamicSelection (the active plan GUID, lowercased).
-                    // NormalizeGuid lowercases both sides for the comparison.
                     string? currentGuid = currentState.DynamicSelection;
 
                     // The current plan NAME reads the typed DynamicSelectionName (the active plan's raw OS name).
@@ -644,7 +621,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     return (true, currentDisplayName, configDisplayName, currentRawKey, configRawKey);
                 }
 
-                // Special handling: CustomStateValues
                 if (configItem.CustomStateValues != null)
                 {
                     var currentRawKey = DisplayKeyForStateIndex(setting, comboResult, currentIndex);
@@ -698,8 +674,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         var result = new ComboBoxSetupResult();
 
-        // Build the review combo-box options from the catalog Setting's States (one per option). Only
-        // DisplayText (from State.Label) and SelectedValue are read by the review diff (ComputeEagerDiffAsync /
+        // Only DisplayText (from State.Label) and SelectedValue are read by the review diff (ComputeEagerDiffAsync /
         // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
         // populated for the option object but are NOT read in this flow.
         if (setting.States.Count == 0)
@@ -726,8 +701,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         // No synthetic "Custom" entry: every read of Options is guarded by `index >= 0` and the sentinel is
-        // -1, so the entry was unreachable dead code - and it carried a hardcoded English "Custom" that no
-        // language could translate. SelectedValue still carries the sentinel, which is what callers read.
+        // -1, so such an entry would be unreachable - and a hardcoded English "Custom" is not translatable.
+        // SelectedValue carries the sentinel, which is what callers read.
         result.SelectedValue = isCustomState ? ComboBoxConstants.CustomStateIndex : currentIndex;
         result.Success = true;
         return result;
@@ -762,7 +737,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 return LocalizeComboBoxDisplayText(key);
             }
 
-            // If index is negative, try to use the resolved selected value from the combo box setup
             if (index < 0 && result.SelectedValue is int resolvedIndex
                 && DisplayKeyForStateIndex(setting, result, resolvedIndex) is { } resolvedKey)
             {
@@ -825,7 +799,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         var plans = PowerPlanCatalog.BuiltInPowerPlans;
 
-        // 1. Try GUID match first (most reliable, locale-independent)
         if (!string.IsNullOrEmpty(guid))
         {
             var normalizedGuid = NormalizeGuid(guid);
@@ -833,7 +806,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             if (byGuid != null) return byGuid;
         }
 
-        // 2. Fall back to name matching for plans with different runtime GUIDs
+        // Name matching covers plans with different runtime GUIDs.
         if (!string.IsNullOrEmpty(name))
         {
             // Winhance Power Plan: any plan name containing "Winhance" (language-independent brand name)

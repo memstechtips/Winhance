@@ -5,17 +5,14 @@ namespace Winhance.Infrastructure.Features.Common.Helpers;
 
 internal static class RecommendedSettingsResolver
 {
-    // Returns the display units for a powercfg setting: Numeric.Units for a NumericRange (slider) powercfg,
-    // falling back to the PowerCfgTarget's Units for a Selection powercfg, which has no Numeric.
     internal static string GetPowerCfgDisplayUnits(Setting setting)
     {
         if (setting.Numeric?.Units is { } units) return units;
         return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
     }
 
-    // Returns the index of the first State whose Set[PowerCfgTarget.Key, i.e. "Power"] matches the raw
-    // powercfg value. Each State corresponds to a ComboBox option in order, its Set["Power"] holding that
-    // option's PowerCfgValue. Mirrors the live factory's SettingViewModelFactory.FindStateIndexForPowerCfgValue.
+    // Each State is a ComboBox option in order, its Set["Power"] holding that option's PowerCfgValue. Mirrors
+    // SettingViewModelFactory.FindStateIndexForPowerCfgValue.
     internal static int? FindOptionIndexForPowerCfgValue(Setting setting, int? targetValue)
     {
         if (!targetValue.HasValue) return null;
@@ -57,7 +54,7 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Inverse of PowerCfgApplier.ConvertToSystemUnits.
+    // Inverse of UnitConversionHelper.ConvertToSystemUnits.
     internal static int ConvertSystemToDisplayUnits(int systemValue, string? units)
     {
         return units?.ToLowerInvariant() switch
@@ -70,8 +67,7 @@ internal static class RecommendedSettingsResolver
         };
     }
 
-    // Inverse of ConvertSystemToDisplayUnits: back to raw powercfg system units. minutes/hours multiply;
-    // everything else (seconds, milliseconds, percent) is 1:1.
+    // Inverse of ConvertSystemToDisplayUnits: back to raw powercfg system units.
     internal static int ConvertDisplayToSystemUnits(int displayValue, string? units) => units?.ToLowerInvariant() switch
     {
         "minutes" => displayValue * 60,
@@ -79,15 +75,11 @@ internal static class RecommendedSettingsResolver
         _ => displayValue,
     };
 
-    // The value/presence helpers below carry the recommended/default state for the apply cluster
-    // (RecommendedSettingsApplier / BulkSettingsActionService). Two related helpers are deliberately absent:
-    //  - IsCompatibleWithCurrentOS has none: the catalog settings registry gates OS membership via
-    //    CatalogMembershipFilter.IsAvailable, and a by-id consumer that still needs the OS check reads
-    //    Setting.Availability.Allows(build) directly.
-    //  - GetRecommendedValueForSetting / GetDefaultValueForSetting have none: Marco decided (2026-07-08) to
-    //    EXCLUDE Actions from Apply-Recommended (RecommendedSettingsApplier, mirroring the Bulk reset exclusion).
-    //    With Actions excluded, the remaining population is NumericRange only (all powercfg / registry-free),
-    //    where both would return null - so neither helper is needed.
+    // Deliberately no OS-compatibility helper here: the catalog registry gates OS membership via
+    // CatalogMembershipFilter.IsAvailable, and a by-id consumer that still needs the check reads
+    // Setting.Availability.Allows(build) directly. Deliberately no recommended/default VALUE helper either:
+    // Actions are excluded from Apply-Recommended and bulk reset, which leaves NumericRange only (all
+    // powercfg), where such a helper would always return null.
 
     // True when a setting has a recommended value, unioning three signals: a recommended toggle state (the
     // build-aware CatalogToggleState.GetRecommended), a powercfg slider's recommended (Numeric.Recommended),
@@ -123,7 +115,6 @@ internal static class RecommendedSettingsResolver
     // carrying a context-scoped role (Recommended / WindowsDefault, AC / DC); that index equals
     // FindOptionIndexForPowerCfgValue for the per-mode value. For a NumericRange, the Numeric.Recommended /
     // Numeric.WindowsDefault ContextValues are already in DISPLAY units, so they are handed over directly.
-    // isSeparate comes from PowerCfgTarget.Mode.
     internal static object? BuildPowerCfgApplyValue(Setting setting, bool useRecommended)
     {
         var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
@@ -170,9 +161,6 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // Index of the first state carrying a role of the given kind in the given power context (a powercfg
-    // selection's per-mode Recommended / WindowsDefault marker). Equals FindOptionIndexForPowerCfgValue for
-    // the per-mode value.
     private static int? IndexOfContextRole(Setting setting, RoleKind kind, PowerContext context)
     {
         for (int i = 0; i < setting.States.Count; i++)
@@ -188,12 +176,10 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    // ---- The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created power
-    // plan via PowerProf.PowerWriteAC/DCValueIndex, per powercfg setting, read off the Setting. ----
-
-    // Recommended SYSTEM value = the Recommended-role state's Set["Power"] payload (Selection) or
-    // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC fall
-    // back to each other.
+    // The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created plan via
+    // PowerProf.PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
+    // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC
+    // fall back to each other.
     internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
     {
         var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();

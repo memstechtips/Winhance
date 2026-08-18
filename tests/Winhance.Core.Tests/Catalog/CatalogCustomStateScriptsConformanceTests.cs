@@ -65,7 +65,6 @@ public class CatalogCustomStateScriptsConformanceTests
         Assert.False(setDns.Contains("{{dohtemplate}}"),
             "gaming-dns-server CustomStateScripts[0] carries the DoH template -- the two scripts look reordered.");
 
-        // entry[1] (DoH) carries all three.
         AssertRaw(doh, 1, "{{primary}}");
         AssertRaw(doh, 1, "{{secondary}}");
         AssertRaw(doh, 1, "{{dohtemplate}}");
