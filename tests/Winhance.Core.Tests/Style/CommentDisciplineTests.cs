@@ -10,8 +10,10 @@ namespace Winhance.Core.Tests.Style;
 // comment anywhere under src/ or tests/ fails the build.
 public class CommentDisciplineTests
 {
+    private static readonly string[] SourceRoots = ["src", "tests"];
+
     private static IEnumerable<string> SourceFiles() =>
-        new[] { "src", "tests" }
+        SourceRoots
             .SelectMany(root => Directory.EnumerateFiles(
                 Path.Combine(RepoPaths.SolutionDir(), root), "*.cs", SearchOption.AllDirectories))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
