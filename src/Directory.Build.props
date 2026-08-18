@@ -38,7 +38,7 @@
     <AnalysisLevel>10.0-Minimum</AnalysisLevel>
     <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
     <!-- The XML doc file exists only so IDE0005 (unnecessary using) can run in build (dotnet/roslyn#41640).
-         CS1591 (missing XML comment on a public member) is off: interfaces carry the docs here, not every member. -->
+         Winhance carries no XML documentation by policy (CommentDisciplineTests enforces it), so CS1591 is off. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
