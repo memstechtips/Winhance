@@ -3,7 +3,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemParametersService : ISystemParametersService
+internal class SystemParametersService : ISystemParametersService
 {
     public int SystemParametersInfo(int uAction, int uParam, string? lpvParam, int fuWinIni)
     {

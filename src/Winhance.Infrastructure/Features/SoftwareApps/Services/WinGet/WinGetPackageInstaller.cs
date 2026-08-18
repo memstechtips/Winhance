@@ -6,7 +6,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-public class WinGetPackageInstaller : IWinGetPackageInstaller
+internal class WinGetPackageInstaller : IWinGetPackageInstaller
 {
     // No wall-clock cap (installs/uninstalls can legitimately run long); a stalled
     // process is caught by the idle-output timer instead.

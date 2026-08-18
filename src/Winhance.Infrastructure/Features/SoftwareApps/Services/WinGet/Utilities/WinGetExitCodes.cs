@@ -3,7 +3,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 // Reference: winget-cli doc/windows/package-manager/winget/returnCodes.md
-public static class WinGetExitCodes
+internal static class WinGetExitCodes
 {
     public const int Ok = 0;
     public const int RestartRequired = unchecked((int)0x8A150019);

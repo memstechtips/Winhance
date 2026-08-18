@@ -4,7 +4,7 @@ using WindowsPackageManager.Interop;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-public class WinGetComSession
+internal class WinGetComSession
 {
     private readonly ILogService _logService;
 

@@ -15,7 +15,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class InteractiveUserService : IInteractiveUserService, IDisposable
+internal class InteractiveUserService : IInteractiveUserService, IDisposable
 {
     private readonly ILogService _logService;
     private readonly IProcessExecutor _processExecutor;

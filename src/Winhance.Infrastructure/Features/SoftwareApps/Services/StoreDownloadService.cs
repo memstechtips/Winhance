@@ -5,7 +5,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class StoreDownloadService : IStoreDownloadService
+internal class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService? _logService;

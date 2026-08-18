@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class VersionService : IVersionService
+internal class VersionService : IVersionService
 {
     // Dev-only override: when WINHANCE_LOCAL_INSTALLER points at an existing
     // file, the in-app updater skips the GitHub round-trip entirely and uses

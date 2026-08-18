@@ -8,7 +8,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
-public class PowerShellRunner : IPowerShellRunner
+internal class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
 

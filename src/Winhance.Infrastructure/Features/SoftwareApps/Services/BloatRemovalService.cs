@@ -9,7 +9,7 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class BloatRemovalService(
+internal class BloatRemovalService(
     ILogService logService,
     IScheduledTaskService scheduledTaskService,
     IPowerShellRunner powerShellRunner,

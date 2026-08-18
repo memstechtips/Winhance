@@ -4,7 +4,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ChocolateyService : IChocolateyService
+internal class ChocolateyService : IChocolateyService
 {
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;

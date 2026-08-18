@@ -8,7 +8,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 // attempting to unhide via the EnablementKey), or a checked target is hardware-controlled. The enablement write
 // is the constant "Attributes"=0; that VALUE is not modelled on PowerCfgTarget, so it is hardcoded here
 // (CatalogPowerExistenceFilterConformanceTests pins name/type and gates the decisions).
-public sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
+internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
 {
     private const string Scheme = "SCHEME_CURRENT";
     private readonly IPowerSettingsQueryService _query;

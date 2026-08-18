@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class LocalizationService : ILocalizationService
+internal class LocalizationService : ILocalizationService
 {
     private CultureInfo _currentCulture;
     private volatile Dictionary<string, string> _currentStrings;

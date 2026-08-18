@@ -8,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class WindowsAppsService(
+internal class WindowsAppsService(
     ILogService logService,
     IWinGetPackageInstaller winGetPackageInstaller,
     IWinGetBootstrapper winGetBootstrapper,

@@ -9,7 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
+internal class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
 {
 
     public bool CreateKey(string keyPath)

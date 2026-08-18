@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PolicyCleanupService : IPolicyCleanupService
+internal class PolicyCleanupService : IPolicyCleanupService
 {
     private readonly ICatalogSettingsRegistry _catalogRegistry;
     private readonly IWindowsRegistryService _registryService;

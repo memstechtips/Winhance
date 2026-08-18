@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 // `Package` type would clash with NuGet/MSBuild concepts elsewhere in the project. The
 // `Package` references below are fully qualified for that reason.
 
-public class AppxIconSource(ILogService logService) : IAppxIconSource
+internal class AppxIconSource(ILogService logService) : IAppxIconSource
 {
     // Snapshot of packages keyed by FullName. Populated by GetInstalledPackageMapAsync;
     // consumed by GetLogoStreamAsync to avoid re-enumerating PackageManager per icon

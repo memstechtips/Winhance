@@ -8,7 +8,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 // Two contracts over one connection helper: Winhance's own tasks (IScheduledTaskService) and the state of tasks
 // Windows owns (IScheduledTaskStateService).
-public class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService)
+internal class ScheduledTaskService(ILogService logService, IFileSystemService fileSystemService)
     : IScheduledTaskService, IScheduledTaskStateService
 {
     private enum TaskTriggerType

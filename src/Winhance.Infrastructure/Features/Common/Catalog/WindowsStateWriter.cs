@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.Common.Catalog;
 // Delegates to the proven WindowsRegistryService / task / powercfg / effect services - never reimplements byte
 // logic. Singleton; sync-over-async at the writer boundary (the apply funnel runs off the UI thread).
 [SupportedOSPlatform("windows")]
-public sealed class WindowsStateWriter : IStateWriter
+internal sealed class WindowsStateWriter : IStateWriter
 {
     private readonly IWindowsRegistryService _reg;
     private readonly IScheduledTaskStateService _tasks;

@@ -8,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppIconResolver : IAppIconResolver
+internal class AppIconResolver : IAppIconResolver
 {
     private const string CacheSubDir = @"Winhance\IconCache";
 

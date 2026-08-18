@@ -4,7 +4,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-public class WinGetBootstrapper : IWinGetBootstrapper
+internal class WinGetBootstrapper : IWinGetBootstrapper
 {
     private readonly WinGetComSession _comSession;
     private readonly ILogService _logService;

@@ -3,7 +3,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-public sealed class SystemDetectionContextFactory : ISystemDetectionContextFactory
+internal sealed class SystemDetectionContextFactory : ISystemDetectionContextFactory
 {
     private readonly IWindowsRegistryService _reg;
     private readonly ISystemRestoreService _restore;

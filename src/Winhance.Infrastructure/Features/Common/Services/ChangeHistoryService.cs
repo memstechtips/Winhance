@@ -6,7 +6,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 // C:\ProgramData\Winhance\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
 // Never throws - a failed receipt must never block the operation.
-public class ChangeHistoryService(
+internal class ChangeHistoryService(
     IFileSystemService fileSystemService,
     ILocalizationService localizationService,
     ILogService logService) : IChangeHistoryService

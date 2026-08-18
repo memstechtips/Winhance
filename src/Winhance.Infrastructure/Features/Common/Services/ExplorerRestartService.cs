@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public sealed class ExplorerRestartService : IExplorerRestartService
+internal sealed class ExplorerRestartService : IExplorerRestartService
 {
     private const string ExplorerProcessName = "explorer";
     private const string ExplorerExecutable = "explorer.exe";

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
+internal class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
     private volatile List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;

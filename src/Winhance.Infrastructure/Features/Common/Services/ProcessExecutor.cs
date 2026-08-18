@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ProcessExecutor : IProcessExecutor
+internal class ProcessExecutor : IProcessExecutor
 {
     public async Task<ProcessExecutionResult> ExecuteAsync(
         string fileName,

@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public sealed class SystemRestoreService(ILogService logService) : ISystemRestoreService
+internal sealed class SystemRestoreService(ILogService logService) : ISystemRestoreService
 {
     private const string SystemRestoreClientGuid = "{09F7EDC5-294E-4180-AF6A-FB0E6A0E9513}";
     private const string SppClientsKeyPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SPP\Clients";

@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SponsorsService : ISponsorsService
+internal class SponsorsService : ISponsorsService
 {
     private const string LiveUrl = "https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/sponsors.json";
     private const string UserAgent = "Winhance-Sponsors-Loader";

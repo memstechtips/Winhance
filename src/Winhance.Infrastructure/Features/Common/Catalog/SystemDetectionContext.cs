@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
 // One instance per detection batch - it holds that batch's pre-fetch cache.
-public sealed class SystemDetectionContext : IPrefetchableDetectionContext
+internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
 {
     private readonly IWindowsRegistryService _reg;
     private readonly ISystemRestoreService _restore;

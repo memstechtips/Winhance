@@ -10,7 +10,7 @@ using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppStatusDiscoveryService(
+internal class AppStatusDiscoveryService(
     ILogService logService,
     IWinGetBootstrapper winGetBootstrapper,
     IWinGetDetectionService winGetDetectionService,

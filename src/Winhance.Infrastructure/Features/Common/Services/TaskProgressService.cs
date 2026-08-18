@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class TaskProgressService : ITaskProgressService, IMultiScriptProgressService
+internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressService
 {
     private const int MaxTerminalOutputLines = 10_000;
 

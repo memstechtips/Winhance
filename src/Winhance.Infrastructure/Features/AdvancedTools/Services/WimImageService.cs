@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class WimImageService : IWimImageService
+internal class WimImageService : IWimImageService
 {
     private readonly IFileSystemService _fileSystemService;
     private readonly IProcessExecutor _processExecutor;

@@ -11,7 +11,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SettingApplicationService(
+internal class SettingApplicationService(
     ICatalogSettingsRegistry settingsRegistry,
     ISpecialSettingHandlerRegistry specialHandlerRegistry,
     ILogService logService,

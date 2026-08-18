@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class WindowsUIManagementService : IWindowsUIManagementService
+internal class WindowsUIManagementService : IWindowsUIManagementService
 {
     // The shell's taskbar window class. Its presence IS the definition of "a shell is running", and it is
     // the window the graceful-exit message is posted to.

@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerCfgApplier(
+internal class PowerCfgApplier(
     IHardwareDetectionService hardwareDetectionService,
     ILogService logService) : IPowerCfgApplier
 {

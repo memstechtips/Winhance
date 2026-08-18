@@ -8,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ExternalAppUninstallService(
+internal class ExternalAppUninstallService(
     IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,

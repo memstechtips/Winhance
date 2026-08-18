@@ -6,7 +6,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
@@ -17,7 +16,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly IWindowsVersionFilterService _windowsVersionFilter;
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILogService _logService;
-    private readonly AutounattendScriptBuilder _scriptBuilder;
+    private readonly IAutounattendScriptBuilder _scriptBuilder;
     private readonly IPowerShellRunner _powerShellRunner;
     private readonly ISelectedAppsProvider _selectedAppsProvider;
 
@@ -26,7 +25,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         IWindowsVersionFilterService windowsVersionFilter,
         ICatalogSettingStateProvider settingStateProvider,
         ILogService logService,
-        AutounattendScriptBuilder scriptBuilder,
+        IAutounattendScriptBuilder scriptBuilder,
         IPowerShellRunner powerShellRunner,
         ISelectedAppsProvider selectedAppsProvider)
     {

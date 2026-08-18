@@ -2,7 +2,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class FileSystemService : IFileSystemService
+internal class FileSystemService : IFileSystemService
 {
     public bool FileExists(string path) => File.Exists(path);
     public string ReadAllText(string path) => File.ReadAllText(path);

@@ -9,7 +9,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 // No untyped RawValues bag: registry readings live on Readings, powercfg AC/DC on the typed AcValue/DcValue.
 // Gated by CatalogSettingStateProviderConformanceTests.
-public sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
+internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 {
     private readonly ICatalogDetectionService _detection;
     private readonly IComboBoxResolver _comboBoxResolver;

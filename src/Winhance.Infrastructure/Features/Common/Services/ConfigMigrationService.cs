@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ConfigMigrationService : IConfigMigrationService
+internal class ConfigMigrationService : IConfigMigrationService
 {
     private readonly ILogService _logService;
 

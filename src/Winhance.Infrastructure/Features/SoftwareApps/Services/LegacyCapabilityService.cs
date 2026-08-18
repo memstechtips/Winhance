@@ -5,7 +5,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class LegacyCapabilityService(
+internal class LegacyCapabilityService(
     ILogService logService) : ILegacyCapabilityService
 {
     public Task<bool> EnableCapabilityAsync(

@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class HardwareDetectionService : IHardwareDetectionService
+internal class HardwareDetectionService : IHardwareDetectionService
 {
     private readonly ILogService _logService;
 

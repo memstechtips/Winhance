@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-public static class WinGetCliRunner
+internal static class WinGetCliRunner
 {
     private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 

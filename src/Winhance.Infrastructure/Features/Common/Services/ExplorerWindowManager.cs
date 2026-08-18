@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ExplorerWindowManager(
+internal class ExplorerWindowManager(
     IProcessExecutor processExecutor,
     ILogService logService) : IExplorerWindowManager
 {

@@ -11,7 +11,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class PowerPlanActivationService(
+internal class PowerPlanActivationService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
     IPowerSchemeOperations powerSchemeOperations,

@@ -6,7 +6,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class RecommendedSettingsApplier(
+internal class RecommendedSettingsApplier(
     ICatalogSettingsRegistry catalogSettingsRegistry,
     IWindowsVersionService versionService,
     IProcessRestartManager processRestartManager,

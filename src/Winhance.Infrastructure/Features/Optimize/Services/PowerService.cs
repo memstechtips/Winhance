@@ -6,7 +6,7 @@ using Winhance.Core.Features.Optimize.Models;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class PowerService(
+internal class PowerService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
     IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler

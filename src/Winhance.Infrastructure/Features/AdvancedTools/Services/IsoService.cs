@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class IsoService : IIsoService
+internal class IsoService : IIsoService
 {
     private static readonly Regex DriveLetterRegex = new(@"\b[A-Z]\b", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;

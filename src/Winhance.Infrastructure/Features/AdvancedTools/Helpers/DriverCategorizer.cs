@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 
-public class DriverCategorizer(ILogService logService, IFileSystemService fileSystemService) : IDriverCategorizer
+internal class DriverCategorizer(ILogService logService, IFileSystemService fileSystemService) : IDriverCategorizer
 {
     private static readonly HashSet<string> StorageClasses = new(StringComparer.OrdinalIgnoreCase)
     {

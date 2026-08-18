@@ -6,7 +6,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class BulkSettingsActionService(
+internal class BulkSettingsActionService(
     ICatalogSettingsRegistry settingsRegistry,
     IWindowsVersionService versionService,
     ISettingApplicationService settingApplicationService,

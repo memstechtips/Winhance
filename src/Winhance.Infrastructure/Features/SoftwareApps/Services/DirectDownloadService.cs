@@ -12,7 +12,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class DirectDownloadService : IDirectDownloadService
+internal class DirectDownloadService : IDirectDownloadService
 {
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;

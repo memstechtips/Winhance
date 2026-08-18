@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerSchemeOperations : IPowerSchemeOperations
+internal class PowerSchemeOperations : IPowerSchemeOperations
 {
     public uint DeleteScheme(Guid schemeGuid)
     {

@@ -10,7 +10,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemInfoProvider : ISystemInfoProvider
+internal class SystemInfoProvider : ISystemInfoProvider
 {
     // Rows are materialised so nothing WMI-shaped escapes this file.
     internal delegate IReadOnlyList<IReadOnlyDictionary<string, object?>> WmiQuery(

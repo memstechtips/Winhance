@@ -6,7 +6,7 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class RemovalScriptUpdateService : IRemovalScriptUpdateService
+internal class RemovalScriptUpdateService : IRemovalScriptUpdateService
 {
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;

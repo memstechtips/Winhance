@@ -5,7 +5,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class OptionalFeatureService(
+internal class OptionalFeatureService(
     ILogService logService) : IOptionalFeatureService
 {
     public Task<bool> EnableFeatureAsync(

@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
 // Each setting's detection is isolated in a try/catch so one failure cannot abort the batch.
-public sealed class CatalogDetectionService : ICatalogDetectionService
+internal sealed class CatalogDetectionService : ICatalogDetectionService
 {
     private readonly ISystemDetectionContextFactory _contextFactory;
     private readonly ILogService _log;

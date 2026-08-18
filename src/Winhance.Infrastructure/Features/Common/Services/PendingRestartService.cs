@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public sealed class PendingRestartService(IEventBus eventBus, ILogService logService) : IPendingRestartService
+internal sealed class PendingRestartService(IEventBus eventBus, ILogService logService) : IPendingRestartService
 {
     // Settings are applied from background threads, and in parallel during a bulk apply, so every read
     // and write of the set is gated. PendingSettingIds hands back a copy for the same reason - the UI

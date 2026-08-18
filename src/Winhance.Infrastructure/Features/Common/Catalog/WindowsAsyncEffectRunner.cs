@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-public class WindowsAsyncEffectRunner(
+internal class WindowsAsyncEffectRunner(
     IPowerShellRunner powerShell,
     IRegImportService regImport,
     ILogService log) : IAsyncEffectRunner

@@ -1,4 +1,5 @@
 using System.Text;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -8,7 +9,7 @@ using Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class AutounattendScriptBuilder
+internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
 {
     private readonly ILogService _logService;
     private readonly IPowerShellRunner _powerShellRunner;

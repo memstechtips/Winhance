@@ -7,7 +7,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class RepoIconSource(HttpClient httpClient, ILogService logService) : IRepoIconSource
+internal class RepoIconSource(HttpClient httpClient, ILogService logService) : IRepoIconSource
 {
     private const string BaseUrl = "https://cdn.jsdelivr.net/gh/memstechtips/package-icons@main/";
     private const string UserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";

@@ -7,7 +7,7 @@ using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
+internal class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
 {
     private readonly ISettingApplicationService _settingApplicationService;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;

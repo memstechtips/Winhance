@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ComboBoxResolver : IComboBoxResolver
+internal class ComboBoxResolver : IComboBoxResolver
 {
     private readonly IWindowsVersionService _versionService;
 

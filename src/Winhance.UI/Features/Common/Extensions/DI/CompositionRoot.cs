@@ -10,7 +10,6 @@ public static class CompositionRoot
     {
         services
             .AddInfrastructureServices()
-            .AddSettingServices()
             .AddUIServices();
 
         return services;

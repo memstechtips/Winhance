@@ -5,7 +5,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 // Holds the machine CONTEXT (build, hardware caps, existence-passed id set) resolved once in InitializeAsync,
 // and answers membership as a PURE QUERY over (catalog x context x scope) - no mutable filter flag.
-public sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
+internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 {
     private readonly IWindowsVersionService _version;
     private readonly IHardwareDetectionService _hardware;

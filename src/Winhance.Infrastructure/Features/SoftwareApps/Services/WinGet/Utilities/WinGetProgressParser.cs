@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-public static class WinGetProgressParser
+internal static class WinGetProgressParser
 {
     public enum WinGetPhase
     {

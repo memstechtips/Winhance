@@ -6,7 +6,7 @@ using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-public sealed class ThemeWallpaperApplier(
+internal sealed class ThemeWallpaperApplier(
     IWallpaperService wallpaperService,
     IWindowsVersionService versionService,
     IStateWriter stateWriter,

@@ -7,7 +7,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 // Mono-light source (white-ish marks): only .light.png - the primary already renders in dark mode. Mono-dark
 // source (dark-grey marks like Xbox Game Bar): both .light.png AND .dark.png - the primary's #333 tone reads as
 // faded against either card. Mid-grey or coloured: nothing.
-public static class LightVariantSynthesizer
+internal static class LightVariantSynthesizer
 {
     // Target colors for the synthesized variants. Light-variant: sampled from
     // Win11's own `lightunplated` AppX renders in Settings → Apps (typical

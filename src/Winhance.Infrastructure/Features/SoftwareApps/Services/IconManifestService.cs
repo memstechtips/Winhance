@@ -4,7 +4,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class IconManifestService(HttpClient httpClient, ILogService logService) : IIconManifestService
+internal class IconManifestService(HttpClient httpClient, ILogService logService) : IIconManifestService
 {
     private const string ManifestUrl =
         "https://cdn.jsdelivr.net/gh/memstechtips/package-icons@main/manifest.json";

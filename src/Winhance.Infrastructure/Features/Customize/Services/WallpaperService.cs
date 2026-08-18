@@ -5,7 +5,7 @@ using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-public class WallpaperService : IWallpaperService
+internal class WallpaperService : IWallpaperService
 {
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;

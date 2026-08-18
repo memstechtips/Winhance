@@ -8,7 +8,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemBackupService : ISystemBackupService
+internal class SystemBackupService : ISystemBackupService
 {
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;

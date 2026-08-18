@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class UserPreferencesService : IUserPreferencesService
+internal class UserPreferencesService : IUserPreferencesService
 {
     private const string PreferencesFileName = "UserPreferences.json";
     private readonly ILogService _logService;

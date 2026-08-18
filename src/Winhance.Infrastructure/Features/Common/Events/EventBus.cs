@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Events;
 
-public class EventBus : IEventBus
+internal class EventBus : IEventBus
 {
     private readonly ILogService _logService;
     private readonly Dictionary<Type, List<Subscription>> _subscriptions = new();

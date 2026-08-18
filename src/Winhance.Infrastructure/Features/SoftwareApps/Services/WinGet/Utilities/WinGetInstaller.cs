@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-public class WinGetInstaller
+internal class WinGetInstaller
 {
     private readonly ILogService? _logService;
     private readonly ILocalizationService? _localization;

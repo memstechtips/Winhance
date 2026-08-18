@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
 using Xunit;
@@ -46,6 +47,8 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(ICatalogDetectionService))]
     [InlineData(typeof(IStateWriter))]
     [InlineData(typeof(IRegImportService))]
+    [InlineData(typeof(ISpecialSettingHandlerRegistry))]
+    [InlineData(typeof(IAutounattendScriptBuilder))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         using var provider = BuildProvider();
@@ -98,9 +101,8 @@ public class InfrastructureContainerSmokeTests
         var services = new ServiceCollection();
         services.AddInfrastructureServices();
 
-        // Note: ValidateOnBuild is not used here because some services have
-        // cross-layer dependencies (e.g., dispatcher registries need domain
-        // services registered by the UI layer). We verify individual resolution instead.
+        // No ValidateOnBuild: WindowsAppsService takes IDialogService, which only the UI layer
+        // registers, so a full graph validation cannot pass on the Infrastructure container alone.
         var action = () => services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,

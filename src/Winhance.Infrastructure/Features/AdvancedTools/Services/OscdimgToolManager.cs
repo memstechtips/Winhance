@@ -6,7 +6,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class OscdimgToolManager : IOscdimgToolManager
+internal class OscdimgToolManager : IOscdimgToolManager
 {
     private readonly IFileSystemService _fileSystemService;
     private readonly ILogService _logService;

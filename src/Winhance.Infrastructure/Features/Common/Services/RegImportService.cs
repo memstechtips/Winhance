@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class RegImportService(
+internal class RegImportService(
     IInteractiveUserService interactiveUserService,
     IFileSystemService fileSystemService,
     IProcessExecutor processExecutor,

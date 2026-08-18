@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ProcessRestartManager(
+internal class ProcessRestartManager(
     IWindowsUIManagementService uiManagementService,
     IConfigImportState configImportState,
     IPendingRestartService pendingRestartService,

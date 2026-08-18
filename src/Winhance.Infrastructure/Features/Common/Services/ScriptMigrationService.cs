@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ScriptMigrationService : IScriptMigrationService
+internal class ScriptMigrationService : IScriptMigrationService
 {
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;

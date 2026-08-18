@@ -7,7 +7,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 // PowerCfgApplier -> ComboBoxResolver -> ISystemSettingsDiscoveryService -> the discovery registry); resolving the
 // handlers inside the registry's DI factory would re-enter singleton construction and DEADLOCK. Deferring to first
 // use breaks that cycle - by lookup time every singleton is already built, so the factory just returns cached ones.
-public sealed class SpecialSettingHandlerRegistry : ISpecialSettingHandlerRegistry
+internal sealed class SpecialSettingHandlerRegistry : ISpecialSettingHandlerRegistry
 {
     private readonly Lazy<IReadOnlyDictionary<string, ISpecialSettingHandler>> _handlers;
 

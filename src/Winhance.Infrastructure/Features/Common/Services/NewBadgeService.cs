@@ -4,7 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class NewBadgeService : INewBadgeService
+internal class NewBadgeService : INewBadgeService
 {
     private readonly IUserPreferencesService _prefs;
     private readonly ILogService _logService;

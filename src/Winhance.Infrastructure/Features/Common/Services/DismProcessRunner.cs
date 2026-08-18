@@ -7,7 +7,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class DismProcessRunner : IDismProcessRunner
+internal class DismProcessRunner : IDismProcessRunner
 {
     private readonly IProcessExecutor _processExecutor;
     private readonly ILogService _logService;

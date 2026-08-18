@@ -5,7 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class UpdateService(
+internal class UpdateService(
     ILogService logService,
     IWindowsRegistryService registryService,
     IProcessExecutor processExecutor,

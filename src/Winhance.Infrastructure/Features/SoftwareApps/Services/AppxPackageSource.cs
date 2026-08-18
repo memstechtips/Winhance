@@ -5,7 +5,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppxPackageSource(
+internal class AppxPackageSource(
     ILogService logService,
     IPowerShellRunner powerShellRunner) : IAppxPackageSource
 {

@@ -8,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class WindowsAppUninstallService(
+internal class WindowsAppUninstallService(
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IBloatRemovalService bloatRemovalService,

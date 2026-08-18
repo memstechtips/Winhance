@@ -3,7 +3,7 @@ using Winhance.Core.Features.Common.Interfaces;
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 // Bumping CurrentSchemaVersion forces every machine to purge the cache once on next launch.
-public class IconCacheMigration(ILogService logService)
+internal class IconCacheMigration(ILogService logService)
 {
     public const int CurrentSchemaVersion = 2;
 

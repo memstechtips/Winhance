@@ -3,7 +3,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class WindowsVersionService : IWindowsVersionService
+internal class WindowsVersionService : IWindowsVersionService
 {
     private readonly ILogService _logService;
 
