@@ -1,8 +1,6 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Models;

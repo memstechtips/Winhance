@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
 /// <summary>

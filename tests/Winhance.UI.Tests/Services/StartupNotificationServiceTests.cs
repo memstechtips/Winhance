@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
@@ -43,7 +40,10 @@ public interface IProcessExecutor
     /// Launches a process using shell execution (UseShellExecute=true).
     /// Used for opening URLs, Explorer windows, interactive installers, and regedit.
     /// </summary>
+    /// <param name="fileName">What the shell should open: an executable, a document, or a URL.</param>
+    /// <param name="arguments">Command line for <paramref name="fileName"/>, if any.</param>
     /// <param name="waitForExit">If true, waits for the process to exit and returns exit code.</param>
+    /// <param name="ct">Stops the wait when <paramref name="waitForExit"/> is true; the launched process keeps running.</param>
     /// <returns>The exit code if waitForExit is true; 0 if launched successfully without waiting; null if the process failed to start.</returns>
     Task<int?> ShellExecuteAsync(
         string fileName,

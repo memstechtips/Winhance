@@ -1,4 +1,3 @@
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;

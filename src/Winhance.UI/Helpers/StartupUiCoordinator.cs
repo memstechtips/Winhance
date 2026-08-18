@@ -10,9 +10,6 @@ using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Winhance.UI.Helpers;
 

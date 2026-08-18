@@ -1,4 +1,3 @@
-using System.IO;
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;

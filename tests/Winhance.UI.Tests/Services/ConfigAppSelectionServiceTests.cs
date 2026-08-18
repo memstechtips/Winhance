@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;

@@ -1,11 +1,9 @@
 using System.Collections.ObjectModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
 

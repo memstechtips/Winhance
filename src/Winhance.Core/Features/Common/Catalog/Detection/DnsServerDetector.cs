@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Detects the DNS-server selection: an automatic (DHCP) adapter resolves to the automatic state;

@@ -120,6 +120,11 @@ dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using
 dotnet_diagnostic.IDE0035.severity = warning   # unreachable code
 dotnet_diagnostic.IDE0080.severity = warning   # unnecessary suppression operator
 dotnet_diagnostic.IDE0040.severity = warning   # accessibility modifiers required
+# The three ':warning' option suffixes above (var when apparent, file-scoped namespaces, usings outside the
+# namespace) are honoured by the IDE but not by the SDK's command-line build; these lines are what the gate sees.
+dotnet_diagnostic.IDE0007.severity = warning   # use var when the right-hand side names the type
+dotnet_diagnostic.IDE0161.severity = warning   # file-scoped namespace
+dotnet_diagnostic.IDE0065.severity = warning   # using directives outside the namespace
 dotnet_diagnostic.CA1822.severity = suggestion # member can be static — often signals a stateless "abstraction"
 
 # CA1031 (do not catch general Exception) is the classic anti-defensive-bloat rule,

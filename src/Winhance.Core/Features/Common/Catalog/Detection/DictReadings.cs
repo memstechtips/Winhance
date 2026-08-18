@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A simple in-memory <see cref="IStateReadings"/> the discovery layer populates per setting:

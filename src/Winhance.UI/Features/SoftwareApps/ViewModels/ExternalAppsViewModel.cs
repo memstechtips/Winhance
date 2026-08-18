@@ -11,7 +11,6 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;

@@ -1,10 +1,6 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -51,7 +47,7 @@ public class VersionService : IVersionService
             }
 
             // Get the InformationalVersion which can include the -beta tag
-            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(location);
+            var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0";
 
             // Trim any build metadata (anything after the + symbol)
@@ -109,7 +105,7 @@ public class VersionService : IVersionService
                 response.EnsureSuccessStatusCode();
 
                 string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                using JsonDocument doc = JsonDocument.Parse(responseBody);
+                using var doc = JsonDocument.Parse(responseBody);
 
                 // Extract the tag name (version) from the response
                 string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
@@ -119,7 +115,7 @@ public class VersionService : IVersionService
                                       ? published
                                       : DateTime.MinValue;
 
-                VersionInfo latestVersion = VersionInfo.FromTag(tagName);
+                var latestVersion = VersionInfo.FromTag(tagName);
 
                 // Compare with current version
                 VersionInfo currentVersion = GetCurrentVersion();

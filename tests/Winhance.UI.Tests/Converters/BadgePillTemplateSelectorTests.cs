@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Converters;
 using Xunit;
 

@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -12,8 +9,6 @@ using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
-using Winhance.UI.Features.SoftwareApps.Services;
-using Winhance.Core.Features.Common.Events;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 

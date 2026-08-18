@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
 
@@ -23,7 +21,7 @@ public class ExplorerWindowManager(
 
         try
         {
-            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            var shellType = Type.GetTypeFromProgID("Shell.Application");
             if (shellType != null)
             {
                 dynamic? shell = null;
@@ -41,7 +39,7 @@ public class ExplorerWindowManager(
                             if (string.IsNullOrEmpty(locationUrl))
                                 continue;
 
-                            Uri uri = new Uri(locationUrl);
+                            var uri = new Uri(locationUrl);
                             string windowPath = System.IO.Path.GetFullPath(uri.LocalPath)
                                 .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
                                 .ToLowerInvariant();

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;

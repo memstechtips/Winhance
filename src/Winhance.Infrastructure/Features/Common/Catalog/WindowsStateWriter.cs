@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.Versioning;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;

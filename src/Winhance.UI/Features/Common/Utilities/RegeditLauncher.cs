@@ -1,5 +1,3 @@
-using System;
-using System.Diagnostics;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;

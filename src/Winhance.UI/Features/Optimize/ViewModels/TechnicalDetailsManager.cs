@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using Winhance.Core.Features.Common.Catalog;

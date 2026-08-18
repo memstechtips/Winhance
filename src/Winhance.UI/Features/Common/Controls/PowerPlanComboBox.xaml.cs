@@ -9,7 +9,6 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Interfaces;
 using ComboBoxDisplayOption = Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption;
 using VirtualKey = Windows.System.VirtualKey;
 

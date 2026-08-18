@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Models;
 
 public class OperationResult

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Windows.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

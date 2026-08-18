@@ -1,7 +1,6 @@
 using Material.Icons;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Media;
 using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Converters;

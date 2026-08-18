@@ -1,13 +1,10 @@
-using System.Text;
 using FluentAssertions;
-using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Xunit;

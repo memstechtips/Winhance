@@ -1,8 +1,5 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Xml.Linq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -11,7 +8,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
 

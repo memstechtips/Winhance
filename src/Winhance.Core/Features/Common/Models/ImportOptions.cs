@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Models;
 
 public sealed record ImportOptions

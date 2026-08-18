@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
 /// <summary>A short metadata tag with the explanation shown on hover.</summary>
@@ -56,6 +54,8 @@ public enum MatrixGroupKind
 /// One destination a group writes to. A registry target may carry several — that is a mirror, and
 /// showing both is the only honest answer to "where does this go".
 /// </summary>
+/// <param name="Full">The destination itself: a registry path, a task path, or one of the two GUIDs a
+/// powercfg value is addressed by.</param>
 /// <param name="Label">What this destination is called — "Path" for the registry, "Subgroup" and
 /// "Setting" for the two GUIDs a powercfg value is addressed by.</param>
 public sealed record MatrixPath(string Full, string Label = "")
@@ -145,9 +145,8 @@ public sealed record MatrixCodeBlock(
     string Label,
     string Body,
     CodeKind Kind,
-    /// <summary>One line under the heading saying what this section of blocks actually does to
-    /// the machine. Repeated on every block of a section; the view draws it once, beside the
-    /// heading.</summary>
+    // One line under the heading saying what this section of blocks actually does to the machine.
+    // Repeated on every block of a section; the view draws it once, beside the heading.
     string Description = "");
 
 /// <summary>One cell: either a written value, or a check mark for the script / .reg columns.</summary>

@@ -1,4 +1,3 @@
-using System.IO;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;

@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Events;
 
 public class ReviewModeExitedEvent : IDomainEvent

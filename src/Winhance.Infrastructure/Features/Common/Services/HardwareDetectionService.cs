@@ -1,7 +1,4 @@
-using System;
-using System.Linq;
 using System.Management;
-using System.Threading;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;

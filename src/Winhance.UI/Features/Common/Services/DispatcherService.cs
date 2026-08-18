@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.UI.Dispatching;
 using Winhance.UI.Features.Common.Interfaces;
 

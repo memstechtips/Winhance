@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 

@@ -17,8 +17,7 @@ namespace Winhance.UI.Features.Common.Helpers;
 /// than English), we walk down to the placeholder TextBlock on Loaded and
 /// set TextTrimming + TextWrapping=NoWrap so it always single-lines with "...".
 ///
-/// Use as:
-///   <AutoSuggestBox helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True" />
+/// Use as <c>&lt;AutoSuggestBox helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True" /&gt;</c>.
 /// </summary>
 public static class AutoSuggestBoxExtensions
 {

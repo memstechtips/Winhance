@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 

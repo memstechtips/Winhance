@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A setting: identity (Id) + what the user sees (Display) + where/how (Targets) + what (States) +

@@ -3,8 +3,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Windowing;
 using Winhance.Core.Features.Common.Interfaces;
-using System;
-using System.Collections.Generic;
 using Windows.Graphics;
 
 namespace Winhance.UI.Helpers;

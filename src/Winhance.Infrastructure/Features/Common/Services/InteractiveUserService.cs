@@ -1,14 +1,10 @@
-using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using Winhance.Core.Features.Common.Enums;

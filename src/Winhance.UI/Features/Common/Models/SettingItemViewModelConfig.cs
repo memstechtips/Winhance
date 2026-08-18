@@ -1,6 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Models;

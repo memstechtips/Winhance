@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Open tag-set. Today: WindowsDefault, Recommended. Future presets add values here

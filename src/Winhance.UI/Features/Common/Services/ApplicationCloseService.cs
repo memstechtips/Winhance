@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;

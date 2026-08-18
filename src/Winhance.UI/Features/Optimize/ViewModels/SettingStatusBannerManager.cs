@@ -1,9 +1,7 @@
-using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 

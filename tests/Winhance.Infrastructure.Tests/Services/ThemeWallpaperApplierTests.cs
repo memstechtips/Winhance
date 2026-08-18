@@ -1,12 +1,9 @@
 // File: tests/Winhance.Infrastructure.Tests/Services/ThemeWallpaperApplierTests.cs
-using System.Collections.Generic;
-using Microsoft.Win32;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Xunit;

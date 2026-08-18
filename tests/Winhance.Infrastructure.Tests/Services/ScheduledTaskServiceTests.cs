@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;

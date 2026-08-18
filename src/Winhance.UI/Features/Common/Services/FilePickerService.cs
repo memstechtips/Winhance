@@ -1,4 +1,3 @@
-using Microsoft.UI.Xaml;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 

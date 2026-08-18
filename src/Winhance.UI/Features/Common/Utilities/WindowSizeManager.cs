@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;

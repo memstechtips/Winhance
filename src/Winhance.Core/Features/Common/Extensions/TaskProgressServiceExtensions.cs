@@ -1,4 +1,3 @@
-using System.Threading;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Core.Features.Common.Extensions;

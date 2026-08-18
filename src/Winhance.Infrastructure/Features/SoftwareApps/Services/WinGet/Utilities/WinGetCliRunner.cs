@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
@@ -161,6 +155,10 @@ public static class WinGetCliRunner
     /// <summary>
     /// Runs winget.exe with the given arguments, streaming stdout/stderr.
     /// </summary>
+    /// <param name="arguments">Command line handed to winget.exe as-is.</param>
+    /// <param name="onOutputLine">Receives each completed (\r\n-terminated) stdout line.</param>
+    /// <param name="onErrorLine">Receives each stderr line.</param>
+    /// <param name="cancellationToken">Kills the winget process tree when cancelled.</param>
     /// <param name="timeoutMs">
     /// Wall-clock kill timeout. Pass 0 (or Timeout.Infinite = -1) to disable — useful when
     /// the caller relies on <paramref name="idleTimeoutMs"/> instead. Default 5 minutes.
@@ -179,6 +177,8 @@ public static class WinGetCliRunner
     /// If provided and OTS elevation is active, runs winget as the interactive user
     /// so packages install to the correct user's scope.
     /// </param>
+    /// <param name="onProgressLine">Receives winget's transient \r-terminated progress fragments; only \r\n-terminated
+    /// lines reach <paramref name="onOutputLine"/>.</param>
     public static async Task<WinGetCliResult> RunAsync(
         string arguments,
         Action<string>? onOutputLine = null,

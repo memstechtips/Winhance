@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -8,7 +5,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -93,7 +89,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
     /// <summary>
     /// Minimum number of path segments (backslash-separated) required in the
-    /// sub-key portion of a registry path before <see cref="DeleteSubKeyTree"/>
+    /// sub-key portion of a registry path before <see cref="DeleteKey"/>
     /// is allowed. This prevents accidental deletion of top-level hive branches
     /// like <c>HKLM\SOFTWARE</c>.
     /// </summary>

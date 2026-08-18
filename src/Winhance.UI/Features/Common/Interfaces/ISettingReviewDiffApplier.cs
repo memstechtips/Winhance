@@ -1,4 +1,3 @@
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 

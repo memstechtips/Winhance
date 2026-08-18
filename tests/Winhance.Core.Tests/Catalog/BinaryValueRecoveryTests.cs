@@ -1,4 +1,3 @@
-using System;
 using System.Text;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;

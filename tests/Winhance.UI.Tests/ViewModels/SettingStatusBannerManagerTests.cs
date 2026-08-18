@@ -1,10 +1,8 @@
-using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 

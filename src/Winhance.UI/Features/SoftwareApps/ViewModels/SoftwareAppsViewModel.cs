@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
@@ -575,7 +574,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     /// <summary>
     /// Loads only the External Apps tab. Cold-start fires this in the background
-    /// (see <see cref="StartupUiCoordinator"/>); the tab's per-tab loading
+    /// (see <see cref="Helpers.StartupUiCoordinator"/>); the tab's per-tab loading
     /// overlay (bound to <see cref="ExternalAppsViewModel.IsLoading"/>) covers
     /// the case where the user clicks External Apps before resolution completes.
     /// </summary>

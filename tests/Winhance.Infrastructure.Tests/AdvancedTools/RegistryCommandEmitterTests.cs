@@ -1,6 +1,5 @@
 using System.Text;
 using FluentAssertions;
-using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;

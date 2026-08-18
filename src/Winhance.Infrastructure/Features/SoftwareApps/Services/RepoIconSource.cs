@@ -1,10 +1,5 @@
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 using Winhance.Core.Features.Common.Interfaces;

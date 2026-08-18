@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;

@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -15,7 +14,6 @@ using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Pages;
-using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -27,9 +25,9 @@ namespace Winhance.UI.Features.Common.Controls;
 ///
 /// A single record beats one abstract property per element: it is one block to read, one place a
 /// page can fail to supply something, and adding a shared control means one parameter rather than
-/// an abstract member plus an override in every page.
+/// an abstract member plus an override in every page. <c>OverviewScroller</c>, the outer scroller for
+/// the section cards, is also where the PageUp/PageDown handling is attached.
 /// </summary>
-/// <param name="OverviewScroller">Outer scroller for the section cards; receives PageUp/PageDown handling.</param>
 public sealed record SectionPageChrome(
     ScrollView OverviewScroller,
     UIElement OverviewContent,

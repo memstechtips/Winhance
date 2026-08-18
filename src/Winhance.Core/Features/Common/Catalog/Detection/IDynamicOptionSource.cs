@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A selectable option produced at runtime (not authored as a static State). <see cref="Value"/> is the

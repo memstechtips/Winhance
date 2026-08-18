@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Interfaces;
 using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellScriptUtilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;

@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;

@@ -3,15 +3,12 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.AdvancedTools;
-using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
 using Microsoft.UI.Dispatching;
-using System;
-using System.Collections.Generic;
 
 namespace Winhance.UI.Helpers;
 

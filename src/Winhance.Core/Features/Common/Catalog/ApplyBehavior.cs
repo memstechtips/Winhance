@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Apply-time behaviour around a setting: a confirmation gate, a recommended reboot, a

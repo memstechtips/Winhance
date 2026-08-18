@@ -3,7 +3,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 
@@ -14,7 +13,7 @@ public record ItemDefinition : BaseDefinition
     public string? OptionalFeatureName { get; init; }
     public string? ChocoPackageId { get; init; }
     /// <summary>
-    /// When set, replaces the winget manifest's InstallerSwitches entirely via `winget install --override "<value>"`.
+    /// When set, replaces the winget manifest's InstallerSwitches entirely via <c>winget install --override "&lt;value&gt;"</c>.
     /// Use to work around upstream manifests that pass broken switches to the underlying installer.
     /// </summary>
     public string? WinGetInstallerOverride { get; init; }

@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.TestSupport;
 using Xunit;
 

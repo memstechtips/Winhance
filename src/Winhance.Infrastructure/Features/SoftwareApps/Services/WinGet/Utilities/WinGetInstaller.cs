@@ -1,8 +1,6 @@
 // Native C# WinGet installer using PowerShell Add-AppxProvisionedPackage for machine-wide provisioning,
 // with PackageManager WinRT API fallback.
-using System.IO;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Text;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;

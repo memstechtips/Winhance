@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The machine capabilities a catalog membership filter needs (battery / hybrid-sleep).</summary>

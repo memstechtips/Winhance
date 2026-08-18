@@ -19,9 +19,7 @@ using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
-using System;
 using System.ComponentModel;
-using System.Threading.Tasks;
 using Windows.Foundation;
 using Winhance.UI.Features.Common.Helpers;
 

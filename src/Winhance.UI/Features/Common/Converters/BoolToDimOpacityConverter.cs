@@ -1,4 +1,3 @@
-using System;
 using Microsoft.UI.Xaml.Data;
 
 namespace Winhance.UI.Features.Common.Converters;

@@ -1,14 +1,11 @@
-using System.Linq;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;

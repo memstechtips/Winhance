@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;

@@ -1,4 +1,3 @@
-using System.Linq;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;

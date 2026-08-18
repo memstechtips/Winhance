@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 

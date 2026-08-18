@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Management;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;

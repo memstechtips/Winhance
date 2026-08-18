@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Winhance.Core.Features.Common.Utils;
 
 public static class SearchHelper

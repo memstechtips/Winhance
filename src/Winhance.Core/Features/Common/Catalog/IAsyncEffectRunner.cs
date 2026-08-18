@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Runs the apply effects that launch a process and wait for it (a PowerShell script, a .reg

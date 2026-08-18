@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Detects the taskbar tray "promoted icons" state by counting IsPromoted across the notify-icon

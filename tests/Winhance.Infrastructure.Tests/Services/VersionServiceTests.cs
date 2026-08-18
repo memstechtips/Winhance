@@ -4,7 +4,6 @@ using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 

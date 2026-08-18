@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;

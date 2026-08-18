@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace Winhance.Core.Features.Common.Interfaces;
 
 /// <summary>Imports .reg content by writing it to a temp file and running reg.exe import, handling OTS elevation

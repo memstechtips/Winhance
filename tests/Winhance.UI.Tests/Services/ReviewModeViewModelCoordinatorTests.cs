@@ -1,13 +1,10 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
-using Winhance.UI.Features.Customize.ViewModels;
-using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 

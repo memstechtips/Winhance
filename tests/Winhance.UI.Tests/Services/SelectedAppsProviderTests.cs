@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;

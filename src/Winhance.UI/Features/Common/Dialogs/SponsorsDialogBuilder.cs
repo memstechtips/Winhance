@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -125,7 +122,7 @@ internal class SponsorsDialogBuilder
         // Build methods return UIElement; Grid.SetRow needs a FrameworkElement,
         // so type these locals as FrameworkElement (every concrete element
         // returned -- Grid, StackPanel, ScrollViewer, TextBlock -- is one).
-        FrameworkElement header = (FrameworkElement)BuildHeader(isDark);
+        var header = (FrameworkElement)BuildHeader(isDark);
         Grid.SetRow(header, 0);
         root.Children.Add(header);
 
@@ -139,7 +136,7 @@ internal class SponsorsDialogBuilder
         Grid.SetRow(sponsorScroll, 1);
         root.Children.Add(sponsorScroll);
 
-        FrameworkElement supportersHeader = (FrameworkElement)BuildSupportersHeader(data);
+        var supportersHeader = (FrameworkElement)BuildSupportersHeader(data);
         Grid.SetRow(supportersHeader, 2);
         root.Children.Add(supportersHeader);
 
@@ -153,11 +150,11 @@ internal class SponsorsDialogBuilder
         Grid.SetRow(supportersScroll, 3);
         root.Children.Add(supportersScroll);
 
-        FrameworkElement cta = (FrameworkElement)BuildCtaRow();
+        var cta = (FrameworkElement)BuildCtaRow();
         Grid.SetRow(cta, 4);
         root.Children.Add(cta);
 
-        FrameworkElement disclaimer = (FrameworkElement)BuildDisclaimer();
+        var disclaimer = (FrameworkElement)BuildDisclaimer();
         Grid.SetRow(disclaimer, 5);
         root.Children.Add(disclaimer);
 

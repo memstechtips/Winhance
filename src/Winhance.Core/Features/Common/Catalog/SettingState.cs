@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>One choice the user can pick. A toggle has two; an Action has none. Detection reads <see cref="Set"/>;

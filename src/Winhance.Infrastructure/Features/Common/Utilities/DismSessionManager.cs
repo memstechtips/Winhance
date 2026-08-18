@@ -1,7 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;

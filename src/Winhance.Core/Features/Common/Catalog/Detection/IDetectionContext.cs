@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>The platform reads a custom detector needs, abstracted so detectors are unit-testable without

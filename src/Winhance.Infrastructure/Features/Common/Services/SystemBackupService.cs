@@ -1,8 +1,5 @@
-using System;
 using System.Globalization;
 using System.Management;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;

@@ -4,7 +4,6 @@ using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;

@@ -1,6 +1,4 @@
 // File: src/Winhance.Infrastructure/Features/Common/Services/SpecialSettingHandlerRegistry.cs
-using System;
-using System.Collections.Generic;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;

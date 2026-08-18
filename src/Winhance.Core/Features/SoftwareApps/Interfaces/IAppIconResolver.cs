@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -25,12 +22,14 @@ public interface IAppIconResolver
     /// and stamps ItemDefinition.IconPath on success. Failures are logged and
     /// swallowed — IconPath stays null on any per-entry or batch-level failure.
     /// </summary>
+    /// <param name="definitions">Candidates; entries with no routable identity (no AppX name and no repo icon key) are skipped.</param>
     /// <param name="applyThemeAdaptation">
     /// When true (Windows Apps), cached icons get theme adaptation: uniform
     /// backplates are cropped and monochrome icons get synthesized light/dark
     /// variants. When false (External Apps), vendor brand logos are cached
     /// exactly as shipped — only the basic transparent-border trim is applied.
     /// </param>
+    /// <param name="ct">Checked between entries; the rest of the batch is skipped once cancelled.</param>
     Task ResolveBatchAsync(
         IEnumerable<ItemDefinition> definitions,
         bool applyThemeAdaptation = true,

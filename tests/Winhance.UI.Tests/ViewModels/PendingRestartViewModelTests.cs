@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Events;

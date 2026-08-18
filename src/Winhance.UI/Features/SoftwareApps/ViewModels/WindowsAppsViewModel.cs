@@ -3,7 +3,6 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,7 +11,6 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -303,12 +301,12 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
     }
 
-    [RelayCommand]
     /// <summary>
     /// Resolves AppX icons for installed entries and notifies their ViewModels.
     /// No-op when no resolver was injected (e.g. legacy test construction).
     /// Failures are logged and swallowed — icon resolution must never block the load flow.
     /// </summary>
+    [RelayCommand]
     private async Task ResolveIconsAsync()
     {
         if (_iconResolver is null) return;

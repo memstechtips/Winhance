@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A numeric (slider) setting: a continuous range instead of enumerated states. Min/Max bound the

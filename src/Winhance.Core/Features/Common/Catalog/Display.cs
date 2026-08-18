@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>Everything the user sees for a setting. Name/Description/GroupName are the English source text and

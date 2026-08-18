@@ -10,7 +10,6 @@ using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.ViewModels;
-using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;

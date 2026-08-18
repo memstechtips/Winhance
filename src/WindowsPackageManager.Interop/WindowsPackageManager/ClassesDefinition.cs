@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
 using Microsoft.Management.Deployment;
 
 namespace WindowsPackageManager.Interop;
@@ -106,7 +104,7 @@ internal static class ClassesDefinition
     /// <summary>
     /// Validate that the provided type is defined.
     /// </summary>
-    /// <param name="type">Projected class type</param>
+    /// <typeparam name="TType">Projected class type</typeparam>
     /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     private static void ValidateType<TType>()
     {

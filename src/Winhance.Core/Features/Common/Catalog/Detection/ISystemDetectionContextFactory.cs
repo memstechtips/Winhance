@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
 /// <summary>A detection context that pre-fetches its asynchronous reads (scheduled tasks, powercfg values, the
