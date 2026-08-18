@@ -28,8 +28,7 @@ internal class SystemInfoProvider : ISystemInfoProvider
     // hardware of whoever runs them.
     internal SystemInfoProvider(IInteractiveUserService interactiveUserService, WmiQuery? query)
     {
-        _interactiveUserService = interactiveUserService
-            ?? throw new ArgumentNullException(nameof(interactiveUserService));
+        _interactiveUserService = interactiveUserService;
         _query = query ?? RunWmiQuery;
     }
 

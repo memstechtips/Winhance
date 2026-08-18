@@ -25,10 +25,10 @@ public class UiZoomManager
         IUserPreferencesService preferences,
         ILogService logService)
     {
-        _viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
-        _zoomHost = zoomHost ?? throw new ArgumentNullException(nameof(zoomHost));
-        _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _viewport = viewport;
+        _zoomHost = zoomHost;
+        _preferences = preferences;
+        _logService = logService;
 
         _scale = new ScaleTransform();
         _zoomHost.RenderTransform = _scale;

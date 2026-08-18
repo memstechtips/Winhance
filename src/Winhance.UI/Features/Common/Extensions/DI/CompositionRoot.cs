@@ -18,6 +18,14 @@ public static class CompositionRoot
     public static IHostBuilder CreateWinhanceHost()
     {
         return Host.CreateDefaultBuilder()
+            // The generic host validates the service graph only in the Development environment, which a shipped
+            // desktop app never is - so a registration with an unresolvable dependency would surface on first
+            // use. Force it on: a broken graph fails at startup, and WinhanceHostSmokeTests fails the gate first.
+            .UseDefaultServiceProvider(options =>
+            {
+                options.ValidateOnBuild = true;
+                options.ValidateScopes = true;
+            })
             .ConfigureServices((context, services) =>
             {
                 services.ConfigureWinhanceServices();

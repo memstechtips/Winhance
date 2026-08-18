@@ -15,7 +15,7 @@ public class SettingAppliedEvent : IDomainEvent
     {
         Timestamp = DateTime.UtcNow;
         EventId = Guid.NewGuid();
-        SettingId = settingId ?? throw new ArgumentNullException(nameof(settingId));
+        SettingId = settingId;
         IsEnabled = isEnabled;
         Value = value;
     }

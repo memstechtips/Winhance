@@ -19,8 +19,8 @@ internal class SponsorsService : ISponsorsService
 
     public SponsorsService(HttpClient httpClient, ILogService logService)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _httpClient = httpClient;
+        _logService = logService;
     }
 
     public async Task<SponsorsDocument?> GetSponsorsAsync(CancellationToken cancellationToken = default)

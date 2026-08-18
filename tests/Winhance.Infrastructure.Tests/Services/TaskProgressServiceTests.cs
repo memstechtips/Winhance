@@ -21,15 +21,6 @@ public class TaskProgressServiceTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new TaskProgressService(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
     public void Constructor_InitializesWithDefaultState()
     {
         _sut.IsTaskRunning.Should().BeFalse();

@@ -228,26 +228,6 @@ public class VersionServiceTests
         args.Should().Contain($"/DIR=\"{customPath}\"");
     }
 
-    [Fact]
-    public void Constructor_NullFileSystemService_ThrowsArgumentNullException()
-    {
-        var act = () => new VersionService(
-            _mockLogService.Object, null!, _httpClient);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("fileSystemService");
-    }
-
-    [Fact]
-    public void Constructor_NullHttpClient_ThrowsArgumentNullException()
-    {
-        var act = () => new VersionService(
-            _mockLogService.Object, _mockFileSystemService.Object, null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("httpClient");
-    }
-
     private void SetupHttpResponse(HttpStatusCode statusCode, string content)
     {
         _mockHttpHandler.Protected()

@@ -34,7 +34,7 @@ internal class DirectDownloadService : IDirectDownloadService
         _interactiveUserService = interactiveUserService;
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     private static readonly string UserAgent = "Winhance-Download-Manager";

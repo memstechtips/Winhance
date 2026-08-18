@@ -25,19 +25,6 @@ public class WallpaperServiceTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new WallpaperService(
-            null!,
-            _mockInteractiveUserService.Object,
-            _mockRegistryService.Object,
-            _mockSystemParametersService.Object);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
     public async Task SetWallpaperAsync_WhenExceptionThrown_ReturnsFalseAndLogs()
     {
         // Use OTS path so the registry mock is called before P/Invoke,

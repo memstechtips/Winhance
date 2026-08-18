@@ -27,7 +27,7 @@ internal class WinGetInstaller
         _localization = localization;
         _taskProgressService = taskProgressService;
         _fileSystemService = fileSystemService!;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     public async Task<(bool Success, string Message)> InstallAsync(

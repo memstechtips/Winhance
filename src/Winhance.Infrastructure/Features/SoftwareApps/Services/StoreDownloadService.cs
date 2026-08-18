@@ -36,7 +36,7 @@ internal class StoreDownloadService : IStoreDownloadService
         _localization = localization;
         _fileSystemService = fileSystemService;
         _logService = logService;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     public async Task<bool> DownloadAndInstallPackageAsync(

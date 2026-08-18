@@ -12,7 +12,7 @@ internal class EventBus : IEventBus
 
     public EventBus(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
     }
 
     public void Publish<TEvent>(TEvent domainEvent) where TEvent : IDomainEvent
@@ -136,7 +136,7 @@ internal class EventBus : IEventBus
         {
             SubscriptionId = subscriptionId;
             EventType = eventType;
-            _unsubscribeAction = unsubscribeAction ?? throw new ArgumentNullException(nameof(unsubscribeAction));
+            _unsubscribeAction = unsubscribeAction;
         }
 
         public void Dispose()

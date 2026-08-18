@@ -9,7 +9,7 @@ internal class WindowsVersionService : IWindowsVersionService
 
     public WindowsVersionService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
     }
 
     public int GetWindowsBuildNumber()

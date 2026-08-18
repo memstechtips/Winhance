@@ -45,15 +45,6 @@ public class SystemInfoProviderTests
     }
 
     [Fact]
-    public void Constructor_NullInteractiveUserService_ThrowsArgumentNullException()
-    {
-        var act = () => new SystemInfoProvider(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("interactiveUserService");
-    }
-
-    [Fact]
     public void Constructor_ValidService_CreatesInstance()
     {
         var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);

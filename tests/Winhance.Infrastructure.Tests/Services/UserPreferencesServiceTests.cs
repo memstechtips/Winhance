@@ -303,34 +303,4 @@ public class UserPreferencesServiceTests
 
         result.Should().BeTrue();
     }
-
-    [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new UserPreferencesService(
-            null!, _mockInteractiveUserService.Object, _mockFileSystemService.Object);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
-    public void Constructor_NullInteractiveUserService_ThrowsArgumentNullException()
-    {
-        var act = () => new UserPreferencesService(
-            _mockLogService.Object, null!, _mockFileSystemService.Object);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("interactiveUserService");
-    }
-
-    [Fact]
-    public void Constructor_NullFileSystemService_ThrowsArgumentNullException()
-    {
-        var act = () => new UserPreferencesService(
-            _mockLogService.Object, _mockInteractiveUserService.Object, null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("fileSystemService");
-    }
 }

@@ -15,7 +15,7 @@ internal class HardwareDetectionService : IHardwareDetectionService
 
     public HardwareDetectionService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
         _hasBattery = new Lazy<bool?>(QueryHasBattery, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 

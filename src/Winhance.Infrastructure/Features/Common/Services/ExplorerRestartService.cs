@@ -49,10 +49,10 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
         ILogService logService,
         Func<int, Task>? delay)
     {
-        _uiManagement = uiManagement ?? throw new ArgumentNullException(nameof(uiManagement));
-        _interactiveUser = interactiveUser ?? throw new ArgumentNullException(nameof(interactiveUser));
-        _pendingRestart = pendingRestart ?? throw new ArgumentNullException(nameof(pendingRestart));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _uiManagement = uiManagement;
+        _interactiveUser = interactiveUser;
+        _pendingRestart = pendingRestart;
+        _logService = logService;
         _delay = delay ?? (ms => Task.Delay(ms));
     }
 

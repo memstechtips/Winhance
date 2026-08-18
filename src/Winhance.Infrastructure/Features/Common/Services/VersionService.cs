@@ -28,8 +28,8 @@ internal class VersionService : IVersionService
     public VersionService(ILogService logService, IFileSystemService fileSystemService, HttpClient httpClient)
     {
         _logService = logService;
-        _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _fileSystemService = fileSystemService;
+        _httpClient = httpClient;
     }
 
     public VersionInfo GetCurrentVersion()

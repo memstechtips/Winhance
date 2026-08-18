@@ -17,7 +17,7 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
 
     public WindowsUIManagementService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
     }
 
     public bool IsProcessRunning(string processName)

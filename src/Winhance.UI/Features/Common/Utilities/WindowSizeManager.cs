@@ -33,9 +33,9 @@ public class WindowSizeManager
 
     public WindowSizeManager(AppWindow appWindow, IUserPreferencesService userPreferencesService, ILogService logService)
     {
-        _appWindow = appWindow ?? throw new ArgumentNullException(nameof(appWindow));
-        _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _appWindow = appWindow;
+        _userPreferencesService = userPreferencesService;
+        _logService = logService;
     }
 
     public async Task InitializeAsync()

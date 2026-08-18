@@ -17,15 +17,6 @@ public class WindowsVersionServiceTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new WindowsVersionService(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
     public void GetWindowsBuildNumber_ReturnsPositiveValue()
     {
         var buildNumber = _sut.GetWindowsBuildNumber();

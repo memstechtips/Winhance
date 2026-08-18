@@ -13,7 +13,7 @@ public class DispatcherService : IDispatcherService
 
     public void Initialize(DispatcherQueue dispatcherQueue)
     {
-        _dispatcherQueue = dispatcherQueue ?? throw new ArgumentNullException(nameof(dispatcherQueue));
+        _dispatcherQueue = dispatcherQueue;
     }
 
     public void RunOnUIThread(Action action)

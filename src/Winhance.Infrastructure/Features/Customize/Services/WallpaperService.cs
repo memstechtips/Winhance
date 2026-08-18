@@ -22,7 +22,7 @@ internal class WallpaperService : IWallpaperService
         IWindowsRegistryService registryService,
         ISystemParametersService systemParametersService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
         _interactiveUserService = interactiveUserService;
         _registryService = registryService;
         _systemParametersService = systemParametersService;

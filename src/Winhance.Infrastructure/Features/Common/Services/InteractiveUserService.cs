@@ -34,8 +34,8 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
     public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
+        _logService = logService;
+        _processExecutor = processExecutor;
 
         var currentSid = WindowsIdentity.GetCurrent().User?.Value;
         string? detectedSid = null;

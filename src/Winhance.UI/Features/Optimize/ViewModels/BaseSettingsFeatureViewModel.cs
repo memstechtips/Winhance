@@ -106,12 +106,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         IEventBus eventBus,
         IApplicationModeService applicationModeService)
     {
-        _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-        _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
-        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        _applicationModeService = applicationModeService ?? throw new ArgumentNullException(nameof(applicationModeService));
+        _settingsLoadingService = settingsLoadingService;
+        _logService = logService;
+        _localizationService = localizationService;
+        _dispatcherService = dispatcherService;
+        _eventBus = eventBus;
+        _applicationModeService = applicationModeService;
 
         Settings = new ObservableCollection<SettingItemViewModel>();
         GroupedSettings = new ObservableCollection<SettingsGroup>();

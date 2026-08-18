@@ -20,13 +20,6 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNull()
-    {
-        var action = () => new EventBus(null!);
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void Publish_NullEvent_ThrowsArgumentNull()
     {
         var action = () => _eventBus.Publish<SettingAppliedEvent>(null!);

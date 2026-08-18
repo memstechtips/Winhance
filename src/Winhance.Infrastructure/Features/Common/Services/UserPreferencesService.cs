@@ -24,9 +24,9 @@ internal class UserPreferencesService : IUserPreferencesService
 
     public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService, IFileSystemService fileSystemService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _interactiveUserService = interactiveUserService ?? throw new ArgumentNullException(nameof(interactiveUserService));
-        _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
+        _logService = logService;
+        _interactiveUserService = interactiveUserService;
+        _fileSystemService = fileSystemService;
     }
 
     private string GetPreferencesFilePath()

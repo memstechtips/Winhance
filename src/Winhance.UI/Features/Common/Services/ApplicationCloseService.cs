@@ -37,11 +37,11 @@ public class ApplicationCloseService : IApplicationCloseService
         IDialogService dialogService,
         ILocalizationService localizationService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _taskProgressService = taskProgressService ?? throw new ArgumentNullException(nameof(taskProgressService));
-        _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
-        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _logService = logService;
+        _taskProgressService = taskProgressService;
+        _userPreferencesService = userPreferencesService;
+        _dialogService = dialogService;
+        _localizationService = localizationService;
     }
 
     public async Task<OperationResult> CheckOperationsAndCloseAsync()

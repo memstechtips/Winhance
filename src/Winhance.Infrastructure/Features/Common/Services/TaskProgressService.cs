@@ -38,7 +38,7 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
 
     public TaskProgressService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
         _currentStatusText = string.Empty;
         _isTaskRunning = false;
         _isIndeterminate = false;

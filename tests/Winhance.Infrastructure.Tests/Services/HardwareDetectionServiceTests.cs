@@ -11,15 +11,6 @@ public class HardwareDetectionServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new HardwareDetectionService(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
     public void Constructor_ValidLogService_CreatesInstance()
     {
         var service = new HardwareDetectionService(_mockLogService.Object);
