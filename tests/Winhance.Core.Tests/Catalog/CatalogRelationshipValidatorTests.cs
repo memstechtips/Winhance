@@ -7,6 +7,11 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogRelationshipValidatorTests
 {
+    private static readonly string[] OnState = ["on"];
+    private static readonly string[] OnOffStates = ["on", "off"];
+    private static readonly string[] OnAndGhostStates = ["on", "ghost"];
+    private static readonly string[] NeutralState = ["neutral"];
+
     private static Setting S(string id, IReadOnlyList<Link>? links = null, string? uiParent = null,
         IReadOnlyDictionary<string, string>? controls = null, EnabledWhen? enabledWhen = null,
         string[]? extraStates = null)
@@ -107,7 +112,7 @@ public class CatalogRelationshipValidatorTests
     public void Valid_catalog_has_no_errors()
     {
         var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") }, uiParent: "b");
-        var b = S("b", extraStates: new[] { "on" });
+        var b = S("b", extraStates: OnState);
         Assert.Empty(CatalogValidator.ValidateCatalog(new[] { a, b }));
     }
 
@@ -122,7 +127,7 @@ public class CatalogRelationshipValidatorTests
     public void Link_naming_a_state_the_target_does_not_have_is_an_error()
     {
         var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "ghost") });
-        var b = S("b", extraStates: new[] { "on" });
+        var b = S("b", extraStates: OnState);
 
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { a, b }),
             e => e.Message.Contains("names required state 'ghost', which is not a state"));
@@ -132,7 +137,7 @@ public class CatalogRelationshipValidatorTests
     public void Link_naming_a_state_the_target_does_have_is_not_an_error()
     {
         var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "off") });
-        var b = S("b", extraStates: new[] { "on", "off" });
+        var b = S("b", extraStates: OnOffStates);
 
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { a, b }),
             e => e.Message.Contains("is not a state"));
@@ -142,7 +147,7 @@ public class CatalogRelationshipValidatorTests
     public void Controls_naming_a_state_the_child_does_not_have_is_an_error()
     {
         var master = S("a", controls: new Dictionary<string, string> { ["b"] = "ghost" });
-        var child = S("b", extraStates: new[] { "on" });
+        var child = S("b", extraStates: OnState);
 
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { master, child }),
             e => e.Message.Contains("Controls 'b' into 'ghost', which is not a state"));
@@ -152,7 +157,7 @@ public class CatalogRelationshipValidatorTests
     public void Controls_naming_a_state_the_child_does_have_is_not_an_error()
     {
         var master = S("a", controls: new Dictionary<string, string> { ["b"] = "on" });
-        var child = S("b", extraStates: new[] { "on" });
+        var child = S("b", extraStates: OnState);
 
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { master, child }),
             e => e.Message.Contains("is not a state"));
@@ -164,7 +169,7 @@ public class CatalogRelationshipValidatorTests
     public void EnabledWhen_targeting_a_missing_setting_is_an_error()
     {
         var errs = CatalogValidator.ValidateCatalog(
-            new[] { S("a", enabledWhen: new EnabledWhen("ghost", new[] { "on" })) });
+            new[] { S("a", enabledWhen: new EnabledWhen("ghost", OnState)) });
 
         Assert.Contains(errs, e => e.Message.Contains("EnabledWhen target 'ghost' is not a known setting"));
     }
@@ -172,15 +177,15 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void EnabledWhen_self_reference_is_an_error()
     {
-        Assert.Contains(CatalogValidator.Validate(S("a", enabledWhen: new EnabledWhen("a", new[] { "on" }))),
+        Assert.Contains(CatalogValidator.Validate(S("a", enabledWhen: new EnabledWhen("a", OnState))),
             e => e.Message.Contains("EnabledWhen cannot reference its own setting"));
     }
 
     [Fact]
     public void EnabledWhen_naming_a_state_the_target_does_not_have_is_an_error()
     {
-        var child = S("a", enabledWhen: new EnabledWhen("b", new[] { "on", "ghost" }));
-        var parent = S("b", extraStates: new[] { "on" });
+        var child = S("a", enabledWhen: new EnabledWhen("b", OnAndGhostStates));
+        var parent = S("b", extraStates: OnState);
 
         var errs = CatalogValidator.ValidateCatalog(new[] { child, parent });
 
@@ -194,7 +199,7 @@ public class CatalogRelationshipValidatorTests
         // A gate OBSERVES a state; it does not demand one. "Still usable while the master reads
         // Mixed" is a sane thing to declare, so the detect-only rule that guards Controls and Links
         // deliberately does not apply here.
-        var child = S("a", enabledWhen: new EnabledWhen("b", new[] { "neutral" }));
+        var child = S("a", enabledWhen: new EnabledWhen("b", NeutralState));
         var parent = new Setting
         {
             Id = "b",

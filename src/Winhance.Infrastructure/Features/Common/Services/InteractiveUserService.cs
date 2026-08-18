@@ -332,11 +332,9 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
 
-                // Wait for process exit and get exit code
-                await Task.Run(() =>
-                {
-                    UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs);
-                }).ConfigureAwait(false);
+                var waitResult = await Task.Run(() => UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs)).ConfigureAwait(false);
+                if (waitResult != UserTokenApi.WAIT_OBJECT_0)
+                    _logService.Log(LogLevel.Warning, $"Process did not signal exit within {timeoutMs}ms (wait result 0x{waitResult:X}); the exit code read below cannot be trusted");
 
                 UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode);
                 UserTokenApi.CloseHandle(processHandle);

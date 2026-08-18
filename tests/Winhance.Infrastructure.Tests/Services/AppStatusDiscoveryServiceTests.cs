@@ -10,6 +10,15 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class AppStatusDiscoveryServiceTests
 {
+    private static readonly string[] TestAppId = ["TestApp.Id"];
+    private static readonly string[] SevenZipId = ["7zip.7zip"];
+    private static readonly string[] SomePackageId = ["Some.Package"];
+    private static readonly string[] VlcId = ["VideoLAN.VLC"];
+    private static readonly string[] PkgId = ["Pkg"];
+    private static readonly string[] PkgIdQualified = ["Pkg.Id"];
+    private static readonly string[] NonExistentDetectionPath = [@"C:\NonExistent\Path\That\Does\Not\Exist"];
+    private static readonly string[] PortableAppId = ["Portable.App"];
+
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IWinGetBootstrapper> _mockWinGetBootstrapper = new();
     private readonly Mock<IWinGetDetectionService> _mockWinGetDetection = new();
@@ -130,7 +139,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext1", "Test App", winGetPackageIds: new[] { "TestApp.Id" })
+            CreateExternalAppDefinition("ext1", "Test App", winGetPackageIds: TestAppId)
         };
 
         // First call populates cache
@@ -171,7 +180,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext-7zip", "7-Zip", winGetPackageIds: new[] { "7zip.7zip" })
+            CreateExternalAppDefinition("ext-7zip", "7-Zip", winGetPackageIds: SevenZipId)
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -210,7 +219,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: new[] { "Some.Package" })
+            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: SomePackageId)
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -236,7 +245,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext-vlc", "VLC", winGetPackageIds: new[] { "VideoLAN.VLC" }, chocoPackageId: "vlc")
+            CreateExternalAppDefinition("ext-vlc", "VLC", winGetPackageIds: VlcId, chocoPackageId: "vlc")
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -261,7 +270,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: new[] { "Pkg" }, chocoPackageId: "pkg")
+            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: PkgId, chocoPackageId: "pkg")
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -280,7 +289,7 @@ public class AppStatusDiscoveryServiceTests
             .ReturnsAsync(new HashSet<string> { "7zip.7zip" });
 
         var definition = CreateExternalAppDefinition("ext-7zip", "7-Zip",
-            winGetPackageIds: new[] { "7zip.7zip" });
+            winGetPackageIds: SevenZipId);
         var definitions = new List<ItemDefinition> { definition };
 
         await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -323,7 +332,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: new[] { "Pkg" })
+            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: PkgId)
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -346,7 +355,7 @@ public class AppStatusDiscoveryServiceTests
 
         var definitions = new List<ItemDefinition>
         {
-            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: new[] { "Pkg.Id" })
+            CreateExternalAppDefinition("ext1", "App 1", winGetPackageIds: PkgIdQualified)
         };
 
         // Call twice
@@ -561,7 +570,7 @@ public class AppStatusDiscoveryServiceTests
         var definitions = new List<ItemDefinition>
         {
             CreateExternalAppDefinition("ext-portable", "Portable App",
-                detectionPaths: new[] { @"C:\NonExistent\Path\That\Does\Not\Exist" })
+                detectionPaths: NonExistentDetectionPath)
         };
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
@@ -582,7 +591,7 @@ public class AppStatusDiscoveryServiceTests
 
         var tempDir = Path.GetTempPath();
         var definition = CreateExternalAppDefinition("ext-portable", "Portable App",
-            winGetPackageIds: new[] { "Portable.App" },
+            winGetPackageIds: PortableAppId,
             detectionPaths: new[] { tempDir });
         var definitions = new List<ItemDefinition> { definition };
 

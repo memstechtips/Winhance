@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.Common.Interfaces;
@@ -28,6 +29,14 @@ public class AutounattendXmlGeneratorServiceTests
         // Default mode: version filter ON (the app default) -> the service must enumerate the
         // current-OS scope (GetAll(includeOtherOsVersions: false)).
         _mockWindowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
+
+        // The real AutounattendScriptBuilder dereferences the active power plan; return a stub.
+        _mockPowerSettingsQueryService
+            .Setup(p => p.GetActivePowerPlanAsync())
+            .ReturnsAsync(new PowerPlan { Name = "Balanced", Guid = "SCHEME_CURRENT" });
+        _mockPowerSettingsQueryService
+            .Setup(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
     }
 
     private AutounattendScriptBuilder CreateScriptBuilder()
@@ -94,19 +103,12 @@ public class AutounattendXmlGeneratorServiceTests
             .Setup(p => p.GetSelectedWindowsAppsAsync())
             .ReturnsAsync(new List<ConfigurationItem>());
 
-        // The service calls LoadEmbeddedTemplate which reads an embedded resource from the UI assembly.
-        // Since we're running tests without the actual embedded resource, this will throw
-        // FileNotFoundException. We catch and verify the provider was called before that point.
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
 
         try
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath);
-        }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
         }
         finally
         {
@@ -133,10 +135,6 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
         }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -160,10 +158,6 @@ public class AutounattendXmlGeneratorServiceTests
         try
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, selectedWindowsApps: null);
-        }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
         }
         finally
         {
@@ -191,10 +185,6 @@ public class AutounattendXmlGeneratorServiceTests
         try
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
-        }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
         }
         finally
         {
@@ -231,10 +221,6 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, new List<ConfigurationItem>());
         }
-        catch (Exception)
-        {
-            // Expected: embedded template not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -259,10 +245,6 @@ public class AutounattendXmlGeneratorServiceTests
         try
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
-        }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
         }
         finally
         {
@@ -353,10 +335,6 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
         }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -367,7 +345,7 @@ public class AutounattendXmlGeneratorServiceTests
     }
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_WithEmptyApps_DoesNotThrowBeforeTemplate()
+    public async Task GenerateFromCurrentSelectionsAsync_WithEmptyApps_Completes()
     {
         SetupEmptySettings();
 
@@ -379,16 +357,11 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
         }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        // If we reached the template loading step, the config creation succeeded
         _mockLogService.Verify(
             l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("Starting autounattend.xml generation"))),
             Times.Once);
@@ -408,17 +381,12 @@ public class AutounattendXmlGeneratorServiceTests
             .Setup(p => p.ValidateXmlSyntaxAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("XML validation failed"));
 
-        // We need the method to get past the template loading step. Since the embedded
-        // resource is not available in tests, this test verifies the overall exception
-        // handling path is correct - if the template load itself throws, the outer
-        // catch handles it.
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
 
         Func<Task> act = () => service.GenerateFromCurrentSelectionsAsync(outputPath, new List<ConfigurationItem>());
 
-        // The FileNotFoundException from the template load will be caught by the outer handler
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<Exception>().WithMessage("XML validation failed");
 
         _mockLogService.Verify(
             l => l.Log(LogLevel.Error, It.IsAny<string>()),
@@ -474,10 +442,6 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
         }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -508,8 +472,7 @@ public class AutounattendXmlGeneratorServiceTests
 
         Func<Task> act = () => service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
 
-        // Either the script validation error or the template load error will propagate
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<Exception>().WithMessage("Script syntax error");
 
         _mockLogService.Verify(
             l => l.Log(LogLevel.Error, It.IsAny<string>()),
@@ -555,10 +518,6 @@ public class AutounattendXmlGeneratorServiceTests
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
         }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
-        }
         finally
         {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -591,10 +550,6 @@ public class AutounattendXmlGeneratorServiceTests
         try
         {
             await service.GenerateFromCurrentSelectionsAsync(outputPath, apps);
-        }
-        catch (Exception)
-        {
-            // Expected: embedded template or real service dependencies not available in test context
         }
         finally
         {

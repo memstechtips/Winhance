@@ -117,13 +117,14 @@ public class LogService : ILogService, IDisposable
             try
             {
                 LogInformation("==== Winhance Log Ended ====");
-                _logWriter?.Close();
                 _logWriter?.Dispose();
             }
-            catch (Exception)
+            catch (IOException)
             {
-                // Error stopping log
+                // Nothing left to write the failure to.
             }
+            // Late log calls after Dispose become no-ops instead of ObjectDisposedExceptions.
+            _logWriter = null;
         }
     }
 
@@ -210,14 +211,11 @@ public class LogService : ILogService, IDisposable
             try
             {
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
-
-                // Write to file if log writer is available
                 _logWriter?.WriteLine(logEntry);
-
             }
-            catch (Exception)
+            catch (IOException)
             {
-                // Logging failed
+                // A logger must not take the app down because the disk write failed.
             }
         }
     }

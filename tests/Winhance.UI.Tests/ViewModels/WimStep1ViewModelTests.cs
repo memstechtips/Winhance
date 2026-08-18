@@ -10,6 +10,9 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep1ViewModelTests
 {
+    private static readonly string[] ExtractedIsoDirs = ["D:\\ExtractedIso\\sources", "D:\\ExtractedIso\\boot"];
+    private static readonly string[] InvalidDirContents = ["D:\\InvalidDir\\randomfolder"];
+
     private readonly Mock<IIsoService> _mockIsoService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -215,7 +218,7 @@ public class WimStep1ViewModelTests
 
         _mockFileSystemService
             .Setup(f => f.GetDirectories("D:\\ExtractedIso"))
-            .Returns(new[] { "D:\\ExtractedIso\\sources", "D:\\ExtractedIso\\boot" });
+            .Returns(ExtractedIsoDirs);
 
         _mockFileSystemService
             .Setup(f => f.GetFileName("D:\\ExtractedIso\\sources"))
@@ -249,7 +252,7 @@ public class WimStep1ViewModelTests
 
         _mockFileSystemService
             .Setup(f => f.GetDirectories("D:\\InvalidDir"))
-            .Returns(new[] { "D:\\InvalidDir\\randomfolder" });
+            .Returns(InvalidDirContents);
 
         _mockFileSystemService
             .Setup(f => f.GetFileName("D:\\InvalidDir\\randomfolder"))

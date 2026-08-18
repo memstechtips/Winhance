@@ -9,6 +9,8 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools.WimServices;
 
 public class OscdimgToolManagerTests
 {
+    private static readonly string[] WinGetOscdimgPackageDir = [@"C:\Program Files\WinGet\Packages\Microsoft.OSCDIMG_1.0"];
+
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<HttpMessageHandler> _mockHttpHandler = new();
@@ -88,7 +90,7 @@ public class OscdimgToolManagerTests
         _mockFileSystem.Setup(fs => fs.GetDirectories(
             It.Is<string>(p => p.Contains("WinGet\\Packages")),
             It.Is<string>(p => p.Contains("Microsoft.OSCDIMG"))))
-            .Returns(new[] { @"C:\Program Files\WinGet\Packages\Microsoft.OSCDIMG_1.0" });
+            .Returns(WinGetOscdimgPackageDir);
         // The candidate inside the matched dir
         _mockFileSystem.Setup(fs => fs.FileExists(It.Is<string>(
             p => p.Contains("Microsoft.OSCDIMG_1.0") && p.Contains("oscdimg.exe"))))

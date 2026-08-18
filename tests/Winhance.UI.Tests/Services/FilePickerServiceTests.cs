@@ -13,6 +13,10 @@ namespace Winhance.UI.Tests.Services;
 /// </summary>
 public class FilePickerServiceTests
 {
+    private static readonly string[] AllFilesFilter = ["All Files", "*.*"];
+    private static readonly string[] XmlFilter = ["XML Files", "*.xml"];
+    private static readonly string[] IsoFilter = ["ISO Files", "*.iso"];
+
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
 
     private FilePickerService CreateSut()
@@ -40,7 +44,7 @@ public class FilePickerServiceTests
 
         // The provider should be used - calling PickFile with null window returns null
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
-        var result = sut.PickFile(new[] { "All Files", "*.*" });
+        var result = sut.PickFile(AllFilesFilter);
 
         result.Should().BeNull();
     }
@@ -56,7 +60,7 @@ public class FilePickerServiceTests
 
         var sut = CreateSut();
 
-        var result = sut.PickFile(new[] { "XML Files", "*.xml" });
+        var result = sut.PickFile(XmlFilter);
 
         result.Should().BeNull();
     }
@@ -80,7 +84,7 @@ public class FilePickerServiceTests
 
         var sut = CreateSut();
 
-        var result = sut.PickFile(new[] { "All Files", "*.*" }, "test.xml");
+        var result = sut.PickFile(AllFilesFilter, "test.xml");
 
         result.Should().BeNull();
     }
@@ -136,7 +140,7 @@ public class FilePickerServiceTests
 
         var sut = CreateSut();
 
-        var result = sut.PickSaveFile(new[] { "XML Files", "*.xml" });
+        var result = sut.PickSaveFile(XmlFilter);
 
         result.Should().BeNull();
     }
@@ -149,7 +153,7 @@ public class FilePickerServiceTests
         var sut = CreateSut();
 
         var result = sut.PickSaveFile(
-            new[] { "ISO Files", "*.iso" },
+            IsoFilter,
             suggestedFileName: "output.iso",
             defaultExtension: "iso");
 
@@ -176,7 +180,7 @@ public class FilePickerServiceTests
         var sut = CreateSut();
 
         var result = sut.PickSaveFile(
-            new[] { "All Files", "*.*" },
+            AllFilesFilter,
             suggestedFileName: null,
             defaultExtension: null);
 
@@ -193,7 +197,7 @@ public class FilePickerServiceTests
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
 
         var sut = CreateSut();
-        sut.PickFile(new[] { "All Files", "*.*" });
+        sut.PickFile(AllFilesFilter);
 
         _mockMainWindowProvider.Verify(p => p.MainWindow, Times.Once);
     }
@@ -215,7 +219,7 @@ public class FilePickerServiceTests
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
 
         var sut = CreateSut();
-        sut.PickSaveFile(new[] { "All Files", "*.*" });
+        sut.PickSaveFile(AllFilesFilter);
 
         _mockMainWindowProvider.Verify(p => p.MainWindow, Times.Once);
     }

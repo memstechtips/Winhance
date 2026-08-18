@@ -12,6 +12,8 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep3DriversViewModelTests : IDisposable
 {
+    private static readonly string[] OneDriverInf = ["C:\\DriverDir\\driver.inf"];
+
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -307,7 +309,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -335,7 +337,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -362,7 +364,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(

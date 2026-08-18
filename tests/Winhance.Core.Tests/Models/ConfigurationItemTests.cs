@@ -9,6 +9,8 @@ namespace Winhance.Core.Tests.Models;
 
 public class ConfigurationItemTests
 {
+    private static readonly string[] TestPackage = ["Microsoft.Test"];
+
     [Fact]
     public void DefaultValues_AreCorrect()
     {
@@ -48,7 +50,7 @@ public class ConfigurationItemTests
         item.Name.Should().Be("Test Setting");
         item.IsSelected.Should().BeTrue();
         item.InputType.Should().Be(InputType.Selection);
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.Test" });
+        item.AppxPackageName.Should().BeEquivalentTo(TestPackage);
         item.WinGetPackageId.Should().Be("test.package");
         item.SelectedIndex.Should().Be(2);
     }

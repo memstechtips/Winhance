@@ -16,6 +16,8 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class AutounattendScriptBuilderTests
 {
+    private static readonly string[] CortanaPackage = ["Microsoft.549981C3F5F10"];
+
     private readonly Mock<IPowerSettingsQueryService> _powerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _hardwareDetectionService = new();
     private readonly Mock<ILogService> _logService = new();
@@ -297,7 +299,7 @@ public class AutounattendScriptBuilderTests
                     new ConfigurationItem
                     {
                         Id = "windows-app-cortana",
-                        AppxPackageName = new[] { "Microsoft.549981C3F5F10" }
+                        AppxPackageName = CortanaPackage
                     }
                 }
             }

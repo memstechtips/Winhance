@@ -27,6 +27,8 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 /// Run: dotnet test --filter ComboBoxResolverSettingConformance</summary>
 public class ComboBoxResolverSettingConformanceTests
 {
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test"];
+
     // A ComboBoxResolver needs a version service for the build-aware WindowsDefault fallback. These conformance
     // facts exercise unconditional-default selections, so any build works; stub a Windows 11 build.
     private static IWindowsVersionService StubVersion()
@@ -180,7 +182,7 @@ public class ComboBoxResolverSettingConformanceTests
             Display = new() { Name = "Synthetic", Description = "Synthetic registry selection" },
             Targets = new Target[]
             {
-                new RegTarget("Val", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test" }, "Val", RegistryValueKind.DWord),
+                new RegTarget("Val", TestPaths, "Val", RegistryValueKind.DWord),
             },
             States = new[] { State("A", 1, 0), State("B", 2, 1), State("C", 3, 2) },
         };

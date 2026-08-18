@@ -23,6 +23,7 @@ public class WindowsStateWriterTests
 {
     private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";
     private const string ValueName = "MyValue";
+    private static readonly string[] InterfaceSubKeys = ["if1", "if2"];
 
     private readonly Mock<IWindowsRegistryService> _reg = new(MockBehavior.Strict);
     private readonly Mock<IScheduledTaskStateService> _tasks = new(MockBehavior.Strict);
@@ -214,7 +215,7 @@ public class WindowsStateWriterTests
     [Fact]
     public void WriteRegistryPerSubkey_EnumeratesAndWritesUnderEachSubkey()
     {
-        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(new[] { "if1", "if2" });
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
         _reg.Setup(r => r.CreateKey(It.IsAny<string>())).Returns(true);
         _reg.Setup(r => r.SetValue(It.IsAny<string>(), ValueName, 1, RegistryValueKind.DWord)).Returns(true);
 
@@ -237,7 +238,7 @@ public class WindowsStateWriterTests
     [Fact]
     public void WriteRegistryPerSubkey_WhenOneSubkeyFails_ReturnsFalseButWritesAll()
     {
-        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(new[] { "if1", "if2" });
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
         _reg.Setup(r => r.CreateKey(It.IsAny<string>())).Returns(true);
         _reg.Setup(r => r.SetValue($@"{Path}\if1", ValueName, 1, RegistryValueKind.DWord)).Returns(true);
         _reg.Setup(r => r.SetValue($@"{Path}\if2", ValueName, 1, RegistryValueKind.DWord)).Returns(false);
@@ -251,7 +252,7 @@ public class WindowsStateWriterTests
     [Fact]
     public void DeleteRegistryPerSubkey_EnumeratesAndDeletesUnderEachSubkey()
     {
-        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(new[] { "if1", "if2" });
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
         _reg.Setup(r => r.DeleteValue(It.IsAny<string>(), ValueName)).Returns(true);
 
         _sut.DeleteRegistryPerSubkey(Reg(), Path).Should().BeTrue();

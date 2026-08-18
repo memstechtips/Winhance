@@ -14,6 +14,9 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 
 public class CatalogDetectionServiceTests
 {
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
+    private static readonly string[] HkcuXPath = [@"HKEY_CURRENT_USER\X"];
+
     /// <summary>A fully-controllable detection context: registry reads and powercfg reads come from the supplied
     /// delegates; PrefetchAsync just counts its calls.</summary>
     private sealed class FakeContext : IPrefetchableDetectionContext
@@ -66,7 +69,7 @@ public class CatalogDetectionServiceTests
     {
         Id = "toggle",
         Display = new() { Name = "t", Description = "t" },
-        Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "Flag", RegistryValueKind.DWord) },
+        Targets = new Target[] { new RegTarget("Mode", TestPaths, "Flag", RegistryValueKind.DWord) },
         States = new[]
         {
             new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
@@ -238,7 +241,7 @@ public class CatalogDetectionServiceTests
     {
         Id = "throwing",
         Display = new() { Name = "t", Description = "d" },
-        Targets = new Target[] { new RegTarget("V", new[] { @"HKEY_CURRENT_USER\X" }, "V", RegistryValueKind.DWord) },
+        Targets = new Target[] { new RegTarget("V", HkcuXPath, "V", RegistryValueKind.DWord) },
         States = new[]
         {
             new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
@@ -252,7 +255,7 @@ public class CatalogDetectionServiceTests
         Display = new() { Name = "b", Description = "d" },
         Targets = new Target[]
         {
-            new RegTarget("Mask", new[] { @"HKEY_CURRENT_USER\X" }, "Mask", RegistryValueKind.Binary)
+            new RegTarget("Mask", HkcuXPath, "Mask", RegistryValueKind.Binary)
             { ByteIndex = 1, BitMask = 0x08 },
         },
         States = new[]

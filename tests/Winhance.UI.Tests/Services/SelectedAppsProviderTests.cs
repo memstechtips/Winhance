@@ -15,6 +15,11 @@ namespace Winhance.UI.Tests.Services;
 
 public class SelectedAppsProviderTests : IDisposable
 {
+    private static readonly string[] TestAppPackage = ["Microsoft.TestApp"];
+    private static readonly string[] MainAndSubPackages = ["Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2"];
+    private static readonly string[] MainPackageOnly = ["Microsoft.MainPackage"];
+    private static readonly string[] DualAppPackage = ["Microsoft.DualApp"];
+
     private readonly Mock<IWindowsAppsService> _mockWindowsAppsService = new();
     private readonly Mock<IAppInstallationService> _mockAppInstallationService = new();
     private readonly Mock<IWindowsAppUninstallService> _mockWindowsAppUninstallService = new();
@@ -171,7 +176,7 @@ public class SelectedAppsProviderTests : IDisposable
         item.Name.Should().Be("Test App");
         item.IsSelected.Should().BeTrue();
         item.InputType.Should().Be(InputType.Toggle);
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.TestApp" });
+        item.AppxPackageName.Should().BeEquivalentTo(TestAppPackage);
     }
 
     [Fact]
@@ -322,7 +327,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2" });
+        item.AppxPackageName.Should().BeEquivalentTo(MainAndSubPackages);
     }
 
     [Fact]
@@ -349,7 +354,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage" });
+        item.AppxPackageName.Should().BeEquivalentTo(MainPackageOnly);
     }
 
     [Fact]
@@ -420,7 +425,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.DualApp" });
+        item.AppxPackageName.Should().BeEquivalentTo(DualAppPackage);
         // CapabilityName should NOT be set because the Appx branch ran
         item.CapabilityName.Should().BeNull();
     }

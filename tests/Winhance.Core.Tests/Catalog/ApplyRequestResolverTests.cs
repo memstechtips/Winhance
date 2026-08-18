@@ -13,7 +13,9 @@ namespace Winhance.Core.Tests.Catalog;
 /// unpaired / reset / numeric / custom-detector / non-index-selection requests.</summary>
 public class ApplyRequestResolverTests
 {
-    private static RegTarget Reg() => new("k", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test" }, "V", RegistryValueKind.DWord);
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\SOFTWARE\Test"];
+
+    private static RegTarget Reg() => new("k", TestPaths, "V", RegistryValueKind.DWord);
 
     private static SettingState State(string label, int value, bool fallback = false) => new()
     {
@@ -564,7 +566,7 @@ public class ApplyRequestResolverTests
             Display = new() { Name = "n", Description = "d" },
             Targets = new Target[]
             {
-                new RegTarget("k", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Test" }, "V", RegistryValueKind.DWord) { PerNetworkInterface = true },
+                new RegTarget("k", TestPaths, "V", RegistryValueKind.DWord) { PerNetworkInterface = true },
             },
             States = new[] { State("OptA", 0), State("OptB", 1) },
         };

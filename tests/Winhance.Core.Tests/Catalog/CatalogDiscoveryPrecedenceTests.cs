@@ -28,6 +28,8 @@ public class CatalogDiscoveryPrecedenceTests
     private const string Pref = @"HKEY_CURRENT_USER\Software\X\AdvertisingInfo";
     private const string Gpo = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\X\AdvertisingInfo";
     private const string Mirror = @"HKEY_CURRENT_USER\Software\X\CPSS\Store\AdvertisingInfo";
+    private static readonly string[] ThemesPaths = [@"HKEY_CURRENT_USER\Themes"];
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
 
     /// <summary>privacy-advertising-id shape: preference key + group-policy override + apply-only mirror.</summary>
     private static Setting AdSetting() => new()
@@ -95,8 +97,8 @@ public class CatalogDiscoveryPrecedenceTests
             Display = new() { Name = "theme", Description = "theme" },
             Targets = new Target[]
             {
-                new RegTarget("Apps", new[] { @"HKEY_CURRENT_USER\Themes" }, "AppsUseLightTheme", RegistryValueKind.DWord),
-                new RegTarget("System", new[] { @"HKEY_CURRENT_USER\Themes" }, "SystemUsesLightTheme", RegistryValueKind.DWord),
+                new RegTarget("Apps", ThemesPaths, "AppsUseLightTheme", RegistryValueKind.DWord),
+                new RegTarget("System", ThemesPaths, "SystemUsesLightTheme", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -117,7 +119,7 @@ public class CatalogDiscoveryPrecedenceTests
         {
             Id = "s",
             Display = new() { Name = "s", Description = "s" },
-            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "V", RegistryValueKind.DWord) },
+            Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
@@ -147,7 +149,7 @@ public class CatalogDiscoveryPrecedenceTests
         {
             Id = "s",
             Display = new() { Name = "s", Description = "s" },
-            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "V", RegistryValueKind.DWord) },
+            Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },

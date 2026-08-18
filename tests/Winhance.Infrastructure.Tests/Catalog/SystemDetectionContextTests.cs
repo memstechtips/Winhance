@@ -12,6 +12,8 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 
 public class SystemDetectionContextTests
 {
+    private static readonly string[] ParentSubKeys = ["a", "b"];
+
     private static readonly string CurrentVersionKey =
         @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
 
@@ -65,10 +67,10 @@ public class SystemDetectionContextTests
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.KeyExists("HKLM\\Present")).Returns(true);
-        reg.Setup(r => r.GetSubKeyNames("HKLM\\Parent")).Returns(new[] { "a", "b" });
+        reg.Setup(r => r.GetSubKeyNames("HKLM\\Parent")).Returns(ParentSubKeys);
 
         Assert.True(ctx.KeyExists("HKLM\\Present"));
-        Assert.Equal(new[] { "a", "b" }, ctx.GetSubKeyNames("HKLM\\Parent"));
+        Assert.Equal(ParentSubKeys, ctx.GetSubKeyNames("HKLM\\Parent"));
     }
 
     [Fact]

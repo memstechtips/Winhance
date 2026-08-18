@@ -8,6 +8,8 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class LocalizationServiceTests
 {
+    private static readonly string[] EnglishOnly = ["en.json"];
+
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly LocalizationService _sut;
 
@@ -49,7 +51,7 @@ public class LocalizationServiceTests
         mockFs.Setup(f => f.DirectoryExists(It.IsAny<string>()))
             .Returns(true);
         mockFs.Setup(f => f.GetFiles(It.IsAny<string>(), "*.json"))
-            .Returns(new[] { "en.json" });
+            .Returns(EnglishOnly);
         mockFs.Setup(f => f.GetFileNameWithoutExtension(It.Is<string>(s => s.Contains("en"))))
             .Returns("en");
         mockFs.Setup(f => f.FileExists(It.Is<string>(s => s.Contains("en.json"))))
@@ -75,7 +77,7 @@ public class LocalizationServiceTests
         mockFs.Setup(f => f.DirectoryExists(It.IsAny<string>()))
             .Returns(true);
         mockFs.Setup(f => f.GetFiles(It.IsAny<string>(), "*.json"))
-            .Returns(new[] { "en.json" });
+            .Returns(EnglishOnly);
         mockFs.Setup(f => f.GetFileNameWithoutExtension(It.Is<string>(s => s.Contains("en"))))
             .Returns("en");
         mockFs.Setup(f => f.FileExists(It.Is<string>(s => s.Contains("en.json"))))
@@ -99,7 +101,7 @@ public class LocalizationServiceTests
         mockFs.Setup(f => f.DirectoryExists(It.IsAny<string>()))
             .Returns(true);
         mockFs.Setup(f => f.GetFiles(It.IsAny<string>(), "*.json"))
-            .Returns(new[] { "en.json" });
+            .Returns(EnglishOnly);
         mockFs.Setup(f => f.GetFileNameWithoutExtension(It.Is<string>(s => s.Contains("en"))))
             .Returns("en");
         mockFs.Setup(f => f.FileExists(It.Is<string>(s => s.Contains("en.json"))))

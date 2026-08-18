@@ -8,6 +8,8 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class BuildContextDetectionTests
 {
+    private static readonly string[] HklmK = [@"HKLM\K"];
+
     // A setting with two build-gated targets on the same key: a HiddenByDefault value-toggle on Win11,
     // a key-existence toggle on Win10. Mirrors the merged ThisPC-folder shape.
     private static Setting TwoMechanismSetting() => new()
@@ -16,8 +18,8 @@ public class BuildContextDetectionTests
         Display = new() { Name = "X", Description = "X" },
         Targets = new Target[]
         {
-            new RegTarget("value", new[] { @"HKLM\K" }, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
-            new RegTarget("exists", new[] { @"HKLM\K" }, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
+            new RegTarget("value", HklmK, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+            new RegTarget("exists", HklmK, null, RegistryValueKind.None) { AppliesTo = new[] { BuildRange.Windows10 } },
         },
         States = new[]
         {

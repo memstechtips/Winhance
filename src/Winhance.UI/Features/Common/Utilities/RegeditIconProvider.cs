@@ -96,7 +96,8 @@ public static class RegeditIconProvider
                     int height = bmp.bmHeight;
                     int stride = width * 4; // BGRA
                     var bits = new byte[stride * height];
-                    GetBitmapBits(iconInfo.hbmColor, bits.Length, bits);
+                    if (GetBitmapBits(iconInfo.hbmColor, bits.Length, bits) != bits.Length)
+                        return;
 
                     // GDI bitmaps are bottom-up — flip vertically
                     var flipped = new byte[bits.Length];

@@ -10,6 +10,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class TaskProgressServiceTests
 {
+    private static readonly string[] TwoScripts = ["A", "B"];
+    private static readonly string[] OneScript = ["Script1"];
+
     private readonly Mock<ILogService> _mockLog = new();
     private readonly TaskProgressService _sut;
 
@@ -211,7 +214,7 @@ public class TaskProgressServiceTests
         var received = new List<TaskProgressDetail>();
         _sut.ProgressUpdated += (_, detail) => received.Add(detail);
 
-        _sut.StartMultiScriptTask(new[] { "A", "B" });
+        _sut.StartMultiScriptTask(TwoScripts);
 
         received.Should().HaveCount(2);
         received[0].ScriptSlotIndex.Should().Be(0);
@@ -225,7 +228,7 @@ public class TaskProgressServiceTests
     [Fact]
     public void CompleteMultiScriptTask_ResetsStateAndFiresCompletionEvent()
     {
-        _sut.StartMultiScriptTask(new[] { "Script1" });
+        _sut.StartMultiScriptTask(OneScript);
         TaskProgressDetail? received = null;
         _sut.ProgressUpdated += (_, detail) => received = detail;
 

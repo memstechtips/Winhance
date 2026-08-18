@@ -10,6 +10,8 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class ScheduledTaskServiceTests
 {
+    private static readonly string[] AnyTaskPath = [@"\Any\Task\Path"];
+
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly ScheduledTaskService _service;
@@ -251,7 +253,7 @@ public class ScheduledTaskServiceTests
     [Fact]
     public void GetTasksEnabled_DoesNotThrow()
     {
-        var action = () => _service.GetTasksEnabled(new[] { @"\Any\Task\Path" });
+        var action = () => _service.GetTasksEnabled(AnyTaskPath);
 
         action.Should().NotThrow();
     }

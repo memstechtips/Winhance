@@ -8,6 +8,14 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class RegTargetReaderTests
 {
+    private static readonly string[] HklmA = [@"HKLM\A"];
+    private static readonly string[] HkcuA = [@"HKCU\A"];
+    private static readonly string[] HklmAThenHkcuB = [@"HKLM\A", @"HKCU\B"];
+    private static readonly string[] HkcuBThenLongHklmA = [@"HKCU\B", @"HKEY_LOCAL_MACHINE\A"];
+    private static readonly string[] LongHkcuBThenLongHklmA = [@"HKEY_CURRENT_USER\B", @"HKEY_LOCAL_MACHINE\A"];
+    private static readonly string[] LongHklmA = [@"HKEY_LOCAL_MACHINE\A"];
+    private static readonly string[] LongHklmAAndB = [@"HKEY_LOCAL_MACHINE\A", @"HKEY_LOCAL_MACHINE\B"];
+
     /// <summary>Fake context: value reads come from <paramref name="get"/>; key-existence from
     /// <paramref name="keyExists"/> (defaults to "no key exists" for the value-based tests).</summary>
     private sealed class Ctx : IDetectionContext
@@ -36,7 +44,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Single_path_returns_the_value_present()
     {
-        var t = Reg(new[] { @"HKLM\A" });
+        var t = Reg(HklmA);
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKLM\A" ? 1 : null));
         Assert.True(present);
         Assert.Equal(1, val);
@@ -45,7 +53,7 @@ public class RegTargetReaderTests
     [Fact]
     public void String_flag_mask_reduces_to_the_bit_state()
     {
-        var t = new RegTarget("K", new[] { @"HKCU\A" }, "Flags", RegistryValueKind.String)
+        var t = new RegTarget("K", HkcuA, "Flags", RegistryValueKind.String)
         { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
 
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "62"));
@@ -63,7 +71,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Absent_everywhere_is_not_present()
     {
-        var t = Reg(new[] { @"HKLM\A", @"HKCU\B" });
+        var t = Reg(HklmAThenHkcuB);
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => null));
         Assert.False(present);
         Assert.Null(val);
@@ -73,7 +81,7 @@ public class RegTargetReaderTests
     public void Mirror_takes_first_non_null_hklm_first()
     {
         // value only in the HKCU path; HKLM is ordered first but null, so HKCU wins as first non-null
-        var t = Reg(new[] { @"HKCU\B", @"HKEY_LOCAL_MACHINE\A" });
+        var t = Reg(HkcuBThenLongHklmA);
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKCU\B" ? 7 : null));
         Assert.True(present);
         Assert.Equal(7, val);
@@ -82,7 +90,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Mirror_prefers_hklm_when_both_present()
     {
-        var t = Reg(new[] { @"HKEY_CURRENT_USER\B", @"HKEY_LOCAL_MACHINE\A" });
+        var t = Reg(LongHkcuBThenLongHklmA);
         var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => p.StartsWith("HKEY_LOCAL_MACHINE") ? 9 : 1));
         Assert.Equal(9, val); // HKLM ordered first, its non-null wins
     }
@@ -90,7 +98,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Bitmask_reduces_to_true_when_bit_set()
     {
-        var t = new RegTarget("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.Binary)
+        var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 1, BitMask = 0x04 };
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x04 }));
         Assert.True(present);
@@ -100,7 +108,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Bitmask_reduces_to_false_when_bit_clear()
     {
-        var t = new RegTarget("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.Binary)
+        var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 1, BitMask = 0x04 };
         var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x00 }));
         Assert.Equal(false, val);
@@ -109,7 +117,7 @@ public class RegTargetReaderTests
     [Fact]
     public void ByteOnly_returns_the_byte_at_index()
     {
-        var t = new RegTarget("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.Binary)
+        var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 2, ByteOnly = true };
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0, 0, 42 }));
         Assert.True(present);
@@ -119,7 +127,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Bitmask_blob_too_short_is_absent()
     {
-        var t = new RegTarget("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.Binary)
+        var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 5, BitMask = 0x01 };
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x01 }));
         Assert.False(present);
@@ -129,7 +137,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Composite_extracts_the_subkey_value()
     {
-        var t = new RegTarget("K", new[] { @"HKCU\A" }, "DirectXUserGlobalSettings", RegistryValueKind.String)
+        var t = new RegTarget("K", HkcuA, "DirectXUserGlobalSettings", RegistryValueKind.String)
         { CompositeStringKey = "SwapEffectUpgradeEnable" };
         var (val, present) = RegTargetReader.Read(t,
             new Ctx((p, v) => "VRROptimizeEnable=0;SwapEffectUpgradeEnable=1;AutoHDREnable=0"));
@@ -140,7 +148,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Composite_subkey_is_case_insensitive()
     {
-        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "swapeffectupgradeenable" };
         var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
         Assert.Equal("1", val);
@@ -149,7 +157,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Composite_missing_subkey_is_absent()
     {
-        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "NotThere" };
         var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
         Assert.False(present);
@@ -159,7 +167,7 @@ public class RegTargetReaderTests
     [Fact]
     public void Composite_absent_value_is_absent()
     {
-        var t = new RegTarget("K", new[] { @"HKCU\A" }, "V", RegistryValueKind.String)
+        var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "X" };
         var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null));
         Assert.False(present);
@@ -169,7 +177,7 @@ public class RegTargetReaderTests
     public void KeyExistence_target_is_present_when_key_exists()
     {
         // ValueName == null -> the reading is (null, key-exists). The value reader is never consulted.
-        var t = new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\A" }, null, RegistryValueKind.None);
+        var t = new RegTarget("KeyExists", LongHklmA, null, RegistryValueKind.None);
         var (val, present) = RegTargetReader.Read(t,
             new Ctx((p, v) => "should-be-ignored", keyExists: p => p == @"HKEY_LOCAL_MACHINE\A"));
         Assert.True(present);
@@ -180,7 +188,7 @@ public class RegTargetReaderTests
     public void KeyExistence_target_is_absent_when_no_mirror_key_exists()
     {
         var t = new RegTarget("KeyExists",
-            new[] { @"HKEY_LOCAL_MACHINE\A", @"HKEY_LOCAL_MACHINE\B" }, null, RegistryValueKind.None);
+            LongHklmAAndB, null, RegistryValueKind.None);
         var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: _ => false));
         Assert.False(present);
     }
@@ -189,7 +197,7 @@ public class RegTargetReaderTests
     public void KeyExistence_target_is_present_when_any_mirror_key_exists()
     {
         var t = new RegTarget("KeyExists",
-            new[] { @"HKEY_LOCAL_MACHINE\A", @"HKEY_LOCAL_MACHINE\B" }, null, RegistryValueKind.None);
+            LongHklmAAndB, null, RegistryValueKind.None);
         var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: p => p == @"HKEY_LOCAL_MACHINE\B"));
         Assert.True(present);
     }

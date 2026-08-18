@@ -171,6 +171,11 @@ public class BaseSettingsFeatureViewModelTests
     // Enabled/Disabled - the two labels every catalog toggle has, and what CurrentStateLabel maps
     // IsSelected onto.
     private static readonly string[] ToggleStates = { "Enabled", "Disabled" };
+    private static readonly string[] EnabledOnly = ["Enabled"];
+    private static readonly string[] LightDarkModes = ["Light Mode", "Dark Mode"];
+    private static readonly string[] LightModeOnly = ["Light Mode"];
+    private static readonly string[] ServiceStartModes = ["Off", "Manual", "Automatic"];
+    private static readonly string[] ServiceRunningModes = ["Manual", "Automatic"];
 
     private void SetupLoad(ObservableCollection<SettingItemViewModel> settings) =>
         _mockSettingsLoadingService
@@ -1766,7 +1771,7 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: parentIsOn, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1784,9 +1789,9 @@ public class BaseSettingsFeatureViewModelTests
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: 0,
-                stateLabels: new[] { "Light Mode", "Dark Mode" }),
+                stateLabels: LightDarkModes),
             CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("master", new[] { "Light Mode" })),
+                enabledWhen: new EnabledWhen("master", LightModeOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1803,9 +1808,9 @@ public class BaseSettingsFeatureViewModelTests
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("service", "Service", inputType: InputType.Selection, selectedValue: 1,
-                stateLabels: new[] { "Off", "Manual", "Automatic" }),
+                stateLabels: ServiceStartModes),
             CreateSettingItem("child", "Child", uiParentId: "service", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("service", new[] { "Manual", "Automatic" })),
+                enabledWhen: new EnabledWhen("service", ServiceRunningModes)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1824,7 +1829,7 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
         });
         _mockSettingsLoadingService
             .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
@@ -1855,7 +1860,7 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1876,7 +1881,7 @@ public class BaseSettingsFeatureViewModelTests
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("child", "Child", uiParentId: "elsewhere", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("elsewhere", new[] { "Enabled" })),
+                enabledWhen: new EnabledWhen("elsewhere", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1893,9 +1898,9 @@ public class BaseSettingsFeatureViewModelTests
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: -1,
-                stateLabels: new[] { "Light Mode", "Dark Mode" }),
+                stateLabels: LightDarkModes),
             CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("master", new[] { "Light Mode" })),
+                enabledWhen: new EnabledWhen("master", LightModeOnly)),
         });
 
         await vm.LoadSettingsAsync();

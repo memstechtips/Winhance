@@ -12,6 +12,9 @@ namespace Winhance.IntegrationTests.Configuration;
 public class ConfigRoundTripTests
 {
     private static readonly JsonSerializerOptions Options = ConfigFileConstants.JsonOptions;
+    private static readonly string[] CalculatorPackages = ["Microsoft.WindowsCalculator", "Microsoft.WindowsCalculator.Sub1"];
+    private static readonly string[] TestAppPackage = ["Microsoft.TestApp"];
+    private static readonly string[] TestAppPackages = ["Microsoft.TestApp", "Microsoft.TestApp.Sub1"];
 
     [Fact]
     public void RoundTrip_FullConfig_PreservesAllFields()
@@ -104,7 +107,7 @@ public class ConfigRoundTripTests
     {
         // Arrange
         var item = TestSettingFactory.CreateAppItem("app1", "Calculator",
-            appxPackageName: new[] { "Microsoft.WindowsCalculator", "Microsoft.WindowsCalculator.Sub1" },
+            appxPackageName: CalculatorPackages,
             winGetPackageId: "Microsoft.WindowsCalculator",
             capabilityName: "MathRecognizer");
 
@@ -119,7 +122,7 @@ public class ConfigRoundTripTests
 
         // Assert
         var result = deserialized!.WindowsApps.Items[0];
-        result.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.WindowsCalculator", "Microsoft.WindowsCalculator.Sub1" });
+        result.AppxPackageName.Should().BeEquivalentTo(CalculatorPackages);
         result.WinGetPackageId.Should().Be("Microsoft.WindowsCalculator");
         result.CapabilityName.Should().Be("MathRecognizer");
     }
@@ -257,7 +260,7 @@ public class ConfigRoundTripTests
         // Assert
         config.Should().NotBeNull();
         config!.WindowsApps.Items.Should().HaveCount(1);
-        config.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.TestApp" });
+        config.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(TestAppPackage);
     }
 
     [Fact]
@@ -291,7 +294,7 @@ public class ConfigRoundTripTests
         // Assert
         config.Should().NotBeNull();
         config!.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(
-            new[] { "Microsoft.TestApp", "Microsoft.TestApp.Sub1" });
+            TestAppPackages);
     }
 
     [Theory]

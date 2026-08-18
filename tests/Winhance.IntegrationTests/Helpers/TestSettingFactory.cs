@@ -8,6 +8,8 @@ namespace Winhance.IntegrationTests.Helpers;
 /// </summary>
 public static class TestSettingFactory
 {
+    private static readonly string[] TestAppPackages = ["Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2"];
+
     public static ConfigurationItem CreateToggleItem(
         string id,
         string name = "Test Toggle",
@@ -96,7 +98,7 @@ public static class TestSettingFactory
         var appItem = CreateAppItem(
             "app1",
             "Test Windows App",
-            appxPackageName: new[] { "Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2" },
+            appxPackageName: TestAppPackages,
             winGetPackageId: "TestVendor.TestApp",
             capabilityName: "TestCapability");
 

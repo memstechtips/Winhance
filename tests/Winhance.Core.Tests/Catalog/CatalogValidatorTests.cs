@@ -9,8 +9,10 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogValidatorTests
 {
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
+
     private static RegTarget Reg(string key, string valueName) =>
-        new(key, new[] { @"HKEY_LOCAL_MACHINE\TEST" }, valueName, RegistryValueKind.DWord);
+        new(key, TestPaths, valueName, RegistryValueKind.DWord);
 
     private static SettingState St(string label, Dictionary<string, StateValue> set,
         bool fallback = false, params StateRole[] roles) =>

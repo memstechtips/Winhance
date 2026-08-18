@@ -8,6 +8,8 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryTests
 {
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
+
     private sealed class FakeCtx : IDetectionContext
     {
         public WinBuild CurrentBuild => new(int.MaxValue);
@@ -36,7 +38,7 @@ public class CatalogDiscoveryTests
     }
 
     private static RegTarget Reg(string key, string valueName) =>
-        new(key, new[] { @"HKEY_LOCAL_MACHINE\TEST" }, valueName, RegistryValueKind.DWord);
+        new(key, TestPaths, valueName, RegistryValueKind.DWord);
 
     [Fact]
     public void Resolves_state_from_registry_reads()

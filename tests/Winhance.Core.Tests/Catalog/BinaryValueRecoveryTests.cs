@@ -12,6 +12,8 @@ namespace Winhance.Core.Tests.Catalog;
 /// </summary>
 public class BinaryValueRecoveryTests
 {
+    private static readonly string[] MultiString = ["a", "b"];
+
     [Fact]
     public void Existing_byte_array_is_used_as_is()
     {
@@ -79,7 +81,7 @@ public class BinaryValueRecoveryTests
     [Fact]
     public void Multi_string_refuses_too()
     {
-        Assert.Null(BinaryValueRecovery.Resolve(new[] { "a", "b" }, byteIndex: 1));
+        Assert.Null(BinaryValueRecovery.Resolve(MultiString, byteIndex: 1));
     }
 
     [Fact]

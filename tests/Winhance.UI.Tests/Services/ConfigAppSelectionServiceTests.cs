@@ -15,6 +15,10 @@ namespace Winhance.UI.Tests.Services;
 
 public class ConfigAppSelectionServiceTests
 {
+    private static readonly string[] TestAppPackage = ["Microsoft.TestApp"];
+    private static readonly string[] Package1Only = ["Package1"];
+    private static readonly string[] AppNameWinGetId = ["Publisher.AppName"];
+
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IWindowsAppsItemsProvider> _mockWindowsAppsVM = new();
     private readonly Mock<IExternalAppsItemsProvider> _mockExternalAppsVM = new();
@@ -135,7 +139,7 @@ public class ConfigAppSelectionServiceTests
                 {
                     Id = "different-id",
                     Name = "Different Name",
-                    AppxPackageName = new[] { "Microsoft.TestApp" },
+                    AppxPackageName = TestAppPackage,
                     IsSelected = true
                 }
             }
@@ -246,7 +250,7 @@ public class ConfigAppSelectionServiceTests
                 {
                     Id = "app1",
                     Name = "App 1",
-                    AppxPackageName = new[] { "Package1" },
+                    AppxPackageName = Package1Only,
                     IsSelected = false
                 }
             }
@@ -355,7 +359,7 @@ public class ConfigAppSelectionServiceTests
     public async Task SelectExternalAppsFromConfigAsync_MatchesByWinGetPackageId()
     {
         var app = CreateAppItemViewModel("ext1", "External App 1",
-            winGetPackageId: new[] { "Publisher.AppName" });
+            winGetPackageId: AppNameWinGetId);
 
         _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
         _mockExternalAppsVM.Setup(v => v.Items)

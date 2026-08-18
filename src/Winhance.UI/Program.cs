@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
@@ -123,9 +124,9 @@ public static class Program
                 PInvoke.SetForegroundWindow(hwnd);
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is ArgumentException or Win32Exception)
         {
-            // Process may have exited - ignore gracefully
+            // The other instance is gone (or the process list was unreadable); nothing to bring forward.
         }
     }
 

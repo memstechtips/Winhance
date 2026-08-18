@@ -45,10 +45,12 @@ public class PowerCfgApplier(
             ? PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)value)
             : PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref activeSchemeGuid, ref subgroupGuid, ref settingGuid, (uint)value);
 
-        // Commit the change (mirrors the old batch apply's end-of-batch PowerSetActiveScheme).
-        PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
+        // The write lands in the registry; the scheme has to be re-activated before it takes effect.
+        var commitRc = PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref activeSchemeGuid);
 
-        logService.Log(LogLevel.Info, $"[PowerCfgApplier] Wrote {context} value index {value} for setting {target.SettingGuid} (rc={rc})");
-        return rc == PowerProf.ERROR_SUCCESS;
+        var applied = rc == PowerProf.ERROR_SUCCESS && commitRc == PowerProf.ERROR_SUCCESS;
+        logService.Log(applied ? LogLevel.Info : LogLevel.Error,
+            $"[PowerCfgApplier] {(applied ? "Wrote" : "Failed to write")} {context} value index {value} for setting {target.SettingGuid} (rc={rc}, commit rc={commitRc})");
+        return applied;
     }
 }

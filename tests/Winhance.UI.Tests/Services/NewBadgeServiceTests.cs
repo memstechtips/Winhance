@@ -10,6 +10,13 @@ namespace Winhance.UI.Tests.Services;
 
 public class NewBadgeServiceTests
 {
+    private static readonly string[] Version0410Only = ["26.04.10"];
+    private static readonly string[] Versions0421And0417And0301 = ["26.04.21", "26.04.17", "26.03.01"];
+    private static readonly string[] Versions0421And0417 = ["26.04.21", "26.04.17"];
+    private static readonly string[] Versions0301And0420 = ["26.03.01", "26.04.20"];
+    private static readonly string[] Versions0420And0301 = ["26.04.20", "26.03.01"];
+    private static readonly string[] Version0420Only = ["26.04.20"];
+
     private readonly Mock<IUserPreferencesService> _prefs = new();
     private readonly Mock<ILogService> _log = new();
     private readonly Dictionary<string, string> _store = new();
@@ -62,7 +69,7 @@ public class NewBadgeServiceTests
         _store[UserPreferenceKeys.ShowNewBadges] = "False";
 
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.10" });
+        sut.Initialize(Version0410Only);
 
         sut.ShowNewBadges.Should().BeFalse();
     }
@@ -88,7 +95,7 @@ public class NewBadgeServiceTests
         _store[UserPreferenceKeys.HighestSeenAddedInVersion] = "26.04.21";
 
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.21", "26.04.17", "26.03.01" });
+        sut.Initialize(Versions0421And0417And0301);
 
         sut.IsSettingNew("26.04.21", "s1").Should().BeTrue();
         sut.IsSettingNew("26.04.17", "s2").Should().BeTrue();
@@ -106,7 +113,7 @@ public class NewBadgeServiceTests
         _store["NewBadgeBaseline"] = "26.04.17";
 
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.21", "26.04.17" });
+        sut.Initialize(Versions0421And0417);
 
         sut.IsSettingNew("26.04.21", "s1").Should().BeTrue();
         sut.IsSettingNew("26.04.17", "s2").Should().BeTrue();
@@ -126,7 +133,7 @@ public class NewBadgeServiceTests
 
         var sut = CreateSut();
 
-        sut.Initialize(new[] { "26.03.01", "26.04.20" });
+        sut.Initialize(Versions0301And0420);
 
         // Baseline = stored (26.03.01); the new 26.04.20 setting should be flagged new
         sut.IsSettingNew("26.04.20", "s1").Should().BeTrue();
@@ -150,7 +157,7 @@ public class NewBadgeServiceTests
 
         var sut = CreateSut();
 
-        sut.Initialize(new[] { "26.04.20", "26.03.01" });
+        sut.Initialize(Versions0420And0301);
 
         // Nothing exceeds the stored highest; no setting should be new
         sut.IsSettingNew("26.04.20", "s1").Should().BeFalse();
@@ -171,7 +178,7 @@ public class NewBadgeServiceTests
 
         var sut = CreateSut();
 
-        sut.Initialize(new[] { "26.04.20" });
+        sut.Initialize(Version0420Only);
 
         sut.ShowNewBadges.Should().BeTrue(); // default
     }
@@ -185,7 +192,7 @@ public class NewBadgeServiceTests
         _store["NewBadgeBaseline"] = "26.04.17";
 
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.21", "26.04.17", "26.03.01" });
+        sut.Initialize(Versions0421And0417And0301);
 
         // Baseline should still be 26.04.17 — the badge added in 26.04.21 must still show.
         sut.IsSettingNew("26.04.21", "s1").Should().BeTrue();
@@ -202,7 +209,7 @@ public class NewBadgeServiceTests
     public void IsSettingNew_ReturnsFalse_WhenAddedInVersionIsNullOrEmpty()
     {
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.20" });
+        sut.Initialize(Version0420Only);
 
         sut.IsSettingNew(null, "s1").Should().BeFalse();
         sut.IsSettingNew("", "s2").Should().BeFalse();
@@ -212,7 +219,7 @@ public class NewBadgeServiceTests
     public void IsSettingNew_ReturnsFalse_WhenAddedInVersionUnparseable()
     {
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.20" });
+        sut.Initialize(Version0420Only);
 
         sut.IsSettingNew("not-a-version", "s1").Should().BeFalse();
     }
@@ -221,7 +228,7 @@ public class NewBadgeServiceTests
     public void Initialize_WritesLastRunVersion_ForFutureMigrationUse()
     {
         var sut = CreateSut();
-        sut.Initialize(new[] { "26.04.20" });
+        sut.Initialize(Version0420Only);
 
         _store.ContainsKey("LastRunVersion").Should().BeTrue();
     }

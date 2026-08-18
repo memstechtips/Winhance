@@ -91,16 +91,9 @@ public static class WinGetCliRunner
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
-            try
-            {
-                var candidate = Path.Combine(dir, "winget.exe");
-                if (File.Exists(candidate))
-                    return candidate;
-            }
-            catch (Exception)
-            {
-                // Skip invalid PATH entries (e.g., malformed paths, access denied)
-            }
+            var candidate = Path.Combine(dir, "winget.exe");
+            if (File.Exists(candidate))
+                return candidate;
         }
 
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -132,16 +125,9 @@ public static class WinGetCliRunner
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
-            try
-            {
-                var candidate = Path.Combine(dir, "winget.exe");
-                if (File.Exists(candidate))
-                    return true;
-            }
-            catch (Exception)
-            {
-                // Skip invalid PATH entries (e.g., malformed paths, access denied)
-            }
+            var candidate = Path.Combine(dir, "winget.exe");
+            if (File.Exists(candidate))
+                return true;
         }
 
         // 2. WindowsApps (standard MSIX install location, may not be on PATH)

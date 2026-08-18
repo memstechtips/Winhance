@@ -1853,7 +1853,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
         // The stored selection is the active scheme GUID (default to the first option when the active plan is
         // unreadable, mirroring the factory's load-time fallback).
-        SelectedValue = state.DynamicSelection ?? dynamicOptions.FirstOrDefault()?.Value;
+        SelectedValue = state.DynamicSelection ?? (dynamicOptions.Count > 0 ? dynamicOptions[0].Value : null);
         UpdateStatusBanner(SelectedValue);
         return true;
     }

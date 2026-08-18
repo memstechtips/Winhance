@@ -8,6 +8,16 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class ApplyExecutorTests
 {
+    private static readonly string[] HklmA = [@"HKLM\A"];
+    private static readonly string[] WriteThenEffectCalls = [@"W HKLM\A=1", "FX"];
+    private static readonly string[] BitThenByteCalls = [@"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03"];
+    private static readonly string[] PowerPlanActivateCall = ["PP 11111111-1111-1111-1111-111111111111"];
+    private static readonly string[] UnlockWriteLockCalls = [@"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A"];
+    private static readonly string[] CompositeSetThenRemoveCalls = [@"C HKCU\Pref[AutoHDREnable]=1", @"C HKCU\Pref[VRROptimizeEnable]=<del>"];
+    private static readonly string[] PerSubkeyWriteThenDeleteCalls = [@"PW HKLM\Interfaces=1", @"PD HKLM\Interfaces"];
+    private static readonly string[] WriteOnlyCall = [@"W HKLM\A=1"];
+    private static readonly string[] EffectOnlyCall = ["FX"];
+
     private sealed class RecordingWriter : IStateWriter
     {
         public readonly List<string> Calls = new();
@@ -29,7 +39,7 @@ public class ApplyExecutorTests
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 
-    private static RegTarget Reg() => new("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.DWord);
+    private static RegTarget Reg() => new("K", HklmA, "V", RegistryValueKind.DWord);
 
     // Production always partitions before executing, so the tests go the same way.
     private static ApplyResult Execute(IReadOnlyList<ApplyOp> ops, IStateWriter writer) =>
@@ -47,7 +57,7 @@ public class ApplyExecutorTests
         var result = Execute(plan, w);
         Assert.Equal(2, result.Total);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"W HKLM\A=1", "FX" }, w.Calls);
+        Assert.Equal(WriteThenEffectCalls, w.Calls);
     }
 
     [Fact]
@@ -61,7 +71,7 @@ public class ApplyExecutorTests
         };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03" }, w.Calls);
+        Assert.Equal(BitThenByteCalls, w.Calls);
     }
 
     [Fact]
@@ -71,7 +81,7 @@ public class ApplyExecutorTests
         var plan = new ApplyOp[] { new PowerPlanActivateOp("11111111-1111-1111-1111-111111111111") };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { "PP 11111111-1111-1111-1111-111111111111" }, w.Calls);
+        Assert.Equal(PowerPlanActivateCall, w.Calls);
     }
 
     [Fact]
@@ -86,7 +96,7 @@ public class ApplyExecutorTests
         };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A" }, w.Calls);
+        Assert.Equal(UnlockWriteLockCalls, w.Calls);
     }
 
     [Fact]
@@ -100,7 +110,7 @@ public class ApplyExecutorTests
         };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"C HKCU\Pref[AutoHDREnable]=1", @"C HKCU\Pref[VRROptimizeEnable]=<del>" }, w.Calls);
+        Assert.Equal(CompositeSetThenRemoveCalls, w.Calls);
     }
 
     [Fact]
@@ -114,7 +124,7 @@ public class ApplyExecutorTests
         };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"PW HKLM\Interfaces=1", @"PD HKLM\Interfaces" }, w.Calls);
+        Assert.Equal(PerSubkeyWriteThenDeleteCalls, w.Calls);
     }
 
     [Fact]
@@ -147,7 +157,7 @@ public class ApplyExecutorTests
 
         var outcome = ApplyExecutor.Execute(plan, w);
 
-        Assert.Equal(new[] { @"W HKLM\A=1" }, w.Calls);
+        Assert.Equal(WriteOnlyCall, w.Calls);
         Assert.Equal(new Effect[] { script, reg }, plan.AsyncEffects);
         Assert.True(outcome.AllSucceeded);
         // Total counts what the executor RAN; the plan counts both halves.
@@ -163,7 +173,7 @@ public class ApplyExecutorTests
 
         var outcome = ApplyExecutor.Execute(plan, w);
 
-        Assert.Equal(new[] { "FX" }, w.Calls);
+        Assert.Equal(EffectOnlyCall, w.Calls);
         Assert.Empty(plan.AsyncEffects);
         Assert.True(outcome.AllSucceeded);
     }

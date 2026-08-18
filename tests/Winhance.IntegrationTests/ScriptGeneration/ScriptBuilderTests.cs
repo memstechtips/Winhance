@@ -13,6 +13,8 @@ namespace Winhance.IntegrationTests.ScriptGeneration;
 [Trait("Category", "Integration")]
 public class ScriptBuilderTests
 {
+    private static readonly string[] ClipchampPackage = ["Clipchamp.Clipchamp"];
+
     private readonly Mock<IPowerSettingsQueryService> _powerSettingsQuery = new();
     private readonly Mock<IHardwareDetectionService> _hardwareDetection = new();
     private readonly Mock<ILogService> _logService = new();
@@ -56,7 +58,7 @@ public class ScriptBuilderTests
         {
             WindowsApps = TestSettingFactory.CreateSection(true,
                 TestSettingFactory.CreateAppItem("app1", "Clipchamp",
-                    appxPackageName: new[] { "Clipchamp.Clipchamp" })),
+                    appxPackageName: ClipchampPackage)),
         };
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 

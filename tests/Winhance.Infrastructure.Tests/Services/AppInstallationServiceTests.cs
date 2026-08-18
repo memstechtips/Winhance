@@ -12,6 +12,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class AppInstallationServiceTests
 {
+    private static readonly string[] App1PackageId = ["Publisher.App1"];
+    private static readonly string[] App2PackageId = ["Publisher.App2"];
+
     private readonly Mock<ILegacyCapabilityService> _capabilityService = new();
     private readonly Mock<IOptionalFeatureService> _featureService = new();
     private readonly Mock<ILogService> _logService = new();
@@ -315,14 +318,14 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             },
             new()
             {
                 Id = "app2",
                 Name = "App2",
                 Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
+                WinGetPackageId = App2PackageId
             }
         };
 
@@ -351,14 +354,14 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             },
             new()
             {
                 Id = "app2",
                 Name = "App2",
                 Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
+                WinGetPackageId = App2PackageId
             }
         };
 
@@ -411,7 +414,7 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             }
         };
 

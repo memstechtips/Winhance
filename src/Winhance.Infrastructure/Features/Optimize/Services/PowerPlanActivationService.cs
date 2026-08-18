@@ -428,8 +428,13 @@ public class PowerPlanActivationService(
                     var subgroupGuid = Guid.Parse(w.SubgroupGuid);
                     var settGuid = Guid.Parse(w.SettingGuid);
 
-                    PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Ac);
-                    PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Dc);
+                    var acRc = PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Ac);
+                    var dcRc = PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Dc);
+                    if (acRc != PowerProf.ERROR_SUCCESS || dcRc != PowerProf.ERROR_SUCCESS)
+                    {
+                        logService.Log(LogLevel.Warning, $"Recommended setting '{setting.Id}' did not fully apply (AC rc={acRc}, DC rc={dcRc})");
+                        continue;
+                    }
 
                     appliedCount++;
                 }
