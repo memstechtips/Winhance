@@ -136,7 +136,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         int timeoutMs,
         Action<string>? onProgressLine = null)
     {
-        using var timeoutCts = new CancellationTokenSource(timeoutMs);
+        using var timeoutCts = timeoutMs > 0 ? new CancellationTokenSource(timeoutMs) : new CancellationTokenSource();
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
         var result = await _processExecutor.ExecuteAsync(fileName, arguments, linkedCts.Token).ConfigureAwait(false);
@@ -216,6 +216,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         {
             IntPtr envBlock = IntPtr.Zero;
             UserTokenApi.CreateEnvironmentBlock(out envBlock, _interactiveUserToken, false);
+            var processHandle = IntPtr.Zero;
 
             try
             {
@@ -248,6 +249,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                     return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
                 }
 
+                processHandle = pi.hProcess;
                 // Close the thread handle immediately — we only need the process handle
                 UserTokenApi.CloseHandle(pi.hThread);
 
@@ -272,9 +274,9 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 var stderrSafeHandle = new SafeFileHandle(stderrReadHandle, ownsHandle: true);
                 stderrReadHandle = IntPtr.Zero; // SafeFileHandle now owns it
 
-                var processHandle = pi.hProcess;
-
-                using var timeoutCts = new CancellationTokenSource(timeoutMs);
+                // timeoutMs 0 = no wall-clock limit (WinGetCliRunner's contract). CancellationTokenSource(0) is born
+                // cancelled and would fire the kill below before the child has run.
+                using var timeoutCts = timeoutMs > 0 ? new CancellationTokenSource(timeoutMs) : new CancellationTokenSource();
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                 using var killRegistration = linkedCts.Token.Register(() =>
                 {
@@ -307,12 +309,13 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
 
-                var waitResult = await Task.Run(() => UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs)).ConfigureAwait(false);
+                var waitMs = timeoutMs > 0 ? (uint)timeoutMs : UserTokenApi.INFINITE;
+                var waitResult = await Task.Run(() => UserTokenApi.WaitForSingleObject(processHandle, waitMs)).ConfigureAwait(false);
                 if (waitResult != UserTokenApi.WAIT_OBJECT_0)
-                    _logService.Log(LogLevel.Warning, $"Process did not signal exit within {timeoutMs}ms (wait result 0x{waitResult:X}); the exit code read below cannot be trusted");
+                    _logService.Log(LogLevel.Warning, $"Process did not signal exit (wait result 0x{waitResult:X}); the exit code read below cannot be trusted");
 
-                UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode);
-                UserTokenApi.CloseHandle(processHandle);
+                if (!UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed; the process's exit code is unknown");
 
                 return new InteractiveProcessResult(
                     (int)exitCode,
@@ -321,6 +324,8 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             }
             finally
             {
+                if (processHandle != IntPtr.Zero)
+                    UserTokenApi.CloseHandle(processHandle);
                 if (envBlock != IntPtr.Zero)
                     UserTokenApi.DestroyEnvironmentBlock(envBlock);
             }
