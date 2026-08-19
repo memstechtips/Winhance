@@ -139,18 +139,6 @@ internal static class WinGetCliRunner
         var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
             ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
 
-        // OTS: run winget as the interactive user so packages install to their scope.
-        // Idle-timeout is not plumbed through the OTS helper; callers that need it
-        // pass a generous wall-clock timeoutMs as the fallback.
-        if (interactiveUserService != null
-            && interactiveUserService.IsOtsElevation
-            && interactiveUserService.HasInteractiveUserToken)
-        {
-            var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
-                exePath, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
-            return new WinGetCliResult(result.ExitCode, result.StandardOutput, result.StandardError);
-        }
-
         CancellationTokenSource? wallClockCts = null;
         CancellationTokenSource? idleCts = null;
         CancellationTokenSource? linkedCts = null;
@@ -205,6 +193,18 @@ internal static class WinGetCliRunner
                 ResetIdle(capturedIdleCts, capturedIdleMs);
                 onProgressLine?.Invoke(line);
             };
+
+            // OTS: run winget as the interactive user so packages install to their scope. The helper's own
+            // wall-clock stays off (0): linkedCts already carries wall-clock, idle and caller cancellation.
+            if (interactiveUserService != null
+                && interactiveUserService.IsOtsElevation
+                && interactiveUserService.HasInteractiveUserToken)
+            {
+                var otsResult = await interactiveUserService.RunProcessAsInteractiveUserAsync(
+                    exePath, arguments, wrapOutput, wrapError, linkedCts.Token, timeoutMs: 0, onProgressLine: wrapProgress).ConfigureAwait(false);
+                return new WinGetCliResult(otsResult.ExitCode, otsResult.StandardOutput, otsResult.StandardError,
+                    GetTerminationReason(otsResult.ExitCode));
+            }
 
             // When real-time progress is requested, use ConPTY so that winget sees
             // isatty(stdout)==true and outputs progress bars with std::flush.
