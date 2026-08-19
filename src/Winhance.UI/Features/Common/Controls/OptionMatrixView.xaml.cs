@@ -583,14 +583,11 @@ public sealed partial class OptionMatrixView : UserControl
     private static Border Badge(string text, string tooltip, bool recommended)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        if (recommended)
-            content.Children.Add(new FontIcon { Glyph = "", Style = Named("TechDetail.Table.BadgeRecommendedIcon") });
-        else
-            content.Children.Add(new PathIcon
-            {
-                Data = GeometryHelper.FromResource("BadgeDefaultIconPath"),
-                Style = Named("TechDetail.Table.BadgeDefaultIcon"),
-            });
+        content.Children.Add(new PathIcon
+        {
+            Data = GeometryHelper.FromResource(recommended ? "BadgeRecommendedIconPath" : "BadgeDefaultIconPath"),
+            Style = Named(recommended ? "TechDetail.Table.BadgeRecommendedIcon" : "TechDetail.Table.BadgeDefaultIcon"),
+        });
         content.Children.Add(new TextBlock
         {
             Text = text,

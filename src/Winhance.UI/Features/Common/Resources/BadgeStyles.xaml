@@ -144,8 +144,9 @@
     <!-- Technical Details table badges. Here rather than in TechnicalDetailsStyles.xaml
          because they need the Badge*Foreground brushes and BadgeTextStyle defined above,
          and that dictionary is merged into App.xaml before this one. -->
-    <Style x:Key="TechDetail.Table.BadgeRecommendedIcon" TargetType="FontIcon">
-        <Setter Property="FontSize" Value="12"/>
+    <Style x:Key="TechDetail.Table.BadgeRecommendedIcon" TargetType="PathIcon">
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="Height" Value="12"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
     </Style>

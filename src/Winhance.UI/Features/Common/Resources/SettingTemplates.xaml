@@ -29,8 +29,9 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}"
-                                  VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
+                        <PathIcon Data="{StaticResource BadgeRecommendedIconPath}"
+                                  Height="12" Width="12"
+                                  VerticalAlignment="Center"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
@@ -67,8 +68,9 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE77B;" FontSize="{StaticResource BadgePillIconFontSize}"
-                                  VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
+                        <PathIcon Data="{StaticResource BadgePreferenceIconPath}"
+                                  Height="12" Width="12"
+                                  VerticalAlignment="Center"
                                   Foreground="{ThemeResource BadgePreferenceForeground}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
