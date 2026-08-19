@@ -62,6 +62,8 @@ internal class DismProcessRunner : IDismProcessRunner
             },
             ct: cancellationToken).ConfigureAwait(false);
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var combinedOutput = stdoutBuilder.ToString();
         if (stderrBuilder.Length > 0)
             combinedOutput += stderrBuilder.ToString();

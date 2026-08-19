@@ -121,7 +121,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
         {
-            return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
+            return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
         }
 
         return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
@@ -133,43 +133,17 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         Action<string>? onOutputLine,
         Action<string>? onErrorLine,
         CancellationToken cancellationToken,
-        int timeoutMs,
-        Action<string>? onProgressLine = null)
+        int timeoutMs)
     {
         using var timeoutCts = timeoutMs > 0 ? new CancellationTokenSource(timeoutMs) : new CancellationTokenSource();
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        var result = await _processExecutor.ExecuteAsync(fileName, arguments, linkedCts.Token).ConfigureAwait(false);
+        // Pipe mode has no transient \r fragments: every line is permanent output, and blank ones carry nothing.
+        Action<string> forwardOutput = line => { if (line.Length > 0) onOutputLine?.Invoke(line); };
+        Action<string> forwardError = line => { if (line.Length > 0) onErrorLine?.Invoke(line); };
 
-        if (onOutputLine != null || onProgressLine != null)
-        {
-            foreach (var line in result.StandardOutput.Split('\n', StringSplitOptions.None))
-            {
-                var trimmedLine = line.TrimEnd('\r');
-                if (trimmedLine.Length > 0)
-                {
-                    onOutputLine?.Invoke(trimmedLine);
-                    onProgressLine?.Invoke(trimmedLine);
-                }
-            }
-        }
-
-        if (onErrorLine != null)
-        {
-            foreach (var line in result.StandardError.Split('\n', StringSplitOptions.None))
-            {
-                var trimmedLine = line.TrimEnd('\r');
-                if (trimmedLine.Length > 0)
-                {
-                    onErrorLine.Invoke(trimmedLine);
-                }
-            }
-        }
-
-        return new InteractiveProcessResult(
-            result.ExitCode,
-            result.StandardOutput,
-            result.StandardError);
+        var result = await _processExecutor.ExecuteWithStreamingAsync(fileName, arguments, forwardOutput, forwardError, linkedCts.Token).ConfigureAwait(false);
+        return new InteractiveProcessResult(result.ExitCode, result.StandardOutput, result.StandardError);
     }
 
     private async Task<InteractiveProcessResult> RunProcessWithTokenAsync(

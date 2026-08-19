@@ -192,6 +192,35 @@ public class ChocolateyServiceTests
     }
 
     [Fact]
+    public async Task InstallPackageAsync_KilledByCancellation_ThrowsInsteadOfReportingFailure()
+    {
+        _mockFileSystem
+            .Setup(f => f.FileExists(@"C:\ProgramData\chocolatey\bin\choco.exe"))
+            .Returns(true);
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteWithStreamingAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Action<string>?>(),
+                It.IsAny<Action<string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = -1 });
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        var sut = new ChocolateyService(
+            _mockLog.Object,
+            _mockProgress.Object,
+            _mockLocalization.Object,
+            _mockProcessExecutor.Object,
+            _mockFileSystem.Object);
+
+        var act = () => sut.InstallPackageAsync("pkg", cancellationToken: cancelled.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task UninstallPackageAsync_WhenChocoNotFound_ReturnsFalse()
     {
         var result = await _sut.UninstallPackageAsync("notepadplusplus");

@@ -176,6 +176,8 @@ internal class ChocolateyService : IChocolateyService
             },
             ct: ct).ConfigureAwait(false);
 
+        ct.ThrowIfCancellationRequested();
+
         if (result.ExitCode != 0)
             _logService.LogError($"Chocolatey install of '{chocoPackageId}' failed (exit code {result.ExitCode}): {result.StandardError}");
 
@@ -306,6 +308,8 @@ internal class ChocolateyService : IChocolateyService
             $"uninstall {chocoPackageId} {flags}",
             onOutputLine: onOutputLine,
             ct: cancellationToken).ConfigureAwait(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (result.ExitCode == 0)
         {
