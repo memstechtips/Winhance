@@ -161,7 +161,7 @@ public class RecommendedConfigConformanceTests
     }
 
     // Powercfg SLIDER: BuildPowerCfgApplyValue returns AC/DC in DISPLAY units; the config stores SYSTEM units
-    // (ConfigExportService writes the raw state.AcValue/DcValue). Convert expected display -> system before comparing.
+    // (SettingSnapshotSource captures the raw state.AcValue/DcValue). Convert expected display -> system before comparing.
     private static string? CompareSlider(object expected, ConfigurationItem item, string units)
     {
         if (expected is IReadOnlyDictionary<string, object?> dict)

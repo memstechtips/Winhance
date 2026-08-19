@@ -117,6 +117,7 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
         services.AddSingleton<ISettingSnapshotSource, SettingSnapshotSource>();
+        services.AddSingleton<IConfigFileWriter, ConfigFileWriter>();
 
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
 

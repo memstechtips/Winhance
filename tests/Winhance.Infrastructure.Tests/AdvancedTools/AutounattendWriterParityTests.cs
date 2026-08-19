@@ -31,7 +31,7 @@ public class AutounattendWriterParityTests
     private AutounattendScriptBuilder OldBuilder() =>
         new(_power.Object, _hardware.Object, _log.Object, _ps.Object, _version.Object);
 
-    // Every parity setting at its "on"/first-option value, the way ConfigExportService would have written it.
+    // Every parity setting at its "on"/first-option value, the way a .winhance export writes it.
     internal static WinhanceConfigFile OldConfig()
     {
         var items = new List<ConfigurationItem>

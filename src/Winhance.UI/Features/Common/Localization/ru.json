@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Конфигурация сохранена",
   "Config_Export_Success_Message": "Ваша конфигурация была сохранена в:\n{0}",
   "Config_Export_Error_Title": "Ошибка экспорта",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Не удалось сохранить конфигурацию:\n\n{0}",
   "Config_Import_Status_Applying": "Устройтесь поудобнее, расслабьтесь и наблюдайте, как Winhance улучшает Windows с вашими желаемыми настройками...",
   "Config_Import_Status_RestartingExplorer": "Перезапуск Проводника...",

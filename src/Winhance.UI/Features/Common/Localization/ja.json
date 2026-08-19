@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "構成が保存されました",
   "Config_Export_Success_Message": "構成は次の場所に保存されました：\n{0}",
   "Config_Export_Error_Title": "エクスポートエラー",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "構成の保存に失敗しました：\n\n{0}",
   "Config_Import_Status_Applying": "Winhanceがご希望の設定でWindowsを強化する間、リラックスしてお待ちください...",
   "Config_Import_Status_RestartingExplorer": "エクスプローラーを再起動しています...",

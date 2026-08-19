@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "कॉन्फ़िगरेशन सहेजा गया",
   "Config_Export_Success_Message": "आपका कॉन्फिग इसमें सहेजा गया है:\n{0}",
   "Config_Export_Error_Title": "निर्यात त्रुटि",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "कॉन्फ़िगरेशन सहेजने में विफल:\n\n{0}",
   "Config_Import_Status_Applying": "आराम से बैठें, और देखें जबकि विनहान्स आपकी वांछित सेटिंग्स के साथ विंडोज को बढ़ाता है...",
   "Config_Import_Status_RestartingExplorer": "एक्सप्लोरर पुनः प्रारंभ हो रहा है...",

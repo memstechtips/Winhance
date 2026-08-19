@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfiguracja zapisana",
   "Config_Export_Success_Message": "Twoja konfiguracja została zapisana w:\n{0}",
   "Config_Export_Error_Title": "Błąd eksportu",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Nie udało się zapisać konfiguracji:\n\n{0}",
   "Config_Import_Status_Applying": "Usiądź wygodnie i obserwuj, jak Winhance usprawnia system Windows z wybranymi ustawieniami...",
   "Config_Import_Status_RestartingExplorer": "Ponowne uruchamianie Eksploratora...",

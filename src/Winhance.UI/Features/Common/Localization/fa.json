@@ -157,6 +157,7 @@
   "Config_Export_Success_Title": "تنظیمات ذخیره شد",
   "Config_Export_Success_Message": "تنظیمات در این آدرس ذخیره شد:\n{0}",
   "Config_Export_Error_Title": "خطا در خروجی گرفتن",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "ذخیره پیکربندی انجام نشد:\n\n{0}",
   "Config_Import_Status_Applying": "استراحت کنید و در حالی که Winhance ویندوز شما را با تنظیمات دلخواه بهینه می‌کند، نظاره‌گر باشید...",
   "Config_Import_Status_RestartingExplorer": "در حال راه‌اندازی مجدد Explorer...",

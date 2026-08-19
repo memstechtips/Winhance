@@ -38,9 +38,11 @@ public static class UIServicesExtensions
         services.AddSingleton<IDialogService, DialogService>();
 
         services.AddSingleton<IFilePickerService, FilePickerService>();
+        services.AddSingleton<ISaveFilePicker, SaveFilePicker>();
 
         services.AddSingleton<IAppSelectionSource, AppSelectionSource>();
         services.AddSingleton<ISelectionSetBuilder, SelectionSetBuilder>();
+        services.AddSingleton<IBuilderSaveService, BuilderSaveService>();
         services.AddSingleton<IInstallConsent, DialogInstallConsent>();
 
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
@@ -51,7 +53,6 @@ public static class UIServicesExtensions
 
         services.AddSingleton<IWindowsVersionFilterService, WindowsVersionFilterService>();
 
-        services.AddSingleton<IConfigExportService, ConfigExportService>();
         services.AddSingleton<IConfigLoadService, ConfigLoadService>();
         services.AddSingleton<IConfigAppSelectionService, ConfigAppSelectionService>();
         services.AddSingleton<IConfigApplicationExecutionService, ConfigApplicationExecutionService>();

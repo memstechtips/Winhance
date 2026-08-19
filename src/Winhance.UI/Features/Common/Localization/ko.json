@@ -157,6 +157,7 @@
   "Config_Export_Success_Title": "구성 저장 완료",
   "Config_Export_Success_Message": "구성이 다음 경로에 저장되었습니다:\n{0}",
   "Config_Export_Error_Title": "내보내기 오류",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "구성 저장에 실패했습니다:\n\n{0}",
   "Config_Import_Status_Applying": "편안히 기다려 주십시오. Winhance가 원하시는 설정으로 Windows를 향상시키고 있습니다...",
   "Config_Import_Status_RestartingExplorer": "탐색기 다시 시작 중...",

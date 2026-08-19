@@ -139,6 +139,7 @@
   "Config_Export_Success_Title": "تم حفظ الإعدادات",
   "Config_Export_Success_Message": "تم حفظ الإعدادات في:\n{0}",
   "Config_Export_Error_Title": "خطأ في التصدير",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "فشل حفظ الإعدادات:\n\n{0}",
   "Config_Import_Status_Applying": "استرخِ ودع Winhance يحسن Windows بالإعدادات التي اخترتها...",
   "Config_Import_Status_RestartingExplorer": "جارٍ إعادة تشغيل المستكشف...",

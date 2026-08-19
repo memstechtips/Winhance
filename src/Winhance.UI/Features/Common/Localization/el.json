@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Η Διαμόρφωση Αποθηκεύτηκε",
   "Config_Export_Success_Message": "Η διαμόρφωσή σας αποθηκεύτηκε στο:\n{0}",
   "Config_Export_Error_Title": "Σφάλμα Εξαγωγής",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Αποτυχία αποθήκευσης διαμόρφωσης:\n\n{0}",
   "Config_Import_Status_Applying": "Χαλαρώστε και παρακολουθήστε ενώ το Winhance βελτιώνει τα Windows με τις επιθυμητές ρυθμίσεις σας...",
   "Config_Import_Status_RestartingExplorer": "Επανεκκίνηση της Εξερεύνησης...",

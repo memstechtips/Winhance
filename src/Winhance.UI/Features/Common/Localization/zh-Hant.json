@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "設定已儲存",
   "Config_Export_Success_Message": "您的設定已儲存至：\n{0}",
   "Config_Export_Error_Title": "匯出錯誤",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "儲存設定失敗：\n\n{0}",
   "Config_Import_Status_Applying": "請稍坐片刻，Winhance 正在依您的需求強化 Windows...",
   "Config_Import_Status_RestartingExplorer": "正在重新啟動檔案總管...",

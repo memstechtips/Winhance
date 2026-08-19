@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Configuração Salva",
   "Config_Export_Success_Message": "Sua configuração foi salva em:\n{0}",
   "Config_Export_Error_Title": "Erro na Exportação",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Falha ao salvar a configuração:\n\n{0}",
   "Config_Import_Status_Applying": "Sente-se, relaxe e observe enquanto o Winhance aprimora o Windows com suas configurações desejadas...",
   "Config_Import_Status_RestartingExplorer": "Reiniciando o Explorer...",

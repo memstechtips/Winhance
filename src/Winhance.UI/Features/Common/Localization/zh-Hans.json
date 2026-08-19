@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "配置已保存",
   "Config_Export_Success_Message": "您的配置已保存到：\n{0}",
   "Config_Export_Error_Title": "导出错误",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "保存配置失败：\n\n{0}",
   "Config_Import_Status_Applying": "请坐和放宽，观看 Winhance 使用您期望的设置增强 Windows...",
   "Config_Import_Status_RestartingExplorer": "正在重启资源管理器...",

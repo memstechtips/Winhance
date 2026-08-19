@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfigurācija saglabāta",
   "Config_Export_Success_Message": "Jūsu konfigurācija ir saglabāta šeit:\n{0}",
   "Config_Export_Error_Title": "Eksportēšanas kļūda",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Neizdevās saglabāt konfigurāciju:\n\n{0}",
   "Config_Import_Status_Applying": "Apsēdieties, atslābinieties un vērojiet, kā Winhance uzlabo Windows ar jūsu vēlamajiem iestatījumiem...",
   "Config_Import_Status_RestartingExplorer": "Pārstartē Pārlūku...",

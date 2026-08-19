@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfigūracija išsaugota",
   "Config_Export_Success_Message": "Jūsų konfigūracija buvo išsaugota į:\n{0}",
   "Config_Export_Error_Title": "Eksportavimo klaida",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Nepavyko išsaugoti konfigūracijos:\n\n{0}",
   "Config_Import_Status_Applying": "Atsipalaiduokite ir stebėkite, kaip Winhance patobulina Windows su jūsų norimais nustatymais...",
   "Config_Import_Status_RestartingExplorer": "Paleidžiama iš naujo Naršyklė...",

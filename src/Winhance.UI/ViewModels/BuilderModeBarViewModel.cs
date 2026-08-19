@@ -12,7 +12,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
     private readonly IApplicationModeService _applicationModeService;
-    private readonly IConfigExportService _configExportService;
+    private readonly IBuilderSaveService _builderSave;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
@@ -46,14 +46,14 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 
     public BuilderModeBarViewModel(
         IApplicationModeService applicationModeService,
-        IConfigExportService configExportService,
+        IBuilderSaveService builderSave,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         IDialogService dialogService,
         ILogService logService)
     {
         _applicationModeService = applicationModeService;
-        _configExportService = configExportService;
+        _builderSave = builderSave;
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
@@ -115,14 +115,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     {
         try
         {
-            if (_applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend)
-            {
-                await _configExportService.ExportBuilderAutounattendAsync();
-            }
-            else
-            {
-                await _configExportService.ExportBuilderConfigAsync();
-            }
+            await _builderSave.SaveAsync(_applicationModeService.CurrentBuilderTarget);
         }
         catch (Exception ex)
         {

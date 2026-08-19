@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfigurasie Gestoor",
   "Config_Export_Success_Message": "Jou konfigurasie is gestoor na:\n{0}",
   "Config_Export_Error_Title": "Uitvoer Fout",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Kon nie konfigurasie stoor nie:\n\n{0}",
   "Config_Import_Status_Applying": "Sit terug, ontspan en kyk hoe Winhance Windows verbeter met jou gewenste instellings...",
   "Config_Import_Status_RestartingExplorer": "Herbegin Verkenner...",

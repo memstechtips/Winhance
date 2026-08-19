@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfigurace uložena",
   "Config_Export_Success_Message": "Vaše konfigurace byla uložena do:\n{0}",
   "Config_Export_Error_Title": "Chyba exportu",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Nepodařilo se uložit konfiguraci:\n\n{0}",
   "Config_Import_Status_Applying": "Pohodlně se usaďte, relaxujte a sledujte, jak Winhance vylepšuje Windows s vašimi požadovanými nastaveními...",
   "Config_Import_Status_RestartingExplorer": "Restartování Průzkumníka...",

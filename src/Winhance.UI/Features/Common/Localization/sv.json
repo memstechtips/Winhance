@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Konfiguration sparad",
   "Config_Export_Success_Message": "Din konfiguration har sparats i:\n{0}",
   "Config_Export_Error_Title": "Exportfel",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Det gick inte att spara konfigurationen:\n\n{0}",
   "Config_Import_Status_Applying": "Luta dig tillbaka, slappna av och titta på medan Winhance förbättrar Windows med dina önskade inställningar...",
   "Config_Import_Status_RestartingExplorer": "Startar om Utforskaren...",

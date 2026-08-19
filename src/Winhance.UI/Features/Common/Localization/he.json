@@ -139,6 +139,7 @@
   "Config_Export_Success_Title": "התצורה נשמרה",
   "Config_Export_Success_Message": "התצורה שלך נשמרה אל:\n{0}",
   "Config_Export_Error_Title": "שגיאת ייצוא",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "שמירת התצורה נכשלה:\n\n{0}",
   "Config_Import_Status_Applying": "שב בנוח וצפה כיצד Winhance משפר את Windows עם ההגדרות הרצויות לך...",
   "Config_Import_Status_RestartingExplorer": "מפעיל מחדש את סייר Windows...",

@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Configuration enregistrée",
   "Config_Export_Success_Message": "Votre configuration a été enregistrée dans :{0}",
   "Config_Export_Error_Title": "Erreur d'exportation",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Échec de l'enregistrement de la configuration :{0}",
   "Config_Import_Status_Applying": "Asseyez-vous, détendez-vous et regardez pendant que Winhance améliore Windows avec vos paramètres souhaités...",
   "Config_Import_Status_RestartingExplorer": "Redémarrage de l'Explorateur...",

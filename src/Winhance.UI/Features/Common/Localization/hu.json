@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Beállítások mentve",
   "Config_Export_Success_Message": "Konfigurációja mentésre került ide:\n{0}",
   "Config_Export_Error_Title": "Exportálási hiba",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "A konfiguráció mentése sikertelen:\n\n{0}",
   "Config_Import_Status_Applying": "Dőljön hátra, lazítson, és nézze, ahogy a Winhance a kívánt beállításokkal javítja a Windows rendszert....",
   "Config_Import_Status_RestartingExplorer": "Az Intéző újraindítása...",

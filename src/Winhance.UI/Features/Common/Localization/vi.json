@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Đã lưu cấu hình",
   "Config_Export_Success_Message": "Cấu hình của bạn đã được lưu vào:\n{0}",
   "Config_Export_Error_Title": "Lỗi xuất",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Không thể lưu cấu hình:\n\n{0}",
   "Config_Import_Status_Applying": "Hãy ngồi xuống, thư giãn và xem Winhance nâng cao Windows với các cài đặt mong muốn của bạn...",
   "Config_Import_Status_RestartingExplorer": "Đang khởi động lại Explorer...",

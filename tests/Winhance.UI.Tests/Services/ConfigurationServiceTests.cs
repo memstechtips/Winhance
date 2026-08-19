@@ -1,7 +1,10 @@
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -9,32 +12,140 @@ namespace Winhance.UI.Tests.Services;
 
 public class ConfigurationServiceTests
 {
+    private const string PickedPath = @"C:\Users\Test\Winhance_Config_20260819.winhance";
+    private const string LocalAppData = @"C:\Users\Test\AppData\Local";
+    private const string BackupDir = @"C:\Users\Test\AppData\Local\Winhance\Backup";
+    private const string BackupFile = BackupDir + @"\UserBackup.winhance";
+
+    private static readonly AppChoice[] OneWindowsApp = [new AppChoice("app1", "App 1", null, null, null, null)];
+
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
-    private readonly Mock<IConfigExportService> _mockConfigExportService = new();
+    private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
+    private readonly Mock<IConfigFileWriter> _mockConfigFileWriter = new();
+    private readonly Mock<ISaveFilePicker> _mockPicker = new();
+    private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IFileSystemService> _mockFileSystemService = new();
+    private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IConfigLoadService> _mockConfigLoadService = new();
     private readonly Mock<IConfigApplicationExecutionService> _mockConfigExecutionService = new();
     private readonly Mock<IConfigReviewOrchestrationService> _mockConfigReviewOrchestrationService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
+
+    public ConfigurationServiceTests()
+    {
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => string.Format(key, args));
+    }
+
     private ConfigurationService CreateService()
     {
         return new ConfigurationService(
             _mockLogService.Object,
             _mockCatalogSettingsRegistry.Object,
-            _mockConfigExportService.Object,
+            _mockSelections.Object,
+            _mockConfigFileWriter.Object,
+            _mockPicker.Object,
+            _mockLocalizationService.Object,
+            _mockFileSystemService.Object,
+            _mockInteractiveUserService.Object,
             _mockConfigLoadService.Object,
             _mockConfigExecutionService.Object,
             _mockConfigReviewOrchestrationService.Object,
             _mockDialogService.Object);
     }
 
-    [Fact]
-    public async Task ExportConfigurationAsync_DelegatesToConfigExportService()
-    {
-        var service = CreateService();
-        await service.ExportConfigurationAsync();
+    private static SelectionSet SetWith(IReadOnlyList<AppChoice> windowsApps) =>
+        new(Array.Empty<SettingChoice>(), windowsApps, Array.Empty<AppChoice>(), AutounattendChoices.None);
 
-        _mockConfigExportService.Verify(e => e.ExportConfigurationAsync(), Times.Once);
+    private SelectionSet ArrangeMachineSet(IReadOnlyList<AppChoice> windowsApps)
+    {
+        var set = SetWith(windowsApps);
+        _mockSelections.Setup(s => s.FromMachineAsync()).ReturnsAsync(set);
+        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
+        return set;
+    }
+
+    private void ArrangePicker(string? path) =>
+        _mockPicker
+            .Setup(p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(path);
+
+    private void VerifyPickerCalled(Times times) =>
+        _mockPicker.Verify(
+            p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            times);
+
+    private void VerifyNothingWritten() =>
+        _mockConfigFileWriter.Verify(
+            w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()),
+            Times.Never);
+
+    [Fact]
+    public async Task Export_NoAppsChecked_AsksThenContinues()
+    {
+        ArrangeMachineSet(Array.Empty<AppChoice>());
+        ArrangePicker(PickedPath);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        await CreateService().ExportConfigurationAsync();
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Message == "Dialog_NoAppsSelected_Config_Message")),
+            Times.Once);
+        VerifyPickerCalled(Times.Once());
+    }
+
+    [Fact]
+    public async Task Export_NoAppsChecked_UserDeclines_WritesNothing()
+    {
+        ArrangeMachineSet(Array.Empty<AppChoice>());
+        ArrangePicker(PickedPath);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        await CreateService().ExportConfigurationAsync();
+
+        VerifyPickerCalled(Times.Never());
+        VerifyNothingWritten();
+    }
+
+    [Fact]
+    public async Task Export_UserCancelsPicker_WritesNothing()
+    {
+        ArrangeMachineSet(OneWindowsApp);
+        ArrangePicker(null);
+
+        await CreateService().ExportConfigurationAsync();
+
+        VerifyNothingWritten();
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Export_WritesViaConfigFileWriter_AndShowsSuccess()
+    {
+        var set = ArrangeMachineSet(OneWindowsApp);
+        ArrangePicker(PickedPath);
+
+        await CreateService().ExportConfigurationAsync();
+
+        _mockConfigFileWriter.Verify(
+            w => w.WriteAsync(set, CatalogScope.CurrentMachine, PickedPath),
+            Times.Once);
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync("Config_Export_Success_Message", "Config_Export_Success_Title", ""),
+            Times.Once);
     }
 
     [Fact]
@@ -213,12 +324,38 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
-    public async Task CreateUserBackupConfigAsync_DelegatesToExportService()
+    public async Task Backup_UsesInstalledApps_AndTheBackupFolder()
     {
-        var service = CreateService();
-        await service.CreateUserBackupConfigAsync();
+        var set = SetWith(OneWindowsApp);
+        _mockSelections.Setup(s => s.FromMachineForBackupAsync()).ReturnsAsync(set);
+        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
 
-        _mockConfigExportService.Verify(e => e.CreateUserBackupConfigAsync(), Times.Once);
+        _mockInteractiveUserService
+            .Setup(s => s.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData))
+            .Returns(LocalAppData);
+
+        _mockFileSystemService
+            .Setup(fs => fs.CombinePath(LocalAppData, "Winhance", "Backup"))
+            .Returns(BackupDir);
+        _mockFileSystemService
+            .Setup(fs => fs.CombinePath(BackupDir, It.IsAny<string>()))
+            .Returns(BackupFile);
+
+        await CreateService().CreateUserBackupConfigAsync();
+
+        _mockSelections.Verify(s => s.FromMachineForBackupAsync(), Times.Once);
+        _mockSelections.Verify(s => s.FromMachineAsync(), Times.Never);
+        _mockFileSystemService.Verify(fs => fs.CombinePath(LocalAppData, "Winhance", "Backup"), Times.Once);
+        _mockFileSystemService.Verify(fs => fs.CreateDirectory(BackupDir), Times.Once);
+
+        // The generated file name is the part this service owns; CombinePath is mocked, so assert it here.
+        _mockFileSystemService.Verify(
+            fs => fs.CombinePath(BackupDir, It.Is<string>(name =>
+                name.StartsWith("UserBackup_", StringComparison.Ordinal) && name.EndsWith(".winhance", StringComparison.Ordinal))),
+            Times.Once);
+        _mockConfigFileWriter.Verify(
+            w => w.WriteAsync(set, CatalogScope.CurrentMachine, BackupFile),
+            Times.Once);
     }
 
     [Fact]

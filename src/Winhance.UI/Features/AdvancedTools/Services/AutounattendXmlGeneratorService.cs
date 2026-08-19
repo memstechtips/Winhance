@@ -181,7 +181,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
                     else
                     {
                         // A Separate-mode powercfg Selection exports AC and DC indices distinctly (mirror
-                        // ConfigExportService's Selection AC/DC branch). AcValue/DcValue are the typed fields
+                        // SettingSnapshotSource's Selection AC/DC branch). AcValue/DcValue are the typed fields
                         // the catalog detection overlay populates; the generated unattend sets AC and DC
                         // separately on install for these settings.
                         bool hasAcDcPowerSettings = false;
@@ -312,7 +312,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     }
 
     // Index resolver for a Separate-mode powercfg Selection's AC/DC values - verbatim mirror of
-    // ConfigExportService.ResolveValueToIndex so both exporters resolve a raw powercfg value to its option
+    // SettingSnapshotSource.IndexOfPowerValue so both exporters resolve a raw powercfg value to its option
     // index identically (via the catalog States' Set["Power"] payload).
     private static int ResolveValueToIndex(Setting setting, object? value)
     {
@@ -332,7 +332,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         return 0;
     }
 
-    // Twin of ConfigExportService.ControlToInputType: the persisted InputType field is LOAD-BEARING
+    // Twin of ConfigFileMapper.InputTypeFor: the persisted InputType field is LOAD-BEARING
     // (ConfigMigrationService's import gates read it, and it seeds the ViewModel InputType on import).
     private static InputType ControlToInputType(ControlKind control) => control switch
     {

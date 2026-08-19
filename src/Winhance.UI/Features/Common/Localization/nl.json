@@ -151,6 +151,7 @@
   "Config_Export_Success_Title": "Configuratie Opgeslagen",
   "Config_Export_Success_Message": "Uw configuratie is opgeslagen in:\n{0}",
   "Config_Export_Error_Title": "Export Fout",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Kan configuratie niet opslaan:\n\n{0}",
   "Config_Import_Status_Applying": "Leun achterover, ontspan en kijk hoe Winhance Windows verbetert met uw gewenste instellingen...",
   "Config_Import_Status_RestartingExplorer": "Verkenner wordt opnieuw gestart...",

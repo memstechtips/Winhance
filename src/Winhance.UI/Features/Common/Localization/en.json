@@ -139,6 +139,7 @@
   "Config_Export_Success_Title": "Configuration Saved",
   "Config_Export_Success_Message": "Your config has been saved to:\n{0}",
   "Config_Export_Error_Title": "Export Error",
+  "Config_FileDialog_SaveConfig": "Save Configuration",
   "Config_Export_Error_Message": "Failed to save configuration:\n\n{0}",
   "Config_Import_Status_Applying": "Sit back, relax and watch while Winhance enhances Windows with your desired settings...",
   "Config_Import_Status_RestartingExplorer": "Restarting Explorer...",
