@@ -144,6 +144,19 @@ public class LogServiceTests
     }
 
     [Fact]
+    public void StartLog_CalledTwice_ReplacesTheWriterAndKeepsLogging()
+    {
+        var service = new LogService();
+        service.StartLog();
+        service.StartLog();
+        service.LogInformation("after second start");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        File.ReadAllText(logPath).Should().Contain("after second start");
+    }
+
+    [Fact]
     public void StartLog_DoesNotContainUserOrMachineInfo()
     {
         var service = new LogService();

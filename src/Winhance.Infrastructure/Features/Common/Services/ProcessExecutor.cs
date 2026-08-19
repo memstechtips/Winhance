@@ -69,7 +69,7 @@ internal class ProcessExecutor : IProcessExecutor
 
         using var registration = ct.Register(() =>
         {
-            try { process.Kill(); } catch { }
+            try { process.Kill(entireProcessTree: true); } catch { }
         });
 
         var readOutput = Task.Run(async () =>
@@ -91,7 +91,10 @@ internal class ProcessExecutor : IProcessExecutor
         }, CancellationToken.None);
 
         await Task.WhenAll(readOutput, readError).ConfigureAwait(false);
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        // Both streams at EOF means the process is gone (the kill registration guarantees that on
+        // cancellation). Waiting with the token would throw and lose the exit code and the output
+        // collected so far; callers observe their own token to classify a kill as cancellation.
+        await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
 
         return new ProcessExecutionResult
         {
