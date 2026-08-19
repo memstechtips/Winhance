@@ -119,6 +119,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ISettingSnapshotSource, SettingSnapshotSource>();
         services.AddSingleton<IConfigFileWriter, ConfigFileWriter>();
         services.AddSingleton<IAutounattendWriter, Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendWriter>();
+        services.AddSingleton<IBuilderSeedSource, BuilderSeedSource>();
 
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
 

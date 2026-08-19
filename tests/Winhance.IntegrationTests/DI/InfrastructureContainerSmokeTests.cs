@@ -55,6 +55,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(ISettingSnapshotSource))]
     [InlineData(typeof(IConfigFileWriter))]
     [InlineData(typeof(IAutounattendWriter))]
+    [InlineData(typeof(IBuilderSeedSource))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         using var provider = BuildProvider();
