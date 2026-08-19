@@ -14,7 +14,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly IConfigurationApplicationBridgeService _bridgeService;
     private readonly IWindowsUIManagementService _windowsUIManagementService;
-    private readonly IProcessExecutor _processExecutor;
+    private readonly IExplorerRestartService _explorerRestartService;
     private readonly IConfigImportOverlayService _overlayService;
     private readonly IConfigImportState _configImportState;
     private readonly IConfigAppSelectionService _configAppSelectionService;
@@ -30,7 +30,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IWindowsVersionService windowsVersionService,
         IConfigurationApplicationBridgeService bridgeService,
         IWindowsUIManagementService windowsUIManagementService,
-        IProcessExecutor processExecutor,
+        IExplorerRestartService explorerRestartService,
         IConfigImportOverlayService overlayService,
         IConfigImportState configImportState,
         IConfigAppSelectionService configAppSelectionService,
@@ -45,7 +45,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _windowsVersionService = windowsVersionService;
         _bridgeService = bridgeService;
         _windowsUIManagementService = windowsUIManagementService;
-        _processExecutor = processExecutor;
+        _explorerRestartService = explorerRestartService;
         _overlayService = overlayService;
         _configImportState = configImportState;
         _configAppSelectionService = configAppSelectionService;
@@ -268,18 +268,11 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             // Broadcast regional setting change so apps pick up intl changes from import
             _windowsUIManagementService.BroadcastRegionalSettingChange();
 
-            if (_windowsUIManagementService.IsProcessRunning("explorer"))
-            {
-                _logService.Log(LogLevel.Info, "Killing explorer to apply changes");
-                _windowsUIManagementService.KillProcess("explorer");
-                await Task.Delay(1000).ConfigureAwait(false);
-            }
-            else
-            {
-                _logService.Log(LogLevel.Info, "Explorer not running, will start it");
-            }
-
-            await RestartExplorerSilentlyAsync();
+            // ONE restart for the whole import, through the shared single-flight service. Individual
+            // settings applied during an import never restart Explorer themselves - this is the only
+            // shell restart an import performs. Clearing the pending state is part of a successful
+            // restart, so an import can never leave a pending-restart bar behind.
+            await _explorerRestartService.RestartAsync().ConfigureAwait(false);
         });
     }
 
@@ -583,63 +576,5 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         await _dialogService.ShowInformationAsync(
             _localizationService.GetString("Config_Import_Success_Message") ?? "Configuration imported successfully.",
             _localizationService.GetString("Config_Import_Success_Title") ?? "Import Successful");
-    }
-
-    private async Task RestartExplorerSilentlyAsync()
-    {
-        try
-        {
-            _logService.Log(LogLevel.Info, "Waiting for explorer restart");
-
-            int retryCount = 0;
-            const int maxRetries = 20;
-
-            while (retryCount < maxRetries)
-            {
-                bool isRunning = await Task.Run(() =>
-                    _windowsUIManagementService.IsProcessRunning("explorer"));
-
-                if (isRunning)
-                {
-                    _logService.Log(LogLevel.Info, "Explorer.exe has auto-restarted");
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    return;
-                }
-
-                retryCount++;
-                await Task.Delay(250).ConfigureAwait(false);
-            }
-
-            _logService.Log(LogLevel.Warning, "Explorer did not auto-restart, starting manually");
-
-            await _processExecutor.ShellExecuteAsync("explorer.exe").ConfigureAwait(false);
-
-            // Verify explorer actually started
-            retryCount = 0;
-            const int verifyMaxRetries = 10;
-
-            while (retryCount < verifyMaxRetries)
-            {
-                await Task.Delay(500).ConfigureAwait(false);
-
-                bool isRunning = await Task.Run(() =>
-                    _windowsUIManagementService.IsProcessRunning("explorer"));
-
-                if (isRunning)
-                {
-                    _logService.Log(LogLevel.Info, "Explorer.exe started successfully");
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    return;
-                }
-
-                retryCount++;
-            }
-
-            _logService.Log(LogLevel.Error, "Failed to verify explorer restart");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error restarting explorer: {ex.Message}");
-        }
     }
 }

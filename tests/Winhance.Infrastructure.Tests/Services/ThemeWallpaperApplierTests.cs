@@ -73,6 +73,31 @@ public class ThemeWallpaperApplierTests
     }
 
     [Fact]
+    public async Task TryApply_DetectOnlyStateIndex_WritesNothing()
+    {
+        // Index 2 is the neutral "Mixed" state: detect-only, no Set. The relationship reverse-sync hands
+        // this handler exactly that index when the two theme children disagree. The code this replaced
+        // read `index == 1 ? Dark : Light`, so it silently applied LIGHT MODE - clobbering the child the
+        // user had just changed. It is still HANDLED (true), it just writes nothing.
+        _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+
+        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 2, additionalContext: true);
+
+        result.Should().BeTrue();
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never);
+        _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TryApply_OutOfRangeIndex_WritesNothing()
+    {
+        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 99);
+
+        result.Should().BeTrue();
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never);
+    }
+
+    [Fact]
     public async Task TryApply_WithAdditionalContext_AppliesWallpaper()
     {
         _version.Setup(v => v.IsWindows11()).Returns(true);

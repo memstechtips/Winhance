@@ -228,6 +228,126 @@ public class CatalogValidatorTests
         Assert.Empty(CatalogValidator.Validate(s));
     }
 
+    // ---- IsDetectOnly: a state detection can resolve to but the user cannot choose ----------------
+
+    private static Setting WithId(string id, IReadOnlyList<SettingState> states) =>
+        new()
+        {
+            Id = id, Display = new() { Name = "n", Description = "d" },
+            Targets = new Target[] { Reg("K", "V") }, States = states,
+        };
+
+    [Fact]
+    public void DetectOnly_state_carrying_the_Recommended_role_is_an_error()
+    {
+        var s = Make(
+            new[] { Reg("K", "V") },
+            new[]
+            {
+                St("A", new() { ["K"] = StateValue.Of(1) }),
+                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true,
+                    Roles = new[] { StateRole.Recommended } },
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("IsDetectOnly"));
+    }
+
+    [Fact]
+    public void DetectOnly_state_carrying_a_BUILD_SCOPED_WindowsDefault_role_is_an_error()
+    {
+        // HasRole deliberately ignores build-scoped roles, so the rule reads Roles directly. Without
+        // that, an OS-divergent default could be hung on an unchoosable state and nothing would notice.
+        var s = Make(
+            new[] { Reg("K", "V") },
+            new[]
+            {
+                St("A", new() { ["K"] = StateValue.Of(1) }),
+                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } } },
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("IsDetectOnly"));
+    }
+
+    [Fact]
+    public void DetectOnly_state_with_no_role_and_no_Set_is_valid()
+    {
+        // The shape the theme master's neutral state uses: fallback exempts it from the empty-Set rule.
+        var s = Make(
+            new[] { Reg("K", "V") },
+            new[]
+            {
+                St("A", new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended)),
+                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+            });
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void Controls_naming_a_DetectOnly_state_on_the_child_is_an_error()
+    {
+        var child = WithId("child", new[]
+        {
+            St("On", new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+        });
+        var master = WithId("master", new[]
+        {
+            new SettingState
+            {
+                Label = "Preset",
+                Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
+                Controls = new Dictionary<string, string> { ["child"] = "Neutral" },
+            },
+        });
+
+        Assert.Contains(CatalogValidator.ValidateCatalog(new[] { master, child }),
+            e => e.Message.Contains("detect-only state"));
+    }
+
+    [Fact]
+    public void Link_RequiredState_naming_a_DetectOnly_state_is_an_error()
+    {
+        var other = WithId("other", new[]
+        {
+            St("On", new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+        });
+        var owner = WithId("owner", new[]
+        {
+            new SettingState
+            {
+                Label = "On",
+                Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
+                Links = new[] { new Link("other", LinkKind.Requires, "Neutral") },
+            },
+        });
+
+        Assert.Contains(CatalogValidator.ValidateCatalog(new[] { owner, other }),
+            e => e.Message.Contains("detect-only state"));
+    }
+
+    [Fact]
+    public void Controls_naming_a_choosable_state_on_the_child_is_valid()
+    {
+        // Non-vacuity for the two rules above: the same shape pointed at a real option raises nothing.
+        var child = WithId("child", new[]
+        {
+            St("On", new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+        });
+        var master = WithId("master", new[]
+        {
+            new SettingState
+            {
+                Label = "Preset",
+                Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
+                Controls = new Dictionary<string, string> { ["child"] = "On" },
+            },
+        });
+
+        Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { master, child }),
+            e => e.Message.Contains("detect-only state"));
+    }
+
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(Setting setting, IDetectionContext context) => null;

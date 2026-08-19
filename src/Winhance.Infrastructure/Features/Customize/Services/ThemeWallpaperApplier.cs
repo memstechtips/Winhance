@@ -34,23 +34,38 @@ public sealed class ThemeWallpaperApplier(
         logService.Log(LogLevel.Info,
             $"[ThemeWallpaperApplier] Applying theme mode - Index: {selectionIndex}, ApplyWallpaper: {additionalContext}");
 
-        // Light = 0, Dark = 1. Apply the matching catalog state: the theme-mode-windows Setting's
-        // "Light Mode"/"Dark Mode" states write the AppsUseLightTheme + SystemUsesLightTheme DWORDs
-        // (Light -> 1, Dark -> 0 on both).
-        var stateLabel = selectionIndex == 1 ? "Dark Mode" : "Light Mode";
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.ThemeModeWindows);
-        if (catalogSetting != null)
-        {
-            var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, stateLabel), stateWriter);
-            if (!result.AllSucceeded)
-                logService.Log(LogLevel.Warning,
-                    $"[ThemeWallpaperApplier] {result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
-        }
-        else
+        if (catalogSetting is null)
         {
             logService.Log(LogLevel.Warning,
                 "[ThemeWallpaperApplier] theme-mode-windows missing from the catalog - theme registry write skipped");
+            return true;
         }
+
+        // The option index IS the state index (Light = 0, Dark = 1), so resolve the state POSITIONALLY
+        // rather than mapping the index back to a label. The Light/Dark states write the
+        // AppsUseLightTheme + SystemUsesLightTheme DWORDs (Light -> 1, Dark -> 0 on both).
+        //
+        // A DETECT-ONLY state ("Mixed", index 2) is NOT an apply target: it carries no Set, and the
+        // relationship reverse-sync hands this handler exactly that index when the two theme children
+        // disagree. It is handled (return true) but writes nothing - the mix IS the children's own
+        // states, and there is nothing for the master to write. The code this replaced read
+        // `index == 1 ? Dark : Light`, so ANY other index silently applied Light Mode, which would have
+        // clobbered the child the user had just changed.
+        var themeState = selectionIndex >= 0 && selectionIndex < catalogSetting.States.Count
+            ? catalogSetting.States[selectionIndex]
+            : null;
+        if (themeState is null || themeState.IsDetectOnly)
+        {
+            logService.Log(LogLevel.Info,
+                $"[ThemeWallpaperApplier] Index {selectionIndex} is not an applicable theme state - nothing written");
+            return true;
+        }
+
+        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, themeState), stateWriter);
+        if (!result.AllSucceeded)
+            logService.Log(LogLevel.Warning,
+                $"[ThemeWallpaperApplier] {result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
 
         // Import-flow checkbox: also change the wallpaper to match.
         if (additionalContext)
@@ -59,9 +74,8 @@ public sealed class ThemeWallpaperApplier(
             {
                 // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect:
                 // pick the effect whose AppliesTo admits the live build.
-                var themeState = catalogSetting?.States.FirstOrDefault(s => s.Label == stateLabel);
                 var liveBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
-                var wallpaperPath = themeState?.Effects
+                var wallpaperPath = themeState.Effects
                     .OfType<WallpaperEffect>()
                     .FirstOrDefault(e => e.AppliesTo.Count == 0 || e.AppliesTo.Any(r => r.Contains(liveBuild)))
                     ?.Path;

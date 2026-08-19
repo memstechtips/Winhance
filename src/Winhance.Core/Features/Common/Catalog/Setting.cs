@@ -41,9 +41,17 @@ public sealed record Setting
     // Forward relationships (Requires/Enables) live on SettingState.Links - they are a property of the
     // state that triggers them, like Controls. ResolveReverseCascade/CatalogValidator read States.SelectMany(Links).
 
-    /// <summary>Presentation only: nest this setting under the parent in the UI and disable its control when
-    /// the parent is off. No apply behaviour. Null = top-level.</summary>
+    /// <summary>Presentation only: nest this setting under the parent in the UI. No apply behaviour, and
+    /// NO gating - nesting says where the card is drawn, not that it stops meaning anything. A setting that
+    /// really is inert in some of the parent's states says so itself, in <see cref="EnabledWhen"/>.
+    /// Null = top-level.</summary>
     public string? UiParentId { get; init; }
+
+    /// <summary>The declared presentation gate: the setting whose current state decides whether THIS
+    /// setting's control is usable, and the state labels in which it is. Null (the default, and the case
+    /// for most nested settings) = never gated. Independent of <see cref="UiParentId"/>: a gate may name a
+    /// setting this one is not nested under, and most nested settings declare no gate at all.</summary>
+    public EnabledWhen? EnabledWhen { get; init; }
 
     /// <summary>The render-kind, DERIVED from the setting shape - the single source of truth, so it can never
     /// drift from what the engine detects. Presentation reads this to pick a control; the engine resolves state

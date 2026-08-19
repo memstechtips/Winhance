@@ -67,13 +67,13 @@
                                       Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
                         <!-- Complete checkmark -->
                         <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                  FontSize="20"
+                                  FontSize="{StaticResource StatusIconFontSize}"
                                   Visibility="{x:Bind IsComplete, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
                         <!-- Failed X -->
                         <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
-                                  FontSize="20"
+                                  FontSize="{StaticResource StatusIconFontSize}"
                                   Visibility="{x:Bind HasFailed, Mode=OneWay}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
@@ -150,7 +150,7 @@
                             <!-- Normal: chevron -->
                             <fluentIcons:FluentIcon Grid.Column="2"
                                       Icon="ChevronDown" IconVariant="Regular"
-                                      FontSize="12"
+                                      FontSize="{StaticResource SectionChevronFontSize}"
                                       VerticalAlignment="Center"
                                       Visibility="{x:Bind ViewModel.Step1State.ShowChevron, Mode=OneWay}"
                                       RenderTransformOrigin="0.5,0.5">
@@ -388,7 +388,7 @@
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"
                                           Icon="ChevronDown" IconVariant="Regular"
-                                          FontSize="12"
+                                          FontSize="{StaticResource SectionChevronFontSize}"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step2State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
@@ -442,12 +442,12 @@
 
                                     <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
                                         <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                                  FontSize="20"
+                                                  FontSize="{StaticResource StatusIconFontSize}"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
                                         <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
-                                                  FontSize="20"
+                                                  FontSize="{StaticResource StatusIconFontSize}"
                                                   Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
@@ -551,7 +551,7 @@
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"
                                           Icon="ChevronDown" IconVariant="Regular"
-                                          FontSize="12"
+                                          FontSize="{StaticResource SectionChevronFontSize}"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step3State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">
@@ -641,7 +641,7 @@
                                 <!-- Normal: chevron -->
                                 <fluentIcons:FluentIcon Grid.Column="2"
                                           Icon="ChevronDown" IconVariant="Regular"
-                                          FontSize="12"
+                                          FontSize="{StaticResource SectionChevronFontSize}"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind ViewModel.Step4State.ShowChevron, Mode=OneWay}"
                                           RenderTransformOrigin="0.5,0.5">

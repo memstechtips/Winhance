@@ -60,7 +60,17 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     }
 
     /// <summary>MaxWidth mirrors the pin, but must be PositiveInfinity (not NaN) when unpinned.</summary>
-    public double PinnedMaxWidth => double.IsNaN(PinnedWidth) ? double.PositiveInfinity : PinnedWidth;
+    public double PinnedMaxWidth => MaxWidthForPin(PinnedWidth);
+
+    /// <summary>MinWidth mirrors the pin, but must be 0 (not NaN) when unpinned.</summary>
+    public double PinnedMinWidth => MinWidthForPin(PinnedWidth);
+
+    /// <summary>Width alone accepts NaN as "auto"; MinWidth and MaxWidth reject it with E_INVALIDARG
+    /// ("Value does not fall within the expected range"). Static so the guards are testable without a
+    /// XAML application - an unguarded MinWidth threw on every unpinned dropdown.</summary>
+    public static double MinWidthForPin(double pin) => double.IsNaN(pin) ? 0d : pin;
+
+    public static double MaxWidthForPin(double pin) => double.IsNaN(pin) ? double.PositiveInfinity : pin;
 
     // --- Projected, bindable ---------------------------------------------------------------------
 
@@ -118,9 +128,10 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         OutcomeTooltip = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Resolved
             ? null
             : vm.OverlayTooltipForMode(Mode, toggleLike: false);
-        // PinnedMaxWidth is derived from the PinnedWidth DP, so it is announced here too - the DP's
-        // own change callback routes through Refresh.
-        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip), nameof(PinnedMaxWidth));
+        // PinnedMinWidth/PinnedMaxWidth are derived from the PinnedWidth DP, so they are announced here
+        // too - the DP's own change callback routes through Refresh.
+        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip),
+            nameof(PinnedMinWidth), nameof(PinnedMaxWidth));
     }
 
     // --- INotifyPropertyChanged -------------------------------------------------------------------

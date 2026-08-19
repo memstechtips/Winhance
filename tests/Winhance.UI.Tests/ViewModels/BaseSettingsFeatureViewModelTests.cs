@@ -117,7 +117,12 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         // Setting.Numeric unset, so UnitConversionHelper passes raw system values through unchanged -
         // which is what the tests asserting NumericValue == the raw CurrentValue rely on. Supply it
         // only when the test is actually exercising the unit conversion.
-        string? numericUnits = null)
+        string? numericUnits = null,
+        // Catalog authoring the presentation gate reads: where the card nests, whether it declares a
+        // gate, and the state labels the gate compares against. All null = an ungated, top-level card.
+        string? uiParentId = null,
+        EnabledWhen? enabledWhen = null,
+        string[]? stateLabels = null)
     {
         var config = new SettingItemViewModelConfig
         {
@@ -128,6 +133,11 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
                 Numeric = numericUnits is null
                     ? null
                     : new Numeric { Min = 0, Max = 100_000, Units = numericUnits },
+                UiParentId = uiParentId,
+                EnabledWhen = enabledWhen,
+                States = (stateLabels ?? Array.Empty<string>())
+                    .Select(label => new SettingState { Label = label })
+                    .ToArray(),
             },
             SettingId = settingId,
             Name = name,
@@ -159,6 +169,16 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
 
         return vm;
     }
+
+    // Enabled/Disabled - the two labels every catalog toggle has, and what CurrentStateLabel maps
+    // IsSelected onto.
+    private static readonly string[] ToggleStates = { "Enabled", "Disabled" };
+
+    private void SetupLoad(ObservableCollection<SettingItemViewModel> settings) =>
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(settings);
 
     private ObservableCollection<SettingItemViewModel> CreateSettingsCollection(params (string id, string name, string group)[] items)
     {
@@ -1689,5 +1709,178 @@ public class BaseSettingsFeatureViewModelTests : IDisposable
         vm.GroupedSettings[0].Key.Should().Be("Zebra");
         vm.GroupedSettings[1].Key.Should().Be("Alpha");
         vm.GroupedSettings[2].Key.Should().Be("Middle");
+    }
+
+    // ---- the DECLARED presentation gate -----------------------------------------------------------
+    //
+    // A card is greyed only when its catalog says so, in EnabledWhen, and only while the setting that
+    // names is outside the listed states. Nesting alone gates nothing. What this replaced compared the
+    // parent's selected INDEX against zero, which greyed both Windows-theme sub-toggles on every stock
+    // Windows 11 install because "Light Mode" is state 0.
+
+    [Fact]
+    public async Task LoadSettingsAsync_NestedChildWithNoDeclaredGate_IsNotDisabledByAnOffParent()
+    {
+        // THE REPORTED REGRESSION. The parent is off; the child declares no gate; the child stays live.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("parent", "Parent", isSelected: false, stateLabels: ToggleStates),
+            CreateSettingItem("child", "Child", isSelected: true, uiParentId: "parent",
+                stateLabels: ToggleStates),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+        vm.Settings[1].EffectiveIsEnabled.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true, true)]    // parent resolves to "Enabled" - the declared state
+    [InlineData(false, false)]  // parent resolves to "Disabled" - outside it
+    public async Task LoadSettingsAsync_DeclaredGate_FollowsTheParentsStateLabel(
+        bool parentIsOn, bool expectedGate)
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("parent", "Parent", isSelected: parentIsOn, stateLabels: ToggleStates),
+            CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().Be(expectedGate);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_DeclaredGate_ComparesTheLabelNotTheIndex()
+    {
+        // The theme shape: a Selection whose "usable" state is index 0. The old heuristic was literally
+        // `index != 0`, so it disabled the child here. Keying on the label is what makes that
+        // unreproducible.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: 0,
+                stateLabels: new[] { "Light Mode", "Dark Mode" }),
+            CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("master", new[] { "Light Mode" })),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_DeclaredGate_AcceptsAnyOfSeveralStates()
+    {
+        // gaming-performance-prefetch is usable in two of SysMain's three states, which a single
+        // "the parent is on" bool could never express.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("service", "Service", inputType: InputType.Selection, selectedValue: 1,
+                stateLabels: new[] { "Off", "Manual", "Automatic" }),
+            CreateSettingItem("child", "Child", uiParentId: "service", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("service", new[] { "Manual", "Automatic" })),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RefreshSettingStatesAsync_RecomputesTheGate()
+    {
+        // THE STALE-GATE BUG. The navigation refresh re-read every card's state and never revisited the
+        // gate, so a parent that changed elsewhere left its children holding the previous verdict until
+        // the whole page was rebuilt.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
+            CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+        });
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["parent"] = new SettingStateResult { Success = true, IsEnabled = false },
+            });
+
+        await vm.LoadSettingsAsync();
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+
+        await vm.RefreshSettingStatesAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SettingAppliedEvent_RecomputesTheGate()
+    {
+        Action<SettingAppliedEvent>? handler = null;
+        _mockEventBus
+            .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
+            .Callback<Action<SettingAppliedEvent>>(h => handler = h)
+            .Returns(new Mock<ISubscriptionToken>().Object);
+
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
+            CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("parent", new[] { "Enabled" })),
+        });
+
+        await vm.LoadSettingsAsync();
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+
+        handler.Should().NotBeNull();
+        handler!(new SettingAppliedEvent("parent", isEnabled: false));
+
+        vm.Settings[1].ParentIsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeclaredGate_WhoseTargetIsNotLoadedHere_LeavesTheCardUsable()
+    {
+        // A gate is a positive claim. With nothing to read it, taking the control away would be a guess
+        // in the direction that costs the user the setting.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("child", "Child", uiParentId: "elsewhere", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("elsewhere", new[] { "Enabled" })),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[0].ParentIsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeclaredGate_WhoseTargetStateCannotBeNamed_LeavesTheCardUsable()
+    {
+        // Same rule for an unresolved reading: the -1 Custom sentinel means detection placed the parent
+        // on no state at all, which says nothing about whether the child means anything.
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: -1,
+                stateLabels: new[] { "Light Mode", "Dark Mode" }),
+            CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
+                enabledWhen: new EnabledWhen("master", new[] { "Light Mode" })),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
     }
 }

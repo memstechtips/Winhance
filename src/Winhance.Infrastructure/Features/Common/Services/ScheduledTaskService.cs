@@ -353,6 +353,25 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
         return await Task.Run(() => SetTaskEnabled(taskPath, false)).ConfigureAwait(false);
     }
 
+    // ERROR_FILE_NOT_FOUND as an HRESULT. The Task Scheduler COM API reports BOTH "no such folder" and
+    // "no such task" with it, and both mean the same thing here: the task is not on this machine.
+    private const int TaskNotFoundHResult = unchecked((int)0x80070002);
+
+    /// <summary>True when <paramref name="ex"/> means "that task simply is not present on this machine" -
+    /// a <see cref="FileNotFoundException"/>, or any exception carrying HRESULT 0x80070002. The chain is
+    /// walked because the Task Scheduler calls go through dynamic dispatch, which may wrap the COMException
+    /// that actually carries the HRESULT.</summary>
+    private static bool IsTaskNotFound(Exception? ex)
+    {
+        for (; ex is not null; ex = ex.InnerException)
+        {
+            if (ex is FileNotFoundException || ex.HResult == TaskNotFoundHResult)
+                return true;
+        }
+
+        return false;
+    }
+
     public async Task<bool?> IsTaskEnabledAsync(string taskPath)
     {
         return await Task.Run(() =>
@@ -369,6 +388,15 @@ public class ScheduledTaskService(ILogService logService, IFileSystemService fil
                 // State: 1 = Disabled, 3 = Ready, 4 = Running
                 int state = (int)task.State;
                 return (bool?)(state != 1);
+            }
+            catch (Exception ex) when (IsTaskNotFound(ex))
+            {
+                // Not a fault: the task is not installed on this PC (Recall, for one, is absent from most).
+                // The detection context already models "absent" as null, so this is a normal detection
+                // outcome - reporting it at Warning put a red herring in every user's log.
+                logService.Log(Core.Features.Common.Enums.LogLevel.Debug,
+                    $"Scheduled task {taskPath} is not present on this machine");
+                return null;
             }
             catch (Exception ex)
             {

@@ -83,7 +83,7 @@
                             BorderThickness="1">
                         <fluentIcons:FluentIcon x:Name="KnobIcon"
                                                 Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"
-                                                FontSize="16"
+                                                FontSize="{StaticResource OutcomeIconFontSize}"
                                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 RenderTransformOrigin="0.5,0.5">
                             <fluentIcons:FluentIcon.RenderTransform>

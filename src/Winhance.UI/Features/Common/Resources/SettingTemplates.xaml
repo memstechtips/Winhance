@@ -6,15 +6,13 @@
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
-    xmlns:models="using:Winhance.UI.Features.Common.Models"
     xmlns:converters="using:Winhance.UI.Features.Common.Converters"
     xmlns:coreModels="using:Winhance.Core.Features.Common.Models"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
-    <!-- Note: 'models:' is UI-layer (TechnicalDetailRow etc); 'coreModels:' is Winhance.Core (BadgePillState etc). -->
-    <!-- Don't merge them. -->
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="TechnicalDetailsStyles.xaml"/>
+        <ResourceDictionary Source="IconSizes.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
     <!-- Common spacing for settings cards -->
@@ -31,8 +29,8 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE735;" FontSize="12"
-                                  VerticalAlignment="Center" Margin="0,1,0,0"
+                        <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}"
+                                  VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                   Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
@@ -69,8 +67,8 @@
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE77B;" FontSize="12"
-                                  VerticalAlignment="Center" Margin="0,1,0,0"
+                        <FontIcon Glyph="&#xE77B;" FontSize="{StaticResource BadgePillIconFontSize}"
+                                  VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                   Foreground="{ThemeResource BadgePreferenceForeground}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
@@ -181,237 +179,16 @@
                 </Grid>
             </Grid>
 
-            <!-- Technical Details toggle button (seamlessly attached below SettingsCard) -->
-            <Border Visibility="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1,0,1,1"
-                    CornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
-                    Margin="0,-1,0,0">
-                <Button
-                    Click="{x:Bind ToggleTechnicalDetails}"
-                    AutomationProperties.Name="{x:Bind TechnicalDetailsLabel}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    Padding="10,4"
-                    Background="Transparent"
-                    BorderThickness="0">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <FontIcon Grid.Column="0" Glyph="&#xE946;" FontSize="12" Margin="0,0,6,0"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Grid.Column="1" Text="{x:Bind TechnicalDetailsLabel}" FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <FontIcon Grid.Column="2" Glyph="&#xE70D;" FontSize="9"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                        <FontIcon Grid.Column="2" Glyph="&#xE70E;" FontSize="9"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"/>
-                    </Grid>
-                </Button>
-            </Border>
-
-            <!-- Technical Details expandable content -->
-            <Border Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1,0,1,1"
-                    CornerRadius="0,0,4,4"
-                    Padding="12,6"
-                    Margin="0,0,0,0">
-                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Spacing="8"/>
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:TechnicalDetailSection">
-                            <StackPanel Margin="0,4,0,0">
-                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
-                                <Button Style="{StaticResource TechDetail.SectionHeader}"
-                                        IsHitTestVisible="False"
-                                        IsTabStop="False"
-                                        AutomationProperties.Name="{x:Bind Label}">
-                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
-                                </Button>
-                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
-                                    <ItemsRepeater.Layout>
-                                        <StackLayout Spacing="6"/>
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
-                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                                            <ContentControl IsTabStop="True"
-                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                                            AutomationProperties.LocalizedControlType="detail"
-                                                            HorizontalContentAlignment="Stretch">
-                                            <Grid>
-                                                <!-- Registry row -->
-                                                <Grid Visibility="{x:Bind IsRegistry}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <!-- Regedit open button -->
-                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                                            CommandParameter="{x:Bind RegistryPath}"
-                                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                                            Padding="4" Margin="0,0,8,0"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            VerticalAlignment="Center">
-                                                        <Grid Width="16" Height="16">
-                                                            <!-- FontIcon fallback when icon extraction fails -->
-                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                            <!-- Extracted regedit icon overlays FontIcon when available -->
-                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                                        </Grid>
-                                                    </Button>
-                                                    <!-- Path + ValueName + Type -->
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <!-- Current + Recommended + Default values -->
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind OnApplyLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind OnApplyValue}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- Scheduled task row -->
-                                                <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- PowerConfig row -->
-                                                <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- PowerShell script row -->
-                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
-                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
-                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                        </ScrollViewer>
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- RegContent row -->
-                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
-                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
-                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                        </ScrollViewer>
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- Dependency chip row -->
-                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <!-- Option row (Selection/Toggle option->value table) -->
-                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
-                                                              VerticalAlignment="Center" Margin="0,0,6,0"
-                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
-                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
-                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
-                                                               Text="{x:Bind OptionLabel}"/>
-                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
-                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                                    </TextBlock>
-                                                </Grid>
-                                                <!-- Info row (Targets / Effects / Relationships) -->
-                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
-                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
-                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            </ContentControl>
-                                        </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </Border>
+            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
+                 copy-pasted three times and the third copy had drifted. -->
+            <commonControls:TechnicalDetailsPanel
+                Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
+                IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
+                IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
+                HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
+                BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
+                ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
+                RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
             <!-- Status banner below the settings card (QuietInfoBar suppresses
                  InfoBarAutomationPeer's hardcoded Assertive live setting) -->
@@ -563,10 +340,10 @@
                             IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                             AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
                         <Grid Width="20" Height="20">
-                            <FontIcon Glyph="&#xE70E;" FontSize="16"
+                            <FontIcon Glyph="&#xE70E;" FontSize="{StaticResource CardExpanderChevronFontSize}"
                                       Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                            <FontIcon Glyph="&#xE70D;" FontSize="16"
+                            <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource CardExpanderChevronFontSize}"
                                       Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Grid>
@@ -615,232 +392,16 @@
                 </Grid>
             </Grid>
 
-            <!-- Technical Details toggle button -->
-            <Border Visibility="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1,0,1,1"
-                    CornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
-                    Margin="0,-1,0,0">
-                <Button
-                    Click="{x:Bind ToggleTechnicalDetails}"
-                    AutomationProperties.Name="{x:Bind TechnicalDetailsLabel}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    Padding="10,4"
-                    Background="Transparent"
-                    BorderThickness="0">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <FontIcon Grid.Column="0" Glyph="&#xE946;" FontSize="12" Margin="0,0,6,0"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Grid.Column="1" Text="{x:Bind TechnicalDetailsLabel}" FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <FontIcon Grid.Column="2" Glyph="&#xE70D;" FontSize="9"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                        <FontIcon Grid.Column="2" Glyph="&#xE70E;" FontSize="9"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"/>
-                    </Grid>
-                </Button>
-            </Border>
-
-            <!-- Technical Details expandable content -->
-            <Border Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1,0,1,1"
-                    CornerRadius="0,0,4,4"
-                    Padding="12,6"
-                    Margin="0,0,0,0">
-                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Spacing="8"/>
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:TechnicalDetailSection">
-                            <StackPanel Margin="0,4,0,0">
-                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
-                                <Button Style="{StaticResource TechDetail.SectionHeader}"
-                                        IsHitTestVisible="False"
-                                        IsTabStop="False"
-                                        AutomationProperties.Name="{x:Bind Label}">
-                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
-                                </Button>
-                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
-                                    <ItemsRepeater.Layout>
-                                        <StackLayout Spacing="6"/>
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
-                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                                            <ContentControl IsTabStop="True"
-                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                                            AutomationProperties.LocalizedControlType="detail"
-                                                            HorizontalContentAlignment="Stretch">
-                                            <Grid>
-                                                <!-- Registry row -->
-                                                <Grid Visibility="{x:Bind IsRegistry}"
-                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                                            CommandParameter="{x:Bind RegistryPath}"
-                                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                                            Padding="4" Margin="0,0,8,0"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            VerticalAlignment="Center">
-                                                        <Grid Width="16" Height="16">
-                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                                        </Grid>
-                                                    </Button>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                                   Visibility="{x:Bind IsActionRow, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind OnApplyLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind OnApplyValue}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- Scheduled task row -->
-                                                <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- PowerConfig row -->
-                                                <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <!-- PowerShell script row -->
-                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
-                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
-                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                        </ScrollViewer>
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- RegContent row -->
-                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
-                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
-                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                        </ScrollViewer>
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- Dependency chip row -->
-                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
-                                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <!-- Option row (Selection/Toggle option->value table) -->
-                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
-                                                              VerticalAlignment="Center" Margin="0,0,6,0"
-                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
-                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
-                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
-                                                               Text="{x:Bind OptionLabel}"/>
-                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
-                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                                    </TextBlock>
-                                                </Grid>
-                                                <!-- Info row (Targets / Effects / Relationships) -->
-                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
-                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
-                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            </ContentControl>
-                                        </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </Border>
+            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
+                 copy-pasted three times and the third copy had drifted. -->
+            <commonControls:TechnicalDetailsPanel
+                Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
+                IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
+                IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
+                HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
+                BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
+                ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
+                RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
             <!-- Status banner -->
             <Border Visibility="{x:Bind HasStatusBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -986,225 +547,16 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Technical Details toggle button -->
-                            <Border Visibility="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1,0,1,1"
-                                    CornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
-                                    Margin="0,-1,0,0">
-                                <Button
-                                    Click="{x:Bind ToggleTechnicalDetails}"
-                                    AutomationProperties.Name="{x:Bind TechnicalDetailsLabel}"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    Padding="10,4"
-                                    Background="Transparent"
-                                    BorderThickness="0">
-                                    <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <FontIcon Grid.Column="0" Glyph="&#xE946;" FontSize="12" Margin="0,0,6,0"
-                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Grid.Column="1" Text="{x:Bind TechnicalDetailsLabel}" FontSize="11"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <FontIcon Grid.Column="2" Glyph="&#xE70D;" FontSize="9"
-                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                                        <FontIcon Grid.Column="2" Glyph="&#xE70E;" FontSize="9"
-                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                  Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"/>
-                                    </Grid>
-                                </Button>
-                            </Border>
-
-                            <!-- Technical Details expandable content -->
-                            <Border Visibility="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                                    Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1,0,1,1"
-                                    CornerRadius="0,0,4,4"
-                                    Padding="12,6"
-                                    Margin="0,0,0,0">
-                                <ItemsRepeater ItemsSource="{x:Bind TechnicalDetailSections, Mode=OneWay}">
-                                    <ItemsRepeater.Layout>
-                                        <StackLayout Spacing="8"/>
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
-                                        <DataTemplate x:DataType="models:TechnicalDetailSection">
-                                            <StackPanel Margin="0,4,0,0">
-                                                <!-- v1: section header is non-interactive label; per-section collapse is a follow-up. -->
-                                                <Button Style="{StaticResource TechDetail.SectionHeader}"
-                                                        IsHitTestVisible="False"
-                                                        IsTabStop="False"
-                                                        AutomationProperties.Name="{x:Bind Label}">
-                                                    <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" FontSize="12"/>
-                                                </Button>
-                                                <ItemsRepeater ItemsSource="{x:Bind Rows}" Margin="12,4,0,8">
-                                                    <ItemsRepeater.Layout>
-                                                        <StackLayout Spacing="6"/>
-                                                    </ItemsRepeater.Layout>
-                                                    <ItemsRepeater.ItemTemplate>
-                                                        <DataTemplate x:DataType="models:TechnicalDetailRow">
-                                                            <ContentControl IsTabStop="True"
-                                                                            AutomationProperties.Name="{x:Bind AccessibleSummary}"
-                                                                            AutomationProperties.LocalizedControlType="detail"
-                                                                            HorizontalContentAlignment="Stretch">
-                                                            <Grid>
-                                                                <!-- Registry row -->
-                                                                <Grid Visibility="{x:Bind IsRegistry}"
-                                                                      ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                                    <Button Grid.Column="0" Command="{x:Bind OpenRegeditCommand}"
-                                                                            CommandParameter="{x:Bind RegistryPath}"
-                                                                            IsEnabled="{x:Bind CanOpenRegedit}"
-                                                                            ToolTipService.ToolTip="Open in Registry Editor"
-                                                                            AutomationProperties.Name="{x:Bind RegistryPath}"
-                                                                            Padding="4" Margin="0,0,8,0"
-                                                                            Background="Transparent" BorderThickness="0"
-                                                                            VerticalAlignment="Center">
-                                                                        <Grid Width="16" Height="16">
-                                                                            <FontIcon Glyph="&#xE8A7;" FontSize="14"
-                                                                                      Visibility="{x:Bind RegeditIconSource, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                                            <Image Source="{x:Bind RegeditIconSource}" Width="16" Height="16"/>
-                                                                        </Grid>
-                                                                    </Button>
-                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RegistryPath}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind ValueLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind ValueName}"/>
-                                                                            <Run Text=" ("/><Run Text="{x:Bind ValueType}"/><Run Text=")"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center"
-                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentValue}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedValue}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultValue}"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                </Grid>
-
-                                                                <!-- Scheduled task row -->
-                                                                <Grid Visibility="{x:Bind IsScheduledTask}"
-                                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind PathLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind TaskPath}"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind CurrentState}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind RecommendedState}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind DefaultState}"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                </Grid>
-
-                                                                <!-- PowerConfig row -->
-                                                                <Grid Visibility="{x:Bind IsPowerConfig}"
-                                                                      ColumnDefinitions="*,Auto" Padding="4,4">
-                                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind SubgroupLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SubgroupAlias}"/><Run Text=" ("/><Run Text="{x:Bind SubgroupGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11"
-                                                                                   IsTextSelectionEnabled="True" TextWrapping="Wrap">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind SettingLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="{x:Bind SettingAlias}"/><Run Text=" ("/><Run Text="{x:Bind SettingGuid}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><Run Text=")"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"
-                                                                                HorizontalAlignment="Right" Margin="12,0,0,0" MinWidth="175">
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind CurrentLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind CurrentAC}"/><Run Text=" DC:"/><Run Text="{x:Bind CurrentDC}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind RecommendedLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind RecommendedAC}"/><Run Text=" DC:"/><Run Text="{x:Bind RecommendedDC}"/>
-                                                                        </TextBlock>
-                                                                        <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True">
-                                                                            <Run FontWeight="SemiBold" Text="{x:Bind DefaultLabel}"/><Run FontWeight="SemiBold" Text=": "/><Run Text="AC:"/><Run Text="{x:Bind DefaultAC}"/><Run Text=" DC:"/><Run Text="{x:Bind DefaultDC}"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                </Grid>
-
-                                                                <!-- PowerShell script row -->
-                                                                <StackPanel Visibility="{x:Bind IsPowerShellScript}" Spacing="4" Margin="0,4">
-                                                                    <TextBlock Text="{x:Bind ScriptLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                                    <Border Style="{StaticResource TechDetail.CodeBlock.PowerShell}">
-                                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                                            <TextBlock Text="{x:Bind ScriptBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                                        </ScrollViewer>
-                                                                    </Border>
-                                                                </StackPanel>
-
-                                                                <!-- RegContent row -->
-                                                                <StackPanel Visibility="{x:Bind IsRegContent}" Spacing="4" Margin="0,4">
-                                                                    <TextBlock Text="{x:Bind ContentLabel}" FontWeight="SemiBold" Opacity="0.8"/>
-                                                                    <Border Style="{StaticResource TechDetail.CodeBlock.RegContent}">
-                                                                        <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                                            <TextBlock Text="{x:Bind ContentBody}" Style="{StaticResource TechDetail.CodeText}" Padding="0,0,0,16"/>
-                                                                        </ScrollViewer>
-                                                                    </Border>
-                                                                </StackPanel>
-
-                                                                <!-- Dependency chip row -->
-                                                                <Border Visibility="{x:Bind IsDependency}" Style="{StaticResource TechDetail.DependencyChip}" HorizontalAlignment="Left">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                        <TextBlock Text="{x:Bind DependencyLabel}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Bind DependencyRelation}" Opacity="0.7"/>
-                                                                    </StackPanel>
-                                                                </Border>
-                                                                <!-- Option row (Selection/Toggle option->value table) -->
-                                                                <Grid Visibility="{x:Bind IsOption}" ColumnDefinitions="Auto,*,Auto" Padding="4,4">
-                                                                    <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="12"
-                                                                              VerticalAlignment="Center" Margin="0,0,6,0"
-                                                                              ToolTipService.ToolTip="{x:Bind CurrentLabelText}"
-                                                                              AutomationProperties.Name="{x:Bind CurrentLabelText}"
-                                                                              Visibility="{x:Bind IsCurrentOption, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                                               TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"
-                                                                               Text="{x:Bind OptionLabel}"/>
-                                                                    <TextBlock Grid.Column="2" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True"
-                                                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
-                                                                               MaxWidth="300" TextTrimming="CharacterEllipsis">
-                                                                        <Run Text="{x:Bind OptionValue}"/><Run Text="   "/><Run Text="{x:Bind OptionRole}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                                                    </TextBlock>
-                                                                </Grid>
-                                                                <!-- Info row (Targets / Effects / Relationships) -->
-                                                                <StackPanel Visibility="{x:Bind IsInfo}" Spacing="1" Padding="4,4">
-                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                                               FontWeight="SemiBold" Text="{x:Bind InfoPrimary}"/>
-                                                                    <TextBlock FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind InfoSecondary}"/>
-                                                                </StackPanel>
-                                                            </Grid>
-                                                            </ContentControl>
-                                                        </DataTemplate>
-                                                    </ItemsRepeater.ItemTemplate>
-                                                </ItemsRepeater>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
-                            </Border>
+                            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
+                                 copy-pasted three times and the third copy had drifted. -->
+                            <commonControls:TechnicalDetailsPanel
+                                Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
+                                IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
+                                IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
+                                HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
+                                BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
+                                ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
+                                RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
                             <!-- Status banner -->
                             <Border Visibility="{x:Bind HasStatusBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"

@@ -16,7 +16,7 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
     private readonly Mock<IConfigurationApplicationBridgeService> _mockBridgeService = new();
     private readonly Mock<IWindowsUIManagementService> _mockWindowsUIManagementService = new();
-    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
+    private readonly Mock<IExplorerRestartService> _mockExplorerRestartService = new();
     private readonly Mock<IConfigImportOverlayService> _mockOverlayService = new();
     private readonly Mock<IConfigImportState> _mockConfigImportState = new();
     private readonly Mock<IConfigAppSelectionService> _mockConfigAppSelectionService = new();
@@ -38,6 +38,11 @@ public class ConfigApplicationExecutionServiceTests
         _mockChangeHistoryService
             .Setup(h => h.BeginBatch(It.IsAny<string>()))
             .Returns(Mock.Of<IDisposable>());
+
+        // The end-of-import Explorer restart now goes through the shared single-flight service.
+        _mockExplorerRestartService
+            .Setup(e => e.RestartAsync())
+            .ReturnsAsync(OperationResult.Succeeded());
     }
 
     private ConfigApplicationExecutionService CreateService()
@@ -49,7 +54,7 @@ public class ConfigApplicationExecutionServiceTests
             _mockWindowsVersionService.Object,
             _mockBridgeService.Object,
             _mockWindowsUIManagementService.Object,
-            _mockProcessExecutor.Object,
+            _mockExplorerRestartService.Object,
             _mockOverlayService.Object,
             _mockConfigImportState.Object,
             _mockConfigAppSelectionService.Object,

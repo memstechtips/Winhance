@@ -100,7 +100,7 @@
                     x:Name="BreadcrumbSeparator"
                     Icon="ChevronRight"
                     IconVariant="Regular"
-                    FontSize="12"
+                    FontSize="{StaticResource BreadcrumbSeparatorFontSize}"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"
                     Visibility="Collapsed"/>
@@ -286,7 +286,7 @@
                                     <StackPanel x:Name="WindowsThemeOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="WindowsThemeRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="WindowsThemeRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -330,7 +330,7 @@
                                     <StackPanel x:Name="TaskbarOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="TaskbarRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="TaskbarRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -374,7 +374,7 @@
                                     <StackPanel x:Name="StartMenuOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="StartMenuRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="StartMenuRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -418,7 +418,7 @@
                                     <StackPanel x:Name="ExplorerOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="ExplorerRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="ExplorerRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>

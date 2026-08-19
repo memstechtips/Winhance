@@ -15,6 +15,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -154,10 +155,16 @@ public partial class SettingItemViewModel : BaseViewModel
     public partial bool IsTechnicalDetailsGloballyVisible { get; set; }
 
     [ObservableProperty]
-    public partial IReadOnlyList<TechnicalDetailSection> TechnicalDetailSections { get; set; }
-        = Array.Empty<TechnicalDetailSection>();
+    public partial OptionMatrix? TechnicalDetailMatrix { get; set; }
 
-    public bool HasTechnicalDetails => TechnicalDetailSections.Count > 0;
+    public bool HasTechnicalDetails => TechnicalDetailMatrix is not null;
+
+    /// <summary>
+    /// Opens the Registry Editor at one of the paths the matrix documents. Surfaced from the manager
+    /// so the panel can pass it down to the table's buttons: the matrix says where a group writes,
+    /// and acting on that is UI behaviour - which is why Core holds no ICommand slot for it.
+    /// </summary>
+    public IRelayCommand<string> OpenRegeditCommand => _technicalDetailsManager.OpenRegeditCommand;
 
     /// <summary>
     /// Controls visibility of the toggle bar: requires data AND global toggle to be on.
@@ -187,10 +194,9 @@ public partial class SettingItemViewModel : BaseViewModel
     public string TechnicalDetailsLabel =>
         _localizationService.GetString("View_TechnicalDetails") ?? "Technical Details";
 
-    public string OpenRegeditTooltip =>
-        _localizationService.GetString("TechnicalDetails_OpenRegedit") ?? "Open in Registry Editor";
-
-    public IRelayCommand<string> OpenRegeditCommand { get; }
+    /// <summary>Toggles the panel. A command so the one shared panel control can bind to it.</summary>
+    [RelayCommand]
+    public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
     [ObservableProperty]
     public partial bool IsVisible { get; set; }
@@ -931,12 +937,52 @@ public partial class SettingItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
+    /// <summary>The DECLARED presentation gate's verdict for this card: false only when its
+    /// <see cref="Setting.EnabledWhen"/> names a setting that is currently outside the declared states.
+    /// True (usable) for every card that declares no gate - which is most of them, including every card
+    /// that is merely NESTED under another. Kept as one bool because that is all the view binds to; the
+    /// whole decision is made in BaseSettingsFeatureViewModel, which is the only place that can see the
+    /// other card. Historic name: it predates the gate being declared rather than guessed from the
+    /// UI parent.</summary>
     [ObservableProperty]
     public partial bool ParentIsEnabled { get; set; }
 
     partial void OnParentIsEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveIsEnabled));
+    }
+
+    /// <summary>The catalog state LABEL this card currently sits on, or null when there is none to name:
+    /// no catalog Setting, no States (an Action / slider / power plan), or a Selection whose detection
+    /// landed on nothing (the -1 Custom sentinel).
+    ///
+    /// This is what a declared gate is compared against - by LABEL, never by index. A toggle answers from
+    /// <see cref="IsSelected"/>, which detection derives from the resolved "Enabled"/"Disabled" label and
+    /// which the refresh paths keep current (a toggle's SelectedValue is only written at load, so reading
+    /// THAT would go stale). A selection answers from <see cref="SelectedValue"/>, whose int IS the state
+    /// index; the label is then read out of the catalog, so a state the option list skips - a detect-only
+    /// one - still names itself here. Only labels the setting really has are ever returned.
+    ///
+    /// Deliberately NOT bindable: it raises no PropertyChanged, because its only reader pulls it
+    /// imperatively straight after writing the state it derives from. Binding it would need
+    /// IsSelected/SelectedValue to notify for it too.</summary>
+    public string? CurrentStateLabel
+    {
+        get
+        {
+            if (Setting is not { States.Count: > 0 } catalogSetting)
+                return null;
+
+            return InputType switch
+            {
+                InputType.Toggle or InputType.CheckBox =>
+                    catalogSetting.States.FirstOrDefault(st => st.Label == (IsSelected ? "Enabled" : "Disabled"))?.Label,
+                InputType.Selection when SelectedValue is int index
+                    && index >= 0 && index < catalogSetting.States.Count =>
+                    catalogSetting.States[index].Label,
+                _ => null,
+            };
+        }
     }
 
     public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
@@ -1049,6 +1095,48 @@ public partial class SettingItemViewModel : BaseViewModel
         _ => Localized("Common_CustomState") ?? "Not recognized",
     };
 
+    /// <summary>The catalog state the current selection resolved to, WHEN that state is
+    /// <see cref="SettingState.IsDetectOnly"/> - a state detection can land on but the user cannot pick,
+    /// so it is deliberately absent from <see cref="ComboBoxOptions"/> and the ComboBox has no item to
+    /// render for it. Null in every other case, including the -1 Custom sentinel.
+    ///
+    /// The outcome stays <see cref="SettingDetectionOutcome.Resolved"/> - this IS a known state, not a
+    /// value we failed to place - so this raises no banner and no outcome icon. It only tells the card
+    /// which real state name to draw where the missing dropdown item would have been.</summary>
+    public SettingState? DetectOnlySelectedState =>
+        Setting is { } catalogSetting
+        && SelectedValue is int stateIndex
+        && stateIndex >= 0 && stateIndex < catalogSetting.States.Count
+        && catalogSetting.States[stateIndex].IsDetectOnly
+            ? catalogSetting.States[stateIndex]
+            : null;
+
+    /// <summary>The localized name of <see cref="DetectOnlySelectedState"/>, resolved through the SAME
+    /// Setting_{id}_Option_{i} key the dropdown would have used - so a state the user cannot pick is named
+    /// exactly as the option list would have named it. Empty when the selection is not on such a state.</summary>
+    public string DetectOnlyStateText
+    {
+        get
+        {
+            if (Setting is not { } catalogSetting
+                || SelectedValue is not int stateIndex
+                || DetectOnlySelectedState is not { } state)
+            {
+                return string.Empty;
+            }
+
+            var key = Winhance.Core.Features.Common.Localization.SettingLocalizationKeys.IsLocalizationKey(state.Label)
+                ? state.Label
+                : Winhance.Core.Features.Common.Localization.SettingLocalizationKeys.OptionDisplay(catalogSetting, stateIndex);
+            return Localized(key) ?? state.Label;
+        }
+    }
+
+    /// <summary>Whether THIS mode's current selection sits on a detect-only state. Only the single-value
+    /// mode can: the AC/DC modes carry powercfg option indices, and no powercfg selection authors one.</summary>
+    private bool IsDetectOnlyForMode(SettingInputMode mode) =>
+        mode is not (SettingInputMode.Ac or SettingInputMode.Dc) && DetectOnlySelectedState is not null;
+
     /// <summary>A localization lookup that treats the service's "[Key_Not_Found]" marker as absent.</summary>
     private string? Localized(string key)
     {
@@ -1099,27 +1187,50 @@ public partial class SettingItemViewModel : BaseViewModel
         };
     }
 
+    // A DETECT-ONLY current state borrows the overlay for a second job. The overlay exists because a
+    // control with nothing selected renders an empty content area; that is exactly the situation here,
+    // for the opposite reason - not "we could not place this value" but "this value IS a known state that
+    // is not on the list". So it draws the state's own NAME, with no outcome icon and no tooltip: nothing
+    // is wrong, and a fault marker would say otherwise. No synthetic option is added to the dropdown -
+    // that was the fake-"Custom" entry removed on 2026-07-27, and it was pickable.
+
     public Microsoft.UI.Xaml.Visibility OverlayVisibilityForMode(SettingInputMode mode) =>
-        OverlayVisibilityFor(OutcomeForMode(mode));
+        IsDetectOnlyForMode(mode)
+            ? Microsoft.UI.Xaml.Visibility.Visible
+            : OverlayVisibilityFor(OutcomeForMode(mode));
 
     public FluentIcons.Common.Icon OverlayIconForMode(SettingInputMode mode) =>
         OverlayIconFor(OutcomeForMode(mode));
 
+    /// <summary>Whether the overlay draws its outcome icon. False for a detect-only state: the icons are a
+    /// severity scale (blue question / yellow exclamation / red cross) and this is not a fault.</summary>
+    public bool OverlayShowsIconForMode(SettingInputMode mode) => !IsDetectOnlyForMode(mode);
+
     public string OverlayTextForMode(SettingInputMode mode) =>
-        OverlayStateTextFor(OutcomeForMode(mode));
+        IsDetectOnlyForMode(mode)
+            ? DetectOnlyStateText
+            : OverlayStateTextFor(OutcomeForMode(mode));
 
     /// <summary>Overlay tooltip - the same string that outcome's banner shows. <paramref name="toggleLike"/>
-    /// picks the toggle or selection wording.</summary>
+    /// picks the toggle or selection wording. Empty for a detect-only state: it is a resolved state, so
+    /// there is no failure to explain.</summary>
     public string OverlayTooltipForMode(SettingInputMode mode, bool toggleLike) =>
-        OverlayTooltipFor(OutcomeForMode(mode), toggleLike);
+        IsDetectOnlyForMode(mode)
+            ? string.Empty
+            : OverlayTooltipFor(OutcomeForMode(mode), toggleLike);
 
     /// <summary>The ComboBox index for this mode. Single reads the resolved selection; AC/DC read their own
-    /// powercfg index. The Custom sentinel (-1) selects nothing, which is what lets the overlay show.</summary>
+    /// powercfg index. The Custom sentinel (-1) selects nothing, which is what lets the overlay show.
+    ///
+    /// A DETECT-ONLY state reports the same -1: its state index is real, but the option list has no ITEM at
+    /// that position (the state is skipped, never renumbered), so binding the raw index would point the
+    /// ComboBox past the end of its own items. Selecting nothing is correct - the overlay names the state.</summary>
     public int ComboIndexForMode(SettingInputMode mode) => mode switch
     {
         SettingInputMode.Ac => AcValue,
         SettingInputMode.Dc => DcValue,
-        _ => SelectedValue is int index ? index : ComboBoxConstants.CustomStateIndex,
+        _ => DetectOnlySelectedState is not null ? ComboBoxConstants.CustomStateIndex
+            : SelectedValue is int index ? index : ComboBoxConstants.CustomStateIndex,
     };
 
     public double NumericValueForMode(SettingInputMode mode) => mode switch
@@ -1237,6 +1348,12 @@ public partial class SettingItemViewModel : BaseViewModel
             ? Microsoft.UI.Xaml.Visibility.Collapsed
             : Microsoft.UI.Xaml.Visibility.Visible;
 
+    /// <summary>Hides the outcome marker while an apply is in flight - the control underneath already
+    /// shows the value the user just picked, so the stale marker would render on top of it. Opacity, not
+    /// Visibility, so the element stays measured and its host cannot collapse mid-apply. The outcome is
+    /// untouched, so the feature's banner stays until the apply lands.</summary>
+    public double OverlayOpacity => IsApplying ? 0d : 1d;
+
     // --- Bindings used by the templates (single-argument forms of the maps above). ---
 
     /// <summary>The outcome explanation for a selection-style control, or null while resolved. Bound to
@@ -1315,50 +1432,21 @@ public partial class SettingItemViewModel : BaseViewModel
             config.Setting.Display.AddedInVersion, config.SettingId) == true;
 
         _statusBannerManager = new SettingStatusBannerManager(localizationService);
+        // Labels are resolved by key inside the builder, so there is no label map here to fall out of
+        // sync with what the panel actually asks for.
         _technicalDetailsManager = new TechnicalDetailsManager(
             () => SettingId,
             newSections =>
             {
-                TechnicalDetailSections = newSections;
+                TechnicalDetailMatrix = newSections;
                 OnPropertyChanged(nameof(HasTechnicalDetails));
                 OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
             },
             logService,
             dispatcherService,
             regeditLauncher,
-            eventBus,
             _localizationService,
-            _build,
-            new TechnicalDetailLabels
-            {
-                Path = _localizationService.GetString("TechnicalDetails_Path") ?? "Path",
-                Value = _localizationService.GetString("TechnicalDetails_Value") ?? "Value",
-                Current = _localizationService.GetString("TechnicalDetails_Current") ?? "Current",
-                Recommended = _localizationService.GetString("TechnicalDetails_Recommended") ?? "Recommended",
-                Default = _localizationService.GetString("TechnicalDetails_DefaultValue") ?? "Default",
-                ValueNotExist = _localizationService.GetString("TechnicalDetails_ValueNotExist") ?? "doesn't exist",
-                On = _localizationService.GetString("Common_On") ?? "On",
-                Off = _localizationService.GetString("Common_Off") ?? "Off",
-                SectionRegistry = _localizationService.GetString("TechnicalDetails_Section_Registry") ?? "Registry Changes",
-                SectionScheduledTasks = _localizationService.GetString("TechnicalDetails_Section_ScheduledTasks") ?? "Scheduled Tasks",
-                SectionPowerSettings = _localizationService.GetString("TechnicalDetails_Section_PowerSettings") ?? "Power Settings",
-                SectionScripts = _localizationService.GetString("TechnicalDetails_Section_Scripts") ?? "PowerShell Scripts",
-                SectionRegContent = _localizationService.GetString("TechnicalDetails_Section_RegContent") ?? "Registry Content",
-                SectionDependencies = _localizationService.GetString("TechnicalDetails_Section_Dependencies") ?? "Depends On",
-                SectionOptions = _localizationService.GetString("TechnicalDetails_Section_Options") ?? "Options",
-                OrNotSet = _localizationService.GetString("TechnicalDetails_OrNotSet") ?? "or not set",
-                DeletesKey = _localizationService.GetString("TechnicalDetails_DeletesKey") ?? "deletes key",
-                ScriptOnEnable = _localizationService.GetString("TechnicalDetails_Script_OnEnable") ?? "On Enable",
-                ScriptOnDisable = _localizationService.GetString("TechnicalDetails_Script_OnDisable") ?? "On Disable",
-                ScriptOnApply = _localizationService.GetString("TechnicalDetails_Script_OnApply") ?? "On Apply",
-                RegContentOnEnable = _localizationService.GetString("TechnicalDetails_RegContent_OnEnable") ?? "On Enable",
-                RegContentOnDisable = _localizationService.GetString("TechnicalDetails_RegContent_OnDisable") ?? "On Disable",
-                DependencyEquals = _localizationService.GetString("TechnicalDetails_Dependency_Equals") ?? "=",
-                DependencyNotEquals = _localizationService.GetString("TechnicalDetails_Dependency_NotEquals") ?? "≠",
-                PowerCfgSubgroup = _localizationService.GetString("TechnicalDetails_PowerCfg_Subgroup") ?? "Subgroup",
-                PowerCfgSetting  = _localizationService.GetString("TechnicalDetails_PowerCfg_Setting") ?? "Setting"
-            });
-        OpenRegeditCommand = _technicalDetailsManager.OpenRegeditCommand;
+            _build);
 
         // Initialize badge data availability and compute initial state
         InitializeHasBadgeData();
@@ -1372,18 +1460,24 @@ public partial class SettingItemViewModel : BaseViewModel
     /// </summary>
     public void RefreshTechnicalDetails()
     {
-        var snapshot = new TechnicalDetailsSnapshot(
-            InputType,
-            IsSelected,
-            SelectedValue as int?,
-            NumericValue,
-            AcValue,
-            DcValue,
-            AcNumericValue,
-            DcNumericValue,
-            SupportsSeparateACDC,
-            HasBattery,
-            new List<ComboBoxDisplayOption>(ComboBoxOptions));
+        var snapshot = new SettingStateSnapshot
+        {
+            InputType = InputType,
+            IsSelected = IsSelected,
+            SelectedIndex = SelectedValue as int?,
+            NumericValue = NumericValue,
+            AcValue = AcValue,
+            DcValue = DcValue,
+            AcNumericValue = AcNumericValue,
+            DcNumericValue = DcNumericValue,
+            SupportsSeparateACDC = SupportsSeparateACDC,
+            HasBattery = HasBattery,
+            Options = new List<ComboBoxDisplayOption>(ComboBoxOptions),
+            Outcome = Outcome,
+            // Only populated when detection resolved to Custom, which is exactly when the panel
+            // reports the live readings instead of marking an option as current.
+            Readings = CapturedCustomStateValues,
+        };
         _technicalDetailsManager.Update(Setting, snapshot);
     }
 
@@ -2601,13 +2695,13 @@ public partial class SettingItemViewModel : BaseViewModel
 
     #region Technical Details
 
-    public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
-
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
+        // The panel bakes its localized strings in at build time, so it has to be rebuilt on a
+        // language switch rather than just raising property-changed.
+        RefreshTechnicalDetails();
         OnPropertyChanged(nameof(NewBadgeText));
         OnPropertyChanged(nameof(TechnicalDetailsLabel));
-        OnPropertyChanged(nameof(OpenRegeditTooltip));
         OnPropertyChanged(nameof(ClickToUnlockText));
         OnPropertyChanged(nameof(PluggedInText));
         OnPropertyChanged(nameof(OnBatteryText));
@@ -2634,7 +2728,6 @@ public partial class SettingItemViewModel : BaseViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
-            _technicalDetailsManager.Dispose();
         }
         base.Dispose(disposing);
     }

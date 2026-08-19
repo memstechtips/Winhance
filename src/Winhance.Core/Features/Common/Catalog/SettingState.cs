@@ -35,6 +35,23 @@ public sealed record SettingState
     /// </summary>
     public bool IsFallback { get; init; }
 
+    /// <summary>
+    /// A state detection can RESOLVE TO but the user cannot CHOOSE. It is left OUT of the selection's
+    /// option list, so it never appears in the dropdown as a pick that would write nothing.
+    /// Distinct from <see cref="IsFallback"/>: fallback says "detection lands here when nothing else
+    /// matched"; detect-only adds "and it is not a choice you can make". They are independent flags -
+    /// a fallback carrying a real Set is still choosable - but the pair is the shape a NEUTRAL state
+    /// wants: a configuration Winhance can read and name but cannot write (e.g. the two theme sub-toggles
+    /// disagreeing, which no single registry value expresses).
+    /// Because it is not an apply target it may not carry a Recommended/WindowsDefault role, be a
+    /// <see cref="Controls"/> value, or be a <c>Link.RequiredState</c> - CatalogValidator enforces all
+    /// three - and the apply-totality audit skips it.
+    /// SKIP, NEVER RENUMBER: the option list drops it, but every surviving option keeps its OWN state
+    /// index as its ComboBox Value. Option index == state index is what saved configs, the autounattend
+    /// generator and the review diff all persist, so renumbering would silently rewrite them.
+    /// </summary>
+    public bool IsDetectOnly { get; init; }
+
     /// <summary>When this selection state is active, the child settings it drives and the state each must
     /// be in (childId -> required state label). Null = controls nothing.</summary>
     public IReadOnlyDictionary<string, string>? Controls { get; init; }

@@ -348,7 +348,7 @@ $csprojContent = $csprojContent -replace '<FileVersion>.*?</FileVersion>', "<Fil
 $csprojContent = $csprojContent -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$Version</AssemblyVersion>"
 $csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$displayVersion</InformationalVersion>"
 
-# Write updated csproj content (verbatim — no appended newline, no BOM)
+# Write updated csproj content (verbatim - no appended newline, no BOM)
 [System.IO.File]::WriteAllText($csprojPath, $csprojContent, $utf8NoBom)
 
 # Find MSBuild.exe (required for WinUI3/WindowsAppSDK projects)
@@ -356,7 +356,7 @@ Write-Host "Locating MSBuild..." -ForegroundColor Green
 $msbuildPath = $null
 
 # Try vswhere.exe first (ships with VS2022+ installer)
-# Require both MSBuild and MSVC C++ tools — the WindowsAppSDK XAML compiler needs MSVC
+# Require both MSBuild and MSVC C++ tools - the WindowsAppSDK XAML compiler needs MSVC
 $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswherePath) {
     $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1

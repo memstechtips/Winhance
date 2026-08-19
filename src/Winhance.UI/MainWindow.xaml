@@ -211,7 +211,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}">
-                    <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="20" Foreground="#FFE74C3C"/>
+                    <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="{StaticResource TitleBarIconFontSize}" Foreground="#FFE74C3C"/>
                 </Button>
 
                 <!-- Bug Report Button -->
@@ -219,7 +219,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.BugReportTooltip, Mode=OneWay}">
-                    <fluentIcons:FluentIcon Icon="Bug" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="Bug" IconVariant="Regular" FontSize="{StaticResource TitleBarIconFontSize}"/>
                 </Button>
 
                 <!-- Documentation Button -->
@@ -227,7 +227,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DocsTooltip, Mode=OneWay}">
-                    <fluentIcons:FluentIcon Icon="BookQuestionMark" IconVariant="Regular" FontSize="20"/>
+                    <fluentIcons:FluentIcon Icon="BookQuestionMark" IconVariant="Regular" FontSize="{StaticResource TitleBarIconFontSize}"/>
                 </Button>
             </StackPanel>
         </Grid>
@@ -446,8 +446,9 @@
                 <!-- Content Frame for Page Navigation -->
                 <Frame x:Name="ContentFrame" Grid.Row="0"/>
 
-                <!-- Task Progress Bars (up to 3 for parallel script removal) -->
+                <!-- Pending Explorer restart + Task Progress Bars (up to 3 for parallel script removal) -->
                 <StackPanel Grid.Row="1" Margin="0,2,12,8" Spacing="4">
+                    <controls:PendingRestartBar x:Name="PendingRestartBar"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl2"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl3"/>

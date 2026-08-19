@@ -341,6 +341,7 @@ public static class TaskbarCustomizationsCatalog
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
             UiParentId = "taskbar-multi-display",
+            EnabledWhen = new("taskbar-multi-display", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("MMTaskbarMode", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MMTaskbarMode", RegistryValueKind.DWord),
@@ -482,6 +483,7 @@ public static class TaskbarCustomizationsCatalog
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
             UiParentId = "taskbar-multi-display",
+            EnabledWhen = new("taskbar-multi-display", new[] { "Enabled" }),
             Targets = new Target[]
             {
                 new RegTarget("MMTaskbarGlomLevel", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MMTaskbarGlomLevel", RegistryValueKind.DWord),

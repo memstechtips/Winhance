@@ -176,10 +176,10 @@ public sealed partial class SettingsListView : UserControl
         var announcement = $"{vm.Name}: {stateText}";
 
         // When expanding, append the technical details content so Narrator reads it
-        if (vm.IsTechnicalDetailsExpanded && vm.TechnicalDetailSections.Count > 0)
+        if (vm.IsTechnicalDetailsExpanded && vm.TechnicalDetailMatrix is not null)
         {
             var details = string.Join(". ",
-                vm.TechnicalDetailSections.SelectMany(s => s.Rows).Select(d => d.AccessibleSummary));
+                [vm.TechnicalDetailMatrix.AccessibleSummary]);
             announcement = $"{announcement}. {details}";
         }
 

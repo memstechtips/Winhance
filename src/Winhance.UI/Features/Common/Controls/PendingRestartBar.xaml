@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.PendingRestartBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    mc:Ignorable="d"
+    d:DesignHeight="44"
+    d:DesignWidth="400">
+
+    <!-- Bound through DataContext (the ViewModel is an ObservableObject), matching the pattern used by
+         WindowsAppsHelpContent. Deliberately has NO close button: the pending state is real, and letting
+         the user dismiss it would leave them believing their settings already took effect. -->
+    <Grid Visibility="{Binding IsBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+          AutomationProperties.LiveSetting="Polite">
+        <!-- Amber, matching a WinUI InfoBar with Severity="Warning". Applied as a ThemeResource on a
+             plain Border rather than by using a real InfoBar, so the bar keeps its own icon and
+             layout - the same technique SettingTemplates.xaml already uses with the Informational
+             brush from this family, and it tracks light/dark theme automatically. -->
+        <Border Background="{ThemeResource InfoBarWarningSeverityBackgroundBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="12,8"
+                ToolTipService.ToolTip="{Binding TooltipText}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+                    <ColumnDefinition Width="*"/>     <!-- Message -->
+                    <ColumnDefinition Width="Auto"/>  <!-- Restart button -->
+                </Grid.ColumnDefinitions>
+
+                <fluentIcons:FluentIcon Grid.Column="0"
+                                        Icon="ArrowClockwiseDashesSettings"
+                                        IconVariant="Color"
+                                        FontSize="20"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,10,0"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Message}"
+                           FontSize="13"
+                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,0,12,0"/>
+
+                <Button Grid.Column="2"
+                        Command="{Binding RestartCommand}"
+                        IsEnabled="{Binding CanRestart}"
+                        AutomationProperties.Name="{Binding ButtonText}"
+                        VerticalAlignment="Center"
+                        Padding="12,6">
+                    <Grid>
+                        <!-- Idle: the label. In flight: a ring plus the in-progress text. -->
+                        <TextBlock Text="{Binding ButtonText}"
+                                   FontSize="13"
+                                   Visibility="{Binding IsRestarting, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    Visibility="{Binding IsRestarting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ProgressRing IsActive="{Binding IsRestarting}"
+                                          Width="14"
+                                          Height="14"/>
+                            <TextBlock Text="{Binding RestartingText}"
+                                       FontSize="13"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

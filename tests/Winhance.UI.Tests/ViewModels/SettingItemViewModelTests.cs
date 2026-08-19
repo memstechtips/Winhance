@@ -108,7 +108,7 @@ public class SettingItemViewModelTests : IDisposable
         sut.ComboBoxOptions.Should().NotBeNull().And.BeEmpty();
         sut.MaxValue.Should().Be(100);
         sut.Units.Should().BeEmpty();
-        sut.TechnicalDetailSections.Should().NotBeNull().And.BeEmpty();
+        sut.TechnicalDetailMatrix.Should().BeNull();
         sut.IsVisible.Should().BeTrue();
         sut.IsEnabled.Should().BeTrue();
         sut.ParentIsEnabled.Should().BeTrue();
@@ -875,14 +875,6 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut();
 
         sut.TechnicalDetailsLabel.Should().Be("Technical Details");
-    }
-
-    [Fact]
-    public void OpenRegeditTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
-    {
-        var sut = CreateSut();
-
-        sut.OpenRegeditTooltip.Should().Be("Open in Registry Editor");
     }
 
     [Fact]

@@ -100,7 +100,7 @@
                     x:Name="BreadcrumbSeparator"
                     Icon="ChevronRight"
                     IconVariant="Regular"
-                    FontSize="12"
+                    FontSize="{StaticResource BreadcrumbSeparatorFontSize}"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"
                     Visibility="Collapsed"/>
@@ -307,7 +307,7 @@
                                     <StackPanel x:Name="PrivacyOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="PrivacyRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="PrivacyRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -351,7 +351,7 @@
                                     <StackPanel x:Name="PowerOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="PowerRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="PowerRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -395,7 +395,7 @@
                                     <StackPanel x:Name="GamingOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="GamingRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="GamingRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -439,7 +439,7 @@
                                     <StackPanel x:Name="UpdateOverviewPills" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="UpdateRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="UpdateRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -483,7 +483,7 @@
                                     <StackPanel x:Name="NotificationOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="NotificationRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="NotificationRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -527,7 +527,7 @@
                                     <StackPanel x:Name="SoundOverviewBadges" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                                         <Border x:Name="SoundRecommendedPill" Style="{StaticResource BadgeRecommendedStyle}">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE735;" FontSize="12" VerticalAlignment="Center" Margin="0,1,0,0"
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center" Margin="{StaticResource BadgePillIconMargin}"
                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                 <TextBlock x:Name="SoundRecommendedText" Style="{StaticResource BadgeTextStyle}"
                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>

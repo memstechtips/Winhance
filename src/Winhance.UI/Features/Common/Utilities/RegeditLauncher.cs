@@ -14,55 +14,6 @@ public class RegeditLauncher(
     IProcessExecutor processExecutor,
     ILogService logService) : IRegeditLauncher
 {
-    /// <summary>
-    /// Checks whether the given registry key path exists.
-    /// Accepts paths like "HKEY_LOCAL_MACHINE\SOFTWARE\..." or "HKLM\SOFTWARE\...".
-    /// In OTS mode, HKCU paths are redirected to HKU\{interactive user SID}.
-    /// </summary>
-    public bool KeyExists(string registryPath)
-    {
-        try
-        {
-            var (root, subKey) = ParsePath(registryPath);
-            if (root == null || subKey == null) return false;
-            using var key = root.OpenSubKey(subKey);
-            return key != null;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private (RegistryKey? root, string? subKey) ParsePath(string path)
-    {
-        var separatorIndex = path.IndexOf('\\');
-        if (separatorIndex < 0) return (null, null);
-
-        var hive = path[..separatorIndex].ToUpperInvariant();
-        var subKey = path[(separatorIndex + 1)..];
-
-        // OTS: redirect HKCU to HKU\{interactive user SID}
-        if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
-            && interactiveUserService.IsOtsElevation
-            && interactiveUserService.InteractiveUserSid != null)
-        {
-            return (Registry.Users, $@"{interactiveUserService.InteractiveUserSid}\{subKey}");
-        }
-
-        RegistryKey? root = hive switch
-        {
-            "HKEY_LOCAL_MACHINE" or "HKLM" => Registry.LocalMachine,
-            "HKEY_CURRENT_USER" or "HKCU" => Registry.CurrentUser,
-            "HKEY_CLASSES_ROOT" or "HKCR" => Registry.ClassesRoot,
-            "HKEY_USERS" or "HKU" => Registry.Users,
-            "HKEY_CURRENT_CONFIG" or "HKCC" => Registry.CurrentConfig,
-            _ => null
-        };
-
-        return (root, subKey);
-    }
-
     public void OpenAtPath(string registryPath)
     {
         try

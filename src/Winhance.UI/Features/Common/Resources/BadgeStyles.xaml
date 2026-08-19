@@ -84,9 +84,9 @@
     to guarantee a pill look.
     -->
     <Style x:Key="BadgePillBase" TargetType="Border">
-        <Setter Property="Height" Value="24"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="8,0,10,0"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="7,0,9,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
@@ -153,6 +153,32 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,0,0,2"/>
+    </Style>
+
+    <!-- Technical Details table badges. Here rather than in TechnicalDetailsStyles.xaml
+         because they need the Badge*Foreground brushes and BadgeTextStyle defined above,
+         and that dictionary is merged into App.xaml before this one. -->
+    <Style x:Key="TechDetail.Table.BadgeRecommendedIcon" TargetType="FontIcon">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.BadgeDefaultIcon" TargetType="PathIcon">
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="Height" Value="12"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.BadgeRecommendedText" TargetType="TextBlock"
+           BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.BadgeDefaultText" TargetType="TextBlock"
+           BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
     </Style>
 
     <!-- ==================== Quick-Set Buttons ==================== -->

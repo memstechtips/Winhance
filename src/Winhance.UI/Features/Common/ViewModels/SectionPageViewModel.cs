@@ -178,6 +178,29 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         return _viewModelBySectionKey.GetValueOrDefault(sectionKey);
     }
 
+    /// <summary>
+    /// Which of this page's sections holds a setting, or null when none does — the setting lives on
+    /// the other page, or under an id this page has never loaded.
+    ///
+    /// Asking the sections is deliberate: they are the only thing that knows what they hold, and a
+    /// separate id-to-section map maintained alongside them would be a second copy of that fact,
+    /// free to drift the moment a setting moves between sections.
+    /// </summary>
+    public string? FindSectionForSetting(string settingId)
+    {
+        if (string.IsNullOrEmpty(settingId)) return null;
+
+        foreach (var (sectionKey, viewModel) in _viewModelBySectionKey)
+        {
+            foreach (var setting in viewModel.Settings)
+            {
+                if (string.Equals(setting.SettingId, settingId, StringComparison.OrdinalIgnoreCase))
+                    return sectionKey;
+            }
+        }
+        return null;
+    }
+
     public string GetSectionDisplayName(string sectionKey)
     {
         var section = SectionDefinitions.FirstOrDefault(s => s.Key == sectionKey);

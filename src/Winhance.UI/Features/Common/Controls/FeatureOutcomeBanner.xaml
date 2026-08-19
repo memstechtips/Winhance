@@ -6,26 +6,14 @@
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
-    Reports, on a feature's overview card, that Winhance could not determine the state of some settings
-    inside it - and names them, each as a link straight to that setting. Attaches to the BOTTOM of the
-    card so it is unmistakably about that feature: the parent StackPanel spaces its children by 8, so -9
-    closes that gap and overlaps the border by 1, top corners squared and bottom left rounded, the same
-    join the settings cards use.
+    Names the settings Winhance could not place on a feature's overview card, each a link to that
+    setting. Margin -9 closes the parent StackPanel's 8px gap and overlaps the card border by 1.
 
-    This REPLACED per-outcome info-badge pills. A detection outcome is a fault, not a badge: badges say
-    where a value sits relative to our advice, which is optional detail and reasonably hidden behind
-    View > InfoBadges. Hiding "1 setting is saved in the wrong format" behind that same toggle was
-    backwards - so this is deliberately NOT gated by it.
+    Severity stays Informational and the per-outcome colour lives on each ROW: colouring the whole bar
+    by the worst outcome made the other kinds disappear.
 
-    SEVERITY IS ALWAYS INFORMATIONAL, and the per-outcome colour lives on each ROW instead. An earlier
-    version set the bar's severity to the worst outcome present, which backfired: a feature holding one
-    wrong-format and one unrecognized setting turned the whole bar amber, and the eye then went looking
-    for amber only - the blue one effectively disappeared. A neutral bar with one coloured row per kind
-    shows both at once.
-
-    Rows are built in code rather than by a DataTemplate because each is a single wrapping TextBlock
-    whose Inlines mix literal text with Hyperlink runs. A TextBlock wraps natively, which is what keeps a
-    long localized setting name from overflowing the card - a horizontal panel of link buttons would not.
+    Rows are built in code because each is one wrapping TextBlock whose Inlines mix text with Hyperlink
+    runs - TextBlock.Inlines cannot be data-bound, and a panel of link buttons would not reflow.
     -->
     <Border Visibility="{x:Bind BannerVisibility, Mode=OneWay}" Margin="0,-9,0,0">
         <local:QuietInfoBar

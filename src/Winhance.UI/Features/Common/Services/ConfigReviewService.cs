@@ -647,8 +647,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 // Special handling: CustomStateValues
                 if (configItem.CustomStateValues != null)
                 {
-                    var currentRawKey = currentIndex >= 0 && currentIndex < comboResult.Options.Count
-                        ? comboResult.Options[currentIndex].DisplayText : null;
+                    var currentRawKey = DisplayKeyForStateIndex(setting, comboResult, currentIndex);
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)
                         : await GetComboBoxDisplayNameFromCatalogAsync(setting, currentIndex, currentState).ConfigureAwait(false);
@@ -664,10 +663,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 var configIndex = configItem.SelectedIndex.Value;
                 if (currentIndex != configIndex)
                 {
-                    var rawCurrentKey = currentIndex >= 0 && currentIndex < comboResult.Options.Count
-                        ? comboResult.Options[currentIndex].DisplayText : null;
-                    var rawConfigKey = configIndex >= 0 && configIndex < comboResult.Options.Count
-                        ? comboResult.Options[configIndex].DisplayText : null;
+                    var rawCurrentKey = DisplayKeyForStateIndex(setting, comboResult, currentIndex);
+                    var rawConfigKey = DisplayKeyForStateIndex(setting, comboResult, configIndex);
                     var currentDisplayName = rawCurrentKey != null
                         ? LocalizeComboBoxDisplayText(rawCurrentKey) : currentIndex.ToString();
                     var configDisplayName = rawConfigKey != null
@@ -718,6 +715,12 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         for (int i = 0; i < states.Count; i++)
         {
+            // Twin of SettingViewModelFactory.BuildCatalogSelectionOptions: a detect-only state is not a
+            // choice, so it is not an option. SKIP, NEVER RENUMBER - each surviving option keeps its own
+            // STATE index as its Value, which is what a saved config's SelectedIndex means. Read the list
+            // back through OptionForStateIndex, never by position.
+            if (states[i].IsDetectOnly)
+                continue;
             result.Options.Add(new ComboBoxDisplayOption(states[i].Label, i, states[i].Tooltip)
             {
                 IsRecommended = states[i].HasRole(RoleKind.Recommended),
@@ -734,6 +737,27 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return result;
     }
 
+    /// <summary>The option carrying STATE index <paramref name="stateIndex"/> as its Value, or null when
+    /// none does. Options are keyed by state index, NOT by their position in the list: BuildComboBoxOptions
+    /// skips detect-only states without renumbering the survivors, so a positional read would return the
+    /// wrong option as soon as a skipped state is not the last one - and would silently hand back an option
+    /// for an index that has none.</summary>
+    private static ComboBoxDisplayOption? OptionForStateIndex(ComboBoxSetupResult result, int stateIndex) =>
+        stateIndex < 0 ? null : result.Options.FirstOrDefault(o => o.Value is int v && v == stateIndex);
+
+    /// <summary>The raw display key for STATE index <paramref name="stateIndex"/>: the option's DisplayText
+    /// when the state is a choice, and the state's own Label when it is DETECT-ONLY - such a state has no
+    /// option (it is not a choice) but is a real, named state, and rendering the bare index for it would
+    /// print "2" where the card shows "Mixed". Null when the index names no state at all.</summary>
+    private static string? DisplayKeyForStateIndex(Setting setting, ComboBoxSetupResult result, int stateIndex)
+    {
+        if (OptionForStateIndex(result, stateIndex) is { } option)
+            return option.DisplayText;
+        return stateIndex >= 0 && stateIndex < setting.States.Count && setting.States[stateIndex].IsDetectOnly
+            ? setting.States[stateIndex].Label
+            : null;
+    }
+
     /// <summary>
     /// Gets a display name for a combo box index using the catalog Setting's combo box setup.
     /// </summary>
@@ -745,16 +769,16 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         try
         {
             var result = BuildComboBoxOptions(setting, currentState.CurrentValue);
-            if (index >= 0 && index < result.Options.Count)
+            if (DisplayKeyForStateIndex(setting, result, index) is { } key)
             {
-                return LocalizeComboBoxDisplayText(result.Options[index].DisplayText ?? index.ToString());
+                return LocalizeComboBoxDisplayText(key);
             }
 
             // If index is negative, try to use the resolved selected value from the combo box setup
-            if (index < 0 && result.SelectedValue is int resolvedIndex &&
-                resolvedIndex >= 0 && resolvedIndex < result.Options.Count)
+            if (index < 0 && result.SelectedValue is int resolvedIndex
+                && DisplayKeyForStateIndex(setting, result, resolvedIndex) is { } resolvedKey)
             {
-                return LocalizeComboBoxDisplayText(result.Options[resolvedIndex].DisplayText ?? resolvedIndex.ToString());
+                return LocalizeComboBoxDisplayText(resolvedKey);
             }
         }
         catch (Exception ex)

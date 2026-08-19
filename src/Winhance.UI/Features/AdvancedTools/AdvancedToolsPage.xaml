@@ -59,7 +59,7 @@
                     x:Name="BreadcrumbSeparator"
                     Icon="ChevronRight"
                     IconVariant="Regular"
-                    FontSize="12"
+                    FontSize="{StaticResource BreadcrumbSeparatorFontSize}"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     VerticalAlignment="Center"
                     Visibility="Collapsed"/>

@@ -29,11 +29,14 @@
     -->
     <StackPanel Orientation="Horizontal" Spacing="8"
                 HorizontalAlignment="Left" VerticalAlignment="Center"
-                IsHitTestVisible="{x:Bind IsInteractive, Mode=OneWay}"
+                IsHitTestVisible="{x:Bind OverlayHitTestable, Mode=OneWay}"
                 Visibility="{x:Bind OverlayVisibility, Mode=OneWay}"
+                Opacity="{x:Bind OverlayOpacity, Mode=OneWay}"
+                AutomationProperties.AccessibilityView="{x:Bind OverlayAccessibilityView, Mode=OneWay}"
                 ToolTipService.ToolTip="{x:Bind OverlayTooltip, Mode=OneWay}">
         <fluentIcons:FluentIcon Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"
-                                FontSize="16" VerticalAlignment="Center"/>
+                                Visibility="{x:Bind OverlayIconVisibility, Mode=OneWay}"
+                                FontSize="{StaticResource OutcomeIconFontSize}" VerticalAlignment="Center"/>
         <TextBlock Text="{x:Bind OverlayText, Mode=OneWay}" VerticalAlignment="Center"
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
     </StackPanel>
