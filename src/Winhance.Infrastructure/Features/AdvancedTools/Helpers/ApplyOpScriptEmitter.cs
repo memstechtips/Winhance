@@ -107,7 +107,8 @@ internal sealed class ApplyOpScriptEmitter
                 text.HibernationStates.Add(hibernation.On ? "on" : "off");
 
             var (enable, value) = ResolverArguments(setting, choice.Value);
-            var ops = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault: false, catalog, build);
+            var ops = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault: false, catalog, build)
+                ?? DetectorStateOps(setting, choice.Value, build);
             if (ops is null)
             {
                 Warn(warnings, $"Setting '{setting.Id}' with value {choice.Value} did not resolve to an apply plan");
@@ -456,6 +457,23 @@ internal sealed class ApplyOpScriptEmitter
             default:
                 return (true, null);
         }
+    }
+
+    // A custom-detector setting with bare states (updates-policy-mode) is special-handled in the live app, so the
+    // resolver declines it; that handler's registry half is ApplyPlanBuilder.Build on the chosen state, which is
+    // what the autounattend writes too. Its service/task/DLL half is the script builder's Update hardening block.
+    private static IReadOnlyList<ApplyOp>? DetectorStateOps(Setting setting, ChoiceValue value, WinBuild build)
+    {
+        if (setting.Detector is null) return null;
+        string? label = value switch
+        {
+            ChoiceValue.Option o when o.Index >= 0 && o.Index < setting.States.Count => setting.States[o.Index].Label,
+            ChoiceValue.Toggle t => t.On ? "Enabled" : "Disabled",
+            _ => null,
+        };
+        return label is not null && setting.States.Any(st => st.Label == label)
+            ? ApplyPlanBuilder.Build(setting, label, build)
+            : null;
     }
 
     private static Dictionary<string, object?> NumericArgument(Setting setting, int ac, int dc)

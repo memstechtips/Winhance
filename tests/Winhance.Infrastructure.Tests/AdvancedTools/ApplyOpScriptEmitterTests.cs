@@ -320,6 +320,39 @@ public class ApplyOpScriptEmitterTests
         },
     };
 
+    // updates-policy-mode is special-handled in the live app and declined by the resolver; its handler's registry
+    // half is the chosen state's plan, which the autounattend has always written (and must keep writing).
+    [Fact]
+    public void DetectorSelection_EmitsTheChosenStatesWrites_LikeTheSpecialHandler()
+    {
+        var setting = new Setting
+        {
+            Id = "detector-selection",
+            Display = new Display { Name = "Detector", Description = "Detector description" },
+            Detector = new NullDetector(),
+            Targets = new Target[] { new RegTarget("M", DetectorPath, "Mode", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState { Label = "Normal", Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Absent } },
+                new SettingState { Label = "Security", Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(2) } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var r = _sut.Emit(new SelectionSet(new[] { new SettingChoice("detector-selection", new ChoiceValue.Option(1)) }, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None),
+                          byFeature, ParityCatalog.Build, "    ", "            ");
+
+        SystemText(r).Should().Contain("Set-RegistryValue -Path 'HKLM:\\SOFTWARE\\ParityDetector' -Name 'Mode' -Type 'DWord' -Value 2 -Description 'Detector description'");
+        r.Warnings.Should().BeEmpty();
+    }
+
+    private static readonly string[] DetectorPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityDetector"];
+
+    private sealed class NullDetector : IStateDetector
+    {
+        public string? Detect(Setting setting, IDetectionContext context) => null;
+    }
+
     private sealed class StubOptionSource : IDynamicOptionSource
     {
         public IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context) => Array.Empty<DynamicOption>();
