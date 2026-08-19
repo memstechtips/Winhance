@@ -109,7 +109,9 @@ internal static class DocsCatalogExport
     }
 
     // The builder labels option rows from the ViewModel's combo options (already localized) and only falls back to
-    // the raw catalog label, which for Template_*/ServiceOption_* states is itself a key. Mirror SettingViewModelFactory.
+    // the raw catalog label, which for Template_*/ServiceOption_* states is itself a key. Label resolution follows
+    // SettingViewModelFactory; the list is one option PER STATE, positional — the factory skips IsDetectOnly states,
+    // but the builder indexes Snapshot.Options by state index, so skipping would shift every later label.
     private static SettingStateSnapshot Snapshot(Setting s, ILocalizationService loc) => new()
     {
         Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
