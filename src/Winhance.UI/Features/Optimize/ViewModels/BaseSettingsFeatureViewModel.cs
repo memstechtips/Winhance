@@ -33,6 +33,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
     private ISubscriptionToken? _authoringModeExitedSubscription;
+    private ISubscriptionToken? _builderSeededSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
 
@@ -133,6 +134,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
         _authoringModeExitedSubscription = _eventBus.SubscribeAsync<AuthoringModeExitedEvent>(OnAuthoringModeExitedAsync);
+        _builderSeededSubscription = _eventBus.Subscribe<BuilderSeededEvent>(OnBuilderSeeded);
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -343,6 +345,19 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         // field cannot survive the transition. There is no cleanup list here to fall out of date.
         if (Settings?.Any() != true) return;
         await RefreshSettingsForFilterChangeAsync();
+    }
+
+    // The seed records its edits after these cards were built from live state, so their toggles still show the
+    // machine. Cards built after the seed pick it up in SettingViewModelFactory instead.
+    private void OnBuilderSeeded(BuilderSeededEvent e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            foreach (var setting in Settings)
+            {
+                setting.ApplyAuthoredOverlay();
+            }
+        });
     }
 
     private async Task RefreshSettingsForFilterChangeAsync()
@@ -701,6 +716,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             _authoringModeExitedSubscription?.Dispose();
             _authoringModeExitedSubscription = null;
+
+            _builderSeededSubscription?.Dispose();
+            _builderSeededSubscription = null;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

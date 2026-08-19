@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
@@ -30,6 +32,9 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IBuilderSaveService> _mockBuilderSaveService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
+    private readonly Mock<IBuilderSeedSource> _mockBuilderSeedSource = new();
+    private readonly Mock<ISelectionSetBuilder> _mockSelectionSetBuilder = new();
+    private readonly Mock<IEventBus> _mockEventBus = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
     private readonly UpdateCheckViewModel _updateCheckViewModel;
@@ -108,7 +113,10 @@ public class MainWindowViewModelTests : IDisposable
             _builderModeBarViewModel,
             _mockApplicationModeService.Object,
             _mockDialogService.Object,
-            _mockUserPreferencesService.Object);
+            _mockUserPreferencesService.Object,
+            _mockBuilderSeedSource.Object,
+            _mockSelectionSetBuilder.Object,
+            _mockEventBus.Object);
     }
 
     public void Dispose()
@@ -516,6 +524,72 @@ public class MainWindowViewModelTests : IDisposable
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
         _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
+    }
+
+    // Switching INTO Builder asks what to seed the session from. Cancelling the picker is a cancelled
+    // mode switch, not an empty Builder session.
+
+    private void ArrangeBuilderIntroAlreadyDismissed() =>
+        _mockUserPreferencesService
+            .Setup(p => p.GetPreference(It.IsAny<string>(), false))
+            .Returns(true);
+
+    [Fact]
+    public async Task SwitchToBuilder_SeedDialogCancelled_DoesNotEnterBuilder()
+    {
+        ArrangeBuilderIntroAlreadyDismissed();
+        _mockDialogService.Setup(d => d.ShowBuilderSeedDialogAsync()).ReturnsAsync((BuilderSeed?)null);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockApplicationModeService.Verify(m => m.EnterBuilderMode(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchToBuilder_SeedCurrentMachine_EntersBuilder_RecordsNothing()
+    {
+        ArrangeBuilderIntroAlreadyDismissed();
+        _mockDialogService.Setup(d => d.ShowBuilderSeedDialogAsync())
+            .ReturnsAsync(BuilderSeed.CurrentMachine);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockApplicationModeService.Verify(m => m.EnterBuilderMode(BuilderTarget.Config), Times.Once);
+        _mockApplicationModeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
+        _mockEventBus.Verify(b => b.Publish(It.IsAny<BuilderSeededEvent>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchToBuilder_SeedRecommended_RecordsEveryChoice_AndPublishes()
+    {
+        ArrangeBuilderIntroAlreadyDismissed();
+        _mockDialogService.Setup(d => d.ShowBuilderSeedDialogAsync())
+            .ReturnsAsync(BuilderSeed.Recommended);
+
+        var scope = new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false);
+        _mockSelectionSetBuilder.Setup(b => b.CurrentScope).Returns(scope);
+        _mockBuilderSeedSource
+            .Setup(s => s.ChoicesForAsync(BuilderSeed.Recommended, scope))
+            .ReturnsAsync(new List<SettingChoice>
+            {
+                new("setting-a", new ChoiceValue.Toggle(true)),
+                new("setting-b", new ChoiceValue.Toggle(false)),
+            });
+
+        // The edits are recorded into a Builder session, so entering the mode has to come first.
+        var calls = new List<string>();
+        _mockApplicationModeService.Setup(m => m.EnterBuilderMode(BuilderTarget.Config))
+            .Callback(() => calls.Add("enter"));
+        _mockApplicationModeService.Setup(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()))
+            .Callback<SettingChoice>(choice => calls.Add($"record:{choice.SettingId}"));
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        calls.Should().Equal("enter", "record:setting-a", "record:setting-b");
+        _mockEventBus.Verify(b => b.Publish(It.IsAny<BuilderSeededEvent>()), Times.Once);
     }
 
     [Fact]

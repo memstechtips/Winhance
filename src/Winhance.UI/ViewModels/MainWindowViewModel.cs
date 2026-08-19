@@ -3,8 +3,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -23,6 +25,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IApplicationModeService _applicationModeService;
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
+    private readonly IBuilderSeedSource _builderSeedSource;
+    private readonly ISelectionSetBuilder _selectionSetBuilder;
+    private readonly IEventBus _eventBus;
 
     public TaskProgressViewModel TaskProgress { get; }
 
@@ -71,7 +76,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         BuilderModeBarViewModel builderModeBar,
         IApplicationModeService applicationModeService,
         IDialogService dialogService,
-        IUserPreferencesService userPreferencesService)
+        IUserPreferencesService userPreferencesService,
+        IBuilderSeedSource builderSeedSource,
+        ISelectionSetBuilder selectionSetBuilder,
+        IEventBus eventBus)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -83,6 +91,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _applicationModeService = applicationModeService;
         _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
+        _builderSeedSource = builderSeedSource;
+        _selectionSetBuilder = selectionSetBuilder;
+        _eventBus = eventBus;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
@@ -306,6 +317,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        BuilderSeed? seed = null;
+        if (target == WinhanceMode.Builder)
+        {
+            seed = await _dialogService.ShowBuilderSeedDialogAsync();
+            if (seed is null)
+            {
+                RaiseModeProperties();
+                return;
+            }
+        }
+
         try
         {
             switch (target)
@@ -321,6 +343,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     if (_applicationModeService.CurrentMode == WinhanceMode.ConfigReview)
                         await _configurationService.CancelReviewModeAsync();
                     _applicationModeService.EnterBuilderMode(BuilderTarget.Config);
+                    if (seed is { } chosenSeed && chosenSeed != BuilderSeed.CurrentMachine)
+                    {
+                        foreach (var choice in await _builderSeedSource.ChoicesForAsync(chosenSeed, _selectionSetBuilder.CurrentScope))
+                            _applicationModeService.RecordBuilderEdit(choice);
+                        _eventBus.Publish(new BuilderSeededEvent());
+                    }
                     break;
 
                 case WinhanceMode.ConfigReview:

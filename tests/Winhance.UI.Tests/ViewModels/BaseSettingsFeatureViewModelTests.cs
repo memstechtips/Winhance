@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -147,7 +148,8 @@ public class BaseSettingsFeatureViewModelTests
             _mockLogService.Object,
             _mockDispatcherService.Object,
             mockDialogService.Object,
-            _mockLocalizationService.Object);
+            _mockLocalizationService.Object,
+            applicationModeService: _mockApplicationModeService.Object);
 
         if (inputType == InputType.NumericRange)
             vm.NumericValue = numericValue;
@@ -1633,5 +1635,35 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuilderSeededEvent_ReAppliesTheAuthoredOverlay_ToCardsBuiltBeforeTheSeed()
+    {
+        Action<BuilderSeededEvent>? handler = null;
+        _mockEventBus
+            .Setup(e => e.Subscribe(It.IsAny<Action<BuilderSeededEvent>>()))
+            .Callback<Action<BuilderSeededEvent>>(h => handler = h)
+            .Returns(new Mock<ISubscriptionToken>().Object);
+
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("seeded", "Seeded"),
+        });
+
+        await vm.LoadSettingsAsync();
+        vm.Settings[0].IsSelected.Should().BeFalse();
+
+        // The seed records its edits after this card was built from live state, so nothing on screen moved.
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService
+            .Setup(m => m.GetBuilderEdit("seeded"))
+            .Returns(new SettingChoice("seeded", new ChoiceValue.Toggle(true)));
+
+        handler.Should().NotBeNull();
+        handler!(new BuilderSeededEvent());
+
+        vm.Settings[0].IsSelected.Should().BeTrue();
     }
 }
