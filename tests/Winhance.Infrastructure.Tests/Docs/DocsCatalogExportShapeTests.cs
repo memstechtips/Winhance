@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Localization;
+using Winhance.Core.Features.Common.TechnicalDetails;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Docs;
@@ -92,5 +94,24 @@ public class DocsCatalogExportShapeTests
         Assert.Equal("Selection", setting.GetProperty("control").GetString());
         Assert.Equal(JsonValueKind.Array, setting.GetProperty("matrix").GetProperty("options").ValueKind);
         Assert.Equal("Registry", setting.GetProperty("matrix").GetProperty("groups")[0].GetProperty("kind").GetString());
+    }
+
+    [Fact]
+    public void Option_labels_are_resolved_never_raw_localization_keys()
+    {
+        static IEnumerable<string> Labels(OptionMatrix? m) =>
+            m is null ? [] : m.Options.Select(o => o.Label).Concat(m.CodeBlocks.Select(c => c.Label));
+
+        var raw = Export.Features.SelectMany(f => f.Settings)
+            .SelectMany(s => Labels(s.Matrix).Concat(Labels(s.MatrixWin10)).Select(l => $"{s.Id}: {l}"))
+            .Where(l => SettingLocalizationKeys.IsLocalizationKey(l.Split(": ", 2)[1]))
+            .ToList();
+
+        Assert.Empty(raw);
+
+        var ducking = Find("sound-communication-ducking").Matrix!;
+        Assert.Equal(Loc.GetString("Setting_sound-communication-ducking_Option_3"), ducking.Options[3].Label);
+        var displayTimeout = Find("power-display-timeout").Matrix!;
+        Assert.Contains(displayTimeout.Options, o => o.Label == Loc.GetString("Template_TimeIntervals_Option_0"));
     }
 }

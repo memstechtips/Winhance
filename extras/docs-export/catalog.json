@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "winhanceVersion": "26.08.18",
-  "catalogHash": "fdfaa61e57d5cf6f15a1e7ec9e30cd41d96c5ae73e52d690eb0eb0038f4d7d32",
+  "catalogHash": "fdb6778eeb956aa16e3d20d470c2df4473df512fd3ddbba9f62299bd6cf1b73a",
   "settingCount": 414,
   "referenceBuilds": {
     "win10": 19045,
@@ -20608,7 +20608,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "99",
@@ -20648,7 +20648,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Windows Default: DODownloadMode deletes key (Default). Devices on LAN Only: DODownloadMode 1. Devices on LAN and Internet: DODownloadMode 3. ServiceOption_Disabled: DODownloadMode 99 (Recommended). Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization."
+            "accessibleSummary": "Windows Default: DODownloadMode deletes key (Default). Devices on LAN Only: DODownloadMode 1. Devices on LAN and Internet: DODownloadMode 3. Disabled: DODownloadMode 99 (Recommended). Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization."
           },
           "matrixWin10": null
         },
@@ -27635,7 +27635,7 @@
             "columns": [],
             "options": [
               {
-                "label": "Setting_gaming-dns-server_Option_0",
+                "label": "Automatic (DHCP)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": true,
@@ -27645,7 +27645,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_1",
+                "label": "Cloudflare (1.1.1.1)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27655,7 +27655,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_2",
+                "label": "Cloudflare Malware Blocking (1.1.1.2)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27665,7 +27665,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_3",
+                "label": "Cloudflare Malware \u002B Adult Blocking (1.1.1.3)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27675,7 +27675,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_4",
+                "label": "Google (8.8.8.8)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27685,7 +27685,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_5",
+                "label": "Quad9 (9.9.9.9)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27695,7 +27695,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_6",
+                "label": "OpenDNS (208.67.222.222)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27705,7 +27705,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_7",
+                "label": "Cloudflare DoH (1.1.1.1)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27715,7 +27715,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_8",
+                "label": "Google DoH (8.8.8.8)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27725,7 +27725,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Setting_gaming-dns-server_Option_9",
+                "label": "Quad9 DoH (9.9.9.9)",
                 "cells": [],
                 "isCurrent": false,
                 "isRecommended": false,
@@ -27751,140 +27751,140 @@
             "codeBlocks": [
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_0",
+                "label": "When set to Automatic (DHCP)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_0",
+                "label": "When set to Automatic (DHCP)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_1",
+                "label": "When set to Cloudflare (1.1.1.1)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_1",
+                "label": "When set to Cloudflare (1.1.1.1)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_2",
+                "label": "When set to Cloudflare Malware Blocking (1.1.1.2)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00271.1.1.2\u0027,\u00271.0.0.2\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_2",
+                "label": "When set to Cloudflare Malware Blocking (1.1.1.2)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=1.1.1.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_3",
+                "label": "When set to Cloudflare Malware \u002B Adult Blocking (1.1.1.3)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00271.1.1.3\u0027,\u00271.0.0.3\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_3",
+                "label": "When set to Cloudflare Malware \u002B Adult Blocking (1.1.1.3)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=1.1.1.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_4",
+                "label": "When set to Google (8.8.8.8)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00278.8.8.8\u0027,\u00278.8.4.4\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_4",
+                "label": "When set to Google (8.8.8.8)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_5",
+                "label": "When set to Quad9 (9.9.9.9)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_5",
+                "label": "When set to Quad9 (9.9.9.9)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_6",
+                "label": "When set to OpenDNS (208.67.222.222)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u0027208.67.222.222\u0027,\u0027208.67.220.220\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_6",
+                "label": "When set to OpenDNS (208.67.222.222)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027{{dohtemplate}}\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=208.67.222.222 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=208.67.220.220 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_7",
+                "label": "When set to Cloudflare DoH (1.1.1.1)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_7",
+                "label": "When set to Cloudflare DoH (1.1.1.1)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027https://cloudflare-dns.com/dns-query\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_8",
+                "label": "When set to Google DoH (8.8.8.8)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00278.8.8.8\u0027,\u00278.8.4.4\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_8",
+                "label": "When set to Google DoH (8.8.8.8)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027https://dns.google/dns-query\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_9",
+                "label": "When set to Quad9 DoH (9.9.9.9)",
                 "body": "Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @(\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027) }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Setting_gaming-dns-server_Option_9",
+                "label": "When set to Quad9 DoH (9.9.9.9)",
                 "body": "$known = @(\u00271.1.1.1\u0027,\u00271.0.0.1\u0027,\u00278.8.8.8\u0027,\u00278.8.4.4\u0027,\u00279.9.9.9\u0027,\u0027149.112.112.112\u0027); foreach ($s in $known) { netsh dns delete encryption server=$s 2\u003E$null | Out-Null }; $t = \u0027https://dns.quad9.net/dns-query\u0027; if ($t -and $t -notmatch \u0027^\\{\\{\u0027) { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
@@ -27900,7 +27900,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Setting_gaming-dns-server_Option_0:  (Recommended, Default). Setting_gaming-dns-server_Option_1: . Setting_gaming-dns-server_Option_2: . Setting_gaming-dns-server_Option_3: . Setting_gaming-dns-server_Option_4: . Setting_gaming-dns-server_Option_5: . Setting_gaming-dns-server_Option_6: . Setting_gaming-dns-server_Option_7: . Setting_gaming-dns-server_Option_8: . Setting_gaming-dns-server_Option_9: . ."
+            "accessibleSummary": "Automatic (DHCP):  (Recommended, Default). Cloudflare (1.1.1.1): . Cloudflare Malware Blocking (1.1.1.2): . Cloudflare Malware \u002B Adult Blocking (1.1.1.3): . Google (8.8.8.8): . Quad9 (9.9.9.9): . OpenDNS (208.67.222.222): . Cloudflare DoH (1.1.1.1): . Google DoH (8.8.8.8): . Quad9 DoH (9.9.9.9): . ."
           },
           "matrixWin10": null
         },
@@ -29057,7 +29057,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29073,7 +29073,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -29089,7 +29089,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29137,7 +29137,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WSearch."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended). Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WSearch."
           },
           "matrixWin10": null
         },
@@ -29193,7 +29193,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29209,7 +29209,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Manual",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3",
@@ -29225,7 +29225,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_AutomaticRecommended",
+                "label": "Automatic (Recommended)",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29273,7 +29273,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_Manual: Start 3. ServiceOption_AutomaticRecommended: Start 2 (or not set) (Recommended, Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Spooler."
+            "accessibleSummary": "Disabled: Start 4. Manual: Start 3. Automatic (Recommended): Start 2 (or not set) (Recommended, Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Spooler."
           },
           "matrixWin10": null
         },
@@ -29329,7 +29329,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29345,7 +29345,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -29361,7 +29361,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29409,7 +29409,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\DiagTrack."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended). Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\DiagTrack."
           },
           "matrixWin10": null
         },
@@ -29471,7 +29471,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29487,7 +29487,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -29503,7 +29503,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29551,7 +29551,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CDPSvc, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CDPUserSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended). Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CDPSvc, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CDPUserSvc."
           },
           "matrixWin10": null
         },
@@ -29607,7 +29607,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29623,7 +29623,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -29639,7 +29639,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29687,7 +29687,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PcaSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended). Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PcaSvc."
           },
           "matrixWin10": {
             "groups": [
@@ -29723,7 +29723,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29739,7 +29739,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -29755,7 +29755,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -29803,7 +29803,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended, Default). ServiceOption_Automatic: Start 2 (or not set). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PcaSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended, Default). Automatic: Start 2 (or not set). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PcaSvc."
           }
         },
         {
@@ -29858,7 +29858,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -29874,7 +29874,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -29890,7 +29890,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -29938,7 +29938,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WerSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WerSvc."
           },
           "matrixWin10": null
         },
@@ -29994,7 +29994,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30010,7 +30010,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30026,7 +30026,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30074,7 +30074,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\lfsvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\lfsvc."
           },
           "matrixWin10": null
         },
@@ -30130,7 +30130,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30146,7 +30146,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30162,7 +30162,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30210,7 +30210,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RetailDemo."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RetailDemo."
           },
           "matrixWin10": null
         },
@@ -30266,7 +30266,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30282,7 +30282,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30298,7 +30298,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30346,7 +30346,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\wisvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\wisvc."
           },
           "matrixWin10": null
         },
@@ -30402,7 +30402,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30418,7 +30418,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30434,7 +30434,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30482,7 +30482,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PhoneSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\PhoneSvc."
           },
           "matrixWin10": null
         },
@@ -30538,7 +30538,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30554,7 +30554,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30570,7 +30570,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30618,7 +30618,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WalletService."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WalletService."
           },
           "matrixWin10": null
         },
@@ -30686,7 +30686,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30702,7 +30702,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -30718,7 +30718,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -30766,7 +30766,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SCardSvr, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\ScDeviceEnum, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SCPolicySvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SCardSvr, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\ScDeviceEnum, HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SCPolicySvc."
           },
           "matrixWin10": null
         },
@@ -30822,7 +30822,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -30838,7 +30838,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -30854,7 +30854,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -30902,7 +30902,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MapsBroker."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (Recommended). Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MapsBroker."
           },
           "matrixWin10": null
         },
@@ -30958,7 +30958,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_DisabledRecommended",
+                "label": "Disabled (Recommended)",
                 "cells": [
                   {
                     "text": "4 (or not set)",
@@ -30974,7 +30974,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Manual",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3",
@@ -30990,7 +30990,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31038,7 +31038,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_DisabledRecommended: Start 4 (or not set) (Recommended, Default). ServiceOption_Manual: Start 3. ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Fax."
+            "accessibleSummary": "Disabled (Recommended): Start 4 (or not set) (Recommended, Default). Manual: Start 3. Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Fax."
           },
           "matrixWin10": {
             "groups": [
@@ -31074,7 +31074,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_DisabledRecommended",
+                "label": "Disabled (Recommended)",
                 "cells": [
                   {
                     "text": "4 (or not set)",
@@ -31090,7 +31090,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Manual",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3",
@@ -31106,7 +31106,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31154,7 +31154,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_DisabledRecommended: Start 4 (or not set) (Recommended). ServiceOption_Manual: Start 3 (Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Fax."
+            "accessibleSummary": "Disabled (Recommended): Start 4 (or not set) (Recommended). Manual: Start 3 (Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Fax."
           }
         },
         {
@@ -31209,7 +31209,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_DisabledRecommended",
+                "label": "Disabled (Recommended)",
                 "cells": [
                   {
                     "text": "4",
@@ -31225,7 +31225,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Manual",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -31241,7 +31241,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31289,7 +31289,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_DisabledRecommended: Start 4 (Recommended). ServiceOption_Manual: Start 3 (or not set) (Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WMPNetworkSvc."
+            "accessibleSummary": "Disabled (Recommended): Start 4 (Recommended). Manual: Start 3 (or not set) (Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WMPNetworkSvc."
           },
           "matrixWin10": null
         },
@@ -31345,7 +31345,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4 (or not set)",
@@ -31361,7 +31361,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -31377,7 +31377,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31425,7 +31425,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4 (or not set) (Default). ServiceOption_ManualRecommended: Start 3 (Recommended). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MixedRealityOpenXRSvc."
+            "accessibleSummary": "Disabled: Start 4 (or not set) (Default). Manual (Recommended): Start 3 (Recommended). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MixedRealityOpenXRSvc."
           },
           "matrixWin10": {
             "groups": [
@@ -31461,7 +31461,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4 (or not set)",
@@ -31477,7 +31477,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3",
@@ -31493,7 +31493,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31541,7 +31541,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4 (or not set). ServiceOption_ManualRecommended: Start 3 (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MixedRealityOpenXRSvc."
+            "accessibleSummary": "Disabled: Start 4 (or not set). Manual (Recommended): Start 3 (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\MixedRealityOpenXRSvc."
           }
         },
         {
@@ -31596,7 +31596,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -31612,7 +31612,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -31628,7 +31628,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31676,7 +31676,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\icssvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\icssvc."
           },
           "matrixWin10": null
         },
@@ -31732,7 +31732,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -31748,7 +31748,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -31764,7 +31764,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31812,7 +31812,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SmsRouter."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SmsRouter."
           },
           "matrixWin10": null
         },
@@ -31868,7 +31868,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -31884,7 +31884,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -31900,7 +31900,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -31948,7 +31948,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WpcMonSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WpcMonSvc."
           },
           "matrixWin10": null
         },
@@ -32004,7 +32004,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32020,7 +32020,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32036,7 +32036,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32084,7 +32084,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SEMgrSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SEMgrSvc."
           },
           "matrixWin10": null
         },
@@ -32140,7 +32140,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32156,7 +32156,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32172,7 +32172,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32220,7 +32220,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\svsvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\svsvc."
           },
           "matrixWin10": null
         },
@@ -32276,7 +32276,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32292,7 +32292,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32308,7 +32308,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32356,7 +32356,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasMan."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasMan."
           },
           "matrixWin10": {
             "groups": [
@@ -32392,7 +32392,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32408,7 +32408,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32424,7 +32424,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32472,7 +32472,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended). ServiceOption_Automatic: Start 2 (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasMan."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended). Automatic: Start 2 (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasMan."
           }
         },
         {
@@ -32527,7 +32527,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32543,7 +32543,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32559,7 +32559,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32607,7 +32607,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasAuto."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\RasAuto."
           },
           "matrixWin10": null
         },
@@ -32663,7 +32663,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32679,7 +32679,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32695,7 +32695,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32743,7 +32743,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TermService."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TermService."
           },
           "matrixWin10": null
         },
@@ -32799,7 +32799,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32815,7 +32815,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32831,7 +32831,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -32879,7 +32879,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SessionEnv."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SessionEnv."
           },
           "matrixWin10": null
         },
@@ -32935,7 +32935,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -32951,7 +32951,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -32967,7 +32967,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33015,7 +33015,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\UmRdpService."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\UmRdpService."
           },
           "matrixWin10": null
         },
@@ -33071,7 +33071,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33087,7 +33087,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33103,7 +33103,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33151,7 +33151,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XblAuthManager."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XblAuthManager."
           },
           "matrixWin10": null
         },
@@ -33207,7 +33207,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33223,7 +33223,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33239,7 +33239,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33287,7 +33287,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XblGameSave."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XblGameSave."
           },
           "matrixWin10": null
         },
@@ -33343,7 +33343,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33359,7 +33359,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33375,7 +33375,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33423,7 +33423,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XboxNetApiSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\XboxNetApiSvc."
           },
           "matrixWin10": null
         },
@@ -33479,7 +33479,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33495,7 +33495,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33511,7 +33511,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33559,7 +33559,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WbioSrvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WbioSrvc."
           },
           "matrixWin10": null
         },
@@ -33670,7 +33670,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33696,7 +33696,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33722,7 +33722,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33764,21 +33764,21 @@
             "codeBlocks": [
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to ServiceOption_Disabled",
+                "label": "When set to Disabled",
                 "body": "if([Environment]::OSVersion.Version.Build -ge 22000 -and -not(Get-WinUserLanguageList|?{$_.LanguageTag-match\u0027^(zh|ja|ko)\u0027})){$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue}",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to ServiceOption_ManualRecommended",
+                "label": "When set to Manual (Recommended)",
                 "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to ServiceOption_Automatic",
+                "label": "When set to Automatic",
                 "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
@@ -33794,7 +33794,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4, IsInputAppPreloadEnabled 0, Script Current. ServiceOption_ManualRecommended: Start 3 (or not set), IsInputAppPreloadEnabled 1, Script Current (Recommended, Default). ServiceOption_Automatic: Start 2, IsInputAppPreloadEnabled 1, Script Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\input."
+            "accessibleSummary": "Disabled: Start 4, IsInputAppPreloadEnabled 0, Script Current. Manual (Recommended): Start 3 (or not set), IsInputAppPreloadEnabled 1, Script Current (Recommended, Default). Automatic: Start 2, IsInputAppPreloadEnabled 1, Script Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\input."
           },
           "matrixWin10": null
         },
@@ -33850,7 +33850,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -33866,7 +33866,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -33882,7 +33882,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -33930,7 +33930,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TapiSrv."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TapiSrv."
           },
           "matrixWin10": null
         },
@@ -33986,7 +33986,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -34002,7 +34002,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -34018,7 +34018,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -34066,7 +34066,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SensrSvc."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SensrSvc."
           },
           "matrixWin10": null
         },
@@ -34122,7 +34122,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_Disabled",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "4",
@@ -34138,7 +34138,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_ManualRecommended",
+                "label": "Manual (Recommended)",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -34154,7 +34154,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2",
@@ -34202,7 +34202,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_Disabled: Start 4. ServiceOption_ManualRecommended: Start 3 (or not set) (Recommended, Default). ServiceOption_Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SensorDataService."
+            "accessibleSummary": "Disabled: Start 4. Manual (Recommended): Start 3 (or not set) (Recommended, Default). Automatic: Start 2. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SensorDataService."
           },
           "matrixWin10": null
         },
@@ -34263,7 +34263,7 @@
             ],
             "options": [
               {
-                "label": "ServiceOption_DisabledRecommended",
+                "label": "Disabled (Recommended)",
                 "cells": [
                   {
                     "text": "4",
@@ -34279,7 +34279,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Manual",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3",
@@ -34295,7 +34295,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "ServiceOption_Automatic",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "2 (or not set)",
@@ -34343,7 +34343,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "ServiceOption_DisabledRecommended: Start 4 (Recommended). ServiceOption_Manual: Start 3. ServiceOption_Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WSAIFabricSvc."
+            "accessibleSummary": "Disabled (Recommended): Start 4 (Recommended). Manual: Start 3. Automatic: Start 2 (or not set) (Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WSAIFabricSvc."
           },
           "matrixWin10": null
         },
@@ -52355,7 +52355,7 @@
             ],
             "options": [
               {
-                "label": "Template_TimeIntervals_Option_0",
+                "label": "Never",
                 "cells": [
                   {
                     "text": "0",
@@ -52371,7 +52371,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_1",
+                "label": "1 minute",
                 "cells": [
                   {
                     "text": "60",
@@ -52387,7 +52387,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_2",
+                "label": "2 minutes",
                 "cells": [
                   {
                     "text": "120",
@@ -52403,7 +52403,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_3",
+                "label": "3 minutes",
                 "cells": [
                   {
                     "text": "180",
@@ -52419,7 +52419,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_4",
+                "label": "5 minutes",
                 "cells": [
                   {
                     "text": "300",
@@ -52435,7 +52435,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_5",
+                "label": "10 minutes",
                 "cells": [
                   {
                     "text": "600",
@@ -52451,7 +52451,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_6",
+                "label": "15 minutes",
                 "cells": [
                   {
                     "text": "900",
@@ -52467,7 +52467,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_7",
+                "label": "20 minutes",
                 "cells": [
                   {
                     "text": "1200",
@@ -52483,7 +52483,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_8",
+                "label": "25 minutes",
                 "cells": [
                   {
                     "text": "1500",
@@ -52499,7 +52499,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_9",
+                "label": "30 minutes",
                 "cells": [
                   {
                     "text": "1800",
@@ -52515,7 +52515,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_10",
+                "label": "45 minutes",
                 "cells": [
                   {
                     "text": "2700",
@@ -52531,7 +52531,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_11",
+                "label": "1 hour",
                 "cells": [
                   {
                     "text": "3600",
@@ -52547,7 +52547,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_12",
+                "label": "2 hours",
                 "cells": [
                   {
                     "text": "7200",
@@ -52563,7 +52563,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_13",
+                "label": "3 hours",
                 "cells": [
                   {
                     "text": "10800",
@@ -52579,7 +52579,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_14",
+                "label": "4 hours",
                 "cells": [
                   {
                     "text": "14400",
@@ -52595,7 +52595,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_15",
+                "label": "5 hours",
                 "cells": [
                   {
                     "text": "18000",
@@ -52635,7 +52635,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_TimeIntervals_Option_0: Value 0, Current. Template_TimeIntervals_Option_1: Value 60. Template_TimeIntervals_Option_2: Value 120. Template_TimeIntervals_Option_3: Value 180. Template_TimeIntervals_Option_4: Value 300. Template_TimeIntervals_Option_5: Value 600 (Default). Template_TimeIntervals_Option_6: Value 900 (Recommended). Template_TimeIntervals_Option_7: Value 1200. Template_TimeIntervals_Option_8: Value 1500. Template_TimeIntervals_Option_9: Value 1800. Template_TimeIntervals_Option_10: Value 2700. Template_TimeIntervals_Option_11: Value 3600. Template_TimeIntervals_Option_12: Value 7200. Template_TimeIntervals_Option_13: Value 10800. Template_TimeIntervals_Option_14: Value 14400. Template_TimeIntervals_Option_15: Value 18000. Power setting: 7516b95f-f776-4464-8c53-06167f40cc99, 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e."
+            "accessibleSummary": "Never: Value 0, Current. 1 minute: Value 60. 2 minutes: Value 120. 3 minutes: Value 180. 5 minutes: Value 300. 10 minutes: Value 600 (Default). 15 minutes: Value 900 (Recommended). 20 minutes: Value 1200. 25 minutes: Value 1500. 30 minutes: Value 1800. 45 minutes: Value 2700. 1 hour: Value 3600. 2 hours: Value 7200. 3 hours: Value 10800. 4 hours: Value 14400. 5 hours: Value 18000. Power setting: 7516b95f-f776-4464-8c53-06167f40cc99, 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e."
           },
           "matrixWin10": null
         },
@@ -52823,7 +52823,7 @@
             ],
             "options": [
               {
-                "label": "Template_JavaScriptTimers_Option_0",
+                "label": "Maximum Power Savings",
                 "cells": [
                   {
                     "text": "0",
@@ -52839,7 +52839,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_JavaScriptTimers_Option_1",
+                "label": "Maximum Performance",
                 "cells": [
                   {
                     "text": "1",
@@ -52879,7 +52879,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_JavaScriptTimers_Option_0: Value 0, Current. Template_JavaScriptTimers_Option_1: Value 1 (Recommended, Default). Power setting: 02f815b5-a5cf-4c84-bf20-649d1f75d3d8, 4c793e7d-a264-42e1-87d3-7a0d2f523ccd."
+            "accessibleSummary": "Maximum Power Savings: Value 0, Current. Maximum Performance: Value 1 (Recommended, Default). Power setting: 02f815b5-a5cf-4c84-bf20-649d1f75d3d8, 4c793e7d-a264-42e1-87d3-7a0d2f523ccd."
           },
           "matrixWin10": null
         },
@@ -52941,7 +52941,7 @@
             ],
             "options": [
               {
-                "label": "Template_Slideshow_Option_0",
+                "label": "Available",
                 "cells": [
                   {
                     "text": "0",
@@ -52957,7 +52957,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_Slideshow_Option_1",
+                "label": "Paused",
                 "cells": [
                   {
                     "text": "1",
@@ -52997,7 +52997,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_Slideshow_Option_0: Value 0 (Recommended, Default), Current. Template_Slideshow_Option_1: Value 1. Power setting: 0d7dbae2-4294-402a-ba8e-26777e8488cd, 309dce9b-bef4-4119-9921-a851fb12f0f4."
+            "accessibleSummary": "Available: Value 0 (Recommended, Default), Current. Paused: Value 1. Power setting: 0d7dbae2-4294-402a-ba8e-26777e8488cd, 309dce9b-bef4-4119-9921-a851fb12f0f4."
           },
           "matrixWin10": null
         },
@@ -53059,7 +53059,7 @@
             ],
             "options": [
               {
-                "label": "Template_WirelessPower_Option_0",
+                "label": "Maximum Performance",
                 "cells": [
                   {
                     "text": "0",
@@ -53075,7 +53075,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_WirelessPower_Option_1",
+                "label": "Low Power Saving",
                 "cells": [
                   {
                     "text": "1",
@@ -53091,7 +53091,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_WirelessPower_Option_2",
+                "label": "Medium Power Saving",
                 "cells": [
                   {
                     "text": "2",
@@ -53107,7 +53107,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_WirelessPower_Option_3",
+                "label": "Maximum Power Saving",
                 "cells": [
                   {
                     "text": "3",
@@ -53147,7 +53147,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_WirelessPower_Option_0: Value 0 (Recommended, Default), Current. Template_WirelessPower_Option_1: Value 1. Template_WirelessPower_Option_2: Value 2. Template_WirelessPower_Option_3: Value 3. Power setting: 19cbb8fa-5279-450e-9fac-8a3d5fedd0c1, 12bbebe6-58d6-4636-95bb-3217ef867c1a."
+            "accessibleSummary": "Maximum Performance: Value 0 (Recommended, Default), Current. Low Power Saving: Value 1. Medium Power Saving: Value 2. Maximum Power Saving: Value 3. Power setting: 19cbb8fa-5279-450e-9fac-8a3d5fedd0c1, 12bbebe6-58d6-4636-95bb-3217ef867c1a."
           },
           "matrixWin10": null
         },
@@ -53209,7 +53209,7 @@
             ],
             "options": [
               {
-                "label": "Template_TimeIntervals_Option_0",
+                "label": "Never",
                 "cells": [
                   {
                     "text": "0",
@@ -53225,7 +53225,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_1",
+                "label": "1 minute",
                 "cells": [
                   {
                     "text": "60",
@@ -53241,7 +53241,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_2",
+                "label": "2 minutes",
                 "cells": [
                   {
                     "text": "120",
@@ -53257,7 +53257,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_3",
+                "label": "3 minutes",
                 "cells": [
                   {
                     "text": "180",
@@ -53273,7 +53273,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_4",
+                "label": "5 minutes",
                 "cells": [
                   {
                     "text": "300",
@@ -53289,7 +53289,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_5",
+                "label": "10 minutes",
                 "cells": [
                   {
                     "text": "600",
@@ -53305,7 +53305,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_6",
+                "label": "15 minutes",
                 "cells": [
                   {
                     "text": "900",
@@ -53321,7 +53321,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_7",
+                "label": "20 minutes",
                 "cells": [
                   {
                     "text": "1200",
@@ -53337,7 +53337,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_8",
+                "label": "25 minutes",
                 "cells": [
                   {
                     "text": "1500",
@@ -53353,7 +53353,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_9",
+                "label": "30 minutes",
                 "cells": [
                   {
                     "text": "1800",
@@ -53369,7 +53369,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_10",
+                "label": "45 minutes",
                 "cells": [
                   {
                     "text": "2700",
@@ -53385,7 +53385,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_11",
+                "label": "1 hour",
                 "cells": [
                   {
                     "text": "3600",
@@ -53401,7 +53401,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_12",
+                "label": "2 hours",
                 "cells": [
                   {
                     "text": "7200",
@@ -53417,7 +53417,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_13",
+                "label": "3 hours",
                 "cells": [
                   {
                     "text": "10800",
@@ -53433,7 +53433,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_14",
+                "label": "4 hours",
                 "cells": [
                   {
                     "text": "14400",
@@ -53449,7 +53449,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_15",
+                "label": "5 hours",
                 "cells": [
                   {
                     "text": "18000",
@@ -53489,7 +53489,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_TimeIntervals_Option_0: Value 0 (Recommended), Current. Template_TimeIntervals_Option_1: Value 60. Template_TimeIntervals_Option_2: Value 120. Template_TimeIntervals_Option_3: Value 180. Template_TimeIntervals_Option_4: Value 300. Template_TimeIntervals_Option_5: Value 600. Template_TimeIntervals_Option_6: Value 900. Template_TimeIntervals_Option_7: Value 1200. Template_TimeIntervals_Option_8: Value 1500. Template_TimeIntervals_Option_9: Value 1800 (Default). Template_TimeIntervals_Option_10: Value 2700. Template_TimeIntervals_Option_11: Value 3600. Template_TimeIntervals_Option_12: Value 7200. Template_TimeIntervals_Option_13: Value 10800. Template_TimeIntervals_Option_14: Value 14400. Template_TimeIntervals_Option_15: Value 18000. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 29f6c1db-86da-48c5-9fdb-f2b67b1f44da."
+            "accessibleSummary": "Never: Value 0 (Recommended), Current. 1 minute: Value 60. 2 minutes: Value 120. 3 minutes: Value 180. 5 minutes: Value 300. 10 minutes: Value 600. 15 minutes: Value 900. 20 minutes: Value 1200. 25 minutes: Value 1500. 30 minutes: Value 1800 (Default). 45 minutes: Value 2700. 1 hour: Value 3600. 2 hours: Value 7200. 3 hours: Value 10800. 4 hours: Value 14400. 5 hours: Value 18000. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 29f6c1db-86da-48c5-9fdb-f2b67b1f44da."
           },
           "matrixWin10": null
         },
@@ -53551,7 +53551,7 @@
             ],
             "options": [
               {
-                "label": "Template_WakeTimers_Option_0",
+                "label": "Disable",
                 "cells": [
                   {
                     "text": "0",
@@ -53567,7 +53567,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_WakeTimers_Option_1",
+                "label": "Enable",
                 "cells": [
                   {
                     "text": "1",
@@ -53583,7 +53583,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_WakeTimers_Option_2",
+                "label": "Important Wake Timers Only",
                 "cells": [
                   {
                     "text": "2",
@@ -53623,7 +53623,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_WakeTimers_Option_0: Value 0, Current. Template_WakeTimers_Option_1: Value 1 (Recommended, Default). Template_WakeTimers_Option_2: Value 2. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d."
+            "accessibleSummary": "Disable: Value 0, Current. Enable: Value 1 (Recommended, Default). Important Wake Timers Only: Value 2. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d."
           },
           "matrixWin10": null
         },
@@ -53818,7 +53818,7 @@
             ],
             "options": [
               {
-                "label": "Template_TimeIntervals_Option_0",
+                "label": "Never",
                 "cells": [
                   {
                     "text": "0",
@@ -53834,7 +53834,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_1",
+                "label": "1 minute",
                 "cells": [
                   {
                     "text": "60",
@@ -53850,7 +53850,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_2",
+                "label": "2 minutes",
                 "cells": [
                   {
                     "text": "120",
@@ -53866,7 +53866,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_3",
+                "label": "3 minutes",
                 "cells": [
                   {
                     "text": "180",
@@ -53882,7 +53882,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_4",
+                "label": "5 minutes",
                 "cells": [
                   {
                     "text": "300",
@@ -53898,7 +53898,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_5",
+                "label": "10 minutes",
                 "cells": [
                   {
                     "text": "600",
@@ -53914,7 +53914,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_6",
+                "label": "15 minutes",
                 "cells": [
                   {
                     "text": "900",
@@ -53930,7 +53930,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_7",
+                "label": "20 minutes",
                 "cells": [
                   {
                     "text": "1200",
@@ -53946,7 +53946,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_8",
+                "label": "25 minutes",
                 "cells": [
                   {
                     "text": "1500",
@@ -53962,7 +53962,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_9",
+                "label": "30 minutes",
                 "cells": [
                   {
                     "text": "1800",
@@ -53978,7 +53978,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_10",
+                "label": "45 minutes",
                 "cells": [
                   {
                     "text": "2700",
@@ -53994,7 +53994,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_11",
+                "label": "1 hour",
                 "cells": [
                   {
                     "text": "3600",
@@ -54010,7 +54010,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_12",
+                "label": "2 hours",
                 "cells": [
                   {
                     "text": "7200",
@@ -54026,7 +54026,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_13",
+                "label": "3 hours",
                 "cells": [
                   {
                     "text": "10800",
@@ -54042,7 +54042,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_14",
+                "label": "4 hours",
                 "cells": [
                   {
                     "text": "14400",
@@ -54058,7 +54058,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_TimeIntervals_Option_15",
+                "label": "5 hours",
                 "cells": [
                   {
                     "text": "18000",
@@ -54098,7 +54098,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_TimeIntervals_Option_0: Value 0 (Recommended, Default), Current. Template_TimeIntervals_Option_1: Value 60. Template_TimeIntervals_Option_2: Value 120. Template_TimeIntervals_Option_3: Value 180. Template_TimeIntervals_Option_4: Value 300. Template_TimeIntervals_Option_5: Value 600. Template_TimeIntervals_Option_6: Value 900. Template_TimeIntervals_Option_7: Value 1200. Template_TimeIntervals_Option_8: Value 1500. Template_TimeIntervals_Option_9: Value 1800. Template_TimeIntervals_Option_10: Value 2700. Template_TimeIntervals_Option_11: Value 3600. Template_TimeIntervals_Option_12: Value 7200. Template_TimeIntervals_Option_13: Value 10800. Template_TimeIntervals_Option_14: Value 14400. Template_TimeIntervals_Option_15: Value 18000. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 9d7815a6-7ee4-497e-8888-515a05f02364."
+            "accessibleSummary": "Never: Value 0 (Recommended, Default), Current. 1 minute: Value 60. 2 minutes: Value 120. 3 minutes: Value 180. 5 minutes: Value 300. 10 minutes: Value 600. 15 minutes: Value 900. 20 minutes: Value 1200. 25 minutes: Value 1500. 30 minutes: Value 1800. 45 minutes: Value 2700. 1 hour: Value 3600. 2 hours: Value 7200. 3 hours: Value 10800. 4 hours: Value 14400. 5 hours: Value 18000. Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 9d7815a6-7ee4-497e-8888-515a05f02364."
           },
           "matrixWin10": null
         },
@@ -54162,7 +54162,7 @@
             ],
             "options": [
               {
-                "label": "Template_OnOff_Option_0",
+                "label": "Off",
                 "cells": [
                   {
                     "text": "0",
@@ -54178,7 +54178,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_OnOff_Option_1",
+                "label": "On",
                 "cells": [
                   {
                     "text": "1",
@@ -54226,7 +54226,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_OnOff_Option_0: Value 0, Current. Template_OnOff_Option_1: Value 1 (Recommended, Default). Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 94ac6d29-73ce-41a6-809f-6363ba21b47e."
+            "accessibleSummary": "Off: Value 0, Current. On: Value 1 (Recommended, Default). Power setting: 238c9fa8-0aad-41ed-83f4-97be242c8f20, 94ac6d29-73ce-41a6-809f-6363ba21b47e."
           },
           "matrixWin10": null
         },
@@ -54661,7 +54661,7 @@
             ],
             "options": [
               {
-                "label": "Template_EnabledDisabled_Option_0",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "0",
@@ -54677,7 +54677,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_EnabledDisabled_Option_1",
+                "label": "Enabled",
                 "cells": [
                   {
                     "text": "1",
@@ -54717,7 +54717,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_EnabledDisabled_Option_0: Value 0 (Recommended), Current. Template_EnabledDisabled_Option_1: Value 1 (Default). Power setting: 2a737441-1930-4402-8d77-b2bebba308a3, 48e6b7a6-50f5-4782-a5d4-53bb8f07e226."
+            "accessibleSummary": "Disabled: Value 0 (Recommended), Current. Enabled: Value 1 (Default). Power setting: 2a737441-1930-4402-8d77-b2bebba308a3, 48e6b7a6-50f5-4782-a5d4-53bb8f07e226."
           },
           "matrixWin10": null
         },
@@ -54787,7 +54787,7 @@
             ],
             "options": [
               {
-                "label": "Template_Usb3LinkPower_Option_0",
+                "label": "Off",
                 "cells": [
                   {
                     "text": "0",
@@ -54803,7 +54803,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_Usb3LinkPower_Option_1",
+                "label": "Minimum power savings",
                 "cells": [
                   {
                     "text": "1",
@@ -54819,7 +54819,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_Usb3LinkPower_Option_2",
+                "label": "Moderate power savings",
                 "cells": [
                   {
                     "text": "2",
@@ -54835,7 +54835,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_Usb3LinkPower_Option_3",
+                "label": "Maximum power savings",
                 "cells": [
                   {
                     "text": "3",
@@ -54875,7 +54875,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_Usb3LinkPower_Option_0: Value 0 (Recommended), Current. Template_Usb3LinkPower_Option_1: Value 1. Template_Usb3LinkPower_Option_2: Value 2 (Default). Template_Usb3LinkPower_Option_3: Value 3. Power setting: 2a737441-1930-4402-8d77-b2bebba308a3, d4e98f31-5ffe-4ce1-be31-1b38b384c009."
+            "accessibleSummary": "Off: Value 0 (Recommended), Current. Minimum power savings: Value 1. Moderate power savings: Value 2 (Default). Maximum power savings: Value 3. Power setting: 2a737441-1930-4402-8d77-b2bebba308a3, d4e98f31-5ffe-4ce1-be31-1b38b384c009."
           },
           "matrixWin10": null
         },
@@ -54937,7 +54937,7 @@
             ],
             "options": [
               {
-                "label": "Template_IntelGraphics_Option_0",
+                "label": "Maximum Battery Life",
                 "cells": [
                   {
                     "text": "0",
@@ -54953,7 +54953,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_IntelGraphics_Option_1",
+                "label": "Balanced",
                 "cells": [
                   {
                     "text": "1",
@@ -54969,7 +54969,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_IntelGraphics_Option_2",
+                "label": "Maximum Performance",
                 "cells": [
                   {
                     "text": "2",
@@ -55009,7 +55009,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_IntelGraphics_Option_0: Value 0, Current. Template_IntelGraphics_Option_1: Value 1 (Default). Template_IntelGraphics_Option_2: Value 2 (Recommended). Power setting: 44f3beca-a7c0-460e-9df2-bb8b99e0cba6, 3619c3f2-afb2-4afc-b0e9-e7fef372de36."
+            "accessibleSummary": "Maximum Battery Life: Value 0, Current. Balanced: Value 1 (Default). Maximum Performance: Value 2 (Recommended). Power setting: 44f3beca-a7c0-460e-9df2-bb8b99e0cba6, 3619c3f2-afb2-4afc-b0e9-e7fef372de36."
           },
           "matrixWin10": null
         },
@@ -55079,7 +55079,7 @@
             ],
             "options": [
               {
-                "label": "Template_PowerButtonActions_Option_0",
+                "label": "Do nothing",
                 "cells": [
                   {
                     "text": "0",
@@ -55095,7 +55095,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_1",
+                "label": "Sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -55111,7 +55111,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_2",
+                "label": "Hibernate",
                 "cells": [
                   {
                     "text": "2",
@@ -55127,7 +55127,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_3",
+                "label": "Shut down",
                 "cells": [
                   {
                     "text": "3",
@@ -55143,7 +55143,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_4",
+                "label": "Turn off the display",
                 "cells": [
                   {
                     "text": "4",
@@ -55183,7 +55183,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_PowerButtonActions_Option_0: Value 0, Current. Template_PowerButtonActions_Option_1: Value 1. Template_PowerButtonActions_Option_2: Value 2. Template_PowerButtonActions_Option_3: Value 3 (Recommended, Default). Template_PowerButtonActions_Option_4: Value 4. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 7648efa3-dd9c-4e3e-b566-50f929386280."
+            "accessibleSummary": "Do nothing: Value 0, Current. Sleep: Value 1. Hibernate: Value 2. Shut down: Value 3 (Recommended, Default). Turn off the display: Value 4. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 7648efa3-dd9c-4e3e-b566-50f929386280."
           },
           "matrixWin10": null
         },
@@ -55253,7 +55253,7 @@
             ],
             "options": [
               {
-                "label": "Template_PowerButtonActions_Option_0",
+                "label": "Do nothing",
                 "cells": [
                   {
                     "text": "0",
@@ -55269,7 +55269,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_1",
+                "label": "Sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -55285,7 +55285,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_2",
+                "label": "Hibernate",
                 "cells": [
                   {
                     "text": "2",
@@ -55301,7 +55301,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_3",
+                "label": "Shut down",
                 "cells": [
                   {
                     "text": "3",
@@ -55317,7 +55317,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PowerButtonActions_Option_4",
+                "label": "Turn off the display",
                 "cells": [
                   {
                     "text": "4",
@@ -55357,7 +55357,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_PowerButtonActions_Option_0: Value 0, Current. Template_PowerButtonActions_Option_1: Value 1 (Recommended, Default). Template_PowerButtonActions_Option_2: Value 2. Template_PowerButtonActions_Option_3: Value 3. Template_PowerButtonActions_Option_4: Value 4. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 96996bc0-ad50-47ec-923b-6f41874dd9eb."
+            "accessibleSummary": "Do nothing: Value 0, Current. Sleep: Value 1 (Recommended, Default). Hibernate: Value 2. Shut down: Value 3. Turn off the display: Value 4. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 96996bc0-ad50-47ec-923b-6f41874dd9eb."
           },
           "matrixWin10": null
         },
@@ -55429,7 +55429,7 @@
             ],
             "options": [
               {
-                "label": "Template_LidActions_Option_0",
+                "label": "Do nothing",
                 "cells": [
                   {
                     "text": "0",
@@ -55445,7 +55445,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_LidActions_Option_1",
+                "label": "Sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -55461,7 +55461,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_LidActions_Option_2",
+                "label": "Hibernate",
                 "cells": [
                   {
                     "text": "2",
@@ -55477,7 +55477,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_LidActions_Option_3",
+                "label": "Shut down",
                 "cells": [
                   {
                     "text": "3",
@@ -55517,7 +55517,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_LidActions_Option_0: Value 0, Current. Template_LidActions_Option_1: Value 1 (Recommended, Default). Template_LidActions_Option_2: Value 2. Template_LidActions_Option_3: Value 3. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 5ca83367-6e45-459f-a27b-476b1d01c936."
+            "accessibleSummary": "Do nothing: Value 0, Current. Sleep: Value 1 (Recommended, Default). Hibernate: Value 2. Shut down: Value 3. Power setting: 4f971e89-eebd-4455-a8de-9e59040e7347, 5ca83367-6e45-459f-a27b-476b1d01c936."
           },
           "matrixWin10": null
         },
@@ -55579,7 +55579,7 @@
             ],
             "options": [
               {
-                "label": "Template_PciExpress_Option_0",
+                "label": "Off",
                 "cells": [
                   {
                     "text": "0",
@@ -55595,7 +55595,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PciExpress_Option_1",
+                "label": "Moderate power savings",
                 "cells": [
                   {
                     "text": "1",
@@ -55611,7 +55611,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PciExpress_Option_2",
+                "label": "Maximum power savings",
                 "cells": [
                   {
                     "text": "2",
@@ -55651,7 +55651,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_PciExpress_Option_0: Value 0 (Recommended), Current. Template_PciExpress_Option_1: Value 1 (Default). Template_PciExpress_Option_2: Value 2. Power setting: 501a4d13-42af-4429-9fd1-a8218c268e20, ee12f906-d277-404b-b6da-e5fa1a576df5."
+            "accessibleSummary": "Off: Value 0 (Recommended), Current. Moderate power savings: Value 1 (Default). Maximum power savings: Value 2. Power setting: 501a4d13-42af-4429-9fd1-a8218c268e20, ee12f906-d277-404b-b6da-e5fa1a576df5."
           },
           "matrixWin10": null
         },
@@ -55989,7 +55989,7 @@
             ],
             "options": [
               {
-                "label": "Template_CoolingPolicy_Option_0",
+                "label": "Passive",
                 "cells": [
                   {
                     "text": "0",
@@ -56005,7 +56005,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_CoolingPolicy_Option_1",
+                "label": "Active",
                 "cells": [
                   {
                     "text": "1",
@@ -56045,7 +56045,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_CoolingPolicy_Option_0: Value 0, Current. Template_CoolingPolicy_Option_1: Value 1 (Recommended, Default). Power setting: 54533251-82be-4824-96c1-47b60b740d00, 94d3a615-a899-4ac5-ae2b-e4d8f634367f."
+            "accessibleSummary": "Passive: Value 0, Current. Active: Value 1 (Recommended, Default). Power setting: 54533251-82be-4824-96c1-47b60b740d00, 94d3a615-a899-4ac5-ae2b-e4d8f634367f."
           },
           "matrixWin10": null
         },
@@ -56115,7 +56115,7 @@
             ],
             "options": [
               {
-                "label": "Template_ProcessorBoostMode_Option_0",
+                "label": "Disabled",
                 "cells": [
                   {
                     "text": "0",
@@ -56131,7 +56131,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_1",
+                "label": "Enabled",
                 "cells": [
                   {
                     "text": "1",
@@ -56147,7 +56147,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_2",
+                "label": "Aggressive",
                 "cells": [
                   {
                     "text": "2",
@@ -56163,7 +56163,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_3",
+                "label": "Efficient Enabled",
                 "cells": [
                   {
                     "text": "3",
@@ -56179,7 +56179,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_4",
+                "label": "Efficient Aggressive",
                 "cells": [
                   {
                     "text": "4",
@@ -56195,7 +56195,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_5",
+                "label": "Aggressive At Guaranteed",
                 "cells": [
                   {
                     "text": "5",
@@ -56211,7 +56211,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_ProcessorBoostMode_Option_6",
+                "label": "Efficient Aggressive At Guaranteed",
                 "cells": [
                   {
                     "text": "6",
@@ -56251,7 +56251,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_ProcessorBoostMode_Option_0: Value 0, Current. Template_ProcessorBoostMode_Option_1: Value 1. Template_ProcessorBoostMode_Option_2: Value 2 (Recommended, Default). Template_ProcessorBoostMode_Option_3: Value 3. Template_ProcessorBoostMode_Option_4: Value 4. Template_ProcessorBoostMode_Option_5: Value 5. Template_ProcessorBoostMode_Option_6: Value 6. Power setting: 54533251-82be-4824-96c1-47b60b740d00, be337238-0d82-4146-a960-4f3749d470c7."
+            "accessibleSummary": "Disabled: Value 0, Current. Enabled: Value 1. Aggressive: Value 2 (Recommended, Default). Efficient Enabled: Value 3. Efficient Aggressive: Value 4. Aggressive At Guaranteed: Value 5. Efficient Aggressive At Guaranteed: Value 6. Power setting: 54533251-82be-4824-96c1-47b60b740d00, be337238-0d82-4146-a960-4f3749d470c7."
           },
           "matrixWin10": null
         },
@@ -56321,7 +56321,7 @@
             ],
             "options": [
               {
-                "label": "Template_PerformanceIncreasePolicy_Option_0",
+                "label": "Ideal",
                 "cells": [
                   {
                     "text": "0",
@@ -56337,7 +56337,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PerformanceIncreasePolicy_Option_1",
+                "label": "Single",
                 "cells": [
                   {
                     "text": "1",
@@ -56353,7 +56353,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PerformanceIncreasePolicy_Option_2",
+                "label": "Rocket",
                 "cells": [
                   {
                     "text": "2",
@@ -56369,7 +56369,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PerformanceIncreasePolicy_Option_3",
+                "label": "IdealAggressive",
                 "cells": [
                   {
                     "text": "3",
@@ -56409,7 +56409,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_PerformanceIncreasePolicy_Option_0: Value 0 (Default), Current. Template_PerformanceIncreasePolicy_Option_1: Value 1. Template_PerformanceIncreasePolicy_Option_2: Value 2 (Recommended). Template_PerformanceIncreasePolicy_Option_3: Value 3. Power setting: 54533251-82be-4824-96c1-47b60b740d00, 465e1f50-b610-473a-ab58-00d1077dc418."
+            "accessibleSummary": "Ideal: Value 0 (Default), Current. Single: Value 1. Rocket: Value 2 (Recommended). IdealAggressive: Value 3. Power setting: 54533251-82be-4824-96c1-47b60b740d00, 465e1f50-b610-473a-ab58-00d1077dc418."
           },
           "matrixWin10": null
         },
@@ -56479,7 +56479,7 @@
             ],
             "options": [
               {
-                "label": "Template_PerformanceDecreasePolicy_Option_0",
+                "label": "Ideal",
                 "cells": [
                   {
                     "text": "0",
@@ -56495,7 +56495,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PerformanceDecreasePolicy_Option_1",
+                "label": "Single",
                 "cells": [
                   {
                     "text": "1",
@@ -56511,7 +56511,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_PerformanceDecreasePolicy_Option_2",
+                "label": "Rocket",
                 "cells": [
                   {
                     "text": "2",
@@ -56551,7 +56551,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_PerformanceDecreasePolicy_Option_0: Value 0 (Default), Current. Template_PerformanceDecreasePolicy_Option_1: Value 1 (Recommended). Template_PerformanceDecreasePolicy_Option_2: Value 2. Power setting: 54533251-82be-4824-96c1-47b60b740d00, 40fbefc7-2e9d-4d25-a185-0cfd8574bac6."
+            "accessibleSummary": "Ideal: Value 0 (Default), Current. Single: Value 1 (Recommended). Rocket: Value 2. Power setting: 54533251-82be-4824-96c1-47b60b740d00, 40fbefc7-2e9d-4d25-a185-0cfd8574bac6."
           },
           "matrixWin10": null
         },
@@ -57436,7 +57436,7 @@
             ],
             "options": [
               {
-                "label": "Template_MediaSharing_Option_0",
+                "label": "Allow the computer to sleep",
                 "cells": [
                   {
                     "text": "0",
@@ -57452,7 +57452,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_MediaSharing_Option_1",
+                "label": "Prevent idling to sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -57492,7 +57492,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_MediaSharing_Option_0: Value 0, Current. Template_MediaSharing_Option_1: Value 1 (Recommended, Default). Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 03680956-93bc-4294-bba6-4e0f09bb717f."
+            "accessibleSummary": "Allow the computer to sleep: Value 0, Current. Prevent idling to sleep: Value 1 (Recommended, Default). Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 03680956-93bc-4294-bba6-4e0f09bb717f."
           },
           "matrixWin10": null
         },
@@ -57554,7 +57554,7 @@
             ],
             "options": [
               {
-                "label": "Template_VideoQualityBias_Option_0",
+                "label": "Video playback power-saving bias",
                 "cells": [
                   {
                     "text": "0",
@@ -57570,7 +57570,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_VideoQualityBias_Option_1",
+                "label": "Video playback performance bias",
                 "cells": [
                   {
                     "text": "1",
@@ -57610,7 +57610,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_VideoQualityBias_Option_0: Value 0, Current. Template_VideoQualityBias_Option_1: Value 1 (Recommended, Default). Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 10778347-1370-4ee0-8bbd-33bdacaade49."
+            "accessibleSummary": "Video playback power-saving bias: Value 0, Current. Video playback performance bias: Value 1 (Recommended, Default). Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 10778347-1370-4ee0-8bbd-33bdacaade49."
           },
           "matrixWin10": null
         },
@@ -57672,7 +57672,7 @@
             ],
             "options": [
               {
-                "label": "Template_VideoPlayback_Option_0",
+                "label": "Optimize video quality",
                 "cells": [
                   {
                     "text": "0",
@@ -57688,7 +57688,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_VideoPlayback_Option_1",
+                "label": "Balanced",
                 "cells": [
                   {
                     "text": "1",
@@ -57704,7 +57704,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_VideoPlayback_Option_2",
+                "label": "Optimize power savings",
                 "cells": [
                   {
                     "text": "2",
@@ -57744,7 +57744,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_VideoPlayback_Option_0: Value 0 (Recommended, Default), Current. Template_VideoPlayback_Option_1: Value 1. Template_VideoPlayback_Option_2: Value 2. Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 34c7b99f-9a6d-4b3c-8dc7-b6693b78cef4."
+            "accessibleSummary": "Optimize video quality: Value 0 (Recommended, Default), Current. Balanced: Value 1. Optimize power savings: Value 2. Power setting: 9596fb26-9850-41fd-ac3e-f7c3c00afd4b, 34c7b99f-9a6d-4b3c-8dc7-b6693b78cef4."
           },
           "matrixWin10": null
         },
@@ -57808,7 +57808,7 @@
             ],
             "options": [
               {
-                "label": "Template_OnOff_Option_0",
+                "label": "Off",
                 "cells": [
                   {
                     "text": "0",
@@ -57824,7 +57824,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_OnOff_Option_1",
+                "label": "On",
                 "cells": [
                   {
                     "text": "1",
@@ -57864,7 +57864,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_OnOff_Option_0: Value 0, Current. Template_OnOff_Option_1: Value 1 (Recommended, Default). Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f."
+            "accessibleSummary": "Off: Value 0, Current. On: Value 1 (Recommended, Default). Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f."
           },
           "matrixWin10": null
         },
@@ -57928,7 +57928,7 @@
             ],
             "options": [
               {
-                "label": "Template_BatteryActions_Option_0",
+                "label": "Do nothing",
                 "cells": [
                   {
                     "text": "0",
@@ -57944,7 +57944,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_1",
+                "label": "Sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -57960,7 +57960,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_2",
+                "label": "Hibernate",
                 "cells": [
                   {
                     "text": "2",
@@ -57976,7 +57976,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_3",
+                "label": "Shut down",
                 "cells": [
                   {
                     "text": "3",
@@ -58016,7 +58016,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_BatteryActions_Option_0: Value 0, Current. Template_BatteryActions_Option_1: Value 1. Template_BatteryActions_Option_2: Value 2 (Recommended, Default). Template_BatteryActions_Option_3: Value 3. Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546."
+            "accessibleSummary": "Do nothing: Value 0, Current. Sleep: Value 1. Hibernate: Value 2 (Recommended, Default). Shut down: Value 3. Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546."
           },
           "matrixWin10": null
         },
@@ -58336,7 +58336,7 @@
             ],
             "options": [
               {
-                "label": "Template_OnOff_Option_0",
+                "label": "Off",
                 "cells": [
                   {
                     "text": "0",
@@ -58352,7 +58352,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_OnOff_Option_1",
+                "label": "On",
                 "cells": [
                   {
                     "text": "1",
@@ -58392,7 +58392,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_OnOff_Option_0: Value 0, Current. Template_OnOff_Option_1: Value 1 (Recommended, Default). Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, bcded951-187b-4d05-bccc-f7e51960c258."
+            "accessibleSummary": "Off: Value 0, Current. On: Value 1 (Recommended, Default). Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, bcded951-187b-4d05-bccc-f7e51960c258."
           },
           "matrixWin10": null
         },
@@ -58456,7 +58456,7 @@
             ],
             "options": [
               {
-                "label": "Template_BatteryActions_Option_0",
+                "label": "Do nothing",
                 "cells": [
                   {
                     "text": "0",
@@ -58472,7 +58472,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_1",
+                "label": "Sleep",
                 "cells": [
                   {
                     "text": "1",
@@ -58488,7 +58488,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_2",
+                "label": "Hibernate",
                 "cells": [
                   {
                     "text": "2",
@@ -58504,7 +58504,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_BatteryActions_Option_3",
+                "label": "Shut down",
                 "cells": [
                   {
                     "text": "3",
@@ -58544,7 +58544,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_BatteryActions_Option_0: Value 0 (Recommended, Default), Current. Template_BatteryActions_Option_1: Value 1. Template_BatteryActions_Option_2: Value 2. Template_BatteryActions_Option_3: Value 3. Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, d8742dcb-3e6a-4b3c-b3fe-374623cdcf06."
+            "accessibleSummary": "Do nothing: Value 0 (Recommended, Default), Current. Sleep: Value 1. Hibernate: Value 2. Shut down: Value 3. Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, d8742dcb-3e6a-4b3c-b3fe-374623cdcf06."
           },
           "matrixWin10": null
         },
@@ -58734,7 +58734,7 @@
             ],
             "options": [
               {
-                "label": "Template_AmdPowerSlider_Option_0",
+                "label": "Battery Saver",
                 "cells": [
                   {
                     "text": "0",
@@ -58750,7 +58750,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_AmdPowerSlider_Option_1",
+                "label": "Better Battery",
                 "cells": [
                   {
                     "text": "1",
@@ -58766,7 +58766,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_AmdPowerSlider_Option_2",
+                "label": "Better Performance",
                 "cells": [
                   {
                     "text": "2",
@@ -58782,7 +58782,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_AmdPowerSlider_Option_3",
+                "label": "Best Performance",
                 "cells": [
                   {
                     "text": "3",
@@ -58822,7 +58822,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_AmdPowerSlider_Option_0: Value 0, Current. Template_AmdPowerSlider_Option_1: Value 1. Template_AmdPowerSlider_Option_2: Value 2 (Default). Template_AmdPowerSlider_Option_3: Value 3 (Recommended). Power setting: c763b4ec-0e50-4b6b-9bed-2b92a6ee884e, 7ec1751b-60ed-4588-afb5-9819d3d77d90."
+            "accessibleSummary": "Battery Saver: Value 0, Current. Better Battery: Value 1. Better Performance: Value 2 (Default). Best Performance: Value 3 (Recommended). Power setting: c763b4ec-0e50-4b6b-9bed-2b92a6ee884e, 7ec1751b-60ed-4588-afb5-9819d3d77d90."
           },
           "matrixWin10": null
         },
@@ -58884,7 +58884,7 @@
             ],
             "options": [
               {
-                "label": "Template_AtiPowerPlay_Option_0",
+                "label": "Maximum Battery Life",
                 "cells": [
                   {
                     "text": "0",
@@ -58900,7 +58900,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_AtiPowerPlay_Option_1",
+                "label": "Balanced",
                 "cells": [
                   {
                     "text": "1",
@@ -58916,7 +58916,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_AtiPowerPlay_Option_2",
+                "label": "Maximum Performance",
                 "cells": [
                   {
                     "text": "2",
@@ -58956,7 +58956,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_AtiPowerPlay_Option_0: Value 0, Current. Template_AtiPowerPlay_Option_1: Value 1 (Default). Template_AtiPowerPlay_Option_2: Value 2 (Recommended). Power setting: f693fb01-e858-4f00-b20f-f30e12ac06d6, 191f65b5-d45c-4a4f-8aae-1ab8bfd980e6."
+            "accessibleSummary": "Maximum Battery Life: Value 0, Current. Balanced: Value 1 (Default). Maximum Performance: Value 2 (Recommended). Power setting: f693fb01-e858-4f00-b20f-f30e12ac06d6, 191f65b5-d45c-4a4f-8aae-1ab8bfd980e6."
           },
           "matrixWin10": null
         },
@@ -59018,7 +59018,7 @@
             ],
             "options": [
               {
-                "label": "Template_SwitchableGraphics_Option_0",
+                "label": "Maximize Battery Life",
                 "cells": [
                   {
                     "text": "0",
@@ -59034,7 +59034,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_SwitchableGraphics_Option_1",
+                "label": "Optimize Power Savings",
                 "cells": [
                   {
                     "text": "1",
@@ -59050,7 +59050,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Template_SwitchableGraphics_Option_2",
+                "label": "Maximize Performance",
                 "cells": [
                   {
                     "text": "2",
@@ -59090,7 +59090,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Template_SwitchableGraphics_Option_0: Value 0, Current. Template_SwitchableGraphics_Option_1: Value 1 (Default). Template_SwitchableGraphics_Option_2: Value 2 (Recommended). Power setting: e276e160-7cb0-43c6-b20b-73f5dce39954, a1662ab2-9d34-4e53-ba8b-2639b9e20857."
+            "accessibleSummary": "Maximize Battery Life: Value 0, Current. Optimize Power Savings: Value 1 (Default). Maximize Performance: Value 2 (Recommended). Power setting: e276e160-7cb0-43c6-b20b-73f5dce39954, a1662ab2-9d34-4e53-ba8b-2639b9e20857."
           },
           "matrixWin10": null
         },

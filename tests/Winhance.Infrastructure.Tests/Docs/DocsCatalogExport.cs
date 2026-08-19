@@ -88,8 +88,9 @@ internal static class DocsCatalogExport
 
     private static DocsSetting ExportSetting(Setting s, ILocalizationService loc)
     {
-        var win11 = TechnicalDetailsBuilder.Build(s, new SettingStateSnapshot(), loc, Win11);
-        var win10 = TechnicalDetailsBuilder.Build(s, new SettingStateSnapshot(), loc, Win10);
+        var snapshot = Snapshot(s, loc);
+        var win11 = TechnicalDetailsBuilder.Build(s, snapshot, loc, Win11);
+        var win10 = TechnicalDetailsBuilder.Build(s, snapshot, loc, Win10);
         // Record equality compares the list members by reference, so the JSON is the only honest comparison.
         var sameOnBothBuilds = JsonSerializer.Serialize(win10, Compact) == JsonSerializer.Serialize(win11, Compact);
 
@@ -105,6 +106,19 @@ internal static class DocsCatalogExport
             Availability(s, loc),
             win11,
             sameOnBothBuilds ? null : win10);
+    }
+
+    // The builder labels option rows from the ViewModel's combo options (already localized) and only falls back to
+    // the raw catalog label, which for Template_*/ServiceOption_* states is itself a key. Mirror SettingViewModelFactory.
+    private static SettingStateSnapshot Snapshot(Setting s, ILocalizationService loc) => new()
+    {
+        Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
+    };
+
+    private static string OptionLabel(Setting s, SettingState state, int i, ILocalizationService loc)
+    {
+        var key = SettingLocalizationKeys.IsLocalizationKey(state.Label) ? state.Label : SettingLocalizationKeys.OptionDisplay(s, i);
+        return Text(loc, key, state.Label);
     }
 
     private static string? GroupName(Setting s, ILocalizationService loc)
