@@ -7,6 +7,8 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class ScriptPreambleSectionTests
 {
+    private static readonly string[] EngineHelperFunctions =
+        ["Set-RegistryCompositeValue", "Set-RegistryStringFlag", "Unlock-RegistryKey", "Lock-RegistryKey", "Open-RegistryKeyForAcl"];
 
     [Fact]
     public void AppendHeader_ContainsSynopsisBlock()
@@ -230,5 +232,22 @@ public class ScriptPreambleSectionTests
         sb.ToString().Should().Contain("param(");
         sb.ToString().Should().Contain("function Write-Log");
         sb.ToString().Should().Contain("function Set-RegistryValue");
+    }
+
+    // The apply engine's composite / string-flag / key-lock writes have no PowerShell counterpart in the old
+    // emitters; these four helpers are what ApplyOpScriptEmitter calls for them.
+    [Fact]
+    public void AppendHelperFunctions_DefinesCompositeFlagAndLockHelpers()
+    {
+        var sb = new StringBuilder();
+
+        ScriptPreambleSection.AppendHelperFunctions(sb);
+
+        var output = sb.ToString();
+        foreach (var name in EngineHelperFunctions)
+        {
+            output.Should().Contain($"function {name} {{", name);
+            output.Split($"function {name} {{").Length.Should().Be(2, $"{name} must be defined exactly once");
+        }
     }
 }

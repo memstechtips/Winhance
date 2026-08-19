@@ -269,6 +269,175 @@ function Set-BinaryByte {
         Write-Log ""Failed to modify binary byte $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
 }
+
+function Set-RegistryCompositeValue {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [string]$Key,
+        [string]$SubValue,
+        [string]$Description
+    )
+
+    try {
+        if (-not (Test-Path $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
+
+        $currentValue = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+        $packed = if ($null -eq $currentValue -or $null -eq $currentValue.$Name) { """" } else { [string]$currentValue.$Name }
+
+        $pairs = [ordered]@{}
+        foreach ($entry in ($packed -split "";"" | Where-Object { $_ -ne """" })) {
+            $eq = $entry.IndexOf(""="")
+            if ($eq -gt 0) {
+                $pairs[$entry.Substring(0, $eq)] = $entry.Substring($eq + 1)
+            }
+        }
+
+        if ([string]::IsNullOrEmpty($SubValue)) {
+            $pairs.Remove($Key)
+        } else {
+            $pairs[$Key] = $SubValue
+        }
+
+        $merged = """"
+        if ($pairs.Count -gt 0) {
+            $merged = (($pairs.Keys | ForEach-Object { ""$_=$($pairs[$_])"" }) -join "";"") + "";""
+        }
+
+        Set-ItemProperty -Path $Path -Name $Name -Value $merged -Type String -Force
+        Write-Log ""$Description | $Path\$Name [$Key] = $SubValue"" ""SUCCESS""
+    }
+    catch {
+        Write-Log ""Failed to set composite $Path\$Name [$Key] : $($_.Exception.Message)"" ""ERROR""
+    }
+}
+
+function Set-RegistryStringFlag {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [int]$FlagMask,
+        [int]$AbsentBase,
+        [bool]$Set,
+        [string]$Description
+    )
+
+    try {
+        if (-not (Test-Path $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
+
+        $currentValue = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+        [long]$flags = $AbsentBase
+        if ($null -ne $currentValue -and $null -ne $currentValue.$Name) {
+            [long]$parsed = 0
+            if ([long]::TryParse([string]$currentValue.$Name, [ref]$parsed)) {
+                $flags = $parsed
+            }
+        }
+
+        if ($Set) {
+            $flags = $flags -bor $FlagMask
+        } else {
+            $flags = $flags -band (-bnot $FlagMask)
+        }
+
+        Set-ItemProperty -Path $Path -Name $Name -Value ([string]$flags) -Type String -Force
+        Write-Log ""$Description | $Path\$Name flag 0x$($FlagMask.ToString('X')) = $Set"" ""SUCCESS""
+    }
+    catch {
+        Write-Log ""Failed to set string flag $Path\$Name : $($_.Exception.Message)"" ""ERROR""
+    }
+}
+
+function Open-RegistryKeyForAcl {
+    param([string]$Path)
+
+    $hive, $subKey = $Path -split "":\\"", 2
+    $root = switch ($hive.ToUpperInvariant()) {
+        ""HKLM"" { [Microsoft.Win32.Registry]::LocalMachine }
+        ""HKCU"" { [Microsoft.Win32.Registry]::CurrentUser }
+        ""HKCR"" { [Microsoft.Win32.Registry]::ClassesRoot }
+        ""HKU""  { [Microsoft.Win32.Registry]::Users }
+        default { throw ""Unsupported registry hive in $Path"" }
+    }
+    $rights = [System.Security.AccessControl.RegistryRights]::ChangePermissions -bor [System.Security.AccessControl.RegistryRights]::ReadKey -bor [System.Security.AccessControl.RegistryRights]::TakeOwnership
+    return $root.OpenSubKey($subKey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, $rights)
+}
+
+function Unlock-RegistryKey {
+    param(
+        [string]$Path,
+        [string]$Description
+    )
+
+    try {
+        $key = Open-RegistryKeyForAcl -Path $Path
+        if ($null -eq $key) {
+            Write-Log ""Cannot unlock $Path : key not found"" ""WARNING""
+            return
+        }
+        try {
+            $security = $key.GetAccessControl()
+            $admins = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+            $system = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalSystemSid, $null)
+            $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+            $security.SetOwner($admins)
+            foreach ($rule in $security.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier])) {
+                $security.RemoveAccessRule($rule) | Out-Null
+            }
+            $security.SetAccessRuleProtection($false, $false)
+            $security.AddAccessRule((New-Object System.Security.AccessControl.RegistryAccessRule($system, [System.Security.AccessControl.RegistryRights]::FullControl, $inherit, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)))
+            $security.AddAccessRule((New-Object System.Security.AccessControl.RegistryAccessRule($admins, [System.Security.AccessControl.RegistryRights]::FullControl, $inherit, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)))
+            $key.SetAccessControl($security)
+            Write-Log ""$Description | unlocked $Path"" ""SUCCESS""
+        }
+        finally {
+            $key.Close()
+        }
+    }
+    catch {
+        Write-Log ""Failed to unlock $Path : $($_.Exception.Message)"" ""ERROR""
+    }
+}
+
+function Lock-RegistryKey {
+    param(
+        [string]$Path,
+        [string]$Description
+    )
+
+    try {
+        $key = Open-RegistryKeyForAcl -Path $Path
+        if ($null -eq $key) {
+            Write-Log ""Cannot lock $Path : key not found"" ""WARNING""
+            return
+        }
+        try {
+            $security = $key.GetAccessControl()
+            $admins = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+            $system = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalSystemSid, $null)
+            $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+            $security.SetOwner($admins)
+            $security.SetAccessRuleProtection($true, $false)
+            foreach ($rule in $security.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) {
+                $security.RemoveAccessRule($rule) | Out-Null
+            }
+            $security.AddAccessRule((New-Object System.Security.AccessControl.RegistryAccessRule($admins, [System.Security.AccessControl.RegistryRights]::FullControl, $inherit, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)))
+            $security.AddAccessRule((New-Object System.Security.AccessControl.RegistryAccessRule($system, [System.Security.AccessControl.RegistryRights]::ReadKey, $inherit, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)))
+            $key.SetAccessControl($security)
+            Write-Log ""$Description | locked $Path to read-only for SYSTEM"" ""SUCCESS""
+        }
+        finally {
+            $key.Close()
+        }
+    }
+    catch {
+        Write-Log ""Failed to lock $Path : $($_.Exception.Message)"" ""ERROR""
+    }
+}
 ");
         AppendStartProcessAsUser(sb);
     }
