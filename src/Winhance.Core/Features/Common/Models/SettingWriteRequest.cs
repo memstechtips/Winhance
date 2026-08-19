@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Selections;
+
 namespace Winhance.Core.Features.Common.Models;
 
 // Described without reference to what the active mode will do: an applying mode reads SystemRequest, an
@@ -11,7 +13,7 @@ public sealed record SettingWriteRequest
 
     // Required rather than optional so a new input shape has to state an answer; null is legal, and the authoring
     // strategy logs it rather than dropping it in silence.
-    public required BuilderEdit? AuthoredEdit { get; init; }
+    public required SettingChoice? AuthoredEdit { get; init; }
 
     // The payload is opaque by design, so a strategy cannot derive a readable description; support logs are worth
     // the small duplication.

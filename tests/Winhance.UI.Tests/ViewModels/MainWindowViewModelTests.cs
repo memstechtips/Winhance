@@ -4,6 +4,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
@@ -467,17 +468,17 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     // Leaving Builder mode: the discard prompt must key off HasBuilderChanges, not GetBuilderEdits().Count.
-    // NumericRange and AC/DC power settings are authored into the UI but do not produce a serializable
-    // BuilderEdit, so a slider-only session reports zero edits; gating on the count skips the prompt and
-    // the (correct, intended) reload on Builder exit discards the authoring silently.
+    // An input shape with no serializable ChoiceValue is authored into the UI but reports zero edits; gating
+    // on the count skips the prompt and the (correct, intended) reload on Builder exit discards the authoring
+    // silently.
 
     [Fact]
     public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChangesButNoRecordedEdits_Prompts()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
-        // The regression: no BuilderEdit was ever recorded for a slider-only session.
-        _mockApplicationModeService.Setup(m => m.GetBuilderEdits()).Returns(new List<BuilderEdit>());
+        // The regression: no edit was ever recorded for this session.
+        _mockApplicationModeService.Setup(m => m.GetBuilderEdits()).Returns(new List<SettingChoice>());
         _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 

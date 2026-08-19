@@ -275,9 +275,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // HasBuilderChanges, not GetBuilderEdits().Count: NumericRange and AC/DC power settings are
-        // authored into the UI but do not yet produce a serializable BuilderEdit, so counting edits
-        // silently skipped the prompt for anyone who had only moved sliders.
+        // HasBuilderChanges, not GetBuilderEdits().Count: an input shape with no serializable ChoiceValue is
+        // still authored work, and counting edits silently skipped the prompt for anyone whose session had
+        // produced none.
         bool leavingBuilderWithEdits = _applicationModeService.CurrentMode == WinhanceMode.Builder
             && _applicationModeService.HasBuilderChanges;
         bool leavingReview = _applicationModeService.CurrentMode == WinhanceMode.ConfigReview;

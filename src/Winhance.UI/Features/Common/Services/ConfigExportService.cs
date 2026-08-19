@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
@@ -200,58 +201,9 @@ public class ConfigExportService : IConfigExportService
                     continue;
                 }
 
-                switch (edit.InputType)
-                {
-                    case InputType.Toggle:
-                    case InputType.CheckBox:
-                    case InputType.Action:
-                        item.IsSelected = edit.IsSelected;
-                        break;
-
-                    case InputType.Selection:
-                        if (edit.AcIndex != null || edit.DcIndex != null)
-                        {
-                            // AC/DC-separate selection: the config stores per-context option indices.
-                            item.PowerSettings = new Dictionary<string, object>
-                            {
-                                ["ACIndex"] = edit.AcIndex!,
-                                ["DCIndex"] = edit.DcIndex!
-                            };
-                            item.SelectedIndex = null;
-                            item.CustomStateValues = null;
-                        }
-                        else if (edit.CustomStateValues != null)
-                        {
-                            item.CustomStateValues = edit.CustomStateValues;
-                            item.SelectedIndex = null;
-                        }
-                        else
-                        {
-                            item.SelectedIndex = edit.SelectedIndex;
-                            item.CustomStateValues = null;
-                        }
-                        break;
-
-                    case InputType.NumericRange:
-                        // Values arrive in system units, which is what the config format holds — the
-                        // ViewModel converts from the slider's display units when recording.
-                        if (edit.AcNumericValue != null || edit.DcNumericValue != null)
-                        {
-                            item.PowerSettings = new Dictionary<string, object>
-                            {
-                                ["ACValue"] = edit.AcNumericValue!,
-                                ["DCValue"] = edit.DcNumericValue!
-                            };
-                        }
-                        else if (edit.NumericValue != null)
-                        {
-                            item.PowerSettings = new Dictionary<string, object>
-                            {
-                                ["Value"] = edit.NumericValue!
-                            };
-                        }
-                        break;
-                }
+                var setting = _catalogSettingsRegistry.GetById(item.Id, includeOtherOsVersions: true);
+                if (setting is null) continue;
+                ConfigFileMapper.WriteValue(item, setting, edit.Value);
             }
         }
 

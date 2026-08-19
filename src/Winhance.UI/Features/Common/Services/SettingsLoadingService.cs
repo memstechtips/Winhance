@@ -82,7 +82,8 @@ public class SettingsLoadingService : ISettingsLoadingService
 
                 var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
-                // Builder mode keeps the index-valued power-plan dropdown (config export's index-based BuilderEdit).
+                // Builder mode keeps the index-valued power-plan dropdown; the recorded choice reads the plan GUID
+                // off the option's Tag.
                 // Build it here from the DynamicOptions (the same runtime options the live GUID-valued
                 // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
                 // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
@@ -168,8 +169,8 @@ public class SettingsLoadingService : ISettingsLoadingService
     private WinBuild LiveBuild() =>
         new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
 
-    // INDEX-valued, for config-export's index-based BuilderEdit: PowerPlanOptions.Build sorts by label, so each
-    // option's list index is its BuilderEdit index. The Tag mirrors SettingItemViewModel.TryApplyDynamicPowerPlanOptions
+    // INDEX-valued: the dropdown binds on the list index, but the recorded choice is a ChoiceValue.PowerPlan built
+    // from Tag.Guid, so the index never leaves the UI. The Tag mirrors SettingItemViewModel.TryApplyDynamicPowerPlanOptions
     // (what the PowerPlanComboBox control reads): ExistsOnSystem/IsActive drive the visuals, SystemPlan.Guid is the
     // delete target, DisplayName is the raw PowerPlan_ key the delete dialog re-localizes. Empty (non-null) when
     // there are no runtime options.
@@ -197,6 +198,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             var tag = new PowerPlanComboBoxOption
             {
                 DisplayName = opt.Label,
+                Guid = opt.Value,
                 ExistsOnSystem = opt.ExistsOnSystem,
                 IsActive = isActive,
                 SystemPlan = opt.ExistsOnSystem
@@ -204,7 +206,7 @@ public class SettingsLoadingService : ISettingsLoadingService
                     : null,
             };
 
-            // Value = the option index (BuilderEdit serializes the int index); DisplayText = the raw PowerPlan_ loc key.
+            // Value = the option index (what the dropdown binds on); DisplayText = the raw PowerPlan_ loc key.
             result.Options.Add(new ComboBoxDisplayOption(
                 opt.Label,
                 i,

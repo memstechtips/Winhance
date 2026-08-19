@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
@@ -178,10 +179,9 @@ public class ConfigReviewServiceTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    // HasBuilderChanges exists because not every authored input type produces a serializable
-    // BuilderEdit — NumericRange and AC/DC power settings do not (see the BuilderEdit scope note).
-    // Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt entirely
-    // for a session that had only moved sliders, and the authoring was discarded silently.
+    // HasBuilderChanges exists because not every authored input shape produces a serializable
+    // ChoiceValue. Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt
+    // entirely for a session whose authoring recorded nothing, and that work was discarded silently.
 
     [Fact]
     public void HasBuilderChanges_OnAFreshBuilderSession_IsFalse()
@@ -201,7 +201,7 @@ public class ConfigReviewServiceTests : IDisposable
 
         service.MarkBuilderDirty();
 
-        // This is the whole point: dirty without a serializable edit — the slider case.
+        // This is the whole point: dirty without any recorded edit.
         service.HasBuilderChanges.Should().BeTrue();
         service.GetBuilderEdits().Should().BeEmpty();
     }
@@ -222,12 +222,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
 
-        service.RecordBuilderEdit(new BuilderEdit
-        {
-            SettingId = "some-setting",
-            InputType = InputType.Toggle,
-            IsSelected = true
-        });
+        service.RecordBuilderEdit(new SettingChoice("some-setting", new ChoiceValue.Toggle(true)));
 
         service.HasBuilderChanges.Should().BeTrue();
     }

@@ -12,6 +12,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
@@ -965,62 +966,70 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     // The inverse of what the handlers record; SettingItemViewModelAuthoredOverlayTests round-trips every shape,
     // so a new input type that records but cannot restore fails there.
-    private void ApplyAuthoredValues(BuilderEdit edit)
+    private void ApplyAuthoredValues(SettingChoice edit)
     {
-        switch (InputType)
+        switch (edit.Value)
         {
-            case InputType.Toggle:
-            case InputType.CheckBox:
-            case InputType.Action:
+            case ChoiceValue.Toggle t:
                 // Outcome deliberately untouched: the toggle path only resolves an outcome for a
                 // Custom-state pick, and that is not part of the record to restore from.
-                if (edit.IsSelected is { } authoredToggle)
-                    IsSelected = authoredToggle;
+                IsSelected = t.On;
                 break;
 
-            case InputType.Selection:
-                if (SupportsSeparateACDC)
+            case ChoiceValue.PowerPlan p:
+                int planIndex = -1;
+                for (int i = 0; i < ComboBoxOptions.Count && planIndex < 0; i++)
                 {
-                    if (edit.AcIndex is { } authoredAc) AcValue = authoredAc;
-                    if (edit.DcIndex is { } authoredDc) DcValue = authoredDc;
-                    if (edit.AcIndex is not null || edit.DcIndex is not null)
-                        Outcome = SettingDetectionOutcome.Resolved;
+                    if (ComboBoxOptions[i].Tag is PowerPlanComboBoxOption tag && string.Equals(tag.Guid, p.Guid, StringComparison.OrdinalIgnoreCase))
+                        planIndex = i;
                 }
-                else if (edit.CustomStateValues is { } authoredCustomValues)
+                if (planIndex < 0)
                 {
-                    // Authored at the Custom index: the raw values are the payload, and the card
-                    // keeps its Custom rendering - the write path does not resolve this case either.
-                    CapturedCustomStateValues = authoredCustomValues;
-                    SelectedValue = ComboBoxConstants.CustomStateIndex;
-                    NumericValue = ComboBoxConstants.CustomStateIndex;
+                    // A custom plan deleted since it was authored: the card would show the machine's plan while
+                    // Save still writes the authored GUID, so say so instead of restoring nothing silently.
+                    _logService.Log(LogLevel.Warning, $"Authored power plan {p.Guid} is not in the Builder dropdown for {SettingId}; the card shows the machine's plan.");
+                    break;
                 }
-                else if (edit.SelectedIndex is { } authoredIndex)
-                {
-                    SelectedValue = authoredIndex;
-                    NumericValue = authoredIndex;
-                    Outcome = SettingDetectionOutcome.Resolved;
-                    UpdateStatusBanner(authoredIndex);
-                }
+                SelectedValue = planIndex;
+                NumericValue = planIndex;
+                Outcome = SettingDetectionOutcome.Resolved;
+                UpdateStatusBanner(planIndex);
                 break;
 
-            case InputType.NumericRange:
+            case ChoiceValue.AcDcOption a:
+                AcValue = a.AcIndex;
+                DcValue = a.DcIndex;
+                Outcome = SettingDetectionOutcome.Resolved;
+                break;
+
+            case ChoiceValue.CustomValues c:
+                // Authored at the Custom index: the raw values are the payload, and the card
+                // keeps its Custom rendering - the write path does not resolve this case either.
+                CapturedCustomStateValues = new Dictionary<string, object>(c.Values);
+                SelectedValue = ComboBoxConstants.CustomStateIndex;
+                NumericValue = ComboBoxConstants.CustomStateIndex;
+                break;
+
+            case ChoiceValue.Option o:
+                SelectedValue = o.Index;
+                NumericValue = o.Index;
+                Outcome = SettingDetectionOutcome.Resolved;
+                UpdateStatusBanner(o.Index);
+                break;
+
+            case ChoiceValue.AcDcNumber n:
                 // Converted on the way out because the record holds SYSTEM units and the sliders
                 // read DISPLAY units - the same asymmetry the recording side converts across.
-                if (SupportsSeparateACDC)
-                {
-                    if (edit.AcNumericValue is { } authoredAcNumeric)
-                        AcNumericValue = ConvertFromSystemUnits(authoredAcNumeric);
-                    if (edit.DcNumericValue is { } authoredDcNumeric)
-                        DcNumericValue = ConvertFromSystemUnits(authoredDcNumeric);
-                }
-                else if (edit.NumericValue is { } authoredNumeric)
-                {
-                    int display = ConvertFromSystemUnits(authoredNumeric);
-                    NumericValue = display;
-                    SelectedValue = display;
-                    Outcome = SettingDetectionOutcome.Resolved;
-                    UpdateStatusBanner(display);
-                }
+                AcNumericValue = ConvertFromSystemUnits(n.Ac);
+                DcNumericValue = ConvertFromSystemUnits(n.Dc);
+                break;
+
+            case ChoiceValue.Number n:
+                int display = ConvertFromSystemUnits(n.Value);
+                NumericValue = display;
+                SelectedValue = display;
+                Outcome = SettingDetectionOutcome.Resolved;
+                UpdateStatusBanner(display);
                 break;
         }
     }
@@ -1030,7 +1039,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _writeStrategySelector.ForCurrentMode().WriteAsync(request, this);
 
     // Every input handler funnels through here on a write that stuck: the discard prompt has to fire for authored
-    // work even when it produced no serializable BuilderEdit, and a new input type gets it for free.
+    // work even when it produced no serializable ChoiceValue, and a new input type gets it for free.
     private void MarkChangedThisSession()
     {
         _hasChangedThisSession = true;
@@ -1574,7 +1583,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Shared by SettingViewModelFactory (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is
     // rebuilt identically from detection on BOTH paths. False (caller falls through to normal Selection handling)
     // when not a power-plan Selection with DynamicOptions, or in an authoring mode, which keeps the factory's
-    // index-valued dropdown for BuilderEdit serialization.
+    // index-valued dropdown, whose Tag carries the GUID the recorded ChoiceValue.PowerPlan is built from.
     public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
     {
         if (InputType != InputType.Selection
@@ -1600,6 +1609,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             var tag = new PowerPlanComboBoxOption
             {
                 DisplayName = opt.Label,
+                Guid = opt.Value,
                 ExistsOnSystem = opt.ExistsOnSystem,
                 IsActive = isActive,
                 SystemPlan = opt.ExistsOnSystem
@@ -1841,12 +1851,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 Enable = newValue,
                 ResetToDefault = resetToDefault,
             },
-            AuthoredEdit = new BuilderEdit
-            {
-                SettingId = SettingId,
-                InputType = InputType,
-                IsSelected = newValue,
-            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.Toggle(newValue)),
             // The Custom-state dialog already confirmed intent - never double-confirm.
             RequiresConfirmation = SettingRequiresConfirmation && !fromCustomState,
         });
@@ -1975,26 +1980,28 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     // Null when this input carries a value shape the config format cannot represent - which the authoring strategy
     // reports rather than swallowing.
-    private BuilderEdit? AuthoredEditForValue(object? value) => (InputType, value) switch
+    private SettingChoice? AuthoredEditForValue(object? value) => (InputType, value) switch
     {
-        (InputType.Selection, int index) => new BuilderEdit
-        {
-            SettingId = SettingId,
-            InputType = InputType,
-            SelectedIndex = index == ComboBoxConstants.CustomStateIndex ? null : index,
-            CustomStateValues = index == ComboBoxConstants.CustomStateIndex ? CapturedCustomStateValues : null,
-        },
+        (InputType.Selection, int index) when IsPowerPlanSetting =>
+            index >= 0 && index < ComboBoxOptions.Count && ComboBoxOptions[index].Tag is PowerPlanComboBoxOption plan && plan.Guid.Length > 0
+                ? new SettingChoice(SettingId, new ChoiceValue.PowerPlan(plan.Guid, PowerPlanDisplayName(plan)))
+                : null,
 
-        // Converted because the slider carries DISPLAY units and a BuilderEdit holds SYSTEM units.
-        (InputType.NumericRange, int numeric) => new BuilderEdit
-        {
-            SettingId = SettingId,
-            InputType = InputType,
-            NumericValue = ConvertToSystemUnits(numeric),
-        },
+        (InputType.Selection, int index) when index == ComboBoxConstants.CustomStateIndex =>
+            CapturedCustomStateValues is { } custom ? new SettingChoice(SettingId, new ChoiceValue.CustomValues(custom)) : null,
+
+        (InputType.Selection, int index) => new SettingChoice(SettingId, new ChoiceValue.Option(index)),
+
+        // The slider carries DISPLAY units and a ChoiceValue holds SYSTEM units.
+        (InputType.NumericRange, int numeric) => new SettingChoice(SettingId, new ChoiceValue.Number(ConvertToSystemUnits(numeric))),
 
         _ => null,
     };
+
+    // The option Tag's DisplayName is the raw PowerPlan_ loc key for a predefined plan (the OS name for a custom
+    // one); the autounattend names the created plan with this string, so it must be the human name.
+    private string PowerPlanDisplayName(PowerPlanComboBoxOption plan) =>
+        plan.DisplayName.StartsWith("PowerPlan_", StringComparison.Ordinal) ? _localizationService.GetString(plan.DisplayName) : plan.DisplayName;
 
     private async Task ProcessPendingValueAsync()
     {
@@ -2023,13 +2030,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 Value = new Dictionary<string, object?> { ["ACValue"] = AcValue, ["DCValue"] = DcValue },
                 ResetToDefault = resetToDefault,
             },
-            AuthoredEdit = new BuilderEdit
-            {
-                SettingId = SettingId,
-                InputType = InputType,
-                AcIndex = AcValue,
-                DcIndex = DcValue,
-            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.AcDcOption(AcValue, DcValue)),
             // The AC/DC inputs have never prompted, whatever the setting declares. No power setting
             // declares RequiresConfirmation today, so this states the intent rather than suppressing
             // a prompt anyone would see.
@@ -2069,15 +2070,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 Value = new Dictionary<string, object?> { ["ACValue"] = AcNumericValue, ["DCValue"] = DcNumericValue },
                 ResetToDefault = resetToDefault,
             },
-            // Converted because the sliders carry DISPLAY units and every consumer of a BuilderEdit
+            // Converted because the sliders carry DISPLAY units and every consumer of a ChoiceValue
             // - the config file included - speaks SYSTEM units.
-            AuthoredEdit = new BuilderEdit
-            {
-                SettingId = SettingId,
-                InputType = InputType,
-                AcNumericValue = ConvertToSystemUnits(AcNumericValue),
-                DcNumericValue = ConvertToSystemUnits(DcNumericValue),
-            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.AcDcNumber(ConvertToSystemUnits(AcNumericValue), ConvertToSystemUnits(DcNumericValue))),
             // As with the AC/DC dropdowns: these inputs have never prompted.
             RequiresConfirmation = false,
         });
@@ -2104,12 +2099,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             Description = "action",
             SystemRequest = new ApplySettingRequest { SettingId = SettingId, Enable = true },
-            AuthoredEdit = new BuilderEdit
-            {
-                SettingId = SettingId,
-                InputType = InputType,
-                IsSelected = true,
-            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.Toggle(true)),
             RequiresConfirmation = SettingRequiresConfirmation,
             CheckboxAlsoAppliesRecommended = true,
         });
