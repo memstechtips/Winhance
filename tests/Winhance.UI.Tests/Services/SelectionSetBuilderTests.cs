@@ -92,21 +92,25 @@ public class SelectionSetBuilderTests
     }
 
     [Fact]
-    public async Task FromBuilderSession_EditForSettingNotInSnapshot_IsDropped()
+    public async Task FromBuilderSession_EditForSettingNotInSnapshot_IsAppended()
     {
         _snapshot.Setup(s => s.CaptureAsync(It.IsAny<CatalogScope>()))
             .ReturnsAsync(new List<SettingChoice> { new("t", new ChoiceValue.Toggle(false)) });
 
+        // A power plan authored on a machine whose active scheme could not be read: the snapshot has no entry,
+        // the user's choice must still reach Save.
         _mode.Setup(m => m.GetBuilderEdits())
             .Returns(new List<SettingChoice>
             {
                 new("t", new ChoiceValue.Toggle(true)),
-                new("out-of-scope", new ChoiceValue.Option(1)),
+                new("power-plan-selection", new ChoiceValue.PowerPlan("g-bal", "Balanced")),
             });
 
         var set = await CreateSut().FromBuilderSessionAsync();
 
-        set.Settings.Should().Equal(new SettingChoice("t", new ChoiceValue.Toggle(true)));
+        set.Settings.Should().Equal(
+            new SettingChoice("t", new ChoiceValue.Toggle(true)),
+            new SettingChoice("power-plan-selection", new ChoiceValue.PowerPlan("g-bal", "Balanced")));
     }
 
     [Fact]

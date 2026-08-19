@@ -28,14 +28,16 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
     public async Task<SelectionSet> FromMachineForBackupAsync() =>
         new(await _snapshot.CaptureAsync(CurrentScope), await _apps.InstalledWindowsAppsAsync(), Array.Empty<AppChoice>(), AutounattendChoices.None);
 
-    // An edit for a setting the snapshot does not contain is dropped on purpose: the machine's catalog scope decides
-    // what the file can hold, and the hardware filter (Phase 6) is how a user widens that scope.
+    // An edit for a setting the snapshot could not read (a power plan with no active scheme, a slider with no
+    // value) is still the user's intent, so it is appended rather than dropped; the writers decide what the file can
+    // hold by the catalog scope, so an edit outside it falls out there.
     public async Task<SelectionSet> FromBuilderSessionAsync()
     {
         var edits = _mode.GetBuilderEdits().ToDictionary(e => e.SettingId, e => e.Value);
         var settings = (await _snapshot.CaptureAsync(CurrentScope))
-            .Select(c => edits.TryGetValue(c.SettingId, out var authored) ? c with { Value = authored } : c)
+            .Select(c => edits.Remove(c.SettingId, out var authored) ? c with { Value = authored } : c)
             .ToList();
+        settings.AddRange(edits.Select(e => new SettingChoice(e.Key, e.Value)));
         return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync(), AutounattendChoices.None);
     }
 }

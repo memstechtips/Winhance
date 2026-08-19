@@ -60,4 +60,24 @@ public class ConfigFileWriterTests
         _registry.Verify(r => r.InitializeAsync(), Times.Once);
         _registry.Verify(r => r.GetAll(true), Times.Once);
     }
+
+    [Fact]
+    public async Task WriteAsync_AuthoredPowerPlan_WritesGuidAndName()
+    {
+        _registry.Setup(r => r.GetAll(It.IsAny<bool>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Power] = new[] { ParityFixtures.PowerPlanSetting() },
+        });
+        var set = new SelectionSet(
+            [new SettingChoice(SettingIds.PowerPlanSelection, new ChoiceValue.PowerPlan("381b4222-f694-41f0-9685-ff5bb260df2e", "Balanced"))],
+            Array.Empty<AppChoice>(),
+            Array.Empty<AppChoice>(),
+            AutounattendChoices.None);
+
+        await Sut().WriteAsync(set, CatalogScope.CurrentMachine, OutputPath);
+
+        _written.Should().Contain("\"PowerPlanGuid\": \"381b4222-f694-41f0-9685-ff5bb260df2e\"");
+        _written.Should().Contain("\"PowerPlanName\": \"Balanced\"");
+        _written.Should().NotContain("SelectedIndex");
+    }
 }

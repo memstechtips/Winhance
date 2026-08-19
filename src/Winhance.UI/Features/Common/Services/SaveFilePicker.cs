@@ -26,7 +26,8 @@ public sealed class SaveFilePicker : ISaveFilePicker
         var window = _mainWindow.MainWindow;
         if (window == null)
         {
-            // The COM dialog needs an owner hwnd, so there is nothing to await here - report and fall through as a cancel.
+            // The COM dialog needs an owner hwnd. The error dialog is left to run on its own: the caller has nothing
+            // further to do once this returns null, the same as a cancel.
             _log.Log(LogLevel.Error, "Cannot show file dialog - no main window");
             _dialogs.ShowErrorAsync(_loc.GetString("Dialog_FileDialogUnavailable")).FireAndForget(_log);
             return null;

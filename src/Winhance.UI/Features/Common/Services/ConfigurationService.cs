@@ -86,7 +86,7 @@ public class ConfigurationService : IConfigurationService
 
             if (string.IsNullOrEmpty(filePath))
             {
-                _logService.Log(LogLevel.Info, "Export canceled by user");
+                _logService.Log(LogLevel.Info, "Export: no save path chosen");
                 return;
             }
 

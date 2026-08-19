@@ -379,4 +379,23 @@ public class ConfigurationServiceTests
             r => r.CancelReviewModeAsync(),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Backup_WhenTheWriterThrows_LogsAndShowsNoDialog()
+    {
+        _mockSelections.Setup(s => s.FromMachineForBackupAsync()).ReturnsAsync(SetWith(OneWindowsApp));
+        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
+        _mockInteractiveUserService
+            .Setup(s => s.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData))
+            .Returns(LocalAppData);
+        _mockFileSystemService.Setup(fs => fs.CombinePath(It.IsAny<string[]>())).Returns(BackupFile);
+        _mockConfigFileWriter
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+            .ThrowsAsync(new IOException("disk full"));
+
+        await CreateService().CreateUserBackupConfigAsync();
+
+        _mockLogService.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("disk full")), null), Times.Once);
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
 }

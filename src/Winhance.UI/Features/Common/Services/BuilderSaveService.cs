@@ -56,7 +56,11 @@ public sealed class BuilderSaveService : IBuilderSaveService
                     ConfigFileConstants.FilePattern,
                     $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}",
                     "winhance");
-                if (string.IsNullOrEmpty(path)) return;
+                if (string.IsNullOrEmpty(path))
+                {
+                    _log.Log(LogLevel.Info, "Builder config save: no save path chosen");
+                    return;
+                }
                 await _configFiles.WriteAsync(set, _selections.CurrentScope, path);
             }
             else
@@ -67,7 +71,11 @@ public sealed class BuilderSaveService : IBuilderSaveService
                     "*.xml",
                     "autounattend.xml",
                     "xml");
-                if (string.IsNullOrEmpty(path)) return;
+                if (string.IsNullOrEmpty(path))
+                {
+                    _log.Log(LogLevel.Info, "Builder autounattend save: no save path chosen");
+                    return;
+                }
 
                 await _registry.InitializeAsync();
                 var file = ConfigFileMapper.ToFile(set, _registry.GetAll(includeOtherOsVersions: _selections.CurrentScope.IncludeOtherOsVersions));
