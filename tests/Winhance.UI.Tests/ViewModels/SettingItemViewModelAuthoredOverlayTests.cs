@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -106,6 +107,39 @@ public class SettingItemViewModelAuthoredOverlayTests
             Units = units,
             Recommended = new[] { new ContextValue(PowerContext.Always, recommended) },
             WindowsDefault = new[] { new ContextValue(PowerContext.Always, 10) },
+        },
+    };
+
+    private static readonly StateRole[] RecommendedOnAc = [new StateRole(RoleKind.Recommended, PowerContext.AC)];
+    private static readonly StateRole[] RecommendedOnDc = [new StateRole(RoleKind.Recommended, PowerContext.DC)];
+    private static readonly ContextValue[] FifteenAcFiveDc = [new ContextValue(PowerContext.AC, 15), new ContextValue(PowerContext.DC, 5)];
+
+    // A Separate PowerCfgTarget is what turns the card into the AC/DC pair; the context-scoped Recommended roles
+    // are what the quick-set resolves the two option indices from, and they sit on different options on purpose.
+    private static Setting AcDcSelectionSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = id, Description = "" },
+        Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
+        States = new[]
+        {
+            new SettingState { Label = "Never" },
+            new SettingState { Label = "5 minutes", Roles = RecommendedOnDc },
+            new SettingState { Label = "15 minutes", Roles = RecommendedOnAc },
+        },
+    };
+
+    private static Setting AcDcNumericSetting(string id, string? units = null) => new()
+    {
+        Id = id,
+        Display = new() { Name = id, Description = "" },
+        Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
+        Numeric = new()
+        {
+            Min = 0,
+            Max = 100,
+            Units = units,
+            Recommended = FifteenAcFiveDc,
         },
     };
 
@@ -297,5 +331,63 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         reloaded.SelectedValue.Should().Be(0);
         reloaded.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
+    }
+
+    [Fact]
+    public void RoundTrip_AcDcOption()
+    {
+        // The two contexts are authored by two separate writes, so the record has to end up carrying both.
+        var setting = AcDcSelectionSetting("rt-acdc-option");
+        var authoring = CreateSut(Config(setting, InputType.Selection));
+
+        authoring.TrySetToRecommended().Should().BeTrue();
+        _authored["rt-acdc-option"].Value.Should().Be(new ChoiceValue.AcDcOption(2, 1));
+
+        var reloaded = CreateSut(Config(setting, InputType.Selection));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.AcValue.Should().Be(authoring.AcValue).And.Be(2);
+        reloaded.DcValue.Should().Be(authoring.DcValue).And.Be(1);
+        reloaded.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
+    }
+
+    [Fact]
+    public void RoundTrip_AcDcNumber_SurvivesUnitConversion()
+    {
+        // Both halves cross the display/system unit boundary here, so a restore that skipped the conversion on
+        // either one would be wrong by 60x on that half alone.
+        var setting = AcDcNumericSetting("rt-acdc-minutes", units: "Minutes");
+        var authoring = CreateSut(Config(setting, InputType.NumericRange));
+
+        authoring.TrySetToRecommended().Should().BeTrue();
+        _authored["rt-acdc-minutes"].Value.Should().Be(new ChoiceValue.AcDcNumber(900, 300));
+
+        var reloaded = CreateSut(Config(setting, InputType.NumericRange));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.AcNumericValue.Should().Be(authoring.AcNumericValue).And.Be(15);
+        reloaded.DcNumericValue.Should().Be(authoring.DcNumericValue).And.Be(5);
+    }
+
+    [Fact]
+    public void RoundTrip_CustomValues()
+    {
+        // The Custom arm reads neither States nor options: the payload is the raw per-ValueName readings the card
+        // captured at seed time, and the position is the sentinel index, so the setting only has to exist.
+        var setting = ToggleSetting("rt-custom");
+        var captured = new Dictionary<string, object> { ["Mode"] = 7 };
+
+        var authoring = CreateSut(Config(setting, InputType.Selection));
+        authoring.CapturedCustomStateValues = captured;
+        authoring.ApplySelectionValue(ComboBoxConstants.CustomStateIndex);
+
+        _authored["rt-custom"].Value.Should().BeOfType<ChoiceValue.CustomValues>()
+            .Which.Values.Should().Equal(captured);
+
+        var reloaded = CreateSut(Config(setting, InputType.Selection));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.CapturedCustomStateValues.Should().Equal(captured);
+        reloaded.SelectedValue.Should().Be(ComboBoxConstants.CustomStateIndex);
     }
 }

@@ -356,6 +356,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             foreach (var setting in Settings)
             {
                 setting.ApplyAuthoredOverlay();
+                setting.ComputeBadgeState();
+                setting.UpdateDetectionOutcomeBanner();
+                setting.RefreshTechnicalDetails();
             }
         });
     }

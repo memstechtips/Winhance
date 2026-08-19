@@ -38,6 +38,9 @@ internal sealed class ApplyOpScriptEmitter
         @"^\s*\[(HKEY_LOCAL_MACHINE|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\",
         RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
+    internal static bool MixesHives(string content) =>
+        s_hkcuHeaderRegex.IsMatch(content) && s_systemHiveHeaderRegex.IsMatch(content);
+
     private readonly ILogService _log;
 
     public ApplyOpScriptEmitter(ILogService log)
@@ -194,7 +197,7 @@ internal sealed class ApplyOpScriptEmitter
                     // containing both HKCU and HKLM/HKCR/HKU/HKCC headers would silently lose half its
                     // content under the hive filter below. Authors must split such content into separate
                     // RegContentEffect entries.
-                    if (s_hkcuHeaderRegex.IsMatch(r.Content) && s_systemHiveHeaderRegex.IsMatch(r.Content))
+                    if (MixesHives(r.Content))
                     {
                         throw new InvalidOperationException(
                             $"RegContentEffect for '{setting.Id}' mixes HKEY_CURRENT_USER and system-hive " +

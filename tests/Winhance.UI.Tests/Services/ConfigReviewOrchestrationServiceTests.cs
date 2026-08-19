@@ -179,6 +179,28 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
+    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilterBeforePublishingTheReload()
+    {
+        // Order, not just the call: the reload reads the scope synchronously before its first await, so a reset
+        // published after it reloads Normal mode with Builder's widened scope - and the FilterStateChangedEvent
+        // refresh that reset then raises is dropped while the first load still holds the loading semaphore.
+        var order = new List<string>();
+        _mockHardwareFilter.Setup(h => h.ResetAsync())
+            .Callback(() => order.Add("reset"))
+            .Returns(Task.CompletedTask);
+        _mockEventBus.Setup(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()))
+            .Callback(() => order.Add("reload"));
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        order.Should().Equal("reset", "reload");
+    }
+
+    [Fact]
     public void OnApplicationModeChanged_StayingOutsideAuthoring_LeavesTheHardwareFilterAlone()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);

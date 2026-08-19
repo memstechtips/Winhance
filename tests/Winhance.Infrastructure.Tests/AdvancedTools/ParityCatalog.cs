@@ -6,8 +6,8 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
-// One synthetic Setting per write shape the autounattend must emit. Both the old script sections and the new
-// ApplyOpScriptEmitter are run over this catalog and compared line-for-line (AutounattendWriterParityTests).
+// One synthetic Setting per write shape the autounattend must emit. ApplyOpScriptEmitterTests drives the emitter
+// over it op by op; AutounattendScriptBuilderGoldenTests freezes the whole script the builder produces from it.
 internal static class ParityCatalog
 {
     public static readonly WinBuild Build = new(26100, 4000);
@@ -119,10 +119,12 @@ internal static class ParityCatalog
         {
             Id = "parity-powercfg-selection", Display = D("Powercfg selection"),
             Targets = new Target[] { new PowerCfgTarget("P", "2a737441-1930-4402-8d77-b2bebba308a3", "0853a681-27c8-4100-a2fd-82013e970683", PowerModeSupport.Separate) },
+            // Payloads deliberately unequal to their option indices, as PowerOptions.TimeIntervals is: the emitter
+            // has to translate the authored index into the payload, and 0/1 passes a pass-through.
             States = new[]
             {
-                new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(0) } },
-                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(1) } },
+                new SettingState { Label = "5 minutes", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(300) } },
+                new SettingState { Label = "15 minutes", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(900) } },
             },
         },
         new()

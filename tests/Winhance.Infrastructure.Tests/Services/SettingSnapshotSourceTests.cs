@@ -79,8 +79,17 @@ public class SettingSnapshotSourceTests
     [Fact]
     public async Task PowerCfgSelection_Separate_MapsAcDcIndicesFromPayloads()
     {
-        Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 1, DcValue = 0 });
+        Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 900, DcValue = 300 });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.AcDcOption(1, 0));
+    }
+
+    [Fact]
+    public async Task PowerCfgSelection_Separate_NoDc_UsesTheAcOptionForBoth()
+    {
+        // Recording option 0 for the unreadable half would author whatever option 0 happens to be - "Never"
+        // on a TimeIntervals-backed setting, which is not what the machine was doing.
+        Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 900 });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.AcDcOption(1, 1));
     }
 
     [Fact]

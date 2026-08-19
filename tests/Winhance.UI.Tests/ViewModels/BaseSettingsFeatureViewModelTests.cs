@@ -111,7 +111,10 @@ public class BaseSettingsFeatureViewModelTests
         // gate, and the state labels the gate compares against. All null = an ungated, top-level card.
         string? uiParentId = null,
         EnabledWhen? enabledWhen = null,
-        string[]? stateLabels = null)
+        string[]? stateLabels = null,
+        // Roles on the FIRST state label. A card carries badge data - and so a badge row worth asserting on -
+        // only when one of its states declares Recommended or WindowsDefault.
+        StateRole[]? firstStateRoles = null)
     {
         var config = new SettingItemViewModelConfig
         {
@@ -125,7 +128,11 @@ public class BaseSettingsFeatureViewModelTests
                 UiParentId = uiParentId,
                 EnabledWhen = enabledWhen,
                 States = (stateLabels ?? Array.Empty<string>())
-                    .Select(label => new SettingState { Label = label })
+                    .Select((label, index) => new SettingState
+                    {
+                        Label = label,
+                        Roles = index == 0 ? firstStateRoles ?? Array.Empty<StateRole>() : Array.Empty<StateRole>(),
+                    })
                     .ToArray(),
             },
             SettingId = settingId,
@@ -162,6 +169,7 @@ public class BaseSettingsFeatureViewModelTests
     // Enabled/Disabled - the two labels every catalog toggle has, and what CurrentStateLabel maps
     // IsSelected onto.
     private static readonly string[] ToggleStates = { "Enabled", "Disabled" };
+    private static readonly StateRole[] RecommendedRole = [StateRole.Recommended];
     private static readonly string[] EnabledOnly = ["Enabled"];
     private static readonly string[] LightDarkModes = ["Light Mode", "Dark Mode"];
     private static readonly string[] LightModeOnly = ["Light Mode"];
@@ -1649,11 +1657,12 @@ public class BaseSettingsFeatureViewModelTests
         var vm = CreateViewModel();
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
-            CreateSettingItem("seeded", "Seeded"),
+            CreateSettingItem("seeded", "Seeded", stateLabels: ToggleStates, firstStateRoles: RecommendedRole),
         });
 
         await vm.LoadSettingsAsync();
         vm.Settings[0].IsSelected.Should().BeFalse();
+        RecommendedPill(vm.Settings[0]).IsHighlighted.Should().BeFalse();
 
         // The seed records its edits after this card was built from live state, so nothing on screen moved.
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
@@ -1665,5 +1674,11 @@ public class BaseSettingsFeatureViewModelTests
         handler!(new BuilderSeededEvent());
 
         vm.Settings[0].IsSelected.Should().BeTrue();
+        // The badge, banner and details describe the value on the card, so a seed that moved the value without
+        // rebuilding them leaves the card saying two different things at once.
+        RecommendedPill(vm.Settings[0]).IsHighlighted.Should().BeTrue();
     }
+
+    private static BadgePillState RecommendedPill(SettingItemViewModel setting) =>
+        setting.BadgeRow.Single(pill => pill.Kind == SettingBadgeKind.Recommended);
 }

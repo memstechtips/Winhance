@@ -33,14 +33,16 @@ internal static class ParityFixtures
         },
     };
 
+    // Payloads deliberately unequal to their option indices, as PowerOptions.TimeIntervals is: value-to-index
+    // and index-to-value are the translations these tests exist to protect, and 0/1 passes a pass-through.
     public static Setting PowerCfgSelection(string id) => new()
     {
         Id = id, Display = new() { Name = id, Description = id },
         Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
         States = new[]
         {
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(0) } },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(1) } },
+            new SettingState { Label = "5 minutes", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(300) } },
+            new SettingState { Label = "15 minutes", Set = new Dictionary<string, StateValue> { ["P"] = StateValue.Of(900) } },
         },
     };
 

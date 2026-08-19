@@ -99,11 +99,13 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         if (leftAnAuthoringMode)
         {
+            // Authoring for other hardware is Builder-only: outside it a setting this PC cannot have would
+            // read as applicable and apply to nothing. Reset BEFORE the reload, because the reload reads the
+            // scope synchronously before its first await - and the FilterStateChangedEvent refresh that a later
+            // reset would raise no-ops while that first load still holds the loading semaphore.
+            _hardwareFilter.ResetAsync().FireAndForget(_logService);
             _eventBus.Publish(new AuthoringModeExitedEvent());
             _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
-            // Authoring for other hardware is Builder-only: outside it a setting this PC cannot have would
-            // read as applicable and apply to nothing.
-            _hardwareFilter.ResetAsync().FireAndForget(_logService);
         }
     }
 

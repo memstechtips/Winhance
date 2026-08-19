@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -47,7 +48,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         string? compatibilityMessage,
         WinBuild build = default)
     {
-        var inputType = ControlToInputType(setting.Control);
+        InputType inputType = ConfigFileMapper.InputTypeFor(setting);
 
         var config = new SettingItemViewModelConfig
         {
@@ -308,13 +309,4 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
         return null;
     }
-
-    // Twin of ConfigFileMapper.InputTypeFor.
-    private static InputType ControlToInputType(ControlKind control) => control switch
-    {
-        ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,
-        ControlKind.Slider => InputType.NumericRange,
-        ControlKind.Action => InputType.Action,
-        _ => InputType.Toggle,
-    };
 }

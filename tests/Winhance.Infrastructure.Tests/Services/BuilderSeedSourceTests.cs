@@ -64,14 +64,16 @@ public class BuilderSeedSourceTests
         },
     };
 
+    // Payloads deliberately unequal to their option indices, as PowerOptions.TimeIntervals is: the seed must
+    // record the option INDEX, and 0/1 would pass whichever of the two it recorded.
     private static Setting PowerCfgSelection(StateRole[] off, StateRole[] on) => new()
     {
         Id = "p", Display = new() { Name = "p", Description = "p" },
         Targets = new Target[] { new PowerCfgTarget("Power", "sub", "set", PowerModeSupport.Separate) },
         States = new[]
         {
-            new SettingState { Label = "Off", Roles = off, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(0) } },
-            new SettingState { Label = "On", Roles = on, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(1) } },
+            new SettingState { Label = "5 minutes", Roles = off, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(300) } },
+            new SettingState { Label = "15 minutes", Roles = on, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(900) } },
         },
     };
 

@@ -65,7 +65,14 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
 
             case ControlKind.Selection:
                 if (separate && (state.AcValue is not null || state.DcValue is not null))
-                    return new ChoiceValue.AcDcOption(IndexOfPowerValue(setting, powerCfg!, state.AcValue), IndexOfPowerValue(setting, powerCfg!, state.DcValue));
+                {
+                    // A desktop reads no DC value. Option 0 is a real option - on a TimeIntervals-backed
+                    // setting it is "Never" - so a context that read nothing carries the AC option instead,
+                    // as the slider has always done.
+                    return IndexOfPowerValue(setting, powerCfg!, state.AcValue) is { } acIndex
+                        ? new ChoiceValue.AcDcOption(acIndex, IndexOfPowerValue(setting, powerCfg!, state.DcValue) ?? acIndex)
+                        : null;
+                }
                 if (state.CurrentValue is not int index)
                     return new ChoiceValue.Option(0);
                 if (index == ComboBoxConstants.CustomStateIndex)
@@ -100,10 +107,11 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
     }
 
     // A Separate-mode powercfg selection detects a raw AC/DC value; the file stores the option index whose
-    // Set payload for the powercfg key equals it (the catalog authors one state per option).
-    private static int IndexOfPowerValue(Setting setting, PowerCfgTarget powerCfg, int? value)
+    // Set payload for the powercfg key equals it (the catalog authors one state per option). Null is "that
+    // context reported nothing", for the caller to resolve; a reading matching no option still lands on 0.
+    private static int? IndexOfPowerValue(Setting setting, PowerCfgTarget powerCfg, int? value)
     {
-        if (value is not { } v) return 0;
+        if (value is not { } v) return null;
         for (int i = 0; i < setting.States.Count; i++)
         {
             if (setting.States[i].Set.TryGetValue(powerCfg.Key, out var sv) && sv.WritePayload is { } p && Convert.ToInt32(p) == v)

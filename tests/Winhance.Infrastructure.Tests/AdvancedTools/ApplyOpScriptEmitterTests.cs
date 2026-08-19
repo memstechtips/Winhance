@@ -166,8 +166,8 @@ public class ApplyOpScriptEmitterTests
 
         result.PowerRows.Should().ContainSingle();
         result.PowerRows[0].SettingGuid.Should().Be("0853a681-27c8-4100-a2fd-82013e970683");
-        result.PowerRows[0].Ac.Should().Be(1);
-        result.PowerRows[0].Dc.Should().Be(0);
+        result.PowerRows[0].Ac.Should().Be(900);
+        result.PowerRows[0].Dc.Should().Be(300);
         SystemText(result).Should().NotContain("powercfg");
         UserText(result).Should().NotContain("powercfg");
     }
