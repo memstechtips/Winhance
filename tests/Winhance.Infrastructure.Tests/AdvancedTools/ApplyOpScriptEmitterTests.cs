@@ -1,0 +1,329 @@
+using FluentAssertions;
+using Microsoft.Win32;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
+using Xunit;
+
+namespace Winhance.Infrastructure.Tests.AdvancedTools;
+
+public class ApplyOpScriptEmitterTests
+{
+    // The indents the autounattend passes sit at: the system pass inside one `if`, the user pass nested inside
+    // the per-user loop.
+    private const string SystemIndent = "    ";
+    private const string UserIndent = "            ";
+
+    private const string MixedHiveContent =
+        "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\Software\\Parity]\r\n\"A\"=dword:00000001\r\n"
+        + "\r\n[HKEY_LOCAL_MACHINE\\SOFTWARE\\Parity]\r\n\"B\"=dword:00000001\r\n";
+
+    private static readonly AppChoice[] NoApps = Array.Empty<AppChoice>();
+
+    private readonly Mock<ILogService> _log = new();
+    private readonly ApplyOpScriptEmitter _sut;
+
+    public ApplyOpScriptEmitterTests()
+    {
+        _sut = new ApplyOpScriptEmitter(_log.Object);
+    }
+
+    private EmitResult EmitOne(string id, ChoiceValue value) =>
+        Emit(ParityCatalog.ByFeature, new SettingChoice(id, value));
+
+    private EmitResult Emit(IReadOnlyDictionary<string, IReadOnlyList<Setting>> byFeature, params SettingChoice[] choices) =>
+        _sut.Emit(
+            new SelectionSet(choices, NoApps, NoApps, AutounattendChoices.None),
+            byFeature,
+            ParityCatalog.Build,
+            SystemIndent,
+            UserIndent);
+
+    private static string SystemText(EmitResult result) => string.Join("\n", result.SystemPassByFeature.Values);
+
+    private static string UserText(EmitResult result) => string.Join("\n", result.UserPassByFeature.Values);
+
+    [Fact]
+    public void ToggleOn_Hklm_EmitsSetRegistryValueInSystemPass()
+    {
+        var result = EmitOne("parity-toggle-hklm", new ChoiceValue.Toggle(true));
+
+        SystemText(result).Should().Contain(
+            @"Set-RegistryValue -Path 'HKLM:\SOFTWARE\Parity' -Name 'V' -Type 'DWord' -Value 1 -Description 'Toggle HKLM description'");
+        UserText(result).Should().NotContain("Parity'");
+    }
+
+    [Fact]
+    public void ToggleOff_Hkcu_Absent_EmitsRemoveRegistryValueInUserPass()
+    {
+        var result = EmitOne("parity-toggle-hkcu-delete", new ChoiceValue.Toggle(false));
+
+        UserText(result).Should().Contain(
+            @"Remove-RegistryValue -Path 'HKCU:\Software\Parity' -Name 'V' -Description 'Toggle HKCU delete description'");
+        SystemText(result).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void KeyExistsOn_EmitsNewRegistryKey()
+    {
+        var result = EmitOne("parity-key-exists", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain(@"New-RegistryKey -Path 'HKCU:\Software\Classes\CLSID\");
+        UserText(result).Should().Contain(@"' -Description 'Key existence description'");
+    }
+
+    [Fact]
+    public void KeyExistsOff_EmitsRemoveRegistryKey()
+    {
+        var result = EmitOne("parity-key-exists", new ChoiceValue.Toggle(false));
+
+        UserText(result).Should().Contain(@"Remove-RegistryKey -Path 'HKCU:\Software\Classes\CLSID\");
+    }
+
+    [Fact]
+    public void Bit_EmitsSetBinaryBit()
+    {
+        var result = EmitOne("parity-bit", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain(
+            @"Set-BinaryBit -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -ByteIndex 4 -BitMask 0x20 -SetBit $True");
+    }
+
+    [Fact]
+    public void Byte_EmitsSetBinaryByte()
+    {
+        var result = EmitOne("parity-byte", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain(
+            @"Set-BinaryByte -Path 'HKCU:\Control Panel\Desktop' -Name 'MenuShowDelay' -ByteIndex 0 -ByteValue 0x03");
+    }
+
+    [Fact]
+    public void PerSubkey_WrapsInForEachObject()
+    {
+        var result = EmitOne("parity-per-subkey", new ChoiceValue.Toggle(true));
+
+        SystemText(result).Should().Contain(
+            @"Get-ChildItem -Path 'HKLM:\SYSTEM\Parity\Interfaces' -ErrorAction SilentlyContinue | ForEach-Object {");
+        SystemText(result).Should().Contain(
+            "Set-RegistryValue -Path $_.PSPath -Name 'N' -Type 'DWord' -Value 1");
+    }
+
+    [Fact]
+    public void Scripts_RouteByRunContext()
+    {
+        var result = EmitOne("parity-scripts", new ChoiceValue.Toggle(true));
+
+        SystemText(result).Should().Contain("Write-Host 'system side'");
+        SystemText(result).Should().NotContain("Write-Host 'user side'");
+        UserText(result).Should().Contain("Write-Host 'user side'");
+        UserText(result).Should().NotContain("Write-Host 'system side'");
+    }
+
+    [Fact]
+    public void RegContent_Hkcu_EmitsRegImportInUserPass()
+    {
+        var result = EmitOne("parity-regcontent", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain("reg import \"$tempRegFile\"");
+        SystemText(result).Should().NotContain("reg import \"$tempRegFile\"");
+    }
+
+    [Fact]
+    public void Task_EmitsSchtasksBatchInSystemPass()
+    {
+        var result = EmitOne("parity-task", new ChoiceValue.Toggle(false));
+
+        SystemText(result).Should().Contain("@{ TN=\"\\Microsoft\\Windows\\Parity\\Task\"; Action=\"/Disable\"");
+        SystemText(result).Should().Contain("schtasks /Change");
+    }
+
+    [Fact]
+    public void SelectionOption_WritesThatStatesPayload()
+    {
+        var result = EmitOne("parity-selection", new ChoiceValue.Option(2));
+
+        UserText(result).Should().Contain("-Name 'Mode' -Type 'DWord' -Value 2");
+    }
+
+    [Fact]
+    public void SelectionCustom_WritesRegistryOnly_NoScripts()
+    {
+        var result = EmitOne("parity-selection", new ChoiceValue.CustomValues(new Dictionary<string, object> { ["Mode"] = 9 }));
+
+        UserText(result).Should().Contain("-Value 9");
+        UserText(result).Should().NotContain("# PowerShell script for");
+        SystemText(result).Should().NotContain("# PowerShell script for");
+    }
+
+    [Fact]
+    public void PowerCfgSelection_ProducesOnePowerRow_NoRegistryText()
+    {
+        var result = EmitOne("parity-powercfg-selection", new ChoiceValue.AcDcOption(1, 0));
+
+        result.PowerRows.Should().ContainSingle();
+        result.PowerRows[0].SettingGuid.Should().Be("0853a681-27c8-4100-a2fd-82013e970683");
+        result.PowerRows[0].Ac.Should().Be(1);
+        result.PowerRows[0].Dc.Should().Be(0);
+        SystemText(result).Should().NotContain("powercfg");
+        UserText(result).Should().NotContain("powercfg");
+    }
+
+    // The choice holds seconds, the slider is authored in minutes, and the row has to come back out in the
+    // seconds powercfg stores - so the display-units round trip has to cancel out exactly.
+    [Fact]
+    public void Slider_ConvertsSystemToDisplayForTheResolver_AndBackToSystemInTheRow()
+    {
+        var result = EmitOne("parity-slider", new ChoiceValue.AcDcNumber(600, 300));
+
+        result.PowerRows.Should().ContainSingle();
+        result.PowerRows[0].Ac.Should().Be(600);
+        result.PowerRows[0].Dc.Should().Be(300);
+    }
+
+    [Fact]
+    public void Composite_EmitsSetRegistryCompositeValue()
+    {
+        var result = EmitOne("parity-composite", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain(
+            @"Set-RegistryCompositeValue -Path 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences' -Name 'DirectXUserGlobalSettings' -Key 'SwapEffectUpgradeEnable' -SubValue '1'");
+    }
+
+    [Fact]
+    public void StringFlag_EmitsSetRegistryStringFlag()
+    {
+        var result = EmitOne("parity-string-flag", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain("Set-RegistryStringFlag -Path 'HKCU:\\Control Panel\\Accessibility\\MouseKeys'");
+        UserText(result).Should().Contain("-FlagMask 4 -AbsentBase 62 -Set $True");
+    }
+
+    [Fact]
+    public void Lock_EmitsUnlockWriteLock()
+    {
+        var text = SystemText(EmitOne("parity-lock", new ChoiceValue.Toggle(true)));
+
+        int unlock = text.IndexOf("Unlock-RegistryKey -Path", StringComparison.Ordinal);
+        int write = text.IndexOf("-Name 'Start' -Type 'DWord' -Value 4", StringComparison.Ordinal);
+        int relock = text.IndexOf("Lock-RegistryKey -Path", StringComparison.Ordinal);
+
+        unlock.Should().BeGreaterThanOrEqualTo(0);
+        write.Should().BeGreaterThan(unlock);
+        relock.Should().BeGreaterThan(write);
+    }
+
+    // The Enabled state IS this build's Windows default, so its ResetSet applies on a plain apply too.
+    [Fact]
+    public void ResetSet_OnWindowsDefaultState_Deletes()
+    {
+        var result = EmitOne("parity-resetset", new ChoiceValue.Toggle(true));
+
+        UserText(result).Should().Contain(@"Remove-RegistryValue -Path 'HKCU:\Software\ParityReset' -Name 'E'");
+    }
+
+    [Fact]
+    public void Action_EmitsWriteAndScript_OnlyWhenOn()
+    {
+        var on = EmitOne("parity-action", new ChoiceValue.Toggle(true));
+
+        SystemText(on).Should().Contain("-Name 'Ran' -Type 'DWord' -Value 1");
+        SystemText(on).Should().Contain("Write-Host 'action script'");
+
+        var off = EmitOne("parity-action", new ChoiceValue.Toggle(false));
+
+        SystemText(off).Should().BeEmpty();
+        UserText(off).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Hibernate_IsEmittedAfterTheFeaturesOtherLines()
+    {
+        var byFeature = FeatureOf(
+            ToggleSetting("power-hibernation-enable", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power", "HibernateEnabled"),
+            ToggleSetting("parity-hibernate-peer", @"HKEY_LOCAL_MACHINE\SOFTWARE\ParityHibernatePeer", "P"));
+
+        var result = Emit(
+            byFeature,
+            new SettingChoice("power-hibernation-enable", new ChoiceValue.Toggle(true)),
+            new SettingChoice("parity-hibernate-peer", new ChoiceValue.Toggle(true)));
+
+        var text = SystemText(result);
+        int peer = text.IndexOf(@"Set-RegistryValue -Path 'HKLM:\SOFTWARE\ParityHibernatePeer'", StringComparison.Ordinal);
+        int hibernate = text.IndexOf("powercfg /hibernate on", StringComparison.Ordinal);
+
+        peer.Should().BeGreaterThanOrEqualTo(0);
+        hibernate.Should().BeGreaterThan(peer);
+    }
+
+    [Fact]
+    public void PowerPlanChoice_IsReturnedForThePowerSection()
+    {
+        var setting = new Setting
+        {
+            Id = "parity-power-plan",
+            Display = new Display { Name = "Power plan", Description = "Power plan description" },
+            OptionSource = new StubOptionSource(),
+        };
+
+        var result = Emit(FeatureOf(setting), new SettingChoice("parity-power-plan", new ChoiceValue.PowerPlan("g", "n")));
+
+        result.PowerPlan.Should().Be(new ChoiceValue.PowerPlan("g", "n"));
+        SystemText(result).Should().BeEmpty();
+        UserText(result).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UnknownSettingId_IsWarnedAndSkipped()
+    {
+        var result = EmitOne("nope", new ChoiceValue.Toggle(true));
+
+        result.Warnings.Should().ContainSingle(w => w.Contains("nope"));
+        SystemText(result).Should().BeEmpty();
+        _log.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception>()), Times.Once);
+    }
+
+    [Fact]
+    public void RegContent_MixedHives_Throws()
+    {
+        var setting = new Setting
+        {
+            Id = "parity-mixed-regcontent",
+            Display = new Display { Name = "Mixed hives", Description = "Mixed hives description" },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled", Effects = new Effect[] { new RegContentEffect(MixedHiveContent) } },
+                new SettingState { Label = "Disabled" },
+            },
+        };
+
+        Action act = () => Emit(FeatureOf(setting), new SettingChoice("parity-mixed-regcontent", new ChoiceValue.Toggle(true)));
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<Setting>> FeatureOf(params Setting[] settings) =>
+        new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = settings };
+
+    private static Setting ToggleSetting(string id, string path, string valueName) => new()
+    {
+        Id = id,
+        Display = new Display { Name = id, Description = $"{id} description" },
+        Targets = new Target[] { new RegTarget("V", new[] { path }, valueName, RegistryValueKind.DWord) },
+        States = new[]
+        {
+            new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+            new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+        },
+    };
+
+    private sealed class StubOptionSource : IDynamicOptionSource
+    {
+        public IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context) => Array.Empty<DynamicOption>();
+
+        public string? CurrentSelection(IDetectionContext context) => null;
+    }
+}
