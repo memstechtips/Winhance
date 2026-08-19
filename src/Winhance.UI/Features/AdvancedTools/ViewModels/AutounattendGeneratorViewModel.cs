@@ -5,8 +5,8 @@ using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Helpers;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
@@ -17,7 +17,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
-    private readonly WindowsAppsViewModel _windowsAppsViewModel;
+    private readonly IAppSelectionSource _appSelection;
     private Window? _mainWindow;
 
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
@@ -40,13 +40,13 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
         IDialogService dialogService,
         ILocalizationService localizationService,
         ILogService logService,
-        WindowsAppsViewModel windowsAppsViewModel)
+        IAppSelectionSource appSelection)
     {
         _xmlGeneratorService = xmlGeneratorService;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _logService = logService;
-        _windowsAppsViewModel = windowsAppsViewModel;
+        _appSelection = appSelection;
     }
 
     public void SetMainWindow(Window window)
@@ -91,7 +91,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             IsGenerating = true;
             try
             {
-                var selectedApps = await ExtractSelectedWindowsAppsAsync();
+                var selectedApps = await _appSelection.CheckedWindowsAppsAsync();
 
                 if (selectedApps.Count == 0)
                 {
@@ -106,7 +106,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                         return;
                 }
 
-                await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps);
+                await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps.Select(ConfigFileMapper.AppItem).ToList());
             }
             finally
             {
@@ -141,35 +141,5 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             var errorTitle = _localizationService.GetStringOrDefault("Dialog_XmlGenError", "Generation Error");
             await _dialogService.ShowErrorAsync(errorMsg, errorTitle);
         }
-    }
-
-    private async Task<System.Collections.Generic.IReadOnlyList<ConfigurationItem>> ExtractSelectedWindowsAppsAsync()
-    {
-        if (!_windowsAppsViewModel.IsInitialized)
-            await _windowsAppsViewModel.LoadItemsAsync();
-
-        return _windowsAppsViewModel.Items
-            .Where(item => item.IsSelected)
-            .Select(item =>
-            {
-                var configItem = new ConfigurationItem
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    IsSelected = true,
-                    InputType = InputType.Toggle
-                };
-
-                if (item.Definition.AppxPackageName?.Length > 0)
-                {
-                    configItem.AppxPackageName = item.Definition.AppxPackageName;
-                }
-                else if (!string.IsNullOrEmpty(item.Definition.CapabilityName))
-                    configItem.CapabilityName = item.Definition.CapabilityName;
-                else if (!string.IsNullOrEmpty(item.Definition.OptionalFeatureName))
-                    configItem.OptionalFeatureName = item.Definition.OptionalFeatureName;
-
-                return configItem;
-            }).ToList();
     }
 }

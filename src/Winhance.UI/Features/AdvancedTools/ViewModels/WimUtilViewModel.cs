@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
@@ -129,7 +130,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IDialogService dialogService,
         ILogService logService,
         IAutounattendXmlGeneratorService xmlGeneratorService,
-        ISelectedAppsProvider selectedAppsProvider,
+        IAppSelectionSource appSelection,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
@@ -152,7 +153,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             dispatcherService, localizationService, logService);
 
         Step2 = new WimStep2XmlViewModel(
-            xmlGeneratorService, wimCustomizationService, selectedAppsProvider,
+            xmlGeneratorService, wimCustomizationService, appSelection,
             dialogService, localizationService, fileSystemService, filePickerService, logService,
             resourceService);
 

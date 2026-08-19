@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
@@ -13,7 +14,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 {
     private readonly Mock<IAutounattendXmlGeneratorService> _mockXmlGeneratorService = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
-    private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
+    private readonly Mock<IAppSelectionSource> _mockAppSelection = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -34,14 +35,14 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Returns((string[] parts) => string.Join("\\", parts));
 
         // Default: return non-empty list so generate doesn't show warning
-        _mockSelectedAppsProvider
-            .Setup(p => p.GetSelectedWindowsAppsAsync())
-            .ReturnsAsync(new List<ConfigurationItem> { new ConfigurationItem { Id = "test" } });
+        _mockAppSelection
+            .Setup(p => p.CheckedWindowsAppsAsync())
+            .ReturnsAsync(new List<AppChoice> { new AppChoice("test", "Test", null, null, null, null) });
 
         _sut = new WimStep2XmlViewModel(
             _mockXmlGeneratorService.Object,
             _mockWimCustomizationService.Object,
-            _mockSelectedAppsProvider.Object,
+            _mockAppSelection.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
@@ -395,7 +396,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         var vm = new WimStep2XmlViewModel(
             _mockXmlGeneratorService.Object,
             _mockWimCustomizationService.Object,
-            _mockSelectedAppsProvider.Object,
+            _mockAppSelection.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
@@ -19,7 +20,7 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IAutounattendXmlGeneratorService> _mockXmlGeneratorService = new();
-    private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
+    private readonly Mock<IAppSelectionSource> _mockAppSelection = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
@@ -67,7 +68,7 @@ public class WimUtilViewModelTests : IDisposable
             _mockDialogService.Object,
             _mockLogService.Object,
             _mockXmlGeneratorService.Object,
-            _mockSelectedAppsProvider.Object,
+            _mockAppSelection.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockProcessExecutor.Object,

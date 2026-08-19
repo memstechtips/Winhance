@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.Services;
@@ -19,7 +20,7 @@ public class AutounattendXmlGeneratorServiceTests
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
-    private readonly Mock<ISelectedAppsProvider> _mockSelectedAppsProvider = new();
+    private readonly Mock<IAppSelectionSource> _mockAppSelection = new();
     private readonly Mock<IPowerSettingsQueryService> _mockPowerSettingsQueryService = new();
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
 
@@ -62,7 +63,7 @@ public class AutounattendXmlGeneratorServiceTests
             _mockLogService.Object,
             scriptBuilder ?? CreateScriptBuilder(),
             _mockPowerShellRunner.Object,
-            _mockSelectedAppsProvider.Object);
+            _mockAppSelection.Object);
     }
 
     private void SetupEmptySettings()
@@ -85,13 +86,13 @@ public class AutounattendXmlGeneratorServiceTests
     }
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_WhenNoAppsProvided_CallsSelectedAppsProvider()
+    public async Task GenerateFromCurrentSelectionsAsync_WhenNoAppsProvided_CallsAppSelectionSource()
     {
         SetupEmptySettings();
 
-        _mockSelectedAppsProvider
-            .Setup(p => p.GetSelectedWindowsAppsAsync())
-            .ReturnsAsync(new List<ConfigurationItem>());
+        _mockAppSelection
+            .Setup(p => p.CheckedWindowsAppsAsync())
+            .ReturnsAsync(new List<AppChoice>());
 
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
@@ -105,11 +106,11 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        _mockSelectedAppsProvider.Verify(p => p.GetSelectedWindowsAppsAsync(), Times.Once);
+        _mockAppSelection.Verify(p => p.CheckedWindowsAppsAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_WhenAppsProvided_DoesNotCallSelectedAppsProvider()
+    public async Task GenerateFromCurrentSelectionsAsync_WhenAppsProvided_DoesNotCallAppSelectionSource()
     {
         SetupEmptySettings();
 
@@ -130,17 +131,17 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        _mockSelectedAppsProvider.Verify(p => p.GetSelectedWindowsAppsAsync(), Times.Never);
+        _mockAppSelection.Verify(p => p.CheckedWindowsAppsAsync(), Times.Never);
     }
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_WhenNullAppsProvided_CallsSelectedAppsProvider()
+    public async Task GenerateFromCurrentSelectionsAsync_WhenNullAppsProvided_CallsAppSelectionSource()
     {
         SetupEmptySettings();
 
-        _mockSelectedAppsProvider
-            .Setup(p => p.GetSelectedWindowsAppsAsync())
-            .ReturnsAsync(new List<ConfigurationItem>());
+        _mockAppSelection
+            .Setup(p => p.CheckedWindowsAppsAsync())
+            .ReturnsAsync(new List<AppChoice>());
 
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
@@ -154,7 +155,7 @@ public class AutounattendXmlGeneratorServiceTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
 
-        _mockSelectedAppsProvider.Verify(p => p.GetSelectedWindowsAppsAsync(), Times.Once);
+        _mockAppSelection.Verify(p => p.CheckedWindowsAppsAsync(), Times.Once);
     }
 
     [Fact]
@@ -244,9 +245,9 @@ public class AutounattendXmlGeneratorServiceTests
             .Setup(r => r.GetAll(It.IsAny<bool>()))
             .Throws(new InvalidOperationException("Test error"));
 
-        _mockSelectedAppsProvider
-            .Setup(p => p.GetSelectedWindowsAppsAsync())
-            .ReturnsAsync(new List<ConfigurationItem>());
+        _mockAppSelection
+            .Setup(p => p.CheckedWindowsAppsAsync())
+            .ReturnsAsync(new List<AppChoice>());
 
         var service = CreateService();
         var outputPath = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xml");
@@ -264,12 +265,12 @@ public class AutounattendXmlGeneratorServiceTests
     }
 
     [Fact]
-    public async Task GenerateFromCurrentSelectionsAsync_WhenSelectedAppsProviderThrows_LogsErrorAndRethrows()
+    public async Task GenerateFromCurrentSelectionsAsync_WhenAppSelectionSourceThrows_LogsErrorAndRethrows()
     {
         SetupEmptySettings();
 
-        _mockSelectedAppsProvider
-            .Setup(p => p.GetSelectedWindowsAppsAsync())
+        _mockAppSelection
+            .Setup(p => p.CheckedWindowsAppsAsync())
             .ThrowsAsync(new Exception("Provider failed"));
 
         var service = CreateService();

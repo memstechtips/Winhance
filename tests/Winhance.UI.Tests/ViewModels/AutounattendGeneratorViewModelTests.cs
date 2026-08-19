@@ -3,10 +3,8 @@ using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
-using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
 
@@ -18,56 +16,26 @@ public class AutounattendGeneratorViewModelTests
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ILogService> _logService = new();
-
-    private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
-    private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
-    private readonly Mock<ITaskProgressService> _progressService = new();
-    private readonly Mock<ILogService> _winLogService = new();
-    private readonly Mock<IDialogService> _winDialogService = new();
-    private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IDispatcherService> _dispatcherService = new();
-    private readonly Mock<IThemeService> _themeService = new();
+    private readonly Mock<IAppSelectionSource> _appSelection = new();
 
     public AutounattendGeneratorViewModelTests()
     {
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
         _localizationService.MirrorTryGetString();
-        _winLocalizationService.Setup(l => l.GetString(It.IsAny<string>()))
-            .Returns<string>(k => k);
-        _winLocalizationService.MirrorTryGetString();
-        _dispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
-            .Callback<Action>(a => a());
-        _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
-            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
-            .Returns(Task.CompletedTask);
-        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
-            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
-            .Returns(Task.CompletedTask);
+
+        _appSelection
+            .Setup(a => a.CheckedWindowsAppsAsync())
+            .ReturnsAsync(new List<AppChoice>());
     }
 
-    private WindowsAppsViewModel CreateWindowsAppsVm() => new(
-        _windowsAppsService.Object,
-        _appInstallationService.Object,
-        _windowsAppUninstallService.Object,
-        _progressService.Object,
-        _winLogService.Object,
-        _winDialogService.Object,
-        _winLocalizationService.Object,
-        _dispatcherService.Object,
-        _themeService.Object);
-
-    private AutounattendGeneratorViewModel CreateSut(WindowsAppsViewModel? windowsAppsVm = null)
-    {
-        var winVm = windowsAppsVm ?? CreateWindowsAppsVm();
-        return new AutounattendGeneratorViewModel(
+    private AutounattendGeneratorViewModel CreateSut() =>
+        new(
             _xmlGeneratorService.Object,
             _dialogService.Object,
             _localizationService.Object,
             _logService.Object,
-            winVm);
-    }
+            _appSelection.Object);
 
     [Fact]
     public void Constructor_SetsDefaults()

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
@@ -14,7 +15,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
     private readonly IWimCustomizationService _wimCustomizationService;
-    private readonly ISelectedAppsProvider _selectedAppsProvider;
+    private readonly IAppSelectionSource _appSelection;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -42,7 +43,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     public WimStep2XmlViewModel(
         IAutounattendXmlGeneratorService xmlGeneratorService,
         IWimCustomizationService wimCustomizationService,
-        ISelectedAppsProvider selectedAppsProvider,
+        IAppSelectionSource appSelection,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -52,7 +53,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     {
         _xmlGeneratorService = xmlGeneratorService;
         _wimCustomizationService = wimCustomizationService;
-        _selectedAppsProvider = selectedAppsProvider;
+        _appSelection = appSelection;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -124,7 +125,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             })).Confirmed;
             if (!confirmed) return;
 
-            var selectedApps = await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
+            var selectedApps = await _appSelection.CheckedWindowsAppsAsync();
             if (selectedApps.Count == 0)
             {
                 var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest

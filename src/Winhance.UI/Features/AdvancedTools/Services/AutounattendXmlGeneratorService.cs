@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.AdvancedTools.Services;
@@ -18,7 +19,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
     private readonly ILogService _logService;
     private readonly IAutounattendScriptBuilder _scriptBuilder;
     private readonly IPowerShellRunner _powerShellRunner;
-    private readonly ISelectedAppsProvider _selectedAppsProvider;
+    private readonly IAppSelectionSource _appSelection;
 
     public AutounattendXmlGeneratorService(
         ICatalogSettingsRegistry catalogSettingsRegistry,
@@ -27,7 +28,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         ILogService logService,
         IAutounattendScriptBuilder scriptBuilder,
         IPowerShellRunner powerShellRunner,
-        ISelectedAppsProvider selectedAppsProvider)
+        IAppSelectionSource appSelection)
     {
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _windowsVersionFilter = windowsVersionFilter;
@@ -35,7 +36,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         _logService = logService;
         _scriptBuilder = scriptBuilder;
         _powerShellRunner = powerShellRunner;
-        _selectedAppsProvider = selectedAppsProvider;
+        _appSelection = appSelection;
     }
 
     public async Task<string> GenerateFromCurrentSelectionsAsync(string outputPath,
@@ -49,8 +50,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
             // startup on every generator entry point.
             await _catalogSettingsRegistry.InitializeAsync();
 
-            var apps = selectedWindowsApps
-                ?? await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
+            var apps = selectedWindowsApps ?? (await _appSelection.CheckedWindowsAppsAsync()).Select(ConfigFileMapper.AppItem).ToList();
 
             var config = await CreateConfigurationFromSystemAsync(apps);
 
