@@ -44,7 +44,7 @@ public class ConfigLoadServiceTests
     public void DetectIncompatibleSettings_WithEmptyConfig_ReturnsEmptyList()
     {
         var service = CreateService();
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         var result = service.DetectIncompatibleSettings(config);
 
@@ -56,7 +56,7 @@ public class ConfigLoadServiceTests
     {
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -86,7 +86,7 @@ public class ConfigLoadServiceTests
     {
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(19045);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -116,7 +116,7 @@ public class ConfigLoadServiceTests
         // explorer-context-menu-compress-to is gated to builds 26100+ (24H2); build 22631 is below.
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -145,7 +145,7 @@ public class ConfigLoadServiceTests
         // Same 26100+ gated setting, but the build is inside the range.
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(26120);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -173,7 +173,7 @@ public class ConfigLoadServiceTests
     {
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -202,7 +202,7 @@ public class ConfigLoadServiceTests
         // An id with no catalog peer is not a setting - it is neither flagged incompatible nor gated.
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -231,7 +231,7 @@ public class ConfigLoadServiceTests
         _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection { Features = new Dictionary<string, ConfigSection>() },
             Customize = new FeatureGroupSection { Features = new Dictionary<string, ConfigSection>() }
@@ -250,7 +250,7 @@ public class ConfigLoadServiceTests
         // gaming-game-mode is kept.
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Version = "2.0",
             Optimize = new FeatureGroupSection
@@ -284,7 +284,7 @@ public class ConfigLoadServiceTests
     {
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -314,7 +314,7 @@ public class ConfigLoadServiceTests
         _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
         _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {

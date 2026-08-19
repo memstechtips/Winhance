@@ -83,7 +83,7 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.CurrentMode.Should().Be(WinhanceMode.ConfigReview);
         service.IsInReviewMode.Should().BeTrue();
@@ -93,7 +93,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_ResetsCurrentModeToNormal()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.ExitReviewMode();
 
@@ -108,7 +108,7 @@ public class ConfigReviewServiceTests : IDisposable
         var raised = false;
         service.ModeChanged += (_, _) => raised = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         raised.Should().BeTrue();
     }
@@ -117,7 +117,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_RaisesModeChanged()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
         var raised = false;
         service.ModeChanged += (_, _) => raised = true;
 
@@ -281,7 +281,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_SetsIsInReviewMode()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
@@ -297,7 +297,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.ReviewModeChanged += (_, _) => eventFired = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         eventFired.Should().BeTrue();
     }
@@ -309,7 +309,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.BadgeStateChanged += (_, _) => eventFired = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         eventFired.Should().BeTrue();
     }
@@ -317,7 +317,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_CountsConfigItems()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -369,7 +369,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -429,7 +429,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -487,7 +487,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["taskbar-clean"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -561,7 +561,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(l => l.GetString("Theme_DarkNative"))
             .Returns("Dark");
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -600,10 +600,10 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
         service.IsInReviewMode.Should().BeTrue();
 
-        var newConfig = new UnifiedConfigurationFile();
+        var newConfig = new WinhanceConfigFile();
         await service.EnterReviewModeAsync(newConfig);
 
         service.ActiveConfig.Should().BeSameAs(newConfig);
@@ -614,7 +614,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_ClearsAllState()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.ExitReviewMode();
 
@@ -628,7 +628,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_FiresReviewModeChangedEvent()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         bool eventFired = false;
         service.ReviewModeChanged += (_, _) => eventFired = true;
@@ -642,7 +642,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_FiresBadgeStateChangedEvent()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         bool eventFired = false;
         service.BadgeStateChanged += (_, _) => eventFired = true;
@@ -655,7 +655,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task ExitReviewMode_ClearsBadgeRelatedState()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -860,7 +860,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task GetNavBadgeCount_ForSoftwareApps_ReturnsConfigItemCount()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -917,7 +917,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureInConfig_ReturnsTrueForFeaturesInConfig()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -947,7 +947,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task IsSectionFullyReviewed_SoftwareApps_UsesSoftwareAppsReviewed()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.IsSoftwareAppsReviewed = false;
         service.IsSectionFullyReviewed("SoftwareApps").Should().BeFalse();
@@ -966,7 +966,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureFullyReviewed_WithNoDiffs_ReturnsTrue()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1020,7 +1020,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1083,7 +1083,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1144,7 +1144,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1222,7 +1222,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1295,7 +1295,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["numeric-setting"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1357,7 +1357,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["selection-setting"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1416,7 +1416,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["start-menu-clean-10"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -1474,7 +1474,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["start-menu-clean-11"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -1528,7 +1528,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-same"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1583,7 +1583,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-nopower"] = new SettingStateResult { Success = true, CurrentValue = 50 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1635,7 +1635,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-dconly"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1714,7 +1714,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["pow1"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1797,7 +1797,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["sel-null"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1859,7 +1859,7 @@ public class ConfigReviewServiceTests : IDisposable
                 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

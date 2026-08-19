@@ -201,13 +201,13 @@ public class RecommendedConfigConformanceTests
 
     private static string FmtBool(bool? v) => v.HasValue ? v.Value.ToString() : "<unset>";
 
-    private static UnifiedConfigurationFile LoadRecommendedConfig()
+    private static WinhanceConfigFile LoadRecommendedConfig()
     {
         var path = Path.Combine(
             SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources", "Configs",
             "Winhance_Recommended_Config.winhance");
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions)
+        return JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions)
             ?? throw new InvalidOperationException("Recommended config deserialized to null.");
     }
 

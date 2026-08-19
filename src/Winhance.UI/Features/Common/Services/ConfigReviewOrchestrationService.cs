@@ -132,7 +132,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     }
 
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
     {
         try
         {
@@ -360,11 +360,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
-    private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(
-        UnifiedConfigurationFile original,
+    private WinhanceConfigFile BuildFilteredConfigFromApprovals(
+        WinhanceConfigFile original,
         HashSet<string> approvedSettingIds)
     {
-        var filtered = new UnifiedConfigurationFile
+        var filtered = new WinhanceConfigFile
         {
             Version = original.Version,
             CreatedAt = original.CreatedAt,

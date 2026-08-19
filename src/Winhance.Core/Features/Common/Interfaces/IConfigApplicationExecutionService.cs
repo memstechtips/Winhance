@@ -4,9 +4,9 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigApplicationExecutionService
 {
-    Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions options);
+    Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions options);
     Task ApplyConfigurationWithOptionsAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         List<string> selectedSections,
         ImportOptions options);
 }

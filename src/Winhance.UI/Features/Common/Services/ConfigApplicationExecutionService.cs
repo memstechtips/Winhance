@@ -55,7 +55,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _changeHistoryService = changeHistoryService;
     }
 
-    public async Task ExecuteConfigImportAsync(UnifiedConfigurationFile config, ImportOptions dialogOptions)
+    public async Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions dialogOptions)
     {
         try
         {
@@ -212,7 +212,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     }
 
     public async Task ApplyConfigurationWithOptionsAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         List<string> selectedSections,
         ImportOptions options)
     {
@@ -220,7 +220,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     }
 
     private async Task ApplyConfigurationWithOptionsAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         List<string> selectedSections,
         ImportOptions options,
         bool saveRemovalScripts)
@@ -264,7 +264,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     }
 
     private async Task ApplyAllSettingsGroupsAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         List<string> selectedSections,
         ImportOptions options,
         bool hasOptimize,

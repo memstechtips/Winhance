@@ -19,9 +19,9 @@ public class ConfigMigrationServiceTests
         _sut = new ConfigMigrationService(_logMock.Object);
     }
 
-    private static UnifiedConfigurationFile CreateConfigWithCustomizeItem(ConfigurationItem item)
+    private static WinhanceConfigFile CreateConfigWithCustomizeItem(ConfigurationItem item)
     {
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -155,7 +155,7 @@ public class ConfigMigrationServiceTests
             IsSelected = true,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -186,7 +186,7 @@ public class ConfigMigrationServiceTests
             IsSelected = false,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -211,7 +211,7 @@ public class ConfigMigrationServiceTests
             IsSelected = true,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             ExternalApps = new ConfigSection
             {
@@ -293,7 +293,7 @@ public class ConfigMigrationServiceTests
     [Fact]
     public void MigrateConfig_NullSections_DoesNotThrow()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection { Features = null! },
             Optimize = new FeatureGroupSection { Features = null! },
@@ -379,7 +379,7 @@ public class ConfigMigrationServiceTests
             IsSelected = false,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

@@ -56,7 +56,7 @@ public class ConfigurationService : IConfigurationService
             return;
         }
 
-        UnifiedConfigurationFile? config = selectedOption switch
+        WinhanceConfigFile? config = selectedOption switch
         {
             ImportOption.ImportOwn => await _configLoadService.LoadAndValidateConfigurationFromFileAsync(),
             ImportOption.ImportRecommended => await _configLoadService.LoadRecommendedConfigurationAsync(),

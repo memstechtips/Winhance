@@ -4,5 +4,5 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigMigrationService
 {
-    void MigrateConfig(UnifiedConfigurationFile config);
+    void MigrateConfig(WinhanceConfigFile config);
 }

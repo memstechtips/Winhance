@@ -33,7 +33,7 @@ internal class PowerSettingsScriptSection
         _logService = logService;
     }
 
-    public ConfigurationItem? FindPowerPlanSetting(UnifiedConfigurationFile config)
+    public ConfigurationItem? FindPowerPlanSetting(WinhanceConfigFile config)
     {
         if (!config.Optimize.Features.TryGetValue(FeatureIds.Power, out var powerSection))
             return null;
@@ -44,7 +44,7 @@ internal class PowerSettingsScriptSection
 
     public async Task<bool> AppendPowerSettingsSectionAsync(
         StringBuilder sb,
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
         string indent)
     {

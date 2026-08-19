@@ -32,7 +32,7 @@ public class AutounattendWriterParityTests
         new(_power.Object, _hardware.Object, _log.Object, _ps.Object, _version.Object);
 
     // Every parity setting at its "on"/first-option value, the way ConfigExportService would have written it.
-    internal static UnifiedConfigurationFile OldConfig()
+    internal static WinhanceConfigFile OldConfig()
     {
         var items = new List<ConfigurationItem>
         {
@@ -55,7 +55,7 @@ public class AutounattendWriterParityTests
             new() { Id = "parity-action", InputType = InputType.Action, IsSelected = true },
         };
         var section = new ConfigSection { IsIncluded = true, Items = items };
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection { IsIncluded = true, Features = new Dictionary<string, ConfigSection> { [ParityCatalog.FeatureId] = section } },
         };

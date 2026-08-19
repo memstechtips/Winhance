@@ -250,15 +250,15 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_FiltersIncompatibleSettings()
     {
-        var config = new UnifiedConfigurationFile();
-        var filteredConfig = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
+        var filteredConfig = new WinhanceConfigFile();
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string> { "Incompatible" });
 
         _mockConfigLoadService
-            .Setup(s => s.FilterConfigForCurrentSystem(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.FilterConfigForCurrentSystem(It.IsAny<WinhanceConfigFile>()))
             .Returns(filteredConfig);
 
         var service = CreateService();
@@ -270,14 +270,14 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_WhenEntryFails_ExitsReviewMode()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
         _mockConfigReviewModeService
-            .Setup(s => s.EnterReviewModeAsync(It.IsAny<UnifiedConfigurationFile>(), It.IsAny<bool>()))
+            .Setup(s => s.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>()))
             .ThrowsAsync(new InvalidOperationException("entry failed"));
 
         var service = CreateService();
@@ -291,10 +291,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_EntersReviewModeOnService()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
         var service = CreateService();
@@ -308,7 +308,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_WithWindowsApps_SelectsApps()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -320,7 +320,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         };
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
         var service = CreateService();
@@ -334,7 +334,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_WithExternalApps_SelectsApps()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             ExternalApps = new ConfigSection
             {
@@ -346,7 +346,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         };
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
         var service = CreateService();
@@ -360,10 +360,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_WithNoApps_DoesNotSelectApps()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
         var service = CreateService();
@@ -380,10 +380,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_OnException_ExitsReviewModeAndShowsError()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         _mockConfigLoadService
-            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Throws(new Exception("Test error"));
         _mockLocalizationService
             .Setup(l => l.GetString("Config_Review_EnterError", It.IsAny<object[]>()))
@@ -408,7 +408,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
 
         _mockConfigExecutionService.Verify(
             e => e.ApplyConfigurationWithOptionsAsync(
-                It.IsAny<UnifiedConfigurationFile>(),
+                It.IsAny<WinhanceConfigFile>(),
                 It.IsAny<List<string>>(),
                 It.IsAny<ImportOptions>()),
             Times.Never);
@@ -418,14 +418,14 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     public async Task ApplyReviewedConfigAsync_WhenActiveConfigIsNull_DoesNothing()
     {
         _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
-        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns((UnifiedConfigurationFile?)null);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns((WinhanceConfigFile?)null);
 
         var service = CreateService();
         await service.ApplyReviewedConfigAsync();
 
         _mockConfigExecutionService.Verify(
             e => e.ApplyConfigurationWithOptionsAsync(
-                It.IsAny<UnifiedConfigurationFile>(),
+                It.IsAny<WinhanceConfigFile>(),
                 It.IsAny<List<string>>(),
                 It.IsAny<ImportOptions>()),
             Times.Never);
@@ -434,7 +434,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_WithNoApprovedDiffs_ShowsNoChangesMessage()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
@@ -452,7 +452,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_WithApprovedDiffs_CallsExecutionService()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -493,7 +493,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
 
         _mockConfigExecutionService.Verify(
             e => e.ApplyConfigurationWithOptionsAsync(
-                It.IsAny<UnifiedConfigurationFile>(),
+                It.IsAny<WinhanceConfigFile>(),
                 It.IsAny<List<string>>(),
                 It.IsAny<ImportOptions>()),
             Times.Once);
@@ -502,7 +502,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_ExitsReviewModeAfterApplying()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -546,7 +546,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_OnException_HidesOverlayAndExitsReviewMode()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -607,7 +607,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_WindowsDefaults_CallsPolicyCleanup()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -655,7 +655,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     [Fact]
     public async Task ApplyReviewedConfigAsync_NonWindowsDefaults_DoesNotCallPolicyCleanup()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

@@ -65,7 +65,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
-    public UnifiedConfigurationFile? ActiveConfig { get; private set; }
+    public WinhanceConfigFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
     public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
     public int ReviewedChanges => _diffs.Values.Count(static d => d.IsReviewed);
@@ -77,7 +77,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? BadgeStateChanged;
     public event EventHandler? ModeChanged;
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
     {
         // Fully tear down whatever mode we're leaving (clears Builder edits / prior review
         // state) before seeding review. Review entry is the one async transition, so it
@@ -367,7 +367,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return featureDiffs.All(d => d.IsReviewed);
     }
 
-    private void ComputeConfigItemCounts(UnifiedConfigurationFile config)
+    private void ComputeConfigItemCounts(WinhanceConfigFile config)
     {
         int total = 0;
 
@@ -408,7 +408,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         TotalConfigItems = total;
     }
 
-    private async Task ComputeEagerDiffsAsync(UnifiedConfigurationFile config)
+    private async Task ComputeEagerDiffsAsync(WinhanceConfigFile config)
     {
         var onText = _localizationService.GetStringOrDefault("Common_On", "On");
         var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");

@@ -8,5 +8,5 @@ public interface IAutounattendXmlGeneratorService
         IReadOnlyList<ConfigurationItem>? selectedWindowsApps = null);
 
     // Builder mode: the user's authored config drives the XML, not the live machine (#639).
-    Task<string> GenerateFromConfigAsync(UnifiedConfigurationFile config, string outputPath);
+    Task<string> GenerateFromConfigAsync(WinhanceConfigFile config, string outputPath);
 }

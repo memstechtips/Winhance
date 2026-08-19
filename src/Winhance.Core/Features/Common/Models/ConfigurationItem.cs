@@ -41,12 +41,4 @@ public class ConfigurationItem
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PowerPlanName { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]
-    public string? SelectedValue { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [Obsolete("CustomProperties is only used for backward compatibility during migration. Use specific properties instead.")]
-    public Dictionary<string, object>? CustomProperties { get; set; }
 }

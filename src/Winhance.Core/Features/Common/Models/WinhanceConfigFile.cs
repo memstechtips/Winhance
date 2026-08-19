@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Models;
 
-public class UnifiedConfigurationFile
+public class WinhanceConfigFile
 {
     public string Version { get; set; } = "2.0";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

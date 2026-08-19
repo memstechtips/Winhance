@@ -44,7 +44,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_EmptyConfig_ProducesValidScript()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -55,7 +55,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsHeader()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -67,7 +67,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsLoggingSetup()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -79,7 +79,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsHelperFunctions()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -91,7 +91,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsSystemBlock()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -102,7 +102,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserBlock()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -113,7 +113,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCompletionBlock()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -124,7 +124,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCustomScriptPlaceholders()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -138,7 +138,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsScriptsDirectorySetup()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -149,7 +149,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsWinhanceInstaller()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -160,7 +160,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsCleanStartMenu()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -171,7 +171,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserCustomizationsTask()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -182,7 +182,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ContainsUserDetectionBridge()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var result = await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -195,7 +195,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_CallsValidateScriptSyntax()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -210,7 +210,7 @@ public class AutounattendScriptBuilderTests
         _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
             .ThrowsAsync(new InvalidOperationException("Syntax error at line 42"));
 
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var act = () => _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -222,7 +222,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_WithWindowsApps_EmitsAppRemoval()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -249,7 +249,7 @@ public class AutounattendScriptBuilderTests
     {
         // The pipeline runs on the catalog Setting dict, so the fixture passes the REAL
         // catalog HKLM registry toggle (security-remote-assistance, RegTarget fAllowToGetHelp) directly.
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -290,7 +290,7 @@ public class AutounattendScriptBuilderTests
         // The REAL catalog HKCU toggle (gaming-game-mode, RegTarget AutoGameModeEnabled under
         // HKEY_CURRENT_USER) rides the Setting dict directly. The value name lands only in the HKCU pass,
         // i.e. inside the $UserCustomizations block.
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -329,7 +329,7 @@ public class AutounattendScriptBuilderTests
     [Fact]
     public async Task BuildWinhancementsScriptAsync_ValidSyntax_LogsSuccess()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         await _sut.BuildWinhancementsScriptAsync(config, allSettings);
@@ -346,7 +346,7 @@ public class AutounattendScriptBuilderTests
         _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
             .ThrowsAsync(new InvalidOperationException("Bad syntax"));
 
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         try { await _sut.BuildWinhancementsScriptAsync(config, allSettings); }
@@ -363,7 +363,7 @@ public class AutounattendScriptBuilderTests
     {
         // A REAL catalog power setting rides the Setting dict end-to-end and emits its catalog
         // PowerCfgTarget GUIDs with the bulk-query values.
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             { FeatureIds.Power, new[] { SettingCatalog.Find("power-display-timeout")! } }
@@ -391,7 +391,7 @@ public class AutounattendScriptBuilderTests
         // Setting) - so the toggle still emits, via the Win10 KeyExists target: the ctor's
         // IWindowsVersionService mock reports build 0, which falls inside BuildRange.Windows10, so the
         // threaded build drops the Win11 HiddenByDefault target.
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {

@@ -63,7 +63,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         }
     }
 
-    public async Task<string> GenerateFromConfigAsync(UnifiedConfigurationFile config, string outputPath)
+    public async Task<string> GenerateFromConfigAsync(WinhanceConfigFile config, string outputPath)
     {
         try
         {
@@ -78,7 +78,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         }
     }
 
-    private async Task<string> RenderConfigToXmlAsync(UnifiedConfigurationFile config, string outputPath)
+    private async Task<string> RenderConfigToXmlAsync(WinhanceConfigFile config, string outputPath)
     {
         var allSettings = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
@@ -107,10 +107,10 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         return outputPath;
     }
 
-    private async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync(
+    private async Task<WinhanceConfigFile> CreateConfigurationFromSystemAsync(
         IReadOnlyList<ConfigurationItem>? selectedWindowsApps)
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Version = "2.0",
             CreatedAt = DateTime.UtcNow
@@ -122,7 +122,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         return config;
     }
 
-    private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
+    private async Task PopulateFeatureBasedSections(WinhanceConfigFile config)
     {
         var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
@@ -255,7 +255,7 @@ public class AutounattendXmlGeneratorService : IAutounattendXmlGeneratorService
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 
-    private void PopulateAppsSections(UnifiedConfigurationFile config,
+    private void PopulateAppsSections(WinhanceConfigFile config,
         IReadOnlyList<ConfigurationItem>? selectedWindowsApps)
     {
         if (selectedWindowsApps != null && selectedWindowsApps.Count > 0)

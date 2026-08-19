@@ -44,9 +44,9 @@ public class AutounattendScriptBuilderRoutingTests
             new Mock<IWindowsVersionService>().Object);
     }
 
-    private static UnifiedConfigurationFile ConfigWithOptimize(string featureId, params ConfigurationItem[] items)
+    private static WinhanceConfigFile ConfigWithOptimize(string featureId, params ConfigurationItem[] items)
     {
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

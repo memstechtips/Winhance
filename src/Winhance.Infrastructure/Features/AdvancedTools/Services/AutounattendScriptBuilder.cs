@@ -36,7 +36,7 @@ internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
     }
 
     public async Task<string> BuildWinhancementsScriptAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         WarnOnUnreachableNativePowerApiSettings(config, allSettings);
@@ -127,7 +127,7 @@ internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
     // NativePowerApi settings are applied via a managed Win32 API at runtime and have no emitter in the autounattend
     // pipeline; a setting whose only payload is NativePowerApi would silently be skipped, so warn loudly.
     private void WarnOnUnreachableNativePowerApiSettings(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
     {
         // Config ids are alias-normalized so an old "-win10" item id still matches its merged catalog

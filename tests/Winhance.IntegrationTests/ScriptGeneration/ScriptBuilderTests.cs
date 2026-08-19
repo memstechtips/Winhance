@@ -52,7 +52,7 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_WithWindowsApps_ContainsAppRemoval()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = TestSettingFactory.CreateSection(true,
                 TestSettingFactory.CreateAppItem("app1", "Clipchamp",
@@ -97,7 +97,7 @@ public class ScriptBuilderTests
     [Fact]
     public async Task Build_EmptyConfig_ProducesMinimalScript()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var script = await _builder.BuildWinhancementsScriptAsync(config, allSettings);
@@ -115,7 +115,7 @@ public class ScriptBuilderTests
         // security-remote-assistance (HKLM DWORD fAllowToGetHelp) directly; the emit reads the CATALOG RegTarget
         // and state values.
         var toggleItem = TestSettingFactory.CreateToggleItem("security-remote-assistance", "Remote Assistance", true);
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
             {
@@ -150,7 +150,7 @@ public class ScriptBuilderTests
                 ["AcValue"] = 1800,
                 ["DcValue"] = 900,
             });
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
             {

@@ -6,6 +6,6 @@ namespace Winhance.Core.Features.AdvancedTools.Interfaces;
 public interface IAutounattendScriptBuilder
 {
     Task<string> BuildWinhancementsScriptAsync(
-        UnifiedConfigurationFile config,
+        WinhanceConfigFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Setting>> allSettings);
 }

@@ -51,14 +51,14 @@ public class ConfigurationServiceTests
             l => l.LoadAndValidateConfigurationFromFileAsync(),
             Times.Never);
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<UnifiedConfigurationFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
             Times.Never);
     }
 
     [Fact]
     public async Task ImportConfigurationAsync_WithImportOwn_LoadsFromFile()
     {
-        var config = new UnifiedConfigurationFile { Version = "2.0" };
+        var config = new WinhanceConfigFile { Version = "2.0" };
         var options = new ImportOptions();
 
         _mockDialogService
@@ -81,7 +81,7 @@ public class ConfigurationServiceTests
     [Fact]
     public async Task ImportConfigurationAsync_WithImportRecommended_LoadsRecommended()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var options = new ImportOptions();
 
         _mockDialogService
@@ -101,7 +101,7 @@ public class ConfigurationServiceTests
     [Fact]
     public async Task ImportConfigurationAsync_WithImportBackup_LoadsBackup()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var options = new ImportOptions();
 
         _mockDialogService
@@ -121,7 +121,7 @@ public class ConfigurationServiceTests
     [Fact]
     public async Task ImportConfigurationAsync_WithImportWindowsDefaults_LoadsDefaults()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var options = new ImportOptions();
 
         _mockDialogService
@@ -149,23 +149,23 @@ public class ConfigurationServiceTests
 
         _mockConfigLoadService
             .Setup(l => l.LoadRecommendedConfigurationAsync())
-            .ReturnsAsync((UnifiedConfigurationFile?)null);
+            .ReturnsAsync((WinhanceConfigFile?)null);
 
         var service = CreateService();
         await service.ImportConfigurationAsync();
 
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<UnifiedConfigurationFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
             Times.Never);
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<UnifiedConfigurationFile>()),
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>()),
             Times.Never);
     }
 
     [Fact]
     public async Task ImportConfigurationAsync_WithReviewBeforeApplying_EntersReviewMode()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var options = new ImportOptions { ReviewBeforeApplying = true };
 
         _mockDialogService
@@ -183,14 +183,14 @@ public class ConfigurationServiceTests
             r => r.EnterReviewModeAsync(config),
             Times.Once);
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<UnifiedConfigurationFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
             Times.Never);
     }
 
     [Fact]
     public async Task ImportConfigurationAsync_WithoutReview_ExecutesDirectly()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var options = new ImportOptions { ReviewBeforeApplying = false };
 
         _mockDialogService
@@ -208,7 +208,7 @@ public class ConfigurationServiceTests
             e => e.ExecuteConfigImportAsync(config, options),
             Times.Once);
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<UnifiedConfigurationFile>()),
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>()),
             Times.Never);
     }
 

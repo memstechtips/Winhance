@@ -29,7 +29,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public void FindPowerPlanSetting_NoPowerFeature_ReturnsNull()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         var result = _sut.FindPowerPlanSetting(config);
 
@@ -39,7 +39,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public void FindPowerPlanSetting_PowerFeatureWithoutPowerPlanSelection_ReturnsNull()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -65,7 +65,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public void FindPowerPlanSetting_PowerPlanSelectionWithEmptyGuid_ReturnsNull()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -102,7 +102,7 @@ public class PowerSettingsScriptSectionTests
             PowerPlanName = "Test Plan"
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -126,7 +126,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_NoPowerPlanNoSettings_ReturnsFalse()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
         _powerSettingsQueryService.Setup(s => s.GetActivePowerPlanAsync())
@@ -144,7 +144,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_WithPowerPlan_EmitsPowerPlanCreation()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -192,7 +192,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_WithPowerSettings_EmitsSettingsArray()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -249,7 +249,7 @@ public class PowerSettingsScriptSectionTests
     [Fact]
     public async Task AppendPowerSettingsSectionAsync_BatteryRequired_NoBattery_SkipsSetting()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

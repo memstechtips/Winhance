@@ -97,7 +97,7 @@ public class SettingReviewDiffApplierTests
     public void ApplyReviewDiffToViewModel_WhenNoActiveConfig_DoesNothing()
     {
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig)
-            .Returns((UnifiedConfigurationFile?)null);
+            .Returns((WinhanceConfigFile?)null);
 
         var vm = CreateSettingViewModel();
         var state = new SettingStateResult { IsEnabled = true };
@@ -112,7 +112,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_SetsReviewModeProperties()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -141,7 +141,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_ActionSetting_ShowsActionMessage()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -169,7 +169,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithReviewedApprovedDiff_RestoresDecisionState()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -197,7 +197,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithReviewedRejectedDiff_RestoresDecisionState()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -224,7 +224,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_SettingNotInConfig_OnlySetsReviewMode()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
         _mockConfigReviewDiffService
             .Setup(d => d.GetDiffForSetting("test-setting"))
@@ -243,7 +243,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_WithDiff_RegistersDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -289,7 +289,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_NoDiff_DoesNotRegister()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -331,7 +331,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_WithDifferentIndex_RegistersDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -386,7 +386,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_SameIndex_NoDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -436,7 +436,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_WithNullSelectedIndex_NoDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -480,7 +480,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_FindsSettingInCustomizeSection()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -523,7 +523,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_WithACValueDiff_SetsHasReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -576,7 +576,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_SameACValue_NoReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -626,7 +626,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_NoPowerSettings_NoReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -670,7 +670,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_Action_InConfig_SetsReviewMode()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff

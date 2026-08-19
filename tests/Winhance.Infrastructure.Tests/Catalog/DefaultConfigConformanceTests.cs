@@ -28,7 +28,7 @@ public class DefaultConfigConformanceTests
 
     private void RunBuild(string fileName, WinBuild build)
     {
-        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(
                 File.ReadAllText(DefaultConfigProjection.ConfigPath(fileName)), ConfigFileConstants.JsonOptions)
             ?? throw new InvalidOperationException($"{fileName} deserialized to null.");
 

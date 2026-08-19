@@ -155,9 +155,9 @@ public class ConfigExportService : IConfigExportService
         }
     }
 
-    public async Task<UnifiedConfigurationFile> CreateConfigurationFromSystemAsync(bool isBackup = false)
+    public async Task<WinhanceConfigFile> CreateConfigurationFromSystemAsync(bool isBackup = false)
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Version = "2.0",
             CreatedAt = DateTime.UtcNow
@@ -169,7 +169,7 @@ public class ConfigExportService : IConfigExportService
         return config;
     }
 
-    public async Task<UnifiedConfigurationFile> CreateConfigurationFromUiStateAsync(bool isBackup = false)
+    public async Task<WinhanceConfigFile> CreateConfigurationFromUiStateAsync(bool isBackup = false)
     {
         // Seed from current system state (Builder reflects the machine), then overlay
         // the user's authored Builder edits so the saved file captures their intent.
@@ -178,7 +178,7 @@ public class ConfigExportService : IConfigExportService
         return config;
     }
 
-    private void ApplyBuilderEdits(UnifiedConfigurationFile config)
+    private void ApplyBuilderEdits(WinhanceConfigFile config)
     {
         var edits = _applicationModeService.GetBuilderEdits();
         if (edits.Count == 0)
@@ -360,7 +360,7 @@ public class ConfigExportService : IConfigExportService
         }
     }
 
-    private async Task PopulateFeatureBasedSections(UnifiedConfigurationFile config)
+    private async Task PopulateFeatureBasedSections(WinhanceConfigFile config)
     {
         var allSettingsByFeature = _catalogSettingsRegistry.GetAll(includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
 
@@ -507,7 +507,7 @@ public class ConfigExportService : IConfigExportService
         _logService.Log(LogLevel.Info, $"Total exported: {totalOptimizeSettings} Optimize settings, {totalCustomizeSettings} Customize settings");
     }
 
-    private async Task PopulateAppsSections(UnifiedConfigurationFile config, bool useInstalledStatus = false)
+    private async Task PopulateAppsSections(WinhanceConfigFile config, bool useInstalledStatus = false)
     {
         if (!_windowsAppsVM.IsInitialized)
             await _windowsAppsVM.LoadItemsAsync();

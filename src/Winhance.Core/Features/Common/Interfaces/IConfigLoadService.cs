@@ -4,10 +4,10 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigLoadService
 {
-    Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync();
-    Task<UnifiedConfigurationFile?> LoadRecommendedConfigurationAsync();
-    Task<UnifiedConfigurationFile?> LoadWindowsDefaultsConfigurationAsync();
-    Task<UnifiedConfigurationFile?> LoadUserBackupConfigurationAsync();
-    List<string> DetectIncompatibleSettings(UnifiedConfigurationFile config);
-    UnifiedConfigurationFile FilterConfigForCurrentSystem(UnifiedConfigurationFile config);
+    Task<WinhanceConfigFile?> LoadAndValidateConfigurationFromFileAsync();
+    Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync();
+    Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync();
+    Task<WinhanceConfigFile?> LoadUserBackupConfigurationAsync();
+    List<string> DetectIncompatibleSettings(WinhanceConfigFile config);
+    WinhanceConfigFile FilterConfigForCurrentSystem(WinhanceConfigFile config);
 }

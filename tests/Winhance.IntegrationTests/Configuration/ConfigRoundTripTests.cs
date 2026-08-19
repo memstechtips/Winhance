@@ -22,7 +22,7 @@ public class ConfigRoundTripTests
         var original = TestSettingFactory.CreateFullConfig();
 
         var json = JsonSerializer.Serialize(original, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         deserialized.Should().NotBeNull();
         deserialized!.Version.Should().Be(original.Version);
@@ -44,7 +44,7 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_ToggleItems_PreservesIsSelected()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
             {
@@ -56,7 +56,7 @@ public class ConfigRoundTripTests
         };
 
         var json = JsonSerializer.Serialize(config, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         var items = deserialized!.Customize.Features["TestFeature"].Items;
         items.Should().HaveCount(3);
@@ -73,7 +73,7 @@ public class ConfigRoundTripTests
         var item = TestSettingFactory.CreateSelectionItem("sel1", "Power Plan",
             selectedIndex: 3, customStateValues: customState, powerSettings: powerSettings);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
             {
@@ -82,7 +82,7 @@ public class ConfigRoundTripTests
         };
 
         var json = JsonSerializer.Serialize(config, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         var result = deserialized!.Optimize.Features["Power"].Items[0];
         result.SelectedIndex.Should().Be(3);
@@ -101,13 +101,13 @@ public class ConfigRoundTripTests
             winGetPackageId: "Microsoft.WindowsCalculator",
             capabilityName: "MathRecognizer");
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = TestSettingFactory.CreateSection(true, item),
         };
 
         var json = JsonSerializer.Serialize(config, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         var result = deserialized!.WindowsApps.Items[0];
         result.AppxPackageName.Should().BeEquivalentTo(CalculatorPackages);
@@ -121,7 +121,7 @@ public class ConfigRoundTripTests
         var item = TestSettingFactory.CreateToggleItem("t1", "Simple Toggle", true);
         item.AppxPackageName.Should().BeNull();
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = TestSettingFactory.CreateFeatureGroup(true, new Dictionary<string, ConfigSection>
             {
@@ -163,7 +163,7 @@ public class ConfigRoundTripTests
         }
         """;
 
-        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         config.Should().NotBeNull();
         config!.Version.Should().Be("2.0");
@@ -175,13 +175,13 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_DateTime_PreservesCreatedAt()
     {
-        var original = new UnifiedConfigurationFile
+        var original = new WinhanceConfigFile
         {
             CreatedAt = new DateTime(2025, 12, 25, 10, 30, 45, DateTimeKind.Utc),
         };
 
         var json = JsonSerializer.Serialize(original, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         deserialized!.CreatedAt.Should().Be(original.CreatedAt);
     }
@@ -189,10 +189,10 @@ public class ConfigRoundTripTests
     [Fact]
     public void RoundTrip_EmptyConfig_ProducesValidJson()
     {
-        var original = new UnifiedConfigurationFile();
+        var original = new WinhanceConfigFile();
 
         var json = JsonSerializer.Serialize(original, Options);
-        var deserialized = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var deserialized = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         json.Should().NotBeNullOrEmpty();
         deserialized.Should().NotBeNull();
@@ -228,7 +228,7 @@ public class ConfigRoundTripTests
         }
         """;
 
-        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         config.Should().NotBeNull();
         config!.WindowsApps.Items.Should().HaveCount(1);
@@ -259,7 +259,7 @@ public class ConfigRoundTripTests
         }
         """;
 
-        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         config.Should().NotBeNull();
         config!.WindowsApps.Items[0].AppxPackageName.Should().BeEquivalentTo(
@@ -278,7 +278,7 @@ public class ConfigRoundTripTests
         var filePath = Path.Combine(configDir, fileName);
         var json = File.ReadAllText(filePath);
 
-        var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, Options);
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, Options);
 
         config.Should().NotBeNull();
         config!.Version.Should().Be("2.0");
