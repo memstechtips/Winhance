@@ -58,7 +58,7 @@ public class AutounattendGeneratorViewModelTests
     {
         var sut = CreateSut();
 
-        sut.GenerateCardDescription.Should().Be("AdvancedTools_GenerateCard_Description");
+        sut.GenerateCardDescription.Should().Be("AdvancedTools_GenerateCard_Snapshot_Description");
     }
 
     [Fact]

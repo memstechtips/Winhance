@@ -22,7 +22,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
 
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
 
-    public string GenerateCardDescription => _localizationService.GetStringOrDefault("AdvancedTools_GenerateCard_Description", "Generate an autounattend.xml file based on your current Winhance selections to customize Windows during installation.");
+    public string GenerateCardDescription => _localizationService.GetString("AdvancedTools_GenerateCard_Snapshot_Description");
 
     public string InfoBarTitle => _localizationService.GetStringOrDefault("AdvancedTools_InfoBar_MoreOptionsTitle", "More generation options coming soon");
 
@@ -59,7 +59,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     {
         try
         {
-            var confirmMessage = _localizationService.GetString("Msg_GenerateXmlConfirm");
+            var confirmMessage = _localizationService.GetString("Msg_GenerateXmlSnapshotConfirm");
             var confirmTitle = _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
             var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = confirmMessage, Title = confirmTitle })).Confirmed;
             if (!confirmed)
