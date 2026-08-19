@@ -652,4 +652,74 @@ public class ConfigurationApplicationBridgeServiceTests
 
         _importState.ImportSuppliesPowerValues.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_ToggleEraSelectionItem_StillDefaultsToIndexZeroWithWarning()
+    {
+        var setting = CreateSetting("select-setting", kind: ControlKind.Selection);
+        SetupRegistryWithSettings(setting);
+
+        var item = new ConfigurationItem
+        {
+            Id = "select-setting",
+            Name = "Select Setting",
+            IsSelected = false,
+            InputType = InputType.Toggle,
+        };
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem> { item }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
+
+        result.Should().BeTrue();
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.SettingId == "select-setting" &&
+                r.Value != null &&
+                (int)r.Value == 0)),
+            Times.Once);
+        _mockLog.Verify(
+            x => x.Log(LogLevel.Warning, It.Is<string>(m => m.Contains("defaulting to option index 0")), null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_CustomStateValuesFromJson_ArePassedAsPlainValues()
+    {
+        var setting = CreateSetting("select-setting", kind: ControlKind.Selection);
+        SetupRegistryWithSettings(setting);
+
+        var item = new ConfigurationItem
+        {
+            Id = "select-setting",
+            Name = "Select Setting",
+            InputType = InputType.Selection,
+            CustomStateValues = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>("{\"Mode\":7}"),
+        };
+
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem> { item }
+        };
+
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.ApplyConfigurationSectionAsync(section, "TestSection");
+
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
+                r.Value is Dictionary<string, object> &&
+                ((Dictionary<string, object>)r.Value)["Mode"] is int &&
+                (int)((Dictionary<string, object>)r.Value)["Mode"] == 7)),
+            Times.Once);
+    }
 }
