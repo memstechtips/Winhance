@@ -276,6 +276,7 @@ function Set-RegistryCompositeValue {
         [string]$Name,
         [string]$Key,
         [string]$SubValue,
+        [switch]$Remove,
         [string]$Description
     )
 
@@ -295,7 +296,7 @@ function Set-RegistryCompositeValue {
             }
         }
 
-        if ([string]::IsNullOrEmpty($SubValue)) {
+        if ($Remove) {
             $pairs.Remove($Key)
         } else {
             $pairs[$Key] = $SubValue

@@ -115,7 +115,7 @@ internal sealed class ApplyOpScriptEmitter
                 continue;
             }
 
-            EmitOps(ops, setting, text, systemIndent, userIndent, rows, warnings);
+            EmitOps(ops, setting, choice.Value, text, systemIndent, userIndent, rows, warnings);
         }
 
         var systemPass = new Dictionary<string, string>();
@@ -148,6 +148,7 @@ internal sealed class ApplyOpScriptEmitter
     private void EmitOps(
         IReadOnlyList<ApplyOp> ops,
         Setting setting,
+        ChoiceValue choice,
         FeatureText text,
         string systemIndent,
         string userIndent,
@@ -155,6 +156,7 @@ internal sealed class ApplyOpScriptEmitter
         List<string> warnings)
     {
         var desc = EscapePowerShellString(setting.Display.Description)!;
+        var logDesc = EscapeForDoubleQuotedString(setting.Display.Description);
         var acValues = new Dictionary<PowerCfgTarget, int>();
         var dcValues = new Dictionary<PowerCfgTarget, int>();
         var powerTargets = new List<PowerCfgTarget>();
@@ -180,9 +182,9 @@ internal sealed class ApplyOpScriptEmitter
                     // The state's script is already baked with its option's variables; the live engine runs it
                     // verbatim, so no placeholder pass happens here either.
                     if (s.Run == RunContext.User)
-                        AppendScript(text.User, userIndent, setting, s.Script, desc);
+                        AppendScript(text.User, userIndent, setting, s.Script, logDesc);
                     else
-                        AppendScript(text.System, systemIndent, setting, s.Script, desc);
+                        AppendScript(text.System, systemIndent, setting, s.Script, logDesc);
                     break;
 
                 case EffectOp { Effect: RegContentEffect r }:
@@ -200,9 +202,9 @@ internal sealed class ApplyOpScriptEmitter
                             $"so each can be routed to the correct autounattend pass.");
                     }
                     if (s_hkcuHeaderRegex.IsMatch(r.Content))
-                        AppendRegContent(text.User, userIndent, setting, r.Content, desc);
+                        AppendRegContent(text.User, userIndent, setting, r.Content, logDesc);
                     else
-                        AppendRegContent(text.System, systemIndent, setting, r.Content, desc);
+                        AppendRegContent(text.System, systemIndent, setting, r.Content, logDesc);
                     break;
 
                 // The script builder already warns once per setting for a native power effect, and emits the
@@ -228,10 +230,10 @@ internal sealed class ApplyOpScriptEmitter
                     break;
 
                 default:
-                    // A PowerPlanActivateOp cannot reach here (a power-plan choice never gets resolved), and its
-                    // path lookup returns null, so it falls through emitting nothing.
                     if (RegistryPathOf(op) is { } path)
                         AppendRegistry(text, systemIndent, userIndent, path, op, desc);
+                    else if (op is not PowerPlanActivateOp)
+                        Warn(warnings, $"ApplyOp {op.GetType().Name} on '{setting.Id}' has no PowerShell emission");
                     break;
             }
         }
@@ -240,13 +242,18 @@ internal sealed class ApplyOpScriptEmitter
         {
             if (!acValues.TryGetValue(target, out var ac))
                 continue;
+            int dc = dcValues.TryGetValue(target, out var dcValue) ? dcValue : ac;
 
-            rows.Add(new PowerCfgRow(
-                target.SubgroupGuid,
-                target.SettingGuid,
-                ac,
-                dcValues.TryGetValue(target, out var dc) ? dc : ac,
-                setting.Display.Description));
+            // The resolver takes display units, so a slider value went system -> display (integer division) -> system
+            // on the way here; a machine-read 90 s would come back as 60. The choice still holds the exact system
+            // value, and powercfg wants system units, so the row takes it from the choice.
+            switch (choice)
+            {
+                case ChoiceValue.Number n: ac = n.Value; dc = n.Value; break;
+                case ChoiceValue.AcDcNumber acdc: ac = acdc.Ac; dc = acdc.Dc; break;
+            }
+
+            rows.Add(new PowerCfgRow(target.SubgroupGuid, target.SettingGuid, ac, dc, setting.Display.Description));
         }
     }
 
@@ -327,7 +334,9 @@ internal sealed class ApplyOpScriptEmitter
                 break;
 
             case RegistryCompositeSetOp c:
-                sb.AppendLine($"{indent}Set-RegistryCompositeValue -Path '{EscapedPath(c.Path)}' -Name '{EscapedName(c.Target)}' -Key '{EscapePowerShellString(c.CompositeKey)}' -SubValue '{EscapePowerShellString(c.SubValue ?? string.Empty)}' -Description '{desc}'");
+                sb.AppendLine(c.SubValue is null
+                    ? $"{indent}Set-RegistryCompositeValue -Path '{EscapedPath(c.Path)}' -Name '{EscapedName(c.Target)}' -Key '{EscapePowerShellString(c.CompositeKey)}' -Remove -Description '{desc}'"
+                    : $"{indent}Set-RegistryCompositeValue -Path '{EscapedPath(c.Path)}' -Name '{EscapedName(c.Target)}' -Key '{EscapePowerShellString(c.CompositeKey)}' -SubValue '{EscapePowerShellString(c.SubValue)}' -Description '{desc}'");
                 break;
 
             // Enumeration is deferred to install time. ApplyPlanBuilder never routes a bit/byte/composite target
@@ -354,19 +363,46 @@ internal sealed class ApplyOpScriptEmitter
         sb.AppendLine();
         sb.AppendLine($"{indent}# PowerShell script for: {setting.Display.Name}");
         sb.AppendLine($"{indent}try {{");
-        foreach (var line in script.Split('\n'))
-        {
-            var trimmedLine = line.Trim();
-            if (!string.IsNullOrEmpty(trimmedLine))
-            {
-                sb.AppendLine($"{indent}    {trimmedLine}");
-            }
-        }
+        AppendScriptBody(sb, indent, script);
         sb.AppendLine($"{indent}    Write-Log \"{desc}\" \"SUCCESS\"");
         sb.AppendLine($"{indent}}} catch {{");
         sb.AppendLine($"{indent}    Write-Log \"Failed: {desc} - $($_.Exception.Message)\" \"ERROR\"");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
+    }
+
+    // A here-string is literal: PowerShell only ends one on a line whose FIRST character is the terminator,
+    // so neither its body nor its '@ may be re-indented. Indenting the terminator swallows the rest of the file.
+    private static void AppendScriptBody(StringBuilder sb, string indent, string script)
+    {
+        string? terminator = null;
+        foreach (var line in script.Split('\n'))
+        {
+            var trimmedLine = line.Trim();
+            if (terminator is not null)
+            {
+                if (trimmedLine == terminator)
+                {
+                    sb.AppendLine(terminator);
+                    terminator = null;
+                }
+                else
+                {
+                    sb.AppendLine(line.TrimEnd('\r'));
+                }
+
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(trimmedLine))
+                continue;
+
+            sb.AppendLine($"{indent}    {trimmedLine}");
+            if (trimmedLine.EndsWith("@'", StringComparison.Ordinal))
+                terminator = "'@";
+            else if (trimmedLine.EndsWith("@\"", StringComparison.Ordinal))
+                terminator = "\"@";
+        }
     }
 
     private static void AppendRegContent(StringBuilder sb, string indent, Setting setting, string content, string desc)
@@ -400,8 +436,8 @@ internal sealed class ApplyOpScriptEmitter
         for (int i = 0; i < tasks.Count; i++)
         {
             var (taskName, action, description) = tasks[i];
-            var escapedTaskName = EscapePowerShellString(taskName);
-            var escapedDescription = EscapePowerShellString(description);
+            var escapedTaskName = EscapeForDoubleQuotedString(taskName);
+            var escapedDescription = EscapeForDoubleQuotedString(description);
             var comma = i < tasks.Count - 1 ? "," : "";
 
             sb.AppendLine($"{indent}    @{{ TN=\"{escapedTaskName}\"; Action=\"{action}\"; Desc=\"{escapedDescription}\" }}{comma}");

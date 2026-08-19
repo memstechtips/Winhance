@@ -332,7 +332,7 @@ internal sealed class AutounattendScriptBuilder : IAutounattendScriptBuilder
     private static void AppendPowerPlanCreation(StringBuilder sb, ChoiceValue.PowerPlan plan, string indent)
     {
         var planGuid = plan.Guid;
-        var planName = plan.Name;
+        var planName = EscapeForDoubleQuotedString(plan.Name);
 
         sb.AppendLine($"{indent}Write-Log \"Setting up power plan: {planName}...\" \"INFO\"");
         sb.AppendLine();
@@ -412,7 +412,7 @@ internal sealed class AutounattendScriptBuilder : IAutounattendScriptBuilder
         for (int i = 0; i < powerSettings.Count; i++)
         {
             var setting = powerSettings[i];
-            var escapedDescription = EscapePowerShellString(setting.Description);
+            var escapedDescription = EscapeForDoubleQuotedString(setting.Description);
             var comma = i < powerSettings.Count - 1 ? "," : "";
             sb.AppendLine($"{indent}    @{{ S=\"{setting.SubgroupGuid}\"; G=\"{setting.SettingGuid}\"; AC={setting.Ac}; DC={setting.Dc}; N=\"{escapedDescription}\" }}{comma}");
         }

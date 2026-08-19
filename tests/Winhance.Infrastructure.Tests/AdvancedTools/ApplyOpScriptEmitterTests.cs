@@ -346,6 +346,147 @@ public class ApplyOpScriptEmitterTests
         r.Warnings.Should().BeEmpty();
     }
 
+    [Fact]
+    public void PerSubkeyDelete_WrapsRemoveInForEachObject()
+    {
+        var t = SystemText(EmitOne("parity-per-subkey", new ChoiceValue.Toggle(false)));
+        t.Should().Contain("Get-ChildItem -Path 'HKLM:\\SYSTEM\\Parity\\Interfaces' -ErrorAction SilentlyContinue | ForEach-Object {");
+        t.Should().Contain("Remove-RegistryValue -Path $_.PSPath -Name 'N' -Description 'Per subkey description'");
+    }
+
+    [Fact]
+    public void TaskOn_EmitsEnable()
+    {
+        SystemText(EmitOne("parity-task", new ChoiceValue.Toggle(true))).Should().Contain("@{ TN=\"\\Microsoft\\Windows\\Parity\\Task\"; Action=\"/Enable\"");
+    }
+
+    [Fact]
+    public void Slider_RowKeepsTheSystemValue_NotTheDisplayRoundTrip()
+    {
+        // 90 s on a minutes slider would round-trip as 60 s through the resolver; powercfg wants the exact value.
+        var r = EmitOne("parity-slider", new ChoiceValue.AcDcNumber(90, 45));
+        r.PowerRows.Should().ContainSingle(row => row.Ac == 90 && row.Dc == 45);
+    }
+
+    [Fact]
+    public void CompositeOff_WithAbsentPayload_EmitsRemove()
+    {
+        var setting = new Setting
+        {
+            Id = "composite-remove",
+            Display = new Display { Name = "Composite", Description = "Composite remove description" },
+            Targets = new Target[] { new RegTarget("C", CompositePath, "DirectXUserGlobalSettings", RegistryValueKind.String) { CompositeStringKey = "AutoHDREnable" } },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["C"] = StateValue.Of("1") } },
+                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["C"] = StateValue.Absent } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var r = _sut.Emit(new SelectionSet(new[] { new SettingChoice("composite-remove", new ChoiceValue.Toggle(false)) }, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None),
+                          byFeature, ParityCatalog.Build, "    ", "            ");
+
+        UserText(r).Should().Contain("Set-RegistryCompositeValue -Path 'HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences' -Name 'DirectXUserGlobalSettings' -Key 'AutoHDREnable' -Remove -Description 'Composite remove description'");
+    }
+
+    [Fact]
+    public void KeyExistence_WithEmptyStringPayload_EmitsNewKeyAndDefaultValue()
+    {
+        var setting = new Setting
+        {
+            Id = "key-default",
+            Display = new Display { Name = "Key default", Description = "Key default description" },
+            Targets = new Target[] { new RegTarget("K", KeyDefaultPath, null, RegistryValueKind.String) },
+            States = new[]
+            {
+                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of("") } },
+                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Absent } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var r = _sut.Emit(new SelectionSet(new[] { new SettingChoice("key-default", new ChoiceValue.Toggle(true)) }, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None),
+                          byFeature, ParityCatalog.Build, "    ", "            ");
+
+        var t = UserText(r);
+        t.Should().Contain("New-RegistryKey -Path 'HKCU:\\Software\\Classes\\CLSID\\{KEYDEFAULT}' -Description 'Key default description'");
+        t.Should().Contain("Set-RegistryValue -Path 'HKCU:\\Software\\Classes\\CLSID\\{KEYDEFAULT}' -Name '(Default)' -Type 'String' -Value '' -Description 'Key default description'");
+    }
+
+    // A description quoting an option name ("Show all icons") or holding a $ used to break the generated script: the
+    // single-quoted -Description and the double-quoted Write-Log each need their own escaping.
+    [Fact]
+    public void Description_WithQuotesAndDollar_IsEscapedForEachQuotingContext()
+    {
+        var setting = new Setting
+        {
+            Id = "quoted",
+            Display = new Display { Name = "Quoted", Description = "Pick \"Show all\" or it's $5" },
+            Targets = new Target[] { new RegTarget("V", QuotedPath, "V", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("Write-Host 'x'", RunContext.System) },
+                },
+                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var r = _sut.Emit(new SelectionSet(new[] { new SettingChoice("quoted", new ChoiceValue.Toggle(true)) }, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None),
+                          byFeature, ParityCatalog.Build, "    ", "            ");
+
+        var t = SystemText(r);
+        t.Should().Contain("-Description 'Pick \"Show all\" or it''s $5'");
+        t.Should().Contain("Write-Log \"Pick `\"Show all`\" or it's `$5\" \"SUCCESS\"");
+    }
+
+    // start-menu-clean-10 carries a here-string. Indenting its '@ terminator makes PowerShell read the rest of the
+    // file as string content, so the whole generated script stops parsing.
+    [Fact]
+    public void ScriptEffect_WithHereString_KeepsTheBodyAndTerminatorUnindented()
+    {
+        var script = "$xml = @'\n<Layout>\n    <Item />\n</Layout>\n'@\nSet-Content -Value $xml";
+        var setting = new Setting
+        {
+            Id = "heredoc",
+            Display = new Display { Name = "Heredoc", Description = "Writes a layout file" },
+            Targets = new Target[] { new RegTarget("V", HereStringPath, "V", RegistryValueKind.DWord) },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = "Enabled",
+                    Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect(script, RunContext.System) },
+                },
+                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var r = _sut.Emit(new SelectionSet(new[] { new SettingChoice("heredoc", new ChoiceValue.Toggle(true)) }, NoApps, NoApps, AutounattendChoices.None),
+                          byFeature, ParityCatalog.Build, SystemIndent, UserIndent);
+
+        var lines = SystemText(r).Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        lines.Should().Contain("        $xml = @'");
+        lines.Should().Contain("<Layout>");
+        lines.Should().Contain("    <Item />");
+        lines.Should().Contain("'@");
+        lines.Should().Contain("        Set-Content -Value $xml");
+    }
+
+    private static readonly string[] HereStringPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityHereString"];
+
+    private static readonly string[] QuotedPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityQuoted"];
+
+    private static readonly string[] CompositePath = [@"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences"];
+    private static readonly string[] KeyDefaultPath = [@"HKEY_CURRENT_USER\Software\Classes\CLSID\{KEYDEFAULT}"];
+
     private static readonly string[] DetectorPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityDetector"];
 
     private sealed class NullDetector : IStateDetector

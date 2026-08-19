@@ -37,6 +37,7 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         await _registry.InitializeAsync().ConfigureAwait(false);
         var byFeature = _registry.GetAll(includeOtherOsVersions: scope.IncludeOtherOsVersions);
 
+        _log.Log(LogLevel.Info, $"Generating autounattend.xml from {set.Settings.Count} setting choices and {set.WindowsApps.Count} Windows apps");
         var script = await _scriptBuilder.BuildAsync(set, byFeature).ConfigureAwait(false);
         var xml = InjectScript(LoadTemplate(), script);
 

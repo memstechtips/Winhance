@@ -207,7 +207,12 @@ internal class PowerShellRunner : IPowerShellRunner
         var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
         try
         {
-            await _fileSystemService.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
+            // Windows PowerShell 5.1 reads a BOM-less file as ANSI, where one UTF-8 em dash decodes to a smart
+            // quote and desyncs the parse. The autounattend extractor writes the script WITH a UTF-8 preamble,
+            // so validate the same bytes Setup will run.
+            var utf8WithPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            var bytes = utf8WithPreamble.GetPreamble().Concat(utf8WithPreamble.GetBytes(scriptContent)).ToArray();
+            await _fileSystemService.WriteAllBytesAsync(tempFile, bytes, ct).ConfigureAwait(false);
 
             var parseScript = @"
 $errors = $null
@@ -219,7 +224,11 @@ if ($errors.Count -gt 0) {
 Write-Host 'Script validation passed - no parse errors found'
 exit 0";
 
-            await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+            // The parse script reports through stdout and exits 1 with nothing on stderr, which RunScriptAsync does not
+            // treat as a failure, so the verdict has to be read from the output.
+            var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+            if (output.Contains("PARSE_ERROR:", StringComparison.Ordinal))
+                throw new InvalidOperationException($"PowerShell script failed to parse:\n{output}");
         }
         finally
         {
@@ -251,7 +260,9 @@ try {
     exit 1
 }";
 
-            await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+            var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+            if (output.Contains("XML_ERROR:", StringComparison.Ordinal))
+                throw new InvalidOperationException($"XML is not well-formed:\n{output}");
         }
         finally
         {

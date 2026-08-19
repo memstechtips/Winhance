@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
@@ -48,6 +49,16 @@ public class AutounattendWriterTests
         _registry.Verify(r => r.GetAll(true), Times.Once);
         _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature), Times.Once);
         _ps.Verify(p => p.ValidateXmlSyntaxAsync(It.Is<string>(x => x.Contains("CDATA")), default), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("Generating autounattend.xml")), null), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("generated successfully")), null), Times.Once);
+    }
+
+    [Fact]
+    public async Task WriteAsync_CurrentMachineScope_AsksTheRegistryForThisOsOnly()
+    {
+        await Sut().WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, OutputPath);
+
+        _registry.Verify(r => r.GetAll(false), Times.Once);
     }
 
     [Fact]
@@ -59,5 +70,6 @@ public class AutounattendWriterTests
 
         await act.Should().ThrowAsync<InvalidOperationException>();
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("failed XML well-formedness validation")), null), Times.Once);
     }
 }

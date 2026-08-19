@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
@@ -109,6 +111,27 @@ public class AutounattendScriptBuilderGoldenTests
         var act = () => Builder().BuildAsync(ParitySet(), ParityCatalog.ByFeature);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task PowerPlanChoice_EmitsPlanCreationAndActivation()
+    {
+        var plan = new Setting { Id = SettingIds.PowerPlanSelection, Display = new() { Name = "plan", Description = "plan" }, OptionSource = new StubOptionSource() };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>(ParityCatalog.ByFeature) { [FeatureIds.Power] = new[] { plan } };
+        var choices = ParitySet().Settings.Append(new SettingChoice(plan.Id, new ChoiceValue.PowerPlan("11111111-2222-3333-4444-555555555555", "Winhance Power Plan"))).ToList();
+
+        var script = await Builder().BuildAsync(new SelectionSet(choices, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None), byFeature);
+
+        script.Should().Contain("$customPlanGuid = \"11111111-2222-3333-4444-555555555555\"");
+        script.Should().Contain("powercfg /changename $customPlanGuid \"Winhance Power Plan\"");
+        script.Should().Contain("$targetPlanGuid = \"11111111-2222-3333-4444-555555555555\"");
+        script.Should().Contain("powercfg /setactive 11111111-2222-3333-4444-555555555555 2>$null");
+    }
+
+    private sealed class StubOptionSource : IDynamicOptionSource
+    {
+        public IReadOnlyList<DynamicOption> EnumerateOptions(IDetectionContext context) => Array.Empty<DynamicOption>();
+        public string? CurrentSelection(IDetectionContext context) => null;
     }
 
     private const string GoldenSystemPass = """

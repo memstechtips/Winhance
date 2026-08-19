@@ -125,6 +125,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             })).Confirmed;
             if (!confirmed) return;
 
+            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var set = await _selections.FromMachineAsync();
             if (set.WindowsApps.Count == 0)
             {
@@ -138,7 +139,6 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 if (!continueAnyway) return;
             }
 
-            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
             var generatedPath = await _autounattend.WriteAsync(set, _selections.CurrentScope, outputPath);
 
