@@ -1,6 +1,6 @@
 using System.Text;
 using FluentAssertions;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 using Xunit;
 
@@ -8,6 +8,11 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class AppRemovalScriptSectionTests
 {
+    private static readonly string[] CortanaPackage = ["Microsoft.549981C3F5F10"];
+    private static readonly string[] EdgePackage = ["Microsoft.Edge"];
+    private static readonly string[] OneDrivePackage = ["Microsoft.OneDrive"];
+    private static readonly string[] XboxPackages = ["Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay"];
+
     private readonly AppRemovalScriptSection _sut = new();
 
     [Fact]
@@ -69,13 +74,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_RegularApps_EmitsRemovalSection()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-app-cortana",
-                AppxPackageName = ["Microsoft.549981C3F5F10"]
-            }
+            new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -89,13 +90,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_EdgeApp_EmitsEdgeRemoval()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-app-edge",
-                AppxPackageName = ["Microsoft.Edge"]
-            }
+            new AppChoice("windows-app-edge", "Microsoft Edge", EdgePackage, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -108,13 +105,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_OneDriveApp_EmitsOneDriveRemoval()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-app-onedrive",
-                AppxPackageName = ["Microsoft.OneDrive"]
-            }
+            new AppChoice("windows-app-onedrive", "OneDrive", OneDrivePackage, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -127,13 +120,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_Capability_IncludedInScript()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-cap-wordpad",
-                CapabilityName = "Microsoft.Windows.WordPad~~~~0.0.1.0"
-            }
+            new AppChoice("windows-cap-wordpad", "WordPad", null, "Microsoft.Windows.WordPad~~~~0.0.1.0", null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -146,13 +135,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_OptionalFeature_IncludedInScript()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-opt-ie",
-                OptionalFeatureName = "Internet-Explorer-Optional-amd64"
-            }
+            new AppChoice("windows-opt-ie", "Internet Explorer", null, null, "Internet-Explorer-Optional-amd64", null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -165,13 +150,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_AppWithMultiplePackages_IncludesAllPackages()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-app-xbox",
-                AppxPackageName = ["Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay"]
-            }
+            new AppChoice("windows-app-xbox", "Xbox", XboxPackages, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -184,13 +165,9 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_EmitsScheduledTaskRegistration()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem
-            {
-                Id = "windows-app-cortana",
-                AppxPackageName = ["Microsoft.549981C3F5F10"]
-            }
+            new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
@@ -204,11 +181,11 @@ public class AppRemovalScriptSectionTests
     public async Task AppendBloatRemovalScriptAsync_MixedApps_EmitsAllSections()
     {
         var sb = new StringBuilder();
-        var apps = new List<ConfigurationItem>
+        var apps = new List<AppChoice>
         {
-            new ConfigurationItem { Id = "windows-app-cortana", AppxPackageName = ["Microsoft.549981C3F5F10"] },
-            new ConfigurationItem { Id = "windows-app-edge", AppxPackageName = ["Microsoft.Edge"] },
-            new ConfigurationItem { Id = "windows-app-onedrive", AppxPackageName = ["Microsoft.OneDrive"] }
+            new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null),
+            new AppChoice("windows-app-edge", "Microsoft Edge", EdgePackage, null, null, null),
+            new AppChoice("windows-app-onedrive", "OneDrive", OneDrivePackage, null, null, null)
         };
 
         await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");

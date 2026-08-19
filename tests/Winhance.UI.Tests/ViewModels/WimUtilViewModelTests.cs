@@ -19,8 +19,8 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IAutounattendXmlGeneratorService> _mockXmlGeneratorService = new();
-    private readonly Mock<IAppSelectionSource> _mockAppSelection = new();
+    private readonly Mock<IAutounattendWriter> _mockAutounattend = new();
+    private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
@@ -67,8 +67,8 @@ public class WimUtilViewModelTests : IDisposable
             _mockTaskProgressService.Object,
             _mockDialogService.Object,
             _mockLogService.Object,
-            _mockXmlGeneratorService.Object,
-            _mockAppSelection.Object,
+            _mockAutounattend.Object,
+            _mockSelections.Object,
             _mockLocalizationService.Object,
             _mockDispatcherService.Object,
             _mockProcessExecutor.Object,

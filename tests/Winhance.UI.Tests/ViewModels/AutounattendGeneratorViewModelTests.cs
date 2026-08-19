@@ -1,10 +1,11 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
 using Winhance.TestSupport;
 
@@ -12,11 +13,11 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class AutounattendGeneratorViewModelTests
 {
-    private readonly Mock<IAutounattendXmlGeneratorService> _xmlGeneratorService = new();
+    private readonly Mock<IAutounattendWriter> _autounattend = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IAppSelectionSource> _appSelection = new();
+    private readonly Mock<ISelectionSetBuilder> _selections = new();
 
     public AutounattendGeneratorViewModelTests()
     {
@@ -24,18 +25,17 @@ public class AutounattendGeneratorViewModelTests
             .Returns<string>(k => k);
         _localizationService.MirrorTryGetString();
 
-        _appSelection
-            .Setup(a => a.CheckedWindowsAppsAsync())
-            .ReturnsAsync(new List<AppChoice>());
+        _selections.Setup(s => s.FromMachineAsync()).ReturnsAsync(SelectionSet.Empty);
+        _selections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
     }
 
     private AutounattendGeneratorViewModel CreateSut() =>
         new(
-            _xmlGeneratorService.Object,
+            _autounattend.Object,
             _dialogService.Object,
             _localizationService.Object,
             _logService.Object,
-            _appSelection.Object);
+            _selections.Object);
 
     [Fact]
     public void Constructor_SetsDefaults()
@@ -141,8 +141,8 @@ public class AutounattendGeneratorViewModelTests
 
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
-        _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Models.ConfigurationItem>>()), Times.Never);
+        _autounattend.Verify(w => w.WriteAsync(
+            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -155,8 +155,8 @@ public class AutounattendGeneratorViewModelTests
 
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
-        _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Models.ConfigurationItem>>()), Times.Never);
+        _autounattend.Verify(w => w.WriteAsync(
+            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

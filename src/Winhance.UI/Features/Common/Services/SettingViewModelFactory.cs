@@ -309,7 +309,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return null;
     }
 
-    // Twin of ConfigFileMapper.InputTypeFor and AutounattendXmlGeneratorService.ControlToInputType.
+    // Twin of ConfigFileMapper.InputTypeFor.
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

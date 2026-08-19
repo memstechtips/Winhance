@@ -3,8 +3,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.UI.Features.AdvancedTools.Services;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -129,8 +127,6 @@ public static class UIServicesExtensions
         services.AddSingleton<AdvancedToolsViewModel>();
         services.AddSingleton<WimUtilViewModel>();
         services.AddTransient<AutounattendGeneratorViewModel>();
-
-        services.AddSingleton<IAutounattendXmlGeneratorService, AutounattendXmlGeneratorService>();
 
         // Concrete VMs for XAML binding; interface aliases for service-layer decoupling.
         services.AddSingleton<WindowsAppsViewModel>();

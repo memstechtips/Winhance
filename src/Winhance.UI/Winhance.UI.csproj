@@ -140,9 +140,6 @@
     <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Recommended_Config.winhance">
       <LogicalName>Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Features\Common\Resources\AdvancedTools\autounattend-template.xml">
-      <LogicalName>Winhance.UI.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Features\Common\Resources\Configs\Winhance_Default_Config_Windows10_22H2.winhance">
       <LogicalName>Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance</LogicalName>
     </EmbeddedResource>

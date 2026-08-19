@@ -1,23 +1,23 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class AutounattendGeneratorViewModel : ObservableObject
 {
-    private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
+    private readonly IAutounattendWriter _autounattend;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
-    private readonly IAppSelectionSource _appSelection;
+    private readonly ISelectionSetBuilder _selections;
     private Window? _mainWindow;
 
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
@@ -36,17 +36,17 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     public event EventHandler? NavigateToWimUtilRequested;
 
     public AutounattendGeneratorViewModel(
-        IAutounattendXmlGeneratorService xmlGeneratorService,
+        IAutounattendWriter autounattend,
         IDialogService dialogService,
         ILocalizationService localizationService,
         ILogService logService,
-        IAppSelectionSource appSelection)
+        ISelectionSetBuilder selections)
     {
-        _xmlGeneratorService = xmlGeneratorService;
+        _autounattend = autounattend;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _logService = logService;
-        _appSelection = appSelection;
+        _selections = selections;
     }
 
     public void SetMainWindow(Window window)
@@ -91,9 +91,9 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             IsGenerating = true;
             try
             {
-                var selectedApps = await _appSelection.CheckedWindowsAppsAsync();
+                var set = await _selections.FromMachineAsync();
 
-                if (selectedApps.Count == 0)
+                if (set.WindowsApps.Count == 0)
                 {
                     var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
                     {
@@ -106,7 +106,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                         return;
                 }
 
-                await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath, selectedApps.Select(ConfigFileMapper.AppItem).ToList());
+                await _autounattend.WriteAsync(set, _selections.CurrentScope, outputPath);
             }
             finally
             {

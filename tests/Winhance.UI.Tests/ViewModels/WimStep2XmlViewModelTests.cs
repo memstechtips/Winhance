@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
@@ -12,9 +13,9 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep2XmlViewModelTests : IDisposable
 {
-    private readonly Mock<IAutounattendXmlGeneratorService> _mockXmlGeneratorService = new();
+    private readonly Mock<IAutounattendWriter> _mockAutounattend = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
-    private readonly Mock<IAppSelectionSource> _mockAppSelection = new();
+    private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -34,15 +35,20 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] parts) => string.Join("\\", parts));
 
-        // Default: return non-empty list so generate doesn't show warning
-        _mockAppSelection
-            .Setup(p => p.CheckedWindowsAppsAsync())
-            .ReturnsAsync(new List<AppChoice> { new AppChoice("test", "Test", null, null, null, null) });
+        // Default: a set carrying a Windows app so generate doesn't show the no-apps warning
+        _mockSelections
+            .Setup(s => s.FromMachineAsync())
+            .ReturnsAsync(new SelectionSet(
+                Array.Empty<SettingChoice>(),
+                [new AppChoice("test", "Test", null, null, null, null)],
+                Array.Empty<AppChoice>(),
+                AutounattendChoices.None));
+        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
 
         _sut = new WimStep2XmlViewModel(
-            _mockXmlGeneratorService.Object,
+            _mockAutounattend.Object,
             _mockWimCustomizationService.Object,
-            _mockAppSelection.Object,
+            _mockSelections.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
@@ -122,8 +128,8 @@ public class WimStep2XmlViewModelTests : IDisposable
         _mockDialogService.Verify(d => d.ShowWarningAsync(
             "WIMUtil_Msg_WorkingDirectoryRequired",
             It.IsAny<string>()), Times.Once);
-        _mockXmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()), Times.Never);
+        _mockAutounattend.Verify(w => w.WriteAsync(
+            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
@@ -150,8 +156,8 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
-        _mockXmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()), Times.Never);
+        _mockAutounattend.Verify(w => w.WriteAsync(
+            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
@@ -163,8 +169,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
-        _mockXmlGeneratorService
-            .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
+        _mockAutounattend
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
             .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
@@ -185,8 +191,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
-        _mockXmlGeneratorService
-            .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
+        _mockAutounattend
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
             .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
@@ -203,8 +209,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
-        _mockXmlGeneratorService
-            .Setup(s => s.GenerateFromCurrentSelectionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<ConfigurationItem>?>()))
+        _mockAutounattend
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
             .ThrowsAsync(new Exception("Generation failed"));
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
@@ -394,9 +400,9 @@ public class WimStep2XmlViewModelTests : IDisposable
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var vm = new WimStep2XmlViewModel(
-            _mockXmlGeneratorService.Object,
+            _mockAutounattend.Object,
             _mockWimCustomizationService.Object,
-            _mockAppSelection.Object,
+            _mockSelections.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,

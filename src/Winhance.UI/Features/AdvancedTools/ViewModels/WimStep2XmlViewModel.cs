@@ -13,9 +13,9 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
-    private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
+    private readonly IAutounattendWriter _autounattend;
     private readonly IWimCustomizationService _wimCustomizationService;
-    private readonly IAppSelectionSource _appSelection;
+    private readonly ISelectionSetBuilder _selections;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -41,9 +41,9 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     public WizardActionCard SelectXmlCard { get; private set; } = new();
 
     public WimStep2XmlViewModel(
-        IAutounattendXmlGeneratorService xmlGeneratorService,
+        IAutounattendWriter autounattend,
         IWimCustomizationService wimCustomizationService,
-        IAppSelectionSource appSelection,
+        ISelectionSetBuilder selections,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -51,9 +51,9 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         ILogService logService,
         IResourceService resourceService)
     {
-        _xmlGeneratorService = xmlGeneratorService;
+        _autounattend = autounattend;
         _wimCustomizationService = wimCustomizationService;
-        _appSelection = appSelection;
+        _selections = selections;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -125,8 +125,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             })).Confirmed;
             if (!confirmed) return;
 
-            var selectedApps = await _appSelection.CheckedWindowsAppsAsync();
-            if (selectedApps.Count == 0)
+            var set = await _selections.FromMachineAsync();
+            if (set.WindowsApps.Count == 0)
             {
                 var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
                 {
@@ -140,7 +140,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
+            var generatedPath = await _autounattend.WriteAsync(set, _selections.CurrentScope, outputPath);
 
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;

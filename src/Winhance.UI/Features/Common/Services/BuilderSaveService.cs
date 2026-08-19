@@ -1,4 +1,3 @@
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,12 +10,7 @@ public sealed class BuilderSaveService : IBuilderSaveService
 {
     private readonly ISelectionSetBuilder _selections;
     private readonly IConfigFileWriter _configFiles;
-
-    // Interim, until Task 3.4 gives the autounattend its own writer: this service still has to build the
-    // config file itself for the XML generator to consume.
-    private readonly IAutounattendXmlGeneratorService _generator;
-    private readonly ICatalogSettingsRegistry _registry;
-
+    private readonly IAutounattendWriter _autounattend;
     private readonly ISaveFilePicker _picker;
     private readonly IDialogService _dialogs;
     private readonly ILocalizationService _loc;
@@ -25,8 +19,7 @@ public sealed class BuilderSaveService : IBuilderSaveService
     public BuilderSaveService(
         ISelectionSetBuilder selections,
         IConfigFileWriter configFiles,
-        IAutounattendXmlGeneratorService generator,
-        ICatalogSettingsRegistry registry,
+        IAutounattendWriter autounattend,
         ISaveFilePicker picker,
         IDialogService dialogs,
         ILocalizationService loc,
@@ -34,8 +27,7 @@ public sealed class BuilderSaveService : IBuilderSaveService
     {
         _selections = selections;
         _configFiles = configFiles;
-        _generator = generator;
-        _registry = registry;
+        _autounattend = autounattend;
         _picker = picker;
         _dialogs = dialogs;
         _loc = loc;
@@ -77,9 +69,7 @@ public sealed class BuilderSaveService : IBuilderSaveService
                     return;
                 }
 
-                await _registry.InitializeAsync();
-                var file = ConfigFileMapper.ToFile(set, _registry.GetAll(includeOtherOsVersions: _selections.CurrentScope.IncludeOtherOsVersions));
-                await _generator.GenerateFromConfigAsync(file, path);
+                await _autounattend.WriteAsync(set, _selections.CurrentScope, path);
             }
 
             _log.Log(LogLevel.Info, $"Builder {target} saved to {path}");

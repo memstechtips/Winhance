@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 using Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
@@ -12,18 +11,14 @@ using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellSc
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
+internal sealed class AutounattendScriptBuilder : IAutounattendScriptBuilder
 {
     private readonly ILogService _logService;
     private readonly IPowerShellRunner _powerShellRunner;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly FeatureRegistryScriptSection _featureRegistrySection;
-    private readonly PowerSettingsScriptSection _powerSettingsSection;
     private readonly AppRemovalScriptSection _appRemovalSection;
 
     public AutounattendScriptBuilder(
-        IPowerSettingsQueryService powerSettingsQueryService,
-        IHardwareDetectionService hardwareDetectionService,
         ILogService logService,
         IPowerShellRunner powerShellRunner,
         IWindowsVersionService windowsVersionService)
@@ -31,100 +26,7 @@ internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
         _logService = logService;
         _powerShellRunner = powerShellRunner;
         _windowsVersionService = windowsVersionService;
-
-        var registryEmitter = new RegistryCommandEmitter(logService);
-        _featureRegistrySection = new FeatureRegistryScriptSection(registryEmitter, logService);
-        _powerSettingsSection = new PowerSettingsScriptSection(powerSettingsQueryService, hardwareDetectionService, logService);
         _appRemovalSection = new AppRemovalScriptSection();
-    }
-
-    public async Task<string> BuildWinhancementsScriptAsync(
-        WinhanceConfigFile config,
-        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
-    {
-        WarnOnUnreachableNativePowerApiSettings(config, allSettings);
-
-        // The live build this autounattend is generated on. allSettings arrives OS-filtered (one variant of each
-        // OS-merged setting per machine), so threading the same build lets the catalog
-        // emitter pick the OS-appropriate per-target mechanism for the build-gated "This PC folder" toggles.
-        var currentBuild = new WinBuild(
-            _windowsVersionService.GetWindowsBuildNumber(),
-            _windowsVersionService.GetWindowsBuildRevision());
-
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHeader(sb);
-        ScriptPreambleSection.AppendLoggingSetup(sb);
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.AppendLine();
-        sb.AppendLine("if (-not $UserCustomizations) {");
-        sb.AppendLine();
-
-        _appRemovalSection.AppendScriptsDirectorySetup(sb, "    ");
-
-        if (config.WindowsApps.Items.Any())
-        {
-            await _appRemovalSection.AppendBloatRemovalScriptAsync(sb, config.WindowsApps.Items, "    ").ConfigureAwait(false);
-        }
-
-        _appRemovalSection.AppendWinhanceInstallerScriptContent(sb, "    ");
-
-        await _powerSettingsSection.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ").ConfigureAwait(false);
-
-        if (config.Optimize.Features.Any())
-        {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
-        }
-
-        if (config.Customize.Features.Any())
-        {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
-        }
-
-        SpecialFeatureScriptSection.AppendCleanStartMenuSection(sb, "    ");
-
-        SpecialFeatureScriptSection.AppendUserCustomizationsScheduledTask(sb, "    ");
-
-        AppendCustomScriptPlaceholder(sb, "    ", "SYSTEM WIDE");
-
-        sb.AppendLine("}");
-        sb.AppendLine();
-
-        sb.AppendLine("if ($UserCustomizations) {");
-        sb.AppendLine();
-        AppendUserDetectionBridge(sb);
-
-        if (config.Optimize.Features.Any())
-        {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
-        }
-
-        if (config.Customize.Features.Any())
-        {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
-        }
-
-        AppendCustomScriptPlaceholder(sb, "            ", "USER SPECIFIC");
-
-        AppendUserDetectionBridgeClosing(sb);
-
-        ScriptPreambleSection.AppendCompletionBlock(sb);
-
-        var scriptContent = sb.ToString();
-
-        try
-        {
-            await _powerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
-            _logService.Log(LogLevel.Info, "Winhancements.ps1 script passed PowerShell syntax validation");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Winhancements.ps1 script failed PowerShell syntax validation: {ex.Message}");
-            throw;
-        }
-
-        return scriptContent;
     }
 
     public async Task<string> BuildAsync(SelectionSet set, IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> byFeature)
@@ -153,7 +55,7 @@ internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
 
         if (set.WindowsApps.Count > 0)
         {
-            await _appRemovalSection.AppendBloatRemovalScriptAsync(sb, set.WindowsApps.Select(ConfigFileMapper.AppItem).ToList(), "    ").ConfigureAwait(false);
+            await _appRemovalSection.AppendBloatRemovalScriptAsync(sb, set.WindowsApps, "    ").ConfigureAwait(false);
         }
 
         _appRemovalSection.AppendWinhanceInstallerScriptContent(sb, "    ");
@@ -242,20 +144,6 @@ internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
 
     // NativePowerApi settings are applied via a managed Win32 API at runtime and have no emitter in the autounattend
     // pipeline; a setting whose only payload is NativePowerApi would silently be skipped, so warn loudly.
-    private void WarnOnUnreachableNativePowerApiSettings(
-        WinhanceConfigFile config,
-        IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
-    {
-        // Config ids are alias-normalized so an old "-win10" item id still matches its merged catalog
-        // Setting's canonical Id.
-        WarnOnUnreachableNativePowerApiSettings(
-            new HashSet<string>(
-                config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))
-                    .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => SettingIdAliases.Normalize(i.Id)))),
-                StringComparer.OrdinalIgnoreCase),
-            allSettings);
-    }
-
     private void WarnOnUnreachableNativePowerApiSettings(
         HashSet<string> selectedIds,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)

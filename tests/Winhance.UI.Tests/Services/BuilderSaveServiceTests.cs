@@ -1,9 +1,7 @@
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
@@ -18,8 +16,7 @@ public class BuilderSaveServiceTests
 
     private readonly Mock<ISelectionSetBuilder> _selections = new();
     private readonly Mock<IConfigFileWriter> _configFiles = new();
-    private readonly Mock<IAutounattendXmlGeneratorService> _generator = new();
-    private readonly Mock<ICatalogSettingsRegistry> _registry = new();
+    private readonly Mock<IAutounattendWriter> _autounattend = new();
     private readonly Mock<ISaveFilePicker> _picker = new();
     private readonly Mock<IDialogService> _dialogs = new();
     private readonly Mock<ILocalizationService> _loc = new();
@@ -33,16 +30,12 @@ public class BuilderSaveServiceTests
 
         _selections.Setup(s => s.FromBuilderSessionAsync()).ReturnsAsync(SelectionSet.Empty);
         _selections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
-
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>()))
-            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
     }
 
     private BuilderSaveService Sut() => new(
         _selections.Object,
         _configFiles.Object,
-        _generator.Object,
-        _registry.Object,
+        _autounattend.Object,
         _picker.Object,
         _dialogs.Object,
         _loc.Object,
@@ -62,19 +55,19 @@ public class BuilderSaveServiceTests
 
         _selections.Verify(s => s.FromBuilderSessionAsync(), Times.Once);
         _configFiles.Verify(w => w.WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, ConfigPath), Times.Once);
-        _generator.Verify(g => g.GenerateFromConfigAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<string>()), Times.Never);
+        _autounattend.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _dialogs.Verify(d => d.ShowInformationAsync("Config_Export_Success_Message", "Config_Export_Success_Title", ""), Times.Once);
     }
 
     [Fact]
-    public async Task Autounattend_UsesBuilderSession_PickerAndGenerator()
+    public async Task Autounattend_UsesBuilderSession_PickerAndWriter()
     {
         ArrangePicker(XmlPath);
 
         await Sut().SaveAsync(BuilderTarget.Autounattend);
 
         _selections.Verify(s => s.FromBuilderSessionAsync(), Times.Once);
-        _generator.Verify(g => g.GenerateFromConfigAsync(It.IsAny<WinhanceConfigFile>(), XmlPath), Times.Once);
+        _autounattend.Verify(w => w.WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, XmlPath), Times.Once);
         _configFiles.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _dialogs.Verify(d => d.ShowInformationAsync("Config_Export_Success_Message", "Config_Export_Success_Title", ""), Times.Once);
     }
@@ -89,7 +82,7 @@ public class BuilderSaveServiceTests
         await Sut().SaveAsync(target);
 
         _configFiles.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
-        _generator.Verify(g => g.GenerateFromConfigAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<string>()), Times.Never);
+        _autounattend.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         _dialogs.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }

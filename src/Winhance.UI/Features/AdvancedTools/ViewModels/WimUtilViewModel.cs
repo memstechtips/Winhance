@@ -129,8 +129,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         ITaskProgressService taskProgressService,
         IDialogService dialogService,
         ILogService logService,
-        IAutounattendXmlGeneratorService xmlGeneratorService,
-        IAppSelectionSource appSelection,
+        IAutounattendWriter autounattend,
+        ISelectionSetBuilder selections,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IProcessExecutor processExecutor,
@@ -153,7 +153,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             dispatcherService, localizationService, logService);
 
         Step2 = new WimStep2XmlViewModel(
-            xmlGeneratorService, wimCustomizationService, appSelection,
+            autounattend, wimCustomizationService, selections,
             dialogService, localizationService, fileSystemService, filePickerService, logService,
             resourceService);
 
