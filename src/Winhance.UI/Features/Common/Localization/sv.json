@@ -74,6 +74,8 @@
   "Builder_Mode_Target_Config": "Konfiguration",
   "Builder_Mode_Target_Autounattend": "Autounattend",
   "Builder_Mode_Save_Config": "Spara konfiguration",
+  "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
+  "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
   "Builder_Mode_Save_Autounattend": "Spara autounattend.xml",
   "Builder_Mode_Cancel_Confirmation_Title": "Lämna byggarläge",
   "Builder_Mode_Cancel_Confirmation": "Lämna byggarläge? Dina val här kommer att kasseras. Inget tillämpades på ditt system.",

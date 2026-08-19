@@ -354,7 +354,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -414,7 +414,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -471,7 +471,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Taskbar", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Taskbar", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -534,7 +534,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -981,7 +981,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(Array.Empty<Setting>());
 
         var service = CreateService();
@@ -1005,7 +1005,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1068,7 +1068,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1129,7 +1129,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1207,7 +1207,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1280,7 +1280,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1342,7 +1342,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1401,7 +1401,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1459,7 +1459,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1513,7 +1513,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1568,7 +1568,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1620,7 +1620,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1680,7 +1680,7 @@ public class ConfigReviewServiceTests : IDisposable
             }
         };
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { privacySetting });
 
         var powerSetting = new Setting
@@ -1690,7 +1690,7 @@ public class ConfigReviewServiceTests : IDisposable
             Numeric = new() { Min = 0, Max = 3600 }
         };
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { powerSetting });
 
         _mockSettingStateProvider
@@ -1782,7 +1782,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1836,7 +1836,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider

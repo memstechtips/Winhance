@@ -74,6 +74,8 @@
   "Builder_Mode_Target_Config": "Konfiguration",
   "Builder_Mode_Target_Autounattend": "Autounattend",
   "Builder_Mode_Save_Config": "Konfiguration speichern",
+  "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
+  "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
   "Builder_Mode_Save_Autounattend": "autounattend.xml speichern",
   "Builder_Mode_Cancel_Confirmation_Title": "Builder-Modus verlassen",
   "Builder_Mode_Cancel_Confirmation": "Builder-Modus verlassen? Ihre Auswahl hier wird verworfen. Es wurde nichts auf Ihr System angewendet.",

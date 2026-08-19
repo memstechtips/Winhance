@@ -24,7 +24,7 @@ public class AutounattendWriterTests
 
     public AutounattendWriterTests()
     {
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>())).Returns(ParityCatalog.ByFeature);
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(ParityCatalog.ByFeature);
         _builder.Setup(b => b.BuildAsync(It.IsAny<SelectionSet>(), It.IsAny<IReadOnlyDictionary<string, IReadOnlyList<Setting>>>()))
             .ReturnsAsync("Write-Host 'Winhancements'");
         _ps.Setup(p => p.ValidateXmlSyntaxAsync(It.IsAny<string>(), default)).Returns(Task.CompletedTask);
@@ -46,7 +46,7 @@ public class AutounattendWriterTests
         _written.Should().Contain("<![CDATA[Write-Host 'Winhancements']]>");
         _written.Should().NotContain("<!--SCRIPT_PLACEHOLDER-->");
         _registry.Verify(r => r.InitializeAsync(), Times.Once);
-        _registry.Verify(r => r.GetAll(true), Times.Once);
+        _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
         _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature), Times.Once);
         _ps.Verify(p => p.ValidateXmlSyntaxAsync(It.Is<string>(x => x.Contains("CDATA")), default), Times.Once);
         _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("Generating autounattend.xml")), null), Times.Once);
@@ -58,7 +58,7 @@ public class AutounattendWriterTests
     {
         await Sut().WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, OutputPath);
 
-        _registry.Verify(r => r.GetAll(false), Times.Once);
+        _registry.Verify(r => r.GetAll(CatalogScope.CurrentMachine), Times.Once);
     }
 
     [Fact]

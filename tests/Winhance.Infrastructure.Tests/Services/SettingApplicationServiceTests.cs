@@ -103,7 +103,7 @@ public class SettingApplicationServiceTests
 
     private void SetupSettingInRegistry(string settingId)
     {
-        _mockSettingsRegistry.Setup(r => r.GetById(settingId, It.IsAny<bool>())).Returns(CatalogOrFake(settingId));
+        _mockSettingsRegistry.Setup(r => r.GetById(settingId, It.IsAny<CatalogScope>())).Returns(CatalogOrFake(settingId));
     }
 
     // Real catalog settings whose Control routes a given value shape through the engine to a SUCCEEDING plan.
@@ -235,7 +235,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_SettingNotFound_ThrowsArgumentException()
     {
-        _mockSettingsRegistry.Setup(r => r.GetById("missing", It.IsAny<bool>()))
+        _mockSettingsRegistry.Setup(r => r.GetById("missing", It.IsAny<CatalogScope>()))
             .Returns((Setting?)null);
 
         var action = () => _service.ApplySettingAsync(new ApplySettingRequest

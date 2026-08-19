@@ -23,7 +23,7 @@ internal sealed class ConfigFileWriter : IConfigFileWriter
     public async Task WriteAsync(SelectionSet set, CatalogScope scope, string outputPath)
     {
         await _registry.InitializeAsync().ConfigureAwait(false);
-        var file = ConfigFileMapper.ToFile(set, _registry.GetAll(includeOtherOsVersions: scope.IncludeOtherOsVersions));
+        var file = ConfigFileMapper.ToFile(set, _registry.GetAll(scope));
         var json = JsonSerializer.Serialize(file, ConfigFileConstants.JsonOptions);
         await _files.WriteAllTextAsync(outputPath, json).ConfigureAwait(false);
         _log.Log(LogLevel.Info, $"Configuration written to {outputPath} ({set.Settings.Count} settings, {set.WindowsApps.Count + set.ExternalApps.Count} apps)");

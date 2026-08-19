@@ -16,6 +16,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
+    private readonly IHardwareFilterService _hardwareFilter;
     private readonly ILogService _logService;
 
     [ObservableProperty]
@@ -36,6 +37,12 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public string BuilderAutounattendTargetText =>
         _localizationService.GetStringOrDefault("Builder_Mode_Target_Autounattend", "Autounattend");
 
+    public bool ShowOtherHardware => !_hardwareFilter.IsFilterEnabled;
+
+    public string ShowOtherHardwareText => _localizationService.GetString("Builder_Mode_ShowOtherHardware");
+
+    public string ShowOtherHardwareTooltip => _localizationService.GetString("Builder_Mode_ShowOtherHardware_Tooltip");
+
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
             ? (_localizationService.GetStringOrDefault("Builder_Mode_Save_Autounattend", "Save autounattend.xml"))
@@ -50,6 +57,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         IDialogService dialogService,
+        IHardwareFilterService hardwareFilter,
         ILogService logService)
     {
         _applicationModeService = applicationModeService;
@@ -57,10 +65,12 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
+        _hardwareFilter = hardwareFilter;
         _logService = logService;
 
         _applicationModeService.ModeChanged += OnModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged += OnHardwareFilterChanged;
     }
 
     public void Dispose()
@@ -69,6 +79,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _disposed = true;
         _applicationModeService.ModeChanged -= OnModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged -= OnHardwareFilterChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -84,6 +95,15 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         }).FireAndForget(_logService);
     }
 
+    private void OnHardwareFilterChanged(object? sender, bool e)
+    {
+        _dispatcherService.RunOnUIThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(ShowOtherHardware));
+            return Task.CompletedTask;
+        }).FireAndForget(_logService);
+    }
+
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(BuilderModeTitleText));
@@ -92,7 +112,11 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderAutounattendTargetText));
         OnPropertyChanged(nameof(BuilderSaveButtonText));
         OnPropertyChanged(nameof(BuilderCancelButtonText));
+        OnPropertyChanged(nameof(ShowOtherHardwareText));
+        OnPropertyChanged(nameof(ShowOtherHardwareTooltip));
     }
+
+    public Task SetShowOtherHardwareAsync(bool show) => _hardwareFilter.SetAsync(!show);
 
     public void SelectConfigTarget()
     {

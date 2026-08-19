@@ -50,7 +50,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -73,7 +73,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -95,7 +95,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -116,7 +116,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -136,7 +136,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService
             .Setup(r => r.KeyExists(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection"))
             .Returns(true);
@@ -165,7 +165,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService
             .Setup(r => r.KeyExists(It.IsAny<string>()))
             .Returns(false);
@@ -191,7 +191,7 @@ public class PolicyCleanupServiceTests
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService.Setup(r => r.KeyExists(It.IsAny<string>())).Returns(true);
 
         _mockRegistryService
@@ -211,7 +211,7 @@ public class PolicyCleanupServiceTests
     [Fact]
     public void CollectPolicyKeyPaths_WithNoSettings_ReturnsEmpty()
     {
-        _mockRegistry.Setup(r => r.GetAll(true))
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false)))
             .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         var service = CreateService();

@@ -10,17 +10,17 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
     private readonly ISettingSnapshotSource _snapshot;
     private readonly IAppSelectionSource _apps;
     private readonly IApplicationModeService _mode;
-    private readonly IWindowsVersionFilterService _versionFilter;
+    private readonly ICatalogScopeProvider _scopeProvider;
 
-    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, IWindowsVersionFilterService versionFilter)
+    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, ICatalogScopeProvider scopeProvider)
     {
         _snapshot = snapshot;
         _apps = apps;
         _mode = mode;
-        _versionFilter = versionFilter;
+        _scopeProvider = scopeProvider;
     }
 
-    public CatalogScope CurrentScope => new(IncludeOtherOsVersions: !_versionFilter.IsFilterEnabled, IncludeOtherHardware: false);
+    public CatalogScope CurrentScope => _scopeProvider.Current;
 
     public async Task<SelectionSet> FromMachineAsync() =>
         new(await _snapshot.CaptureAsync(CurrentScope), await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync(), AutounattendChoices.None);

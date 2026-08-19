@@ -56,13 +56,16 @@ internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         _initialized = true;
     }
 
-    private bool IsMember(Setting s, bool includeOtherOsVersions)
+    private bool IsMember(Setting s, CatalogScope scope)
     {
-        var osHwOk = includeOtherOsVersions
-            ? CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, _caps)
-            : CatalogMembershipFilter.IsAvailable(s, _build, _caps);
-        if (!osHwOk) return false;
-        return !s.Availability.ValidatesExistence || _existencePassed.Contains(s.Id);
+        bool osOk = scope.IncludeOtherOsVersions || s.Availability.Allows(_build);
+        bool hwOk = scope.IncludeOtherHardware || CatalogMembershipFilter.PassesHardware(s.Availability, _caps);
+        if (!osOk || !hwOk) return false;
+        if (!s.Availability.ValidatesExistence) return true;
+        // A hardware-gated setting whose GUID is absent on this machine cannot pass existence but can be authored
+        // for another machine, so the hardware relax covers it. Hardware-neutral settings keep the existence gate.
+        bool hardwareGated = s.Availability.Hardware.Count > 0;
+        return _existencePassed.Contains(s.Id) || (scope.IncludeOtherHardware && hardwareGated);
     }
 
     // Without this an uninitialized registry answers over a default (0,0) build + empty existence set, silently
@@ -74,18 +77,18 @@ internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
             throw new InvalidOperationException("CatalogSettingsRegistry not initialized. Call InitializeAsync first.");
     }
 
-    public IReadOnlyList<Setting> GetByFeature(string featureId, bool includeOtherOsVersions = false)
+    public IReadOnlyList<Setting> GetByFeature(string featureId, CatalogScope scope = default)
     {
         EnsureInitialized();
         return SettingCatalog.ByFeature.TryGetValue(featureId, out var settings)
-            ? settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList()
+            ? settings.Where(s => IsMember(s, scope)).ToList()
             : Array.Empty<Setting>();
     }
 
-    public Setting? GetById(string settingId, bool includeOtherOsVersions = false)
+    public Setting? GetById(string settingId, CatalogScope scope = default)
     {
         EnsureInitialized();
-        return SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, includeOtherOsVersions)
+        return SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, scope)
             ? s
             : null;
     }
@@ -96,12 +99,12 @@ internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
         return _featureById.TryGetValue(SettingIdAliases.Normalize(settingId), out var f) ? f : null;
     }
 
-    public IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(bool includeOtherOsVersions = false)
+    public IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(CatalogScope scope = default)
     {
         EnsureInitialized();
         var result = new Dictionary<string, IReadOnlyList<Setting>>();
         foreach (var (featureId, settings) in SettingCatalog.ByFeature)
-            result[featureId] = settings.Where(s => IsMember(s, includeOtherOsVersions)).ToList();
+            result[featureId] = settings.Where(s => IsMember(s, scope)).ToList();
         return result;
     }
 }

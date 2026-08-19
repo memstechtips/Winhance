@@ -13,7 +13,7 @@ public class SettingLocalizationServiceTests
 {
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ICatalogSettingsRegistry> _catalogSettingsRegistry = new();
-    private readonly Mock<IWindowsVersionFilterService> _windowsVersionFilter = new();
+    private readonly Mock<ICatalogScopeProvider> _scopeProvider = new();
 
     public SettingLocalizationServiceTests()
     {
@@ -22,14 +22,14 @@ public class SettingLocalizationServiceTests
             .Returns<string>(k => $"[{k}]");
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _localizationService.MirrorTryGetString();
-        // Default: filter ON (the normal mode) -> the service passes includeOtherOsVersions: false
-        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
+        // Default: both filters ON (the normal mode) -> the service passes the current-machine scope
+        _scopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
     }
 
     private SettingLocalizationService CreateSut() => new(
         _localizationService.Object,
         _catalogSettingsRegistry.Object,
-        _windowsVersionFilter.Object);
+        _scopeProvider.Object);
 
     private static Setting CreateTestSetting(
         string id = "test-setting",
@@ -85,7 +85,7 @@ public class SettingLocalizationServiceTests
                 GroupName = "Privacy_Group",
             },
         };
-        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<bool>()))
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<CatalogScope>()))
             .Returns(childSetting);
 
         _localizationService.Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
@@ -107,8 +107,8 @@ public class SettingLocalizationServiceTests
         result.Should().Contain("Localized Child");
         // Pin the group-key construction (feature name + localized group) so a wrong Display field read fails.
         result.Should().Contain("Privacy & Security (Privacy Group Localized)");
-        // Pin the mode threading: filter ON must query the current-OS scope (includeOtherOsVersions: false).
-        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", false), Times.Once);
+        // Pin the mode threading: both filters ON must query the current-machine scope.
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", CatalogScope.CurrentMachine), Times.Once);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class SettingLocalizationServiceTests
         };
 
         // An id outside the mode-scoped catalog membership resolves to null.
-        _catalogSettingsRegistry.Setup(r => r.GetById("unknown-child1", It.IsAny<bool>()))
+        _catalogSettingsRegistry.Setup(r => r.GetById("unknown-child1", It.IsAny<CatalogScope>()))
             .Returns((Setting?)null);
 
         var sut = CreateSut();
@@ -139,7 +139,7 @@ public class SettingLocalizationServiceTests
             ["privacy-child1"] = "Setting_Child1_Name"
         };
 
-        _windowsVersionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+        _scopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
 
         var childSetting = new Setting
         {
@@ -151,9 +151,9 @@ public class SettingLocalizationServiceTests
                 GroupName = "Privacy_Group",
             },
         };
-        // Strict on the scope arg: only includeOtherOsVersions: true resolves - a false arg returns
-        // null and fails NotBeNull, so the !IsFilterEnabled threading is load-bearing here.
-        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", true))
+        // Strict on the scope arg: only the other-OS-versions scope resolves - the current-machine scope
+        // returns null and fails NotBeNull, so the provider threading is load-bearing here.
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", new CatalogScope(true, false)))
             .Returns(childSetting);
 
         var sut = CreateSut();
@@ -162,6 +162,6 @@ public class SettingLocalizationServiceTests
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
         result.Should().NotBeNull();
-        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", true), Times.Once);
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", new CatalogScope(true, false)), Times.Once);
     }
 }

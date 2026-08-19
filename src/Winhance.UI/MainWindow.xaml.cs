@@ -684,6 +684,11 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         ViewModel?.BuilderModeBar.SelectAutounattendTarget();
     }
 
+    private void BuilderOtherHardwareCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.BuilderModeBar.SetShowOtherHardwareAsync(BuilderOtherHardwareCheck.IsChecked == true).FireAndForget(_logService!);
+    }
+
     private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         var tag = sender.Key switch

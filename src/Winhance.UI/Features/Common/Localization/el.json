@@ -74,6 +74,8 @@
   "Builder_Mode_Target_Config": "Διαμόρφωση",
   "Builder_Mode_Target_Autounattend": "Autounattend",
   "Builder_Mode_Save_Config": "Αποθήκευση Διαμόρφωσης",
+  "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
+  "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
   "Builder_Mode_Save_Autounattend": "Αποθήκευση autounattend.xml",
   "Builder_Mode_Cancel_Confirmation_Title": "Έξοδος από τη Λειτουργία Δημιουργού",
   "Builder_Mode_Cancel_Confirmation": "Έξοδος από τη Λειτουργία Δημιουργού; Οι επιλογές σας εδώ θα απορριφθούν. Δεν εφαρμόστηκε τίποτα στο σύστημά σας.",

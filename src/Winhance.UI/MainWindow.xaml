@@ -386,6 +386,15 @@
                              IsChecked="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
                              Checked="BuilderAutounattendRadio_Checked"
                              Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                <CheckBox x:Name="BuilderOtherHardwareCheck"
+                          Content="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareText, Mode=OneWay}"
+                          IsChecked="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardware, Mode=OneWay}"
+                          ToolTipService.ToolTip="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareTooltip, Mode=OneWay}"
+                          Checked="BuilderOtherHardwareCheck_Changed"
+                          Unchecked="BuilderOtherHardwareCheck_Changed"
+                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                          VerticalAlignment="Center"
+                          MinWidth="0"/>
             </StackPanel>
 
             <Button Grid.Column="5"

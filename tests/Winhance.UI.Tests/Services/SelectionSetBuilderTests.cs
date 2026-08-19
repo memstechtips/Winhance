@@ -14,11 +14,11 @@ public class SelectionSetBuilderTests
     private readonly Mock<ISettingSnapshotSource> _snapshot = new();
     private readonly Mock<IAppSelectionSource> _apps = new();
     private readonly Mock<IApplicationModeService> _mode = new();
-    private readonly Mock<IWindowsVersionFilterService> _versionFilter = new();
+    private readonly Mock<ICatalogScopeProvider> _scopeProvider = new();
 
     public SelectionSetBuilderTests()
     {
-        _versionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
+        _scopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
 
         _snapshot.Setup(s => s.CaptureAsync(It.IsAny<CatalogScope>()))
             .ReturnsAsync(new List<SettingChoice>());
@@ -31,7 +31,7 @@ public class SelectionSetBuilderTests
     }
 
     private SelectionSetBuilder CreateSut() =>
-        new(_snapshot.Object, _apps.Object, _mode.Object, _versionFilter.Object);
+        new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object);
 
     private static AppChoice Appx(string id) => new(id, id, [$"{id}.Package"], null, null, null);
 
@@ -114,18 +114,18 @@ public class SelectionSetBuilderTests
     }
 
     [Fact]
-    public async Task CurrentScope_ReflectsTheVersionFilter()
+    public async Task CurrentScope_ComesFromTheScopeProvider()
     {
         var sut = CreateSut();
 
         sut.CurrentScope.Should().Be(new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: false));
 
-        _versionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
+        _scopeProvider.Setup(p => p.Current).Returns(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: true));
 
-        sut.CurrentScope.Should().Be(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
+        sut.CurrentScope.Should().Be(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: true));
 
         await sut.FromMachineAsync();
 
-        _snapshot.Verify(s => s.CaptureAsync(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false)), Times.Once);
+        _snapshot.Verify(s => s.CaptureAsync(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: true)), Times.Once);
     }
 }

@@ -74,6 +74,8 @@
   "Builder_Mode_Target_Config": "Konfigurasie",
   "Builder_Mode_Target_Autounattend": "Autounattend",
   "Builder_Mode_Save_Config": "Stoor konfigurasie",
+  "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
+  "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
   "Builder_Mode_Save_Autounattend": "Stoor autounattend.xml",
   "Builder_Mode_Cancel_Confirmation_Title": "Verlaat Bouer-modus",
   "Builder_Mode_Cancel_Confirmation": "Verlaat Bouer-modus? Jou keuses hier sal weggegooi word. Niks is op jou stelsel toegepas nie.",

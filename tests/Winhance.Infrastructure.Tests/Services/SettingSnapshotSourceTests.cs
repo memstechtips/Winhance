@@ -21,7 +21,7 @@ public class SettingSnapshotSourceTests
     private void Arrange(Setting setting, SettingStateResult state)
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>()))
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
             .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } });
         _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult> { [setting.Id] = state });
@@ -136,7 +136,7 @@ public class SettingSnapshotSourceTests
     public async Task SettingWithNoState_IsOmitted()
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>()))
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
             .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { ParityFixtures.Toggle("t") } });
         _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>())).ReturnsAsync(new Dictionary<string, SettingStateResult>());
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
@@ -146,7 +146,7 @@ public class SettingSnapshotSourceTests
     public async Task FeatureOutsideOptimizeAndCustomize_IsSkipped()
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>()))
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
             .Returns(new Dictionary<string, IReadOnlyList<Setting>> { ["SomethingElse"] = new[] { ParityFixtures.Toggle("t") } });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
         _states.Verify(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()), Times.Never);
@@ -157,6 +157,6 @@ public class SettingSnapshotSourceTests
     {
         Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = false });
         await Sut().CaptureAsync(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
-        _registry.Verify(r => r.GetAll(true), Times.Once);
+        _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
     }
 }

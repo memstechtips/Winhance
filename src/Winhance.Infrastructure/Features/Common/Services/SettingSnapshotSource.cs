@@ -25,7 +25,7 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
         await _registry.InitializeAsync().ConfigureAwait(false);
         var choices = new List<SettingChoice>();
 
-        foreach (var (featureId, settings) in _registry.GetAll(includeOtherOsVersions: scope.IncludeOtherOsVersions))
+        foreach (var (featureId, settings) in _registry.GetAll(scope))
         {
             if (settings.Count == 0) continue;
             if (!FeatureDefinitions.OptimizeFeatures.Contains(featureId) && !FeatureDefinitions.CustomizeFeatures.Contains(featureId))

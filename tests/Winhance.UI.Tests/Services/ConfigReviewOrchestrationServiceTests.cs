@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -26,6 +27,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
+    private readonly Mock<IHardwareFilterService> _mockHardwareFilter = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -42,6 +44,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockChangeHistoryService
             .Setup(h => h.BeginBatch(It.IsAny<string>()))
             .Returns(Mock.Of<IDisposable>());
+
+        _mockHardwareFilter.Setup(h => h.ResetAsync()).Returns(Task.CompletedTask);
     }
 
     private ConfigReviewOrchestrationService CreateService()
@@ -61,7 +65,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockEventBus.Object,
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
-            _mockChangeHistoryService.Object);
+            _mockChangeHistoryService.Object,
+            _mockHardwareFilter.Object);
         return _service;
     }
 
@@ -157,6 +162,32 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
         _mockEventBus.Verify(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilter()
+    {
+        // Authoring for hardware this PC does not have is Builder-only; anywhere else those settings
+        // would read as applicable and apply to nothing.
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_StayingOutsideAuthoring_LeavesTheHardwareFilterAlone()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        var service = CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Never);
     }
 
     [Fact]

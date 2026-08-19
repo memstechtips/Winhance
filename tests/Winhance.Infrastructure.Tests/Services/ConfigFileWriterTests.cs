@@ -20,7 +20,7 @@ public class ConfigFileWriterTests
 
     public ConfigFileWriterTests()
     {
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Privacy] = new[] { ParityFixtures.Toggle("t") },
             [FeatureIds.ExplorerCustomization] = new[] { ParityFixtures.Selection("s") },
@@ -58,13 +58,13 @@ public class ConfigFileWriterTests
         await Sut().WriteAsync(Selections(), new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false), OutputPath);
 
         _registry.Verify(r => r.InitializeAsync(), Times.Once);
-        _registry.Verify(r => r.GetAll(true), Times.Once);
+        _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
     }
 
     [Fact]
     public async Task WriteAsync_AuthoredPowerPlan_WritesGuidAndName()
     {
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Power] = new[] { ParityFixtures.PowerPlanSetting() },
         });

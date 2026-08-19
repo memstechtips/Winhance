@@ -78,8 +78,8 @@ public class ConfigurationApplicationBridgeServiceTests
     {
         var byId = settings.ToDictionary(s => s.Id);
         _mockRegistry
-            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<bool>()))
-            .Returns((string id, bool _) => byId.TryGetValue(id, out var s) ? s : null);
+            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()))
+            .Returns<string, CatalogScope>((id, _) => byId.TryGetValue(id, out var s) ? s : null);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public class ConfigurationApplicationBridgeServiceTests
     public async Task ApplyConfigurationSectionAsync_SettingNotInRegistry_SkippedAsOsIncompatible()
     {
         _mockRegistry
-            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<bool>()))
+            .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()))
             .Returns((Setting?)null);
 
         var section = new ConfigSection

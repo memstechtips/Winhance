@@ -19,7 +19,7 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInitializationService> _mockInitializationService = new();
     private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
-    private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilterService = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScopeProvider = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
@@ -35,9 +35,9 @@ public class SettingsLoadingServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        // Filter ON is the default: the service must request the current-OS scope
-        // (GetByFeature(feature, includeOtherOsVersions: false)). Filter-OFF facts override per-test.
-        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(true);
+        // Both filters ON is the default: the service must request the current-machine scope.
+        // Relaxed-scope facts override per-test.
+        _mockScopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
 
         // A fixed live build for compatibility-message derivation (Windows 11 24H2).
         _mockWindowsVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
@@ -48,7 +48,7 @@ public class SettingsLoadingServiceTests
             _mockLogService.Object,
             _mockInitializationService.Object,
             _mockCatalogSettingsRegistry.Object,
-            _mockWindowsVersionFilterService.Object,
+            _mockScopeProvider.Object,
             _mockWindowsVersionService.Object,
             _mockUserPreferencesService.Object,
             _mockViewModelFactory.Object,
@@ -67,7 +67,7 @@ public class SettingsLoadingServiceTests
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", false))
+            .Setup(r => r.GetByFeature("TestFeature", CatalogScope.CurrentMachine))
             .Returns(settings);
 
         _mockSettingStateProvider
@@ -102,8 +102,8 @@ public class SettingsLoadingServiceTests
 
         result.Should().HaveCount(2);
 
-        // Mode pin: filter ON (the default here) must request the current-OS scope.
-        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", false), Times.Once);
+        // Mode pin: both filters ON (the default here) must request the current-machine scope.
+        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", CatalogScope.CurrentMachine), Times.Once);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class SettingsLoadingServiceTests
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", false))
+            .Setup(r => r.GetByFeature("TestFeature", CatalogScope.CurrentMachine))
             .Returns(settings);
 
         _mockSettingStateProvider
@@ -154,7 +154,7 @@ public class SettingsLoadingServiceTests
     {
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<CatalogScope>()))
             .Returns(new List<Setting>());
 
         _mockSettingStateProvider
@@ -177,7 +177,7 @@ public class SettingsLoadingServiceTests
     {
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("TestFeature", It.IsAny<CatalogScope>()))
             .Throws(new Exception("Registry error"));
 
         var act = () => _sut.LoadConfiguredSettingsAsync(
@@ -192,7 +192,7 @@ public class SettingsLoadingServiceTests
     {
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("EmptyFeature", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("EmptyFeature", It.IsAny<CatalogScope>()))
             .Returns(new List<Setting>());
 
         _mockSettingStateProvider
@@ -212,13 +212,13 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_WhenFilterDisabled_LoadsTheOtherOsVersionsScope()
     {
-        // STRICT filter-OFF pin: ONLY the includeOtherOsVersions: true scope is set up. If the service failed
-        // to thread !IsFilterEnabled through to GetByFeature, the false-arg call would return Moq's empty
-        // default and the count assert below would fail - the scope threading is load-bearing.
-        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(false);
+        // STRICT filter-OFF pin: ONLY the other-OS-versions scope is set up. If the service failed to
+        // thread the provider's scope through to GetByFeature, the current-machine call would return Moq's
+        // empty default and the count assert below would fail - the scope threading is load-bearing.
+        _mockScopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", true))
+            .Setup(r => r.GetByFeature("TestFeature", new CatalogScope(true, false)))
             .Returns(new List<Setting> { CreateCatalogSetting("security-workplace-join-messages") });
 
         _mockSettingStateProvider
@@ -248,7 +248,7 @@ public class SettingsLoadingServiceTests
             "TestFeature", "Loading...", null);
 
         result.Should().HaveCount(1);
-        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", true), Times.Once);
+        _mockCatalogSettingsRegistry.Verify(r => r.GetByFeature("TestFeature", new CatalogScope(true, false)), Times.Once);
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public class SettingsLoadingServiceTests
         // "Compatibility_Windows10Only" (AvailabilityCompatibility), which the service localizes before the
         // factory call. GetString is mocked key-verbatim (this file's convention), so the factory receives
         // the key itself.
-        _mockWindowsVersionFilterService.Setup(f => f.IsFilterEnabled).Returns(false);
+        _mockScopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
         _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _mockLocalization.MirrorTryGetString();
@@ -271,7 +271,7 @@ public class SettingsLoadingServiceTests
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", true))
+            .Setup(r => r.GetByFeature("TestFeature", new CatalogScope(true, false)))
             .Returns(new List<Setting> { win10Only });
 
         _mockSettingStateProvider
@@ -333,7 +333,7 @@ public class SettingsLoadingServiceTests
         var selectionSetting = CreateCatalogSetting("explorer-customization-measurement-system");
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestFeature", false))
+            .Setup(r => r.GetByFeature("TestFeature", CatalogScope.CurrentMachine))
             .Returns(new List<Setting> { selectionSetting });
 
         _mockSettingStateProvider
@@ -376,10 +376,10 @@ public class SettingsLoadingServiceTests
 
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
-        // Exact-arg setup doubles as the refresh-path filter-ON pin: a true-arg call would return Moq's
-        // empty default and the lookup below would fail.
+        // Exact-arg setup doubles as the refresh-path filter-ON pin: a relaxed-scope call would return
+        // Moq's empty default and the lookup below would fail.
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestModule", false))
+            .Setup(r => r.GetByFeature("TestModule", CatalogScope.CurrentMachine))
             .Returns(new List<Setting> { selectionSetting });
 
         var vm = CreateMockSettingItemViewModel("SelectSetting", parent.Object);
@@ -407,7 +407,7 @@ public class SettingsLoadingServiceTests
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestModule", false))
+            .Setup(r => r.GetByFeature("TestModule", CatalogScope.CurrentMachine))
             .Returns(new List<Setting> { toggleSetting, selectionSetting, numericSetting });
 
         var vms = new[]
@@ -444,7 +444,7 @@ public class SettingsLoadingServiceTests
         var parent = new Mock<ISettingsFeatureViewModel>();
         parent.Setup(p => p.ModuleId).Returns("TestModule");
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("TestModule", false))
+            .Setup(r => r.GetByFeature("TestModule", CatalogScope.CurrentMachine))
             .Returns(new List<Setting> { setting1, setting2, setting3 });
 
         var vms = new[]

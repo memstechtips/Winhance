@@ -47,7 +47,7 @@ public class BulkSettingsActionServiceTests
     {
         foreach (var s in settings)
             // The registry returns the catalog Setting directly: the round-trip reads its States + roles.
-            _settingsRegistry.Setup(r => r.GetById(s.Id, It.IsAny<bool>())).Returns(s);
+            _settingsRegistry.Setup(r => r.GetById(s.Id, It.IsAny<CatalogScope>())).Returns(s);
 
         _processRestartManager
             .Setup(p => p.SuppressRestarts())

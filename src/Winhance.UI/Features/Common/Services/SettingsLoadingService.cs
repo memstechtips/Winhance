@@ -14,7 +14,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ILogService _logService;
     private readonly IInitializationService _initializationService;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
-    private readonly IWindowsVersionFilterService _windowsVersionFilterService;
+    private readonly ICatalogScopeProvider _scopeProvider;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ISettingViewModelFactory _viewModelFactory;
@@ -27,7 +27,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         ILogService logService,
         IInitializationService initializationService,
         ICatalogSettingsRegistry catalogSettingsRegistry,
-        IWindowsVersionFilterService windowsVersionFilterService,
+        ICatalogScopeProvider scopeProvider,
         IWindowsVersionService windowsVersionService,
         IUserPreferencesService userPreferencesService,
         ISettingViewModelFactory viewModelFactory,
@@ -39,7 +39,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _logService = logService;
         _initializationService = initializationService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
-        _windowsVersionFilterService = windowsVersionFilterService;
+        _scopeProvider = scopeProvider;
         _windowsVersionService = windowsVersionService;
         _userPreferencesService = userPreferencesService;
         _viewModelFactory = viewModelFactory;
@@ -58,7 +58,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
             _initializationService.StartFeatureInitialization(featureModuleId);
 
-            var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled);
+            var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, _scopeProvider.Current);
 
             var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
@@ -123,7 +123,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             .Select(s => s.ParentFeatureViewModel?.ModuleId)
             .Where(m => !string.IsNullOrEmpty(m))
             .Distinct()
-            .SelectMany(m => _catalogSettingsRegistry.GetByFeature(m!, includeOtherOsVersions: !_windowsVersionFilterService.IsFilterEnabled))
+            .SelectMany(m => _catalogSettingsRegistry.GetByFeature(m!, _scopeProvider.Current))
             .Where(c => wantedIds.Contains(c.Id))
             .GroupBy(c => c.Id)
             .Select(g => g.First())

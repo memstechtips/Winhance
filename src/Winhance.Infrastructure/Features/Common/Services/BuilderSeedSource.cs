@@ -29,7 +29,7 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
         bool useRecommended = seed == BuilderSeed.Recommended;
         var choices = new List<SettingChoice>();
 
-        foreach (var settings in _registry.GetAll(includeOtherOsVersions: scope.IncludeOtherOsVersions).Values)
+        foreach (var settings in _registry.GetAll(scope).Values)
         {
             foreach (var setting in settings)
             {

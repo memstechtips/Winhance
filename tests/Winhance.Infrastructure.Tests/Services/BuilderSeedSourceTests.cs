@@ -38,7 +38,7 @@ public class BuilderSeedSourceTests
     private BuilderSeedSource Sut() => new(_registry.Object, _version.Object, _log.Object);
 
     private void Arrange(Setting setting) =>
-        _registry.Setup(r => r.GetAll(It.IsAny<bool>()))
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
             .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } });
 
     private static Setting Toggle(StateRole[] enabled, StateRole[] disabled) => new()
@@ -183,7 +183,7 @@ public class BuilderSeedSourceTests
         var choices = await Sut().ChoicesForAsync(BuilderSeed.CurrentMachine, CatalogScope.CurrentMachine);
 
         choices.Should().BeEmpty();
-        _registry.Verify(r => r.GetAll(It.IsAny<bool>()), Times.Never);
+        _registry.Verify(r => r.GetAll(It.IsAny<CatalogScope>()), Times.Never);
     }
 
     [Fact]
@@ -193,6 +193,6 @@ public class BuilderSeedSourceTests
 
         await Sut().ChoicesForAsync(BuilderSeed.Recommended, new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
 
-        _registry.Verify(r => r.GetAll(true), Times.Once);
+        _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
     }
 }

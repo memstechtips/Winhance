@@ -35,7 +35,7 @@ internal sealed class AutounattendWriter : IAutounattendWriter
     public async Task<string> WriteAsync(SelectionSet set, CatalogScope scope, string outputPath)
     {
         await _registry.InitializeAsync().ConfigureAwait(false);
-        var byFeature = _registry.GetAll(includeOtherOsVersions: scope.IncludeOtherOsVersions);
+        var byFeature = _registry.GetAll(scope);
 
         _log.Log(LogLevel.Info, $"Generating autounattend.xml from {set.Settings.Count} setting choices and {set.WindowsApps.Count} Windows apps");
         var script = await _scriptBuilder.BuildAsync(set, byFeature).ConfigureAwait(false);

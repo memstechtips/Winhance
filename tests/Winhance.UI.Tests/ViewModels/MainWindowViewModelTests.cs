@@ -31,6 +31,7 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IBuilderSaveService> _mockBuilderSaveService = new();
+    private readonly Mock<IHardwareFilterService> _mockHardwareFilterService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IBuilderSeedSource> _mockBuilderSeedSource = new();
     private readonly Mock<ISelectionSetBuilder> _mockSelectionSetBuilder = new();
@@ -94,6 +95,7 @@ public class MainWindowViewModelTests : IDisposable
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
+            _mockHardwareFilterService.Object,
             _mockLogService.Object);
     }
 

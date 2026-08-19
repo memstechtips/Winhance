@@ -50,6 +50,8 @@ public static class UIServicesExtensions
         services.AddSingleton<IStartupOrchestrator, StartupOrchestrator>();
 
         services.AddSingleton<IWindowsVersionFilterService, WindowsVersionFilterService>();
+        services.AddSingleton<IHardwareFilterService, HardwareFilterService>();
+        services.AddSingleton<ICatalogScopeProvider, CatalogScopeProvider>();
 
         services.AddSingleton<IConfigLoadService, ConfigLoadService>();
         services.AddSingleton<IConfigAppSelectionService, ConfigAppSelectionService>();
