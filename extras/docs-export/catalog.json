@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "winhanceVersion": "26.08.18",
-  "catalogHash": "fdb6778eeb956aa16e3d20d470c2df4473df512fd3ddbba9f62299bd6cf1b73a",
+  "catalogHash": "6e519d928288f5b74582e4deb5b968a59b9b06b15b06542cd726fd1afcf1fe5b",
   "settingCount": 414,
   "referenceBuilds": {
     "win10": 19045,
@@ -16,6 +16,10 @@
           "name": "Choose your mode",
           "description": "Choose between Light and Dark mode for Windows and apps",
           "group": "Theme mode",
+          "icon": {
+            "pack": "Material",
+            "name": "BrushVariant"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -421,6 +425,10 @@
           "name": "Apps Use Light Theme",
           "description": "Use the light theme for apps such as Settings and File Explorer",
           "group": "Theme mode",
+          "icon": {
+            "pack": "Material",
+            "name": "Apps"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.07.22",
@@ -533,6 +541,10 @@
           "name": "Windows Uses Light Theme",
           "description": "Use the light theme for the Windows shell, including the taskbar, Start menu, and notification center",
           "group": "Theme mode",
+          "icon": {
+            "pack": "Material",
+            "name": "Monitor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.07.22",
@@ -736,6 +748,10 @@
           "name": "Transparency effects",
           "description": "Enable translucent effects for the Start Menu, taskbar, and other Windows interface elements",
           "group": "Transparency",
+          "icon": {
+            "pack": "Material",
+            "name": "Opacity"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -853,6 +869,10 @@
           "name": "Shortcut Naming",
           "description": "Controls whether Windows appends \u0027- Shortcut\u0027 text to newly created shortcut file names",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "LinkVariant"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -973,6 +993,10 @@
           "name": "Shortcut Arrow Icon",
           "description": "Controls the small arrow overlay on desktop shortcut icons",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "ArrowTopLeftBoldOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.03.26",
@@ -1131,6 +1155,10 @@
           "name": "Show This PC on desktop",
           "description": "Displays the This PC (Computer) icon on the desktop",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "Monitor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -1257,6 +1285,10 @@
           "name": "Show Recycle Bin on desktop",
           "description": "Displays the Recycle Bin icon on the desktop",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "TrashCanOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -1383,6 +1415,10 @@
           "name": "Show User\u0027s Files on desktop",
           "description": "Displays the current user\u0027s profile folder icon on the desktop",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "FolderAccount"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -1509,6 +1545,10 @@
           "name": "Show Control Panel on desktop",
           "description": "Displays the Control Panel icon on the desktop",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "ViewGrid"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -1635,6 +1675,10 @@
           "name": "Show Network on desktop",
           "description": "Displays the Network icon on the desktop",
           "group": "Desktop",
+          "icon": {
+            "pack": "Material",
+            "name": "NetworkOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -1761,6 +1805,10 @@
           "name": "Use Classic Context Menu",
           "description": "Use the Windows 10-style right-click menu with all options visible instead of the simplified Windows 11 menu",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Navigation"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -1886,6 +1934,10 @@
           "name": "Add \u0027Take Ownership\u0027 to Context Menu",
           "description": "Adds a right-click option to take ownership of files, folders, and drives with automatic permission elevation. May require temporarily disabling Windows Defender for protected files",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "Security"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -2051,6 +2103,10 @@
           "name": "Add \u0027Show/Hide Extensions\u0027 to Context Menu",
           "description": "Adds a right-click menu option to quickly toggle file extension visibility in File Explorer (only visible on the Classic Context Menu or Show More Options Menu in Windows 11)",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentQuestionMark"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -2224,6 +2280,10 @@
           "name": "Show \u0027Open in Windows Terminal\u0027 in Context Menu",
           "description": "Displays the Windows Terminal option when right-clicking folders and backgrounds in File Explorer",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "Console"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -2341,6 +2401,10 @@
           "name": "Add \u0027SFC /SCANNOW\u0027 to Context Menu",
           "description": "Adds right-click options to run System File Checker (SFC /SCANNOW) and view scan details from the desktop or folder background",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "MagnifyScan"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.09",
@@ -2514,6 +2578,10 @@
           "name": "Add \u0027Repair Windows Image\u0027 to Context Menu",
           "description": "Adds a right-click option to run DISM /RestoreHealth to repair the Windows system image from the desktop or folder background",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "MedicalBag"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.09",
@@ -2728,6 +2796,10 @@
           "name": "Add \u0027CHKDSK\u0027 to Context Menu",
           "description": "Adds right-click options to run CHKDSK from the desktop or folder background with a prompt to select the drive letter",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "Harddisk"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.09",
@@ -2901,6 +2973,10 @@
           "name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
           "description": "Adds a right-click cascading menu to .ps1 files with options to run or edit with PowerShell, PowerShell 7, PowerShell ISE, and Notepad (including as administrator). PowerShell 7 must be installed separately for the PowerShell 7 options to work",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "Powershell"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.09",
@@ -3074,6 +3150,10 @@
           "name": "Add \u0027Compress To\u0027 to Context Menu",
           "description": "Adds a right-click option to compress files and folders into various archive formats (ZIP, 7z, TAR) directly from the classic context menu",
           "group": "Context Menu",
+          "icon": {
+            "pack": "Fluent",
+            "name": "FolderZip"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.09",
@@ -3252,6 +3332,10 @@
           "name": "Use Dynamic Lighting on my devices",
           "description": "Allow Windows Dynamic Lighting to control ambient RGB effects on compatible devices",
           "group": "Devices and Peripherals",
+          "icon": {
+            "pack": "Material",
+            "name": "TelevisionAmbientLight"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -3369,6 +3453,10 @@
           "name": "Compatible apps in the foreground always control lighting",
           "description": "Allow compatible apps to control device lighting effects",
           "group": "Devices and Peripherals",
+          "icon": {
+            "pack": "Material",
+            "name": "StringLightsOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -3486,6 +3574,10 @@
           "name": "Automatic Default Printer Management",
           "description": "Let Windows automatically set your default printer based on your location or last used printer",
           "group": "Devices and Peripherals",
+          "icon": {
+            "pack": "Material",
+            "name": "PrinterOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -3598,6 +3690,10 @@
           "name": "Open File Explorer to",
           "description": "Choose what happens when File Explorer is opened",
           "group": "General",
+          "icon": {
+            "pack": "Fluent",
+            "name": "FolderOpen"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -3742,6 +3838,10 @@
           "name": "Browse folders",
           "description": "Choose whether each folder opens in the same window or in its own window",
           "group": "General",
+          "icon": {
+            "pack": "Fluent",
+            "name": "FolderList"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -3870,6 +3970,10 @@
           "name": "Click items as follows",
           "description": "Choose whether to open files and folders with a single click (like web links) or double-click (traditional)",
           "group": "General",
+          "icon": {
+            "pack": "Fluent",
+            "name": "CursorClick"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -4038,6 +4142,10 @@
           "name": "Show recently used files",
           "description": "Displays recently accessed files and recommendations in Quick Access",
           "group": "General",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentTextClock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -4169,6 +4277,10 @@
           "name": "Show frequently used folders",
           "description": "Displays your most accessed folders in Quick Access section",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "FolderClockOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -4281,6 +4393,10 @@
           "name": "Show files from Office.com",
           "description": "Displays cloud files from your Office.com account in Quick Access",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "FileCloud"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -4398,6 +4514,10 @@
           "name": "Always show icons, never thumbnails",
           "description": "Displays generic file icons instead of image/document previews",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -4510,6 +4630,10 @@
           "name": "Always show menus",
           "description": "Shows the Menu bar (File, Edit etc.) on all windows that support it",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "WindowApps"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -4627,6 +4751,10 @@
           "name": "Decrease space between items (compact view)",
           "description": "Reduces vertical spacing between files and folders for denser view",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "ViewCompact"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -4744,6 +4872,10 @@
           "name": "Display file icon on thumbnails",
           "description": "Shows file type icon overlay on bottom-right corner of thumbnail previews",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentImage"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -4856,6 +4988,10 @@
           "name": "Icon cache size",
           "description": "Sets the maximum number of icons Explorer keeps cached, so it reloads them from disk less often when browsing folders with many files",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Cached"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.08",
@@ -4992,6 +5128,10 @@
           "name": "Automatic thumbnail cache cleanup",
           "description": "Lets Windows clear the thumbnail cache during automatic disk maintenance. Turn this off to keep cached thumbnails so Explorer does not have to regenerate them when you reopen folders",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ImageMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.08",
@@ -5110,6 +5250,10 @@
           "name": "Display file size information in folder tips",
           "description": "Shows total size and file count when hovering over folders",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentEndnote"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5222,6 +5366,10 @@
           "name": "Display the full path in the title bar",
           "description": "Shows complete directory path in window title instead of folder name only",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "PanelTopExpand"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5334,6 +5482,10 @@
           "name": "Show hidden files, folders \u0026 drives",
           "description": "Displays items with the hidden attribute set",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "FileEyeOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5446,6 +5598,10 @@
           "name": "Hide empty drives",
           "description": "Hides drives with no media inserted like empty card readers or optical drives",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "HarddiskRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5558,6 +5714,10 @@
           "name": "Show file extensions",
           "description": "Displays file type extensions (like .txt, .pdf) after file names",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentQuestionMark"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5670,6 +5830,10 @@
           "name": "Show .lnk file extension",
           "description": "Shows the .lnk extension on shortcut files when file extensions are enabled. Helps spot malicious shortcuts disguised as folders or documents. Once enabled, some Start Menu names may keep showing .lnk even after turning this off.",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentQuestionMark"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.21",
@@ -5797,6 +5961,10 @@
           "name": "Enable Windows Photo Viewer",
           "description": "Restore the legacy Windows Photo Viewer and set it as the default program for common image file formats",
           "group": "File Associations",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -5962,6 +6130,10 @@
           "name": "Use Legacy Notepad for text files",
           "description": "Makes legacy Notepad available as a file handler and disables the Store Notepad redirect. Requires Notepad (Legacy) capability to be installed",
           "group": "File Associations",
+          "icon": {
+            "pack": "Fluent",
+            "name": "NotepadEdit"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -6154,6 +6326,10 @@
           "name": "Hide folder merge conflicts",
           "description": "Automatically merges folders with same name without confirmation dialog",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "FolderAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6266,6 +6442,10 @@
           "name": "Show protected operating system files",
           "description": "Displays system files marked with the SuperHidden attribute",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "FileHidden"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6378,6 +6558,10 @@
           "name": "Launch folder windows in a separate process",
           "description": "Runs each Explorer window in its own process to prevent crashes affecting all windows",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "WindowRestore"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6490,6 +6674,10 @@
           "name": "Restore previous folder windows at logon",
           "description": "Reopens Explorer windows that were open when you last shut down or logged off",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "WindowAd"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6602,6 +6790,10 @@
           "name": "Show drive letters",
           "description": "Displays drive letters (C:, D:) before drive names in This PC",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "AlphaCBox"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6714,6 +6906,10 @@
           "name": "Show encrypted or compressed NTFS files in color",
           "description": "Displays encrypted files in green and compressed files in blue",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DocumentLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6826,6 +7022,10 @@
           "name": "Show pop-up description for folder and desktop items",
           "description": "Displays tooltip with item details when hovering over files and folders",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "TooltipText"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -6938,6 +7138,10 @@
           "name": "Show preview handlers in preview pane",
           "description": "Enables file content preview when selecting files in Explorer",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "TableEye"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7050,6 +7254,10 @@
           "name": "Show status bar",
           "description": "Displays bar at bottom showing item count and selected file sizes",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "DockBottom"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7162,6 +7370,10 @@
           "name": "Show sync provider notifications",
           "description": "Displays cloud sync status notifications from OneDrive and other sync providers",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudSync"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7274,6 +7486,10 @@
           "name": "Use check boxes to select items",
           "description": "Adds checkboxes next to items for easier multi-selection",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "CheckboxMarked"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7386,6 +7602,10 @@
           "name": "Use sharing wizard",
           "description": "Shows simplified sharing dialog instead of advanced security permissions",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ShareAndroid"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7498,6 +7718,10 @@
           "name": "When typing into list view",
           "description": "Chooses whether typing selects matching items or searches automatically",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "KeyboardOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -7610,6 +7834,10 @@
           "name": "Show Desktop in This PC",
           "description": "Displays the Desktop folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Monitor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -7911,6 +8139,10 @@
           "name": "Show Documents in This PC",
           "description": "Displays the Documents folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "FileDocument"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -8212,6 +8444,10 @@
           "name": "Show Downloads in This PC",
           "description": "Displays the Downloads folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Download"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -8513,6 +8749,10 @@
           "name": "Show Music in This PC",
           "description": "Displays the Music folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Music"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -8814,6 +9054,10 @@
           "name": "Show Pictures in This PC",
           "description": "Displays the Pictures folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Image"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -9115,6 +9359,10 @@
           "name": "Show Videos in This PC",
           "description": "Displays the Videos folder under This PC in File Explorer",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Video"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.06.01",
@@ -9416,6 +9664,10 @@
           "name": "Show 3D Objects",
           "description": "Display the 3D Objects folder alongside Documents, Pictures, and other default folders",
           "group": "This PC Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "Printer3d"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -9539,6 +9791,10 @@
           "name": "Show Home Folder",
           "description": "Display the Home folder in the navigation pane as a shortcut to your user profile folder",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Home"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -9730,6 +9986,10 @@
           "name": "Show Gallery",
           "description": "Display the Gallery folder in the navigation pane for quick access to all your photos and videos",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -9921,6 +10181,10 @@
           "name": "Always show availability status",
           "description": "Shows cloud sync status icons for OneDrive files in navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "ArchiveSync"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -10033,6 +10297,10 @@
           "name": "Expand to open folder",
           "description": "Automatically expands navigation tree to highlight current folder location",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "FileTree"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -10145,6 +10413,10 @@
           "name": "Show all folders",
           "description": "Shows all folders in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "FolderMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -10314,6 +10586,10 @@
           "name": "Show Desktop folder",
           "description": "Shows the Desktop folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Monitor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -10463,6 +10739,10 @@
           "name": "Show Documents folder",
           "description": "Shows the Documents folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "FileDocument"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -10612,6 +10892,10 @@
           "name": "Show Downloads folder",
           "description": "Shows the Downloads folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Download"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -10761,6 +11045,10 @@
           "name": "Show Music folder",
           "description": "Shows the Music folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Music"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -10910,6 +11198,10 @@
           "name": "Show Pictures folder",
           "description": "Shows the Pictures folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Image"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -11059,6 +11351,10 @@
           "name": "Show Videos folder",
           "description": "Shows the Videos folder in the navigation pane",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Video"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.07",
@@ -11208,6 +11504,10 @@
           "name": "Show Libraries",
           "description": "Pins the Libraries folder as a top-level item in the navigation pane. Has no effect when Show All Folders is enabled, as Libraries becomes part of the folder tree instead",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "FolderTable"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -11402,6 +11702,10 @@
           "name": "Show Duplicate Removable Drives",
           "description": "Show removable drives as separate entries in the navigation pane in addition to under This PC",
           "group": "Navigation Pane",
+          "icon": {
+            "pack": "Material",
+            "name": "Usb"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.09",
@@ -11528,6 +11832,10 @@
           "name": "Enable Long File Paths",
           "description": "Enables support for file paths with up to 32,767 characters instead of the traditional 260-character limit",
           "group": "Files and Folders",
+          "icon": {
+            "pack": "Material",
+            "name": "ScriptTextOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -11640,6 +11948,10 @@
           "name": "Show Auto-Login Option in User Accounts",
           "description": "Shows the classic \u0027Users must enter a user name and password to use this computer\u0027 checkbox in the User Accounts (netplwiz) window, allowing you to configure automatic logon through the standard Windows UI",
           "group": "Network",
+          "icon": {
+            "pack": "Fluent",
+            "name": "PersonKey"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -11752,6 +12064,10 @@
           "name": "Short Date Format",
           "description": "Choose the format used to display short dates across Windows",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "CalendarMonth"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -11920,6 +12236,10 @@
           "name": "First Day of Week",
           "description": "Choose which day is displayed as the first day of the week in calendars",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "CalendarWeekBegin"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -12120,6 +12440,10 @@
           "name": "Number Decimal Symbol",
           "description": "Choose the symbol used to separate whole numbers from decimals in number formatting",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Numeric"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -12272,6 +12596,10 @@
           "name": "List Separator",
           "description": "Choose the character used to separate items in lists, such as in CSV exports and formulas",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "FormatListBulleted"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -12392,6 +12720,10 @@
           "name": "Measurement System",
           "description": "Choose whether Windows uses the metric or U.S. imperial measurement system",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "RulerSquare"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -12512,6 +12844,10 @@
           "name": "Currency Decimal Symbol",
           "description": "Choose the symbol used to separate whole numbers from decimals in currency formatting",
           "group": "Regional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "CurrencySign"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.10",
@@ -12664,6 +13000,10 @@
           "name": "Autoplay",
           "description": "Allow Windows to automatically open a dialog or run programs when you insert a USB drive, DVD, or SD card",
           "group": "Devices and Peripherals",
+          "icon": {
+            "pack": "Material",
+            "name": "PlayBox"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.24",
@@ -12826,6 +13166,10 @@
           "name": "Clean Taskbar",
           "description": "Removes all pinned items from the Taskbar",
           "group": "Layout",
+          "icon": {
+            "pack": "Material",
+            "name": "Broom"
+          },
           "control": "Action",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -13243,6 +13587,10 @@
           "name": "Search in taskbar",
           "description": "Choose how the Windows search appears on your taskbar: hidden, icon only, icon with label, or full search box",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Magnify"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -13392,6 +13740,10 @@
           "name": "Search in taskbar",
           "description": "Choose how the Windows search appears on your taskbar: hidden, icon only, or full search box",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Magnify"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -13533,6 +13885,10 @@
           "name": "Taskbar alignment",
           "description": "Align taskbar icons to the left (classic Windows style) or center (Windows 11 default)",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "FileTableBoxOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -13658,6 +14014,10 @@
           "name": "Automatically hide the taskbar",
           "description": "Automatically hides the taskbar when not in use. Hover at the bottom of the screen to reveal it",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "ArrowCollapseDown"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -13786,6 +14146,10 @@
           "name": "Taskbar Auto-Hide Hover Delay",
           "description": "Controls how long you must hover at the screen edge before the auto-hidden taskbar appears (in milliseconds). Lower values make the taskbar appear faster when using auto-hide. Default is 400ms",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "DockBottom"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -13977,6 +14341,10 @@
           "name": "Show badges on taskbar apps",
           "description": "Show notification badge counters on taskbar app icons to indicate unread messages or alerts",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Bell"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14089,6 +14457,10 @@
           "name": "Show flashing on taskbar apps",
           "description": "Allow taskbar app icons to flash when they require your attention",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "FlashAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14206,6 +14578,10 @@
           "name": "Show my taskbar on all displays",
           "description": "Show the taskbar on all connected monitors when using a multi-display setup",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14326,6 +14702,10 @@
           "name": "Show taskbar apps on",
           "description": "When using multiple displays, choose which taskbar shows your pinned and running apps",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Monitor"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14462,6 +14842,10 @@
           "name": "Share any window from my taskbar",
           "description": "Enable sharing any open window directly from the taskbar during a call",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "ShareVariant"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14579,6 +14963,10 @@
           "name": "Show desktop from taskbar corner",
           "description": "Click the far corner of the taskbar to quickly show the desktop by minimizing all open windows",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "DesktopClassic"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14696,6 +15084,10 @@
           "name": "Combine taskbar buttons and hide labels",
           "description": "Control whether taskbar buttons for the same application are grouped together and whether text labels are shown",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Tab"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14832,6 +15224,10 @@
           "name": "Combine taskbar buttons on other taskbars",
           "description": "Control whether taskbar buttons are grouped together and labels are hidden on secondary display taskbars",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "TabUnselected"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -14968,6 +15364,10 @@
           "name": "Show smaller taskbar buttons",
           "description": "Control the size of taskbar buttons. This setting may not persist on all Windows 11 builds",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Resize"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -15109,6 +15509,10 @@
           "name": "Remove \u0027Meet Now\u0027 button from system tray",
           "description": "Controls Meet Now button visibility in the system tray",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Video"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -15254,6 +15658,10 @@
           "name": "Always show all system tray icons",
           "description": "Show all system tray icons directly on the taskbar instead of hiding them in the overflow menu. To control individual icon visibility, go to Taskbar Settings and select which icons appear on the taskbar",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "TrayFull"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -15379,6 +15787,10 @@
           "name": "System tray icons",
           "description": "Choose how system tray icons appear on the taskbar. \u201CShow all icons\u201D promotes every icon to the taskbar; \u201CHide all icons\u201D folds them into the overflow menu; \u201CCustom\u201D leaves your per-icon choices from Windows Settings \u003E Personalization \u003E Taskbar \u003E Other system tray icons unchanged.",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "TrayFull"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": "25.04.08",
@@ -15488,6 +15900,10 @@
           "name": "Show Task View button",
           "description": "Show the Task View button for managing virtual desktops and viewing all open windows at once",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "DockWindow"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -15608,6 +16024,10 @@
           "name": "Copilot Preview Button",
           "description": "Show or hide the Copilot Preview button on the taskbar",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Fluent",
+            "name": "BrainCircuit"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -15733,6 +16153,10 @@
           "name": "Copilot Companion Button",
           "description": "Show or hide the newer Copilot companion button on the taskbar",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Robot"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -15858,6 +16282,10 @@
           "name": "Copilot PWA Pin",
           "description": "Show or hide the Copilot PWA pin on the taskbar",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Pin"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -15983,6 +16411,10 @@
           "name": "Recall Pin",
           "description": "Show or hide the Recall pin on the taskbar",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "History"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -16108,6 +16540,10 @@
           "name": "Show Widgets",
           "description": "Show the Widgets button that displays personalized news, weather, calendar, and other information",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Widgets"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -16247,6 +16683,10 @@
           "name": "Show News and Interests",
           "description": "Show the News and Interests widget that displays headlines, weather, stocks, and other personalized content",
           "group": "Taskbar Icons",
+          "icon": {
+            "pack": "Material",
+            "name": "Newspaper"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -16386,6 +16826,10 @@
           "name": "Taskbar Transparency",
           "description": "Controls the transparency level of the taskbar. Winhance automatically enables Transparency Effects when this setting is applied",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Opacity"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -16534,6 +16978,10 @@
           "name": "Make taskbar small",
           "description": "Reduce the height of the taskbar by using smaller icons, giving you more screen space",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "SizeXxs"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -16659,6 +17107,10 @@
           "name": "Enable \u0027End Task\u0027 in Taskbar",
           "description": "Adds an \u0027End Task\u0027 option when right-clicking applications on the taskbar for quick termination",
           "group": "Taskbar Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "ApplicationCog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -16781,6 +17233,10 @@
           "name": "Clean Start Menu",
           "description": "Removes all pinned items and applies a clean layout for the current user and any newly created profiles. To clean other existing users, run this again while signed in as each of them.",
           "group": "Layout",
+          "icon": {
+            "pack": "Material",
+            "name": "Broom"
+          },
           "control": "Action",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -16977,6 +17433,10 @@
           "name": "Clean Start Menu",
           "description": "Removes all pinned items and applies clean layout",
           "group": "Layout",
+          "icon": {
+            "pack": "Material",
+            "name": "Broom"
+          },
           "control": "Action",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -17375,6 +17835,10 @@
           "name": "Start layout",
           "description": "Choose whether the Start Menu shows more pinned apps, more recommendations, or a balanced default layout",
           "group": "Layout",
+          "icon": {
+            "pack": "Fluent",
+            "name": "LayoutRowTwoFocusTopSettings"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -17508,6 +17972,10 @@
           "name": "All apps view",
           "description": "Choose how the All apps section in Start is displayed: by category, in a grid, or as a list",
           "group": "Layout",
+          "icon": {
+            "pack": "Fluent",
+            "name": "WindowApps"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.05.26",
@@ -17649,6 +18117,10 @@
           "name": "Recommended section",
           "description": "Show or hide the lower section that displays recently opened files and suggested apps. Hiding this section also removes Windows Spotlight from the lock screen and suggested content in the Settings app",
           "group": "Layout",
+          "icon": {
+            "pack": "Material",
+            "name": "TableStar"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -17831,6 +18303,10 @@
           "name": "Show recently added apps",
           "description": "Display a list of recently installed applications at the top of the All Apps list",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "StarBoxMultipleOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -17943,6 +18419,10 @@
           "name": "Show most used apps",
           "description": "Display your frequently launched applications at the top of the All Apps list for quick access",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Apps"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18060,6 +18540,10 @@
           "name": "Show most used apps",
           "description": "Display your frequently launched applications at the top of the All Apps list for quick access",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Apps"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18177,6 +18661,10 @@
           "name": "Show suggestions in Start",
           "description": "Display app suggestions and promotional content from the Microsoft Store in the Start Menu",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "LightbulbOnOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18294,6 +18782,10 @@
           "name": "Show recommended files and recently opened items",
           "description": "Display your recently opened documents and files in the Start Menu\u0027s Recommended section for quick access",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "FileStarFourPointsOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18414,6 +18906,10 @@
           "name": "Show recommendations for tips, shortcuts, new apps, and more",
           "description": "Display personalized suggestions from Windows for tips, app shortcuts, and Microsoft Store apps in the Recommended section",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "CreationOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18531,6 +19027,10 @@
           "name": "Show account-related notifications",
           "description": "Display notifications about Microsoft account sign-in, sync status, and account-related suggestions",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "BellRingOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18648,6 +19148,10 @@
           "name": "Bing Search Results in Start Menu",
           "description": "Show web results from Bing alongside local files and apps when searching in the Start Menu",
           "group": "Start Menu Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "MicrosoftBing"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -18816,6 +19320,10 @@
           "name": "Startup Sound During Boot",
           "description": "Play the Windows startup sound when your computer boots up",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorSpeaker"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -18965,6 +19473,10 @@
           "name": "Sound Ducking Preference",
           "description": "Automatically lower volume of media and apps when Windows detects communication activity",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "VolumeMedium"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -19109,6 +19621,10 @@
           "name": "Narrator Audio Ducking",
           "description": "Allow Narrator to automatically lower the volume of other applications when it speaks",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "VolumeOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -19221,6 +19737,10 @@
           "name": "Voice Activation for Apps",
           "description": "Allow apps to listen and respond to voice commands like \u0027Hey Cortana\u0027",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountTieVoice"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -19333,6 +19853,10 @@
           "name": "Last Used Voice Activation Setting",
           "description": "Remember and apply the most recently used voice activation configuration",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "MicrophoneMessage"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -19445,6 +19969,10 @@
           "name": "Accessibility Activation Sounds",
           "description": "Play sounds when accessibility features like StickyKeys or FilterKeys are activated",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Material",
+            "name": "Keyboard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -19557,6 +20085,10 @@
           "name": "Accessibility Warning Sounds",
           "description": "Play warning sounds when attempting to activate accessibility features or when accessibility-related events occur",
           "group": "System Sounds",
+          "icon": {
+            "pack": "Fluent",
+            "name": "DesktopSpeaker"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -19674,6 +20206,10 @@
           "name": "Windows Update Policy",
           "description": "Control how Windows updates are installed on your system",
           "group": "Update Policy",
+          "icon": {
+            "pack": "Material",
+            "name": "BookSync"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -20499,6 +21035,10 @@
           "name": "Delivery Optimization",
           "description": "Share downloaded updates with other PCs on your network or the internet to reduce bandwidth usage",
           "group": "Delivery \u0026 Store",
+          "icon": {
+            "pack": "Material",
+            "name": "ShareVariant"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -20657,6 +21197,10 @@
           "name": "Get the latest updates as soon as they\u0027re available",
           "description": "Be among the first to get the latest non-security updates, fixes, and improvements as they roll out",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "BullhornVariant"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -20769,6 +21313,10 @@
           "name": "Receive updates for other Microsoft products",
           "description": "Get Microsoft Office and other updates together with Windows updates",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "ArchiveSync"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -20881,6 +21429,10 @@
           "name": "Get me up to date",
           "description": "Restart as soon as possible (even during active hours) to finish updating",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Restart"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -20993,6 +21545,10 @@
           "name": "Automatic Restart After Updates",
           "description": "Allow Windows to automatically restart your PC after installing updates when you are logged in",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "RestartOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -21119,6 +21675,10 @@
           "name": "Update Notifications",
           "description": "Choose how much Windows tells you about available updates and update progress. Hiding all notifications also hides restart warnings.",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "BellPlus"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -21383,6 +21943,10 @@
           "name": "Notify me when a restart is required to finish updating",
           "description": "Show notification when your device requires a restart to finish updating",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "RestartAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -21495,6 +22059,10 @@
           "name": "Download updates over metered connections",
           "description": "Allow Windows to download updates when using mobile hotspots or data-limited connections",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "Connection"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -21607,6 +22175,10 @@
           "name": "Driver Updates via Windows Update",
           "description": "Include hardware driver updates when downloading and installing Windows Updates",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "PackageVariantClosedMinus"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -21733,6 +22305,10 @@
           "name": "Driver Co-Installers",
           "description": "Allows hardware vendors to install companion software alongside device drivers. Disabling this prevents bloatware like Razer Synapse, printer utilities, and other vendor software from being automatically installed when you plug in devices. Your hardware will still work normally with standard drivers.",
           "group": "Update Behavior",
+          "icon": {
+            "pack": "Material",
+            "name": "PackageVariantRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.08",
@@ -21845,6 +22421,10 @@
           "name": "Auto Update Microsoft Store Apps",
           "description": "Automatically download and install updates for apps from the Microsoft Store",
           "group": "Delivery \u0026 Store",
+          "icon": {
+            "pack": "Fluent",
+            "name": "StoreMicrosoft"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -21976,6 +22556,10 @@
           "name": "Show Notifications",
           "description": "Get notifications from apps and other senders in Windows",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "BellAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -22096,6 +22680,10 @@
           "name": "Allow notifications to play sounds",
           "description": "Play audio alerts when notifications arrive from apps and system senders",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "VolumeHigh"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -22208,6 +22796,10 @@
           "name": "Show notifications on the lock screen",
           "description": "Display toast notifications on the lock screen when your device is locked",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "CellphoneLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -22365,6 +22957,10 @@
           "name": "Show reminders and incoming VoIP calls on the lock screen",
           "description": "Display critical notifications like reminders and VoIP calls when your device is locked",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "PhoneAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -22485,6 +23081,10 @@
           "name": "Show notification bell icon",
           "description": "Display the notification bell icon in the system tray",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "BellCheck"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -22597,6 +23197,10 @@
           "name": "Show the Windows welcome experience after updates",
           "description": "Show what\u0027s new and suggested after updates and when signed in",
           "group": "Additional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "HumanGreeting"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -22709,6 +23313,10 @@
           "name": "Suggest ways to get the most out of Windows and finish setting up this device",
           "description": "Show suggestions to help you complete device setup and optimize Windows features",
           "group": "Additional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "AutoFix"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -22821,6 +23429,10 @@
           "name": "Get tips and suggestions when using Windows",
           "description": "Show helpful tips and suggestions while using Windows",
           "group": "Additional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "LightbulbOnOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -22933,6 +23545,10 @@
           "name": "Show suggestions in Notification Center",
           "description": "Display helpful suggestions in the Action Center and Notification Center",
           "group": "Additional Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "MessageBadge"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23045,6 +23661,10 @@
           "name": "Capability Access Notifications",
           "description": "Show notifications when apps request access to system capabilities and permissions",
           "group": "System Notifications",
+          "icon": {
+            "pack": "Material",
+            "name": "LockOpenAlertOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23157,6 +23777,10 @@
           "name": "Startup App Notifications",
           "description": "Show notifications when apps are added to your Windows startup list",
           "group": "System Notifications",
+          "icon": {
+            "pack": "Material",
+            "name": "ArchiveAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23269,6 +23893,10 @@
           "name": "Notify when apps request location",
           "description": "Show notifications when apps attempt to access your location information",
           "group": "Privacy Notifications",
+          "icon": {
+            "pack": "Material",
+            "name": "MapMarker"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23381,6 +24009,10 @@
           "name": "Clock Change Notifications",
           "description": "Show notifications when daylight saving time changes occur",
           "group": "System Notifications",
+          "icon": {
+            "pack": "Material",
+            "name": "ClockAlertOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23493,6 +24125,10 @@
           "name": "Windows Security Notifications",
           "description": "Show all notifications from Windows Security about threats, scans, and protection status",
           "group": "Security Notifications",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ShieldError"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23668,6 +24304,10 @@
           "name": "Security and Maintenance Notifications",
           "description": "Show notifications from the Security and Maintenance Action Center",
           "group": "Security Notifications",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldSync"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23785,6 +24425,10 @@
           "name": "Game Mode",
           "description": "Optimize your PC for play by turning things off in the background",
           "group": null,
+          "icon": {
+            "pack": "Fluent",
+            "name": "TopSpeed"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -23897,6 +24541,10 @@
           "name": "Enhance Pointer Precision",
           "description": "Adjust cursor speed based on movement velocity (mouse acceleration). Most competitive gamers disable this for consistent aiming in FPS games",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "Mouse"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -24017,6 +24665,10 @@
           "name": "Mouse Hover Time",
           "description": "Controls how long you must hover over an element before it activates (in milliseconds). Lower values make tooltips, menus, and hover effects appear faster. Default is 400ms",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "Mouse"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -24201,6 +24853,10 @@
           "name": "Startup Delay for Apps",
           "description": "Delay startup applications by 10 seconds after boot to improve initial system responsiveness. Windows becomes usable faster, but your startup apps take longer to load",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "ClockStart"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -24313,6 +24969,10 @@
           "name": "Background App Permissions",
           "description": "Control whether apps can run in the background via Group Policy. Force Deny removes per-app background settings from Windows Settings. Use User in Control if you need apps like Teams, Zoom, or WhatsApp",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "Apps"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -24455,6 +25115,10 @@
           "name": "Storage Sense",
           "description": "Automatically free up disk space by removing temporary files, emptying the recycle bin, and managing downloads",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "Harddisk"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -24581,6 +25245,10 @@
           "name": "Search Entire File System",
           "description": "Search your entire file system instead of only indexed locations. This provides more complete results but is significantly slower than indexed search and increases disk activity",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "FolderSearch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -24693,6 +25361,10 @@
           "name": "WebView2 in Windows Search",
           "description": "Allow Windows Search to use WebView2 (Edge) for rendering search results. Disabling removes Edge processes spawned by SearchHost.exe, reducing resource usage. Uses an undocumented Windows Feature Management override that may change in future Windows updates",
           "group": null,
+          "icon": {
+            "pack": "Fluent",
+            "name": "GlobeSearch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.03",
@@ -24881,6 +25553,10 @@
           "name": "Allow Desktop Wallpaper Compression",
           "description": "Allow Windows to compress wallpapers to save disk space and improve performance. Only affects images in JPEG format.",
           "group": null,
+          "icon": {
+            "pack": "Fluent",
+            "name": "ResizeImage"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -25001,6 +25677,10 @@
           "name": "Menu Show Delay",
           "description": "Add a brief delay before displaying menus (400ms - Windows default), or show them instantly (0ms) for faster navigation",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "MenuOpen"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -25113,6 +25793,10 @@
           "name": "Alt\u002BTab Filter",
           "description": "Show only traditional open windows in Alt\u002BTab instead of including Microsoft Edge tabs and other Windows suggestions",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "ViewGrid"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -25225,6 +25909,10 @@
           "name": "Adjust processor for best performance of",
           "description": "Configure how Windows allocates CPU time between foreground applications and background services",
           "group": "Processor",
+          "icon": {
+            "pack": "Material",
+            "name": "Application"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -25337,6 +26025,10 @@
           "name": "System Responsiveness for Games",
           "description": "Minimize background task interference by allocating more CPU time to your active game or multimedia application",
           "group": "Processor",
+          "icon": {
+            "pack": "Material",
+            "name": "Speedometer"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -25449,6 +26141,10 @@
           "name": "CPU Priority for Gaming",
           "description": "Give games higher CPU scheduling priority to dedicate more processor time to your game",
           "group": "Processor",
+          "icon": {
+            "pack": "Material",
+            "name": "Chip"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -25561,6 +26257,10 @@
           "name": "High Scheduling Category for Gaming",
           "description": "Assign high-priority scheduling category to ensure games receive preferential system resource allocation",
           "group": "Processor",
+          "icon": {
+            "pack": "Material",
+            "name": "CalendarClock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -25673,6 +26373,10 @@
           "name": "Svchost Split Threshold",
           "description": "Set the memory threshold that determines when Windows splits services into separate svchost.exe processes. Higher values group more services together, reducing process count. Select the value matching your system RAM",
           "group": "Processor",
+          "icon": {
+            "pack": "Fluent",
+            "name": "BranchCompare"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "25.04.03",
@@ -25913,6 +26617,10 @@
           "name": "GPU Priority for Gaming",
           "description": "Give games higher GPU scheduling priority to improve graphics performance and frame rates",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "Memory"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -26025,6 +26733,10 @@
           "name": "Hardware-Accelerated GPU Scheduling",
           "description": "Let your GPU manage its own memory and scheduling for reduced latency and improved performance",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "ExpansionCard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -26145,6 +26857,10 @@
           "name": "Optimizations for windowed games",
           "description": "Reduce latency and use advanced features in compatible games by using DirectX flip presentation model",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "ApplicationCog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -26265,6 +26981,10 @@
           "name": "Variable Refresh Rate",
           "description": "Enable VRR (G-Sync/FreeSync) optimizations for smoother gameplay. Requires a VRR-compatible monitor; this setting has no effect if your monitor does not support VRR",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorShimmer"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -26385,6 +27105,10 @@
           "name": "Auto HDR",
           "description": "Automatically convert SDR content to HDR for enhanced colors and brightness. Requires an HDR-capable display with HDR enabled; this setting has no effect if your display does not support HDR",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "Hdr"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -26510,6 +27234,10 @@
           "name": "Legacy NVIDIA Sharpening",
           "description": "Enable legacy NVIDIA image sharpening filter for enhanced visual clarity. Only works on older NVIDIA drivers; newer drivers should use NVIDIA Control Panel sharpening instead",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageFilterHdr"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -26622,6 +27350,10 @@
           "name": "Fullscreen Optimizations",
           "description": "Allow Windows to optimize games running in fullscreen mode. Disabling can fix performance issues or stuttering in some older games that don\u0027t work well with borderless fullscreen optimization",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorScreenshot"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -26753,6 +27485,10 @@
           "name": "Desktop Composition Effects",
           "description": "Enable visual effects managed by the Desktop Window Manager. Disabling may provide minor performance gains on older hardware but will break Aero effects",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "ViewDashboard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -26865,6 +27601,10 @@
           "name": "Automatically manage color for apps",
           "description": "Allow Windows to automatically manage color profiles for all connected displays that support it",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "Color"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.03.27",
@@ -26998,6 +27738,10 @@
           "name": "Multi-Plane Overlay (MPO)",
           "description": "Composite multiple display layers in hardware using the GPU. Disabling can fix screen flickering, black screens, and stuttering on multi-monitor setups",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorDashboard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -27118,6 +27862,10 @@
           "name": "Hardware Overlays",
           "description": "Allow the graphics driver to use hardware overlay surfaces for compositing. Disabling forces software composition for all overlays and is known to break the Steam, Discord, and RTSS in-game overlays \u2014 leave enabled unless you specifically need this",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorDashboard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.05.08",
@@ -27238,6 +27986,10 @@
           "name": "MPO Minimum Frame Rate Requirement",
           "description": "Allow Desktop Window Manager to dynamically switch apps between overlay modes based on frame rate. Disabling can fix stuttering in browsers and Discord without fully disabling MPO",
           "group": "Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorDashboard"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -27358,6 +28110,10 @@
           "name": "Network Throttling",
           "description": "Controls network packet rate limiting for multimedia applications. Keeping throttling enabled (default: 10 packets/ms) is recommended as it provides better DPC latency for gaming than disabling it entirely",
           "group": "Network",
+          "icon": {
+            "pack": "Material",
+            "name": "NetworkOffOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -27470,6 +28226,10 @@
           "name": "Nagle\u0027s Algorithm",
           "description": "Buffers small network packets before sending to reduce overhead. Turn off to lower latency in online games, or keep on for general-purpose network efficiency",
           "group": "Network",
+          "icon": {
+            "pack": "Material",
+            "name": "Wan"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -27617,6 +28377,10 @@
           "name": "DNS Server",
           "description": "Select a DNS server for all network adapters. Changes apply to every adapter on your system (Wi-Fi and Ethernet). Use Automatic to restore your default ISP/router DNS",
           "group": "Network",
+          "icon": {
+            "pack": "Material",
+            "name": "Dns"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -27909,6 +28673,10 @@
           "name": "Virtualization Based Security (VBS)",
           "description": "Isolates parts of memory to protect the system from vulnerabilities. Disabling can improve gaming performance but reduces system security",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.01",
@@ -28067,6 +28835,10 @@
           "name": "Memory Integrity (HVCI)",
           "description": "Prevents malicious code from being inserted into high-security processes. Disabling can improve gaming performance but reduces system security",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "MemoryArrowDown"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.01",
@@ -28232,6 +29004,10 @@
           "name": "Xbox Game DVR",
           "description": "Record gameplay clips and take screenshots using the Xbox Game Bar overlay. Disabling reduces CPU/GPU usage and can improve frame rates",
           "group": "Xbox",
+          "icon": {
+            "pack": "Material",
+            "name": "RecordRec"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -28426,6 +29202,10 @@
           "name": "Game Bar Controller Access",
           "description": "Allow your Xbox/compatible controller to open Game Bar by pressing the Xbox button. Disable to prevent accidental Game Bar activation during gaming",
           "group": "Xbox",
+          "icon": {
+            "pack": "Fluent",
+            "name": "XboxControllerError"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -28538,6 +29318,10 @@
           "name": "Game Bar Tips and Hints",
           "description": "Show tips and hints about Game Bar features when opening the overlay. Disabling reduces distractions during gameplay",
           "group": "Xbox",
+          "icon": {
+            "pack": "Material",
+            "name": "LightbulbOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -28650,6 +29434,10 @@
           "name": "Optimize Background Services",
           "description": "Reduce the startup timeout for Windows services from 60 to 30 seconds. This can speed up boot time slightly",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Cog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -28762,6 +29550,10 @@
           "name": "SysMain Service (Superfetch)",
           "description": "Preload frequently used applications into RAM for faster launch times. Automatic is recommended for HDD or mixed-storage systems; Manual or Disabled is only suitable for SSD-only systems",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Cached"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -28898,6 +29690,10 @@
           "name": "Prefetch Feature",
           "description": "Preload frequently used applications and boot files into memory to speed up launches. Generally recommended for HDDs not SSDs",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Download"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -29010,6 +29806,10 @@
           "name": "Windows Search Indexing Service",
           "description": "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but breaks Outlook search and makes Start Menu and File Explorer search slow or unreliable",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "DatabaseSearch"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -29146,6 +29946,10 @@
           "name": "Print Spooler Service",
           "description": "Manages print jobs sent to printers. Left at the Windows default so printing works whenever you need it. If you never print, set this to Disabled to stop the service running in the background.",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Printer"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -29282,6 +30086,10 @@
           "name": "Connected User Experiences and Telemetry Service",
           "description": "Sends usage data and diagnostics to Microsoft. Setting to Manual or Disabled reduces background network and CPU usage",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudUpload"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -29418,6 +30226,10 @@
           "name": "Connected Devices Platform Service",
           "description": "Enables cross-device experiences like phone linking and nearby sharing. Disabling reduces background activity and device interaction logging",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "CellphoneLink"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.03.27",
@@ -29560,6 +30372,10 @@
           "name": "Program Compatibility Assistant Service",
           "description": "Monitors programs for compatibility issues and suggests fixes. Disabling prevents compatibility prompts and saves minor system resources",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "ApplicationCog"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -29811,6 +30627,10 @@
           "name": "Windows Error Reporting Service",
           "description": "Collects and sends crash data to Microsoft. Disabling prevents crash reporting, reduces network traffic, and improves privacy with minimal system impact",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "AlertOctagon"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -29947,6 +30767,10 @@
           "name": "Geolocation Service",
           "description": "Tracks your physical location for apps and services. Disabling improves privacy and prevents location tracking, but apps won\u0027t be able to use location features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "MapMarkerOff"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30083,6 +30907,10 @@
           "name": "Retail Demo Service",
           "description": "Controls device activity when in retail demo mode. Safe to disable for personal computers as it only serves retail display purposes",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "StorefrontOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30219,6 +31047,10 @@
           "name": "Windows Insider Service",
           "description": "Manages Windows Insider Program features and preview builds. Safe to disable if you\u0027re not participating in the Windows Insider Program",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "TestTube"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30355,6 +31187,10 @@
           "name": "Phone Service",
           "description": "Manages telephony state on the device. Safe to disable if you don\u0027t use phone connectivity features or make calls from your PC",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Cellphone"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -30491,6 +31327,10 @@
           "name": "Wallet Service",
           "description": "Provides wallet functionality for payment and NFC scenarios. Safe to disable if you don\u0027t use Microsoft Wallet features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Wallet"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30627,6 +31467,10 @@
           "name": "Smart Card Services",
           "description": "Enables smart card reader functionality for security authentication. Safe to disable if you don\u0027t use physical smart cards or card readers",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "SmartCard"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30775,6 +31619,10 @@
           "name": "Downloaded Maps Manager",
           "description": "Provides access to downloaded maps for applications. Set to Manual to allow map access when needed while preventing unnecessary background activity",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "MapOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -30911,6 +31759,10 @@
           "name": "Fax Service",
           "description": "Enables sending and receiving faxes. Safe to disable for most users as fax functionality is rarely used on modern systems",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Fax"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -31162,6 +32014,10 @@
           "name": "Windows Media Player Network Sharing Service",
           "description": "Shares Windows Media Player libraries to other networked players and media devices. Safe to disable if you don\u0027t share media over your network",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "ShareOff"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -31298,6 +32154,10 @@
           "name": "Windows Mixed Reality OpenXR Service",
           "description": "Runs OpenXR applications on Windows Mixed Reality devices. Safe to disable if you don\u0027t use VR or AR headsets",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "VirtualReality"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -31549,6 +32409,10 @@
           "name": "Windows Mobile Hotspot Service",
           "description": "Provides ability to share internet connection with other devices. Set to Manual to keep functionality available while preventing unnecessary background activity",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "CellphoneWireless"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -31685,6 +32549,10 @@
           "name": "Microsoft Windows SMS Router Service",
           "description": "Routes SMS messages according to rules. Safe to disable if you don\u0027t use SMS features on your PC",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "MessageText"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -31821,6 +32689,10 @@
           "name": "Parental Controls Service",
           "description": "Enables parental controls and family safety features. Safe to disable if you don\u0027t use parental control features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldAccount"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -31957,6 +32829,10 @@
           "name": "Payments and NFC/SE Manager",
           "description": "Manages payments and Near Field Communication secure elements. Safe to disable if you don\u0027t use NFC payment features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Nfc"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -32093,6 +32969,10 @@
           "name": "Spot Verifier Service",
           "description": "Verifies potential file system corruptions. Set to Manual to allow verification when needed while reducing background activity",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldCheck"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -32229,6 +33109,10 @@
           "name": "Remote Access Connection Manager",
           "description": "Manages VPN and dial-up connections. Set to Manual to reduce background activity while keeping VPN functionality available when needed.",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Vpn"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -32480,6 +33364,10 @@
           "name": "Remote Access Auto Connection Manager",
           "description": "Automatically connects to remote networks when programs reference remote resources. Safe to disable if you don\u0027t use auto-connect VPN features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "NetworkOff"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -32616,6 +33504,10 @@
           "name": "Remote Desktop Services",
           "description": "Allows users to connect interactively to a remote computer. Set to Manual to reduce background activity while keeping Remote Desktop available.",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "RemoteDesktop"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -32752,6 +33644,10 @@
           "name": "Remote Desktop Configuration",
           "description": "Manages Remote Desktop Services and Remote Desktop related configurations. Set to Manual to reduce background activity while keeping Remote Desktop available",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorShare"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -32888,6 +33784,10 @@
           "name": "Remote Desktop Services UserMode Port Redirector",
           "description": "Allows local device redirection for Remote Desktop connections. Safe to disable if you don\u0027t need to share local devices during Remote Desktop sessions",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "TransitConnectionVariant"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -33024,6 +33924,10 @@
           "name": "Xbox Live Auth Manager",
           "description": "Provides authentication and authorization services for Xbox Live. Safe to disable if you don\u0027t use Xbox Game Pass, Microsoft Store games, or Xbox features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "MicrosoftXbox"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -33160,6 +34064,10 @@
           "name": "Xbox Live Game Save",
           "description": "Syncs game saves to Xbox Live cloud. Only needed for Xbox Game Pass and Microsoft Store games with cloud save features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudUploadOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -33296,6 +34204,10 @@
           "name": "Xbox Live Networking Service",
           "description": "Supports Xbox Live multiplayer networking. Required for Xbox multiplayer gaming but not needed for Steam/Epic/other gaming platforms",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "NetworkOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -33432,6 +34344,10 @@
           "name": "Windows Biometric Service",
           "description": "Enables fingerprint and facial recognition login via Windows Hello. Safe to disable on desktop systems without biometric hardware",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Fingerprint"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -33568,6 +34484,10 @@
           "name": "Touch Keyboard and Handwriting Panel Service",
           "description": "Manages the Windows Input Experience: touch keyboard, pen and handwriting input, the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing, and IME candidate windows. If you use none of those - a desktop or gaming PC with no touchscreen or pen - set this to Disabled to stop the background input host and free the memory it uses.",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "KeyboardOutline"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.03",
@@ -33803,6 +34723,10 @@
           "name": "Telephony Service",
           "description": "Manages telephony (TAPI) for Phone Link audio relay, modems, fax, and VoIP softphones. Leave at Manual (Windows default) unless you use no telephony software",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "PhoneClassic"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.05.18",
@@ -33939,6 +34863,10 @@
           "name": "Sensor Monitoring Service",
           "description": "Monitors various sensors like ambient light and orientation. Safe to disable on desktop systems without sensor hardware",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Radar"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34075,6 +35003,10 @@
           "name": "Sensor Data Service",
           "description": "Delivers data from a variety of sensors to applications. Safe to disable on desktop systems without sensor hardware",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "ChartBox"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34211,6 +35143,10 @@
           "name": "Windows AI Fabric Service",
           "description": "Windows AI Fabric Service (WSAIFabricSvc) manages AI workloads. Disable if you don\u0027t use Windows AI features",
           "group": "System Services",
+          "icon": {
+            "pack": "Material",
+            "name": "Robot"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -34352,6 +35288,10 @@
           "name": "Microsoft Compatibility Appraiser Task",
           "description": "Collects program compatibility telemetry for Windows upgrades. Works alongside the Connected User Experiences and Telemetry Service. Disable to reduce telemetry and background system activity",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "FileDocumentCheck"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34464,6 +35404,10 @@
           "name": "Program Data Updater Task",
           "description": "Updates the program compatibility database with information about installed applications. Disable to reduce telemetry collection",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "DatabaseSync"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34576,6 +35520,10 @@
           "name": "Customer Experience Improvement Program Consolidator",
           "description": "Consolidates and uploads usage data as part of the Customer Experience Improvement Program. Works with the Connected User Experiences and Telemetry Service. Disable to improve privacy",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "ChartLine"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34688,6 +35636,10 @@
           "name": "USB CEIP Task",
           "description": "Collects USB device-related telemetry for the Customer Experience Improvement Program. Disable to reduce telemetry",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "Usb"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34800,6 +35752,10 @@
           "name": "Disk Diagnostic Data Collector Task",
           "description": "Collects disk diagnostic information and S.M.A.R.T. data for Microsoft. Disable to reduce background disk activity and telemetry",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "Harddisk"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -34912,6 +35868,10 @@
           "name": "Feedback DmClient Task",
           "description": "Collects feedback and diagnostic data for Microsoft. Disable to improve privacy and reduce telemetry",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "MessageAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35024,6 +35984,10 @@
           "name": "Feedback DmClient Scenario Download Task",
           "description": "Downloads feedback scenarios and configuration data from Microsoft. Disable to reduce telemetry and network activity",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "Download"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35136,6 +36100,10 @@
           "name": "Windows Error Reporting Queue Task",
           "description": "Queues crash reports and error data to send to Microsoft. Works alongside the Windows Error Reporting Service. Disable both to prevent crash data collection",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "AlertOctagon"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35248,6 +36216,10 @@
           "name": "Software Quality Metrics Task",
           "description": "Collects software quality metrics and reliability data for Microsoft telemetry. Disable to improve privacy",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "ChartBar"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35360,6 +36332,10 @@
           "name": "MAR (Malicious Software Removal) Backup Task",
           "description": "Backs up Microsoft Assisted Recovery data. Disable to reduce background system activity",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "BackupRestore"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35472,6 +36448,10 @@
           "name": "Startup App Task",
           "description": "Tracks and monitors startup applications for telemetry and diagnostics. Disable to reduce telemetry",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "RocketLaunch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35584,6 +36564,10 @@
           "name": "Maps Update Task",
           "description": "Updates offline maps data for the Windows Maps app. Disable if you don\u0027t use the Maps app to save bandwidth and storage",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "MapOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35696,6 +36680,10 @@
           "name": "AutoChk Proxy Task",
           "description": "Performs disk checking operations and collects diagnostic data. Consider keeping enabled for disk health monitoring",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "HarddiskPlus"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -35808,6 +36796,10 @@
           "name": "Family Safety Monitor Task",
           "description": "Monitors family safety settings and usage. Disable if you don\u0027t use family safety features",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountSupervisor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -35920,6 +36912,10 @@
           "name": "Power Efficiency Diagnostics Task",
           "description": "Analyzes system power consumption and collects energy efficiency data. Disable to reduce telemetry and background analysis",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "LightningBolt"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -36032,6 +37028,10 @@
           "name": "Windows AI Tasks",
           "description": "Windows AI scheduled tasks including Recall configuration. Disable to prevent AI features from running in the background",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "Robot"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -36186,6 +37186,10 @@
           "name": "Office Actions Server Task",
           "description": "Office AI Actions Server scheduled task. Disable to prevent Office AI from running in the background",
           "group": "Scheduled Tasks",
+          "icon": {
+            "pack": "Material",
+            "name": "CalendarClock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -36298,6 +37302,10 @@
           "name": "Visual Effects",
           "description": "Choose how Windows displays visual effects",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorEye"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -36688,6 +37696,10 @@
           "name": "Animate controls and elements inside windows",
           "description": "Enables animation effects for controls and UI elements",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "Animation"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -36816,6 +37828,10 @@
           "name": "Animate windows when minimizing and maximizing",
           "description": "Shows smooth animation when windows are minimized or maximized",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "WindowRestore"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -36936,6 +37952,10 @@
           "name": "Animations in the taskbar",
           "description": "Controls taskbar animation effects for opening, closing, and switching windows",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "DockBottom"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37056,6 +38076,10 @@
           "name": "Enable Peek",
           "description": "Allows peeking at desktop when hovering over Show Desktop button",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorEye"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37176,6 +38200,10 @@
           "name": "Fade or slide menus into view",
           "description": "Animates menus when they appear using fade or slide effects",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "MenuOpen"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37304,6 +38332,10 @@
           "name": "Fade or slide ToolTips into view",
           "description": "Animates tooltips when they appear using fade or slide effects",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "TooltipText"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37432,6 +38464,10 @@
           "name": "Fade out menu items after clicking",
           "description": "Fades menu items after selection before closing the menu",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Fluent",
+            "name": "SlideTextCursor"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37560,6 +38596,10 @@
           "name": "Save taskbar thumbnail previews",
           "description": "Saves thumbnail previews of taskbar windows for faster display",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ImageMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37680,6 +38720,10 @@
           "name": "Show shadows under mouse pointer",
           "description": "Displays shadow effect underneath the mouse cursor",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "CursorDefault"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37808,6 +38852,10 @@
           "name": "Show shadows under windows",
           "description": "Displays shadow effects underneath windows",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "BoxShadow"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -37936,6 +38984,10 @@
           "name": "Show thumbnails instead of icons",
           "description": "Displays image and document previews instead of generic file icons",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ImageStack"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38056,6 +39108,10 @@
           "name": "Show translucent selection rectangle",
           "description": "Display a semi-transparent selection box when dragging to select multiple files or items",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "Select"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38176,6 +39232,10 @@
           "name": "Show window contents while dragging",
           "description": "Displays window contents when dragging instead of just an outline",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "SelectionDrag"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38296,6 +39356,10 @@
           "name": "Slide open combo boxes",
           "description": "Animates combo boxes when they open with a sliding effect",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "FormDropdown"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38424,6 +39488,10 @@
           "name": "Smooth edges of screen fonts",
           "description": "Apply anti-aliasing to text for smoother, more readable fonts on screen",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "FormatSize"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38544,6 +39612,10 @@
           "name": "Smooth-scroll list boxes",
           "description": "Enables smooth scrolling in list boxes instead of jumping",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "ListBox"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38672,6 +39744,10 @@
           "name": "Use drop shadows for icon labels on the desktop",
           "description": "Add shadow effects behind desktop icon text to improve readability against backgrounds",
           "group": "Visual Effects",
+          "icon": {
+            "pack": "Material",
+            "name": "TextShadow"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38792,6 +39868,10 @@
           "name": "Narrator Win\u002BCtrl\u002BEnter Hotkey",
           "description": "Enable the Win\u002BCtrl\u002BEnter keyboard shortcut to quickly launch Windows Narrator screen reader",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountVoice"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -38904,6 +39984,10 @@
           "name": "StickyKeys Hotkey (Shift\u00D75)",
           "description": "Enable the keyboard shortcut to activate StickyKeys by pressing the Shift key five times",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "AppleKeyboardShift"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39016,6 +40100,10 @@
           "name": "FilterKeys Hotkey (Right Shift 8s)",
           "description": "Enable the keyboard shortcut to activate FilterKeys by holding the right Shift key for 8 seconds",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "KeyboardOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39128,6 +40216,10 @@
           "name": "ToggleKeys Hotkey (Num Lock 5s)",
           "description": "Enable the keyboard shortcut to activate ToggleKeys by holding Num Lock for 5 seconds, which plays sounds when Caps/Num/Scroll Lock are pressed",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "Numeric"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39240,6 +40332,10 @@
           "name": "MouseKeys Hotkey (Alt\u002BShift\u002BNumLock)",
           "description": "Enable the keyboard shortcut to activate MouseKeys, which allows using the numeric keypad to control the mouse pointer",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "MouseVariant"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39352,6 +40448,10 @@
           "name": "High Contrast Hotkey (Alt\u002BShift\u002BPrtScn)",
           "description": "Enable the keyboard shortcut to activate High Contrast mode by pressing Left Alt \u002B Left Shift \u002B Print Screen",
           "group": "Accessibility",
+          "icon": {
+            "pack": "Material",
+            "name": "ContrastCircle"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39464,6 +40564,10 @@
           "name": "System Protection (Restore Points)",
           "description": "Allow Windows to automatically create restore points for the C: drive, making it possible to undo system changes if something goes wrong",
           "group": null,
+          "icon": {
+            "pack": "Material",
+            "name": "History"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.05.13",
@@ -39555,6 +40659,10 @@
           "name": "User Account Control Level",
           "description": "Controls UAC notification level and secure desktop behavior",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldAccount"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -39749,6 +40857,10 @@
           "name": "Workplace Join Message Prompts",
           "description": "Show \u0027Allow my organization to manage my device\u0027 prompts throughout Windows",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "OfficeBuilding"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -39875,6 +40987,10 @@
           "name": "BitLocker Auto Encryption",
           "description": "Controls whether Windows can automatically encrypt drives with BitLocker. Has no effect if BitLocker encryption is already active on your device",
           "group": "Security",
+          "icon": {
+            "pack": "Fluent",
+            "name": "LockClosedKey"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -39992,6 +41108,10 @@
           "name": "WiFi-Sense",
           "description": "Allow sharing WiFi passwords with contacts and automatically connecting to suggested open hotspots",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "WifiOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -40110,6 +41230,10 @@
           "name": "Automatic Maintenance",
           "description": "Choose if Windows should run automatic system maintenance tasks during idle time",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "ProgressWrench"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -40222,6 +41346,10 @@
           "name": "Windows Error Reporting",
           "description": "Choose if Windows should collect and send crash reports and error information to Microsoft",
           "group": "Security",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Bug"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -40348,6 +41476,10 @@
           "name": "Remote Assistance",
           "description": "Choose if other people can connect to your computer remotely to provide technical support",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "RemoteDesktop"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -40460,6 +41592,10 @@
           "name": "Smart App Control",
           "description": "Controls the Smart App Control feature which blocks untrusted and potentially dangerous applications",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldCheck"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.01",
@@ -40593,6 +41729,10 @@
           "name": "Developer Mode",
           "description": "Allows the installation of apps from any source, including loose files",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "CodeBraces"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -40705,6 +41845,10 @@
           "name": "PowerShell Execution Policy",
           "description": "Controls whether PowerShell scripts are allowed to run and under what conditions for both the current user and the local machine",
           "group": "Security",
+          "icon": {
+            "pack": "Material",
+            "name": "Powershell"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": "26.04.08",
@@ -40871,6 +42015,10 @@
           "name": "Ads, Suggestions and Promotional Content",
           "description": "Controls all advertising, suggestions, and promotional content throughout Windows",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "AdvertisementsOff"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41224,6 +42372,10 @@
           "name": "Content Delivery",
           "description": "Allows Windows to deliver promotional content and automatically install suggested apps",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "PackageVariant"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41336,6 +42488,10 @@
           "name": "Subscribed Content",
           "description": "Enables promotional content subscriptions from Microsoft and partners throughout Windows",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "BookmarkMultiple"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41448,6 +42604,10 @@
           "name": "Feature Management",
           "description": "Enables Windows feature management functionality for promotional features and automatic app installations",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorArrowDown"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41560,6 +42720,10 @@
           "name": "Soft Landing Experiences",
           "description": "Displays tips and notifications about Windows features as you use the operating system",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "LightbulbOn"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41672,6 +42836,10 @@
           "name": "OEM Pre-installed Apps",
           "description": "Prevents OEM manufacturers from automatically installing bloatware apps",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "PackageDown"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41784,6 +42952,10 @@
           "name": "Pre-installed Suggested Apps",
           "description": "Prevents Microsoft from automatically installing suggested apps",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "PackageVariantPlus"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -41896,6 +43068,10 @@
           "name": "Pre-installed Apps History Tracking",
           "description": "Disables tracking of whether pre-installed apps were ever enabled",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "ClipboardTextClockOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42008,6 +43184,10 @@
           "name": "Silent App Installation",
           "description": "Prevents apps from being silently installed in the background",
           "group": "Content Delivery \u0026 Advertising",
+          "icon": {
+            "pack": "Material",
+            "name": "CubeOffOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42120,6 +43300,10 @@
           "name": "Lock Screen",
           "description": "Allows users to lock their computer using Windows\u002BL, Start menu, or Ctrl\u002BAlt\u002BDel screen",
           "group": "Lock Screen",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -42232,6 +43416,10 @@
           "name": "Windows Spotlight on Lock Screen",
           "description": "Displays rotating Windows Spotlight images on your lock screen instead of a static background. Winhance automatically sets the Start Menu Recommended Section to Show when this setting is enabled as it is required",
           "group": "Lock Screen",
+          "icon": {
+            "pack": "Fluent",
+            "name": "ImageCircle"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42352,6 +43540,10 @@
           "name": "Lock Screen Fun Facts and Tips",
           "description": "Displays fun facts, tips, and tricks as an overlay on your lock screen",
           "group": "Lock Screen",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorShimmer"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42491,6 +43683,10 @@
           "name": "Let apps show me personalized ads by using my advertising ID",
           "description": "Windows generates a unique advertising ID that apps use to track your activity and deliver personalized ads based on your behavior across different apps",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "Advertisements"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42886,6 +44082,10 @@
           "name": "Let websites show me locally relevant content by accessing my language list",
           "description": "Allows websites to access your language preferences so they can automatically display content in your preferred language without requiring manual configuration on each site",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "Translate"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -42998,6 +44198,10 @@
           "name": "Let Windows improve Start and search results by tracking app launches",
           "description": "Windows records which apps you use most frequently to personalize your Start menu and improve search results, making your most-used apps more accessible",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "ArchiveSearch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43110,6 +44314,10 @@
           "name": "Show me suggested content in the Settings app",
           "description": "Displays promotional content, tips, and feature suggestions within the Windows Settings app. Winhance automatically sets the Start Menu Recommended Section to Show when this setting is enabled as it is required",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "StarCog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43268,6 +44476,10 @@
           "name": "Settings App Notifications",
           "description": "Shows account notifications in the Settings app, including prompts to reauthenticate, backup your device, and manage subscriptions",
           "group": "General",
+          "icon": {
+            "pack": "Material",
+            "name": "BellCog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43380,6 +44592,10 @@
           "name": "Online Speech Recognition",
           "description": "Use your voice for apps using Microsoft\u0027s online speech recognition technology",
           "group": "Speech",
+          "icon": {
+            "pack": "Material",
+            "name": "MicrophoneQuestion"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43543,6 +44759,10 @@
           "name": "Narrator Online Services",
           "description": "Allow Narrator to use Microsoft cloud services for features like intelligent image descriptions and enhanced voice models",
           "group": "Speech",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudQuestion"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43655,6 +44875,10 @@
           "name": "Narrator Scripting Support",
           "description": "Allow Narrator to execute scripts for automation and custom functionality",
           "group": "Speech",
+          "icon": {
+            "pack": "Material",
+            "name": "ScriptText"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -43767,6 +44991,10 @@
           "name": "Custom Inking and Typing Dictionary",
           "description": "Uses your typing history and handwriting patterns to create a custom dictionary (turning off will clear all words in your custom dictionary)",
           "group": "Inking and typing personalization",
+          "icon": {
+            "pack": "Fluent",
+            "name": "BookDefault"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -44014,6 +45242,10 @@
           "name": "Send Diagnostic Data",
           "description": "Send diagnostic data to Microsoft to help improve Windows and keep it secure",
           "group": "Diagnostics \u0026 Feedback",
+          "icon": {
+            "pack": "Fluent",
+            "name": "PulseSquare"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -44547,6 +45779,10 @@
           "name": "Improve inking and typing",
           "description": "Send optional inking and typing diagnostic data to Microsoft",
           "group": "Diagnostics \u0026 Feedback",
+          "icon": {
+            "pack": "Fluent",
+            "name": "PenSparkle"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -44704,6 +45940,10 @@
           "name": "Tailored Experiences",
           "description": "Let Microsoft use your diagnostic data to show personalized tips, ads and recommendations",
           "group": "Diagnostics \u0026 Feedback",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountCog"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -44867,6 +46107,10 @@
           "name": "Allow Windows to ask you for feedback",
           "description": "Let Windows ask you to provide feedback on experiences in Windows",
           "group": "Diagnostics \u0026 Feedback",
+          "icon": {
+            "pack": "Fluent",
+            "name": "PersonFeedback"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45030,6 +46274,10 @@
           "name": "Activity History",
           "description": "Allows you to jump back into what you were doing with apps, docs, or other activities on startup",
           "group": "Activity History",
+          "icon": {
+            "pack": "Fluent",
+            "name": "Timeline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45161,6 +46409,10 @@
           "name": "Timeline Suggestions",
           "description": "Shows suggestions in the Windows 10 Timeline feature",
           "group": "Activity History",
+          "icon": {
+            "pack": "Material",
+            "name": "TimelineAlert"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45278,6 +46530,10 @@
           "name": "Search history on this device",
           "description": "Improves search results by allowing Windows Search to store your search history locally on this device (Does not clear existing history)",
           "group": "Search permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "MagnifyScan"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45390,6 +46646,10 @@
           "name": "Show search highlights",
           "description": "See content suggestions in search",
           "group": "Search permissions",
+          "icon": {
+            "pack": "Fluent",
+            "name": "SearchSparkle"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45502,6 +46762,10 @@
           "name": "Cloud Content Search for Microsoft account",
           "description": "Allow Windows Search to show results from apps and services that you are signed in to with your Microsoft account",
           "group": "Search permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudSearch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45614,6 +46878,10 @@
           "name": "Cloud Content Search for Work or School account",
           "description": "Allow Windows Search to show results from apps and services that you are signed in to with your work or school account",
           "group": "Search permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "BriefcaseSearch"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45726,6 +46994,10 @@
           "name": "Allow Cortana",
           "description": "Enables Microsoft\u0027s Cortana virtual assistant for voice commands and searches",
           "group": "Search permissions",
+          "icon": {
+            "pack": "Fluent",
+            "name": "BotSparkle"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -45852,6 +47124,10 @@
           "name": "Location Services",
           "description": "Allows Windows and apps to access your device location for location-based features",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "MapMarker"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -46157,6 +47433,10 @@
           "name": "Camera Access",
           "description": "Allow apps to have camera access",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "Camera"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -46269,6 +47549,10 @@
           "name": "Microphone Access",
           "description": "Allow apps to have microphone access",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "Microphone"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -46381,6 +47665,10 @@
           "name": "Account Info Access",
           "description": "Allow apps to have account info access",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountLockOpen"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -46493,6 +47781,10 @@
           "name": "App Diagnostic Access",
           "description": "Allow apps to have app diagnostic access",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "Stethoscope"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -46605,6 +47897,10 @@
           "name": "OneDrive Automatic Backups",
           "description": "Controls whether OneDrive automatically backs up your Documents, Pictures, and Desktop folders. Has no effect if OneDrive backups are already active on your device",
           "group": "App Permissions",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -46731,6 +48027,10 @@
           "name": "Windows Copilot",
           "description": "Controls whether Windows Copilot is available system-wide via group policy for both current user and local machine",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "Robot"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -46967,6 +48267,10 @@
           "name": "AI Data Analysis",
           "description": "Controls whether Windows AI can analyze user data for personalization and recommendations",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "DatabaseOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47092,6 +48396,10 @@
           "name": "Recall Enablement",
           "description": "Controls whether Windows Recall can be enabled via policy",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "Cancel"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47217,6 +48525,10 @@
           "name": "Recall Saving Snapshots",
           "description": "Allows Windows Recall to save screenshots of your activity for later recall",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "CameraOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47342,6 +48654,10 @@
           "name": "Click to Do",
           "description": "Controls whether the Click to Do AI feature is available in Windows",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "CursorDefaultClickOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47467,6 +48783,10 @@
           "name": "AI Settings Agent",
           "description": "Controls whether the AI-powered Settings Agent is available in Windows",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "CogOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47592,6 +48912,10 @@
           "name": "AI Agent Connectors",
           "description": "Controls whether AI agents can use connectors to access external services",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "VectorPolylineRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47717,6 +49041,10 @@
           "name": "AI Agent Workspaces",
           "description": "Controls whether AI Agent Workspaces are available in Windows",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "DesktopClassic"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47842,6 +49170,10 @@
           "name": "Remote AI Agent Connectors",
           "description": "Controls whether AI agents can use remote connectors to access remote services",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "LanDisconnect"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -47967,6 +49299,10 @@
           "name": "Copilot Hardware Key",
           "description": "Controls whether the dedicated Copilot key on keyboards opens Copilot",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "KeyboardOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48084,6 +49420,10 @@
           "name": "Copilot Runtime",
           "description": "Controls whether the Copilot runtime is allowed to run via policy",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "RobotOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48209,6 +49549,10 @@
           "name": "Copilot Availability",
           "description": "Controls whether Copilot is available in the Windows Shell",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "RobotOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48417,6 +49761,10 @@
           "name": "Bing Chat Eligibility",
           "description": "Controls whether the user is eligible for Bing Chat and Copilot in Search",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ChatRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48625,6 +49973,10 @@
           "name": "Generative AI Access",
           "description": "Controls whether apps can access the generative AI capability on your device",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48787,6 +50139,10 @@
           "name": "System AI Models Access",
           "description": "Controls whether apps can access system AI models on your device and collect usage data. Disabling this breaks Snipping Tool text extraction (Extract text, Copy all text, Copy as table) and other on-device OCR features.",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -48968,6 +50324,10 @@
           "name": "Copilot Microphone Access",
           "description": "Controls whether Copilot and Office Hub apps have microphone permission",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "MicrophoneOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49091,6 +50451,10 @@
           "name": "Paint AI Image Creator",
           "description": "Controls whether the AI Image Creator feature is available in Microsoft Paint",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49216,6 +50580,10 @@
           "name": "Paint AI Cocreator",
           "description": "Controls whether the AI Cocreator feature is available in Microsoft Paint",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "PaletteOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49341,6 +50709,10 @@
           "name": "Paint Generative Fill",
           "description": "Controls whether the AI Generative Fill feature is available in Microsoft Paint",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "FormatPaint"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49466,6 +50838,10 @@
           "name": "Paint Generative Erase",
           "description": "Controls whether the AI Generative Erase feature is available in Microsoft Paint",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "EraserVariant"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49591,6 +50967,10 @@
           "name": "Paint Remove Background",
           "description": "Controls whether the AI Remove Background feature is available in Microsoft Paint",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ImageRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49716,6 +51096,10 @@
           "name": "Input Insights",
           "description": "Controls whether Windows Input Insights can track typing patterns and provide suggestions",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "KeyboardOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49833,6 +51217,10 @@
           "name": "Copilot Nudges",
           "description": "Controls whether Copilot promotional nudges and background task notifications are shown",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "BellOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -49950,6 +51338,10 @@
           "name": "AI Consumer Content",
           "description": "Controls whether AI-driven consumer account content recommendations are shown",
           "group": "Windows AI",
+          "icon": {
+            "pack": "Material",
+            "name": "AccountOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50075,6 +51467,10 @@
           "name": "Edge Copilot CDP Page Context",
           "description": "Controls whether Copilot can use CDP to access page content in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "WebOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50195,6 +51591,10 @@
           "name": "Edge Copilot Page Context",
           "description": "Controls whether Copilot can read page content in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "FileEyeOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50315,6 +51715,10 @@
           "name": "Edge Copilot Sidebar",
           "description": "Controls whether the Copilot sidebar is available in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "DockRight"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50435,6 +51839,10 @@
           "name": "Edge Entra Copilot Page Context",
           "description": "Controls whether Entra Copilot can access page context in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ShieldOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50555,6 +51963,10 @@
           "name": "Edge M365 Copilot Chat Icon",
           "description": "Controls whether the Microsoft 365 Copilot chat icon is shown in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ChatMinus"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50675,6 +52087,10 @@
           "name": "Edge AI History Search",
           "description": "Controls whether AI-powered history search is available in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "History"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50795,6 +52211,10 @@
           "name": "Edge Inline AI Compose",
           "description": "Controls whether AI-powered inline compose suggestions are available in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "PenOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -50915,6 +52335,10 @@
           "name": "Edge Local AI Model Settings",
           "description": "Controls whether local AI model settings are available in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "DatabaseOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51035,6 +52459,10 @@
           "name": "Edge Built-in AI APIs",
           "description": "Controls whether built-in AI APIs are available in Microsoft Edge for websites to use",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "Api"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51155,6 +52583,10 @@
           "name": "Edge AI Generated Themes",
           "description": "Controls whether AI-generated themes are available in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "PaletteOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51275,6 +52707,10 @@
           "name": "Edge DevTools AI",
           "description": "Controls whether AI features are available in Edge DevTools",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "CodeBracesBox"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51395,6 +52831,10 @@
           "name": "Edge Share History with Copilot",
           "description": "Controls whether browsing history is shared with Copilot search in Microsoft Edge",
           "group": "Microsoft Edge AI",
+          "icon": {
+            "pack": "Material",
+            "name": "ShareOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51515,6 +52955,10 @@
           "name": "Office AI Training",
           "description": "Controls whether Office collects AI training data from your usage",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "SchoolOutline"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51635,6 +53079,10 @@
           "name": "Office Connected Services",
           "description": "Controls whether Office connected experiences and AI-powered services are available",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "CloudOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51782,6 +53230,10 @@
           "name": "Word Copilot",
           "description": "Controls whether Copilot AI features are available in Microsoft Word",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "FileWord"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -51894,6 +53346,10 @@
           "name": "Excel Copilot",
           "description": "Controls whether Copilot AI features are available in Microsoft Excel",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "FileExcel"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -52006,6 +53462,10 @@
           "name": "OneNote Copilot",
           "description": "Controls whether Copilot AI features, Copilot notebooks, and Copilot skittle are available in Microsoft OneNote",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "NotebookEdit"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -52156,6 +53616,10 @@
           "name": "Office AI Content Safety",
           "description": "Controls whether AI content safety features for alt text, rewrite, and summarization are available in Office apps",
           "group": "Microsoft Office AI",
+          "icon": {
+            "pack": "Material",
+            "name": "TextBoxRemove"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": "26.04.10",
@@ -52281,6 +53745,10 @@
           "name": "Power Plan",
           "description": "Select the active power plan for your system",
           "group": null,
+          "icon": {
+            "pack": "Fluent",
+            "name": "NotebookLightning"
+          },
           "control": "PowerPlan",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -52302,6 +53770,10 @@
           "name": "Turn off the display",
           "description": "Specifies the period of inactivity before Windows turns off the display",
           "group": "Display",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorOff"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -52644,6 +54116,10 @@
           "name": "Turn off hard disk after",
           "description": "Specifies the period of inactivity before Windows turns off the hard disk",
           "group": "Hard Disk",
+          "icon": {
+            "pack": "Material",
+            "name": "Harddisk"
+          },
           "control": "Slider",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -52770,6 +54246,10 @@
           "name": "JavaScript Timer Frequency",
           "description": "Specifies the frequency of JavaScript timers",
           "group": "Internet Explorer",
+          "icon": {
+            "pack": "Material",
+            "name": "CodeBraces"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -52888,6 +54368,10 @@
           "name": "Desktop Background Slide Show",
           "description": "Allow or prevent Windows from rotating through multiple wallpaper images",
           "group": "Desktop Background Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Image"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -53006,6 +54490,10 @@
           "name": "Power Saving Mode",
           "description": "Balance wireless network performance with battery life by adjusting adapter power usage",
           "group": "Wireless Adapter Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Wifi"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -53156,6 +54644,10 @@
           "name": "Put the computer to sleep",
           "description": "Specifies the period of inactivity before Windows puts the computer to sleep",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "Sleep"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -53498,6 +54990,10 @@
           "name": "Allow wake timers",
           "description": "Allow scheduled tasks and applications to wake your computer from sleep",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "Alarm"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -53632,6 +55128,10 @@
           "name": "Hibernation",
           "description": "Save your session to disk and power down completely, using no battery while preserving your work",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "PowerSleep"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -53765,6 +55265,10 @@
           "name": "Hibernate after",
           "description": "Specifies the period of inactivity before Windows hibernates the computer",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "BedClock"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -54107,6 +55611,10 @@
           "name": "Allow hybrid sleep",
           "description": "Combines sleep and hibernate by saving your session to disk while staying in low-power mode for faster wake",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "WeatherNight"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -54235,6 +55743,10 @@
           "name": "Fast Startup",
           "description": "Hibernate system state during shutdown for faster boot times (does not affect restart)",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "FlashAuto"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -54355,6 +55867,10 @@
           "name": "Show Hibernate Option",
           "description": "Display the Hibernate option in the Start Menu power button menu",
           "group": "Sleep",
+          "icon": {
+            "pack": "Material",
+            "name": "FlashRedEye"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -54475,6 +55991,10 @@
           "name": "USB Hub Selective Suspend Timeout",
           "description": "Set how long USB hubs wait idle before powering down to save energy",
           "group": "USB settings",
+          "icon": {
+            "pack": "Material",
+            "name": "TimerPause"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -54608,6 +56128,10 @@
           "name": "USB selective suspend setting",
           "description": "Allow Windows to power down individual USB ports when devices are idle to save energy",
           "group": "USB settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Usb"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -54726,6 +56250,10 @@
           "name": "USB 3 Link Power Management",
           "description": "Control how aggressively USB 3.0 ports enter low-power states when devices are idle",
           "group": "USB settings",
+          "icon": {
+            "pack": "Material",
+            "name": "UsbPort"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -54884,6 +56412,10 @@
           "name": "Intel(R) Graphics Power Plan",
           "description": "Balance Intel integrated graphics performance with power consumption and battery life",
           "group": "Intel(R) Graphics Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "ExpansionCard"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -55018,6 +56550,10 @@
           "name": "Power button action",
           "description": "Choose what happens when you press the physical power button on your computer",
           "group": "Power Buttons and Lid",
+          "icon": {
+            "pack": "Material",
+            "name": "PowerSettings"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -55192,6 +56728,10 @@
           "name": "Sleep button action",
           "description": "Choose what happens when you press the dedicated sleep button on your keyboard or computer",
           "group": "Power Buttons and Lid",
+          "icon": {
+            "pack": "Material",
+            "name": "Sleep"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -55366,6 +56906,10 @@
           "name": "Lid close action",
           "description": "Choose what happens when you close your laptop lid",
           "group": "Power Buttons and Lid",
+          "icon": {
+            "pack": "Material",
+            "name": "Laptop"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -55526,6 +57070,10 @@
           "name": "Link State Power Management",
           "description": "Control power savings for PCIe devices like graphics cards, SSDs, and expansion cards",
           "group": "PCI Express",
+          "icon": {
+            "pack": "Material",
+            "name": "Router"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -55660,6 +57208,10 @@
           "name": "Minimum processor state",
           "description": "Set the lowest CPU speed allowed as a percentage of maximum frequency",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "SpeedometerSlow"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -55802,6 +57354,10 @@
           "name": "Maximum processor state",
           "description": "Set the highest CPU speed allowed as a percentage of maximum frequency",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "Speedometer"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -55928,6 +57484,10 @@
           "name": "System cooling policy",
           "description": "Choose whether to slow down the processor first (passive) or speed up fans first (active) when hot",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "Fan"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56054,6 +57614,10 @@
           "name": "Processor performance boost mode",
           "description": "Control how aggressively your CPU boosts above base frequency for demanding tasks",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "RocketLaunch"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56260,6 +57824,10 @@
           "name": "Processor Performance Increase Policy",
           "description": "Control how quickly CPU ramps up speed when workload increases (for legacy non-HWP processors)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "TrendingUp"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56418,6 +57986,10 @@
           "name": "Processor Performance Decrease Policy",
           "description": "Control how quickly CPU reduces speed when workload decreases (for legacy non-HWP processors)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "TrendingDown"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56560,6 +58132,10 @@
           "name": "CPU Core Parking Minimum Cores",
           "description": "Set the minimum percentage of CPU cores that must remain active and responsive",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "Cpu64Bit"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56700,6 +58276,10 @@
           "name": "CPU Core Parking Maximum Cores",
           "description": "Set the maximum percentage of CPU cores allowed to be active (100% for best performance)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "Cpu64Bit"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56840,6 +58420,10 @@
           "name": "Processor Energy Performance Preference",
           "description": "Balance power efficiency and performance for modern CPUs with HWP (0 = max performance, 100 = max efficiency)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "Tune"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -56973,6 +58557,10 @@
           "name": "Processor Performance Increase Threshold",
           "description": "Set CPU usage percentage that triggers speed increase (lower = more responsive, for legacy non-HWP CPUs)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "TrendingUp"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57122,6 +58710,10 @@
           "name": "Processor Performance Decrease Threshold",
           "description": "Set CPU usage percentage that triggers speed reduction (lower = maintains performance longer, for legacy non-HWP CPUs)",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "TrendingDown"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57271,6 +58863,10 @@
           "name": "Power Throttling",
           "description": "Allow Windows to reduce CPU performance for background processes to save power",
           "group": "Processor Power Management",
+          "icon": {
+            "pack": "Material",
+            "name": "SelectOff"
+          },
           "control": "Toggle",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57383,6 +58979,10 @@
           "name": "When Sharing Media",
           "description": "Control whether your PC can sleep while streaming media to other devices on your network",
           "group": "Multimedia Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Share"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57501,6 +59101,10 @@
           "name": "Video Playback Quality Bias",
           "description": "Prioritize smooth video playback over battery life when watching videos",
           "group": "Multimedia Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "HighDefinition"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57619,6 +59223,10 @@
           "name": "When Playing Video",
           "description": "Balance video quality and power consumption during video playback",
           "group": "Multimedia Settings",
+          "icon": {
+            "pack": "Material",
+            "name": "Play"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57753,6 +59361,10 @@
           "name": "Critical battery notification",
           "description": "Show notification when battery reaches critically low level",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "AlertCircle"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -57873,6 +59485,10 @@
           "name": "Critical battery action",
           "description": "Choose what happens when battery reaches critically low level",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "BatteryAlert"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58025,6 +59641,10 @@
           "name": "Low battery level",
           "description": "Set the battery percentage that triggers low battery warnings and actions",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "Battery20"
+          },
           "control": "Slider",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -58153,6 +59773,10 @@
           "name": "Critical battery level",
           "description": "Set the battery percentage that triggers critical battery warnings and emergency actions",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "BatteryOutline"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58281,6 +59905,10 @@
           "name": "Low battery notification",
           "description": "Show notification when battery reaches low battery level",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "Bell"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58401,6 +60029,10 @@
           "name": "Low battery action",
           "description": "Choose what happens when battery reaches low battery level",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "Battery20"
+          },
           "control": "Selection",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -58553,6 +60185,10 @@
           "name": "Reserve battery level",
           "description": "Set battery percentage reserved to protect battery health and prevent unexpected shutdowns",
           "group": "Battery",
+          "icon": {
+            "pack": "Material",
+            "name": "BatteryCharging"
+          },
           "control": "Slider",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58681,6 +60317,10 @@
           "name": "Overlay",
           "description": "Balance AMD laptop performance and battery life with quick power mode selection",
           "group": "AMD Power Slider",
+          "icon": {
+            "pack": "Material",
+            "name": "ExpansionCard"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58831,6 +60471,10 @@
           "name": "ATI PowerPlay Setting",
           "description": "Control power management for older AMD Radeon graphics cards",
           "group": "ATI PowerPlay",
+          "icon": {
+            "pack": "Material",
+            "name": "ExpansionCard"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -58965,6 +60609,10 @@
           "name": "GPU Preference",
           "description": "Choose between integrated GPU for battery life or dedicated GPU for performance in hybrid graphics laptops",
           "group": "Switchable Graphics",
+          "icon": {
+            "pack": "Material",
+            "name": "SwapHorizontal"
+          },
           "control": "Selection",
           "isSubjectivePreference": false,
           "addedInVersion": null,
@@ -59099,6 +60747,10 @@
           "name": "Show Lock Option",
           "description": "Display the Lock option in the Start Menu power button menu",
           "group": "Start Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "EyeLock"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,
@@ -59219,6 +60871,10 @@
           "name": "Show Sleep Option",
           "description": "Display the Sleep option in the Start Menu power button menu",
           "group": "Start Menu",
+          "icon": {
+            "pack": "Material",
+            "name": "LightbulbNight"
+          },
           "control": "Toggle",
           "isSubjectivePreference": true,
           "addedInVersion": null,

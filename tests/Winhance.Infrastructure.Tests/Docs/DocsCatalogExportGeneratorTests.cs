@@ -35,6 +35,16 @@ public class DocsCatalogExportGeneratorTests
         _output.WriteLine($"catalogHash     : {export.CatalogHash}");
         _output.WriteLine($"settings        : {export.SettingCount}");
         _output.WriteLine($"{(changed ? "wrote" : "unchanged")}           : {path}");
+
+        var theme = XamlTokens.Extract(solutionDir);
+        var themeJson = DocsCatalogExport.ToJson(theme);
+        Assert.True(themeJson.All(c => c < 128), "theme export contains non-ASCII.");
+
+        var themePath = Path.Combine(dir, "theme.json");
+        var themeChanged = GeneratedFile.WriteIfChanged(themePath, Crlf(themeJson));
+
+        _output.WriteLine($"tokens          : {theme.Themes["dark"].Count} colors, {theme.Styles.Count} styles, {theme.Geometries.Count} geometries");
+        _output.WriteLine($"{(themeChanged ? "wrote" : "unchanged")}           : {themePath}");
     }
 
     // The repo is CRLF throughout and the generator may run from either OS.

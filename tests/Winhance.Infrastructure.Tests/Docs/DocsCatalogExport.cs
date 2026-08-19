@@ -28,6 +28,7 @@ internal sealed record DocsSetting(
     string Name,
     string Description,
     string? Group,
+    DocsIcon? Icon,
     string Control,
     bool IsSubjectivePreference,
     string? AddedInVersion,
@@ -35,6 +36,8 @@ internal sealed record DocsSetting(
     DocsAvailability Availability,
     OptionMatrix? Matrix,
     OptionMatrix? MatrixWin10);
+
+internal sealed record DocsIcon(string Pack, string Name);
 
 internal sealed record DocsAvailability(
     IReadOnlyList<DocsBuildRange> Builds,
@@ -75,7 +78,11 @@ internal static class DocsCatalogExport
             features);
     }
 
-    public static string ToJson(DocsExport export) => JsonSerializer.Serialize(export, Indented);
+    public static string ToJson(DocsExport export) => ToJson<DocsExport>(export);
+
+    // Shared with the theme.json writer so the two exports stay on one options instance rather than each
+    // rolling its own JsonSerializerOptions.
+    public static string ToJson<T>(T value) => JsonSerializer.Serialize(value, Indented);
 
     public static string ReadCsprojVersion(string solutionDir)
     {
@@ -99,6 +106,7 @@ internal static class DocsCatalogExport
             Text(loc, SettingLocalizationKeys.Name(s), s.Display.Name),
             Text(loc, SettingLocalizationKeys.Description(s), s.Display.Description),
             GroupName(s, loc),
+            s.Display.Icon is { } ic ? new DocsIcon(ic.Pack.ToString(), ic.Glyph) : null,
             s.Control.ToString(),
             s.Display.IsSubjectivePreference,
             s.Display.AddedInVersion,

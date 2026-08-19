@@ -10,6 +10,7 @@ public class DocsCatalogExportShapeTests
 {
     private static readonly EnJsonLocalization Loc = EnJsonLocalization.Load();
     private static readonly DocsExport Export = DocsCatalogExport.Build(Loc, "0.0.0");
+    private static readonly string[] IconPacks = { "Material", "Fluent" };
 
     private static DocsSetting Find(string id) =>
         Export.Features.SelectMany(f => f.Settings).Single(s => s.Id == id);
@@ -33,6 +34,15 @@ public class DocsCatalogExportShapeTests
 
         Assert.Empty(missing);
         Assert.Null(Find("power-plan-selection").Matrix);
+    }
+
+    [Fact]
+    public void Every_setting_exports_its_icon_identity()
+    {
+        var settings = Export.Features.SelectMany(f => f.Settings).ToList();
+        Assert.All(settings, s => Assert.False(string.IsNullOrEmpty(s.Icon?.Name), $"{s.Id} has no icon"));
+        Assert.All(settings, s => Assert.Contains(s.Icon!.Pack, IconPacks));
+        Assert.Equal("MonitorSpeaker", Find("sound-startup").Icon!.Name);
     }
 
     [Fact]
