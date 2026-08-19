@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -115,6 +116,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
 
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
+        services.AddSingleton<ISettingSnapshotSource, SettingSnapshotSource>();
 
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
 

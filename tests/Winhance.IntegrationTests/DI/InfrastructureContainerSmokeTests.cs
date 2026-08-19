@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
 using Xunit;
@@ -51,6 +52,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IRegImportService))]
     [InlineData(typeof(ISpecialSettingHandlerRegistry))]
     [InlineData(typeof(IAutounattendScriptBuilder))]
+    [InlineData(typeof(ISettingSnapshotSource))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         using var provider = BuildProvider();
