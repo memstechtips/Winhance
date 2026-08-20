@@ -2,9 +2,9 @@ using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
@@ -13,7 +13,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
-    private readonly IAutounattendWriter _autounattend;
+    private readonly ISelectionSaveService _saves;
     private readonly IWimCustomizationService _wimCustomizationService;
     private readonly ISelectionSetBuilder _selections;
     private readonly IDialogService _dialogService;
@@ -41,7 +41,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     public WizardActionCard SelectXmlCard { get; private set; } = new();
 
     public WimStep2XmlViewModel(
-        IAutounattendWriter autounattend,
+        ISelectionSaveService saves,
         IWimCustomizationService wimCustomizationService,
         ISelectionSetBuilder selections,
         IDialogService dialogService,
@@ -51,7 +51,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         ILogService logService,
         IResourceService resourceService)
     {
-        _autounattend = autounattend;
+        _saves = saves;
         _wimCustomizationService = wimCustomizationService;
         _selections = selections;
         _dialogService = dialogService;
@@ -127,20 +127,16 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
             var set = await _selections.FromMachineAsync();
-            if (set.WindowsApps.Count == 0)
-            {
-                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                {
-                    Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
-                    Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                    ConfirmButtonText = _localizationService.GetString("Button_Yes"),
-                    CancelButtonText = _localizationService.GetString("Button_No"),
-                })).Confirmed;
-                if (!continueAnyway) return;
-            }
 
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            var generatedPath = await _autounattend.WriteAsync(set, _selections.CurrentScope, outputPath);
+            SaveOutcome outcome = await _saves.SaveAsync(BuilderTarget.Autounattend, set, new SelectionSaveOptions
+            {
+                FixedPath = outputPath,
+                ReportSuccessInDialog = false,
+            });
+
+            string? generatedPath = outcome.Path;
+            if (generatedPath == null) return;
 
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;

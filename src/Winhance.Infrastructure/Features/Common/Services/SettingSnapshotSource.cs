@@ -49,6 +49,13 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
 
     private static ChoiceValue? Choose(Setting setting, SettingStateResult state)
     {
+        // A setting Winhance could not read has no intent to record. Writing one anyway lands as an explicit
+        // "off" in the file and actively disables it on the next machine, which is what Undetermined means the
+        // app must not do: applying would write blind over data it could not read. Custom and Malformed are
+        // both actionable readings and stay.
+        if (!state.Success || state.Outcome == SettingDetectionOutcome.Undetermined)
+            return null;
+
         var powerCfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
         bool separate = powerCfg?.Mode == PowerModeSupport.Separate;
 

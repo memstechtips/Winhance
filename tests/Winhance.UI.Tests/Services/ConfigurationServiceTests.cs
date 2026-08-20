@@ -1,5 +1,4 @@
 using Moq;
-using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -22,8 +21,7 @@ public class ConfigurationServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
     private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
-    private readonly Mock<IConfigFileWriter> _mockConfigFileWriter = new();
-    private readonly Mock<ISaveFilePicker> _mockPicker = new();
+    private readonly Mock<ISelectionSaveService> _mockSaves = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
@@ -41,6 +39,10 @@ public class ConfigurationServiceTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
+
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SaveOutcome(PickedPath, false));
     }
 
     private ConfigurationService CreateService()
@@ -49,8 +51,7 @@ public class ConfigurationServiceTests
             _mockLogService.Object,
             _mockCatalogSettingsRegistry.Object,
             _mockSelections.Object,
-            _mockConfigFileWriter.Object,
-            _mockPicker.Object,
+            _mockSaves.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockInteractiveUserService.Object,
@@ -67,84 +68,32 @@ public class ConfigurationServiceTests
     {
         var set = SetWith(windowsApps);
         _mockSelections.Setup(s => s.FromMachineAsync()).ReturnsAsync(set);
-        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
         return set;
     }
 
-    private void ArrangePicker(string? path) =>
-        _mockPicker
-            .Setup(p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(path);
-
-    private void VerifyPickerCalled(Times times) =>
-        _mockPicker.Verify(
-            p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
-            times);
-
-    private void VerifyNothingWritten() =>
-        _mockConfigFileWriter.Verify(
-            w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()),
-            Times.Never);
-
     [Fact]
-    public async Task Export_NoAppsChecked_AsksThenContinues()
-    {
-        ArrangeMachineSet(Array.Empty<AppChoice>());
-        ArrangePicker(PickedPath);
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        await CreateService().ExportConfigurationAsync();
-
-        _mockDialogService.Verify(
-            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Message == "Dialog_NoAppsSelected_Config_Message")),
-            Times.Once);
-        VerifyPickerCalled(Times.Once());
-    }
-
-    [Fact]
-    public async Task Export_NoAppsChecked_UserDeclines_WritesNothing()
-    {
-        ArrangeMachineSet(Array.Empty<AppChoice>());
-        ArrangePicker(PickedPath);
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
-
-        await CreateService().ExportConfigurationAsync();
-
-        VerifyPickerCalled(Times.Never());
-        VerifyNothingWritten();
-    }
-
-    [Fact]
-    public async Task Export_UserCancelsPicker_WritesNothing()
-    {
-        ArrangeMachineSet(OneWindowsApp);
-        ArrangePicker(null);
-
-        await CreateService().ExportConfigurationAsync();
-
-        VerifyNothingWritten();
-        _mockDialogService.Verify(
-            d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Export_WritesViaConfigFileWriter_AndShowsSuccess()
+    public async Task Export_HandsTheMachineSetToTheSaveService()
     {
         var set = ArrangeMachineSet(OneWindowsApp);
-        ArrangePicker(PickedPath);
 
         await CreateService().ExportConfigurationAsync();
 
-        _mockConfigFileWriter.Verify(
-            w => w.WriteAsync(set, CatalogScope.CurrentMachine, PickedPath),
-            Times.Once);
+        _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
+        _mockSaves.Verify(s => s.SaveAsync(BuilderTarget.Config, set, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task Export_WhenTheSaveThrows_ShowsErrorDialog()
+    {
+        ArrangeMachineSet(OneWindowsApp);
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ThrowsAsync(new IOException("disk full"));
+
+        await CreateService().ExportConfigurationAsync();
+
         _mockDialogService.Verify(
-            d => d.ShowInformationAsync("Config_Export_Success_Message", "Config_Export_Success_Title", ""),
+            d => d.ShowErrorAsync("Config_Export_Error_Message", "Config_Export_Error_Title", ""),
             Times.Once);
     }
 
@@ -328,7 +277,6 @@ public class ConfigurationServiceTests
     {
         var set = SetWith(OneWindowsApp);
         _mockSelections.Setup(s => s.FromMachineForBackupAsync()).ReturnsAsync(set);
-        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
 
         _mockInteractiveUserService
             .Setup(s => s.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData))
@@ -353,8 +301,9 @@ public class ConfigurationServiceTests
             fs => fs.CombinePath(BackupDir, It.Is<string>(name =>
                 name.StartsWith("UserBackup_", StringComparison.Ordinal) && name.EndsWith(".winhance", StringComparison.Ordinal))),
             Times.Once);
-        _mockConfigFileWriter.Verify(
-            w => w.WriteAsync(set, CatalogScope.CurrentMachine, BackupFile),
+        _mockSaves.Verify(
+            s => s.SaveAsync(BuilderTarget.Config, set, It.Is<SelectionSaveOptions>(o =>
+                o.FixedPath == BackupFile && !o.ConfirmEmptyAppSelection && !o.ReportSuccessInDialog)),
             Times.Once);
     }
 
@@ -384,13 +333,12 @@ public class ConfigurationServiceTests
     public async Task Backup_WhenTheWriterThrows_LogsAndShowsNoDialog()
     {
         _mockSelections.Setup(s => s.FromMachineForBackupAsync()).ReturnsAsync(SetWith(OneWindowsApp));
-        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
         _mockInteractiveUserService
             .Setup(s => s.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData))
             .Returns(LocalAppData);
         _mockFileSystemService.Setup(fs => fs.CombinePath(It.IsAny<string[]>())).Returns(BackupFile);
-        _mockConfigFileWriter
-            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
             .ThrowsAsync(new IOException("disk full"));
 
         await CreateService().CreateUserBackupConfigAsync();

@@ -31,11 +31,6 @@ public sealed partial class AutounattendGeneratorPage : Page
     {
         base.OnNavigatedTo(e);
 
-        if (App.MainWindow != null)
-        {
-            ViewModel.SetMainWindow(App.MainWindow);
-        }
-
         ViewModel.NavigateToWimUtilRequested += OnNavigateToWimUtilRequested;
 
         // Live-region announcements for screen readers (issue #647).

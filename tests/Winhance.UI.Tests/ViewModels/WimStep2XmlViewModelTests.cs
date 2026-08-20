@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
@@ -13,7 +13,9 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep2XmlViewModelTests : IDisposable
 {
-    private readonly Mock<IAutounattendWriter> _mockAutounattend = new();
+    private const string GeneratedXmlPath = "C:\\WorkDir\\autounattend.xml";
+
+    private readonly Mock<ISelectionSaveService> _mockSaves = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -43,10 +45,13 @@ public class WimStep2XmlViewModelTests : IDisposable
                 [new AppChoice("test", "Test", null, null, null, null)],
                 Array.Empty<AppChoice>(),
                 AutounattendChoices.None));
-        _mockSelections.Setup(s => s.CurrentScope).Returns(CatalogScope.CurrentMachine);
+
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SaveOutcome(GeneratedXmlPath, false));
 
         _sut = new WimStep2XmlViewModel(
-            _mockAutounattend.Object,
+            _mockSaves.Object,
             _mockWimCustomizationService.Object,
             _mockSelections.Object,
             _mockDialogService.Object,
@@ -62,6 +67,11 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private void ArrangeGenerateConfirmed() =>
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
     [Fact]
     public void Constructor_InitializesSelectedXmlPathToEmpty()
@@ -128,8 +138,8 @@ public class WimStep2XmlViewModelTests : IDisposable
         _mockDialogService.Verify(d => d.ShowWarningAsync(
             "WIMUtil_Msg_WorkingDirectoryRequired",
             It.IsAny<string>()), Times.Once);
-        _mockAutounattend.Verify(w => w.WriteAsync(
-            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
+        _mockSaves.Verify(s => s.SaveAsync(
+            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
@@ -156,8 +166,8 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
-        _mockAutounattend.Verify(w => w.WriteAsync(
-            It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
+        _mockSaves.Verify(s => s.SaveAsync(
+            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
         _sut.IsXmlAdded.Should().BeFalse();
     }
 
@@ -165,19 +175,43 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_OnSuccess_SetsIsXmlAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockAutounattend
-            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
-            .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
+        ArrangeGenerateConfirmed();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
         _sut.IsXmlAdded.Should().BeTrue();
-        _sut.SelectedXmlPath.Should().Be("C:\\WorkDir\\autounattend.xml");
+        _sut.SelectedXmlPath.Should().Be(GeneratedXmlPath);
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WritesIntoTheWorkingDirectory_WithoutASuccessDialog()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(
+            BuilderTarget.Autounattend,
+            It.IsAny<SelectionSet>(),
+            It.Is<SelectionSaveOptions>(o => o.FixedPath == GeneratedXmlPath && !o.ReportSuccessInDialog && !o.OfferWimUtil)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenNothingWasSaved_LeavesTheCardIncomplete()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SaveOutcome(null, false));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.IsXmlAdded.Should().BeFalse();
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeFalse();
     }
 
     [Fact]
@@ -187,13 +221,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.DownloadXmlCard.IsComplete = true;
         _sut.SelectXmlCard.IsComplete = true;
 
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockAutounattend
-            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
-            .ReturnsAsync("C:\\WorkDir\\autounattend.xml");
+        ArrangeGenerateConfirmed();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -205,17 +233,17 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_OnException_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        ArrangeGenerateConfirmed();
 
-        _mockAutounattend
-            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
             .ThrowsAsync(new Exception("Generation failed"));
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
         _sut.GenerateWinhanceXmlCard.HasFailed.Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowErrorAsync(
+            "WIMUtil_Msg_XmlGenError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -400,7 +428,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public void Dispose_CanBeCalledMultipleTimes()
     {
         var vm = new WimStep2XmlViewModel(
-            _mockAutounattend.Object,
+            _mockSaves.Object,
             _mockWimCustomizationService.Object,
             _mockSelections.Object,
             _mockDialogService.Object,

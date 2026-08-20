@@ -397,6 +397,8 @@
                           MinWidth="0"/>
             </StackPanel>
 
+            <!-- MinWidth: the label changes with the target ("Save Config" / "Save autounattend.xml") and this
+                 column is Auto, so without it the button resizes and every control to its left shifts. -->
             <Button Grid.Column="5"
                     x:Name="BuilderSaveButton"
                     Click="BuilderSaveButton_Click"
@@ -404,6 +406,8 @@
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
                     VerticalAlignment="Center"
+                    MinWidth="200"
+                    HorizontalContentAlignment="Center"
                     Margin="4,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>

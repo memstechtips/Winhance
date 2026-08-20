@@ -40,6 +40,7 @@ public static class UIServicesExtensions
 
         services.AddSingleton<IAppSelectionSource, AppSelectionSource>();
         services.AddSingleton<ISelectionSetBuilder, SelectionSetBuilder>();
+        services.AddSingleton<ISelectionSaveService, SelectionSaveService>();
         services.AddSingleton<IBuilderSaveService, BuilderSaveService>();
         services.AddSingleton<IInstallConsent, DialogInstallConsent>();
 

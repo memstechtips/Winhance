@@ -1,7 +1,5 @@
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -9,26 +7,20 @@ namespace Winhance.UI.Features.Common.Services;
 public sealed class BuilderSaveService : IBuilderSaveService
 {
     private readonly ISelectionSetBuilder _selections;
-    private readonly IConfigFileWriter _configFiles;
-    private readonly IAutounattendWriter _autounattend;
-    private readonly ISaveFilePicker _picker;
+    private readonly ISelectionSaveService _saves;
     private readonly IDialogService _dialogs;
     private readonly ILocalizationService _loc;
     private readonly ILogService _log;
 
     public BuilderSaveService(
         ISelectionSetBuilder selections,
-        IConfigFileWriter configFiles,
-        IAutounattendWriter autounattend,
-        ISaveFilePicker picker,
+        ISelectionSaveService saves,
         IDialogService dialogs,
         ILocalizationService loc,
         ILogService log)
     {
         _selections = selections;
-        _configFiles = configFiles;
-        _autounattend = autounattend;
-        _picker = picker;
+        _saves = saves;
         _dialogs = dialogs;
         _loc = loc;
         _log = log;
@@ -39,43 +31,7 @@ public sealed class BuilderSaveService : IBuilderSaveService
         try
         {
             var set = await _selections.FromBuilderSessionAsync();
-            string? path;
-            if (target == BuilderTarget.Config)
-            {
-                path = _picker.PickSavePath(
-                    _loc.GetString("Config_FileDialog_SaveConfig"),
-                    ConfigFileConstants.FileFilter,
-                    ConfigFileConstants.FilePattern,
-                    $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}",
-                    "winhance");
-                if (string.IsNullOrEmpty(path))
-                {
-                    _log.Log(LogLevel.Info, "Builder config save: no save path chosen");
-                    return;
-                }
-                await _configFiles.WriteAsync(set, _selections.CurrentScope, path);
-            }
-            else
-            {
-                path = _picker.PickSavePath(
-                    _loc.GetString("AdvancedTools_FileDialog_SaveXml"),
-                    "Autounattend XML File",
-                    "*.xml",
-                    "autounattend.xml",
-                    "xml");
-                if (string.IsNullOrEmpty(path))
-                {
-                    _log.Log(LogLevel.Info, "Builder autounattend save: no save path chosen");
-                    return;
-                }
-
-                await _autounattend.WriteAsync(set, _selections.CurrentScope, path);
-            }
-
-            _log.Log(LogLevel.Info, $"Builder {target} saved to {path}");
-            await _dialogs.ShowInformationAsync(
-                _loc.GetString("Config_Export_Success_Message", path),
-                _loc.GetString("Config_Export_Success_Title"));
+            await _saves.SaveAsync(target, set);
         }
         catch (Exception ex)
         {

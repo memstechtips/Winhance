@@ -76,6 +76,8 @@
   "Builder_Mode_Save_Config": "구성 저장",
   "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
   "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
+  "Dialog_NarrowHardware_Title": "Settings for other hardware",
+  "Dialog_NarrowHardware_Message": "You have set {0} settings that this PC cannot have. Hiding them again leaves them out of the file you save.\n\nThey are not lost: turn this back on and they will be included again.\n\nDo you want to hide them?",
   "Builder_Mode_Save_Autounattend": "autounattend.xml 저장",
   "Builder_Mode_Cancel_Confirmation_Title": "빌더 모드 나가기",
   "Builder_Mode_Cancel_Confirmation": "빌더 모드를 나가시겠습니까? 여기서 선택한 항목은 삭제됩니다. 시스템에는 아무것도 적용되지 않았습니다.",

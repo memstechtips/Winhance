@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
@@ -33,6 +34,29 @@ public class SettingSnapshotSourceTests
         Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = true });
         var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
         choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("t", new ChoiceValue.Toggle(true)));
+    }
+
+    // A reading the app admits it could not make is not intent. Recording it would write an explicit "off"
+    // into the file and disable the setting on the next machine.
+    [Fact]
+    public async Task Toggle_DetectionFailed_IsOmitted()
+    {
+        Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = false, IsEnabled = false });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Toggle_Undetermined_IsOmitted()
+    {
+        Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = false, Outcome = SettingDetectionOutcome.Undetermined });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Toggle_Malformed_IsStillRecorded()
+    {
+        Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = true, Outcome = SettingDetectionOutcome.Malformed });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.Toggle(true));
     }
 
     [Fact]

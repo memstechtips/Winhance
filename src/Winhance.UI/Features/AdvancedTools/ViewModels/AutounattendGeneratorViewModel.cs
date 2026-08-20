@@ -1,11 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -13,12 +11,11 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class AutounattendGeneratorViewModel : ObservableObject
 {
-    private readonly IAutounattendWriter _autounattend;
+    private readonly ISelectionSaveService _saves;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
     private readonly ISelectionSetBuilder _selections;
-    private Window? _mainWindow;
 
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
 
@@ -36,22 +33,17 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     public event EventHandler? NavigateToWimUtilRequested;
 
     public AutounattendGeneratorViewModel(
-        IAutounattendWriter autounattend,
+        ISelectionSaveService saves,
         IDialogService dialogService,
         ILocalizationService localizationService,
         ILogService logService,
         ISelectionSetBuilder selections)
     {
-        _autounattend = autounattend;
+        _saves = saves;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _logService = logService;
         _selections = selections;
-    }
-
-    public void SetMainWindow(Window window)
-    {
-        _mainWindow = window;
     }
 
     [RelayCommand]
@@ -65,69 +57,23 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             if (!confirmed)
                 return;
 
-            if (_mainWindow == null)
-                return;
-
-            var saveTitle = _localizationService.GetStringOrDefault("AdvancedTools_FileDialog_SaveXml", "Save Autounattend XML File");
-            var outputPath = Win32FileDialogHelper.ShowSaveFilePicker(
-                _mainWindow,
-                saveTitle,
-                "XML Files",
-                "*.xml",
-                "autounattend.xml",
-                "xml");
-
-            if (string.IsNullOrEmpty(outputPath))
-                return;
-
-            var fileName = Path.GetFileName(outputPath);
-            if (!string.Equals(fileName, "autounattend.xml", StringComparison.OrdinalIgnoreCase))
-            {
-                var invalidMsg = _localizationService.GetString("AdvancedTools_Msg_InvalidFilename");
-                await _dialogService.ShowInformationAsync(invalidMsg, _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
-                return;
-            }
-
+            SelectionSet set;
             IsGenerating = true;
             try
             {
-                var set = await _selections.FromMachineAsync();
-
-                if (set.WindowsApps.Count == 0)
-                {
-                    var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                    {
-                        Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
-                        Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                        ConfirmButtonText = _localizationService.GetStringOrDefault("Button_Yes", "Yes"),
-                        CancelButtonText = _localizationService.GetStringOrDefault("Button_No", "No"),
-                    })).Confirmed;
-                    if (!continueAnyway)
-                        return;
-                }
-
-                await _autounattend.WriteAsync(set, _selections.CurrentScope, outputPath);
+                set = await _selections.FromMachineAsync();
             }
             finally
             {
                 IsGenerating = false;
             }
 
-            var successMsg = string.Format(
-                _localizationService.GetStringOrDefault("AdvancedTools_Msg_XmlGenSuccess", "XML generated at {0}"),
-                outputPath);
-            var successTitle = _localizationService.GetStringOrDefault("Dialog_Success", "Success");
-            var yesText = _localizationService.GetStringOrDefault("Button_Yes", "Yes");
-            var noText = _localizationService.GetStringOrDefault("Button_No", "No");
-            var openWimUtil = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-            {
-                Message = successMsg,
-                Title = successTitle,
-                ConfirmButtonText = yesText,
-                CancelButtonText = noText,
-            })).Confirmed;
+            SaveOutcome outcome = await _saves.SaveAsync(
+                BuilderTarget.Autounattend,
+                set,
+                new SelectionSaveOptions { OfferWimUtil = true });
 
-            if (openWimUtil)
+            if (outcome.WimUtilRequested)
             {
                 NavigateToWimUtilRequested?.Invoke(this, EventArgs.Empty);
             }

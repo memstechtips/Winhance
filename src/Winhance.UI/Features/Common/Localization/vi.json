@@ -76,6 +76,8 @@
   "Builder_Mode_Save_Config": "Lưu cấu hình",
   "Builder_Mode_ShowOtherHardware": "Show settings for other hardware",
   "Builder_Mode_ShowOtherHardware_Tooltip": "Also show settings this PC cannot have (for example battery settings on a desktop) so you can author them for another machine.",
+  "Dialog_NarrowHardware_Title": "Settings for other hardware",
+  "Dialog_NarrowHardware_Message": "You have set {0} settings that this PC cannot have. Hiding them again leaves them out of the file you save.\n\nThey are not lost: turn this back on and they will be included again.\n\nDo you want to hide them?",
   "Builder_Mode_Save_Autounattend": "Lưu autounattend.xml",
   "Builder_Mode_Cancel_Confirmation_Title": "Rời khỏi chế độ trình tạo",
   "Builder_Mode_Cancel_Confirmation": "Rời khỏi chế độ trình tạo? Các lựa chọn của bạn ở đây sẽ bị loại bỏ. Không có gì được áp dụng cho hệ thống của bạn.",

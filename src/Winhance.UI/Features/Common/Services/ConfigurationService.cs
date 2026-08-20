@@ -2,7 +2,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -12,8 +11,7 @@ public class ConfigurationService : IConfigurationService
     private readonly ILogService _logService;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ISelectionSetBuilder _selections;
-    private readonly IConfigFileWriter _configFiles;
-    private readonly ISaveFilePicker _picker;
+    private readonly ISelectionSaveService _saves;
     private readonly ILocalizationService _localization;
     private readonly IFileSystemService _fileSystem;
     private readonly IInteractiveUserService _interactiveUser;
@@ -26,8 +24,7 @@ public class ConfigurationService : IConfigurationService
         ILogService logService,
         ICatalogSettingsRegistry catalogSettingsRegistry,
         ISelectionSetBuilder selections,
-        IConfigFileWriter configFiles,
-        ISaveFilePicker picker,
+        ISelectionSaveService saves,
         ILocalizationService localization,
         IFileSystemService fileSystem,
         IInteractiveUserService interactiveUser,
@@ -39,8 +36,7 @@ public class ConfigurationService : IConfigurationService
         _logService = logService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _selections = selections;
-        _configFiles = configFiles;
-        _picker = picker;
+        _saves = saves;
         _localization = localization;
         _fileSystem = fileSystem;
         _interactiveUser = interactiveUser;
@@ -66,37 +62,7 @@ public class ConfigurationService : IConfigurationService
 
             var set = await _selections.FromMachineAsync();
 
-            if (set.WindowsApps.Count == 0)
-            {
-                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                {
-                    Message = _localization.GetString("Dialog_NoAppsSelected_Config_Message"),
-                    Title = _localization.GetString("Dialog_NoAppsSelected_Title"),
-                })).Confirmed;
-                if (!continueAnyway)
-                    return;
-            }
-
-            var filePath = _picker.PickSavePath(
-                _localization.GetString("Config_FileDialog_SaveConfig"),
-                ConfigFileConstants.FileFilter,
-                ConfigFileConstants.FilePattern,
-                $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}",
-                "winhance");
-
-            if (string.IsNullOrEmpty(filePath))
-            {
-                _logService.Log(LogLevel.Info, "Export: no save path chosen");
-                return;
-            }
-
-            await _configFiles.WriteAsync(set, _selections.CurrentScope, filePath);
-
-            _logService.Log(LogLevel.Info, $"Configuration exported to {filePath}");
-
-            await _dialogService.ShowInformationAsync(
-                _localization.GetString("Config_Export_Success_Message", filePath),
-                _localization.GetString("Config_Export_Success_Title"));
+            await _saves.SaveAsync(BuilderTarget.Config, set);
         }
         catch (Exception ex)
         {
@@ -167,9 +133,12 @@ public class ConfigurationService : IConfigurationService
             var fileName = $"UserBackup_{DateTime.Now:yyyyMMdd_HHmmss}{ConfigFileConstants.FileExtension}";
             var filePath = _fileSystem.CombinePath(configDir, fileName);
 
-            await _configFiles.WriteAsync(set, _selections.CurrentScope, filePath);
-
-            _logService.Log(LogLevel.Info, $"User backup configuration saved to {filePath}");
+            await _saves.SaveAsync(BuilderTarget.Config, set, new SelectionSaveOptions
+            {
+                FixedPath = filePath,
+                ConfirmEmptyAppSelection = false,
+                ReportSuccessInDialog = false,
+            });
         }
         catch (Exception ex)
         {
