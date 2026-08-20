@@ -64,6 +64,32 @@ public class ApplyRequestResolverTests
         },
     };
 
+    // No Targets and a custom detector, like gaming-dns-server: its Custom state has nowhere to write, and
+    // the two scripts stay un-baked so the captured values can fill them.
+    private static Setting ScriptCustomStateSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = "n", Description = "d" },
+        States = new[]
+        {
+            new SettingState { Label = "Automatic", Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
+            new SettingState { Label = "Cloudflare", Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
+        },
+        CustomStateScripts = new[]
+        {
+            new ScriptEffect("Set-Dns @('{{primary}}','{{secondary}}')", RunContext.User),
+            new ScriptEffect("$t = '{{dohtemplate}}'; netsh add {{primary}} {{secondary}}", RunContext.User),
+        },
+        Detector = new FakeDetector(),
+    };
+
+    private static Dictionary<string, object> DnsCustomValues() => new()
+    {
+        ["DetectedIndex"] = -1,
+        ["primary"] = "10.5.0.1",
+        ["secondary"] = "10.5.0.2",
+    };
+
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(Setting setting, IDetectionContext context) => null;
@@ -564,6 +590,42 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
             resetToDefault: false, new[] { setting });
         Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Script_only_custom_state_builds_the_scripts_with_the_captured_values()
+    {
+        // gaming-dns-server's shape: a Selection with no RegTarget at all, so the registry custom-state route
+        // cannot serve it and the setting's CustomStateScripts are the whole apply.
+        var setting = ScriptCustomStateSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: DnsCustomValues(),
+            resetToDefault: false, new[] { setting });
+
+        Assert.NotNull(plan);
+        var scripts = plan!
+            .Select(op => Assert.IsType<ScriptEffect>(Assert.IsType<EffectOp>(op).Effect).Script)
+            .ToList();
+        Assert.Equal(2, scripts.Count);
+        Assert.Equal("Set-Dns @('10.5.0.1','10.5.0.2')", scripts[0]);
+        Assert.Equal("$t = '{{dohtemplate}}'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
+    }
+
+    [Fact]
+    public void Registry_selection_custom_state_still_wins_over_custom_state_scripts()
+    {
+        // Marco's 2026-07-03 decision, pinned: a Custom state on a setting that HAS registry targets writes the
+        // raw registry values ONLY. Carrying CustomStateScripts must not change that - shortcut-arrow and
+        // touch-keyboard-service both carry them AND have RegTargets.
+        var setting = SelectionSetting() with
+        {
+            CustomStateScripts = new[] { new ScriptEffect("Write-Host '{{V}}'", RunContext.User) },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
+        Assert.DoesNotContain(plan!, op => op is EffectOp);
     }
 
     [Fact]

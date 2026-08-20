@@ -15,6 +15,8 @@ public class DnsAndRestoreDetectorTests
         public bool KeyExists(string keyPath) => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public string? PrimaryDnsV4OfActiveAdapter() => PrimaryDns;
+        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() =>
+            PrimaryDns is { } primary ? new[] { primary } : System.Array.Empty<string>();
         public bool IsSystemRestoreEnabled() => RestoreEnabled;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
         public string? ActivePowerPlanGuid() => null;

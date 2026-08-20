@@ -139,6 +139,27 @@ public static class ApplyPlanBuilder
         return Build(setting, new SettingState { Label = "__custom__", Set = set });
     }
 
+    // A Custom state on a setting with NO registry target to write: the setting's un-baked CustomStateScripts
+    // ARE the apply, each {{key}} filled from the captured values. An unmatched placeholder is left standing on
+    // purpose - the DNS DoH script tests for a literal {{ and skips itself when the machine had no template.
+    public static IReadOnlyList<ApplyOp> BuildCustomStateScripts(
+        Setting setting, IReadOnlyDictionary<string, object> customValues)
+    {
+        var ops = new List<ApplyOp>();
+        foreach (var effect in setting.CustomStateScripts)
+        {
+            string script = effect.Script;
+            foreach (var (key, value) in customValues)
+            {
+                if (value?.ToString() is { } replacement)
+                    script = script.Replace($"{{{{{key}}}}}", replacement);
+            }
+
+            ops.Add(new EffectOp(effect with { Script = script }));
+        }
+        return ops;
+    }
+
     // A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's value write emits (via a synthesized single-path
     // target) so the harness renders both sides identically; every other effect becomes an EffectOp, in authored order.
     public static IReadOnlyList<ApplyOp> BuildAction(Setting setting)

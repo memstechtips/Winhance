@@ -159,6 +159,41 @@ public class ApplyOpScriptEmitterTests
         SystemText(result).Should().NotContain("# PowerShell script for");
     }
 
+    // gaming-dns-server's shape: no registry target, so its CustomStateScripts are the only thing the XML can
+    // write. A machine on a non-preset DNS used to ship those scripts with the placeholders still in the text.
+    [Fact]
+    public void ScriptOnlyCustomState_RendersTheSubstitutedScript()
+    {
+        var setting = new Setting
+        {
+            Id = "script-custom",
+            Display = new Display { Name = "Script custom", Description = "Script custom description" },
+            Detector = new NullDetector(),
+            States = new[]
+            {
+                new SettingState { Label = "Automatic", Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
+                new SettingState { Label = "Cloudflare", Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
+            },
+            CustomStateScripts = new[]
+            {
+                new ScriptEffect("Set-Dns @('{{primary}}','{{secondary}}')", RunContext.User),
+                new ScriptEffect("$t = '{{dohtemplate}}'; netsh add {{primary}} {{secondary}}", RunContext.User),
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+        var custom = new Dictionary<string, object> { ["DetectedIndex"] = -1, ["primary"] = "10.5.0.1", ["secondary"] = "10.5.0.2" };
+
+        var r = Emit(byFeature, new SettingChoice("script-custom", new ChoiceValue.CustomValues(custom)));
+
+        var t = UserText(r);
+        t.Should().Contain("Set-Dns @('10.5.0.1','10.5.0.2')");
+        t.Should().Contain("netsh add 10.5.0.1 10.5.0.2");
+        // The DoH script tests for the literal itself, so an unmatched placeholder is left standing.
+        t.Should().Contain("$t = '{{dohtemplate}}'");
+        SystemText(r).Should().BeEmpty();
+        r.Warnings.Should().BeEmpty();
+    }
+
     [Fact]
     public void PowerCfgSelection_ProducesOnePowerRow_NoRegistryText()
     {

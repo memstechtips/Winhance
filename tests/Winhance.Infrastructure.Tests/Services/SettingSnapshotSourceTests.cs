@@ -100,6 +100,47 @@ public class SettingSnapshotSourceTests
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
     }
 
+    // gaming-dns-server has no RegTarget, so the ValueName pass finds nothing. Without the reconstructor
+    // fallback the machine's own DNS servers never reach the saved file.
+    [Fact]
+    public async Task Selection_AtCustom_ScriptOnlySetting_CarriesTheMachinesOwnValues()
+    {
+        Arrange(ScriptOnlyDnsSelection("dns"), new SettingStateResult
+        {
+            Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex,
+            DnsServers = TwoDnsServers,
+        });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value
+            .Should().BeOfType<ChoiceValue.CustomValues>().Which.Values
+            .Should().Equal(new Dictionary<string, object> { ["primary"] = "10.0.0.5", ["secondary"] = "10.0.0.6" });
+    }
+
+    // DetectedIndex says only "this matched no option". Carrying it would give the system-tray setting a
+    // Custom choice whose script promotes every icon, which is a different state from the one detected.
+    [Fact]
+    public async Task Selection_AtCustom_WithOnlyADetectionArtifact_IsOmitted()
+    {
+        Arrange(ScriptOnlyDnsSelection("dns"), new SettingStateResult
+        {
+            Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex,
+        });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    private static readonly string[] TwoDnsServers = ["10.0.0.5", "10.0.0.6"];
+
+    private static Setting ScriptOnlyDnsSelection(string id) => new()
+    {
+        Id = id, Display = new() { Name = id, Description = id },
+        States = new[]
+        {
+            new SettingState { Label = "Automatic" },
+            new SettingState { Label = "Cloudflare" },
+        },
+        CustomStateScripts = new[] { new ScriptEffect("Set-DnsClientServerAddress -ServerAddresses @('{{primary}}','{{secondary}}')", RunContext.System) },
+        Detector = new DnsServerDetector("Automatic", new Dictionary<string, string> { ["1.1.1.1"] = "Cloudflare" }),
+    };
+
     [Fact]
     public async Task PowerCfgSelection_Separate_MapsAcDcIndicesFromPayloads()
     {
@@ -163,6 +204,27 @@ public class SettingSnapshotSourceTests
     {
         Arrange(ParityFixtures.PowerPlanSetting(), new SettingStateResult { Success = true, CurrentValue = 0 });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    // A third-party plan - an OEM's, or one the user built - is where "carry the machine's actual values" bites:
+    // its GUID is none of Winhance's own, and the autounattend recreates the plan from the GUID and the name.
+    [Fact]
+    public async Task PowerPlan_ThirdPartyGuidAndName_SurviveTheFileRoundTrip()
+    {
+        const string guid = "9c5e7fda-e8bf-4d6b-8d2f-0a1b2c3d4e5f";
+        var setting = ParityFixtures.PowerPlanSetting();
+        Arrange(setting, new SettingStateResult
+        {
+            Success = true, CurrentValue = 0, DynamicSelection = guid, DynamicSelectionName = "MSI Gaming Mode",
+        });
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } };
+
+        var captured = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        var set = new SelectionSet(captured, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None);
+        var restored = ConfigFileMapper.FromFile(ConfigFileMapper.ToFile(set, byFeature), byFeature);
+
+        restored.Settings.Should().ContainSingle().Which.Value
+            .Should().Be(new ChoiceValue.PowerPlan(guid, "MSI Gaming Mode"));
     }
 
     [Fact]

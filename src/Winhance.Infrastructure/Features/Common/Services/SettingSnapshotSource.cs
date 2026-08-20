@@ -93,7 +93,19 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
                                 custom[key] = v;
                         }
                     }
-                    return custom.Count > 0 ? new ChoiceValue.CustomValues(custom) : null;
+                    if (custom.Count > 0)
+                        return new ChoiceValue.CustomValues(custom);
+
+                    // A setting with no RegTarget has nothing to key by ValueName, so the loop above finds
+                    // nothing and the machine's actual Custom values would never reach the file. The DNS
+                    // servers behind a Custom reading live in the typed detection result instead.
+                    // DetectedIndex is dropped on purpose: it says only "this matched no option", which is
+                    // not portable. Carrying it would hand the system-tray setting a Custom choice whose
+                    // script promotes every icon - the "Show all icons" option, not the state being captured.
+                    var portable = CustomStateValueReconstructor.Build(setting, state)
+                        .Where(kv => kv.Value is not null && kv.Key != "DetectedIndex")
+                        .ToDictionary(kv => kv.Key, kv => kv.Value!);
+                    return portable.Count > 0 ? new ChoiceValue.CustomValues(portable) : null;
                 }
                 return new ChoiceValue.Option(index);
 

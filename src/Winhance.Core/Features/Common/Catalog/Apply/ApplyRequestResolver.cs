@@ -128,6 +128,17 @@ public static class ApplyRequestResolver
                     return ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues);
                 }
 
+                // Script-only CUSTOM state (gaming-dns-server, taskbar-system-tray-icons-11): with no RegTarget
+                // there is nothing for the registry route to write, so the setting's CustomStateScripts are the
+                // apply. The no-RegTarget guard is the 2026-07-03 rule from the other side: a Custom state on a
+                // setting that HAS registry targets writes registry values only and never runs a script.
+                if (value is Dictionary<string, object> scriptValues
+                    && setting.CustomStateScripts.Count > 0
+                    && !setting.Targets.OfType<RegTarget>().Any())
+                {
+                    return ApplyPlanBuilder.BuildCustomStateScripts(setting, scriptValues);
+                }
+
                 return null; // remaining non-index selection value (string display-name)
 
             case ControlKind.Slider:

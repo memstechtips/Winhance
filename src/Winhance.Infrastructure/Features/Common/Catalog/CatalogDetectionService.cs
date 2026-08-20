@@ -76,6 +76,9 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
                         AcValue = acValue,
                         DcValue = dcValue,
                         Readings = readings,
+                        DnsServers = setting.Detector is DnsServerDetector
+                            ? context.DnsV4ServersOfActiveAdapter()
+                            : null,
                     };
                 }
             }

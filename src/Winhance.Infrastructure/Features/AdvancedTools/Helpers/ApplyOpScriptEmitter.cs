@@ -182,8 +182,9 @@ internal sealed class ApplyOpScriptEmitter
                     break;
 
                 case EffectOp { Effect: ScriptEffect s }:
-                    // The state's script is already baked with its option's variables; the live engine runs it
-                    // verbatim, so no placeholder pass happens here either.
+                    // The script arrives ready to run: a state's is baked with its option's variables, and a
+                    // custom state's left the resolver with its placeholders already filled. The live engine
+                    // runs it verbatim, so no placeholder pass happens here either.
                     if (s.Run == RunContext.User)
                         AppendScript(text.User, userIndent, setting, s.Script, logDesc);
                     else

@@ -15,6 +15,10 @@ public interface IDetectionContext
 
     string? PrimaryDnsV4OfActiveAdapter();
 
+    // In adapter order, so a caller can read the secondary as well as the primary. Same DHCP rule as
+    // PrimaryDnsV4OfActiveAdapter: an adapter that leased its servers reports none.
+    IReadOnlyList<string> DnsV4ServersOfActiveAdapter();
+
     bool IsSystemRestoreEnabled();
 
     // Null when the task does not exist on this system.
