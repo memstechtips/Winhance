@@ -73,7 +73,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         {
             Icon = "\uE710",
             Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
+            Description = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Snapshot_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Button"),
             ButtonCommand = GenerateWinhanceXmlCommand,
             IsEnabled = true
@@ -118,7 +118,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
             var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
             {
-                Message = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
+                Message = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Snapshot_Description"),
                 Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
                 ConfirmButtonText = _localizationService.GetString("Button_Yes"),
                 CancelButtonText = _localizationService.GetString("Button_No"),

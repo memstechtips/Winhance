@@ -27,7 +27,7 @@ public partial class AdvancedToolsViewModel : ObservableObject, IDisposable
 
     public string AutounattendXmlDisplayName => _localizationService.GetStringOrDefault("AdvancedTools_MenuItem_CreateXML", "Create Autounattend XML");
 
-    public string AutounattendXmlDescription => _localizationService.GetStringOrDefault("AdvancedTools_GenerateCard_Description", "Generate an autounattend.xml file based on your current Winhance selections to customize Windows during installation.");
+    public string AutounattendXmlDescription => _localizationService.GetString("AdvancedTools_GenerateCard_Snapshot_Description");
 
     public string CurrentSectionName => GetSectionDisplayName(CurrentSectionKey);
 

@@ -25,7 +25,7 @@ internal class BuilderSeedDialogBuilder
         var dialog = new ContentDialog
         {
             Title = _localization.GetString("Dialog_BuilderSeed_Title"),
-            PrimaryButtonText = _localization.GetString("Dialog_BuilderSeed_Continue"),
+            PrimaryButtonText = _localization.GetString("Button_Continue"),
             CloseButtonText = _localization.GetString("Button_Cancel"),
             DefaultButton = ContentDialogButton.Primary
         };

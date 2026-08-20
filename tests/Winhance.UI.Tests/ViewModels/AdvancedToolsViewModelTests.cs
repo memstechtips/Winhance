@@ -174,7 +174,7 @@ public class AdvancedToolsViewModelTests
     public void AutounattendXmlDescription_ReturnsLocalizedString()
     {
         _mockLocalization
-            .Setup(l => l.GetString("AdvancedTools_GenerateCard_Description"))
+            .Setup(l => l.GetString("AdvancedTools_GenerateCard_Snapshot_Description"))
             .Returns("Generate XML");
 
         var vm = CreateViewModel();

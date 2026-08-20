@@ -172,7 +172,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public string ThemeDescription => _localizationService.GetStringOrDefault("Tooltip_ToggleTheme", "Choose your preferred theme");
     public string ConfigurationLabel => _localizationService.GetStringOrDefault("Category_Configuration", "Configuration");
     public string BackupRestoreHeader => _localizationService.GetStringOrDefault("Settings_BackupRestore_Title", "Backup & Restore");
-    public string BackupRestoreDescription => _localizationService.GetStringOrDefault("Settings_BackupRestore_Description", "Import or export your settings configuration");
+    public string BackupRestoreDescription => _localizationService.GetString("Settings_BackupRestore_Snapshot_Description");
     public string ImportButtonText => _localizationService.GetStringOrDefault("Button_Import", "Import");
     public string ExportButtonText => _localizationService.GetStringOrDefault("Button_Export", "Export");
     public string SystemProtectionLabel => _localizationService.GetStringOrDefault("Category_SystemProtection", "System Protection");
