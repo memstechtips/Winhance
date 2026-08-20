@@ -30,8 +30,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsGenerating { get; set; }
 
-    public event EventHandler? NavigateToWimUtilRequested;
-
     public AutounattendGeneratorViewModel(
         ISelectionSaveService saves,
         IDialogService dialogService,
@@ -68,15 +66,7 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                 IsGenerating = false;
             }
 
-            SaveOutcome outcome = await _saves.SaveAsync(
-                BuilderTarget.Autounattend,
-                set,
-                new SelectionSaveOptions { OfferWimUtil = true });
-
-            if (outcome.WimUtilRequested)
-            {
-                NavigateToWimUtilRequested?.Invoke(this, EventArgs.Empty);
-            }
+            await _saves.SaveAsync(BuilderTarget.Autounattend, set);
         }
         catch (Exception ex)
         {

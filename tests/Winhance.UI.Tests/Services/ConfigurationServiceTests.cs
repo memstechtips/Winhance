@@ -42,7 +42,7 @@ public class ConfigurationServiceTests
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(new SaveOutcome(PickedPath, false));
+            .ReturnsAsync(PickedPath);
     }
 
     private ConfigurationService CreateService()

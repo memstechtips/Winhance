@@ -48,7 +48,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(new SaveOutcome(GeneratedXmlPath, false));
+            .ReturnsAsync(GeneratedXmlPath);
 
         _sut = new WimStep2XmlViewModel(
             _mockSaves.Object,
@@ -195,7 +195,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _mockSaves.Verify(s => s.SaveAsync(
             BuilderTarget.Autounattend,
             It.IsAny<SelectionSet>(),
-            It.Is<SelectionSaveOptions>(o => o.FixedPath == GeneratedXmlPath && !o.ReportSuccessInDialog && !o.OfferWimUtil)),
+            It.Is<SelectionSaveOptions>(o => o.FixedPath == GeneratedXmlPath && !o.ReportSuccessInDialog)),
             Times.Once);
     }
 
@@ -206,7 +206,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         ArrangeGenerateConfirmed();
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(new SaveOutcome(null, false));
+            .ReturnsAsync((string?)null);
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 

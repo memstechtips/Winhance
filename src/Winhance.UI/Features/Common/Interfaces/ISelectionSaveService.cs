@@ -13,19 +13,12 @@ public sealed record SelectionSaveOptions
 
     // WIMUtil reports through its own inline status line, so it takes the confirmations but not the success dialog.
     public bool ReportSuccessInDialog { get; init; } = true;
-
-    // Only the Advanced Tools card can navigate to WIMUtil from where it stands.
-    public bool OfferWimUtil { get; init; }
 }
 
-public sealed record SaveOutcome(string? Path, bool WimUtilRequested)
-{
-    public bool Saved => Path is not null;
-}
-
-// A failed write propagates: each entry point reports it on its own surface - a dialog, an inline status line,
-// or the log alone for the startup backup.
+// The written path comes back for callers that keep working with the file; it is null when nothing was saved.
+// A failed write propagates instead: each entry point reports it on its own surface - a dialog, an inline status
+// line, or the log alone for the startup backup.
 public interface ISelectionSaveService
 {
-    Task<SaveOutcome> SaveAsync(BuilderTarget target, SelectionSet selections, SelectionSaveOptions? options = null);
+    Task<string?> SaveAsync(BuilderTarget target, SelectionSet selections, SelectionSaveOptions? options = null);
 }

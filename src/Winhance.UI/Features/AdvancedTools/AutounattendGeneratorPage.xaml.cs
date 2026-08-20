@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -31,8 +30,6 @@ public sealed partial class AutounattendGeneratorPage : Page
     {
         base.OnNavigatedTo(e);
 
-        ViewModel.NavigateToWimUtilRequested += OnNavigateToWimUtilRequested;
-
         // Live-region announcements for screen readers (issue #647).
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -40,7 +37,6 @@ public sealed partial class AutounattendGeneratorPage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
-        ViewModel.NavigateToWimUtilRequested -= OnNavigateToWimUtilRequested;
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
     }
 
@@ -64,22 +60,5 @@ public sealed partial class AutounattendGeneratorPage : Page
             AutomationNotificationProcessing.ImportantMostRecent,
             message,
             "AutounattendGenerator");
-    }
-
-    private void OnNavigateToWimUtilRequested(object? sender, EventArgs e)
-    {
-        if (Frame?.Parent is FrameworkElement parentElement)
-        {
-            var parent = parentElement;
-            while (parent != null)
-            {
-                if (parent is AdvancedToolsPage advancedToolsPage)
-                {
-                    advancedToolsPage.NavigateToSection("WimUtil");
-                    return;
-                }
-                parent = parent.Parent as FrameworkElement;
-            }
-        }
     }
 }

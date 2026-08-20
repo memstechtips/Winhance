@@ -129,13 +129,12 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             var set = await _selections.FromMachineAsync();
 
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            SaveOutcome outcome = await _saves.SaveAsync(BuilderTarget.Autounattend, set, new SelectionSaveOptions
+            string? generatedPath = await _saves.SaveAsync(BuilderTarget.Autounattend, set, new SelectionSaveOptions
             {
                 FixedPath = outputPath,
                 ReportSuccessInDialog = false,
             });
 
-            string? generatedPath = outcome.Path;
             if (generatedPath == null) return;
 
             SelectedXmlPath = generatedPath;

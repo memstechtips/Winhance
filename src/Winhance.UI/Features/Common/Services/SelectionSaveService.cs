@@ -12,8 +12,6 @@ public sealed class SelectionSaveService : ISelectionSaveService
     // Windows Setup only picks the answer file up under this exact name.
     private const string AutounattendFileName = "autounattend.xml";
 
-    private static readonly SaveOutcome NotSaved = new(null, false);
-
     private readonly ISelectionSetBuilder _selections;
     private readonly IConfigFileWriter _configFiles;
     private readonly IAutounattendWriter _autounattend;
@@ -40,7 +38,7 @@ public sealed class SelectionSaveService : ISelectionSaveService
         _log = log;
     }
 
-    public async Task<SaveOutcome> SaveAsync(BuilderTarget target, SelectionSet selections, SelectionSaveOptions? options = null)
+    public async Task<string?> SaveAsync(BuilderTarget target, SelectionSet selections, SelectionSaveOptions? options = null)
     {
         options ??= new SelectionSaveOptions();
 
@@ -48,7 +46,7 @@ public sealed class SelectionSaveService : ISelectionSaveService
             && selections.WindowsApps.Count == 0
             && !await ConfirmEmptyAppSelectionAsync(target))
         {
-            return NotSaved;
+            return null;
         }
 
         string? path = options.FixedPath;
@@ -58,7 +56,7 @@ public sealed class SelectionSaveService : ISelectionSaveService
             if (string.IsNullOrEmpty(path))
             {
                 _log.Log(LogLevel.Info, $"{target} save: no destination chosen");
-                return NotSaved;
+                return null;
             }
 
             // A fixed path skips this - the caller named the file itself.
@@ -68,16 +66,17 @@ public sealed class SelectionSaveService : ISelectionSaveService
                 await _dialogs.ShowInformationAsync(
                     _loc.GetString("AdvancedTools_Msg_InvalidFilename"),
                     _loc.GetString("Dialog_Warning"));
-                return NotSaved;
+                return null;
             }
         }
 
         string written = await WriteAsync(target, selections, path);
         _log.Log(LogLevel.Info, $"{target} saved to {written}");
 
-        return options.ReportSuccessInDialog
-            ? await ReportSuccessAsync(target, written, options.OfferWimUtil)
-            : new SaveOutcome(written, false);
+        if (options.ReportSuccessInDialog)
+            await ReportSuccessAsync(target, written);
+
+        return written;
     }
 
     private async Task<bool> ConfirmEmptyAppSelectionAsync(BuilderTarget target)
@@ -119,35 +118,14 @@ public sealed class SelectionSaveService : ISelectionSaveService
         return path;
     }
 
-    private async Task<SaveOutcome> ReportSuccessAsync(BuilderTarget target, string path, bool offerWimUtil)
-    {
-        if (target != BuilderTarget.Autounattend)
-        {
-            await _dialogs.ShowInformationAsync(
+    // The XML message names the file and spells out the steps to WIMUtil; it never offers to go there, so every
+    // entry point reports the same save the same way.
+    private Task ReportSuccessAsync(BuilderTarget target, string path) =>
+        target == BuilderTarget.Autounattend
+            ? _dialogs.ShowInformationAsync(
+                _loc.GetString("AdvancedTools_Msg_XmlGenSuccess", path),
+                _loc.GetString("Dialog_Success"))
+            : _dialogs.ShowInformationAsync(
                 _loc.GetString("Config_Export_Success_Message", path),
                 _loc.GetString("Config_Export_Success_Title"));
-            return new SaveOutcome(path, false);
-        }
-
-        string message = _loc.GetString("AdvancedTools_Msg_XmlGenSuccess", path);
-        string title = _loc.GetString("Dialog_Success");
-
-        // Builder mode disables normal app operation, so it cannot offer the jump - taking it would have to leave
-        // the mode behind the user's back. The same message still names the file and the next steps.
-        if (!offerWimUtil)
-        {
-            await _dialogs.ShowInformationAsync(message, title);
-            return new SaveOutcome(path, false);
-        }
-
-        bool wimUtilRequested = (await _dialogs.ShowConfirmationAsync(new ConfirmationRequest
-        {
-            Message = message,
-            Title = title,
-            ConfirmButtonText = _loc.GetString("Button_Yes"),
-            CancelButtonText = _loc.GetString("Button_No"),
-        })).Confirmed;
-
-        return new SaveOutcome(path, wimUtilRequested);
-    }
 }

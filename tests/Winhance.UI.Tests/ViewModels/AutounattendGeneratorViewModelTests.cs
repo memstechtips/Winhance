@@ -31,7 +31,7 @@ public class AutounattendGeneratorViewModelTests
 
         _saves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(new SaveOutcome(XmlPath, false));
+            .ReturnsAsync(XmlPath);
     }
 
     private AutounattendGeneratorViewModel CreateSut() =>
@@ -117,17 +117,6 @@ public class AutounattendGeneratorViewModelTests
     }
 
     [Fact]
-    public void NavigateToWimUtilRequested_CanBeSubscribedTo()
-    {
-        var sut = CreateSut();
-        bool eventRaised = false;
-
-        sut.NavigateToWimUtilRequested += (_, _) => eventRaised = true;
-
-        eventRaised.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task GenerateAutounattendXmlCommand_WhenUserCancelsConfirmation_DoesNotSave()
     {
         _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
@@ -142,7 +131,7 @@ public class AutounattendGeneratorViewModelTests
     }
 
     [Fact]
-    public async Task GenerateAutounattendXmlCommand_SavesTheMachineSnapshot_WithTheWimUtilOffer()
+    public async Task GenerateAutounattendXmlCommand_SavesTheMachineSnapshot_WithTheServiceDefaults()
     {
         ArrangeSnapshotConfirmed();
 
@@ -151,29 +140,7 @@ public class AutounattendGeneratorViewModelTests
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
         _selections.Verify(s => s.FromMachineAsync(), Times.Once);
-        _saves.Verify(s => s.SaveAsync(
-            BuilderTarget.Autounattend,
-            SelectionSet.Empty,
-            It.Is<SelectionSaveOptions>(o => o.OfferWimUtil && o.FixedPath == null && o.ReportSuccessInDialog)), Times.Once);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GenerateAutounattendXmlCommand_RaisesNavigation_OnlyWhenWimUtilWasRequested(bool requested)
-    {
-        ArrangeSnapshotConfirmed();
-        _saves
-            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(new SaveOutcome(XmlPath, requested));
-
-        var sut = CreateSut();
-        var raised = false;
-        sut.NavigateToWimUtilRequested += (_, _) => raised = true;
-
-        await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
-
-        raised.Should().Be(requested);
+        _saves.Verify(s => s.SaveAsync(BuilderTarget.Autounattend, SelectionSet.Empty, null), Times.Once);
     }
 
     [Fact]

@@ -99,9 +99,9 @@ public class SelectionSaveServiceTests
         ArrangeConfirmation(false);
         ArrangePicker(ConfigPath);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Config, SelectionSet.Empty);
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Config, SelectionSet.Empty);
 
-        outcome.Saved.Should().BeFalse();
+        savedPath.Should().BeNull();
         VerifyPickerCalled(Times.Never());
         VerifyNothingWritten();
     }
@@ -109,14 +109,14 @@ public class SelectionSaveServiceTests
     [Fact]
     public async Task NoWindowsApps_WhenTheCallerDoesNotWantTheQuestion_WritesSilently()
     {
-        var outcome = await Sut().SaveAsync(BuilderTarget.Config, SelectionSet.Empty, new SelectionSaveOptions
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Config, SelectionSet.Empty, new SelectionSaveOptions
         {
             FixedPath = ConfigPath,
             ConfirmEmptyAppSelection = false,
             ReportSuccessInDialog = false,
         });
 
-        outcome.Saved.Should().BeTrue();
+        savedPath.Should().Be(ConfigPath);
         _dialogs.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
         _configFiles.Verify(w => w.WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, ConfigPath), Times.Once);
     }
@@ -138,9 +138,9 @@ public class SelectionSaveServiceTests
     {
         ArrangePicker(null);
 
-        var outcome = await Sut().SaveAsync(target, SetWithApps);
+        string? savedPath = await Sut().SaveAsync(target, SetWithApps);
 
-        outcome.Saved.Should().BeFalse();
+        savedPath.Should().BeNull();
         VerifyNothingWritten();
         _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -150,9 +150,9 @@ public class SelectionSaveServiceTests
     {
         ArrangePicker(MisnamedXmlPath);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
 
-        outcome.Saved.Should().BeFalse();
+        savedPath.Should().BeNull();
         _dialogs.Verify(
             d => d.ShowInformationAsync("AdvancedTools_Msg_InvalidFilename", "Dialog_Warning", ""),
             Times.Once);
@@ -166,12 +166,12 @@ public class SelectionSaveServiceTests
             .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
             .ReturnsAsync(MisnamedXmlPath);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
         {
             FixedPath = MisnamedXmlPath,
         });
 
-        outcome.Path.Should().Be(MisnamedXmlPath);
+        savedPath.Should().Be(MisnamedXmlPath);
         VerifyPickerCalled(Times.Never());
         _autounattend.Verify(w => w.WriteAsync(SetWithApps, CatalogScope.CurrentMachine, MisnamedXmlPath), Times.Once);
         _dialogs.Verify(d => d.ShowInformationAsync("AdvancedTools_Msg_InvalidFilename", It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -182,10 +182,9 @@ public class SelectionSaveServiceTests
     {
         ArrangePicker(ConfigPath);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Config, SetWithApps);
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Config, SetWithApps);
 
-        outcome.Path.Should().Be(ConfigPath);
-        outcome.WimUtilRequested.Should().BeFalse();
+        savedPath.Should().Be(ConfigPath);
         _configFiles.Verify(w => w.WriteAsync(SetWithApps, CatalogScope.CurrentMachine, ConfigPath), Times.Once);
         _dialogs.Verify(
             d => d.ShowInformationAsync("Config_Export_Success_Message", "Config_Export_Success_Title", ""),
@@ -197,45 +196,51 @@ public class SelectionSaveServiceTests
     {
         ArrangePicker(XmlPath);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
 
-        outcome.Path.Should().Be(XmlPath);
-        outcome.WimUtilRequested.Should().BeFalse();
+        savedPath.Should().Be(XmlPath);
         _dialogs.Verify(
             d => d.ShowInformationAsync("AdvancedTools_Msg_XmlGenSuccess", "Dialog_Success", ""),
             Times.Once);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Autounattend_WithTheWimUtilOffer_ReturnsTheAnswer(bool accepted)
+    [Fact]
+    public async Task Autounattend_Success_ShowsInformation_NeverAConfirmation()
     {
         ArrangePicker(XmlPath);
-        ArrangeConfirmation(accepted);
 
-        var outcome = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
-        {
-            OfferWimUtil = true,
-        });
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
 
-        outcome.WimUtilRequested.Should().Be(accepted);
-        _dialogs.Verify(
-            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Message == "AdvancedTools_Msg_XmlGenSuccess")),
-            Times.Once);
-        _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _dialogs.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(BuilderTarget.Config, ConfigPath, "Config_Export_Success_Message", "AdvancedTools_Msg_XmlGenSuccess")]
+    [InlineData(BuilderTarget.Autounattend, XmlPath, "AdvancedTools_Msg_XmlGenSuccess", "Config_Export_Success_Message")]
+    public async Task Success_ShowsItsOwnMessage_NeverTheOtherTargets(
+        BuilderTarget target,
+        string destination,
+        string ownMessage,
+        string otherTargetsMessage)
+    {
+        ArrangePicker(destination);
+
+        await Sut().SaveAsync(target, SetWithApps);
+
+        _dialogs.Verify(d => d.ShowInformationAsync(ownMessage, It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _dialogs.Verify(d => d.ShowInformationAsync(otherTargetsMessage, It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
     public async Task ReportSuccessInDialog_False_SavesWithoutADialog()
     {
-        var outcome = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
+        string? savedPath = await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
         {
             FixedPath = XmlPath,
             ReportSuccessInDialog = false,
         });
 
-        outcome.Path.Should().Be(XmlPath);
+        savedPath.Should().Be(XmlPath);
         _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         _dialogs.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
     }
