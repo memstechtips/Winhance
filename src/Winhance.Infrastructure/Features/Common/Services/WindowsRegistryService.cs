@@ -90,6 +90,8 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
     // Prevents accidental deletion of top-level hive branches like HKLM\SOFTWARE.
     private const int MinDeleteDepth = 2;
 
+    // Exact roots only. PolicyCleanup and Explorer KeyExists toggles delete *under*
+    // SOFTWARE\Policies and SOFTWARE\Microsoft\Windows; those descendants must stay allowed.
     internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
     {
         @"SOFTWARE\Microsoft\Windows",
@@ -99,16 +101,42 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         @"SYSTEM\CurrentControlSet\Services",
     };
 
+    // Recursive DeleteSubKeyTree is never safe under Windows NT (ProfileList, CurrentVersion).
+    // Segment boundary so "Windows NT" does not match the "Windows" exact root.
+    internal static readonly HashSet<string> ProtectedSubKeySubtrees = new(StringComparer.OrdinalIgnoreCase)
+    {
+        @"SOFTWARE\Microsoft\Windows NT",
+        @"SOFTWARE\WOW6432Node\Microsoft\Windows NT",
+    };
+
+    internal static bool IsProtectedSubKeyPath(string subKeyPath)
+    {
+        foreach (var protectedRoot in ProtectedSubKeyRoots)
+        {
+            if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        foreach (var subtree in ProtectedSubKeySubtrees)
+        {
+            if (subKeyPath.Equals(subtree, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (subKeyPath.StartsWith(subtree + @"\", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     public bool DeleteKey(string keyPath)
     {
         try
         {
-            if (!KeyExists(keyPath))
-                return true;
+            var (rootKey, operationalSubKeyPath) = ParseKeyPath(keyPath);
+            var protectionPath = HiveRelativeSubKeyPath(keyPath);
 
-            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
-
-            var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+            var segments = protectionPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length < MinDeleteDepth)
             {
                 logService.Log(LogLevel.Warning,
@@ -116,17 +144,17 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
                 return false;
             }
 
-            foreach (var protectedRoot in ProtectedSubKeyRoots)
+            if (IsProtectedSubKeyPath(protectionPath))
             {
-                if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"[WindowsRegistryService] Refusing to delete protected registry key '{keyPath}'");
-                    return false;
-                }
+                logService.Log(LogLevel.Warning,
+                    $"[WindowsRegistryService] Refusing to delete protected registry key '{keyPath}'");
+                return false;
             }
 
-            rootKey.DeleteSubKeyTree(subKeyPath, false);
+            if (!KeyExists(keyPath))
+                return true;
+
+            rootKey.DeleteSubKeyTree(operationalSubKeyPath, false);
             return true;
         }
         catch (Exception ex)
@@ -455,6 +483,17 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
             logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error setting composite key '{compositeKey}' in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
+    }
+
+    // Hive-relative path, ignoring OTS HKCU → HKU\{SID} redirection so the
+    // protected-root check still sees SOFTWARE\... rather than {SID}\SOFTWARE\...
+    private static string HiveRelativeSubKeyPath(string keyPath)
+    {
+        var parts = keyPath.Split('\\', 2);
+        if (parts.Length < 2)
+            throw new ArgumentException($"Invalid registry key path: {keyPath}");
+
+        return parts[1];
     }
 
     private (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)

@@ -114,6 +114,29 @@ public class WindowsRegistryServiceTests : IDisposable
     }
 
     [Fact]
+    public void DeleteKey_ProtectedDescendant_ReturnsFalseAndLeavesKey()
+    {
+        var leaf = $"WinhanceProtectedDescendantTest_{Guid.NewGuid():N}";
+        var path = $@"HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\{leaf}";
+        var subKeyPath = $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\{leaf}";
+
+        try
+        {
+            _service.SetValue(path, "Marker", 1, RegistryValueKind.DWord);
+            _service.KeyExists(path).Should().BeTrue();
+
+            var result = _service.DeleteKey(path);
+
+            result.Should().BeFalse();
+            _service.KeyExists(path).Should().BeTrue();
+        }
+        finally
+        {
+            Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(subKeyPath, throwOnMissingSubKey: false);
+        }
+    }
+
+    [Fact]
     public void GetSubKeyNames_ReturnsCreatedKeys()
     {
         var basePath = TestPath("SubKeyTest");
