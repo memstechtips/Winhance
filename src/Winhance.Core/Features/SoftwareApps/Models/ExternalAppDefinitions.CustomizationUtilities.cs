@@ -79,7 +79,6 @@ public static partial class ExternalAppDefinitions
                         MsStoreId = "9NTM2QC6QWS7",
                         ChocoPackageId = "lively",
                         WebsiteUrl = "https://www.rocksdanister.com/lively/",
-                        // Icon resolved via MS Store CDN (Layer 2a). No trusted catalog URL.
                     },
                     new ItemDefinition
                     {
@@ -114,10 +113,6 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://github.com/valinet/ExplorerPatcher/releases/latest/download/ep_setup.exe",
                         },
-                        // No vendor logo asset exists on GitHub or Wikimedia, and the
-                        // explorerpatcher.net WordPress media is Cloudflare-protected.
-                        // Reuse Windows' own explorer.exe icon — visually appropriate
-                        // since the app patches explorer, and present on every machine.
                     },
                     new ItemDefinition
                     {

@@ -7,10 +7,6 @@ namespace Winhance.Infrastructure.Tests.Utilities;
 
 public class WinGetProgressParserTests
 {
-    // ──────────────────────────────────────────────
-    //  TranslateLine
-    // ──────────────────────────────────────────────
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -84,7 +80,6 @@ public class WinGetProgressParserTests
     [Fact]
     public void TranslateLine_DownloadUrl_NoFilename_ReturnsFallback()
     {
-        // A URL with no path segment filename falls through to generic message
         var line = "Downloading https://example.com/";
         var result = WinGetProgressParser.TranslateLine(line);
         result.Should().Be("Downloading...");
@@ -131,10 +126,6 @@ public class WinGetProgressParserTests
         var result = WinGetProgressParser.TranslateLine(line);
         result.Should().Be("- Microsoft.VCRedist.2015+.x64");
     }
-
-    // ──────────────────────────────────────────────
-    //  ParseLine
-    // ──────────────────────────────────────────────
 
     [Theory]
     [InlineData(null)]
@@ -367,17 +358,11 @@ public class WinGetProgressParserTests
     [Fact]
     public void ParseLine_PercentWithoutPhaseContext_DefaultsToDownloading()
     {
-        // A line with a percentage but no "download" or "install" keyword
-        // defaults to Downloading phase
         var result = WinGetProgressParser.ParseLine("Progress: 45%");
         result.Should().NotBeNull();
         result!.Phase.Should().Be(WinGetPhase.Downloading);
         result.Percent.Should().Be(45);
     }
-
-    // ──────────────────────────────────────────────
-    //  WinGetProgressInfo record
-    // ──────────────────────────────────────────────
 
     [Fact]
     public void WinGetProgressInfo_RecordEquality_WorksCorrectly()

@@ -1,4 +1,3 @@
-using System.Linq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -141,7 +140,6 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
         if (!_externalAppsVM.IsInitialized)
             await _externalAppsVM.LoadItemsAsync();
 
-        // Set VM selections to match captured user choices
         foreach (var vmItem in _externalAppsVM.Items)
             vmItem.IsSelected = selectedAppIds.Contains(vmItem.Id ?? vmItem.Name);
 

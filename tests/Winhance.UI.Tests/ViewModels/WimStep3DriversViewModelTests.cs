@@ -1,4 +1,3 @@
-using System.IO;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
@@ -12,6 +11,8 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep3DriversViewModelTests : IDisposable
 {
+    private static readonly string[] OneDriverInf = ["C:\\DriverDir\\driver.inf"];
+
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -55,9 +56,8 @@ public class WimStep3DriversViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // ── Constructor ──
 
     [Fact]
     public void Constructor_InitializesAreDriversAddedToFalse()
@@ -84,8 +84,6 @@ public class WimStep3DriversViewModelTests : IDisposable
     {
         _sut.WorkingDirectory.Should().BeEmpty();
     }
-
-    // ── Empty WorkingDirectory guard ──
 
     [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
@@ -114,8 +112,6 @@ public class WimStep3DriversViewModelTests : IDisposable
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
         _sut.AreDriversAdded.Should().BeFalse();
     }
-
-    // ── ExtractAndAddSystemDrivers command ──
 
     [Fact]
     public async Task ExtractAndAddSystemDriversCommand_WhenUserCancels_DoesNotExtract()
@@ -222,8 +218,6 @@ public class WimStep3DriversViewModelTests : IDisposable
         wasDisabled.Should().BeTrue();
     }
 
-    // ── SelectAndAddCustomDrivers command ──
-
     [Fact]
     public async Task SelectAndAddCustomDriversCommand_WhenCancelled_DoesNothing()
     {
@@ -306,7 +300,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -334,7 +328,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -361,7 +355,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _mockFileSystemService
             .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
+            .Returns(OneDriverInf);
 
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync(
@@ -375,8 +369,6 @@ public class WimStep3DriversViewModelTests : IDisposable
         _sut.SelectCustomDriversCard.IsProcessing.Should().BeFalse();
         _sut.SelectCustomDriversCard.IsEnabled.Should().BeTrue();
     }
-
-    // ── IDisposable ──
 
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
@@ -399,8 +391,6 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingAreDriversAdded_RaisesPropertyChanged()

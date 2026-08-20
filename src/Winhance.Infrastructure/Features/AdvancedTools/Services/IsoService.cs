@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,7 +6,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class IsoService : IIsoService
+internal class IsoService : IIsoService
 {
     private static readonly Regex DriveLetterRegex = new(@"\b[A-Z]\b", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;
@@ -52,11 +47,10 @@ public class IsoService : IIsoService
             return Task.FromResult(false);
         }
 
-        // Check if it's a valid ISO by attempting to read it
         try
         {
             var fileSize = _fileSystemService.GetFileSize(isoPath);
-            if (fileSize < 1024 * 1024) // Less than 1MB
+            if (fileSize < 1024 * 1024)
             {
                 _logService.LogError("ISO file is too small to be valid");
                 return Task.FromResult(false);
@@ -223,7 +217,8 @@ public class IsoService : IIsoService
                     _logService.LogInformation("Dismounting ISO due to cancellation");
                     await _processExecutor.ExecuteAsync(
                         "powershell.exe",
-                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"").ConfigureAwait(false);
+                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                        CancellationToken.None).ConfigureAwait(false);
                     _logService.LogInformation("ISO dismounted successfully");
                 }
                 catch (Exception dismountEx)
@@ -249,7 +244,8 @@ public class IsoService : IIsoService
                     _logService.LogInformation("Dismounting ISO due to error");
                     await _processExecutor.ExecuteAsync(
                         "powershell.exe",
-                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"").ConfigureAwait(false);
+                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
+                        CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception dismountEx)
                 {
@@ -333,7 +329,6 @@ public class IsoService : IIsoService
                 throw new Exception($"oscdimg.exe failed with exit code: {exitCode}");
             }
 
-            // Verify ISO was created
             if (!_fileSystemService.FileExists(outputPath))
             {
                 _logService.LogError("ISO file was not created");

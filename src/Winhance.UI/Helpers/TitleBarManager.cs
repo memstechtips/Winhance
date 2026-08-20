@@ -3,16 +3,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Windowing;
 using Winhance.Core.Features.Common.Interfaces;
-using System;
-using System.Collections.Generic;
 using Windows.Graphics;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Manages title bar passthrough regions, padding, and caption button theming.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class TitleBarManager
 {
     private readonly AppWindow _appWindow;
@@ -24,10 +18,7 @@ internal sealed class TitleBarManager
         _logService = logService;
     }
 
-    /// <summary>
-    /// Sets up passthrough regions for interactive elements in the title bar.
-    /// This prevents double-clicks on buttons from maximizing the window.
-    /// </summary>
+    // Prevents double-clicks on title-bar buttons from maximizing the window.
     public void SetPassthroughRegions(
         FrameworkElement titleBar,
         FrameworkElement paneToggleButton,
@@ -41,13 +32,10 @@ internal sealed class TitleBarManager
 
             var passthroughRects = new List<RectInt32>();
 
-            // Add passthrough region for the pane toggle button
             AddElementPassthroughRect(paneToggleButton, scale, passthroughRects);
 
-            // Add passthrough region for the entire title bar buttons container
             AddElementPassthroughRect(titleBarButtons, scale, passthroughRects);
 
-            // Optional extra interactive region (e.g. the centered Mode switcher)
             if (extraRegion != null)
             {
                 AddElementPassthroughRect(extraRegion, scale, passthroughRects);
@@ -64,9 +52,6 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Adds an element's bounds to the passthrough rectangles list.
-    /// </summary>
     private void AddElementPassthroughRect(FrameworkElement element, double scale, List<RectInt32> rects)
     {
         try
@@ -88,10 +73,6 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Sets the padding columns to account for system caption buttons.
-    /// Handles RTL layout by swapping inset assignments.
-    /// </summary>
     public void SetTitleBarPadding(
         ColumnDefinition leftPaddingColumn,
         ColumnDefinition rightPaddingColumn,
@@ -125,16 +106,12 @@ internal sealed class TitleBarManager
         }
     }
 
-    /// <summary>
-    /// Applies theme-aware colors to the caption buttons (minimize, maximize, close).
-    /// </summary>
     public void ApplyThemeToCaptionButtons(ElementTheme currentTheme)
     {
         try
         {
             var titleBar = _appWindow.TitleBar;
 
-            // Set foreground colors based on theme
             var foregroundColor = currentTheme == ElementTheme.Dark
                 ? Microsoft.UI.Colors.White
                 : Microsoft.UI.Colors.Black;
@@ -144,12 +121,11 @@ internal sealed class TitleBarManager
 
             // Set hover background to subtle theme-aware color (~9% opacity)
             var hoverBackgroundColor = currentTheme == ElementTheme.Dark
-                ? Windows.UI.Color.FromArgb(24, 255, 255, 255)  // Subtle white
-                : Windows.UI.Color.FromArgb(24, 0, 0, 0);        // Subtle black
+                ? Windows.UI.Color.FromArgb(24, 255, 255, 255)
+                : Windows.UI.Color.FromArgb(24, 0, 0, 0);
 
             titleBar.ButtonHoverBackgroundColor = hoverBackgroundColor;
 
-            // Set other backgrounds to transparent
             titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
             titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
         }

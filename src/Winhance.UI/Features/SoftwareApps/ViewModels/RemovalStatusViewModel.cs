@@ -184,5 +184,6 @@ public class RemovalStatusViewModel : INotifyPropertyChanged, IDisposable
         _disposed = true;
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

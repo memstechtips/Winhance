@@ -2,29 +2,16 @@ using Windows.UI.ViewManagement;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>
-/// Reads the Windows system text-scale factor (Settings → Ease of Access →
-/// Make text bigger) and exposes helpers for scaling fixed layout dimensions
-/// to match.
-///
-/// WinUI 3 already applies <see cref="UISettings.TextScaleFactor"/> automatically
-/// to TextBlock font sizes (TextBlock.IsTextScaleFactorEnabled defaults to true),
-/// but container dimensions baked into XAML with fixed widths/heights (e.g.
-/// UniformWrapPanel ItemWidth/ItemHeight, fixed Grid.Height inside DataTemplates)
-/// do NOT auto-scale. This helper provides the factor so code-behind can grow
-/// those containers to match the scaled text.
-///
-/// Pulled once at app startup; runtime slider changes require an app restart
-/// (matches how most Win32/WinUI 3 apps handle this setting).
-/// </summary>
+// WinUI 3 applies UISettings.TextScaleFactor to TextBlock font sizes automatically, but fixed container
+// dimensions baked into XAML (UniformWrapPanel ItemWidth/ItemHeight, fixed Grid.Height in DataTemplates) do NOT
+// scale; this supplies the factor so code-behind can grow them. Read once at startup - a slider change needs an
+// app restart, like most Win32/WinUI apps.
 internal static class TextScaleHelper
 {
     private static readonly double _factor = ReadFactor();
 
-    /// <summary>System text-scale factor (1.0 = 100%, 1.5 = 150%, etc.).</summary>
     public static double Factor => _factor;
 
-    /// <summary>True when the user has bumped text scale above 100%.</summary>
     public static bool IsScaled => _factor > 1.0 + 0.001;
 
     private static double ReadFactor()

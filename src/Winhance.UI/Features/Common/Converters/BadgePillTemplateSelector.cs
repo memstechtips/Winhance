@@ -5,11 +5,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Picks one of three pill templates by <see cref="BadgePillState.Kind"/>. Each template
-/// renders a complete pill (Border, icon, label, tooltip) with opacity bound to
-/// <see cref="BadgePillState.IsHighlighted"/> via <c>BoolToDimOpacityConverter</c>.
-/// </summary>
 public sealed partial class BadgePillTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? RecommendedTemplate { get; set; }
@@ -25,10 +20,7 @@ public sealed partial class BadgePillTemplateSelector : DataTemplateSelector
     protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container)
         => SelectTemplateCore(item);
 
-    /// <summary>
-    /// Pure switch-on-kind helper — test-friendly (no WinUI dispatcher required).
-    /// Returns the slot corresponding to the kind, or null if the enum value is unknown.
-    /// </summary>
+    // Pure switch-on-kind so it is testable without a WinUI dispatcher; null for an unknown kind.
     public static T? PickByKind<T>(SettingBadgeKind kind, T? recommended, T? @default, T? preference)
         where T : class
         => kind switch

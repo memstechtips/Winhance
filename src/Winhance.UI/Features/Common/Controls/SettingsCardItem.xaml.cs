@@ -1,22 +1,14 @@
-using System;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Animation;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// A reusable UserControl that displays a SettingItemViewModel in a SettingsCard
-/// with the appropriate control based on the InputType.
-/// </summary>
 public sealed partial class SettingsCardItem : UserControl
 {
     public static readonly DependencyProperty SettingProperty =
@@ -129,23 +121,17 @@ public sealed partial class SettingsCardItem : UserControl
         };
     }
 
-    /// <summary>
-    /// Handles the Loaded event for PowerPlanComboBox to set up event handlers and localized text.
-    /// </summary>
     private void OnPowerPlanComboBoxLoaded(object sender, RoutedEventArgs e)
     {
         if (sender is not PowerPlanComboBox comboBox)
             return;
 
-        // Get the SettingItemViewModel from the Tag
         var settingVm = comboBox.Tag as SettingItemViewModel;
         if (settingVm == null)
             return;
 
-        // Get the parent PowerOptimizationsViewModel
         var powerViewModel = settingVm.ParentFeatureViewModel as PowerOptimizationsViewModel;
 
-        // Set up localized text using the localization service
         try
         {
             var localizationService = App.Services.GetService<ILocalizationService>();
@@ -162,13 +148,11 @@ public sealed partial class SettingsCardItem : UserControl
             // Use default values if localization service is unavailable
         }
 
-        // Wire up the DeleteRequested event to the parent ViewModel's command
         comboBox.DeleteRequested += (s, plan) =>
         {
             powerViewModel?.DeletePowerPlanCommand.Execute(plan);
         };
 
-        // Wire up the DropDownClosed event to handle selection changes
         comboBox.DropDownClosed += (s, value) =>
         {
             settingVm.ApplySelectionValue(value);

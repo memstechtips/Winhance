@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
@@ -15,6 +14,11 @@ namespace Winhance.UI.Tests.Services;
 
 public class SelectedAppsProviderTests : IDisposable
 {
+    private static readonly string[] TestAppPackage = ["Microsoft.TestApp"];
+    private static readonly string[] MainAndSubPackages = ["Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2"];
+    private static readonly string[] MainPackageOnly = ["Microsoft.MainPackage"];
+    private static readonly string[] DualAppPackage = ["Microsoft.DualApp"];
+
     private readonly Mock<IWindowsAppsService> _mockWindowsAppsService = new();
     private readonly Mock<IAppInstallationService> _mockAppInstallationService = new();
     private readonly Mock<IWindowsAppUninstallService> _mockWindowsAppUninstallService = new();
@@ -53,6 +57,7 @@ public class SelectedAppsProviderTests : IDisposable
     public void Dispose()
     {
         _windowsAppsVm?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private WindowsAppsViewModel CreateWindowsAppsVm()
@@ -103,10 +108,6 @@ public class SelectedAppsProviderTests : IDisposable
         return vm;
     }
 
-    // -------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_WithValidViewModel_DoesNotThrow()
     {
@@ -115,31 +116,20 @@ public class SelectedAppsProviderTests : IDisposable
         act.Should().NotThrow();
     }
 
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - empty items
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithNoItems_ReturnsEmptyList()
     {
         var vm = CreateWindowsAppsVm();
-        // Mark as initialized so it doesn't try to load
-        // We need to use reflection or set up items directly
         _mockWindowsAppsService
             .Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new List<ItemDefinition>());
 
         var sut = CreateSut(vm);
 
-        // Since IsInitialized is false, it will call LoadItemsAsync first
         var result = await sut.GetSelectedWindowsAppsAsync();
 
         result.Should().BeEmpty();
     }
-
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - selected items
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithSelectedAppxApp_ReturnsConfigItemWithAppxPackageName()
@@ -170,7 +160,7 @@ public class SelectedAppsProviderTests : IDisposable
         item.Name.Should().Be("Test App");
         item.IsSelected.Should().BeTrue();
         item.InputType.Should().Be(InputType.Toggle);
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.TestApp" });
+        item.AppxPackageName.Should().BeEquivalentTo(TestAppPackage);
     }
 
     [Fact]
@@ -227,10 +217,6 @@ public class SelectedAppsProviderTests : IDisposable
         result.Select(r => r.Id).Should().NotContain("app2");
     }
 
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - capability-based apps
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithCapabilityApp_SetsCapabilityName()
     {
@@ -259,10 +245,6 @@ public class SelectedAppsProviderTests : IDisposable
         item.AppxPackageName.Should().BeNull();
         item.OptionalFeatureName.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - optional feature apps
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithOptionalFeatureApp_SetsOptionalFeatureName()
@@ -293,10 +275,6 @@ public class SelectedAppsProviderTests : IDisposable
         item.CapabilityName.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - appx with sub-packages
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithAppxAndMultiplePackages_SetsAllPackageNames()
     {
@@ -321,7 +299,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage", "Microsoft.SubPackage1", "Microsoft.SubPackage2" });
+        item.AppxPackageName.Should().BeEquivalentTo(MainAndSubPackages);
     }
 
     [Fact]
@@ -348,7 +326,7 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.MainPackage" });
+        item.AppxPackageName.Should().BeEquivalentTo(MainPackageOnly);
     }
 
     [Fact]
@@ -378,11 +356,6 @@ public class SelectedAppsProviderTests : IDisposable
         item.AppxPackageName.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - priority of package types
-    // Appx > Capability > OptionalFeature
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithAppxAndCapability_PrefersAppx()
     {
@@ -394,8 +367,6 @@ public class SelectedAppsProviderTests : IDisposable
 
         await vm.LoadItemsAsync();
 
-        // An item with both AppxPackageName and CapabilityName set
-        // The code checks AppxPackageName first via !string.IsNullOrEmpty
         var definition = new ItemDefinition
         {
             Id = "dual-app",
@@ -419,15 +390,9 @@ public class SelectedAppsProviderTests : IDisposable
 
         result.Should().ContainSingle();
         var item = result[0];
-        item.AppxPackageName.Should().BeEquivalentTo(new[] { "Microsoft.DualApp" });
-        // CapabilityName should NOT be set because the Appx branch ran
+        item.AppxPackageName.Should().BeEquivalentTo(DualAppPackage);
         item.CapabilityName.Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - loads items when not
-    // initialized
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WhenNotInitialized_CallsLoadItemsAsync()
@@ -443,7 +408,6 @@ public class SelectedAppsProviderTests : IDisposable
 
         var result = await sut.GetSelectedWindowsAppsAsync();
 
-        // The VM should now be initialized
         result.Should().BeEmpty();
         _mockWindowsAppsService.Verify(s => s.GetAppsAsync(), Times.Once);
     }
@@ -457,7 +421,6 @@ public class SelectedAppsProviderTests : IDisposable
             .Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new List<ItemDefinition>());
 
-        // Pre-initialize the VM
         await vm.LoadItemsAsync();
 
         var sut = CreateSut(vm);
@@ -467,11 +430,6 @@ public class SelectedAppsProviderTests : IDisposable
         // Should only have been called once (the explicit call above), not again
         _mockWindowsAppsService.Verify(s => s.GetAppsAsync(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - all items set IsSelected
-    // and InputType correctly
-    // -------------------------------------------------------
 
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_AllReturnedItems_HaveIsSelectedTrue()
@@ -499,10 +457,6 @@ public class SelectedAppsProviderTests : IDisposable
         });
     }
 
-    // -------------------------------------------------------
-    // GetSelectedWindowsAppsAsync - app with no package info
-    // -------------------------------------------------------
-
     [Fact]
     public async Task GetSelectedWindowsAppsAsync_WithNoPackageInfo_ReturnsItemWithoutPackageProperties()
     {
@@ -514,7 +468,6 @@ public class SelectedAppsProviderTests : IDisposable
 
         await vm.LoadItemsAsync();
 
-        // App with no appx, capability, or optional feature name
         var app = CreateAppItemViewModel(
             "bare-app",
             "Bare App",

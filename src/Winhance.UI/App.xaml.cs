@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
@@ -9,29 +8,17 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Provides application-specific behavior to supplement the default Application class.
-/// </summary>
 public partial class App : Application
 {
     private Window? _mainWindow;
     private IHost? _host;
     private ILogService? _logService;
 
-    /// <summary>
-    /// Gets the main window instance.
-    /// </summary>
     public static Window? MainWindow => (Current as App)?._mainWindow;
 
-    /// <summary>
-    /// Gets the service provider for dependency injection.
-    /// </summary>
     public static IServiceProvider Services => (Current as App)?._host?.Services
         ?? throw new InvalidOperationException("Host not initialized");
 
-    /// <summary>
-    /// Initializes the singleton application object.
-    /// </summary>
     public App()
     {
         StartupLogger.Log("App", "App constructor starting");
@@ -51,24 +38,15 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Registers all exception handlers for comprehensive error logging.
-    /// </summary>
     private void RegisterExceptionHandlers()
     {
-        // AppDomain unhandled exceptions (fatal errors)
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
 
-        // WinUI 3 unhandled exceptions (replaces WPF DispatcherUnhandledException)
         this.UnhandledException += OnAppUnhandledException;
 
-        // Unobserved task exceptions
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
     }
 
-    /// <summary>
-    /// Handles fatal AppDomain unhandled exceptions.
-    /// </summary>
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
@@ -76,57 +54,38 @@ public partial class App : Application
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
     }
 
-    /// <summary>
-    /// Handles WinUI 3 unhandled exceptions.
-    /// </summary>
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
-        e.Handled = true; // Prevent crash if possible
+        e.Handled = true;
     }
 
-    /// <summary>
-    /// Handles unobserved task exceptions.
-    /// </summary>
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
-        e.SetObserved(); // Prevent crash
+        e.SetObserved();
     }
 
-    /// <summary>
-    /// Invoked when the application is launched.
-    /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         StartupLogger.Log("App", "OnLaunched starting");
         try
         {
-            // Build the host with DI container using CompositionRoot
             StartupLogger.Log("App", "Building DI host...");
             _host = CompositionRoot.CreateWinhanceHost().Build();
             StartupLogger.Log("App", "DI host built successfully");
 
-            // Initialize log service for exception handlers and file logging
             try
             {
                 _logService = Services.GetService<ILogService>();
                 StartupLogger.Log("App", "LogService obtained");
 
-                // Start file logging to C:\ProgramData\Winhance\Logs
                 try
                 {
-                    // Wire up interactive user service and system info provider for logging
-                    var interactiveUserService = Services.GetService<IInteractiveUserService>();
                     if (_logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
                     {
-                        if (interactiveUserService != null)
-                        {
-                            concreteLogService.SetInteractiveUserService(interactiveUserService);
-                        }
                         var systemInfoProvider = Services.GetService<ISystemInfoProvider>();
                         if (systemInfoProvider != null)
                         {
@@ -155,7 +114,6 @@ public partial class App : Application
             InitializeLocalization();
             StartupLogger.Log("App", "Localization initialized");
 
-            // Create and activate the main window (loading overlay is visible by default)
             StartupLogger.Log("App", "Creating MainWindow...");
             _mainWindow = new MainWindow();
             StartupLogger.Log("App", "MainWindow created, activating...");
@@ -167,8 +125,6 @@ public partial class App : Application
             InitializeTheme();
             StartupLogger.Log("App", "Theme initialized");
 
-            // Start async startup operations (settings init, backups, scripts)
-            // The loading overlay provides visual feedback while these run
             StartupLogger.Log("App", "Starting startup operations...");
             (_mainWindow as MainWindow)?.StartStartupOperations();
             StartupLogger.Log("App", "Startup operations kicked off - OnLaunched complete");
@@ -180,9 +136,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the localization system for use with x:Bind in XAML.
-    /// </summary>
     private void InitializeLocalization()
     {
         try
@@ -201,9 +154,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the theme system and loads the saved user preference.
-    /// </summary>
     private void InitializeTheme()
     {
         try

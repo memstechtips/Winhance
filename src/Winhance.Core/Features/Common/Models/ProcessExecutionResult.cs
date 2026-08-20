@@ -1,8 +1,5 @@
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Result of a process execution with captured stdout and stderr.
-/// </summary>
 public sealed record ProcessExecutionResult
 {
     public int ExitCode { get; init; }

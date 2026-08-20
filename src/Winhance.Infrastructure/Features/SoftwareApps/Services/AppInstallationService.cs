@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
@@ -14,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppInstallationService(
+internal class AppInstallationService(
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
     ILogService logService,
@@ -53,7 +47,7 @@ public class AppInstallationService(
     {
         try
         {
-            if (apps == null || !apps.Any())
+            if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
             if (shouldRemoveFromBloatScript)
@@ -129,7 +123,7 @@ public class AppInstallationService(
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
+            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Length > 0) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||
                 app?.ExternalApp?.RequiresDirectDownload == true ||
                 app?.ExternalApp?.DownloadUrl != null)

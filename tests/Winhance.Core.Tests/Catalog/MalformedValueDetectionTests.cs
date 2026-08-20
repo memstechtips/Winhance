@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -7,17 +5,10 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// A value stored under a type its target cannot reduce must report Malformed - NOT Custom, and never as a
-/// raw value leaked into the matchers. Before this, the type guards in <see cref="RegTargetReader"/> fell
-/// through to "return the raw value, marked present", so the value matched nothing and the setting surfaced
-/// as "Custom", telling the user their VALUE was unrecognized when in fact its FORMAT was wrong.
-///
-/// Deliberately narrow: only the surgical shapes (bitmask / single byte / decimal-string flags / packed
-/// composite) can be malformed, because only they need a specific CLR type to reduce at all. A plain value
-/// is never malformed - detection is numeric-lenient, so a DWord target holding REG_SZ "1" still resolves
-/// correctly, and flagging it would regress settings that work today.
-/// </summary>
+// A wrongly-typed value must report Malformed - NOT Custom, and never leak as a raw value into the matchers.
+// Deliberately narrow: only the surgical shapes (bitmask / single byte / decimal-string flags / packed
+// composite) can be malformed; a DWord target holding REG_SZ "1" still resolves (detection is numeric-lenient),
+// and flagging it would regress settings that work today.
 public class MalformedValueDetectionTests
 {
     private const string Path = @"HKEY_CURRENT_USER\Control Panel\Desktop";
@@ -41,7 +32,7 @@ public class MalformedValueDetectionTests
         new("UserPreferencesMask", new[] { Path }, "UserPreferencesMask", RegistryValueKind.Binary)
         { ByteIndex = 1, BitMask = 0x08 };
 
-    /// <summary>The menu-animation shape: one bitmask target, Enabled=1 / Disabled=0 with a fallback.</summary>
+    // The menu-animation shape: one bitmask target, Enabled=1 / Disabled=0 with a fallback.
     private static Setting BitSetting() => new()
     {
         Id = "fade-tooltip",
@@ -62,8 +53,6 @@ public class MalformedValueDetectionTests
             },
         },
     };
-
-    // ----------------------------------------------------------------------------------- reader level
 
     [Fact]
     public void Bitmask_target_holding_a_string_is_a_kind_mismatch_and_not_present()
@@ -127,13 +116,11 @@ public class MalformedValueDetectionTests
         Assert.True(StateValue.Of(1).Matches(reading.Value, reading.Present));
     }
 
-    // ------------------------------------------------------------------------------- reader edge cases
-
     [Fact]
     public void A_short_blob_is_absent_not_malformed()
     {
-        // Right type, just too short for the byte index: unchanged pre-existing behaviour, and genuinely
-        // different from a wrong type - there is nothing to repair.
+        // Right type, just too short for the byte index - genuinely different from a wrong type: there is
+        // nothing to repair.
         var reading = RegTargetReader.Read(BitTarget(), new Ctx(new byte[] { 0x00 }));
         Assert.False(reading.KindMismatch);
         Assert.False(reading.Present);
@@ -157,8 +144,6 @@ public class MalformedValueDetectionTests
         Assert.False(reading.KindMismatch);
         Assert.False(reading.Present);
     }
-
-    // -------------------------------------------------------------------------------- discovery level
 
     [Fact]
     public void A_malformed_target_makes_the_setting_report_Malformed()

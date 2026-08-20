@@ -36,9 +36,6 @@ public static class SrClientApi
     public const int ERROR_INTERNAL_ERROR = 1359;
     public const int ERROR_TIMEOUT = 1460;
 
-    /// <summary>
-    /// Returns a human-readable description for the given SRSetRestorePointW status code.
-    /// </summary>
     public static string GetStatusDescription(int statusCode)
     {
         return statusCode switch

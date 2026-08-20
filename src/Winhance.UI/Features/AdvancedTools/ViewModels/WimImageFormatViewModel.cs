@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
@@ -13,10 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM image format detection, WIM/ESD conversion, and deletion.
-/// Receives WorkingDirectory from the parent.
-/// </summary>
 public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 {
     private readonly IWimImageService _wimImageService;
@@ -28,9 +21,6 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -121,8 +111,8 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             {
                 Message = string.Format(_localizationService.GetString(confirmKey), diff.ToString("F2")),
                 Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormatName),
-                ConfirmButtonText = "Yes",
-                CancelButtonText = "No",
+                ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                CancelButtonText = _localizationService.GetString("Button_No"),
             })).Confirmed;
             if (!confirmed) return;
 
@@ -358,6 +348,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = null;
+        GC.SuppressFinalize(this);
     }
 
     internal static string FormatFileSize(long bytes) => $"{bytes / (1024.0 * 1024 * 1024):F2} GB";

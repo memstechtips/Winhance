@@ -7,14 +7,8 @@ using Winhance.UI.Features.Common.Utilities;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// A bottom bar control that displays task progress with app name, terminal output,
-/// cancel button, and an indeterminate progress bar.
-/// </summary>
 public sealed partial class TaskProgressControl : UserControl
 {
-    #region Dependency Properties
-
     public static readonly DependencyProperty AppNameProperty =
         DependencyProperty.Register(
             nameof(AppName),
@@ -92,10 +86,6 @@ public sealed partial class TaskProgressControl : UserControl
             typeof(TaskProgressControl),
             new PropertyMetadata(null));
 
-    #endregion
-
-    #region Properties
-
     public string AppName
     {
         get => (string)GetValue(AppNameProperty);
@@ -162,8 +152,6 @@ public sealed partial class TaskProgressControl : UserControl
         set => SetValue(ShowDetailsCommandProperty, value);
     }
 
-    #endregion
-
     public TaskProgressControl()
     {
         this.InitializeComponent();
@@ -215,7 +203,6 @@ public sealed partial class TaskProgressControl : UserControl
         var rtb = control.TerminalLineRichText;
         if (rtb == null) return;
 
-        // Clear existing content and rebuild with color-coded runs
         rtb.Blocks.Clear();
         if (string.IsNullOrEmpty(text)) return;
 

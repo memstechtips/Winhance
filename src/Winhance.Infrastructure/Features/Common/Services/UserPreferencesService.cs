@@ -1,19 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Service for managing user preferences stored as JSON.
-/// </summary>
-public class UserPreferencesService : IUserPreferencesService
+internal class UserPreferencesService : IUserPreferencesService
 {
     private const string PreferencesFileName = "UserPreferences.json";
     private readonly ILogService _logService;
@@ -32,9 +24,9 @@ public class UserPreferencesService : IUserPreferencesService
 
     public UserPreferencesService(ILogService logService, IInteractiveUserService interactiveUserService, IFileSystemService fileSystemService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _interactiveUserService = interactiveUserService ?? throw new ArgumentNullException(nameof(interactiveUserService));
-        _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
+        _logService = logService;
+        _interactiveUserService = interactiveUserService;
+        _fileSystemService = fileSystemService;
     }
 
     private string GetPreferencesFilePath()
@@ -198,7 +190,6 @@ public class UserPreferencesService : IUserPreferencesService
                     return typedValue;
                 }
 
-                // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                 if (typeof(T) == typeof(bool) && value != null)
                 {
                     string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;
@@ -293,9 +284,6 @@ public class UserPreferencesService : IUserPreferencesService
         }
     }
 
-    /// <summary>
-    /// Synchronous version for use during startup to avoid async deadlocks on UI thread.
-    /// </summary>
     public T GetPreference<T>(string key, T defaultValue)
     {
         try
@@ -323,7 +311,6 @@ public class UserPreferencesService : IUserPreferencesService
                     return typedValue;
                 }
 
-                // Handle bool conversion from non-JsonElement types (raw strings/numbers)
                 if (typeof(T) == typeof(bool) && value != null)
                 {
                     string valueStr = value.ToString()?.ToLowerInvariant() ?? string.Empty;

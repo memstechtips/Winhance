@@ -1,14 +1,11 @@
-using System.Linq;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
@@ -27,6 +24,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IHardwareDetectionService> _mockHardware = new();
     private readonly Mock<IStateWriter> _mockStateWriter = new();
+    private readonly Mock<IAsyncEffectRunner> _mockAsyncEffects = new();
     private readonly Mock<IWindowsVersionService> _mockVersion = new();
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
@@ -37,12 +35,18 @@ public class SettingApplicationServiceTests
     {
         // Default: machine HAS a battery, so every existing AC/DC test keeps its current
         // "AC: x, DC: y" expectations. No-battery tests override this per-test.
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(true);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(true);
 
         // Default: every IStateWriter write SUCCEEDS, so a paired setting routed through the ApplyExecutor
         // reports OperationResult.Succeeded. There is no fallback that makes an unpaired id succeed; tests
         // asserting a failure use an unpaired (null-plan) id instead of a mock override.
         _mockStateWriter.SetReturnsDefault(true);
+
+        // Default: nothing deferred, nothing failed. Required, not optional - RunAllAsync returns a
+        // reference type, so an unstubbed Moq call hands back a NULL list and the caller NREs on .Count.
+        _mockAsyncEffects
+            .Setup(r => r.RunAllAsync(It.IsAny<IReadOnlyList<Effect>>()))
+            .ReturnsAsync(Array.Empty<string>());
 
         // Default: GetString echoes the key back. A key-echo is NOT the "[{key}]" miss-marker, so by default
         // ResolveLocalized treats every key as a HIT returning the key text; tests that assert on display strings
@@ -76,7 +80,7 @@ public class SettingApplicationServiceTests
             _mockLog.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
-            _mockHardware.Object, _mockStateWriter.Object, _mockVersion.Object,
+            _mockHardware.Object, _mockStateWriter.Object, _mockAsyncEffects.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
     }
 
@@ -200,8 +204,6 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ValidSetting_ReturnsSuccess()
     {
-        // A paired plain toggle routes through the engine; with the writer succeeding (ctor default), the apply
-        // succeeds.
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
@@ -258,7 +260,7 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_ActionWithApplyRecommended_OneCoalescedRestartForPrimaryPlusRecommended()
     {
-        // Bug A "one restart per click": the primary Action apply and the recommended batch must
+        // "One restart per click": the primary Action apply and the recommended batch must
         // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
         // covering the primary action AND every recommended setting.
         // The recommended applier + the coalesced-restart flush are catalog-Setting typed, and SAS builds the
@@ -283,7 +285,6 @@ public class SettingApplicationServiceTests
             ApplyRecommended = true,
         });
 
-        // One suppress scope wraps both the primary action and the recommended batch.
         _mockRestart.Verify(r => r.SuppressRestarts(), Times.Once);
 
         // The recommended batch runs through the NON-flushing feature core...
@@ -293,25 +294,22 @@ public class SettingApplicationServiceTests
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
 
-        // Exactly one coalesced flush, containing the primary action AND the recommended setting.
         _mockRestart.Verify(r => r.FlushCoalescedRestartsAsync(
             It.Is<IEnumerable<Setting>>(list =>
                 list.Any(s => s.Id == actionId) && list.Any(s => s.Id == "rec1"))),
             Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // The confirmation checkbox: on a setting with NO special handler it means
     // "also apply this feature's recommended settings"
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_CheckboxResultWithNoSpecialHandler_AppliesRecommendedForTheFeature()
     {
         // The config-import path (ConfigurationApplicationBridgeService) passes the confirmation result as
-        // CheckboxResult ALONE - no ApplyRecommended - and CheckboxResult used to be read only by a special
-        // handler, so on a setting with none the tick did nothing at all. A real catalog Action with no
-        // handler registered must now route it to the recommended-for-feature applier.
+        // CheckboxResult ALONE - no ApplyRecommended - so if only a special handler read CheckboxResult, on a
+        // setting with none the tick would do nothing at all. A real catalog Action with no handler registered
+        // must route it to the recommended-for-feature applier.
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
@@ -403,10 +401,6 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------
-    // Unpaired setting -> resolver returns null -> logged OperationResult.Failed
-    // ---------------------------------------------------------------
-
     [Fact]
     public async Task ApplySettingAsync_UnpairedSetting_ResolverReturnsNull_PropagatesFailedResult()
     {
@@ -440,9 +434,7 @@ public class SettingApplicationServiceTests
             evt => evt.SettingId == "fail-event")), Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // Change history (#367): record setting changes before → after
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_ToggleSuccess_LogsChangeHistoryEntry()
@@ -451,7 +443,6 @@ public class SettingApplicationServiceTests
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
-        // Before-state: discovery reports the toggle currently disabled.
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -480,7 +471,6 @@ public class SettingApplicationServiceTests
         var id = RealPairedToggleId();
         SetupSettingInRegistry(id);
 
-        // Before-state already matches the requested state (enabled -> enable=true).
         _mockSettingStateProvider
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -560,9 +550,7 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------
     // Change history (#367): power AC/DC values + option labels render human-readable
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_SelectionWithLocalizationKeyDisplayName_RendersLocalizedLabel()
@@ -711,7 +699,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // Re-applying the same display values: AC=0, DC=10 (minutes) — no change.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgNumericId,
@@ -827,10 +814,8 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 
-    // ---------------------------------------------------------------
     // #367: battery-less machines render AC-only (no phantom DC) +
     //       a no-match raw PowerCfg value renders Custom, never index-by-raw
-    // ---------------------------------------------------------------
 
     [Fact]
     public async Task ApplySettingAsync_NoBatterySelection_RendersAcOnly()
@@ -838,7 +823,7 @@ public class SettingApplicationServiceTests
         // Battery-less desktop: only the AC dropdown exists and PowerCfgApplier skips all DC writes.
         // The receipt must show "AC: <label>" only -- no ", DC: ..." phantom. Rendering reads the REAL catalog
         // (power-display-timeout: Set["Power"] raw 0 -> option 0; apply index 2 -> option 2).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(false);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 
@@ -858,7 +843,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // After: apply tuple (2, 0). AC changes Never → 9 minutes; entry renders AC-only on both sides.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgSelectionId,
@@ -876,7 +860,7 @@ public class SettingApplicationServiceTests
         // KEY regression: on a battery-less desktop, the AC value is unchanged but the (irrelevant) DC garbage
         // differs. The receipt must suppress the entry -- DC garbage must NEVER create a phantom change. Before
         // "AC: Never" == after "AC: Never". Rendering reads the REAL catalog (power-display-timeout: raw 0 -> opt 0).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ReturnsAsync(false);
+        _mockHardware.Setup(h => h.HasBattery()).Returns(false);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 
@@ -895,7 +879,6 @@ public class SettingApplicationServiceTests
                 },
             });
 
-        // Apply (0, 1): AC stays option 0 (Never); DC index differs but is suppressed on no-battery.
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
             SettingId = PowerCfgSelectionId,
@@ -945,12 +928,11 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task ApplySettingAsync_BatteryDetectionThrows_AppliesAndRendersBothComponents()
+    public async Task ApplySettingAsync_BatteryStateUnknown_AppliesAndRendersBothComponents()
     {
-        // Fail-open: a hardware detection failure defaults to battery=true, so the apply still succeeds and the
-        // entry renders BOTH AC and DC (more information, never a phantom suppression). Rendering reads the REAL
-        // catalog (power-display-timeout: raw 0 -> option 0).
-        _mockHardware.Setup(h => h.HasBatteryAsync()).ThrowsAsync(new InvalidOperationException("WMI exploded"));
+        // Unknown (null) is what the service reports when the WMI probe fails. This caller defaults it to
+        // true so the receipt renders BOTH AC and DC rather than hiding the DC half.
+        _mockHardware.Setup(h => h.HasBattery()).Returns((bool?)null);
 
         SetupSettingInRegistry(PowerCfgSelectionId);
 
@@ -981,8 +963,8 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<string?>(), "AC: Never, DC: Never", "AC: Never, DC: 4 minutes"), Times.Once);
     }
 
-    // --- The funnel re-applies Winhance-recommended power settings after a successful switch TO the Winhance
-    //     power plan. The mocked handler registry returns null, so the funnel exercises the engine path here. ---
+    // The funnel re-applies Winhance-recommended power settings after a successful switch TO the Winhance
+    // power plan. The mocked handler registry returns null, so the funnel exercises the engine path here.
 
     [Fact]
     public async Task ApplySettingAsync_WinhancePowerPlanApplied_ReappliesRecommendedPowerSettings()
@@ -1044,11 +1026,9 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Relationship detection is SCOPED (2026-07-31). It used to detect all 414 catalog settings after
-    // every interactive apply - correct, but ~1-2s a click, and it is why power plans and system restore
-    // showed up in the log while the user was on the Taskbar page.
-    // ---------------------------------------------------------------------------------------------
+    // Relationship detection is SCOPED. Detecting all 414 catalog settings after every interactive apply
+    // is correct but costs ~1-2s a click, and puts power plans and system restore in the log while the
+    // user is on the Taskbar page.
 
     [Fact]
     public async Task ApplySettingAsync_SettingWithNoRelationships_DetectsNothing()

@@ -1,4 +1,3 @@
-using System.Linq;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -6,13 +5,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// Plan-5: the OS-divergent default wallpaper for theme-mode-windows lives on the catalog as a per-state,
-/// build-gated <see cref="WallpaperEffect"/> (moved verbatim from the retired WallpaperDefaults). Machine-
-/// independent (reads <see cref="SettingCatalog.All"/>); ThemeWallpaperApplier resolves the active state's
-/// build-matching effect on a theme switch, and the Technical Details panel documents it. Self-contained so
-/// it survives the WallpaperDefaults deletion in the cutover slice.
-/// </summary>
+// The OS-divergent default wallpaper for theme-mode-windows lives on the catalog as a per-state, build-gated
+// WallpaperEffect; ThemeWallpaperApplier resolves the active state's build-matching effect.
 public class ThemeWallpaperEffectsConformanceTests
 {
     private static SettingState State(string label) =>
@@ -44,5 +38,16 @@ public class ThemeWallpaperEffectsConformanceTests
             (SettingIds.ThemeModeWindows, "Light Mode"),
             (SettingIds.ThemeModeWindows, "Dark Mode"),
         });
+    }
+
+    // ThemeWallpaperApplier runs this setting through the synchronous ApplyExecutor and cannot await, so a
+    // process-launching effect added here would be split off the plan and never run.
+    [Fact]
+    public void No_theme_state_carries_an_effect_the_synchronous_apply_path_cannot_run()
+    {
+        SettingCatalog.All.First(s => s.Id == SettingIds.ThemeModeWindows)
+            .States.SelectMany(st => st.Effects)
+            .Where(e => e.IsAsyncIo)
+            .Should().BeEmpty();
     }
 }

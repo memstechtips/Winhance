@@ -1,16 +1,11 @@
-using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics.Imaging;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Extracts the regedit.exe icon using P/Invoke and caches it as a WinUI3-compatible SoftwareBitmapSource.
-/// Must be called from the UI thread (SoftwareBitmapSource is dispatcher-bound).
-/// </summary>
+// Must be called from the UI thread (SoftwareBitmapSource is dispatcher-bound).
 public static class RegeditIconProvider
 {
     private static SoftwareBitmapSource? _cachedIcon;
@@ -87,7 +82,7 @@ public static class RegeditIconProvider
                         return;
 
                     var bmp = new BITMAP();
-                    GetObject(iconInfo.hbmColor, Marshal.SizeOf<BITMAP>(), ref bmp);
+                    _ = GetObject(iconInfo.hbmColor, Marshal.SizeOf<BITMAP>(), ref bmp);
 
                     if (bmp.bmWidth <= 0 || bmp.bmHeight <= 0)
                         return;
@@ -96,7 +91,8 @@ public static class RegeditIconProvider
                     int height = bmp.bmHeight;
                     int stride = width * 4; // BGRA
                     var bits = new byte[stride * height];
-                    GetBitmapBits(iconInfo.hbmColor, bits.Length, bits);
+                    if (GetBitmapBits(iconInfo.hbmColor, bits.Length, bits) != bits.Length)
+                        return;
 
                     // GDI bitmaps are bottom-up — flip vertically
                     var flipped = new byte[bits.Length];
@@ -105,7 +101,6 @@ public static class RegeditIconProvider
                         Array.Copy(bits, (height - 1 - y) * stride, flipped, y * stride, stride);
                     }
 
-                    // Create SoftwareBitmap from pixel data
                     var softwareBitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Premultiplied);
                     softwareBitmap.CopyFromBuffer(flipped.AsBuffer());
 

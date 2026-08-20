@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
@@ -10,6 +9,8 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class ScheduledTaskServiceTests
 {
+    private static readonly string[] AnyTaskPath = [@"\Any\Task\Path"];
+
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly ScheduledTaskService _service;
@@ -18,8 +19,6 @@ public class ScheduledTaskServiceTests
     {
         _service = new ScheduledTaskService(_mockLog.Object, _mockFileSystem.Object);
     }
-
-    // --- RegisterScheduledTaskAsync ---
 
     [Fact]
     public async Task RegisterScheduledTaskAsync_NullScript_ReturnsFailure()
@@ -68,8 +67,6 @@ public class ScheduledTaskServiceTests
         // in a test environment, but we can verify the pre-COM setup logic works
         var result = await _service.RegisterScheduledTaskAsync(script);
 
-        // The method will fail at COM interop (CreateTaskService), but we can verify
-        // EnsureScriptFileExists was called
         _mockFileSystem.Verify(f => f.CreateDirectory(@"C:\ProgramData\Winhance\Scripts"), Times.Once);
         _mockFileSystem.Verify(f => f.WriteAllText(script.ActualScriptPath, script.Content), Times.Once);
     }
@@ -106,17 +103,11 @@ public class ScheduledTaskServiceTests
 
         _mockFileSystem.Setup(f => f.FileExists(script.ActualScriptPath)).Returns(false);
 
-        // EnsureScriptFileExists has guard: !string.IsNullOrEmpty(script.Content)
         var result = await _service.RegisterScheduledTaskAsync(script);
 
         _mockFileSystem.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    // Skipped: environment-dependent. The service talks to the real Task Scheduler
-    // COM API ("Schedule.Service") with no mockable seam. The test assumes COM is
-    // unavailable in the test host, but on a real Windows machine the registration
-    // succeeds (Success == true) and creates an actual scheduled task as a side effect.
-    // Re-enable once ScheduledTaskService exposes an injectable COM wrapper to mock.
     [Fact(Skip = "Environment-dependent: hits real Task Scheduler COM (no mockable seam) and has side effects; needs an injectable COM wrapper to run deterministically.")]
     public async Task RegisterScheduledTaskAsync_ComFailure_ReturnsFailedResult()
     {
@@ -130,20 +121,14 @@ public class ScheduledTaskServiceTests
 
         _mockFileSystem.Setup(f => f.FileExists(script.ActualScriptPath)).Returns(true);
 
-        // In a test environment, COM will fail. The method should handle this gracefully.
         var result = await _service.RegisterScheduledTaskAsync(script);
 
-        // Should return failed (COM not available in test environment)
         result.Success.Should().BeFalse();
     }
-
-    // --- UnregisterScheduledTaskAsync ---
 
     [Fact]
     public async Task UnregisterScheduledTaskAsync_ComFailure_ReturnsResult()
     {
-        // In a unit test environment, COM interop calls will fail.
-        // The method wraps everything in try/catch so it should not throw.
         var result = await _service.UnregisterScheduledTaskAsync("SomeTask");
 
         // Will either succeed (Winhance folder not found => returns Succeeded)
@@ -154,18 +139,14 @@ public class ScheduledTaskServiceTests
     [Fact]
     public async Task UnregisterScheduledTaskAsync_ReturnsResult_WithoutThrowing()
     {
-        // Verify that the method is robust against all types of failures
         var action = () => _service.UnregisterScheduledTaskAsync("NonExistentTask");
 
         await action.Should().NotThrowAsync();
     }
 
-    // --- IsTaskRegisteredAsync ---
-
     [Fact]
     public async Task IsTaskRegisteredAsync_ComFailure_ReturnsFalse()
     {
-        // In a test environment, COM fails. The catch block returns false.
         var result = await _service.IsTaskRegisteredAsync("SomeTask");
 
         result.Should().BeFalse();
@@ -187,66 +168,74 @@ public class ScheduledTaskServiceTests
         result.Should().BeFalse();
     }
 
-    // --- EnableTaskAsync ---
+    // SetTaskEnabled is synchronous: the Task Scheduler COM call blocks.
 
     [Fact]
-    public async Task EnableTaskAsync_ComFailure_ReturnsFailedResult()
+    public void SetTaskEnabled_Enable_ComFailure_ReturnsFailedResult()
     {
-        // COM interop fails in test environment
-        var result = await _service.EnableTaskAsync(@"\Microsoft\Windows\Test\SomeTask");
-
-        result.Should().NotBeNull();
-        // Will fail due to COM not being available
-        result.Success.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task EnableTaskAsync_DoesNotThrow()
-    {
-        var action = () => _service.EnableTaskAsync(@"\Test\Task");
-
-        await action.Should().NotThrowAsync();
-    }
-
-    // --- DisableTaskAsync ---
-
-    [Fact]
-    public async Task DisableTaskAsync_ComFailure_ReturnsFailedResult()
-    {
-        var result = await _service.DisableTaskAsync(@"\Microsoft\Windows\Test\SomeTask");
+        // The task does not exist on the test machine, so the COM lookup fails.
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\SomeTask", enabled: true);
 
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
     }
 
     [Fact]
-    public async Task DisableTaskAsync_DoesNotThrow()
+    public void SetTaskEnabled_Enable_DoesNotThrow()
     {
-        var action = () => _service.DisableTaskAsync(@"\Test\Task");
+        var action = () => _service.SetTaskEnabled(@"\Test\Task", enabled: true);
 
-        await action.Should().NotThrowAsync();
-    }
-
-    // --- IsTaskEnabledAsync ---
-
-    [Fact]
-    public async Task IsTaskEnabledAsync_ComFailure_ReturnsNull()
-    {
-        // COM interop fails in test environment, catch returns null
-        var result = await _service.IsTaskEnabledAsync(@"\Microsoft\Windows\Test\SomeTask");
-
-        result.Should().BeNull();
+        action.Should().NotThrow();
     }
 
     [Fact]
-    public async Task IsTaskEnabledAsync_DoesNotThrow()
+    public void SetTaskEnabled_Disable_ComFailure_ReturnsFailedResult()
     {
-        var action = () => _service.IsTaskEnabledAsync(@"\Any\Task\Path");
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\SomeTask", enabled: false);
 
-        await action.Should().NotThrowAsync();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
     }
 
-    // --- RunScheduledTaskAsync ---
+    [Fact]
+    public void SetTaskEnabled_Disable_DoesNotThrow()
+    {
+        var action = () => _service.SetTaskEnabled(@"\Test\Task", enabled: false);
+
+        action.Should().NotThrow();
+    }
+
+    // GetTasksEnabled is batched over one connection.
+
+    [Fact]
+    public void GetTasksEnabled_NoPaths_ReturnsEmptyWithoutConnecting()
+    {
+        var result = _service.GetTasksEnabled(Array.Empty<string>());
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetTasksEnabled_ReturnsAnEntryForEveryRequestedPath()
+    {
+        // The contract the detection context relies on: every requested path is present in the result,
+        // absent tasks as null. A missing KEY would be read as "never asked" and silently re-queried.
+        var paths = new[] { @"\Microsoft\Windows\Test\One", @"\Microsoft\Windows\Test\Two" };
+
+        var result = _service.GetTasksEnabled(paths);
+
+        result.Should().HaveCount(2);
+        result.Keys.Should().BeEquivalentTo(paths);
+        result.Values.Should().AllSatisfy(v => v.Should().BeNull());
+    }
+
+    [Fact]
+    public void GetTasksEnabled_DoesNotThrow()
+    {
+        var action = () => _service.GetTasksEnabled(AnyTaskPath);
+
+        action.Should().NotThrow();
+    }
 
     [Fact]
     public async Task RunScheduledTaskAsync_ComFailure_ReturnsFailedResult()
@@ -254,7 +243,6 @@ public class ScheduledTaskServiceTests
         var result = await _service.RunScheduledTaskAsync("SomeTask");
 
         result.Should().NotBeNull();
-        // Will fail due to COM not being available
         result.Success.Should().BeFalse();
     }
 
@@ -266,33 +254,31 @@ public class ScheduledTaskServiceTests
         await action.Should().NotThrowAsync();
     }
 
-    // --- SplitTaskPath (tested indirectly via public methods) ---
-    // SplitTaskPath is private static, but its logic is exercised through EnableTaskAsync/DisableTaskAsync/IsTaskEnabledAsync.
+    // SplitTaskPath is private static, but its logic is exercised through SetTaskEnabled/GetTasksEnabled.
 
     [Fact]
-    public async Task EnableTaskAsync_WithFullPath_ParsesFolderAndName()
+    public void SetTaskEnabled_WithFullPath_ParsesFolderAndName()
     {
         // The path "\Microsoft\Windows\Test\TaskName" should split to folder="\Microsoft\Windows\Test" name="TaskName"
-        // COM will fail in test env, but we verify no exception
-        var result = await _service.EnableTaskAsync(@"\Microsoft\Windows\Test\TaskName");
+        var result = _service.SetTaskEnabled(@"\Microsoft\Windows\Test\TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EnableTaskAsync_WithRootPath_ParsesCorrectly()
+    public void SetTaskEnabled_WithRootPath_ParsesCorrectly()
     {
         // The path "\TaskName" should split to folder="\" name="TaskName"
-        var result = await _service.EnableTaskAsync(@"\TaskName");
+        var result = _service.SetTaskEnabled(@"\TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EnableTaskAsync_WithBareTaskName_ParsesCorrectly()
+    public void SetTaskEnabled_WithBareTaskName_ParsesCorrectly()
     {
         // A bare name "TaskName" (lastSep <= 0) should split to folder="\" name="TaskName"
-        var result = await _service.EnableTaskAsync("TaskName");
+        var result = _service.SetTaskEnabled("TaskName", enabled: true);
 
         result.Should().NotBeNull();
     }

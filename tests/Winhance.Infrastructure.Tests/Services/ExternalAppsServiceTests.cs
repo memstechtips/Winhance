@@ -41,8 +41,6 @@ public class ExternalAppsServiceTests
         _processExecutor.Object,
         _changeHistoryService.Object);
 
-    // --- DomainName ---
-
     [Fact]
     public void DomainName_ReturnsExternalApps()
     {
@@ -50,8 +48,6 @@ public class ExternalAppsServiceTests
 
         sut.DomainName.Should().Be("ExternalApps");
     }
-
-    // --- GetAppsAsync ---
 
     [Fact]
     public async Task GetAppsAsync_ReturnsNonEmptyList()
@@ -73,8 +69,6 @@ public class ExternalAppsServiceTests
 
         result.Should().OnlyContain(item => !string.IsNullOrEmpty(item.Id));
     }
-
-    // --- InstallAppAsync: WinGet success ---
 
     [Fact]
     public async Task InstallAppAsync_WinGetSucceeds_ReturnsSuccess()
@@ -128,8 +122,6 @@ public class ExternalAppsServiceTests
         result.Success.Should().BeTrue();
     }
 
-    // --- InstallAppAsync: direct download ---
-
     [Fact]
     public async Task InstallAppAsync_RequiresDirectDownload_UsesDirectDownloadService()
     {
@@ -177,8 +169,6 @@ public class ExternalAppsServiceTests
         result.ErrorMessage.Should().Contain("Direct download installation failed");
     }
 
-    // --- InstallAppAsync: no package IDs ---
-
     [Fact]
     public async Task InstallAppAsync_NoPackageIds_NoDownloadUrl_ReturnsFailed()
     {
@@ -223,8 +213,6 @@ public class ExternalAppsServiceTests
             item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // --- InstallAppAsync: WinGet-first ordering ---
-
     [Fact]
     public async Task InstallAppAsync_WithBothWinGetAndMsStore_TriesWinGetFirst()
     {
@@ -250,7 +238,6 @@ public class ExternalAppsServiceTests
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
-        // WinGet source should be tried (and succeed), MsStore should NOT be tried
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
             "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
@@ -274,13 +261,11 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
-        // MsStore succeeds
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -292,8 +277,6 @@ public class ExternalAppsServiceTests
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
             "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
-
-    // --- InstallAppAsync: Chocolatey fallback ---
 
     [Fact]
     public async Task InstallAppAsync_WinGetFailsWithChocolateyPackage_FallsBackToChocolatey()
@@ -312,18 +295,15 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ChocoApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.HashMismatchOrInstallError, "Hash mismatch"));
 
-        // Chocolatey is already installed
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        // Chocolatey install succeeds
         _chocolateyService
             .Setup(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -456,7 +436,6 @@ public class ExternalAppsServiceTests
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        // Chocolatey bootstrap fails
         _chocolateyService
             .Setup(x => x.InstallChocolateyAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -512,8 +491,6 @@ public class ExternalAppsServiceTests
             item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // --- InstallAppAsync: direct download fallback ---
-
     [Fact]
     public async Task InstallAppAsync_WinGetFails_FallsBackToDirectDownload()
     {
@@ -534,13 +511,11 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync("Publisher.FallbackApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
-        // Direct download succeeds
         _directDownloadService
             .Setup(x => x.DownloadAndInstallAsync(
                 item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
@@ -607,7 +582,6 @@ public class ExternalAppsServiceTests
                 "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
-        // Direct download also fails
         _directDownloadService
             .Setup(x => x.DownloadAndInstallAsync(
                 item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
@@ -674,13 +648,11 @@ public class ExternalAppsServiceTests
             .Setup(x => x.GetInstallerTypeAsync("Publisher.FullFallbackApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
 
-        // WinGet fails
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
                 "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
-        // Choco installed but package install fails
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -688,7 +660,6 @@ public class ExternalAppsServiceTests
             .Setup(x => x.InstallPackageAsync("fullfallbackapp", "Full Fallback App", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        // Direct download succeeds
         _directDownloadService
             .Setup(x => x.DownloadAndInstallAsync(
                 item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
@@ -700,8 +671,6 @@ public class ExternalAppsServiceTests
         _directDownloadService.Verify(x => x.DownloadAndInstallAsync(
             item, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
-
-    // --- InstallAppAsync: cancellation ---
 
     [Fact]
     public async Task InstallAppAsync_OperationCancelled_ReturnsCancelled()
@@ -724,8 +693,6 @@ public class ExternalAppsServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("cancelled");
     }
-
-    // --- UninstallAppAsync ---
 
     [Fact]
     public async Task UninstallAppAsync_Success_ReturnsSuccess()
@@ -833,8 +800,6 @@ public class ExternalAppsServiceTests
         result.ErrorMessage.Should().Contain("cancelled");
     }
 
-    // --- CheckBatchInstalledAsync ---
-
     [Fact]
     public async Task CheckBatchInstalledAsync_DelegatesToExternalAppsStatus()
     {
@@ -860,8 +825,6 @@ public class ExternalAppsServiceTests
         result.Should().BeEquivalentTo(expected);
     }
 
-    // --- InvalidateStatusCache ---
-
     [Fact]
     public void InvalidateStatusCache_DelegatesToDiscoveryService()
     {
@@ -871,8 +834,6 @@ public class ExternalAppsServiceTests
 
         _appStatusDiscoveryService.Verify(x => x.InvalidateCache(), Times.Once);
     }
-
-    // --- InstallAppAsync: exception handling ---
 
     [Fact]
     public async Task InstallAppAsync_GenericException_ReturnsFailed()

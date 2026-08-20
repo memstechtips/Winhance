@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
@@ -93,8 +91,7 @@ public class ModeCapabilitiesTests
     [Fact]
     public void NullModeService_AnswersAsNormal()
     {
-        // Preserves the null handling of the `_service?.CurrentMode == WinhanceMode.Builder` sites
-        // this replaced: no service meant "not Builder", which is Normal's answer.
+        // No service means "not Builder", which is Normal's answer.
         ModeCapabilities.For(WinhanceMode.Normal)
             .Should().Be(((Winhance.Core.Features.Common.Interfaces.IApplicationModeService?)null).Capabilities());
     }

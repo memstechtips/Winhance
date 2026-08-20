@@ -1,9 +1,5 @@
 namespace Winhance.IntegrationTests.Fixtures;
 
-/// <summary>
-/// xUnit fixture that creates a unique temporary directory for test isolation
-/// and cleans it up on dispose.
-/// </summary>
 public class TempDirectoryFixture : IDisposable
 {
     public string TempPath { get; }
@@ -27,5 +23,6 @@ public class TempDirectoryFixture : IDisposable
                 // Best effort cleanup — temp directory may be locked
             }
         }
+        GC.SuppressFinalize(this);
     }
 }

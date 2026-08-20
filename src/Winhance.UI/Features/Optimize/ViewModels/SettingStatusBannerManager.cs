@@ -1,23 +1,16 @@
-using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// Computes status banner messages for setting items (compatibility warnings,
-/// option warnings, cross-group info, restart required).
-/// </summary>
 internal sealed class SettingStatusBannerManager
 {
     private readonly ILocalizationService _localizationService;
 
-    /// <summary>A non-null <see cref="DetectionOutcome"/> marks a detection-outcome banner, so the VM can give
-    /// it that outcome's color icon (matching the toggle overlay knob / selection adornment); every other
-    /// banner leaves it null and keeps InfoBar's native severity icon.</summary>
+    // A non-null DetectionOutcome marks a detection-outcome banner, so the VM gives it that outcome's colour icon;
+    // every other banner keeps InfoBar's native severity icon.
     internal readonly record struct BannerState(
         string? Message, InfoBarSeverity Severity, SettingDetectionOutcome? DetectionOutcome = null)
     {
@@ -29,22 +22,18 @@ internal sealed class SettingStatusBannerManager
         _localizationService = localizationService;
     }
 
-    /// <summary>
-    /// Computes the appropriate banner for a value change. Returns BannerState.Clear when there is no banner to
-    /// show, or null to leave an existing compatibility banner untouched (value is not an int index).
-    /// </summary>
+    // BannerState.Clear when there is nothing to show; null leaves an existing compatibility banner untouched
+    // (value is not an int index).
     public BannerState? ComputeBannerForValue(
         object? value, IReadOnlyList<string?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage)
     {
         if (value is not int selectedIndex)
         {
-            // Keep an existing compatibility banner (return null = don't change) when one applies; otherwise clear.
             if (string.IsNullOrEmpty(compatibilityMessage))
                 return BannerState.Clear;
             return null;
         }
 
-        // Per-option warning text (e.g., update policy security warnings), index-aligned with the options.
         if (optionWarnings is { } w
             && selectedIndex >= 0 && selectedIndex < w.Count
             && w[selectedIndex] is { } warning)
@@ -56,17 +45,12 @@ internal sealed class SettingStatusBannerManager
         if (!string.IsNullOrEmpty(crossGroupInfoMessage))
             return ComputeCrossGroupBanner(selectedIndex, crossGroupInfoMessage, optionCount);
 
-        // Windows-version compatibility message (shown when the version filter is off).
         if (!string.IsNullOrEmpty(compatibilityMessage))
             return new BannerState(compatibilityMessage, InfoBarSeverity.Warning);
 
         return BannerState.Clear;
     }
 
-    /// <summary>
-    /// Gets a restart-required banner if the setting requires restart and has been changed.
-    /// Returns null if no banner should be shown.
-    /// </summary>
     public BannerState? GetRestartBanner(bool requiresRestart, bool hasChangedThisSession)
     {
         if (!hasChangedThisSession) return null;
@@ -77,18 +61,9 @@ internal sealed class SettingStatusBannerManager
             InfoBarSeverity.Warning);
     }
 
-    /// <summary>The banner for a setting detection could not resolve, at the severity that outcome deserves:
-    /// <list type="bullet">
-    /// <item><see cref="SettingDetectionOutcome.Custom"/> - Informational. A value we do not recognize is not
-    /// a fault; the user can simply choose one.</item>
-    /// <item><see cref="SettingDetectionOutcome.Malformed"/> - Warning. A genuine fault on the machine, but a
-    /// recoverable one that repairs itself the moment the user picks a state.</item>
-    /// <item><see cref="SettingDetectionOutcome.Undetermined"/> - Error. WE failed to read the setting; the
-    /// user cannot act and the message points at the log rather than pretending to offer a remedy.</item>
-    /// </list>
-    /// Severity here deliberately matches the overlay icon's colour (blue / yellow / red) so the two signals
-    /// can never contradict each other. The VM applies this only when no higher-priority banner is showing
-    /// (SettingItemViewModel.UpdateDetectionOutcomeBanner).</summary>
+    // Custom -> Informational (not a fault; the user can simply choose); Malformed -> Warning (a real but
+    // self-repairing fault); Undetermined -> Error (WE failed to read it; the message points at the log rather than
+    // pretending to offer a remedy). Severity deliberately matches the overlay icon colour so the two never contradict.
     public BannerState GetDetectionOutcomeBanner(SettingDetectionOutcome outcome, bool isToggleLike)
     {
         var (prefix, severity) = outcome switch
@@ -109,7 +84,6 @@ internal sealed class SettingStatusBannerManager
         if (optionCount == 0)
             return BannerState.Clear;
 
-        // Check if "Custom" option is selected (last index or special custom state index)
         var customOptionIndex = optionCount - 1;
         bool isCustomState = selectedIndex == customOptionIndex ||
             selectedIndex == ComboBoxConstants.CustomStateIndex;

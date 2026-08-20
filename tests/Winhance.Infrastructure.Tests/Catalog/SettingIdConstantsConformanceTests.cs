@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -8,11 +5,8 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>SettingIds exists so service logic checks setting identity through a named constant instead of a raw
-/// string literal. A constant only earns that job while its value still names a real catalog setting, so this pins
-/// every constant to SettingCatalog.All: rename a catalog id and the constant is silently orphaned, leaving the
-/// service comparing against a value nothing matches -- a live bug no compiler can catch. The constants are
-/// enumerated by reflection so a newly added one is covered without anyone remembering to update this test.</summary>
+// Rename a catalog id and a SettingIds constant is silently orphaned - the service compares against a value
+// nothing matches. Enumerated by reflection so a new constant is covered automatically.
 public class SettingIdConstantsConformanceTests
 {
     private static IReadOnlyList<FieldInfo> SettingIdConstants() =>
@@ -27,7 +21,6 @@ public class SettingIdConstantsConformanceTests
     {
         var constants = SettingIdConstants();
 
-        // Non-vacuity guard: a broken reflection query must not pass by discovering nothing.
         Assert.True(
             constants.Count >= 6,
             $"Expected at least 6 public const string fields on SettingIds, found {constants.Count} -- "

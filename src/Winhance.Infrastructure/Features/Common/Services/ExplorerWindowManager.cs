@@ -1,17 +1,10 @@
-using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Opens folders in Explorer, reusing an existing window if the folder is already open.
-/// Uses Shell.Application COM interop to enumerate Explorer windows and User32 P/Invoke
-/// to bring a matching window to the foreground.
-/// </summary>
-public class ExplorerWindowManager(
+internal class ExplorerWindowManager(
     IProcessExecutor processExecutor,
     ILogService logService) : IExplorerWindowManager
 {
@@ -23,7 +16,7 @@ public class ExplorerWindowManager(
 
         try
         {
-            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            var shellType = Type.GetTypeFromProgID("Shell.Application");
             if (shellType != null)
             {
                 dynamic? shell = null;
@@ -41,7 +34,7 @@ public class ExplorerWindowManager(
                             if (string.IsNullOrEmpty(locationUrl))
                                 continue;
 
-                            Uri uri = new Uri(locationUrl);
+                            var uri = new Uri(locationUrl);
                             string windowPath = System.IO.Path.GetFullPath(uri.LocalPath)
                                 .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
                                 .ToLowerInvariant();
@@ -64,16 +57,16 @@ public class ExplorerWindowManager(
                         finally
                         {
                             if (window != null)
-                                try { Marshal.ReleaseComObject(window); } catch { /* best-effort COM release */ }
+                                try { Marshal.ReleaseComObject(window); } catch { }
                         }
                     }
                 }
                 finally
                 {
                     if (windows != null)
-                        try { Marshal.ReleaseComObject(windows); } catch { /* best-effort COM release */ }
+                        try { Marshal.ReleaseComObject(windows); } catch { }
                     if (shell != null)
-                        try { Marshal.ReleaseComObject(shell); } catch { /* best-effort COM release */ }
+                        try { Marshal.ReleaseComObject(shell); } catch { }
                 }
             }
         }

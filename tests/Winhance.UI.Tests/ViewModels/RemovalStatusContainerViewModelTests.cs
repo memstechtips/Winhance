@@ -17,8 +17,6 @@ public class RemovalStatusContainerViewModelTests
         _logService.Object,
         _fileSystemService.Object);
 
-    // --- Constructor ---
-
     [Fact]
     public void Constructor_InitializesRemovalStatusItems()
     {
@@ -51,8 +49,6 @@ public class RemovalStatusContainerViewModelTests
 
         sut.RemovalStatusItems.Should().Contain(item => item.Name == "OneDrive");
     }
-
-    // --- Item configuration ---
 
     [Fact]
     public void BloatRemovalItem_HasCorrectConfiguration()
@@ -90,8 +86,6 @@ public class RemovalStatusContainerViewModelTests
         item.IconPath.Should().Be("MicrosoftOneDriveIconPath");
     }
 
-    // --- RefreshAllStatusesAsync ---
-
     [Fact]
     public async Task RefreshAllStatusesAsync_CallsStartStatusMonitoringOnAllItems()
     {
@@ -105,7 +99,6 @@ public class RemovalStatusContainerViewModelTests
 
         await sut.RefreshAllStatusesAsync();
 
-        // All items should have been checked
         _scheduledTaskService.Verify(s => s.IsTaskRegisteredAsync(It.IsAny<string>()),
             Times.Exactly(3));
     }
@@ -125,8 +118,6 @@ public class RemovalStatusContainerViewModelTests
         await act.Should().NotThrowAsync();
     }
 
-    // --- PropertyChanged ---
-
     [Fact]
     public void PropertyChanged_EventIsAccessible()
     {
@@ -135,12 +126,8 @@ public class RemovalStatusContainerViewModelTests
 
         sut.PropertyChanged += (_, _) => eventHandled = true;
 
-        // The container itself does not frequently raise PropertyChanged,
-        // but we verify the event can be subscribed to without error
         eventHandled.Should().BeFalse();
     }
-
-    // --- Dispose ---
 
     [Fact]
     public void Dispose_DoesNotThrow()
@@ -160,11 +147,8 @@ public class RemovalStatusContainerViewModelTests
 
         sut.Dispose();
 
-        // After disposal, starting monitoring on child items should not work
-        // (they should be disposed and skip operations)
         foreach (var item in items)
         {
-            // Disposed items should not throw but should be inactive
             item.IsActive.Should().BeFalse();
         }
     }

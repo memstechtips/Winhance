@@ -1,15 +1,11 @@
-using System;
 using System.Runtime.Versioning;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>Imports .reg content via reg.exe, OTS-aware (write a temp .reg file, run reg.exe import - as the
-/// interactive user under OTS).</summary>
 [SupportedOSPlatform("windows")]
-public class RegImportService(
+internal class RegImportService(
     IInteractiveUserService interactiveUserService,
     IFileSystemService fileSystemService,
     IProcessExecutor processExecutor,

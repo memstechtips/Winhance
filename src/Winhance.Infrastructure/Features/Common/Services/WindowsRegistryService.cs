@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -8,12 +5,11 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
+internal class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
 {
 
     public bool CreateKey(string keyPath)
@@ -91,18 +87,9 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Minimum number of path segments (backslash-separated) required in the
-    /// sub-key portion of a registry path before <see cref="DeleteSubKeyTree"/>
-    /// is allowed. This prevents accidental deletion of top-level hive branches
-    /// like <c>HKLM\SOFTWARE</c>.
-    /// </summary>
+    // Prevents accidental deletion of top-level hive branches like HKLM\SOFTWARE.
     private const int MinDeleteDepth = 2;
 
-    /// <summary>
-    /// Top-level registry branches that must never be deleted via
-    /// <see cref="DeleteKey"/>. Comparison is case-insensitive.
-    /// </summary>
     internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
     {
         @"SOFTWARE\Microsoft\Windows",
@@ -121,7 +108,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
 
-            // Safeguard: reject paths that are too shallow (e.g. "SOFTWARE" or "SOFTWARE\Microsoft")
             var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length < MinDeleteDepth)
             {
@@ -130,7 +116,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 return false;
             }
 
-            // Safeguard: reject paths that start with a protected root
             foreach (var protectedRoot in ProtectedSubKeyRoots)
             {
                 if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
@@ -218,8 +203,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>Applies <see cref="BinaryValueRecovery"/> (the pure rule, unit-tested in Core) and logs what
-    /// it decided. Returns null when the caller must REFUSE the write rather than destroy the value.</summary>
+    // Null when the caller must REFUSE the write rather than destroy the value.
     private byte[]? ResolveBinaryEditBuffer(string keyPath, string valueName, object? currentValue, int byteIndex)
     {
         var buffer = BinaryValueRecovery.Resolve(currentValue, byteIndex);
@@ -253,7 +237,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var currentValue = GetValue(keyPath, valueName);
             var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
             if (currentBytes is null)
-                return false; // unrecoverable type - refuse rather than destroy the value
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -282,7 +266,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var currentValue = GetValue(keyPath, valueName);
             var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
             if (currentBytes is null)
-                return false; // unrecoverable type - refuse rather than destroy the value
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -307,11 +291,8 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Locks a registry key to read-only for SYSTEM and TrustedInstaller,
-    /// preventing Windows from resetting the value.
-    /// Administrators retain full control to allow Winhance to unlock later.
-    /// </summary>
+    // SYSTEM and TrustedInstaller lose write so Windows cannot reset the value; Administrators keep full control so
+    // Winhance can unlock later.
     public bool LockRegistryKey(string keyPath)
     {
         try
@@ -330,20 +311,16 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Disable inheritance and convert existing rules to explicit
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
 
-            // Remove all existing access rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Grant Administrators full control (so Winhance can unlock later)
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,
@@ -351,7 +328,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant SYSTEM read-only (prevents Windows from writing)
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -372,10 +348,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
     }
 
-    /// <summary>
-    /// Restores default permissions on a registry key, re-enabling
-    /// inheritance and granting SYSTEM full control again.
-    /// </summary>
     public bool UnlockRegistryKey(string keyPath)
     {
         try
@@ -394,20 +366,16 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Remove all explicit rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, false, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Re-enable inheritance
             security.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
 
-            // Grant SYSTEM full control
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -416,7 +384,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant Administrators full control
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,
@@ -458,12 +425,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
     }
 
-    /// <summary>
-    /// Read-merge-write of one sub-key inside a packed ";"-delimited "key=value" REG_SZ value: ensures the key
-    /// exists, re-reads the current composite value, sets (or, when <paramref name="subValue"/> is null, removes)
-    /// the given sub-key, then writes the merged string back (trailing ";", OrdinalIgnoreCase sub-keys via
-    /// <see cref="ParseCompositeString"/>). The caller resolves the sub-value.
-    /// </summary>
     public bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue)
     {
         try

@@ -3,7 +3,6 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,14 +11,10 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// ViewModel for the Windows Apps tab in the SoftwareApps feature.
-/// </summary>
 public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProvider
 {
     private readonly IWindowsAppsService _windowsAppsService;
@@ -64,8 +59,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         ItemsView.Filter = FilterItem;
         AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
-        // Initialize partial property defaults (after Items/ItemsView,
-        // since OnSearchTextChanged uses ItemsView)
+        // Must come after ItemsView: OnSearchTextChanged uses it.
         StatusText = "Ready";
         SearchText = string.Empty;
     }
@@ -197,25 +191,16 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         return true;
     }
 
-    /// <summary>
-    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
-    /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
     private readonly object _loadGate = new();
     private Task? _loadTask;
 
-    /// <summary>
-    /// Loads app definitions, checks installation status and resolves icons — exactly once.
-    /// Idempotent: startup triggers this from two independent paths — the UI init
-    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
-    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
-    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
-    /// ran concurrently, clobbering the shared Items collection and racing over the
-    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
-    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
-    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
-    /// </summary>
+    // Exactly once, idempotent: startup triggers this from two independent paths (StartupUiCoordinator, and
+    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard is not enough -
+    // IsInitialized is only set when the load FINISHES - so two full passes would clobber Items and race over
+    // icon-cache .tmp files. The first caller starts the load and every other caller awaits the same Task, on
+    // the UI thread with a SynchronizationContext so continuations stay UI-affine.
     [RelayCommand]
     public Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -238,7 +223,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             Items.Clear();
 
             var allItems = await _windowsAppsService.GetAppsAsync();
-            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
+            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Length > 0));
             var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
@@ -303,12 +288,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
     }
 
+    // No-op when no resolver was injected. Failures are logged and swallowed - icon resolution must never block the load flow.
     [RelayCommand]
-    /// <summary>
-    /// Resolves AppX icons for installed entries and notifies their ViewModels.
-    /// No-op when no resolver was injected (e.g. legacy test construction).
-    /// Failures are logged and swallowed — icon resolution must never block the load flow.
-    /// </summary>
     private async Task ResolveIconsAsync()
     {
         if (_iconResolver is null) return;
@@ -427,11 +408,11 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task InstallAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for installation.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Install"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 
@@ -492,14 +473,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         await RefreshAfterOperationAsync();
     }
 
-    /// <summary>
-    /// Shows removal summary and asks for confirmation.
-    /// </summary>
-    /// <returns>Tuple of (Confirmed, SaveScripts).</returns>
     public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return (true, true);
+        if (selectedItems.Count == 0) return (true, true);
 
         var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
@@ -510,13 +487,10 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         return (confirmed, checkboxChecked);
     }
 
-    /// <summary>
-    /// Removes selected apps with optional confirmation skip (for ConfigurationService compatibility).
-    /// </summary>
     public async Task RemoveApps(bool skipConfirmation = false, bool saveRemovalScripts = true)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return;
+        if (selectedItems.Count == 0) return;
 
         if (!skipConfirmation)
         {
@@ -537,11 +511,11 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task RemoveAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for removal.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Remove"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 

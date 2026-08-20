@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -60,8 +59,6 @@ public class ExternalAppsViewModelTests
         IsInstalled = isInstalled
     };
 
-    // --- Constructor / defaults ---
-
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -86,8 +83,6 @@ public class ExternalAppsViewModelTests
         sut.Categories.Should().BeEmpty();
     }
 
-    // --- HasSelectedItems ---
-
     [Fact]
     public void HasSelectedItems_WhenNoItems_ReturnsFalse()
     {
@@ -96,8 +91,6 @@ public class ExternalAppsViewModelTests
         sut.HasSelectedItems.Should().BeFalse();
     }
 
-    // --- IsAllSelected ---
-
     [Fact]
     public void IsAllSelected_WhenNoItems_ReturnsFalse()
     {
@@ -105,8 +98,6 @@ public class ExternalAppsViewModelTests
 
         sut.IsAllSelected.Should().BeFalse();
     }
-
-    // --- Localized labels ---
 
     [Fact]
     public void SelectAllLabel_ReturnsLocalizedString()
@@ -131,8 +122,6 @@ public class ExternalAppsViewModelTests
 
         sut.SelectAllNotInstalledLabel.Should().Be("Common_SelectAll_NotInstalled");
     }
-
-    // --- LoadAppsAndCheckInstallationStatusAsync ---
 
     [Fact]
     public async Task LoadAppsAndCheckInstallationStatusAsync_LoadsItems()
@@ -184,7 +173,6 @@ public class ExternalAppsViewModelTests
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        // The error is logged; finalization still sets "Loaded 0 items"
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Error loading app definitions")),
             It.IsAny<Exception>()), Times.Once);
@@ -219,7 +207,6 @@ public class ExternalAppsViewModelTests
     [Fact]
     public async Task LoadAppsAndCheckInstallationStatusAsync_SortsAppsAlphabeticallyWithinCategories()
     {
-        // Provide apps in reverse alphabetical order
         var items = new List<ItemDefinition>
         {
             CreateTestItem("app1", "Firefox", "Browsers"),
@@ -246,8 +233,6 @@ public class ExternalAppsViewModelTests
         names.Should().ContainInOrder("Arc", "Chrome", "Firefox");
     }
 
-    // --- LoadItemsAsync ---
-
     [Fact]
     public async Task LoadItemsAsync_DelegatesToLoadAppsAndCheckInstallationStatus()
     {
@@ -261,8 +246,6 @@ public class ExternalAppsViewModelTests
 
         sut.IsInitialized.Should().BeTrue();
     }
-
-    // --- RefreshInstallationStatusAsync ---
 
     [Fact]
     public async Task RefreshInstallationStatusAsync_WhenNotInitialized_SetsWaitMessage()
@@ -291,8 +274,6 @@ public class ExternalAppsViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
-    // --- InstallAppsAsync ---
-
     [Fact]
     public async Task InstallAppsAsync_WhenNoItemsSelected_ShowsWarning()
     {
@@ -307,7 +288,7 @@ public class ExternalAppsViewModelTests
         await sut.InstallAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("ExternalApps_NoSelection_Install")),
             It.IsAny<string>()), Times.Once);
     }
 
@@ -331,8 +312,6 @@ public class ExternalAppsViewModelTests
             It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>()), Times.Never);
     }
 
-    // --- UninstallAppsAsync ---
-
     [Fact]
     public async Task UninstallAppsAsync_WhenNoItemsSelected_ShowsWarning()
     {
@@ -347,11 +326,9 @@ public class ExternalAppsViewModelTests
         await sut.UninstallAppsAsync();
 
         _dialogService.Verify(d => d.ShowWarningAsync(
-            It.Is<string>(s => s.Contains("select at least one")),
+            It.Is<string>(s => s.Contains("ExternalApps_NoSelection_Uninstall")),
             It.IsAny<string>()), Times.Once);
     }
-
-    // --- ClearSelections ---
 
     [Fact]
     public async Task ClearSelections_DeselectsAllItems()
@@ -377,8 +354,6 @@ public class ExternalAppsViewModelTests
         sut.HasSelectedItems.Should().BeFalse();
     }
 
-    // --- SelectedItemsChanged event ---
-
     [Fact]
     public async Task SelectedItemsChanged_RaisedWhenItemSelectionChanges()
     {
@@ -397,8 +372,6 @@ public class ExternalAppsViewModelTests
 
         eventRaised.Should().BeTrue();
     }
-
-    // --- ToggleSelectAll ---
 
     [Fact]
     public async Task ToggleSelectAll_SelectsAllItems()
@@ -420,8 +393,6 @@ public class ExternalAppsViewModelTests
         sut.Items.Should().OnlyContain(i => i.IsSelected);
         sut.IsAllSelected.Should().BeTrue();
     }
-
-    // --- ToggleSelectAllInstalled ---
 
     [Fact]
     public async Task ToggleSelectAllInstalled_SelectsOnlyInstalledItems()
@@ -447,8 +418,6 @@ public class ExternalAppsViewModelTests
         notInstalledItem.IsSelected.Should().BeFalse();
     }
 
-    // --- ToggleSelectAllNotInstalled ---
-
     [Fact]
     public async Task ToggleSelectAllNotInstalled_SelectsOnlyNotInstalledItems()
     {
@@ -473,8 +442,6 @@ public class ExternalAppsViewModelTests
         notInstalledItem.IsSelected.Should().BeTrue();
     }
 
-    // --- InstallApps (overload with skipConfirmation) ---
-
     [Fact]
     public async Task InstallApps_WhenNoItemsSelected_ReturnsEarly()
     {
@@ -486,14 +453,11 @@ public class ExternalAppsViewModelTests
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        // No items selected
         await sut.InstallApps(skipConfirmation: true);
 
         _externalAppsService.Verify(s => s.InstallAppAsync(
             It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>()), Times.Never);
     }
-
-    // --- CheckInstallationStatusAsync ---
 
     [Fact]
     public async Task CheckInstallationStatusAsync_UpdatesInstalledStatus()
@@ -508,8 +472,6 @@ public class ExternalAppsViewModelTests
 
         sut.Items[0].IsInstalled.Should().BeTrue();
     }
-
-    // --- Dispose ---
 
     [Fact]
     public void Dispose_DoesNotThrow()

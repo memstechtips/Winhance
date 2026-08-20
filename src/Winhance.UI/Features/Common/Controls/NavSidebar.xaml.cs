@@ -2,8 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,9 +10,6 @@ using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Collapsible navigation sidebar containing NavButton controls.
-/// </summary>
 public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 {
     // Sidebar dimensions (matching NavigationView defaults)
@@ -28,8 +23,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     private Dictionary<string, NavButton>? _navButtons;
     private MoreMenuViewModel? _moreMenuViewModel;
     private ILogService? _logService;
-
-    #region Dependency Properties
 
     public static readonly DependencyProperty IsPaneOpenProperty =
         DependencyProperty.Register(
@@ -52,79 +45,50 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             typeof(NavSidebar),
             new PropertyMetadata(null));
 
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Whether the sidebar pane is open (expanded) or closed (compact).
-    /// </summary>
     public bool IsPaneOpen
     {
         get => (bool)GetValue(IsPaneOpenProperty);
         set => SetValue(IsPaneOpenProperty, value);
     }
 
-    /// <summary>
-    /// The currently selected navigation tag.
-    /// </summary>
     public string? SelectedTag
     {
         get => (string?)GetValue(SelectedTagProperty);
         set => SetValue(SelectedTagProperty, value);
     }
 
-    /// <summary>
-    /// The ViewModel providing localized strings for nav buttons.
-    /// </summary>
     public MainWindowViewModel? ViewModel
     {
         get => (MainWindowViewModel?)GetValue(ViewModelProperty);
         set => SetValue(ViewModelProperty, value);
     }
 
-    /// <summary>
-    /// Computed property: true when pane is closed (compact mode).
-    /// </summary>
     public bool IsCompact => !IsPaneOpen;
 
-    /// <summary>
-    /// Computed property: actual width based on pane state.
-    /// </summary>
     public double ActualSidebarWidth => IsPaneOpen ? ExpandedWidth : CompactWidth;
 
-    /// <summary>
-    /// Computed property: padding for nav panels based on pane state.
-    /// </summary>
     public Thickness NavPanelPadding => IsPaneOpen ? new Thickness(5, 0, 5, 0) : new Thickness(4, 0, 4, 0);
-
-    #endregion
 
     public NavSidebar()
     {
         this.InitializeComponent();
         InitializeNavButtonDictionary();
 
-        // Get MoreMenuViewModel and apply localized text to flyout after control is loaded
         this.Loaded += NavSidebar_Loaded;
     }
 
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        // Get MoreMenuViewModel for flyout commands and text
         _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
         _logService = App.Services.GetService<ILogService>();
 
-        // Apply localized text to More menu flyout items
         ApplyMoreMenuLocalizedText();
 
-        // Subscribe to MoreMenuViewModel property changes to update flyout text
         if (_moreMenuViewModel != null)
         {
             _moreMenuViewModel.PropertyChanged += OnMoreMenuViewModelPropertyChanged;
         }
 
-        // Subscribe to flyout closed event to restore selection
         if (MoreMenuFlyout != null)
         {
             MoreMenuFlyout.Closed += MoreMenuFlyout_Closed;
@@ -133,7 +97,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     private void OnMoreMenuViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Re-apply flyout text when MoreMenuViewModel properties change (language change)
         ApplyMoreMenuLocalizedText();
     }
 
@@ -150,9 +113,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         };
     }
 
-    /// <summary>
-    /// Applies localized text to the More menu flyout items.
-    /// </summary>
     private void ApplyMoreMenuLocalizedText()
     {
         if (_moreMenuViewModel == null || MoreMenuFlyout == null) return;
@@ -184,10 +144,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Shows the More menu flyout positioned relative to the More button.
-    /// Uses FlyoutBase.ShowAttachedFlyout which handles toggle behavior automatically.
-    /// </summary>
     public void ShowMoreMenuFlyout()
     {
         try
@@ -200,18 +156,12 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Handles the More menu flyout closing by raising an event for the parent to restore selection.
-    /// </summary>
     private void MoreMenuFlyout_Closed(object? sender, object e)
     {
         // Raise event so MainWindow can restore selection based on current page
         MoreMenuClosed?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>
-    /// Handles More menu item clicks and dispatches to MoreMenuViewModel commands.
-    /// </summary>
     private void MoreMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuFlyoutItem menuItem && menuItem.Tag is string tag && _moreMenuViewModel != null)
@@ -246,8 +196,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #region Property Change Handlers
-
     private static void OnIsPaneOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is NavSidebar sidebar)
@@ -266,10 +214,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Event Handlers
-
     private void NavButton_Clicked(object sender, NavButtonClickedEventArgs e)
     {
         var tag = e.NavigationTag?.ToString();
@@ -280,21 +224,10 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    /// Toggles the pane open/closed state.
-    /// </summary>
     public void TogglePane()
     {
         IsPaneOpen = !IsPaneOpen;
     }
-
-    #endregion
-
-    #region Selection Management
 
     private void UpdateSelectionState()
     {
@@ -306,10 +239,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Sets the locked state for a specific navigation button.
-    /// When locked, the button is dimmed, shows a lock icon, and blocks clicks.
-    /// </summary>
     public void SetButtonLocked(string tag, bool isLocked, string? tooltip = null)
     {
         if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
@@ -326,11 +255,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Gets a NavButton by its tag.
-    /// </summary>
-    /// <param name="tag">The navigation tag of the button to get.</param>
-    /// <returns>The NavButton if found, null otherwise.</returns>
     public NavButton? GetButton(string tag)
     {
         if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
@@ -340,9 +264,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         return null;
     }
 
-    /// <summary>
-    /// Sets badge value and status on the NavButton for the given tag.
-    /// </summary>
     public void SetButtonBadge(string tag, int value, string status)
     {
         if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
@@ -352,9 +273,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Clears all badges from all nav buttons.
-    /// </summary>
     public void ClearAllBadges()
     {
         if (_navButtons == null) return;
@@ -365,8 +283,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             button.BadgeStatus = string.Empty;
         }
     }
-
-    #endregion
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
     {

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -26,8 +25,6 @@ public class ExternalAppUninstallServiceTests
         _interactiveUserService.Object,
         _taskProgressService.Object,
         _processExecutor.Object);
-
-    // --- UninstallAsync: FileSystem method ---
 
     [Fact]
     public async Task UninstallAsync_FileSystemDetectedWithExistingDirectory_ReturnsSuccess()
@@ -151,8 +148,6 @@ public class ExternalAppUninstallServiceTests
         result.ErrorMessage.Should().Contain("cancelled");
     }
 
-    // --- UninstallAsync: WinGet method ---
-
     [Fact]
     public async Task UninstallAsync_WinGetDetected_UsesWinGetUninstall()
     {
@@ -177,8 +172,6 @@ public class ExternalAppUninstallServiceTests
             w => w.UninstallPackageAsync("Publisher.App", "winget", "WinGet App", It.IsAny<CancellationToken>()),
             Times.Once);
     }
-
-    // --- UninstallAsync: Chocolatey method ---
 
     [Fact]
     public async Task UninstallAsync_ChocolateyDetected_UsesChocolateyUninstall()
@@ -207,8 +200,6 @@ public class ExternalAppUninstallServiceTests
             c => c.UninstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()),
             Times.Once);
     }
-
-    // --- UninstallAsync: No method available ---
 
     [Fact]
     public async Task UninstallAsync_NoUninstallMethodAvailable_ReturnsFailed()

@@ -1,9 +1,7 @@
 using System.Collections.ObjectModel;
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
@@ -15,9 +13,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Creates fully-configured SettingItemViewModel instances from setting definitions.
-/// </summary>
 public class SettingViewModelFactory : ISettingViewModelFactory
 {
     private readonly SettingViewModelDependencies _viewModelDeps;
@@ -43,9 +38,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _enricher = enricher;
     }
 
-    /// <summary>
-    /// Creates a fully-configured SettingItemViewModel for the given setting definition and current state.
-    /// </summary>
     public async Task<SettingItemViewModel> CreateAsync(
         Setting setting,
         SettingStateResult currentState,
@@ -55,8 +47,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         string? compatibilityMessage,
         WinBuild build = default)
     {
-        // Derive the InputType from the catalog Setting's Control; it feeds the dispatch below and
-        // config.InputType.
         var inputType = ControlToInputType(setting.Control);
 
         var config = new SettingItemViewModelConfig
@@ -65,7 +55,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            // Localize the catalog Display fields via the canonical keys (raw Display fallback).
             Name = LocalizeOrFallback($"Setting_{setting.Id}_Name", setting.Display.Name) ?? setting.Display.Name,
             Description = LocalizeOrFallback($"Setting_{setting.Id}_Description", setting.Display.Description) ?? setting.Display.Description,
             GroupName = setting.Display.GroupName != null ? LocalizeGroupName(setting.Display.GroupName) : string.Empty,
@@ -87,24 +76,20 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _viewModelDeps.DispatcherService,
             _viewModelDeps.DialogService,
             _localizationService,
-            _viewModelDeps.EventBus,
             _userPreferencesService,
             _viewModelDeps.RegeditLauncher,
             _newBadgeService,
             _viewModelDeps.ApplicationModeService);
 
-        // Cross-group promo banner text is precomputed by the loading bridge and passed in.
         viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
         viewModel.CompatibilityMessage = compatibilityMessage;
 
-        // Set lock state for advanced settings
         if (setting.Availability.RequiresAdvancedUnlock)
         {
             var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
             viewModel.IsLocked = !unlocked;
         }
 
-        // Populate AC/DC values for PowerModeSupport.Separate settings
         if (viewModel.SupportsSeparateACDC)
         {
             await _enricher.DetectBatteryAsync(viewModel);
@@ -116,7 +101,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 if (currentState.DcValue is int dcInt)
                     viewModel.DcNumericValue = ConvertFromSystemUnits(dcInt, setting);
             }
-            // Note: AC/DC Selection values are set AFTER ComboBox options are populated (below)
         }
 
         if (inputType != InputType.Selection)
@@ -124,7 +108,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             viewModel.SelectedValue = currentState.CurrentValue;
         }
 
-        // Set up numeric range settings
         if (inputType == InputType.NumericRange && setting.Numeric != null)
         {
             viewModel.MaxValue = setting.Numeric.Max;
@@ -163,7 +146,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             powerPlanHandled = true;
         }
 
-        // Set up combo box options for selection settings
         if (inputType == InputType.Selection && !powerPlanHandled)
         {
             try
@@ -173,15 +155,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
                 if (setting is { States.Count: > 0 })
                 {
-                    // Option build: the options come from Setting.States, localized via the
-                    // Setting_{id}_Option_{i} keys (loc-key-only; state.Label is the fallback). The current index
-                    // is the detection-resolved CurrentValue (1:1 with States, -1 == Custom).
                     int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
                     BuildCatalogSelectionOptions(setting, viewModel.ComboBoxOptions);
                     resolvedSelection = currentState.CurrentValue ?? currentIndex;
                 }
 
-                // Set the selected value from the resolved option build or current state
                 if (resolvedSelection != null)
                 {
                     viewModel.SelectedValue = resolvedSelection;
@@ -194,7 +172,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 if (viewModel.SelectedValue is int customSelIdx
                     && customSelIdx == ComboBoxConstants.CustomStateIndex)
                 {
-                    // Rebuild the captured custom-state from the typed fields.
                     var captured = CustomStateValueReconstructor.Build(setting, currentState)
                         .Where(kv => kv.Value != null)
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
@@ -236,7 +213,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         // UpdateStateFromSystemState honours on refresh.
         viewModel.ApplyAuthoredOverlay();
 
-        // If in review mode, apply review diff to the newly created ViewModel
         _enricher.ApplyReviewDiff(viewModel, currentState);
 
         // Compute initial badge state after all values are populated
@@ -258,22 +234,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
     }
 
-    /// <summary>
-    /// Builds a selection's combobox options from the <see cref="Setting"/> model:
-    /// one option per <see cref="SettingState"/>, localized via the canonical Setting_{id}_Option_{i}
-    /// (and _OptionTooltip_{i}) keys with <c>state.Label</c> as the fallback, and the recommended/default
-    /// flags derived from the state's roles.
-    ///
-    /// The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == the -1
-    /// sentinel) is shown by the card's outcome overlay instead of by a synthetic list entry: a fake
-    /// "Custom" item made an unreadable value read as a deliberate choice, and it was pickable. A
-    /// <see cref="SettingState.IsDetectOnly"/> state is left out for the same reason from the other
-    /// direction: detection can land on it, but choosing it would write nothing.
-    ///
-    /// SKIP, NEVER RENUMBER. A skipped state does not shift the ones after it: every option keeps its own
-    /// STATE index as its Value, because that index is what the drop-down-closed handler applies, what a
-    /// saved .winhance config persists, and what the review diff compares.
-    /// </summary>
+    // The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == -1) is shown by the
+    // card's outcome overlay, not by a synthetic list entry: a fake "Custom" item made an unreadable value read as
+    // a deliberate choice, and it was pickable. An IsDetectOnly state is left out for the same reason from the
+    // other direction. SKIP, NEVER RENUMBER: every option keeps its own STATE index as its Value - that index is
+    // what the drop-down-closed handler applies, what a saved .winhance config persists, and what the review diff compares.
     private void BuildCatalogSelectionOptions(Setting setting, ObservableCollection<ComboBoxDisplayOption> options)
     {
         var states = setting.States;
@@ -281,7 +246,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         {
             var state = states[i];
             if (state.IsDetectOnly)
-                continue; // not a choice - see the skip-not-renumber note above
+                continue;
             // When the state Label is itself a shared localization key
             // (Template_* / ServiceOption_* / Setting_* / PowerPlan_*), look it up AS the key; otherwise
             // build the per-setting Setting_{id}_Option_{i} key. state.Label is the final raw fallback.
@@ -319,9 +284,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return warnings;
     }
 
-    // Resolves the localized group name: try the compacted group key (SettingGroup_{name without
-    // spaces/ampersands}); if it resolves use it, else fall back to the snake-case key with the raw group name
-    // as the final fallback. Keyed off the group NAME.
     private string LocalizeGroupName(string groupName)
     {
         var compact = LocalizeOrFallback(SettingLocalizationKeys.GroupCompact(groupName), null);
@@ -330,7 +292,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return LocalizeOrFallback(SettingLocalizationKeys.GroupSnake(groupName), groupName) ?? groupName;
     }
 
-    // Returns the localized string for the key, or the fallback when the key is missing.
     private string? LocalizeOrFallback(string key, string? fallback) =>
         _localizationService.TryGetString(key, out var value) ? value : fallback;
 
@@ -348,8 +309,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         return null;
     }
 
-    /// <summary>Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService
-    /// .ControlToInputType: derives the VM-facing InputType from the catalog Setting's derived Control.</summary>
+    // Twin of ConfigExportService / ConfigReviewService / AutounattendXmlGeneratorService .ControlToInputType.
     private static InputType ControlToInputType(ControlKind control) => control switch
     {
         ControlKind.Selection or ControlKind.PowerPlan => InputType.Selection,

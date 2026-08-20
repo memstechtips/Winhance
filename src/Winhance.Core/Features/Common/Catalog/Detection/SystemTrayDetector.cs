@@ -1,10 +1,6 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Detects the taskbar tray "promoted icons" state by counting IsPromoted across the notify-icon
-/// subkeys. All promoted = the show-all state; none promoted = the hide-all state; no subkeys, no
-/// IsPromoted values, or a mix = Custom (null).</summary>
+// All promoted = show-all; none promoted = hide-all; no subkeys, no IsPromoted values, or a mix = Custom.
 public sealed class SystemTrayDetector : IStateDetector
 {
     private const string KeyPath = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
@@ -38,9 +34,9 @@ public sealed class SystemTrayDetector : IStateDetector
         if (total == 0)
             return null;                 // Custom (no IsPromoted values)
         if (promoted == total)
-            return _showAllLabel;        // all shown
+            return _showAllLabel;
         if (promoted == 0)
-            return _hideAllLabel;        // all hidden
+            return _hideAllLabel;
         return null;                     // Custom (mixed)
     }
 }

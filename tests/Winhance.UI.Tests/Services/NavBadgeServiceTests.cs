@@ -20,7 +20,6 @@ public class NavBadgeServiceTests : IDisposable
 
     public NavBadgeServiceTests()
     {
-        // Create real WindowsAppsViewModel and ExternalAppsViewModel with mocked dependencies
         var mockWindowsAppsService = new Mock<IWindowsAppsService>();
         var mockAppInstallService = new Mock<IAppInstallationService>();
         var mockExternalAppUninstallService = new Mock<IWindowsAppUninstallService>();
@@ -69,9 +68,8 @@ public class NavBadgeServiceTests : IDisposable
         _sut.UnsubscribeFromSoftwareAppsChanges();
         _windowsAppsVm.Dispose();
         _externalAppsVm.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // ── ComputeNavBadges ──
 
     [Fact]
     public void ComputeNavBadges_WhenNotInReviewMode_ReturnsEmptyList()
@@ -158,8 +156,6 @@ public class NavBadgeServiceTests : IDisposable
         optimizeBadge!.Style.Should().Be("SuccessIcon");
     }
 
-    // ── GetSoftwareAppsSelectedCount ──
-
     [Fact]
     public void GetSoftwareAppsSelectedCount_WithNoItems_ReturnsZero()
     {
@@ -167,8 +163,6 @@ public class NavBadgeServiceTests : IDisposable
 
         result.Should().Be(0);
     }
-
-    // ── SubscribeToSoftwareAppsChanges ──
 
     [Fact]
     public void SubscribeToSoftwareAppsChanges_SetsIsSoftwareAppsBadgeSubscribed()
@@ -190,8 +184,6 @@ public class NavBadgeServiceTests : IDisposable
         _sut.IsSoftwareAppsBadgeSubscribed.Should().BeTrue();
     }
 
-    // ── UnsubscribeFromSoftwareAppsChanges ──
-
     [Fact]
     public void UnsubscribeFromSoftwareAppsChanges_ClearsIsSoftwareAppsBadgeSubscribed()
     {
@@ -211,8 +203,6 @@ public class NavBadgeServiceTests : IDisposable
         act.Should().NotThrow();
     }
 
-    // ── SoftwareApps badge uses selected count when subscribed ──
-
     [Fact]
     public void ComputeNavBadges_WhenSubscribedToSoftwareApps_UsesSoftwareAppsSelectedCount()
     {
@@ -222,13 +212,10 @@ public class NavBadgeServiceTests : IDisposable
         _mockBadgeService.Setup(b => b.GetNavBadgeCount("Optimize")).Returns(0);
         _mockBadgeService.Setup(b => b.GetNavBadgeCount("Customize")).Returns(0);
 
-        // Subscribe to enable selected count path
         _sut.SubscribeToSoftwareAppsChanges(() => { });
 
         var result = _sut.ComputeNavBadges();
 
-        // When subscribed, it uses GetSoftwareAppsSelectedCount() instead of badge service count
-        // Items are empty so count = 0
         var softwareAppsBadge = result.FirstOrDefault(b => b.Tag == "SoftwareApps");
         softwareAppsBadge.Should().NotBeNull();
         // With 0 items selected, count is 0 so it falls to the else branch

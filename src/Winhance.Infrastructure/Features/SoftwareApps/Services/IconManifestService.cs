@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class IconManifestService(HttpClient httpClient, ILogService logService) : IIconManifestService
+internal class IconManifestService(HttpClient httpClient, ILogService logService) : IIconManifestService
 {
     private const string ManifestUrl =
         "https://cdn.jsdelivr.net/gh/memstechtips/package-icons@main/manifest.json";
@@ -20,21 +15,14 @@ public class IconManifestService(HttpClient httpClient, ILogService logService) 
     private readonly object _loadGate = new();
     private Task<bool>? _loadTask;
 
-    /// <summary>
-    /// Loads the manifest at most once per session. At startup both the eager
-    /// Windows-apps batch and the background External-apps batch call this;
-    /// concurrent callers share the single in-flight fetch and later callers get
-    /// the cached result, so manifest.json is fetched once, not once per batch.
-    /// A failed load is NOT cached — the next call retries (e.g. connectivity
-    /// restored between batches). LoadCoreAsync swallows all exceptions and
-    /// returns a bool, so the shared task never faults or cancels.
-    /// </summary>
+    // Both the eager Windows-apps batch and the background External-apps batch call this; concurrent callers share
+    // the single in-flight fetch, so manifest.json is fetched once. A failed load is NOT cached - the next call
+    // retries (connectivity restored between batches). LoadCoreAsync swallows all exceptions, so the shared task never faults.
     public Task<bool> LoadAsync(CancellationToken ct = default)
     {
         lock (_loadGate)
         {
             var existing = _loadTask;
-            // Reuse a still-running load, or a completed one that succeeded.
             if (existing is not null && (!existing.IsCompleted || existing.Result))
                 return existing;
             return _loadTask = LoadCoreAsync(ct);

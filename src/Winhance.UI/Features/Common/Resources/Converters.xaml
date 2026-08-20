@@ -4,11 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="using:Winhance.UI.Features.Common.Converters">
 
-    <!--
-    Converters.xaml
-    Registers all value converters for use throughout the application.
-    Use these converters with {StaticResource ConverterName} in XAML.
-    -->
 
     <!-- Boolean Converters -->
     <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>

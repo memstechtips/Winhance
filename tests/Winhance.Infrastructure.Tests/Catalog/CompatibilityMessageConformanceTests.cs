@@ -3,8 +3,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-independent RULE conformance for AvailabilityCompatibility.DeriveCompatibilityMessage on
-/// CONSTRUCTED Availability instances. Pins every derivation-rule branch so the helper stays honest.</summary>
 public class CompatibilityMessageConformanceTests
 {
     private static readonly WinBuild Unbounded = new(int.MaxValue, int.MaxValue);

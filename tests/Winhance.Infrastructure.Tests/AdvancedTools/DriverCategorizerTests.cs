@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text;
 using FluentAssertions;
 using Moq;
@@ -18,10 +17,6 @@ public class DriverCategorizerTests
     {
         _sut = new DriverCategorizer(_logService.Object, _fileSystemService.Object);
     }
-
-    // ---------------------------------------------------------------
-    // IsStorageDriver - Filename keyword detection
-    // ---------------------------------------------------------------
 
     [Theory]
     [InlineData("iaahci.inf")]
@@ -55,10 +50,6 @@ public class DriverCategorizerTests
         result.Should().BeFalse();
     }
 
-    // ---------------------------------------------------------------
-    // IsStorageDriver - Class-based detection
-    // ---------------------------------------------------------------
-
     [Theory]
     [InlineData("SCSIAdapter")]
     [InlineData("hdc")]
@@ -88,10 +79,6 @@ public class DriverCategorizerTests
         result.Should().BeFalse();
     }
 
-    // ---------------------------------------------------------------
-    // IsStorageDriver - Fallback encoding
-    // ---------------------------------------------------------------
-
     [Fact]
     public void IsStorageDriver_UnicodeReadFails_FallsBackToUtf8()
     {
@@ -106,10 +93,6 @@ public class DriverCategorizerTests
 
         result.Should().BeTrue();
     }
-
-    // ---------------------------------------------------------------
-    // IsStorageDriver - Exception handling
-    // ---------------------------------------------------------------
 
     [Fact]
     public void IsStorageDriver_ExceptionThrown_ReturnsFalse()
@@ -127,10 +110,6 @@ public class DriverCategorizerTests
         _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Could not categorize driver"))), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - No .inf files found
-    // ---------------------------------------------------------------
-
     [Fact]
     public void CategorizeAndCopyDrivers_NoInfFiles_ReturnsZero()
     {
@@ -142,10 +121,6 @@ public class DriverCategorizerTests
         result.Should().Be(0);
         _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("No .inf files"))), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Storage driver routed to WinPE
-    // ---------------------------------------------------------------
 
     [Fact]
     public void CategorizeAndCopyDrivers_StorageDriver_CopiesToWinPePath()
@@ -171,10 +146,6 @@ public class DriverCategorizerTests
         _fileSystemService.Verify(f => f.CopyFile(infPath, "C:\\WinPE\\DriverFolder\\iastor.inf", true), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Non-storage driver routed to OEM
-    // ---------------------------------------------------------------
-
     [Fact]
     public void CategorizeAndCopyDrivers_NonStorageDriver_CopiesToOemPath()
     {
@@ -197,10 +168,6 @@ public class DriverCategorizerTests
         result.Should().Be(1);
         _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\NetDriver"), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Excludes working directory
-    // ---------------------------------------------------------------
 
     [Fact]
     public void CategorizeAndCopyDrivers_WithWorkingDirectoryExclude_FiltersDrivers()
@@ -227,10 +194,6 @@ public class DriverCategorizerTests
         _logService.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("Excluded 1 driver"))), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Duplicate target directory appends suffix
-    // ---------------------------------------------------------------
-
     [Fact]
     public void CategorizeAndCopyDrivers_DuplicateTargetDir_AppendsSuffix()
     {
@@ -256,10 +219,6 @@ public class DriverCategorizerTests
         _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\DriverFolder_1"), Times.Once);
     }
 
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Same folder processed only once
-    // ---------------------------------------------------------------
-
     [Fact]
     public void CategorizeAndCopyDrivers_MultipleInfsInSameFolder_ProcessedOnce()
     {
@@ -284,14 +243,9 @@ public class DriverCategorizerTests
 
         var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM");
 
-        // Only 1 folder processed even though 2 inf files
         result.Should().Be(1);
         _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\DriverFolder"), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - Copy failure logs error and continues
-    // ---------------------------------------------------------------
 
     [Fact]
     public void CategorizeAndCopyDrivers_CopyFailure_LogsErrorAndContinues()
@@ -316,10 +270,6 @@ public class DriverCategorizerTests
             It.Is<string>(s => s.Contains("Failed to copy driver")),
             It.IsAny<Exception>()), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // CategorizeAndCopyDrivers - All files excluded returns zero
-    // ---------------------------------------------------------------
 
     [Fact]
     public void CategorizeAndCopyDrivers_AllFilesExcluded_ReturnsZero()

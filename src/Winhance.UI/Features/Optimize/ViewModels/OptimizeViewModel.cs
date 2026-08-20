@@ -7,9 +7,6 @@ using Winhance.UI.Features.Optimize.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// ViewModel for the Optimize page, coordinating all optimization feature ViewModels.
-/// </summary>
 public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInfo>
 {
     protected override string PageTitleKey => "Category_Optimize_Title";
@@ -18,9 +15,6 @@ public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInf
     protected override string LogPrefix => "OptimizeViewModel";
     protected override IReadOnlyList<OptimizeSectionInfo> SectionDefinitions => Sections;
 
-    /// <summary>
-    /// Section definitions for navigation.
-    /// </summary>
     public static readonly IReadOnlyList<OptimizeSectionInfo> Sections = new List<OptimizeSectionInfo>()
     {
         new("Privacy", "PrivacyIconPath", "Privacy & Security", FeatureIds.Privacy),

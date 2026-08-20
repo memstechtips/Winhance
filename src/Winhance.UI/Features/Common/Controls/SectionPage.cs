@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -15,21 +14,14 @@ using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Pages;
-using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// The named elements a section page's chrome is built from. Handed to the base once, in the
-/// derived page's constructor, because XAML generates those fields into the <i>derived</i> partial
-/// class where the base cannot see them.
-///
-/// A single record beats one abstract property per element: it is one block to read, one place a
-/// page can fail to supply something, and adding a shared control means one parameter rather than
-/// an abstract member plus an override in every page.
-/// </summary>
-/// <param name="OverviewScroller">Outer scroller for the section cards; receives PageUp/PageDown handling.</param>
+// Handed to the base once, in the derived page's constructor, because XAML generates those fields into the
+// DERIVED partial class where the base cannot see them. One record beats an abstract property per element: one
+// block to read, one place a page can fail to supply something. OverviewScroller is also where the
+// PageUp/PageDown handling is attached.
 public sealed record SectionPageChrome(
     ScrollView OverviewScroller,
     UIElement OverviewContent,
@@ -53,24 +45,11 @@ public sealed record SectionPageChrome(
     ToggleMenuFlyoutItem ShowOnlyChangesToggle,
     MenuFlyoutSeparator ShowOnlyChangesSeparator);
 
-/// <summary>
-/// Shared base for the section pages (Optimize, Customize), which were 961 identical lines of
-/// code-behind apart from which sections they list and what their XAML elements are called.
-///
-/// <para>This class took the behaviour; <see cref="SectionPageShell"/> took the markup, which was
-/// duplicated just as heavily (311 of 316 XAML lines were identical). Between them a section page
-/// is now a root tag, an icon and a ViewModel.</para>
-///
-/// <para><b>Why this is not generic.</b> WinUI 3 XAML has no <c>x:TypeArguments</c> — that is a
-/// WPF-only directive — and the XAML codegen writes the partial class's base type from the root
-/// element tag. So a page's XAML root must name this type literally
-/// (<c>&lt;winControls:SectionPage x:Class="…"&gt;</c>) and this type cannot take a type parameter.
-/// The generic parameter's job is done by <see cref="ISectionPageViewModel"/> instead.</para>
-///
-/// <para>Handlers here are <c>protected</c> rather than <c>private</c> because the generated
-/// <c>Connect</c> method wires XAML events as <c>this.Handler</c>, which reaches an inherited
-/// protected member fine — so a page's XAML binds straight to a base-class handler.</para>
-/// </summary>
+// Shared base for the section pages; SectionPageShell holds the markup. Not generic on purpose: WinUI 3 XAML
+// has no x:TypeArguments (WPF-only), and the XAML codegen writes the partial class's base type from the root
+// element tag, so a page's XAML root must name this type literally and it cannot take a type parameter -
+// ISectionPageViewModel does that job. Handlers are protected rather than private because the generated Connect
+// method wires XAML events as this.Handler, which reaches an inherited protected member.
 public abstract class SectionPage : Page
 {
     private SectionPageChrome _chrome = null!;
@@ -89,25 +68,14 @@ public abstract class SectionPage : Page
     private bool _isNewBadgesVisible = true;
     private bool _showOnlyChanges;
 
-    /// <summary>Log tag for this page, e.g. "OptimizePage".</summary>
     protected abstract string LogTag { get; }
 
-    /// <summary>
-    /// The page's ViewModel. Each page returns its own concrete instance; <c>x:Bind</c> in the XAML
-    /// still resolves against that concrete property, so bindings are unaffected by this indirection.
-    /// </summary>
+    // x:Bind in the XAML still resolves against each page's concrete property, so bindings are unaffected by this indirection.
     protected abstract ISectionPageViewModel PageViewModel { get; }
 
-    /// <summary>
-    /// Adopts the shell as this page's chrome: hands it the ViewModel, takes its elements, and
-    /// wires every handler. Call from the derived constructor after <c>InitializeComponent</c>
-    /// (which creates the shell) and after the ViewModel has been resolved.
-    ///
-    /// <para>The handlers below used to be <c>Click="..."</c> attributes in each page's XAML,
-    /// duplicated across both. The markup now lives in one shell that cannot see this class, so
-    /// they are attached here instead — once, against the shell's parts. The bodies are unchanged
-    /// and still <c>protected</c>, so a page can still override behaviour if one ever needs to.</para>
-    /// </summary>
+    // Call from the derived constructor after InitializeComponent (which creates the shell) and after the ViewModel
+    // has been resolved. The handlers are attached here, once, against the shell's parts, because the shared markup
+    // cannot see this class.
     protected void InitializeSectionPage(SectionPageShell shell)
     {
         shell.ViewModel = PageViewModel;
@@ -146,8 +114,6 @@ public abstract class SectionPage : Page
         _applicationModeService = App.Services.GetService<IApplicationModeService>();
     }
 
-    // ── Navigation ──
-
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         try
@@ -181,7 +147,6 @@ public abstract class SectionPage : Page
                 // from the settings they observe, so an apply reaches them without this page.
             }
 
-            // Ensure we're showing overview on initial navigation
             PageViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
 
@@ -191,7 +156,6 @@ public abstract class SectionPage : Page
             SetDropdownLabels();
             await InitializeViewTogglesAsync();
 
-            // Re-apply Show Only Changes filter if still active from before navigation
             if (_showOnlyChanges)
                 ApplyShowOnlyChangesFilter();
 
@@ -217,21 +181,14 @@ public abstract class SectionPage : Page
         PageViewModel.OnNavigatedFrom();
     }
 
-    /// <summary>
-    /// Takes the user to a setting another one named. Falls back to the section currently open when
-    /// this page does not hold it -- the setting is on the other page, and pre-applying the search
-    /// where the user already is beats navigating them somewhere it also is not.
-    /// </summary>
+    // Falls back to the section currently open when this page does not hold the setting - it is on the other page,
+    // and pre-applying the search where the user already is beats navigating them somewhere it also is not.
     private void GoToLinkedSetting(string settingId, string settingName)
     {
         var sectionKey = PageViewModel.FindSectionForSetting(settingId) ?? PageViewModel.CurrentSectionKey;
         if (!string.IsNullOrEmpty(sectionKey)) NavigateToSection(sectionKey, settingName);
     }
 
-    /// <summary>
-    /// Opens a section, optionally pre-applying <paramref name="searchText"/> as a filter so the user
-    /// lands on the named setting instead of arriving in the section and hunting for it.
-    /// </summary>
     protected void NavigateToSection(string sectionKey, string? searchText = null)
     {
         var item = PageViewModel.OverviewItems.FirstOrDefault(i => i.SectionKey == sectionKey);
@@ -250,7 +207,6 @@ public abstract class SectionPage : Page
             typeof(SectionDetailPage),
             new SectionDetailNavigation(sectionKey, searchText, PageViewModel, item.Feature));
 
-        // Mark feature as visited when user actually navigates into it
         if (_configReviewService?.IsInReviewMode == true && FeatureIdFor(sectionKey) is { } featureId)
         {
             _configReviewService.MarkFeatureVisited(featureId);
@@ -298,8 +254,6 @@ public abstract class SectionPage : Page
         }
     }
 
-    // ── Overview card / flyout handlers (bound from the item templates via Tag) ──
-
     protected void SectionCard_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string sectionKey })
@@ -315,10 +269,6 @@ public abstract class SectionPage : Page
 
     protected void BreadcrumbOverview_Click(object sender, RoutedEventArgs e) => NavigateToOverview();
 
-    /// <summary>A link in a feature's outcome banner was clicked. NavigateToSection pre-applies the
-    /// setting name as a search filter, so the user lands on that setting already filtered instead of
-    /// arriving in the feature and having to hunt for it. A null name is the "+N more" link, which just
-    /// opens the feature.</summary>
     protected void OnOutcomeBannerNavigationRequested(object? sender, FeatureOutcomeNavigationEventArgs e)
         => NavigateToSection(e.SectionKey, e.SettingName);
 
@@ -327,12 +277,7 @@ public abstract class SectionPage : Page
         DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
     }
 
-    // ── Search ──
-
-    /// <summary>
-    /// A search suggestion was picked from the dropdown. Suggestions carry the section that holds the
-    /// setting, so this resolves without consulting the ViewModel.
-    /// </summary>
+    // Suggestions carry the section that holds the setting, so this resolves without consulting the ViewModel.
     protected void SearchBox_SuggestionChosen(
         AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
     {
@@ -340,18 +285,14 @@ public abstract class SectionPage : Page
             NavigateToSection(suggestion.SectionKey, suggestion.SettingName);
     }
 
-    /// <summary>
-    /// Enter pressed in the search box. Only acts on a chosen suggestion — a free-text query has no
-    /// section to navigate to, and the live filter has already been applied by the two-way binding.
-    /// </summary>
+    // Only acts on a chosen suggestion - a free-text query has no section to navigate to, and the live filter is
+    // already applied by the two-way binding.
     protected void SearchBox_QuerySubmitted(
         AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
         if (args.ChosenSuggestion is SearchSuggestionItem suggestion)
             NavigateToSection(suggestion.SectionKey, suggestion.SettingName);
     }
-
-    // ── Menu labels ──
 
     private string Localized(string key, string fallback) =>
         _localizationService?.TryGetString(key, out var value) == true ? value : fallback;
@@ -379,8 +320,6 @@ public abstract class SectionPage : Page
         UpdateQuickActionsForReviewMode();
     }
 
-    // ── View menu ──
-
     private IEnumerable<SettingItemViewModel> AllSettings() =>
         PageViewModel.OverviewItems.SelectMany(item => item.Feature.Settings);
 
@@ -403,10 +342,6 @@ public abstract class SectionPage : Page
         SyncViewStateToSettings();
     }
 
-    /// <summary>
-    /// Re-applies page-level view state (badge visibility, technical details) to all settings after
-    /// they have been recreated by a reload, and to the overview cards.
-    /// </summary>
     private void SyncViewStateToSettings()
     {
         foreach (var setting in AllSettings())
@@ -450,8 +385,6 @@ public abstract class SectionPage : Page
             await _userPreferencesService.SetPreferenceAsync(key, value);
     }
 
-    // ── Show Only Changes filter (review mode) ──
-
     protected void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
     {
         _showOnlyChanges = _chrome.ShowOnlyChangesToggle.IsChecked;
@@ -466,9 +399,9 @@ public abstract class SectionPage : Page
             {
                 // Visibility is decided by the service's diff dictionary — the same
                 // source that drives TotalChanges / ReviewedChanges and the Apply gate.
-                // Reading per-VM flags here used to drift behind the service when a
-                // sub-page's ViewModels hadn't been hydrated yet, hiding rows the user
-                // still needed to review (issue #665). See ReviewModeFilter for context.
+                // Per-VM flags lag behind the service when a sub-page's ViewModels haven't been hydrated
+                // yet and would hide rows the user still needs to review (issue #665). See ReviewModeFilter
+                // for context.
                 setting.IsVisible = ReviewModeFilter.ShouldShowInReviewQueue(
                     setting.SettingId, _configReviewService);
             }
@@ -479,10 +412,7 @@ public abstract class SectionPage : Page
         }
     }
 
-    /// <summary>
-    /// The settings a page-level action applies to: the open section's when one is open, otherwise
-    /// every section's.
-    /// </summary>
+    // The open section's settings when one is open, otherwise every section's.
     private IEnumerable<SettingItemViewModel> SettingsInScope()
     {
         var items = PageViewModel.IsInDetailPage
@@ -492,8 +422,6 @@ public abstract class SectionPage : Page
         return items.SelectMany(i => i.Feature.Settings);
     }
 
-    // ── Quick Actions ──
-    //
     // The try/catch is not optional here: async void means an escaped exception is unobserved and
     // takes the process down. Every path below ends at ContentDialog.ShowAsync(), which throws when a
     // second dialog opens while one is already showing - a double-click on the flyout item.
@@ -538,7 +466,7 @@ public abstract class SectionPage : Page
         {
             Title = Localized("QuickActions_ConfirmTitle", "Confirm Action"),
             Content = message,
-            PrimaryButtonText = "OK",
+            PrimaryButtonText = Localized("Button_OK", "OK"),
             CloseButtonText = Localized("Button_Cancel", "Cancel"),
             XamlRoot = this.XamlRoot
         };
@@ -546,12 +474,8 @@ public abstract class SectionPage : Page
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
-    /// <summary>
-    /// Builder-mode Quick Actions: moves every setting on the current page to its
-    /// recommended/default value in the UI only. Each setting routes through the same
-    /// guarded pipeline as the per-card quick-set buttons, which in Builder mode records
-    /// a builder edit instead of applying to the live system.
-    /// </summary>
+    // UI only: each setting routes through the same guarded pipeline as the per-card quick-set buttons, which in
+    // Builder mode records an edit instead of applying.
     private async Task ExecuteBuilderBulkActionAsync(BulkActionType actionType)
     {
         bool recommended = actionType == BulkActionType.ApplyRecommended;
@@ -571,7 +495,7 @@ public abstract class SectionPage : Page
             else setting.TrySetToDefault();
         }
 
-        // No explicit re-aggregation here any more: the overview cards observe these settings, so a
+        // No explicit re-aggregation here: the overview cards observe these settings, so a
         // Builder edit reaches them even though nothing publishes SettingAppliedEvent.
     }
 

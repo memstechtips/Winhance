@@ -7,9 +7,6 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class SpecialFeatureScriptSectionTests
 {
-    // ---------------------------------------------------------------
-    // AppendUserCustomizationsScheduledTask
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendUserCustomizationsScheduledTask_ContainsSectionHeader()
@@ -67,10 +64,6 @@ public class SpecialFeatureScriptSectionTests
         output.Should().Contain("        Write-Log");
         output.Should().Contain("        try {");
     }
-
-    // ---------------------------------------------------------------
-    // AppendCleanStartMenuSection
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendCleanStartMenuSection_ContainsSectionHeader()

@@ -6,11 +6,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Optimize;
 
-/// <summary>
-/// Optimize overview. The chrome is <see cref="SectionPageShell"/> and the behaviour is
-/// <see cref="SectionPage"/>; what remains here is this page's identity - its ViewModel and its
-/// log tag.
-/// </summary>
 public sealed partial class OptimizePage : SectionPage
 {
     public OptimizeViewModel ViewModel { get; }

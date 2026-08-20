@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -14,26 +12,20 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>Asks the host page to navigate. <see cref="SettingName"/> is null for the "+N more" link,
-/// which opens the feature without pre-filtering to any one setting.</summary>
+// SettingName is null for the "+N more" link, which opens the feature without pre-filtering.
 public sealed class FeatureOutcomeNavigationEventArgs : EventArgs
 {
     public string SectionKey { get; set; } = string.Empty;
     public string? SettingName { get; set; }
 }
 
-/// <summary>
-/// Code-behind for <see cref="FeatureOutcomeBanner"/>. Renders the rows from
-/// <see cref="FeatureOutcomeRowBuilder"/> as wrapping text with a link per setting name.
-/// </summary>
 public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyChanged
 {
-    /// <summary>Fallback if the resource dictionary is missing the key; keeps a bad merge from
-    /// rendering an invisible icon.</summary>
+    // Fallback if the resource dictionary is missing the key; keeps a bad merge from rendering an invisible icon.
     private const double OutcomeIconFontSizeFallback = 16;
 
-    /// <summary>Drops the icon onto the text's cap height. Top alignment only lines up the layout
-    /// boxes, and a TextBlock's box starts above its glyphs by the font's internal leading.</summary>
+    // Drops the icon onto the text's cap height: top alignment only lines up the layout boxes, and a TextBlock's box
+    // starts above its glyphs by the font's internal leading.
     private static readonly Thickness OutcomeIconMargin = new(0, 2, 0, 0);
 
     private ISettingsFeatureViewModel? _observedFeature;
@@ -48,7 +40,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         Unloaded += (_, _) => Detach();
     }
 
-    /// <summary>Raised when a link is clicked. The host page owns navigation, so it handles this.</summary>
     public event EventHandler<FeatureOutcomeNavigationEventArgs>? NavigationRequested;
 
     public static readonly DependencyProperty FeatureProperty = DependencyProperty.Register(
@@ -61,7 +52,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         set => SetValue(FeatureProperty, value);
     }
 
-    /// <summary>The key the host page's NavigateToSection expects ("Gaming", "Taskbar", ...).</summary>
     public static readonly DependencyProperty SectionKeyProperty = DependencyProperty.Register(
         nameof(SectionKey), typeof(string), typeof(FeatureOutcomeBanner),
         new PropertyMetadata(string.Empty));
@@ -72,7 +62,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         set => SetValue(SectionKeyProperty, value);
     }
 
-    /// <summary>Supplies the localized strings. Set by the host page, which owns the service.</summary>
     public static readonly DependencyProperty LocalizationProperty = DependencyProperty.Register(
         nameof(Localization), typeof(ILocalizationService), typeof(FeatureOutcomeBanner),
         new PropertyMetadata(null, (d, _) => ((FeatureOutcomeBanner)d).Reattach()));
@@ -83,13 +72,10 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         set => SetValue(LocalizationProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public Visibility BannerVisibility { get; private set; } = Visibility.Collapsed;
     public bool IsBannerOpen { get; private set; }
     public string BannerMessage { get; private set; } = string.Empty;
 
-    // --- Staying current -------------------------------------------------------------------------
     // The banner subscribes to everything that can change what it shows rather than relying on the
     // host to call Refresh, which went stale silently whenever a caller was missed.
 
@@ -165,7 +151,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         }
     }
 
-    /// <summary>Rebuilds the rows from the feature's current settings.</summary>
     private void Refresh()
     {
         FragmentHost.Children.Clear();
@@ -190,9 +175,8 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         Notify(nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerMessage));
     }
 
-    /// <summary>One row: the outcome's icon, then "Label: name, name, +N more" with every name a link.
-    /// The names share one wrapping TextBlock so a long localized name reflows instead of overflowing;
-    /// a horizontal panel of link buttons would not.</summary>
+    // The names share one wrapping TextBlock so a long localized name reflows instead of overflowing; a horizontal
+    // panel of link buttons would not.
     private StackPanel BuildRow(FeatureOutcomeRow row)
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -233,15 +217,14 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         return panel;
     }
 
-    /// <summary>Shared with the setting cards via the IconSizes dictionary, so one outcome is one size.</summary>
+    // Shared with the setting cards via the IconSizes dictionary, so one outcome is one size.
     private static double OutcomeIconFontSize =>
         Application.Current?.Resources.TryGetValue("OutcomeIconFontSize", out var value) == true
         && value is double size
             ? size
             : OutcomeIconFontSizeFallback;
 
-    /// <summary>A name that navigates. NavigateToSection pre-applies the text as a search filter, so
-    /// clicking lands on that setting already filtered.</summary>
+    // NavigateToSection pre-applies the text as a search filter, so the click lands on that setting already filtered.
     private Hyperlink Link(string display, string? settingName)
     {
         var link = new Hyperlink { UnderlineStyle = UnderlineStyle.None };
@@ -254,7 +237,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         return link;
     }
 
-    /// <summary>Substitutes {0} without string.Format, so a translator's stray brace cannot throw.</summary>
+    // Without string.Format, so a translator's stray brace cannot throw.
     private static string Format(string pattern, string a) => pattern.Replace("{0}", a);
 
     private string Localize(string key, string fallback) =>
@@ -262,7 +245,6 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             ? text
             : fallback;
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay needs a notification source; without one the compiler emits WMC1506.
 
     public event PropertyChangedEventHandler? PropertyChanged;

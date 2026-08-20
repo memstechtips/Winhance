@@ -85,10 +85,8 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_NullSection_ReturnsFalse()
     {
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(null!, "TestSection");
 
-        // Assert
         result.Should().BeFalse();
         _mockLog.Verify(
             x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null),
@@ -98,16 +96,13 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_EmptySection_ReturnsFalse()
     {
-        // Arrange
         var section = new ConfigSection
         {
             Items = new List<ConfigurationItem>()
         };
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         result.Should().BeFalse();
         _mockLog.Verify(
             x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null),
@@ -117,7 +112,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SectionWithItems_AppliesEach()
     {
-        // Arrange
         var setting1 = CreateSetting("setting-1");
         var setting2 = CreateSetting("setting-2");
         SetupRegistryWithSettings(setting1, setting2);
@@ -135,10 +129,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "setting-1")),
@@ -151,7 +143,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_ItemFails_ContinuesWithOthers()
     {
-        // Arrange
         var setting1 = CreateSetting("setting-1");
         var setting2 = CreateSetting("setting-2");
         SetupRegistryWithSettings(setting1, setting2);
@@ -165,7 +156,6 @@ public class ConfigurationApplicationBridgeServiceTests
             }
         };
 
-        // First setting throws, second succeeds
         _mockSettingApp
             .Setup(x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "setting-1")))
             .ThrowsAsync(new Exception("Apply failed"));
@@ -174,10 +164,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "setting-2")))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - returns false because one failed, but both were attempted
         result.Should().BeFalse();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "setting-2")),
@@ -190,7 +178,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_ConfirmationHandlerInvoked_ForConfirmationItems()
     {
-        // Arrange
         var setting = CreateSetting("confirm-setting", requiresConfirmation: true);
         SetupRegistryWithSettings(setting);
 
@@ -215,10 +202,8 @@ public class ConfigurationApplicationBridgeServiceTests
                 return Task.FromResult((confirmed: true, checkboxResult: false));
             };
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", handler);
 
-        // Assert
         result.Should().BeTrue();
         handlerCalled.Should().BeTrue();
         _mockSettingApp.Verify(
@@ -229,7 +214,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_ConfirmationDenied_SkipsSetting()
     {
-        // Arrange
         var setting = CreateSetting("confirm-setting", requiresConfirmation: true);
         SetupRegistryWithSettings(setting);
 
@@ -244,10 +228,9 @@ public class ConfigurationApplicationBridgeServiceTests
         Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> handler =
             (id, value) => Task.FromResult((confirmed: false, checkboxResult: false));
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", handler);
 
-        // Assert - counts as "applied" (skipped by user) so overall succeeds
+        // A user-skipped setting counts as "applied", so overall succeeds
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
@@ -259,7 +242,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_NoConfirmationHandler_SkipsConfirmation()
     {
-        // Arrange - setting requires confirmation but no handler is provided
         var setting = CreateSetting("confirm-setting", requiresConfirmation: true);
         SetupRegistryWithSettings(setting);
 
@@ -275,10 +257,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act - no confirmationHandler passed (null)
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", null);
 
-        // Assert - setting is applied directly without confirmation
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "confirm-setting")),
@@ -288,7 +268,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_ItemWithEmptyId_IsSkippedDuringWaveBuilding()
     {
-        // Arrange
         var setting = CreateSetting("good-setting");
         SetupRegistryWithSettings(setting);
 
@@ -305,15 +284,12 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - empty ID item is filtered out during wave building, good-setting is applied
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "good-setting")),
             Times.Once);
-        // The empty ID item was silently filtered out during wave building
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "")),
             Times.Never);
@@ -322,7 +298,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SettingNotInRegistry_SkippedAsOsIncompatible()
     {
-        // Arrange - the catalog registry resolves no Setting for the item's id
         _mockRegistry
             .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<bool>()))
             .Returns((Setting?)null);
@@ -335,10 +310,9 @@ public class ConfigurationApplicationBridgeServiceTests
             }
         };
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - skipped items don't count as failures
+        // Skipped items don't count as failures
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
@@ -347,7 +321,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SelectedActionSetting_AppliesViaCatalogPath()
     {
-        // Arrange
         var setting = CreateSetting("act-sel", kind: ControlKind.Action);
         SetupRegistryWithSettings(setting);
 
@@ -363,10 +336,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert — selected Action setting routes through catalog path with Enable = true
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
@@ -377,7 +348,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_UnselectedActionSetting_IsSkipped()
     {
-        // Arrange
         var setting = CreateSetting("act-sel", kind: ControlKind.Action);
         SetupRegistryWithSettings(setting);
 
@@ -389,10 +359,9 @@ public class ConfigurationApplicationBridgeServiceTests
             }
         };
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert — unselected Action setting is skipped entirely (no reverse semantic)
+        // An unselected Action is skipped entirely: there is no reverse semantic
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
@@ -401,7 +370,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SelectionSetting_PassesSelectedIndex()
     {
-        // Arrange
         var setting = CreateSetting("select-setting", kind: ControlKind.Selection);
         SetupRegistryWithSettings(setting);
 
@@ -423,10 +391,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
@@ -439,7 +405,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_ConfirmationWithCheckboxResult_PassesCheckboxResult()
     {
-        // Arrange
         var setting = CreateSetting("checkbox-setting", requiresConfirmation: true);
         SetupRegistryWithSettings(setting);
 
@@ -458,10 +423,8 @@ public class ConfigurationApplicationBridgeServiceTests
         Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> handler =
             (id, value) => Task.FromResult((confirmed: true, checkboxResult: true));
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection", handler);
 
-        // Assert
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
@@ -473,7 +436,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_AllItemsFail_ReturnsFalse()
     {
-        // Arrange
         var setting1 = CreateSetting("fail-1");
         var setting2 = CreateSetting("fail-2");
         SetupRegistryWithSettings(setting1, setting2);
@@ -491,17 +453,14 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ThrowsAsync(new Exception("Boom"));
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task ApplyConfigurationSectionAsync_DependentSettings_ProcessedInWaves()
     {
-        // Arrange - setting-2 depends on setting-1
         var setting1 = CreateSetting("setting-1");
         var setting2 = CreateSetting("setting-2") with
         {
@@ -536,10 +495,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Callback<ApplySettingRequest>(r => applyOrder.Add(r.SettingId))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         result.Should().BeTrue();
         applyOrder.Should().ContainInOrder("setting-1", "setting-2");
         // Pin the wave COUNT: with the Requires-Link ignored both items would share one wave and the
@@ -553,7 +510,7 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_PowerCfgNumericRange_ConvertsSystemUnitsToDisplay()
     {
-        // Arrange - config stores AC/DC values in SYSTEM units (seconds). The PowerCfgApplier
+        // Config stores AC/DC values in SYSTEM units (seconds). The PowerCfgApplier
         // converts display->system itself, so the bridge must hand it DISPLAY units.
         // 600 seconds with "Minutes" display units => 10 minutes.
         var setting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
@@ -581,10 +538,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "Power");
 
-        // Assert - 300s -> 5 min (AC), 600s -> 10 min (DC)
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
@@ -598,7 +553,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_NonPowerNumericRange_PassesValueUnchanged()
     {
-        // Arrange - a Slider setting with NO PowerCfgTarget must not be unit-converted.
         var setting = CreateSetting("plain-numeric", kind: ControlKind.Slider);
         SetupRegistryWithSettings(setting);
 
@@ -623,10 +577,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         var result = await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert - value passes through unchanged (no PowerCfg conversion)
         result.Should().BeTrue();
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
@@ -639,7 +591,6 @@ public class ConfigurationApplicationBridgeServiceTests
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SectionWithPowerItems_SetsImportSuppliesPowerValues()
     {
-        // Arrange - a section carrying an individual PowerCfg item alongside the plan selection
         var powerItemSetting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
         var planSetting = CreateSetting("power-plan-selection", kind: ControlKind.Selection);
         SetupRegistryWithSettings(powerItemSetting, planSetting);
@@ -672,17 +623,14 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         await _service.ApplyConfigurationSectionAsync(section, "Power");
 
-        // Assert
         _importState.ImportSuppliesPowerValues.Should().BeTrue();
     }
 
     [Fact]
     public async Task ApplyConfigurationSectionAsync_SectionWithoutPowerItems_LeavesImportSuppliesPowerValuesFalse()
     {
-        // Arrange - a non-power section: no item carries PowerSettings
         var setting1 = CreateSetting("setting-1");
         var setting2 = CreateSetting("setting-2");
         SetupRegistryWithSettings(setting1, setting2);
@@ -700,10 +648,8 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
-        // Act
         await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
-        // Assert
         _importState.ImportSuppliesPowerValues.Should().BeFalse();
     }
 }

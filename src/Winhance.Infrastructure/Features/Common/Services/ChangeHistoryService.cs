@@ -1,16 +1,12 @@
-using System;
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Writes the user-facing change receipt to C:\ProgramData\Winhance\ChangeHistory.txt.
-/// Append-only, localized at write time, UTF-8 with BOM, CRLF. Never throws —
-/// a failed receipt write must never block the actual operation.
-/// </summary>
-public class ChangeHistoryService(
+// C:\ProgramData\Winhance\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
+// Never throws - a failed receipt must never block the operation.
+internal class ChangeHistoryService(
     IFileSystemService fileSystemService,
     ILocalizationService localizationService,
     ILogService logService) : IChangeHistoryService

@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Text;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
@@ -11,7 +9,6 @@ public class LogService : ILogService, IDisposable
     private string _logPath;
     private StreamWriter? _logWriter;
     private readonly object _lockObject = new object();
-    private IInteractiveUserService? _interactiveUserService;
     private ISystemInfoProvider? _systemInfoProvider;
 
     public LogService()
@@ -22,11 +19,6 @@ public class LogService : ILogService, IDisposable
             "Logs",
             $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
         );
-    }
-
-    public void SetInteractiveUserService(IInteractiveUserService interactiveUserService)
-    {
-        _interactiveUserService = interactiveUserService;
     }
 
     public void SetSystemInfoProvider(ISystemInfoProvider systemInfoProvider)
@@ -64,7 +56,6 @@ public class LogService : ILogService, IDisposable
     {
         try
         {
-            // Ensure directory exists
             var logDirectory = Path.GetDirectoryName(_logPath);
             if (logDirectory != null)
             {
@@ -75,16 +66,13 @@ public class LogService : ILogService, IDisposable
                 throw new InvalidOperationException("Log directory path is null.");
             }
 
-            // Clean up old log files before creating a new one
             CleanupOldLogs(logDirectory, maxAgeDays: 30, maxFiles: 50);
 
-            // Create or overwrite log file
             _logWriter = new StreamWriter(_logPath, false, Encoding.UTF8)
             {
                 AutoFlush = true
             };
 
-            // Write initial log header with diagnostic info
             if (_systemInfoProvider != null)
             {
                 var info = _systemInfoProvider.Collect();
@@ -111,7 +99,6 @@ public class LogService : ILogService, IDisposable
         }
         catch (Exception ex)
         {
-            // Re-throw so caller can handle/log the error
             throw new InvalidOperationException($"Failed to start log at '{_logPath}': {ex.Message}", ex);
         }
     }
@@ -123,13 +110,14 @@ public class LogService : ILogService, IDisposable
             try
             {
                 LogInformation("==== Winhance Log Ended ====");
-                _logWriter?.Close();
                 _logWriter?.Dispose();
             }
-            catch (Exception)
+            catch (IOException)
             {
-                // Error stopping log
+                // Nothing left to write the failure to.
             }
+            // Late log calls after Dispose become no-ops instead of ObjectDisposedExceptions.
+            _logWriter = null;
         }
     }
 
@@ -166,11 +154,6 @@ public class LogService : ILogService, IDisposable
         return _logPath;
     }
 
-    /// <summary>
-    /// Removes log files older than <paramref name="maxAgeDays"/> days and
-    /// caps the total number of log files to <paramref name="maxFiles"/>,
-    /// deleting the oldest files first.
-    /// </summary>
     internal static void CleanupOldLogs(string logDirectory, int maxAgeDays = 30, int maxFiles = 50)
     {
         try
@@ -185,21 +168,19 @@ public class LogService : ILogService, IDisposable
 
             var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
 
-            // Delete files older than maxAgeDays
             for (int i = logFiles.Count - 1; i >= 0; i--)
             {
                 if (logFiles[i].CreationTimeUtc < cutoff)
                 {
                     try { logFiles[i].Delete(); logFiles.RemoveAt(i); }
-                    catch { /* best-effort cleanup */ }
+                    catch { }
                 }
             }
 
-            // If still over maxFiles, delete the oldest
             while (logFiles.Count > maxFiles)
             {
                 try { logFiles[0].Delete(); }
-                catch { /* best-effort cleanup */ }
+                catch { }
                 logFiles.RemoveAt(0);
             }
         }
@@ -216,19 +197,15 @@ public class LogService : ILogService, IDisposable
             try
             {
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
-
-                // Write to file if log writer is available
                 _logWriter?.WriteLine(logEntry);
-
             }
-            catch (Exception)
+            catch (IOException)
             {
-                // Logging failed
+                // A logger must not take the app down because the disk write failed.
             }
         }
     }
 
-    // Implement IDisposable pattern to ensure logs are stopped
     public void Dispose()
     {
         StopLog();

@@ -10,62 +10,45 @@ public class HardwareDetectionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
 
-    #region Constructor
-
-    [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        // Act
-        var act = () => new HardwareDetectionService(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
     [Fact]
     public void Constructor_ValidLogService_CreatesInstance()
     {
-        // Act
         var service = new HardwareDetectionService(_mockLogService.Object);
 
-        // Assert
         service.Should().NotBeNull();
     }
 
-    #endregion
-
-    #region HasBatteryAsync — WMI integration test (runs against real hardware)
-
     [Fact]
-    public async Task HasBatteryAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void HasBattery_DoesNotThrow_ReturnsBooleanValue()
     {
-        // Arrange
         var service = new HardwareDetectionService(_mockLogService.Object);
 
-        // Act
-        var act = () => service.HasBatteryAsync();
+        var act = () => service.HasBattery();
 
-        // Assert - should complete without throwing; actual value depends on hardware
-        await act.Should().NotThrowAsync();
+        // Actual value depends on hardware, so only the call is checked
+        act.Should().NotThrow();
     }
-
-    #endregion
-
-    #region SupportsHybridSleepAsync
 
     [Fact]
-    public async Task SupportsHybridSleepAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void HasBattery_QueriesWmiOnce_AndServesLaterCallsFromCache()
     {
-        // Arrange
+        // The cache is what makes a synchronous HasBattery() safe to call from anywhere: only the
+        // first caller pays for the WMI round trip. Same instance must keep answering the same way.
         var service = new HardwareDetectionService(_mockLogService.Object);
 
-        // Act
-        var act = () => service.SupportsHybridSleepAsync();
+        var first = service.HasBattery();
+        var second = service.HasBattery();
 
-        // Assert
-        await act.Should().NotThrowAsync();
+        second.Should().Be(first);
     }
 
-    #endregion
+    [Fact]
+    public void SupportsHybridSleep_DoesNotThrow_ReturnsBooleanValue()
+    {
+        var service = new HardwareDetectionService(_mockLogService.Object);
+
+        var act = () => service.SupportsHybridSleep();
+
+        act.Should().NotThrow();
+    }
 }

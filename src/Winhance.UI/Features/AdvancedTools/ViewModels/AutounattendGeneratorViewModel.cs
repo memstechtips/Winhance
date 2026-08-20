@@ -1,4 +1,3 @@
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
@@ -12,9 +11,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// ViewModel for the Autounattend XML Generator page.
-/// </summary>
 public partial class AutounattendGeneratorViewModel : ObservableObject
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
@@ -24,9 +20,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     private readonly WindowsAppsViewModel _windowsAppsViewModel;
     private Window? _mainWindow;
 
-    /// <summary>
-    /// Gets the localized card header text.
-    /// </summary>
     public string GenerateCardHeader => _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
 
     public string GenerateCardDescription => _localizationService.GetStringOrDefault("AdvancedTools_GenerateCard_Description", "Generate an autounattend.xml file based on your current Winhance selections to customize Windows during installation.");
@@ -40,9 +33,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsGenerating { get; set; }
 
-    /// <summary>
-    /// Raised when the user wants to navigate to WimUtil after successful generation.
-    /// </summary>
     public event EventHandler? NavigateToWimUtilRequested;
 
     public AutounattendGeneratorViewModel(
@@ -69,14 +59,12 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
     {
         try
         {
-            // Show confirmation dialog
             var confirmMessage = _localizationService.GetString("Msg_GenerateXmlConfirm");
             var confirmTitle = _localizationService.GetStringOrDefault("Dialog_GenerateXml", "Generate Autounattend XML");
             var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = confirmMessage, Title = confirmTitle })).Confirmed;
             if (!confirmed)
                 return;
 
-            // Show save file picker
             if (_mainWindow == null)
                 return;
 
@@ -92,7 +80,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
             if (string.IsNullOrEmpty(outputPath))
                 return;
 
-            // Validate filename is autounattend.xml
             var fileName = Path.GetFileName(outputPath);
             if (!string.Equals(fileName, "autounattend.xml", StringComparison.OrdinalIgnoreCase))
             {
@@ -101,7 +88,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                 return;
             }
 
-            // Generate the XML
             IsGenerating = true;
             try
             {
@@ -127,7 +113,6 @@ public partial class AutounattendGeneratorViewModel : ObservableObject
                 IsGenerating = false;
             }
 
-            // Show success dialog with WimUtil option
             var successMsg = string.Format(
                 _localizationService.GetStringOrDefault("AdvancedTools_Msg_XmlGenSuccess", "XML generated at {0}"),
                 outputPath);

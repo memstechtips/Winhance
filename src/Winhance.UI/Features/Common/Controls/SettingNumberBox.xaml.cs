@@ -6,10 +6,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Code-behind for <see cref="SettingNumberBox"/>. Projects the view model's per-mode resolution into
-/// bindable properties and routes the NumberBox's events to the right view-model handler for this mode.
-/// </summary>
 public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChanged
 {
     public SettingNumberBox()
@@ -38,18 +34,15 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         set => SetValue(ModeProperty, value);
     }
 
-    // --- Projected, bindable ---------------------------------------------------------------------
-
     public double NumericValue { get; private set; }
     public double Minimum { get; private set; }
     public double Maximum { get; private set; }
     public string InputAutomationName { get; private set; } = string.Empty;
 
-    /// <summary>Only Undetermined covers a numeric - any number the user types is legitimate, so there is
-    /// no "unrecognized value" for this control type.</summary>
+    // Only Undetermined covers a numeric - any number the user types is legitimate, so there is no "unrecognized value" here.
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
 
-    /// <summary>The outcome explanation, on the covering Border (which is what the pointer hits).</summary>
+    // On the covering Border, which is what the pointer hits.
     public string? OutcomeTooltip { get; private set; }
 
     private SettingItemViewModel? _observed;
@@ -108,7 +101,6 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
                nameof(InputAutomationName), nameof(OverlayVisibility), nameof(OutcomeTooltip));
     }
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a
@@ -125,10 +117,7 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
             handler(this, new PropertyChangedEventArgs(name));
     }
 
-
-    // --- Event routing ---------------------------------------------------------------------------
-
-    private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender, e);
+    private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender);
 
     private void OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
     {
@@ -138,13 +127,13 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
         switch (Mode)
         {
             case SettingInputMode.Ac:
-                vm.OnACNumberBoxValueChanged(sender, e);
+                vm.OnACNumberBoxValueChanged(e);
                 break;
             case SettingInputMode.Dc:
-                vm.OnDCNumberBoxValueChanged(sender, e);
+                vm.OnDCNumberBoxValueChanged(e);
                 break;
             default:
-                vm.OnNumberBoxValueChanged(sender, e);
+                vm.OnNumberBoxValueChanged(e);
                 break;
         }
     }

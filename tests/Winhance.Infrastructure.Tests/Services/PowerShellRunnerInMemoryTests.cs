@@ -6,11 +6,7 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// Integration-shaped tests for <see cref="PowerShellRunner.RunScriptInMemoryAsync"/>.
-/// These tests actually shell out to <c>powershell.exe</c>; they only run on
-/// Windows (the test project targets net10.0-windows10.0.19041.0).
-/// </summary>
+// Actually shells out to powershell.exe; Windows only.
 public class PowerShellRunnerInMemoryTests
 {
     private static PowerShellRunner NewRunner()

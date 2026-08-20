@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Events;
@@ -14,6 +12,8 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class PendingRestartViewModelTests
 {
+    private static readonly string[] TwoFakeCatalogIds = ["not-a-real-catalog-id-a", "not-a-real-catalog-id-b"];
+
     private readonly Mock<IPendingRestartService> _mockPending = new();
     private readonly Mock<IExplorerRestartService> _mockRestart = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
@@ -97,7 +97,6 @@ public class PendingRestartViewModelTests
     [Fact]
     public async Task RestartCommand_OnSuccess_HidesBar()
     {
-        // Pending until the service clears it, then not.
         var pending = true;
         _mockPending.Setup(p => p.IsPending).Returns(() => pending);
         _mockRestart.Setup(r => r.RestartAsync())
@@ -131,7 +130,7 @@ public class PendingRestartViewModelTests
     {
         _mockPending.Setup(p => p.IsPending).Returns(true);
         _mockPending.Setup(p => p.PendingSettingIds)
-            .Returns(new[] { "not-a-real-catalog-id-a", "not-a-real-catalog-id-b" });
+            .Returns(TwoFakeCatalogIds);
         var vm = Create();
 
         vm.Refresh();

@@ -83,7 +83,6 @@
             </StackPanel>
 
             <!-- Beta Banner (hidden in stable builds, shown dynamically for beta) -->
-            <!-- Moved to the left of the centered Mode switcher per design. -->
             <TextBlock x:Name="BetaBannerText"
                        Grid.Column="4"
                        Text="Release-Preview: Version is for Testing Only"
@@ -99,8 +98,7 @@
             <!-- Winhance Mode switcher (centered in the title bar) — single segmented
                  container like the Software Apps view-mode toggle: a bordered pill with
                  the selected segment highlighted. Interactive, so the whole ModeSwitcher
-                 is registered as a title-bar passthrough region in code-behind.
-                 NOTE: icon names reuse the confirmed-valid set; refine in the designer. -->
+                 is registered as a title-bar passthrough region in code-behind. -->
             <StackPanel x:Name="ModeSwitcher"
                         Grid.Column="4"
                         Orientation="Horizontal"
@@ -191,9 +189,6 @@
                         VerticalAlignment="Center"
                         Margin="0,0,8,0"
                         Spacing="2">
-
-                <!-- Save/Import Config buttons removed — consolidated into the Mode switcher
-                     (Builder = Save, Config Review = Import). -->
 
                 <!-- Windows Version Filter Button -->
                 <Button x:Name="WindowsFilterButton"

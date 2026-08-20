@@ -1,17 +1,11 @@
-using System;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Default implementation of <see cref="IProcessExecutor"/> that wraps <see cref="System.Diagnostics.Process"/>.
-/// </summary>
-public class ProcessExecutor : IProcessExecutor
+internal class ProcessExecutor : IProcessExecutor
 {
     public async Task<ProcessExecutionResult> ExecuteAsync(
         string fileName,
@@ -75,7 +69,7 @@ public class ProcessExecutor : IProcessExecutor
 
         using var registration = ct.Register(() =>
         {
-            try { process.Kill(); } catch { /* best-effort kill on cancellation */ }
+            try { process.Kill(); } catch { }
         });
 
         var readOutput = Task.Run(async () =>

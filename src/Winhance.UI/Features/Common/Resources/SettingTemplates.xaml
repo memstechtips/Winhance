@@ -179,8 +179,7 @@
                 </Grid>
             </Grid>
 
-            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
-                 copy-pasted three times and the third copy had drifted. -->
+            <!-- Technical Details panel -->
             <commonControls:TechnicalDetailsPanel
                 Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                 IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
@@ -392,8 +391,7 @@
                 </Grid>
             </Grid>
 
-            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
-                 copy-pasted three times and the third copy had drifted. -->
+            <!-- Technical Details panel -->
             <commonControls:TechnicalDetailsPanel
                 Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                 IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
@@ -547,8 +545,7 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Technical Details panel. One control for all three card shapes; this markup used to be
-                                 copy-pasted three times and the third copy had drifted. -->
+                            <!-- Technical Details panel -->
                             <commonControls:TechnicalDetailsPanel
                                 Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                                 IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"

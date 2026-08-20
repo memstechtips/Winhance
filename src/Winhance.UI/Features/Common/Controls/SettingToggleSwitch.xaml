@@ -15,10 +15,8 @@
     Enabled / Disabled / Cancel dialog. That is also why this control is not built from
     SettingOutcomeOverlay, which is a passive marker.
 
-    Extracted from SettingsCardItem.xaml on 2026-07-27. Not for symmetry - there is only one toggle
-    declaration - but for COHESION: the knob's hover animation lived in the card's code-behind, ~50 lines
-    away from the markup it animated, and had to walk the visual tree to find its own icon because
-    x:Name is not reachable inside a DataTemplate. Here the icon is simply named.
+    Its own control for cohesion, not symmetry: the knob's hover animation needs a named icon, and x:Name
+    is not reachable inside a DataTemplate.
     -->
     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
         <local:SettingQuickSetButtons

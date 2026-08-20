@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
@@ -8,6 +6,8 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryTests
 {
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
+
     private sealed class FakeCtx : IDetectionContext
     {
         public WinBuild CurrentBuild => new(int.MaxValue);
@@ -36,7 +36,7 @@ public class CatalogDiscoveryTests
     }
 
     private static RegTarget Reg(string key, string valueName) =>
-        new(key, new[] { @"HKEY_LOCAL_MACHINE\TEST" }, valueName, RegistryValueKind.DWord);
+        new(key, TestPaths, valueName, RegistryValueKind.DWord);
 
     [Fact]
     public void Resolves_state_from_registry_reads()
@@ -51,7 +51,6 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "Box",  Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(2) } },
             },
         };
-        // raw read returns 2 for the target's value
         var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => 2)).Label;
         Assert.Equal("Box", state);
     }
@@ -68,7 +67,7 @@ public class CatalogDiscoveryTests
                 new SettingState { Label = "Manual", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } },
             },
         };
-        var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => null)).Label; // absent
+        var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => null)).Label;
         Assert.Equal("Manual", state);
     }
 

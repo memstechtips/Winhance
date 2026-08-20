@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
 using Xunit;
@@ -35,6 +36,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IConfigImportState))]
     [InlineData(typeof(IInitializationService))]
     [InlineData(typeof(IScheduledTaskService))]
+    [InlineData(typeof(IScheduledTaskStateService))]
     [InlineData(typeof(IVersionService))]
     [InlineData(typeof(ISponsorsService))]
     [InlineData(typeof(IConfigurationApplicationBridgeService))]
@@ -45,29 +47,25 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(ICatalogDetectionService))]
     [InlineData(typeof(IStateWriter))]
     [InlineData(typeof(IRegImportService))]
+    [InlineData(typeof(ISpecialSettingHandlerRegistry))]
+    [InlineData(typeof(IAutounattendScriptBuilder))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var service = provider.GetService(serviceType);
 
-        // Assert
         service.Should().NotBeNull($"service {serviceType.Name} should be resolvable from the DI container");
     }
 
     [Fact]
     public void Resolve_TaskProgressService_SharedInstance()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var taskProgress = provider.GetService<ITaskProgressService>();
         var multiScript = provider.GetService<IMultiScriptProgressService>();
 
-        // Assert
         taskProgress.Should().NotBeNull();
         multiScript.Should().NotBeNull();
         taskProgress.Should().BeSameAs(multiScript,
@@ -77,10 +75,8 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Resolve_FactoryRegistrations_Succeed()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act & Assert — these are registered via factory lambdas
         var taskProgress = provider.GetService<ITaskProgressService>();
         taskProgress.Should().NotBeNull("ITaskProgressService (factory registration) should resolve");
     }
@@ -88,16 +84,13 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Resolve_AllSingletons_ReturnSameInstance()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var log1 = provider.GetService<ILogService>();
         var log2 = provider.GetService<ILogService>();
         var registry1 = provider.GetService<IWindowsRegistryService>();
         var registry2 = provider.GetService<IWindowsRegistryService>();
 
-        // Assert
         log1.Should().BeSameAs(log2, "singleton ILogService should return same instance");
         registry1.Should().BeSameAs(registry2, "singleton IWindowsRegistryService should return same instance");
     }
@@ -105,14 +98,11 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Container_BuildsSuccessfully()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddInfrastructureServices();
 
-        // Act & Assert — building the provider should succeed
-        // Note: ValidateOnBuild is not used here because some services have
-        // cross-layer dependencies (e.g., dispatcher registries need domain
-        // services registered by the UI layer). We verify individual resolution instead.
+        // No ValidateOnBuild: WindowsAppsService takes IDialogService, which only the UI layer
+        // registers, so a full graph validation cannot pass on the Infrastructure container alone.
         var action = () => services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,

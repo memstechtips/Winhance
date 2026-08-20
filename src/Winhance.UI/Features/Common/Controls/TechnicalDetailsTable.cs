@@ -1,4 +1,3 @@
-using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -7,10 +6,7 @@ using Winhance.Core.Features.Common.TechnicalDetails;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Which slot a child occupies. Set by <see cref="OptionMatrixView"/> when it creates the children;
-/// the panel only does arithmetic, never content.
-/// </summary>
+// Set by OptionMatrixView when it creates the children; the panel only does arithmetic, never content.
 internal sealed class TableCellInfo
 {
     public required int Column { get; init; }
@@ -18,21 +14,16 @@ internal sealed class TableCellInfo
     public required int Row { get; init; }
     public int RowSpan { get; init; } = 1;
 
-    /// <summary>Group headers size to their span rather than contributing to any one column's width.</summary>
+    // Group headers size to their span rather than contributing to any one column's width.
     public bool IsSpanning => ColumnSpan > 1;
 
-    /// <summary>Likewise down: a cell covering two header rows must not inflate either one alone.</summary>
+    // A cell covering two header rows must not inflate either one alone.
     public bool IsRowSpanning => RowSpan > 1;
 }
 
-/// <summary>
-/// Lays the technical-details table out as one panel: shared column widths across every row, leading
-/// columns pinned while the rest scroll sideways, and headers able to span the columns they own.
-///
-/// A Grid cannot do this — it has no way to arrange a subset of its children at a scroll offset, and
-/// WinUI has no SharedSizeGroup to make per-row Grids agree on column widths. The arithmetic lives in
-/// <see cref="TableLayout"/> so it can be unit tested; this class is measure/arrange plumbing only.
-/// </summary>
+// A Grid cannot do this - it has no way to arrange a subset of its children at a scroll offset, and WinUI has no
+// SharedSizeGroup to make per-row Grids agree on column widths. The arithmetic lives in TableLayout so it can be
+// unit tested; this class is measure/arrange plumbing only.
 internal sealed partial class TechnicalDetailsTable : Panel
 {
     private double[] _columnWidths = [];
@@ -58,11 +49,8 @@ internal sealed partial class TechnicalDetailsTable : Panel
         set => SetValue(FrozenColumnCountProperty, value);
     }
 
-    /// <summary>
-    /// How far the scrolling columns are shifted left. Changing it re-arranges without re-measuring —
-    /// the same single number every cell reads in the same layout pass, which is what keeps the
-    /// header and the body in lockstep without a second ScrollViewer.
-    /// </summary>
+    // Changing it re-arranges without re-measuring - one number every cell reads in the same layout pass, which
+    // keeps header and body in lockstep without a second ScrollViewer.
     public static readonly DependencyProperty HorizontalOffsetProperty =
         DependencyProperty.Register(nameof(HorizontalOffset), typeof(double), typeof(TechnicalDetailsTable),
             new PropertyMetadata(0d, OnOffsetChanged));
@@ -73,18 +61,14 @@ internal sealed partial class TechnicalDetailsTable : Panel
         set => SetValue(HorizontalOffsetProperty, value);
     }
 
-    /// <summary>Combined width of every column, so the host can size its scrollbar.</summary>
     public double TotalColumnWidth => TableLayout.TotalWidth(_columnWidths);
 
-    /// <summary>
-    /// The width the last measure pass was given. ActualWidth is a full layout cycle behind during
-    /// measure, so anything deciding whether the content overflows has to read this instead.
-    /// </summary>
+    // ActualWidth is a full layout cycle behind during measure, so anything deciding whether the content overflows
+    // has to read this instead.
     public double ViewportWidth { get; private set; }
 
     public double FrozenWidth => TableLayout.FrozenWidth(_columnWidths, FrozenColumnCount);
 
-    /// <summary>Raised after a measure pass changes the column widths, so the scrollbar can re-range.</summary>
     public event EventHandler? LayoutMeasured;
 
     private static void OnLayoutPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
@@ -120,7 +104,6 @@ internal sealed partial class TechnicalDetailsTable : Panel
         }
         _rowHeights = new double[Math.Max(0, rowCount)];
 
-        // Pass 1: single-column cells establish the column widths.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -129,8 +112,8 @@ internal sealed partial class TechnicalDetailsTable : Panel
                 _columnWidths[info.Column] = Math.Max(_columnWidths[info.Column], element.DesiredSize.Width);
         }
 
-        // Pass 2: a spanning header widens its LAST column if the group needs more room than its
-        // members give it, so the group and its columns always agree on where the group ends.
+        // A spanning header widens its LAST column if the group needs more room than its members give
+        // it, so the group and its columns always agree on where the group ends.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -143,7 +126,6 @@ internal sealed partial class TechnicalDetailsTable : Panel
             if (shortfall > 0) _columnWidths[last] += shortfall;
         }
 
-        // Row heights, now that widths are settled. Single-row cells establish them...
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;
@@ -151,8 +133,8 @@ internal sealed partial class TechnicalDetailsTable : Panel
             _rowHeights[info.Row] = Math.Max(_rowHeights[info.Row], element.DesiredSize.Height);
         }
 
-        // ...then a row-spanning cell grows its LAST row if the rows it covers don't add up to what
-        // it needs. Same rule as the column pass above, so the two stay easy to reason about together.
+        // A row-spanning cell grows its LAST row if the rows it covers don't add up to what it needs.
+        // Same rule as the column pass above, so the two stay easy to reason about together.
         foreach (var child in Children)
         {
             if (child is not FrameworkElement { Tag: TableCellInfo info } element) continue;

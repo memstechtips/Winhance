@@ -18,7 +18,6 @@ public class SettingViewModelEnricherTests
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
     private readonly Mock<ISettingReviewDiffApplier> _mockReviewDiffApplier = new();
 
-    // Dependencies for constructing SettingItemViewModel
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
@@ -73,19 +72,31 @@ public class SettingViewModelEnricherTests
             _mockLocalizationService.Object);
     }
 
-    // -------------------------------------------------------
-    // DetectBatteryAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task DetectBatteryAsync_WhenHasBattery_SetsHasBatteryToTrue()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm = CreateSettingViewModel();
-        vm.HasBattery.Should().BeFalse(); // default state
+        vm.HasBattery.Should().BeFalse();
+
+        var service = CreateService();
+        await service.DetectBatteryAsync(vm);
+
+        vm.HasBattery.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DetectBatteryAsync_WhenDetectionFails_ShowsBothAcAndDc()
+    {
+        // null = the WMI probe could not answer. A card shows both halves rather than hiding DC.
+        _mockHardwareDetectionService
+            .Setup(h => h.HasBattery())
+            .Returns((bool?)null);
+
+        var vm = CreateSettingViewModel();
 
         var service = CreateService();
         await service.DetectBatteryAsync(vm);
@@ -97,8 +108,8 @@ public class SettingViewModelEnricherTests
     public async Task DetectBatteryAsync_WhenNoBattery_SetsHasBatteryToFalse()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(false);
+            .Setup(h => h.HasBattery())
+            .Returns(false);
 
         var vm = CreateSettingViewModel();
 
@@ -112,8 +123,8 @@ public class SettingViewModelEnricherTests
     public async Task DetectBatteryAsync_CallsHardwareDetectionService()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm = CreateSettingViewModel();
 
@@ -121,7 +132,7 @@ public class SettingViewModelEnricherTests
         await service.DetectBatteryAsync(vm);
 
         _mockHardwareDetectionService.Verify(
-            h => h.HasBatteryAsync(),
+            h => h.HasBattery(),
             Times.Once);
     }
 
@@ -129,8 +140,8 @@ public class SettingViewModelEnricherTests
     public async Task DetectBatteryAsync_UpdatesSpecificViewModel()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm1 = CreateSettingViewModel(settingId: "setting-1", name: "Setting 1");
         var vm2 = CreateSettingViewModel(settingId: "setting-2", name: "Setting 2");
@@ -141,10 +152,6 @@ public class SettingViewModelEnricherTests
         vm1.HasBattery.Should().BeTrue();
         vm2.HasBattery.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiff
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiff_DelegatesToReviewDiffApplier()

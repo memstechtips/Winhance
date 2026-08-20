@@ -143,8 +143,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         {
             _logService.Log(LogLevel.Error, $"Error deleting power plan: {ex.Message}");
             await _dialogService.ShowErrorAsync(
-                $"An error occurred while deleting the power plan: {ex.Message}",
-                "Error");
+                _localizationService.GetString("PowerPlan_Delete_Error", ex.Message));
         }
     }
 

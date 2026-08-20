@@ -9,9 +9,6 @@ using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
-/// <summary>
-/// Page displaying advanced tools with overview cards and detail navigation.
-/// </summary>
 public sealed partial class AdvancedToolsPage : Page
 {
     private static readonly Dictionary<string, string> SectionIconResourceKeys = new()
@@ -116,7 +113,6 @@ public sealed partial class AdvancedToolsPage : Page
         }
     }
 
-    // Overview card click handlers
     private void WimUtilCard_Click(object sender, RoutedEventArgs e)
     {
         NavigateToSection("WimUtil");
@@ -127,7 +123,6 @@ public sealed partial class AdvancedToolsPage : Page
         NavigateToSection("AutounattendXml");
     }
 
-    // Breadcrumb handlers
     private void BreadcrumbOverview_Click(object sender, RoutedEventArgs e)
     {
         NavigateToOverview();

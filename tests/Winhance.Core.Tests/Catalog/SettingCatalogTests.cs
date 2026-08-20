@@ -1,4 +1,3 @@
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Customize.Models;
 using Winhance.Core.Features.Optimize.Models;

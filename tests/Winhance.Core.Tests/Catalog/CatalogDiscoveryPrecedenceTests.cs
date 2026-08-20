@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
@@ -8,7 +6,7 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryPrecedenceTests
 {
-    /// <summary>Returns a value per (keyPath, valueName); a pair not in the dict reads as absent.</summary>
+    // A pair not in the dict reads as absent.
     private sealed class Ctx : IDetectionContext
     {
         private readonly Dictionary<(string, string?), object?> _vals;
@@ -28,8 +26,10 @@ public class CatalogDiscoveryPrecedenceTests
     private const string Pref = @"HKEY_CURRENT_USER\Software\X\AdvertisingInfo";
     private const string Gpo = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\X\AdvertisingInfo";
     private const string Mirror = @"HKEY_CURRENT_USER\Software\X\CPSS\Store\AdvertisingInfo";
+    private static readonly string[] ThemesPaths = [@"HKEY_CURRENT_USER\Themes"];
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
 
-    /// <summary>privacy-advertising-id shape: preference key + group-policy override + apply-only mirror.</summary>
+    // privacy-advertising-id shape: preference key + group-policy override + apply-only mirror.
     private static Setting AdSetting() => new()
     {
         Id = "ad",
@@ -59,7 +59,7 @@ public class CatalogDiscoveryPrecedenceTests
     [Fact]
     public void Preference_on_with_absent_mirror_reads_enabled() // the 29-diff bug case
     {
-        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 }); // Enabled=1; GP + mirror absent
+        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
         Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
@@ -67,14 +67,14 @@ public class CatalogDiscoveryPrecedenceTests
     public void Group_policy_override_wins_over_preference()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Gpo, "DisabledByGroupPolicy")] = 1 });
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // GP forces off despite Enabled=1
+        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Nothing_present_falls_to_default_on_fallback()
     {
-        var ctx = new Ctx(new()); // everything absent
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label); // default-on via .OrAbsent fallback
+        var ctx = new Ctx(new());
+        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class CatalogDiscoveryPrecedenceTests
             Display = new() { Name = "theme", Description = "theme" },
             Targets = new Target[]
             {
-                new RegTarget("Apps", new[] { @"HKEY_CURRENT_USER\Themes" }, "AppsUseLightTheme", RegistryValueKind.DWord),
-                new RegTarget("System", new[] { @"HKEY_CURRENT_USER\Themes" }, "SystemUsesLightTheme", RegistryValueKind.DWord),
+                new RegTarget("Apps", ThemesPaths, "AppsUseLightTheme", RegistryValueKind.DWord),
+                new RegTarget("System", ThemesPaths, "SystemUsesLightTheme", RegistryValueKind.DWord),
             },
             States = new[]
             {
@@ -117,7 +117,7 @@ public class CatalogDiscoveryPrecedenceTests
         {
             Id = "s",
             Display = new() { Name = "s", Description = "s" },
-            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "V", RegistryValueKind.DWord) },
+            Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
@@ -147,7 +147,7 @@ public class CatalogDiscoveryPrecedenceTests
         {
             Id = "s",
             Display = new() { Name = "s", Description = "s" },
-            Targets = new Target[] { new RegTarget("Mode", new[] { @"HKEY_LOCAL_MACHINE\TEST" }, "V", RegistryValueKind.DWord) },
+            Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },

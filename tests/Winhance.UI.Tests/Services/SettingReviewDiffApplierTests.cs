@@ -93,10 +93,6 @@ public class SettingReviewDiffApplierTests
         return vm;
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No active config
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_WhenNoActiveConfig_DoesNothing()
     {
@@ -112,10 +108,6 @@ public class SettingReviewDiffApplierTests
         vm.IsInReviewMode.Should().BeFalse();
         vm.HasReviewDiff.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - With existing eager diff
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_SetsReviewModeProperties()
@@ -229,10 +221,6 @@ public class SettingReviewDiffApplierTests
         vm.IsReviewRejected.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No eager diff, setting not in config
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_SettingNotInConfig_OnlySetsReviewMode()
     {
@@ -251,10 +239,6 @@ public class SettingReviewDiffApplierTests
         vm.IsInReviewMode.Should().BeTrue();
         vm.HasReviewDiff.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No eager diff, toggle diff computed
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_WithDiff_RegistersDiff()
@@ -343,10 +327,6 @@ public class SettingReviewDiffApplierTests
             d => d.RegisterDiff(It.IsAny<ConfigReviewDiff>()),
             Times.Never);
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Selection type
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_WithDifferentIndex_RegistersDiff()
@@ -497,10 +477,6 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Searches both Optimize and Customize
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_FindsSettingInCustomizeSection()
     {
@@ -543,10 +519,6 @@ public class SettingReviewDiffApplierTests
                 diff.FeatureModuleId == "WindowsTheme")),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - NumericRange on-the-fly diff
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_WithACValueDiff_SetsHasReviewDiff()
@@ -694,10 +666,6 @@ public class SettingReviewDiffApplierTests
 
         vm.HasReviewDiff.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Action settings in review
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiffToViewModel_Action_InConfig_SetsReviewMode()

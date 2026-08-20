@@ -12,13 +12,9 @@ using CatalogMaterialIcons = Winhance.Core.Features.Common.Catalog.MaterialIcons
 
 namespace Winhance.UI.Tests.Catalog;
 
-/// <summary>
-/// The catalog names its glyphs with bare strings - Winhance.Core cannot reference the icon packages,
-/// so nothing there can check them. A wrong name renders an empty glyph with no error and no log line.
-///
-/// This lives in Winhance.UI.Tests because that project references Winhance.UI, which is where
-/// FluentIcons.WinUI and Material.Icons.WinUI3 come in.
-/// </summary>
+// Winhance.Core cannot reference the icon packages, so nothing there can check glyph names, and a wrong name
+// renders an empty glyph with no error; this project references Winhance.UI, where FluentIcons.WinUI and
+// Material.Icons.WinUI3 come in.
 public class CatalogIconNameTests
 {
     public static TheoryData<string, string> FluentAccessors => Data(IconPack.Fluent);

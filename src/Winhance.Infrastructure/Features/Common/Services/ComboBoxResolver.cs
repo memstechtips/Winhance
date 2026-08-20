@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ComboBoxResolver : IComboBoxResolver
+internal class ComboBoxResolver : IComboBoxResolver
 {
     private readonly IWindowsVersionService _versionService;
 
@@ -18,19 +13,16 @@ public class ComboBoxResolver : IComboBoxResolver
         _versionService = versionService;
     }
 
-    /// <summary>Resolves live registry/powercfg readings to a selection option index, reading
-    /// States/Targets. Guarded by ComboBoxResolverSettingConformanceTests.</summary>
     public int ResolveRawValuesToIndex(Setting setting, Dictionary<string, object?> rawValues)
     {
-        // (a) DetectedIndex from a custom detector (e.g. DnsServer) - catalog-agnostic.
+        // DetectedIndex from a custom detector (e.g. DnsServer) - catalog-agnostic.
         if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
             return di;
 
-        // (b) Not a selection => no enumerable options to match => 0.
         if (setting.Control != ControlKind.Selection)
             return 0;
 
-        // (c) A resolved group-policy index short-circuits value matching.
+        // A resolved group-policy index short-circuits value matching.
         if (rawValues.TryGetValue("CurrentPolicyIndex", out var policyIndex))
             return policyIndex is int index ? index : 0;
 
@@ -41,15 +33,13 @@ public class ComboBoxResolver : IComboBoxResolver
         if (states.All(s => s.Set.Count == 0))
             return 0;
 
-        // (f) Match: the first state whose whole (non-empty) Set the readings satisfy. Each StateValue folds in
-        // the target-DefaultValue substitution (StateValue.OrAbsent, authored where a mapping
-        // value equals the target's DefaultValue). A state's Set key is its Target.Key, which for a
-        // RegTarget IS the RawValues key (ValueName ?? "KeyExists") and for a PowerCfgTarget re-keys to "PowerCfgValue".
+        // Each StateValue folds in the target-DefaultValue substitution (StateValue.OrAbsent, authored where a mapping
+        // value equals the target's DefaultValue).
         for (int i = 0; i < states.Count; i++)
         {
             var set = states[i].Set;
             if (set.Count == 0)
-                continue; // an option without ValueMappings never matches (the Count > 0 guard)
+                continue;
 
             bool allMatch = true;
             foreach (var entry in set)
@@ -67,9 +57,6 @@ public class ComboBoxResolver : IComboBoxResolver
                 return i;
         }
 
-        // (g) No state matched: return the first state carrying the WindowsDefault role, when
-        // allBackingValuesAbsent OR any state is a fallback (IsFallback).
-        //
         // allBackingValuesAbsent: a key is 'absent' here only when its read is absent AND it has no
         // folded default. A key carrying an Of(x).OrAbsent() StateValue (AcceptsAbsent with a concrete accepted
         // value) on any state has a live default and is NEVER all-absent (e.g. explorer-click-items' IconUnderline
@@ -117,12 +104,10 @@ public class ComboBoxResolver : IComboBoxResolver
                     return i;
         }
 
-        // (h) Custom.
         return ComboBoxConstants.CustomStateIndex;
     }
 
-    /// <summary>The RawValues dictionary key for a state's Set entry: a RegTarget's key already IS its
-    /// <c>ValueName ?? "KeyExists"</c>; a PowerCfgTarget's "Power" key re-keys to "PowerCfgValue".</summary>
+    // A RegTarget's key already IS its ValueName ?? "KeyExists"; a PowerCfgTarget's "Power" key re-keys to "PowerCfgValue".
     private static string ReadKeyForTarget(Setting setting, string targetKey)
         => setting.Targets.FirstOrDefault(t => t.Key == targetKey) is PowerCfgTarget ? "PowerCfgValue" : targetKey;
 

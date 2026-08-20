@@ -60,10 +60,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
 
-        // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
-        // Listen for Builder exit to reload settings that were authored without applying
         _previousMode = _applicationModeService.CurrentMode;
         _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
@@ -74,6 +72,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _disposed = true;
         _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
         _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
@@ -119,12 +118,10 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 return;
             }
 
-            // Review mode was entered - reapply diffs to any already-loaded singleton VMs
             _vmCoordinator.ReapplyReviewDiffsToExistingSettings();
             return;
         }
 
-        // Review mode was exited - clear review state from all loaded SettingItemViewModels
         ClearReviewStateFromAllSettings();
     }
 
@@ -139,9 +136,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         try
         {
-            // Filter incompatible settings
             var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
-            if (incompatibleSettings.Any())
+            if (incompatibleSettings.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
                 _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
@@ -149,19 +145,16 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             // Review-entry filter forcing is carried solely by the async ForceFilterOn chain
             // (MainWindowViewModel forces the filter on when the review bar flips). The brief
-            // mid-entry window before that chain lands is the accepted, self-healing 7a window.
+            // mid-entry window before that chain lands is accepted and self-healing.
 
-            // Enter review mode on the service (eagerly computes diffs and fires events)
             await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);
 
-            // Pre-select Windows Apps from config
             if (config.WindowsApps.Items.Count > 0)
             {
                 await _configAppSelectionService.SelectWindowsAppsFromConfigAsync(config.WindowsApps);
                 _logService.Log(LogLevel.Info, $"Pre-selected {config.WindowsApps.Items.Count} Windows Apps for review");
             }
 
-            // Pre-select External Apps from config
             if (config.ExternalApps.Items.Count > 0)
             {
                 await _configAppSelectionService.SelectExternalAppsFromConfigAsync(config.ExternalApps);
@@ -174,7 +167,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Review_EnterError", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
 
@@ -191,24 +184,20 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         try
         {
-            // Build the list of sections that have approved changes
             var selectedSections = new List<string>();
 
-            // Check if any Windows Apps are selected and determine action
             bool hasWindowsApps = _vmCoordinator.HasSelectedWindowsApps;
             bool windowsAppsInstall = _vmCoordinator.IsWindowsAppsInstallAction;
             bool windowsAppsRemove = _vmCoordinator.IsWindowsAppsRemoveAction;
             if (hasWindowsApps && (windowsAppsInstall || windowsAppsRemove))
                 selectedSections.Add("WindowsApps");
 
-            // Check if any External Apps are selected and determine action
             bool hasExternalApps = _vmCoordinator.HasSelectedExternalApps;
             bool externalAppsInstall = _vmCoordinator.IsExternalAppsInstallAction;
             bool externalAppsRemove = _vmCoordinator.IsExternalAppsRemoveAction;
             if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
                 selectedSections.Add("ExternalApps");
 
-            // Check approved Optimize/Customize diffs (including action settings)
             var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.SettingId));
             var approvedActionSettingIds = new HashSet<string>(
                 approvedDiffs.Where(d => d.IsActionSetting).Select(d => d.SettingId));
@@ -233,7 +222,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 }
             }
 
-            // Build import options based on action choices
             var importOptions = new ImportOptions
             {
                 ProcessWindowsAppsRemoval = hasWindowsApps && windowsAppsRemove,
@@ -245,7 +233,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 ApplyCleanStartMenu = approvedSettingIds.Contains(SettingIds.StartMenuCleanWin10) || approvedSettingIds.Contains(SettingIds.StartMenuCleanWin11),
             };
 
-            // Ensure action settings add their parent feature sections even if no regular settings approved
             var actionOnlySubsections = new HashSet<string>();
             if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
             {
@@ -267,7 +254,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             }
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
-            if (!selectedSections.Any())
+            if (selectedSections.Count == 0)
             {
                 _dialogService.ShowMessage(
                     _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
@@ -275,7 +262,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 return;
             }
 
-            // Build a filtered config containing only approved settings
             var filteredConfig = BuildFilteredConfigFromApprovals(config, approvedSettingIds);
 
             // Capture current external app UI selections BEFORE exiting review mode
@@ -286,7 +272,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 selectedExternalAppIds = _vmCoordinator.GetSelectedExternalAppIds();
             }
 
-            // Confirm Windows Apps removal if remove action is chosen
             bool saveRemovalScripts = true;
             if (hasWindowsApps && windowsAppsRemove)
             {
@@ -300,7 +285,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 }
             }
 
-            // Show overlay
             var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
@@ -332,10 +316,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 _overlayService.HideOverlay();
             }
 
-            // Exit review mode after applying
             _configReviewModeService.ExitReviewMode();
 
-            // Show success message and wait for user dismissal
             await _dialogService.ShowInformationAsync(
                 _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),
                 _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
@@ -352,7 +334,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
             _overlayService.HideOverlay();
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error applying configuration: {ex.Message}", "Error");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Apply_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
 
@@ -387,10 +369,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             Version = original.Version,
             CreatedAt = original.CreatedAt,
             WindowsApps = original.WindowsApps,   // Apps are filtered by checkbox selection, not diffs
-            ExternalApps = original.ExternalApps,  // Same - filtered by checkbox selection
+            ExternalApps = original.ExternalApps,
         };
 
-        // Filter Optimize features to only include approved settings
         filtered.Optimize = FilterFeatureGroupByApprovals(original.Optimize, approvedSettingIds);
         filtered.Customize = FilterFeatureGroupByApprovals(original.Customize, approvedSettingIds);
 
@@ -409,7 +390,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 .Where(item => approvedSettingIds.Contains(item.Id))
                 .ToList();
 
-            if (approvedItems.Any())
+            if (approvedItems.Count > 0)
             {
                 filteredFeatures[feature.Key] = new ConfigSection
                 {

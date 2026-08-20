@@ -1,23 +1,17 @@
-using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-/// <summary>
-/// Service for wallpaper operations.
-/// </summary>
-public class WallpaperService : IWallpaperService
+internal class WallpaperService : IWallpaperService
 {
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWindowsRegistryService _registryService;
     private readonly ISystemParametersService _systemParametersService;
 
-    // P/Invoke constants
     private const int SPI_SETDESKWALLPAPER = 0x0014;
     private const int SPIF_UPDATEINIFILE = 0x01;
     private const int SPIF_SENDCHANGE = 0x02;
@@ -28,13 +22,12 @@ public class WallpaperService : IWallpaperService
         IWindowsRegistryService registryService,
         ISystemParametersService systemParametersService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
         _interactiveUserService = interactiveUserService;
         _registryService = registryService;
         _systemParametersService = systemParametersService;
     }
 
-    /// <inheritdoc/>
     public Task<bool> SetWallpaperAsync(string wallpaperPath)
     {
         try

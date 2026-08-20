@@ -6,9 +6,6 @@ namespace Winhance.UI.Tests.Services;
 
 public class UnitConversionHelperTests
 {
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - "minutes" divides by 60
-    // -------------------------------------------------------
 
     [Fact]
     public void ConvertFromSystemUnits_Minutes_DividesBy60()
@@ -39,10 +36,6 @@ public class UnitConversionHelperTests
         result.Should().Be(expected);
     }
 
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - "hours" divides by 3600
-    // -------------------------------------------------------
-
     [Fact]
     public void ConvertFromSystemUnits_Hours_DividesBy3600()
     {
@@ -71,10 +64,7 @@ public class UnitConversionHelperTests
         result.Should().Be(expected);
     }
 
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - "milliseconds" passes through 1:1
-    // (Win32 powercfg stores USB selective suspend timeout natively in ms.)
-    // -------------------------------------------------------
+    // "milliseconds" passes through 1:1: Win32 powercfg stores the USB selective suspend timeout natively in ms.
 
     [Fact]
     public void ConvertFromSystemUnits_Milliseconds_PassesThroughUnchanged()
@@ -104,10 +94,6 @@ public class UnitConversionHelperTests
 
         result.Should().Be(expected);
     }
-
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - null/unknown units pass through
-    // -------------------------------------------------------
 
     [Fact]
     public void ConvertFromSystemUnits_NullUnits_ReturnsValueUnchanged()
@@ -145,10 +131,6 @@ public class UnitConversionHelperTests
         result.Should().Be(99);
     }
 
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - edge cases: zero
-    // -------------------------------------------------------
-
     [Fact]
     public void ConvertFromSystemUnits_ZeroWithMinutes_ReturnsZero()
     {
@@ -181,10 +163,6 @@ public class UnitConversionHelperTests
         result.Should().Be(0);
     }
 
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - edge cases: negative values
-    // -------------------------------------------------------
-
     [Fact]
     public void ConvertFromSystemUnits_NegativeWithMinutes_DividesCorrectly()
     {
@@ -216,10 +194,6 @@ public class UnitConversionHelperTests
 
         result.Should().Be(-42);
     }
-
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - case sensitivity
-    // -------------------------------------------------------
 
     [Fact]
     public void ConvertFromSystemUnits_UppercaseMinutes_StillConverts()
@@ -268,14 +242,9 @@ public class UnitConversionHelperTests
         result.Should().Be(expected);
     }
 
-    // -------------------------------------------------------
-    // ConvertFromSystemUnits - integer division truncation
-    // -------------------------------------------------------
-
     [Fact]
     public void ConvertFromSystemUnits_Minutes_IntegerDivisionTruncates()
     {
-        // 59 / 60 = 0 (integer division)
         var result = UnitConversionHelper.ConvertFromSystemUnits(59, "minutes");
 
         result.Should().Be(0);
@@ -284,7 +253,6 @@ public class UnitConversionHelperTests
     [Fact]
     public void ConvertFromSystemUnits_Hours_IntegerDivisionTruncates()
     {
-        // 3599 / 3600 = 0 (integer division)
         var result = UnitConversionHelper.ConvertFromSystemUnits(3599, "hours");
 
         result.Should().Be(0);
@@ -293,7 +261,6 @@ public class UnitConversionHelperTests
     [Fact]
     public void ConvertFromSystemUnits_Minutes_PartialValueTruncates()
     {
-        // 90 / 60 = 1 (integer division, 1.5 truncated to 1)
         var result = UnitConversionHelper.ConvertFromSystemUnits(90, "minutes");
 
         result.Should().Be(1);

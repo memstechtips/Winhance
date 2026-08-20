@@ -1,10 +1,6 @@
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,7 +8,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
-public class PowerShellRunner : IPowerShellRunner
+internal class PowerShellRunner : IPowerShellRunner
 {
     private const string PowerShellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
 
@@ -31,11 +27,6 @@ public class PowerShellRunner : IPowerShellRunner
         _fileSystemService = fileSystemService;
     }
 
-    /// <summary>
-    /// Executes a PowerShell script string via Windows PowerShell 5.1 (powershell.exe).
-    /// The script is written to a temp file, executed, and the temp file is cleaned up.
-    /// Stdout is captured line-by-line for progress reporting (Write-Host output).
-    /// </summary>
     public async Task<string> RunScriptAsync(
         string script,
         IProgress<TaskProgressDetail>? progress = null,
@@ -53,18 +44,10 @@ public class PowerShellRunner : IPowerShellRunner
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 
-    /// <summary>
-    /// Executes a short PowerShell script string entirely in memory via
-    /// <c>powershell.exe -EncodedCommand &lt;base64&gt;</c>. No temp file is written.
-    /// The script is encoded as UTF-16-LE then base64 (the format -EncodedCommand expects).
-    /// Throws <see cref="ArgumentException"/> if the script exceeds
-    /// <see cref="MaxEncodedScriptBytes"/> bytes (UTF-16); use
-    /// <see cref="RunScriptAsync"/> for larger scripts.
-    /// </summary>
     public async Task<string> RunScriptInMemoryAsync(
         string script,
         IProgress<TaskProgressDetail>? progress = null,
@@ -95,11 +78,7 @@ public class PowerShellRunner : IPowerShellRunner
         return output.ToString();
     }
 
-    /// <summary>
-    /// Executes a PowerShell script file via Windows PowerShell 5.1 (powershell.exe).
-    /// Stdout is captured line-by-line for progress reporting (Write-Host output).
-    /// If execution policy blocks the script, retries with -EncodedCommand.
-    /// </summary>
+    // If execution policy blocks the script, retries with -EncodedCommand.
     public async Task<string> RunScriptFileAsync(
         string scriptPath,
         string arguments = "",
@@ -124,7 +103,6 @@ public class PowerShellRunner : IPowerShellRunner
 
             if (IsExecutionPolicyError(errorText) && string.IsNullOrEmpty(arguments))
             {
-                // Attempt fallback: read script content and re-run as -EncodedCommand
                 var scriptContent = await _fileSystemService.ReadAllTextAsync(scriptPath, ct).ConfigureAwait(false);
 
                 // Guard: Base64 of Unicode doubles size; Windows command line limit ~32K
@@ -150,7 +128,6 @@ public class PowerShellRunner : IPowerShellRunner
                 if (retryExitCode == 0 || retryErrors.Length == 0)
                     return retryOutput.ToString();
 
-                // Both attempts failed
                 throw new ExecutionPolicyException(
                     $"Execution policy blocked script file and -EncodedCommand fallback also failed (exit code {retryExitCode}):\n{retryErrors}");
             }
@@ -207,7 +184,7 @@ public class PowerShellRunner : IPowerShellRunner
                 if (!process.HasExited)
                     process.Kill(entireProcessTree: true);
             }
-            catch { /* process may have already exited */ }
+            catch { }
         });
 
         await process.WaitForExitAsync(ct).ConfigureAwait(false);
@@ -223,21 +200,15 @@ public class PowerShellRunner : IPowerShellRunner
             || errorOutput.Contains("is not digitally signed", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// Validates a PowerShell script for syntax errors without executing it.
-    /// Uses PowerShell's built-in Parser.ParseFile() API.
-    /// </summary>
     public async Task ValidateScriptSyntaxAsync(
         string scriptContent,
         CancellationToken ct = default)
     {
-        // Write script to temp file for parsing
         var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
         try
         {
             await _fileSystemService.WriteAllTextAsync(tempFile, scriptContent, ct).ConfigureAwait(false);
 
-            // Use PowerShell's parser to check for syntax errors
             var parseScript = @"
 $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile('" + tempFile.Replace("'", "''") + @"', [ref]$null, [ref]$errors)
@@ -253,14 +224,10 @@ exit 0";
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 
-    /// <summary>
-    /// Validates an XML string for well-formedness errors without writing it.
-    /// Uses .NET's XmlReader via PowerShell.
-    /// </summary>
     public async Task ValidateXmlSyntaxAsync(
         string xmlContent,
         CancellationToken ct = default)
@@ -289,7 +256,7 @@ try {
         finally
         {
             try { _fileSystemService.DeleteFile(tempFile); }
-            catch { /* best effort cleanup */ }
+            catch { }
         }
     }
 

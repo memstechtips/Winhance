@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -10,13 +7,6 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Coordinates ViewModel interactions for review mode operations.
-/// Wraps the concrete singleton ViewModels so that services like
-/// <see cref="ConfigReviewOrchestrationService"/> and
-/// <see cref="ConfigApplicationExecutionService"/> can be unit-tested
-/// without depending on concrete ViewModel types.
-/// </summary>
 public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
 {
     private readonly SoftwareAppsViewModel _softwareAppsVM;
@@ -79,7 +69,6 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
             {
                 foreach (var setting in featureVm.Settings)
                 {
-                    // Clear any stale review state first
                     setting.ClearReviewState();
                     // Build currentState from the VM's actual displayed values
                     // so the fallback ComputeDiff sees accurate state, not defaults
@@ -88,7 +77,6 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
                         IsEnabled = setting.IsSelected,
                         CurrentValue = setting.SelectedValue
                     };
-                    // Re-apply the new diff
                     _reviewDiffApplier.ApplyReviewDiffToViewModel(setting, currentState);
                 }
             }

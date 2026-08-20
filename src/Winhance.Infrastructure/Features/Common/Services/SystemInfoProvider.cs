@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -13,13 +10,9 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemInfoProvider : ISystemInfoProvider
+internal class SystemInfoProvider : ISystemInfoProvider
 {
-    /// <summary>
-    /// One WMI query: (scope, WQL) -> the matching rows as plain dictionaries. A null scope
-    /// means the default namespace. Rows are materialised so nothing WMI-shaped escapes this
-    /// file.
-    /// </summary>
+    // Rows are materialised so nothing WMI-shaped escapes this file.
     internal delegate IReadOnlyList<IReadOnlyDictionary<string, object?>> WmiQuery(
         string? scope, string wql);
 
@@ -31,20 +24,15 @@ public class SystemInfoProvider : ISystemInfoProvider
     {
     }
 
-    /// <summary>Test seam: lets the suite feed constructed WMI rows instead of querying the
-    /// live machine. Without it these tests assert on the hardware of whoever runs them.
-    /// </summary>
+    // Test seam: feed constructed WMI rows instead of the live machine - otherwise these tests assert on the
+    // hardware of whoever runs them.
     internal SystemInfoProvider(IInteractiveUserService interactiveUserService, WmiQuery? query)
     {
-        _interactiveUserService = interactiveUserService
-            ?? throw new ArgumentNullException(nameof(interactiveUserService));
+        _interactiveUserService = interactiveUserService;
         _query = query ?? RunWmiQuery;
     }
 
-    /// <summary>
-    /// The live implementation of the seam, and the only place in this file that talks to WMI
-    /// directly. Rows are copied out before the underlying objects are disposed.
-    /// </summary>
+    // Rows are copied out before the underlying objects are disposed.
     private static IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(
         string? scope, string wql)
     {
@@ -110,7 +98,6 @@ public class SystemInfoProvider : ISystemInfoProvider
             var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "Unknown";
 
-            // Trim build metadata
             int plusIndex = version.IndexOf('+');
             if (plusIndex > 0)
                 version = version.Substring(0, plusIndex);
@@ -190,7 +177,6 @@ public class SystemInfoProvider : ISystemInfoProvider
 
             foreach (var row in rows)
             {
-                // DeviceType
                 try
                 {
                     if (row.GetValueOrDefault("PCSystemType") != null)
@@ -209,15 +195,13 @@ public class SystemInfoProvider : ISystemInfoProvider
                         };
                     }
 
-                    // Detect virtual machines from Model/Manufacturer
                     string model = (row.GetValueOrDefault("Model") as string ?? "").Trim();
                     string manufacturer = (row.GetValueOrDefault("Manufacturer") as string ?? "").Trim();
                     if (IsVirtualMachine(model, manufacturer))
                         deviceType += " (Virtual Machine)";
                 }
-                catch { /* field failure */ }
+                catch { }
 
-                // RAM
                 try
                 {
                     if (row.GetValueOrDefault("TotalPhysicalMemory") != null)
@@ -227,9 +211,8 @@ public class SystemInfoProvider : ISystemInfoProvider
                         ram = $"{totalGb} GB";
                     }
                 }
-                catch { /* field failure */ }
+                catch { }
 
-                // Domain
                 try
                 {
                     if (row.GetValueOrDefault("PartOfDomain") != null)
@@ -246,10 +229,9 @@ public class SystemInfoProvider : ISystemInfoProvider
                         }
                     }
                 }
-                catch { /* field failure */ }
+                catch { }
             }
 
-            // Fallback to ChassisTypes if PCSystemType wasn't conclusive
             if (deviceType == "Unknown" || deviceType.StartsWith("Other"))
             {
                 try
@@ -258,7 +240,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                     if (chassisResult != "Unknown")
                         deviceType = chassisResult;
                 }
-                catch { /* fallback failure */ }
+                catch { }
             }
         }
         catch
@@ -307,7 +289,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 }
             }
         }
-        catch { /* fallback failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -326,7 +308,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 return cores > 0 ? $"{name} ({cores} cores)" : name;
             }
         }
-        catch { /* query failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -367,7 +349,6 @@ public class SystemInfoProvider : ISystemInfoProvider
         if (dacType.Equals("Internal", StringComparison.OrdinalIgnoreCase))
             return "Integrated";
 
-        // Name-based heuristics for integrated GPUs
         if (nameLower.Contains("intel") && (nameLower.Contains("uhd") || nameLower.Contains("hd graphics")
             || nameLower.Contains("iris")))
             return "Integrated";
@@ -423,7 +404,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 };
             }
         }
-        catch { /* P/Invoke failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -444,7 +425,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 return enabled == 1 ? "Enabled" : "Disabled";
             }
         }
-        catch { /* registry failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -468,7 +449,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                 }
             }
         }
-        catch { /* WMI failure — TPM may not exist */ }
+        catch { }
 
         return "Not Detected";
     }

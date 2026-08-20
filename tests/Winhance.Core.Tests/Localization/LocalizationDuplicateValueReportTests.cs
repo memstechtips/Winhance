@@ -6,47 +6,21 @@ using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.Localization;
 
-/// <summary>
-/// Surfaces keys that could be consolidated: different keys whose translated string is identical, so
-/// a translator is paid twice for the same words and the two can quietly drift apart later.
-/// <para>
-/// Reports rather than fails, matching the integration suite's DeadKeys_Report. A newly added key
-/// that happens to coincide with an existing one is not a defect, so a hard failure would be noise.
-/// </para>
-/// <para>
-/// Two exclusions carry the whole design, and both are why a naive "same English string means merge
-/// them" sweep would corrupt the translations:
-/// </para>
-/// <list type="number">
-/// <item>
-/// CONTRACTUAL keys are skipped. A key like Setting_{id}_Name is COMPUTED from a catalog Setting.Id
-/// at runtime by SettingLocalizationKeys - the name is not free-form, and renaming it breaks every
-/// shipped .winhance config carrying that id. Same for SettingGroup_, PowerPlan_ and _Meta_.
-/// Two further families are COMPOSED rather than written out anywhere, so no grep for the whole
-/// key finds them: SettingStatusBannerManager appends "Toggle" or "Selection" to a
-/// Common_*Banner_ prefix, and a catalog state Label may itself BE a Template_ / ServiceOption_
-/// key that SettingViewModelFactory looks up verbatim.
-/// </item>
-/// <item>
-/// A group only counts if it is identical in EVERY language, not just English. Strings that coincide
-/// in English routinely diverge elsewhere, and merging those would silently replace one of them:
-/// SoftwareApps_Column_Status and TechnicalDetails_Column_PowerPlanStatus are both "Status" in
-/// English but "Status" and "Stav" in Czech; Common_CustomDialog_Enabled and
-/// TechnicalDetails_Task_Enabled are both "Enabled" but differ in Arabic. Those must stay separate.
-/// </item>
-/// </list>
-/// </summary>
+// Reports (never fails) keys whose translated string is identical - a translator paid twice for the same
+// words, and two strings free to drift apart. Two exclusions carry the design: CONTRACTUAL keys (Setting_{id}_*,
+// SettingGroup_, PowerPlan_, _Meta_, and the COMPOSED families - SettingStatusBannerManager appends
+// Toggle/Selection to a Common_*Banner_ prefix, and a state Label may itself be a Template_/ServiceOption_ key)
+// are skipped because renaming one breaks shipped configs; and a group only counts if identical in EVERY
+// language - SoftwareApps_Column_Status and TechnicalDetails_Column_PowerPlanStatus are both "Status" in
+// English but "Status" and "Stav" in Czech.
 public class LocalizationDuplicateValueReportTests
 {
     private readonly ITestOutputHelper _output;
 
     public LocalizationDuplicateValueReportTests(ITestOutputHelper output) => _output = output;
 
-    /// <summary>
-    /// Key families whose NAME is derived rather than authored - computed from a catalog id, or
-    /// composed at runtime from a prefix plus a suffix. These may share a value freely; the
-    /// duplication is a consequence of the naming contract, not something to clean up.
-    /// </summary>
+    // Families whose NAME is derived (from a catalog id, or composed from a prefix) rather than authored; their
+    // duplication is a consequence of the naming contract.
     private static readonly string[] ContractualPrefixes =
     [
         // Computed from a catalog Setting.Id / group name / power-plan name by SettingLocalizationKeys.

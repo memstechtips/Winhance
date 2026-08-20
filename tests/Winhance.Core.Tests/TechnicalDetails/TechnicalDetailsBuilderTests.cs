@@ -15,7 +15,7 @@ public class TechnicalDetailsBuilderTests
 {
     private static readonly WinBuild Build = new(26100);
 
-    /// <summary>Returns the key itself, so an assertion can prove which key produced a string.</summary>
+    // Returns the key itself, so an assertion can prove which key produced a string.
     private static ILocalizationService Loc()
     {
         var mock = new Mock<ILocalizationService>();
@@ -24,8 +24,7 @@ public class TechnicalDetailsBuilderTests
         return mock.Object;
     }
 
-    /// <summary>No-setup mock: TryGetString reports every key missing, so every lookup falls back
-    /// to its English default.</summary>
+    // No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English default.
     private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
 
     private static Display Show(string name = "Test") => new() { Name = name, Description = "d" };
@@ -42,10 +41,8 @@ public class TechnicalDetailsBuilderTests
         Options = optionLabels.Select(l => new ComboBoxDisplayOption(l, 0)).ToList(),
     };
 
-    // ---------------------------------------------------------------------------------------------
     // Scheduled tasks — the catalog authors Of(true)/Of(false), so DeleteOnWrite is false for BOTH
     // states. Reading DeleteOnWrite made every task setting report "On" for current/recommended/default.
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting TaskSetting() => new()
     {
@@ -69,10 +66,8 @@ public class TechnicalDetailsBuilderTests
         ],
     };
 
-    // ---------------------------------------------------------------------------------------------
     // Script labels — a Selection whose states aren't literally named "Enabled"/"Disabled" used to
     // render every script block as "On Enable" because the label was matched against English text.
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting ThreeStateScriptSetting() => new()
     {
@@ -133,10 +128,6 @@ public class TechnicalDetailsBuilderTests
         blocks.Should().OnlyContain(b => b.Kind == CodeKind.PowerShell);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Options — values are named, so a bare "5, 1" can't happen
-    // ---------------------------------------------------------------------------------------------
-
     private static Setting TwoKeySelection() => new()
     {
         Id = "uac",
@@ -163,9 +154,7 @@ public class TechnicalDetailsBuilderTests
         ],
     };
 
-    // ---------------------------------------------------------------------------------------------
     // .reg-driven settings — the RegTarget is a detection probe, not the change
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting RegContentSetting() => new()
     {
@@ -202,11 +191,6 @@ public class TechnicalDetailsBuilderTests
         code.Select(b => b.Label).Should().Equal("When set to On", "When set to Off");
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The option matrix: options are rows, the values they write are columns
-    // ---------------------------------------------------------------------------------------------
-
-    /// <summary>Build now returns the one table directly; a null means nothing to document.</summary>
     private static OptionMatrix MatrixOf(OptionMatrix? matrix) =>
         matrix.Should().NotBeNull().And.Subject.As<OptionMatrix>();
 
@@ -327,10 +311,6 @@ public class TechnicalDetailsBuilderTests
         matrix.Options.Should().OnlyContain(o => o.Cells[scriptColumn].IsCheck);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The live-readings row exists only when no option matched
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void Reading_IsAbsentWhenDetectionResolvedToAnOption()
     {
@@ -375,10 +355,6 @@ public class TechnicalDetailsBuilderTests
         matrix.ReadingLabel.Should().Be("Winhance could not read this");
         matrix.ReadingCells.Select(c => c.Text).Should().Equal("unknown", "unknown");
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Column groups: the destination sits directly above the values it owns
-    // ---------------------------------------------------------------------------------------------
 
     [Fact]
     public void Group_CarriesTheMechanismAndThePath()
@@ -571,9 +547,6 @@ public class TechnicalDetailsBuilderTests
         matrix.Options.Where(o => o.IsCurrent).Select(o => o.Label)
             .Should().BeEquivalentTo(["15 Minutes", "5 Minutes"]);
     }
-    // ---------------------------------------------------------------------------------------------
-    // Power — the DC line is omitted when the machine has no battery
-    // ---------------------------------------------------------------------------------------------
 
     private static Setting PowerNumericSetting() => new()
     {
@@ -590,12 +563,6 @@ public class TechnicalDetailsBuilderTests
         },
     };
 
-
-
-    // ---------------------------------------------------------------------------------------------
-    // Sections
-    // ---------------------------------------------------------------------------------------------
-
     [Fact]
     public void Build_WithNoSetting_ReturnsNothing()
     {
@@ -607,8 +574,6 @@ public class TechnicalDetailsBuilderTests
     {
         var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["A", "B"]);
 
-        // Build used to return a list of sections of polymorphic rows. Every row kind has since been
-        // folded into the table, so there is one thing to return and one thing to assert on.
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
 
         matrix.Columns.Should().NotBeEmpty();
@@ -645,11 +610,6 @@ public class TechnicalDetailsBuilderTests
 
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Actions -- one row, the values they write as columns, and the confirm checkbox described
-    // underneath rather than the action's own writes
-    // ---------------------------------------------------------------------------------------------
-
     private static Setting ActionSetting() => new()
     {
         Id = "clean-thing",
@@ -657,7 +617,7 @@ public class TechnicalDetailsBuilderTests
         Apply = new() { RequiresConfirmation = true },
         Effects =
         [
-            new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Foo", "Favorites", RegistryValueKind.Binary, new byte[0]),
+            new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Foo", "Favorites", RegistryValueKind.Binary, Array.Empty<byte>()),
             new RegistryWriteEffect(@"HKEY_LOCAL_MACHINE\Software\Policies\Foo", "Pins", RegistryValueKind.String, "[]")
             {
                 IsGroupPolicy = true,

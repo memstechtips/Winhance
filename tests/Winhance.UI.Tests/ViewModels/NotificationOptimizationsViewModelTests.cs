@@ -28,12 +28,10 @@ public class NotificationOptimizationsViewModelTests
         _mockEventBus = new Mock<IEventBus>();
         _mockApplicationModeService = new Mock<IApplicationModeService>();
 
-        // Set up localization to return the key itself by default
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
 
-        // Set up dispatcher to execute actions synchronously for testing
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
@@ -57,64 +55,52 @@ public class NotificationOptimizationsViewModelTests
     [Fact]
     public void Constructor_WithValidDependencies_CreatesInstance()
     {
-        // Act
         var vm = CreateViewModel();
 
-        // Assert
         vm.Should().NotBeNull();
     }
 
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
-        // Act
         var action = () => CreateViewModel();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void ModuleId_ReturnsNotifications()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ModuleId.Should().Be(FeatureIds.Notifications);
     }
 
     [Fact]
     public void DisplayName_ReturnsLocalizedNotificationsName()
     {
-        // Arrange
         _mockLocalizationService
             .Setup(l => l.GetString("Feature_Notifications_Name"))
             .Returns("Notifications");
 
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.DisplayName.Should().Be("Notifications");
     }
 
     [Fact]
     public void ImplementsIOptimizationFeatureViewModel()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.Should().BeAssignableTo<IOptimizationFeatureViewModel>();
     }
 
     [Fact]
     public void Settings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.Settings.Should().NotBeNull();
         vm.Settings.Should().BeEmpty();
     }
@@ -122,70 +108,56 @@ public class NotificationOptimizationsViewModelTests
     [Fact]
     public void IsLoading_DefaultsToFalse()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsLoading.Should().BeFalse();
     }
 
     [Fact]
     public void IsExpanded_DefaultsToTrue()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.IsExpanded.Should().BeTrue();
     }
 
     [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void SettingsCount_WhenNoSettings_ReturnsZero()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.SettingsCount.Should().Be(0);
     }
 
     [Fact]
     public void LoadSettingsCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.LoadSettingsCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void ToggleExpandCommand_IsNotNull()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.ToggleExpandCommand.Should().NotBeNull();
     }
 
     [Fact]
     public void GroupedSettings_DefaultsToEmptyCollection()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupedSettings.Should().NotBeNull();
         vm.GroupedSettings.Should().BeEmpty();
     }
@@ -193,151 +165,52 @@ public class NotificationOptimizationsViewModelTests
     [Fact]
     public void GroupDescriptionText_WhenNoSettings_ReturnsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act & Assert
         vm.GroupDescriptionText.Should().BeEmpty();
     }
 
     [Fact]
     public void ApplySearchFilter_SetsSearchText()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter("notifications");
 
-        // Assert
         vm.SearchText.Should().Be("notifications");
     }
 
     [Fact]
     public void ApplySearchFilter_WithNull_SetsEmptyString()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         vm.ApplySearchFilter(null!);
 
-        // Assert
         vm.SearchText.Should().BeEmpty();
     }
 
     [Fact]
     public void Dispose_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () => vm.Dispose();
 
-        // Assert
         action.Should().NotThrow();
     }
 
     [Fact]
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        // Arrange
         var vm = CreateViewModel();
 
-        // Act
         var action = () =>
         {
             vm.Dispose();
             vm.Dispose();
         };
 
-        // Assert
         action.Should().NotThrow();
-    }
-
-    [Fact]
-    public void Constructor_WithNullSettingsLoadingService_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new NotificationOptimizationsViewModel(
-            null!,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            _mockEventBus.Object,
-            _mockApplicationModeService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("settingsLoadingService");
-    }
-
-    [Fact]
-    public void Constructor_WithNullLogService_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new NotificationOptimizationsViewModel(
-            _mockSettingsLoadingService.Object,
-            null!,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            _mockEventBus.Object,
-            _mockApplicationModeService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    [Fact]
-    public void Constructor_WithNullLocalizationService_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new NotificationOptimizationsViewModel(
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            null!,
-            _mockDispatcherService.Object,
-            _mockEventBus.Object,
-            _mockApplicationModeService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("localizationService");
-    }
-
-    [Fact]
-    public void Constructor_WithNullDispatcherService_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new NotificationOptimizationsViewModel(
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            null!,
-            _mockEventBus.Object,
-            _mockApplicationModeService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("dispatcherService");
-    }
-
-    [Fact]
-    public void Constructor_WithNullEventBus_ThrowsArgumentNullException()
-    {
-        // Act
-        var action = () => new NotificationOptimizationsViewModel(
-            _mockSettingsLoadingService.Object,
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            _mockDispatcherService.Object,
-            null!,
-            _mockApplicationModeService.Object);
-
-        // Assert
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("eventBus");
     }
 }

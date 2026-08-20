@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -39,7 +38,6 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(h => h.BeginBatch(It.IsAny<string>()))
             .Returns(Mock.Of<IDisposable>());
 
-        // The end-of-import Explorer restart now goes through the shared single-flight service.
         _mockExplorerRestartService
             .Setup(e => e.RestartAsync())
             .ReturnsAsync(OperationResult.Succeeded());
@@ -63,10 +61,6 @@ public class ConfigApplicationExecutionServiceTests
             _mockPolicyCleanupService.Object,
             _mockChangeHistoryService.Object);
     }
-
-    // -------------------------------------------------------
-    // ExecuteConfigImportAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ExecuteConfigImportAsync_WhenNoSections_ShowsNoChangesMessage()
@@ -131,7 +125,6 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
             .Returns(new List<string>());
 
-        // The config has only WindowsApps but no optimize/customize, so only that section
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options);
 
@@ -237,7 +230,6 @@ public class ConfigApplicationExecutionServiceTests
                 It.IsAny<Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>>()))
             .ReturnsAsync(true);
 
-        // Explorer restart
         _mockWindowsUIManagementService
             .Setup(w => w.IsProcessRunning("explorer"))
             .Returns(true);
@@ -295,7 +287,6 @@ public class ConfigApplicationExecutionServiceTests
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options);
 
-        // Should have been set to true then false
         isActiveValues.Should().Contain(true);
         isActiveValues.Should().Contain(false);
         isActiveValues.Last().Should().BeFalse();
@@ -310,6 +301,9 @@ public class ConfigApplicationExecutionServiceTests
         _mockConfigLoadService
             .Setup(s => s.DetectIncompatibleSettings(It.IsAny<UnifiedConfigurationFile>()))
             .Throws(new Exception("Test error"));
+        _mockLocalizationService
+            .Setup(l => l.GetString("Config_Import_Error", It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => $"{key}:{args[0]}");
 
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options);
@@ -352,10 +346,6 @@ public class ConfigApplicationExecutionServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // ApplyConfigurationWithOptionsAsync (public overload)
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ApplyConfigurationWithOptionsAsync_WithEmptyConfig_HandlesGracefully()
     {
@@ -369,7 +359,6 @@ public class ConfigApplicationExecutionServiceTests
 
         var service = CreateService();
 
-        // Should not throw
         await service.ApplyConfigurationWithOptionsAsync(config, selectedSections, options);
 
         // Explorer restart still runs
@@ -377,10 +366,6 @@ public class ConfigApplicationExecutionServiceTests
             o => o.UpdateStatus(It.IsAny<string>(), It.IsAny<string?>()),
             Times.AtLeastOnce);
     }
-
-    // -------------------------------------------------------
-    // Policy Cleanup on Windows Defaults Import
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ExecuteConfigImportAsync_WindowsDefaults_CallsPolicyCleanup()

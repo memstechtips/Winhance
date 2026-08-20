@@ -56,10 +56,6 @@ public class SettingsViewModelTests
             _mockTaskProgressService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor / Initialization
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_LoadsCurrentLanguage()
     {
@@ -118,10 +114,6 @@ public class SettingsViewModelTests
         vm.SelectedThemeOption.Should().NotBeNull();
         vm.SelectedThemeOption!.Theme.Should().Be(WinhanceTheme.LightNative);
     }
-
-    // -------------------------------------------------------
-    // SelectedLanguage
-    // -------------------------------------------------------
 
     [Fact]
     public void SelectedLanguage_SetToNewValue_CallsLocalizationSetLanguage()
@@ -221,10 +213,6 @@ public class SettingsViewModelTests
         raised.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // SelectedTheme
-    // -------------------------------------------------------
-
     [Fact]
     public void SelectedTheme_SetToNewValue_CallsThemeServiceSetTheme()
     {
@@ -248,15 +236,10 @@ public class SettingsViewModelTests
 
         var vm = CreateViewModel();
 
-        // Already System, set to System again -- the setter checks CurrentTheme
         vm.SelectedTheme = WinhanceTheme.System;
 
         _mockThemeService.Verify(t => t.SetTheme(It.IsAny<WinhanceTheme>()), Times.Never);
     }
-
-    // -------------------------------------------------------
-    // SelectedThemeOption
-    // -------------------------------------------------------
 
     [Fact]
     public void SelectedThemeOption_SetToNonNull_UpdatesSelectedTheme()
@@ -279,10 +262,6 @@ public class SettingsViewModelTests
 
         vm.SelectedTheme.Should().Be(originalTheme);
     }
-
-    // -------------------------------------------------------
-    // Localized string properties
-    // -------------------------------------------------------
 
     [Fact]
     public void PageTitle_ReturnsLocalizedString()
@@ -344,10 +323,6 @@ public class SettingsViewModelTests
         vm.ExportButtonText.Should().Be("Export Config");
     }
 
-    // -------------------------------------------------------
-    // Language changed event updates theme display names
-    // -------------------------------------------------------
-
     [Fact]
     public void OnLanguageChanged_UpdatesThemeDisplayNames()
     {
@@ -357,7 +332,6 @@ public class SettingsViewModelTests
 
         var vm = CreateViewModel();
 
-        // Now change the localization return for theme names
         _mockLocalization
             .Setup(l => l.GetString("Theme_System"))
             .Returns("Systeme");
@@ -403,10 +377,6 @@ public class SettingsViewModelTests
         changedProperties.Should().Contain(nameof(vm.ExportButtonText));
     }
 
-    // -------------------------------------------------------
-    // Import / Export commands
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ImportConfigCommand_CallsConfigurationService()
     {
@@ -434,10 +404,6 @@ public class SettingsViewModelTests
 
         _mockConfigurationService.Verify(c => c.ExportConfigurationAsync(), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()

@@ -3,7 +3,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -12,11 +11,8 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// The outcome marker hides for the duration of an apply. Without this the marker stayed on screen for
-/// the whole ~1s write, rendering "Not recognized" on top of the option the user had just picked - two
-/// dropdowns drawn over each other until the apply landed.
-/// </summary>
+// Without this the marker stayed on screen for the whole ~1s write, rendering "Not recognized" on top of the
+// option the user had just picked.
 public class SettingItemViewModelOverlayOpacityTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();
@@ -24,7 +20,6 @@ public class SettingItemViewModelOverlayOpacityTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
 
     [Fact]
     public void OverlayOpacity_IsOpaque_WhenIdle()
@@ -93,7 +88,6 @@ public class SettingItemViewModelOverlayOpacityTests
             _logService.Object,
             _dispatcherService.Object,
             _dialogService.Object,
-            _localizationService.Object,
-            _eventBus.Object);
+            _localizationService.Object);
     }
 }

@@ -1,15 +1,15 @@
-using System.Linq;
 using System.Text;
+using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 using Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
+
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class AutounattendScriptBuilder
+internal class AutounattendScriptBuilder : IAutounattendScriptBuilder
 {
     private readonly ILogService _logService;
     private readonly IPowerShellRunner _powerShellRunner;
@@ -50,12 +50,10 @@ public class AutounattendScriptBuilder
 
         var sb = new StringBuilder();
 
-        // 1. Header and setup
         ScriptPreambleSection.AppendHeader(sb);
         ScriptPreambleSection.AppendLoggingSetup(sb);
         ScriptPreambleSection.AppendHelperFunctions(sb);
 
-        // 2. Build if (-not $UserCustomizations) block
         sb.AppendLine();
         sb.AppendLine("if (-not $UserCustomizations) {");
         sb.AppendLine();
@@ -69,61 +67,49 @@ public class AutounattendScriptBuilder
 
         _appRemovalSection.AppendWinhanceInstallerScriptContent(sb, "    ");
 
-        // 2b. Power settings
         await _powerSettingsSection.AppendPowerSettingsSectionAsync(sb, config, allSettings, "    ").ConfigureAwait(false);
 
-        // 2c. HKLM registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: false, indent: "    ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
-        // 2d. HKLM registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: false, indent: "    ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: false, indent: "    ", build: currentBuild);
         }
 
-        // 2e. Clean Start Menu Layout (always included)
         SpecialFeatureScriptSection.AppendCleanStartMenuSection(sb, "    ");
 
-        // 2f. Register UserCustomizations scheduled task
         SpecialFeatureScriptSection.AppendUserCustomizationsScheduledTask(sb, "    ");
 
-        // 2g. System-wide custom script placeholder
         AppendCustomScriptPlaceholder(sb, "    ", "SYSTEM WIDE");
 
         sb.AppendLine("}");
         sb.AppendLine();
 
-        // 3. Build if ($UserCustomizations) block
         sb.AppendLine("if ($UserCustomizations) {");
         sb.AppendLine();
         AppendUserDetectionBridge(sb);
 
-        // 3a. HKCU registry entries from Optimize
         if (config.Optimize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, "Optimize", isHkcu: true, indent: "            ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Optimize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
-        // 3b. HKCU registry entries from Customize
         if (config.Customize.Features.Any())
         {
-            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, "Customize", isHkcu: true, indent: "            ", build: currentBuild);
+            _featureRegistrySection.AppendFeatureGroupRegistryEntries(sb, config.Customize, allSettings, isHkcu: true, indent: "            ", build: currentBuild);
         }
 
-        // 3c. User-specific custom script placeholder
         AppendCustomScriptPlaceholder(sb, "            ", "USER SPECIFIC");
 
         AppendUserDetectionBridgeClosing(sb);
 
-        // 4. Completion block
         ScriptPreambleSection.AppendCompletionBlock(sb);
 
         var scriptContent = sb.ToString();
 
-        // Validate the generated script has no PowerShell syntax errors
         try
         {
             await _powerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
@@ -138,12 +124,8 @@ public class AutounattendScriptBuilder
         return scriptContent;
     }
 
-    /// <summary>
-    /// NativePowerApiSettings are applied via a managed Win32 API at runtime (see
-    /// SettingOperationExecutor) and have no emitter in the autounattend pipeline. A setting
-    /// whose only applicable payload is NativePowerApi would silently be skipped in an unattend
-    /// install. Warn loudly so the author notices before shipping.
-    /// </summary>
+    // NativePowerApi settings are applied via a managed Win32 API at runtime and have no emitter in the autounattend
+    // pipeline; a setting whose only payload is NativePowerApi would silently be skipped, so warn loudly.
     private void WarnOnUnreachableNativePowerApiSettings(
         UnifiedConfigurationFile config,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings)
@@ -161,8 +143,7 @@ public class AutounattendScriptBuilder
             {
                 if (!selectedIds.Contains(setting.Id)) continue;
 
-                // Native-power presence + the autounattend fallback are read off the catalog Setting
-                // (Targets/Effects). Native power is authored on only one setting (power-hibernation-enable).
+                // Native power is authored on only one setting (power-hibernation-enable).
                 bool hasNativePower = AutounattendMechanismPresence.HasNativePower(setting);
                 if (!hasNativePower) continue;
 
@@ -199,11 +180,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine();
     }
 
-    /// <summary>
-    /// Emits the SYSTEM/User detection bridge at the start of the $UserCustomizations block.
-    /// This is the ~130-line inline block that detects the logged-in user, checks
-    /// a completion marker, and launches a child process as the interactive user.
-    /// </summary>
     private static void AppendUserDetectionBridge(StringBuilder sb)
     {
         sb.AppendLine("    $runningAsSystem = ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')");
@@ -301,9 +277,6 @@ public class AutounattendScriptBuilder
         sb.AppendLine();
     }
 
-    /// <summary>
-    /// Emits the closing braces and completion marker for the $UserCustomizations block.
-    /// </summary>
     private static void AppendUserDetectionBridgeClosing(StringBuilder sb)
     {
         sb.AppendLine();

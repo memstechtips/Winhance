@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -13,19 +12,10 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// The authored overlay: while a mode is authoring, a card must show what the user authored, not
-/// what the machine currently says — because the authored value is what Save writes.
-///
-/// The bug these exist for: a Windows-version filter toggle or a UI language change during Builder
-/// disposes and recreates every setting ViewModel from live system state, while the recorded edits
-/// survive in the mode service and are still written on Save. The screen and the saved file
-/// disagreed, silently, and no test could see it because each half was individually correct.
-///
-/// The round-trip tests below drive the REAL recording path (<c>TrySetToRecommended</c> → the write
-/// strategy) and then the real restore path, so a new input type that can record but cannot restore
-/// fails here rather than shipping a config the user cannot see on screen.
-/// </summary>
+// A filter toggle or language change during Builder recreates every setting ViewModel from live state while
+// the recorded edits survive and are still written on Save - screen and file disagreed silently, and each half
+// was individually correct. The round-trips drive the REAL recording path (TrySetToRecommended -> the write
+// strategy) and the real restore path.
 public class SettingItemViewModelAuthoredOverlayTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();
@@ -33,10 +23,8 @@ public class SettingItemViewModelAuthoredOverlayTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
     private readonly Mock<IApplicationModeService> _modeService = new();
 
-    /// <summary>The authoring session's edits, behaving like the real dictionary-backed store.</summary>
     private readonly Dictionary<string, BuilderEdit> _authored = new();
 
     public SettingItemViewModelAuthoredOverlayTests()
@@ -63,7 +51,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             _dispatcherService.Object,
             _dialogService.Object,
             _localizationService.Object,
-            _eventBus.Object,
             null,
             null,
             null,
@@ -86,11 +73,8 @@ public class SettingItemViewModelAuthoredOverlayTests
         Display = new() { Name = id, Description = "" },
     };
 
-    /// <summary>
-    /// A toggle carrying the roles the quick-set commands need — without a WindowsDefault or
-    /// Recommended role, <c>HasQuickSetTarget</c> is false and the command silently no-ops, so the
-    /// round-trip would prove nothing.
-    /// </summary>
+    // Without a WindowsDefault or Recommended role, HasQuickSetTarget is false and the command silently no-ops, so
+    // the round-trip would prove nothing.
     private static Setting ToggleSettingWithRoles(string id, bool recommendedEnabled, bool defaultEnabled)
     {
         var enabled = new List<StateRole>();
@@ -132,8 +116,6 @@ public class SettingItemViewModelAuthoredOverlayTests
         Outcome = SettingDetectionOutcome.Resolved,
     };
 
-    // ── The bug: a rebuild from live state must not lose authored values ──
-
     [Fact]
     public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredToggle()
     {
@@ -145,7 +127,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             IsSelected = true,
         };
 
-        // The machine says off. The user authored on.
         sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
 
         sut.IsSelected.Should().BeTrue(
@@ -195,8 +176,6 @@ public class SettingItemViewModelAuthoredOverlayTests
             because: "the screen and the file are the same fact read from the same store");
     }
 
-    // ── Round-trip: what the write path records, the overlay restores ──
-
     [Fact]
     public void RoundTrip_Toggle()
     {
@@ -208,7 +187,6 @@ public class SettingItemViewModelAuthoredOverlayTests
         authoring.IsSelected.Should().BeTrue();
         _authored.Should().ContainKey("rt-toggle");
 
-        // The reload: a fresh card seeded from the live machine, which still says off.
         var reloaded = CreateSut(Config(setting, InputType.Toggle, isSelected: false));
         reloaded.ApplyAuthoredOverlay();
 
@@ -248,8 +226,6 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         reloaded.NumericValue.Should().Be(authoring.NumericValue);
     }
-
-    // ── The overlay belongs to the authoring mode and nothing else ──
 
     [Fact]
     public void OutsideAnAuthoringMode_TheOverlayIsANoOp()

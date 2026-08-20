@@ -1,13 +1,9 @@
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>Tests the retired-id -> canonical-id alias used on config import. The 6 "-win10" This PC
-/// folder ids must map to their canonical catalog peers; everything else passes through unchanged. Also asserts the
-/// invariant that every alias TARGET exists in the live catalog and every SOURCE does not (i.e. is genuinely
-/// retired/merged) so the map can't silently rot.</summary>
+// Also asserts every alias TARGET exists in the live catalog and every SOURCE does not, so the map can't silently rot.
 public class SettingIdAliasesTests
 {
     [Theory]
@@ -40,8 +36,8 @@ public class SettingIdAliasesTests
         foreach (var win10Id in Win10ThisPcSources)
         {
             var canonical = SettingIdAliases.Normalize(win10Id);
-            Assert.NotEqual(win10Id, canonical); // it WAS aliased
-            Assert.Contains(canonical, catalogIds); // and its target is a real catalog setting
+            Assert.NotEqual(win10Id, canonical);
+            Assert.Contains(canonical, catalogIds);
         }
     }
 

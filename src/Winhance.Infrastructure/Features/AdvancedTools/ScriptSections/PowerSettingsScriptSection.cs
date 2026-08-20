@@ -1,21 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Interfaces;
 using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellScriptUtilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Handles power plan creation, power settings extraction and application in the generated script.
-/// </summary>
 internal class PowerSettingsScriptSection
 {
     private readonly IPowerSettingsQueryService _powerSettingsQueryService;
@@ -60,7 +52,7 @@ internal class PowerSettingsScriptSection
         var activePowerPlan = await _powerSettingsQueryService.GetActivePowerPlanAsync().ConfigureAwait(false);
         var powerSettings = await ExtractPowerSettingsAsync(activePowerPlan.Guid, allSettings).ConfigureAwait(false);
 
-        if (powerPlanSetting == null && !powerSettings.Any())
+        if (powerPlanSetting == null && powerSettings.Count == 0)
             return false;
 
         AppendPowerSettingsSection(sb, powerPlanSetting, powerSettings, indent);
@@ -84,7 +76,7 @@ internal class PowerSettingsScriptSection
             AppendPowerPlanCreation(sb, powerPlanSetting, indent);
         }
 
-        if (powerSettings.Any())
+        if (powerSettings.Count > 0)
         {
             AppendPowerSettingsApplication(sb, powerSettings, powerPlanSetting?.PowerPlanGuid, indent);
         }
@@ -221,7 +213,7 @@ internal class PowerSettingsScriptSection
         if (!allSettings.TryGetValue(FeatureIds.Power, out var settings))
             return powerSettings;
 
-        bool hasBattery = await _hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
+        bool hasBattery = _hardwareDetectionService.HasBattery() ?? true;
 
         var bulkQueryResults = await _powerSettingsQueryService.GetAllPowerSettingsACDCAsync(activePowerPlanGuid).ConfigureAwait(false);
 
@@ -229,9 +221,6 @@ internal class PowerSettingsScriptSection
         {
             if (catalogSetting.Id == SettingIds.PowerPlanSelection)
                 continue;
-
-            // Metadata comes from the catalog Setting; the live AC/DC values still come from bulkQueryResults
-            // keyed by the powercfg SettingGuid.
 
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
             if (powerCfgTargets.Count == 0)

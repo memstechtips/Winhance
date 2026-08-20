@@ -6,11 +6,6 @@ using Winhance.UI.Features.Customize.ViewModels;
 
 namespace Winhance.UI.Features.Customize;
 
-/// <summary>
-/// Customize overview. The chrome is <see cref="SectionPageShell"/> and the behaviour is
-/// <see cref="SectionPage"/>; what remains here is this page's identity - its ViewModel and its
-/// log tag.
-/// </summary>
 public sealed partial class CustomizePage : SectionPage
 {
     public CustomizeViewModel ViewModel { get; }

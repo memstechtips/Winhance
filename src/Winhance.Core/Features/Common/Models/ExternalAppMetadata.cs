@@ -1,8 +1,5 @@
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Typed metadata for external application download definitions.
-/// </summary>
 public sealed record ExternalAppMetadata
 {
     public string? DownloadUrl { get; init; }
@@ -14,9 +11,6 @@ public sealed record ExternalAppMetadata
     public string? AssetPattern { get; init; }
     public bool RequiresDirectDownload { get; init; }
 
-    /// <summary>
-    /// Gets the architecture-specific download URL, falling back to the generic URL.
-    /// </summary>
     public string? GetDownloadUrlForArchitecture(string architecture)
     {
         return architecture switch

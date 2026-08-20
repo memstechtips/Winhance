@@ -4,12 +4,6 @@ using Xunit;
 
 namespace Winhance.Core.Tests.TechnicalDetails;
 
-/// <summary>
-/// The option matrix's spanning header is charged to the columns underneath it, so the hive is
-/// abbreviated to keep a 68-character path from stretching the table. That makes this a display
-/// transform on a value that also drives the Registry Editor button -- it has to shorten the paths
-/// it recognises and leave everything else exactly as it found it.
-/// </summary>
 public class RegistryPathFormatterTests
 {
     [Theory]

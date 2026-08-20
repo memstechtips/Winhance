@@ -1,13 +1,7 @@
-using System;
-using System.IO;
-
 namespace Winhance.Core.Features.Common.Services;
 
-/// <summary>
-/// Static logger for pre-DI startup diagnostics.
-/// Writes to C:\ProgramData\Winhance\Logs\WinhanceStartupLog.txt.
-/// Overwrites on first call per app run, appends subsequent calls. Thread-safe.
-/// </summary>
+// Pre-DI startup diagnostics: C:\ProgramData\Winhance\Logs\WinhanceStartupLog.txt, overwritten on the first
+// call per run. Thread-safe.
 public static class StartupLogger
 {
     private static readonly string LogPath = Path.Combine(
@@ -37,7 +31,7 @@ public static class StartupLogger
                     File.AppendAllText(LogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
                 }
             }
-            catch { /* Static pre-DI logger — nowhere to log the failure, and throwing would crash startup */ }
+            catch { } // Static pre-DI logger — nowhere to log the failure, and throwing would crash startup
         }
     }
 

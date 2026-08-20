@@ -1,14 +1,10 @@
-using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using Winhance.Core.Features.Common.Enums;
@@ -19,7 +15,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class InteractiveUserService : IInteractiveUserService, IDisposable
+internal class InteractiveUserService : IInteractiveUserService, IDisposable
 {
     private readonly ILogService _logService;
     private readonly IProcessExecutor _processExecutor;
@@ -38,14 +34,12 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
 
     public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
+        _logService = logService;
+        _processExecutor = processExecutor;
 
-        // Detect OTS elevation
         var currentSid = WindowsIdentity.GetCurrent().User?.Value;
         string? detectedSid = null;
 
-        // Fallback chain
         detectedSid = TryGetSidFromExplorerToken();
 
         if (detectedSid == null)
@@ -116,10 +110,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         };
     }
 
-    /// <summary>
-    /// Runs a process as the interactive user using the stored token.
-    /// Falls back to normal Process.Start if no token is available.
-    /// </summary>
     public async Task<InteractiveProcessResult> RunProcessAsInteractiveUserAsync(
         string fileName,
         string arguments,
@@ -131,16 +121,12 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
         {
-            // No OTS or no token — fall back to normal process execution
             return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
         }
 
         return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Normal process execution (non-OTS fallback).
-    /// </summary>
     private async Task<InteractiveProcessResult> RunProcessNormalAsync(
         string fileName,
         string arguments,
@@ -155,7 +141,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
 
         var result = await _processExecutor.ExecuteAsync(fileName, arguments, linkedCts.Token).ConfigureAwait(false);
 
-        // Forward output/error lines to callbacks if provided
         if (onOutputLine != null || onProgressLine != null)
         {
             foreach (var line in result.StandardOutput.Split('\n', StringSplitOptions.None))
@@ -187,9 +172,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             result.StandardError);
     }
 
-    /// <summary>
-    /// Runs a process as the interactive user using CreateProcessWithTokenW.
-    /// </summary>
     private async Task<InteractiveProcessResult> RunProcessWithTokenAsync(
         string fileName,
         string arguments,
@@ -199,7 +181,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         int timeoutMs,
         Action<string>? onProgressLine = null)
     {
-        // Create pipes for stdout and stderr
         var sa = new UserTokenApi.SECURITY_ATTRIBUTES
         {
             nLength = Marshal.SizeOf<UserTokenApi.SECURITY_ATTRIBUTES>(),
@@ -227,15 +208,12 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stdin pipe");
         }
 
-        // Ensure the read handles for stdout/stderr are NOT inherited by the child process
         UserTokenApi.SetHandleInformation(stdoutReadHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
         UserTokenApi.SetHandleInformation(stderrReadHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
-        // Ensure the write handle for stdin is NOT inherited
         UserTokenApi.SetHandleInformation(stdinWriteHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
 
         try
         {
-            // Create environment block for the interactive user
             IntPtr envBlock = IntPtr.Zero;
             UserTokenApi.CreateEnvironmentBlock(out envBlock, _interactiveUserToken, false);
 
@@ -267,7 +245,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
                     var error = Marshal.GetLastWin32Error();
                     _logService.Log(LogLevel.Warning,
                         $"CreateProcessWithTokenW failed (error {error}), falling back to normal process execution");
-                    // Fall back to normal execution
                     return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
                 }
 
@@ -287,7 +264,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
                 _logService.Log(LogLevel.Debug,
                     $"Launched process as interactive user '{_interactiveUserName}' (PID {pi.dwProcessId})");
 
-                // Read stdout/stderr using SafeFileHandle → FileStream → StreamReader
                 var stdoutBuilder = new StringBuilder();
                 var stderrBuilder = new StringBuilder();
 
@@ -298,7 +274,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 var processHandle = pi.hProcess;
 
-                // Set up cancellation
                 using var timeoutCts = new CancellationTokenSource(timeoutMs);
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                 using var killRegistration = linkedCts.Token.Register(() =>
@@ -332,11 +307,9 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
 
-                // Wait for process exit and get exit code
-                await Task.Run(() =>
-                {
-                    UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs);
-                }).ConfigureAwait(false);
+                var waitResult = await Task.Run(() => UserTokenApi.WaitForSingleObject(processHandle, (uint)timeoutMs)).ConfigureAwait(false);
+                if (waitResult != UserTokenApi.WAIT_OBJECT_0)
+                    _logService.Log(LogLevel.Warning, $"Process did not signal exit within {timeoutMs}ms (wait result 0x{waitResult:X}); the exit code read below cannot be trusted");
 
                 UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode);
                 UserTokenApi.CloseHandle(processHandle);
@@ -354,7 +327,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
         finally
         {
-            // Clean up any handles that weren't transferred to SafeFileHandle
             if (stdoutReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdoutReadHandle);
             if (stdoutWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdoutWriteHandle);
             if (stderrReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stderrReadHandle);
@@ -364,16 +336,11 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Launches a GUI process as the interactive user (fire-and-forget).
-    /// Uses CreateProcessWithTokenW without pipe redirection so the child
-    /// process can create its own window on the interactive user's desktop.
-    /// </summary>
+    // CreateProcessWithTokenW without pipe redirection, so the child can create its own window on the interactive user's desktop.
     public void LaunchProcessAsInteractiveUser(string fileName, string arguments = "")
     {
         if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
         {
-            // Not OTS or no token — fall back to shell execution
             _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
             return;
         }
@@ -427,10 +394,7 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Fallback 1: Find explorer.exe in the active console session and read its process token SID.
-    /// Also duplicates the token for later use in process creation.
-    /// </summary>
+    // Also duplicates the token for later process creation.
     private string? TryGetSidFromExplorerToken()
     {
         try
@@ -525,9 +489,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Fallback 2: Query WMI Win32_ComputerSystem.UserName and translate to SID.
-    /// </summary>
     private string? TryGetSidFromWmi()
     {
         try
@@ -565,9 +526,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Fallback 3: Use WTS Session API to get the console session's username/domain and translate to SID.
-    /// </summary>
     private string? TryGetSidFromWtsSession()
     {
         try
@@ -629,7 +587,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             var sid = new SecurityIdentifier(sidString);
             var ntAccount = (NTAccount)sid.Translate(typeof(NTAccount));
             var fullName = ntAccount.Value;
-            // Return just the username part (strip DOMAIN\)
             var backslashIndex = fullName.IndexOf('\\');
             return backslashIndex >= 0 ? fullName[(backslashIndex + 1)..] : fullName;
         }
@@ -659,14 +616,12 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
                 $"Failed to resolve profile path for SID '{sidString}': {ex.Message}");
         }
 
-        // Fallback: construct from C:\Users\{username}
         var username = ResolveSidToUsername(sidString);
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.SystemX86).Substring(0, 3),
             "Users", username);
     }
 
-    /// <inheritdoc />
     public IShellRelaunchToken? CaptureShellRelaunchToken()
     {
         // Deliberately NOT gated on _isOtsElevation. When Marco runs Winhance elevated as himself
@@ -739,7 +694,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    /// <inheritdoc cref="IShellRelaunchToken"/>
     private sealed class ShellRelaunchToken(IntPtr token, ILogService logService) : IShellRelaunchToken
     {
         private IntPtr _token = token;
@@ -819,5 +773,6 @@ public class InteractiveUserService : IInteractiveUserService, IDisposable
             }
             _disposed = true;
         }
+        GC.SuppressFinalize(this);
     }
 }

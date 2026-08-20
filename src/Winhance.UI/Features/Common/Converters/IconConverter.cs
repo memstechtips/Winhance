@@ -1,16 +1,10 @@
 using Material.Icons;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Media;
 using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Converts icon names and icon packs to IconElement controls.
-/// Supports Material, MaterialDesign, and Fluent icon packs.
-/// Returns IconElement types (PathIcon, FontIcon, FluentIcon) that are compatible with SettingsCard.HeaderIcon.
-/// </summary>
 public sealed partial class IconConverter : IValueConverter
 {
 
@@ -19,13 +13,11 @@ public sealed partial class IconConverter : IValueConverter
         string? iconName = null;
         string iconPack = "Material";
 
-        // Check if value is a string (direct icon name)
         if (value is string strValue)
         {
             iconName = strValue;
             iconPack = parameter?.ToString() ?? "Material";
         }
-        // Check if value is an object with Icon and IconPack properties (like SettingItemViewModel)
         else if (value != null)
         {
             var type = value.GetType();
@@ -38,7 +30,7 @@ public sealed partial class IconConverter : IValueConverter
 
         if (string.IsNullOrEmpty(iconName))
         {
-            return null; // Return null so no icon is shown
+            return null;
         }
 
         return iconPack.ToLowerInvariant() switch
@@ -49,16 +41,10 @@ public sealed partial class IconConverter : IValueConverter
         };
     }
 
-    /// <summary>
-    /// Creates a PathIcon from Material icon path data.
-    /// PathIcon is an IconElement, compatible with SettingsCard.HeaderIcon.
-    /// </summary>
     private static IconElement? CreateMaterialPathIcon(string iconName)
     {
-        // Try to parse the icon name as MaterialIconKind enum
         if (Enum.TryParse<MaterialIconKind>(iconName, ignoreCase: true, out var iconKind))
         {
-            // Get the SVG path data for this icon
             var pathData = MaterialIconDataProvider.GetData(iconKind);
 
             if (!string.IsNullOrEmpty(pathData))
@@ -81,9 +67,6 @@ public sealed partial class IconConverter : IValueConverter
         return null;
     }
 
-    /// <summary>
-    /// Creates a FluentIcon from FluentIcons.WinUI for Fluent icons.
-    /// </summary>
     private static IconElement? CreateFluentIcon(string iconName)
     {
         if (Enum.TryParse<FluentIcons.Common.Icon>(iconName, ignoreCase: true, out var symbol))

@@ -5,12 +5,7 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Helpers;
 
-/// <summary>
-/// Covers the pure, UI-independent parts of <see cref="PageScrollHelper"/>.
-/// The guard logic (<c>ShouldSkipForFocusedElement</c>) walks the visual tree and
-/// cannot be exercised without a live XAML island, so it's verified by code
-/// inspection rather than here.
-/// </summary>
+// ShouldSkipForFocusedElement walks the visual tree and cannot be exercised without a live XAML island.
 public class PageScrollHelperTests
 {
     [Theory]

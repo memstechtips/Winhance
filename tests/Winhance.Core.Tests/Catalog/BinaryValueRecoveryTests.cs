@@ -1,17 +1,15 @@
-using System;
 using System.Text;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// The recover-or-refuse rule for surgical REG_BINARY edits. These guard a DATA-LOSS bug, not a cosmetic
-/// one: the old code treated "present but not a byte[]" as "absent" and wrote a zeroed array, wiping every
-/// unrelated bit packed into the same value.
-/// </summary>
+// Guards a DATA-LOSS bug: "present but not a byte[]" once read as "absent" and was overwritten with a zeroed
+// array, wiping every unrelated bit packed into the same value.
 public class BinaryValueRecoveryTests
 {
+    private static readonly string[] MultiString = ["a", "b"];
+
     [Fact]
     public void Existing_byte_array_is_used_as_is()
     {
@@ -29,10 +27,8 @@ public class BinaryValueRecoveryTests
         Assert.All(buffer, b => Assert.Equal(0, b));
     }
 
-    /// <summary>The real case from Marco's machine (2026-07-27): UserPreferencesMask stored as
-    /// REG_EXPAND_SZ. The bytes were intact - a registry string is UTF-16LE - and displayed as the glyphs
-    /// U+1290 U+8003. Recovery must return those exact bytes, NOT zeros.
-    /// </summary>
+    // The real case: UserPreferencesMask stored as REG_EXPAND_SZ; the bytes were intact (a registry string is
+    // UTF-16LE), displayed as U+1290 U+8003. Recovery must return those exact bytes, NOT zeros.
     [Fact]
     public void String_value_is_recovered_to_its_underlying_utf16_bytes()
     {
@@ -79,7 +75,7 @@ public class BinaryValueRecoveryTests
     [Fact]
     public void Multi_string_refuses_too()
     {
-        Assert.Null(BinaryValueRecovery.Resolve(new[] { "a", "b" }, byteIndex: 1));
+        Assert.Null(BinaryValueRecovery.Resolve(MultiString, byteIndex: 1));
     }
 
     [Fact]
@@ -91,8 +87,6 @@ public class BinaryValueRecoveryTests
         Assert.False(BinaryValueRecovery.IsRecoveredFromString(1));
     }
 
-    /// <summary>The whole point, stated as an assertion: recovering and then editing one bit must leave
-    /// every other byte exactly as it was. This is what the old zeroing behaviour destroyed.</summary>
     [Fact]
     public void Editing_a_recovered_buffer_preserves_every_unrelated_byte()
     {
@@ -102,10 +96,10 @@ public class BinaryValueRecoveryTests
         var buffer = BinaryValueRecovery.Resolve(asStoredString, byteIndex: 1)!;
         buffer[1] |= 0x08; // set fade-tooltip's bit, as ModifyBinaryBit would
 
-        Assert.Equal(0x90, buffer[0]);            // untouched
-        Assert.Equal(0x12 | 0x08, buffer[1]);     // the one edited byte
-        Assert.Equal(0x03, buffer[2]);            // untouched
+        Assert.Equal(0x90, buffer[0]);
+        Assert.Equal(0x12 | 0x08, buffer[1]);
+        Assert.Equal(0x03, buffer[2]);
         Assert.Equal(0x80, buffer[3]);            // untouched - a byte Winhance does not even manage
-        Assert.Equal(0x12, buffer[4]);            // untouched
+        Assert.Equal(0x12, buffer[4]);
     }
 }

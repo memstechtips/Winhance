@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
@@ -15,7 +12,6 @@ public static class WindowsAppDefinitions
             FeatureId = FeatureIds.WindowsApps,
             Items = new List<ItemDefinition>
             {
-                // 3D/Mixed Reality
                 new ItemDefinition
                 {
                     Id = "windows-app-3d-viewer",
@@ -37,7 +33,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Bing/Search
                 new ItemDefinition
                 {
                     Id = "windows-app-bing-search",
@@ -69,7 +64,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Camera/Media
                 new ItemDefinition
                 {
                     Id = "windows-app-camera",
@@ -91,7 +85,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // System Utilities
                 new ItemDefinition
                 {
                     Id = "windows-app-alarms-clock",
@@ -133,7 +126,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Development
                 new ItemDefinition
                 {
                     Id = "windows-app-dev-home",
@@ -146,7 +138,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Communication
                 new ItemDefinition
                 {
                     Id = "windows-app-family-safety",
@@ -188,7 +179,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // System Tools
                 new ItemDefinition
                 {
                     Id = "windows-app-feedback-hub",
@@ -220,7 +210,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Office & Productivity
                 new ItemDefinition
                 {
                     Id = "windows-app-office-hub",
@@ -242,7 +231,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Graphics & Images
                 new ItemDefinition
                 {
                     Id = "windows-app-paint-3d",
@@ -283,7 +271,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Social & People
                 new ItemDefinition
                 {
                     Id = "windows-app-people",
@@ -295,7 +282,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = false
                 },
 
-                // Automation
                 new ItemDefinition
                 {
                     Id = "windows-app-power-automate",
@@ -307,7 +293,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Support Tools
                 new ItemDefinition
                 {
                     Id = "windows-app-quick-assist",
@@ -319,7 +304,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Games & Entertainment
                 new ItemDefinition
                 {
                     Id = "windows-app-solitaire",
@@ -381,7 +365,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Windows Store
                 new ItemDefinition
                 {
                     Id = "windows-app-store",
@@ -393,7 +376,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Media Players
                 new ItemDefinition
                 {
                     Id = "windows-app-media-player",
@@ -425,7 +407,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Productivity Tools
                 new ItemDefinition
                 {
                     Id = "windows-app-sticky-notes",
@@ -466,7 +447,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // Phone Integration
                 new ItemDefinition
                 {
                     Id = "windows-app-phone-link",
@@ -478,7 +458,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = true
                 },
 
-                // AI & Copilot
                 new ItemDefinition
                 {
                     Id = "windows-app-copilot",
@@ -589,7 +568,6 @@ public static class WindowsAppDefinitions
                     CanBeReinstalled = false,
                 },
 
-                // Special Items that require dedicated scripts or carry instability warnings
                 new ItemDefinition
                 {
                     Id = "windows-app-edge",
@@ -623,16 +601,6 @@ public static class WindowsAppDefinitions
                     GroupName = "System",
                     AppxPackageName = ["Microsoft.OneDriveSync"],
                     WinGetPackageId = ["Microsoft.OneDrive"],
-                    // OneDrive isn't an AppX on a clean install (the
-                    // Microsoft.OneDriveSync entry is just a Sync stub) and isn't
-                    // listed on the Microsoft Store either, so Layer 1 and Layer 2a
-                    // both come up empty. Layer 2b sources, in order:
-                    //  1. The OneDrive.ico file Windows leaves in System32 even
-                    //     after the OneDrive client is uninstalled — works for
-                    //     most users including post-debloat installs.
-                    //  2. Wikimedia Commons rasterization of the current (2025+)
-                    //     Microsoft OneDrive brand mark, for users whose
-                    //     debloater removed the .ico file too.
                     CanBeReinstalled = true,
                     RemovalScript = () => OneDriveRemovalScript.GetScript()
                 },

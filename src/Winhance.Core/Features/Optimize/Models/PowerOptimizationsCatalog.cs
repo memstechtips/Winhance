@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -207,9 +206,7 @@ public static class PowerOptimizationsCatalog
                     Label = "Enabled",
                     Roles = new[] { StateRole.WindowsDefault },
                     // Turning hibernation ON is what makes the Start-menu Hibernate entry worth showing, so
-                    // it force-shows it. This Link sat on the DISABLED state until 2026-07-31, i.e. switching
-                    // hibernation OFF force-SHOWED an entry that could no longer do anything. Nothing
-                    // validated the direction; it read backwards from the day it was written.
+                    // it force-shows it. Nothing validates a Link's direction, so keep this on the ENABLED state.
                     Links = new[]
                     {
                         new Link("start-power-hibernate-option", LinkKind.Enables, "Enabled") { ReverseCascade = false, Force = true },

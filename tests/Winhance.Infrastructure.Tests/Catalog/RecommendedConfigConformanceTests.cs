@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -13,23 +9,10 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance: the shipped Recommended config (<c>Winhance_Recommended_Config.winhance</c>) must match the in-app
-/// per-setting Recommended states 1:1. The in-app "Apply Recommended" (<c>RecommendedSettingsApplier</c>) is the
-/// PRIMARY path; the config predates it and is kept-but-redundant, so this invariant guarantees the two never
-/// silently diverge (a config entry that would apply a different state than the app recommends).
-///
-/// Reuses the PRODUCTION recommended primitives - <see cref="CatalogToggleState.GetRecommended"/>,
-/// <c>RecommendedSettingsResolver.BuildPowerCfgApplyValue</c> / <c>GetRecommendedIndex</c> /
-/// <c>HasRecommendedValue</c> - mirroring the applier's per-<see cref="ControlKind"/> dispatch, never a hand-copied
-/// rule table (that second source of truth is exactly what this test exists to prevent). Pure + machine-independent:
-/// reads the catalog and the committed config file only. Recommended roles are build-invariant (all unconditional;
-/// only WindowsDefault is ever build-scoped), so a single fixed build is used - matching the single, non-per-OS
-/// Recommended config file.
-///
-/// Scope: the Customize + Optimize sections ONLY. WindowsApps / ExternalApps are user selections, not recommendations.
-/// Run: dotnet test --filter RecommendedConfigConformance
-/// </summary>
+// The shipped Recommended config must match the in-app per-setting Recommended states 1:1; the in-app applier
+// is the PRIMARY path and the config is kept-but-redundant. Reuses the PRODUCTION primitives, never a hand-copied
+// rule table - a second source of truth is exactly what this prevents. Recommended roles are build-invariant, so
+// one fixed build. Customize + Optimize only. Run: dotnet test --filter RecommendedConfigConformance
 public class RecommendedConfigConformanceTests
 {
     private readonly ITestOutputHelper _output;
@@ -45,7 +28,6 @@ public class RecommendedConfigConformanceTests
     {
         var config = LoadRecommendedConfig();
 
-        // In-scope items: the two settings feature-group sections only (NOT WindowsApps / ExternalApps).
         var items = config.Customize.Features.Values
             .Concat(config.Optimize.Features.Values)
             .SelectMany(section => section.Items)
@@ -55,7 +37,6 @@ public class RecommendedConfigConformanceTests
         var presentCanonicalIds = new HashSet<string>(StringComparer.Ordinal);
         int checkedWithRecommendation = 0;
 
-        // FORWARD: every config item that maps to a setting WITH a recommendation must store the recommended value.
         foreach (var item in items)
         {
             var canonicalId = SettingIdAliases.Normalize(item.Id);
@@ -89,7 +70,6 @@ public class RecommendedConfigConformanceTests
                 $"[missing] recommended setting '{setting.Id}' ({setting.Control}) is absent from the Recommended config.");
         }
 
-        // Guardrails against a vacuous pass (a scoping / deserialization regression).
         Assert.True(items.Count > 100, $"only {items.Count} settings items read from the config - scoping/deserialization bug.");
         Assert.True(checkedWithRecommendation > 50, $"only {checkedWithRecommendation} items had a recommendation to check - population bug.");
 
@@ -113,7 +93,7 @@ public class RecommendedConfigConformanceTests
         switch (setting.Control)
         {
             case ControlKind.Action:
-                return (false, null); // Actions are excluded from Apply-Recommended (Marco, 2026-07-08).
+                return (false, null); // Actions are excluded from Apply-Recommended.
 
             case ControlKind.PowerPlan:
                 // power-plan-selection's recommended plan is owned by PowerPlanActivationService, not a per-setting
@@ -122,7 +102,7 @@ public class RecommendedConfigConformanceTests
 
             case ControlKind.Toggle:
             {
-                var rec = CatalogToggleState.GetRecommended(setting, Build); // bool?
+                var rec = CatalogToggleState.GetRecommended(setting, Build);
                 if (rec is null)
                     return (false, null);
                 if (item.IsSelected != rec)
@@ -132,8 +112,6 @@ public class RecommendedConfigConformanceTests
 
             case ControlKind.Slider:
             {
-                // Numeric sliders are powercfg. BuildPowerCfgApplyValue emits AC/DC in DISPLAY units, but the config
-                // stores SYSTEM units (ConfigExportService writes the raw state.AcValue/DcValue), so convert first.
                 var expected = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                 if (expected is null)
                     return (false, null);
@@ -145,8 +123,6 @@ public class RecommendedConfigConformanceTests
             {
                 var expected = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: true);
                 if (expected is not null)
-                    // powercfg selection: option INDICES (no unit conversion) - separate stored under ACIndex/DCIndex,
-                    // combined stored under SelectedIndex.
                     return (true, CompareSelectionAcDc(expected, item));
 
                 var idx = RecommendedSettingsResolver.GetRecommendedIndex(setting); // registry selection

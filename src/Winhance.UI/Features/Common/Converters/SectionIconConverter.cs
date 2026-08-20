@@ -7,22 +7,10 @@ using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Turns a section's icon resource key into the <see cref="IconElement"/> its card and breadcrumb
-/// show, honouring the suffix convention the resource dictionary already uses:
-///
-/// <list type="bullet">
-/// <item>"…Path" — an SVG path string, rendered as a <see cref="PathIcon"/>.</item>
-/// <item>"…Symbol" — a <see cref="Icon"/> enum member name, rendered as a <see cref="FluentIcon"/>.</item>
-/// </list>
-///
-/// That rule was previously inlined in <c>UpdateContentVisibility</c> on both pages, next to a
-/// per-page dictionary of keys. Having it in one converter is what lets the overview cards be
-/// generated from a template instead of hand-written per section.
-///
-/// Returns null for an unknown or unresolvable key so the card renders without an icon rather than
-/// throwing — a missing icon is a cosmetic fault, and a section page that will not load is not.
-/// </summary>
+// Suffix convention of the resource dictionary: "...Path" = an SVG path string (PathIcon), "...Symbol" = an
+// Icon enum member name (FluentIcon). One converter is what lets the overview cards be generated from a
+// template. Null for an unknown key so the card renders without an icon rather than throwing - a missing icon
+// is cosmetic, a page that will not load is not.
 public sealed partial class SectionIconConverter : IValueConverter
 {
     public object? Convert(object value, Type targetType, object parameter, string language)

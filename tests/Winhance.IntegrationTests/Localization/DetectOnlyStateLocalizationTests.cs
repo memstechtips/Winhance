@@ -7,22 +7,16 @@ using Xunit;
 
 namespace Winhance.IntegrationTests.Localization;
 
-/// <summary>
-/// Option-display keys are normally SOFT: a missing one falls back to the hardcoded English label baked
-/// into the catalog, and plenty are intentionally absent (see LocalizationKeyReferenceTests).
-///
-/// A DETECT-ONLY state is the exception, and that is why this is a hard gate. It has no dropdown item, so
-/// its Setting_{id}_Option_{i} key is the ONLY place its name can come from - the card renders it directly
-/// where the missing item would have been. Miss the key in one language and that language shows the raw
-/// English label with no other string to fall back through; miss it in en.json and every language does.
-/// </summary>
+// Option-display keys are normally SOFT (a missing one falls back to the English label baked into the
+// catalog). A DETECT-ONLY state is the exception: it has no dropdown item, so its Setting_{id}_Option_{i} key is
+// the ONLY place its name can come from - miss it in one language and that language shows the raw English
+// label; miss it in en.json and every language does.
 public class DetectOnlyStateLocalizationTests
 {
     private static readonly string LocalizationFolder =
         Path.Combine(TestContext.SolutionDir, "src", "Winhance.UI", "Features", "Common", "Localization");
 
-    /// <summary>Every (setting, state index) in the shipped catalog whose state is detect-only, crossed with
-    /// every localization file - so a failure names the exact file AND the exact key.</summary>
+    // Every detect-only (setting, state index) crossed with every localization file, so a failure names the exact file AND key.
     public static IEnumerable<object[]> DetectOnlyKeysPerFile()
     {
         var keys = new List<string>();

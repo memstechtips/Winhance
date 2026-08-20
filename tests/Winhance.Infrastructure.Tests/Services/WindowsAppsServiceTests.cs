@@ -36,8 +36,6 @@ public class WindowsAppsServiceTests
         _settingApplicationService.Object,
         _settingStateProvider.Object);
 
-    // --- DomainName ---
-
     [Fact]
     public void DomainName_ReturnsWindowsApps()
     {
@@ -45,8 +43,6 @@ public class WindowsAppsServiceTests
 
         sut.DomainName.Should().Be("WindowsApps");
     }
-
-    // --- GetAppsAsync ---
 
     [Fact]
     public async Task GetAppsAsync_ReturnsNonEmptyList()
@@ -68,8 +64,6 @@ public class WindowsAppsServiceTests
 
         result.Should().OnlyContain(item => !string.IsNullOrEmpty(item.Id));
     }
-
-    // --- InstallAppAsync: success via WinGet ---
 
     [Fact]
     public async Task InstallAppAsync_WinGetSucceeds_ReturnsSuccess()
@@ -115,8 +109,6 @@ public class WindowsAppsServiceTests
         result.Success.Should().BeTrue();
     }
 
-    // --- InstallAppAsync: failure / unsupported ---
-
     [Fact]
     public async Task InstallAppAsync_NoPackageInfo_ReturnsFailed()
     {
@@ -156,12 +148,10 @@ public class WindowsAppsServiceTests
             .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        // User has NOT opted to skip confirmation
         _userPreferencesService
             .Setup(x => x.GetPreferenceAsync("StoreDownloadFallback_DontShowAgain", false))
             .ReturnsAsync(false);
 
-        // User declines fallback dialog
         _dialogService
             .Setup(x => x.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
@@ -193,12 +183,10 @@ public class WindowsAppsServiceTests
             .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
-        // User has previously opted to skip confirmation
         _userPreferencesService
             .Setup(x => x.GetPreferenceAsync("StoreDownloadFallback_DontShowAgain", false))
             .ReturnsAsync(true);
 
-        // Fallback download succeeds
         _storeDownloadService
             .Setup(x => x.DownloadAndInstallPackageAsync(
                 "9NBLGGH4NNS1", "Test App", It.IsAny<CancellationToken>()))
@@ -255,8 +243,6 @@ public class WindowsAppsServiceTests
         result.ErrorMessage.Should().Contain("cancelled");
     }
 
-    // --- CheckBatchInstalledAsync ---
-
     [Fact]
     public async Task CheckBatchInstalledAsync_DelegatesToDiscoveryService()
     {
@@ -282,8 +268,6 @@ public class WindowsAppsServiceTests
         result.Should().BeEquivalentTo(expected);
     }
 
-    // --- InvalidateStatusCache ---
-
     [Fact]
     public void InvalidateStatusCache_DelegatesToDiscoveryService()
     {
@@ -293,8 +277,6 @@ public class WindowsAppsServiceTests
 
         _appStatusDiscoveryService.Verify(x => x.InvalidateCache(), Times.Once);
     }
-
-    // --- GetAppByIdAsync ---
 
     [Fact]
     public async Task GetAppByIdAsync_ExistingApp_ReturnsApp()
@@ -318,8 +300,6 @@ public class WindowsAppsServiceTests
 
         result.Should().BeNull();
     }
-
-    // --- InstallAppAsync with AppxPackageName (no MsStoreId/WinGetPackageId) ---
 
     [Fact]
     public async Task InstallAppAsync_OnlyAppxPackageName_UsesItAsPackageId()

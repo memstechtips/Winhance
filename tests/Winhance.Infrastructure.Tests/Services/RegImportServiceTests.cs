@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,9 +7,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>Tests the OTS-aware .reg-import dance in <see cref="RegImportService"/> (a faithful copy of the old
-/// SettingOperationExecutor reg-import block). Both branches (OTS run-as-interactive-user vs cmd.exe) and the
-/// empty-content short-circuit and temp-file cleanup are covered.</summary>
 public class RegImportServiceTests
 {
     private readonly Mock<IInteractiveUserService> _interactiveUser = new();
@@ -53,7 +46,7 @@ public class RegImportServiceTests
 
         _fileSystem.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), "REGDATA", It.IsAny<CancellationToken>()), Times.Once);
         _processExecutor.Verify(p => p.ExecuteAsync("cmd.exe", It.Is<string>(s => s.Contains("reg import")), It.IsAny<CancellationToken>()), Times.Once);
-        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once); // cleanup in finally
+        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -78,7 +71,7 @@ public class RegImportServiceTests
             It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(),
             It.IsAny<CancellationToken>(), It.IsAny<int>(), It.IsAny<Action<string>?>()), Times.Once);
         _processExecutor.Verify(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once); // cleanup in finally
+        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -92,7 +85,7 @@ public class RegImportServiceTests
 
         var act = async () => await _sut.RunRegImportAsync("REGDATA");
 
-        await act.Should().ThrowAsync<IOException>(); // exception propagates (old apply rethrows)
-        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once); // finally still cleans up
+        await act.Should().ThrowAsync<IOException>();
+        _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once);
     }
 }

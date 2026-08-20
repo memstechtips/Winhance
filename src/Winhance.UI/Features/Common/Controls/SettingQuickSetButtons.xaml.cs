@@ -6,8 +6,7 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>Which family of quick-set commands this pair drives. The commands differ per control type as
-/// well as per power mode, and both axes are resolved on the view model.</summary>
+// The commands differ per control type as well as per power mode; both axes are resolved on the view model.
 public enum SettingQuickSetKind
 {
     Toggle,
@@ -15,10 +14,6 @@ public enum SettingQuickSetKind
     Numeric,
 }
 
-/// <summary>
-/// Code-behind for <see cref="SettingQuickSetButtons"/>. Resolves (kind x mode) into the concrete command,
-/// tooltip and automation name through the view model, so the markup stays one declaration.
-/// </summary>
 public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropertyChanged
 {
     public SettingQuickSetButtons()
@@ -56,8 +51,6 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         get => (SettingQuickSetKind)GetValue(KindProperty);
         set => SetValue(KindProperty, value);
     }
-
-    // --- Projected, bindable ---------------------------------------------------------------------
 
     public Visibility ButtonsVisibility { get; private set; } = Visibility.Collapsed;
     public IRelayCommand? RecommendedCommand { get; private set; }
@@ -142,7 +135,6 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         nameof(RecommendedTooltip), nameof(DefaultTooltip),
         nameof(RecommendedAutomationName), nameof(DefaultAutomationName));
 
-    // --- INotifyPropertyChanged -------------------------------------------------------------------
     // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
     // at least one of their steps to support raising notifications") and the bindings only refresh
     // because something calls Bindings.Update() by hand - which is easy to forget when adding a

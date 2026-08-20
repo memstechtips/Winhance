@@ -25,7 +25,6 @@ public class ChocolateyServiceTests
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] args) => string.Format(key, args));
 
-        // By default, choco.exe is NOT found
         _mockFileSystem
             .Setup(f => f.FileExists(It.IsAny<string>()))
             .Returns(false);
@@ -40,8 +39,6 @@ public class ChocolateyServiceTests
             _mockProcessExecutor.Object,
             _mockFileSystem.Object);
     }
-
-    // ── IsChocolateyInstalledAsync ──
 
     [Fact]
     public async Task IsChocolateyInstalledAsync_WhenChocoNotFound_ReturnsFalse()
@@ -78,10 +75,7 @@ public class ChocolateyServiceTests
         var second = await _sut.IsChocolateyInstalledAsync();
 
         first.Should().Be(second);
-        // FileExists should only be called during the first check (caching)
     }
-
-    // ── InstallChocolateyAsync ──
 
     [Fact]
     public async Task InstallChocolateyAsync_WhenAlreadyInstalled_ReturnsTrueWithoutExecuting()
@@ -133,8 +127,6 @@ public class ChocolateyServiceTests
         result.Should().BeFalse();
         _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Failed to install Chocolatey"))), Times.Once);
     }
-
-    // ── InstallPackageAsync ──
 
     [Fact]
     public async Task InstallPackageAsync_WhenChocoNotFound_ReturnsFalse()
@@ -199,8 +191,6 @@ public class ChocolateyServiceTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    // ── UninstallPackageAsync ──
-
     [Fact]
     public async Task UninstallPackageAsync_WhenChocoNotFound_ReturnsFalse()
     {
@@ -235,8 +225,6 @@ public class ChocolateyServiceTests
 
         result.Should().BeTrue();
     }
-
-    // ── GetInstalledPackageIdsAsync ──
 
     [Fact]
     public async Task GetInstalledPackageIdsAsync_WhenChocoNotFound_ReturnsEmptySet()

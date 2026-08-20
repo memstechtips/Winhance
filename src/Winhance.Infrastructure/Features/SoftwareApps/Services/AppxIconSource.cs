@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using Windows.Foundation;
 using Windows.Management.Deployment;
@@ -16,7 +10,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 // `Package` type would clash with NuGet/MSBuild concepts elsewhere in the project. The
 // `Package` references below are fully qualified for that reason.
 
-public class AppxIconSource(ILogService logService) : IAppxIconSource
+internal class AppxIconSource(ILogService logService) : IAppxIconSource
 {
     // Snapshot of packages keyed by FullName. Populated by GetInstalledPackageMapAsync;
     // consumed by GetLogoStreamAsync to avoid re-enumerating PackageManager per icon
@@ -40,7 +34,6 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
     public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)
     {
-        // Fast path: cached snapshot from a prior call this session.
         var cached = _cachedMap;
         if (cached is not null)
             return cached;
@@ -207,7 +200,7 @@ public class AppxIconSource(ILogService logService) : IAppxIconSource
                     return p;
             }
         }
-        catch { /* best-effort */ }
+        catch { }
 
         return null;
     }

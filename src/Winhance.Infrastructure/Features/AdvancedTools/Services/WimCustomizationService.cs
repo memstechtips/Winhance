@@ -1,14 +1,10 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public class WimCustomizationService : IWimCustomizationService
+internal class WimCustomizationService : IWimCustomizationService
 {
     private readonly IFileSystemService _fileSystemService;
     private readonly ILogService _logService;

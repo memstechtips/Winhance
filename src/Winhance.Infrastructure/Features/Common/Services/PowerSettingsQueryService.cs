@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
+internal class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
     private volatile List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
@@ -119,7 +119,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
     {
         uint bufferSize = 0;
         // First call to get size
-        PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
+        _ = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
 
         if (bufferSize == 0) return "Unknown Power Plan";
 
@@ -224,7 +224,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
                 if (schemeGuid == Guid.Empty) return results;
 
-                // Enumerate Subgroups
                 uint subIndex = 0;
                 uint bufferSize = 16;
                 IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
@@ -241,7 +240,6 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                             Marshal.Copy(buffer, subBytes, 0, 16);
                             var subGuid = new Guid(subBytes);
 
-                            // Enumerate Settings in Subgroup
                             uint setIndex = 0;
                             uint setBufferSize = 16;
                             IntPtr setBuffer = Marshal.AllocHGlobal((int)setBufferSize);
@@ -349,9 +347,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    /// <summary>Catalog overload: the coming CatalogPowerExistenceFilter has a PowerCfgTarget (subgroup + setting
-    /// GUID), not a PowerCfgSetting. Reuses the existing capability check; the transient PowerCfgSetting is an
-    /// argument-holder only (its RecommendedValue*/DefaultValue* are unused by the capability query).</summary>
+    // The transient PowerCfgSetting is an argument-holder only; its Recommended/Default values are unused by the capability query.
     public Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid)
         => IsSettingHardwareControlledAsync(new PowerCfgSetting
         {

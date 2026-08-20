@@ -1,24 +1,17 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
-/// <summary>The live detection context: the real Windows reads behind <see cref="IDetectionContext"/>, so the
-/// detection engine can read a machine. Registry, DNS, build and system-restore reads delegate straight through;
-/// the asynchronous reads (scheduled tasks, powercfg values, the active power plan) are pre-fetched per batch by
-/// <see cref="PrefetchAsync"/> and then served synchronously from a cache, keeping the engine and detectors
-/// synchronous. One instance per detection batch - it holds that batch's pre-fetch cache.</summary>
-public sealed class SystemDetectionContext : IPrefetchableDetectionContext
+// One instance per detection batch - it holds that batch's pre-fetch cache.
+internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
 {
     private readonly IWindowsRegistryService _reg;
     private readonly ISystemRestoreService _restore;
-    private readonly IScheduledTaskService _tasks;
+    private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerSettingsQueryService _power;
     private readonly ILogService _log;
 
@@ -33,7 +26,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     public SystemDetectionContext(
         IWindowsRegistryService reg,
         ISystemRestoreService restore,
-        IScheduledTaskService tasks,
+        IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
         ILogService log)
     {
@@ -87,10 +80,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 
-    /// <summary>Mirrors UpdateService.AreCriticalDllsRenamed: the update-policy Disabled state is enforced by renaming
-    /// the two critical DLLs to "_BAK" backups, so it reads as "a _BAK backup exists AND the live DLL is gone". A thin
-    /// direct filesystem read (like the network/registry reads above) - the throwaway/test contexts inherit the false
-    /// default from IDetectionContext, so only this live context touches disk.</summary>
+    // The Disabled update-policy state renames the two critical DLLs to _BAK, so this reads as "a _BAK backup
+    // exists AND the live DLL is gone".
     public bool CriticalUpdateDllsRenamed()
     {
         foreach (var dll in new[] { "WaaSMedicSvc.dll", "wuaueng.dll" })
@@ -122,7 +113,6 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             return null;
         }
 
-        // A setting absent from the active scheme's read set reads as not present.
         if (!_powerCache.TryGetValue(settingGuid, out var values))
             return null;
 
@@ -157,7 +147,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
     {
         var build = CurrentBuild;
 
-        // Scheduled tasks: read every distinct live task path in parallel; cache enabled / disabled / null (absent).
+        // One connection for every task path: a per-path read opens its own out-of-process Schedule.Service
+        // instance, so a page navigation would activate N at once. Cache holds enabled / disabled / absent.
         var taskPaths = settings
             .SelectMany(s => LiveTargets(s, build).OfType<TaskTarget>())
             .Select(t => t.TaskPath)
@@ -165,10 +156,8 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             .ToList();
         if (taskPaths.Count > 0)
         {
-            var read = await Task.WhenAll(taskPaths.Select(async path =>
-                new KeyValuePair<string, bool?>(path, await _tasks.IsTaskEnabledAsync(path).ConfigureAwait(false))))
-                .ConfigureAwait(false);
-            _taskCache = new Dictionary<string, bool?>(read);
+            var read = await Task.Run(() => _tasks.GetTasksEnabled(taskPaths)).ConfigureAwait(false);
+            _taskCache = new Dictionary<string, bool?>(read, StringComparer.OrdinalIgnoreCase);
         }
 
         // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. PowerCfgValue
@@ -190,10 +179,7 @@ public sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
 
             var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            // The dropdown list (predefined plans incl. not-installed, localized labels, custom plans, sorted)
-            // in GUID-valued shape.
             _installedPlans = PowerPlanOptions.Build(plans);
-            // The active plan's RAW OS name (availablePlans.FirstOrDefault(IsActive).Name).
             _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
 
             _planPrefetched = true;

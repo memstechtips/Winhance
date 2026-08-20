@@ -1,5 +1,5 @@
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
 using Winhance.Core.Features.Common.Services;
@@ -8,10 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Custom program entry point for single-instance enforcement using AppLifecycle API.
-/// This runs BEFORE WinUI 3 initialization to redirect duplicate instances.
-/// </summary>
+// Runs BEFORE WinUI 3 initialization to redirect duplicate instances.
 public static class Program
 {
     private const string AppKey = "Winhance-SingleInstance-Key";
@@ -26,7 +23,6 @@ public static class Program
             StartupLogger.Log("Program", $"CurrentDirectory: {Environment.CurrentDirectory}");
             StartupLogger.Log("Program", $"BaseDirectory: {AppContext.BaseDirectory}");
 
-            // Handle single-instance BEFORE any WinUI 3 initialization
             StartupLogger.Log("Program", "Checking single instance...");
             if (!HandleSingleInstance())
             {
@@ -35,12 +31,10 @@ public static class Program
             }
             StartupLogger.Log("Program", "Single instance check passed");
 
-            // This is the first (or only) instance - proceed with normal WinUI 3 startup
             StartupLogger.Log("Program", "Initializing COM wrappers...");
             WinRT.ComWrappersSupport.InitializeComWrappers();
             StartupLogger.Log("Program", "COM wrappers initialized");
 
-            // Initialize the WinUI 3 application
             StartupLogger.Log("Program", "Starting WinUI 3 Application.Start...");
             Microsoft.UI.Xaml.Application.Start(p =>
             {
@@ -60,33 +54,22 @@ public static class Program
         }
     }
 
-    /// <summary>
-    /// Handles single-instance enforcement using AppLifecycle API.
-    /// </summary>
-    /// <returns>True if this is the first instance and should continue, false if another instance is running.</returns>
     private static bool HandleSingleInstance()
     {
-        // Declare this instance with a unique key
         var keyInstance = AppInstance.FindOrRegisterForKey(AppKey);
 
         if (!keyInstance.IsCurrent)
         {
-            // Another instance owns this key - redirect to it
             RedirectActivationTo(keyInstance);
             return false;
         }
 
-        // This is the first instance - register for activation from other instances
         keyInstance.Activated += OnActivated;
         return true;
     }
 
-    /// <summary>
-    /// Redirects activation to an existing instance.
-    /// </summary>
     private static void RedirectActivationTo(AppInstance keyInstance)
     {
-        // Get activation args and redirect to existing instance
         var args = AppInstance.GetCurrent().GetActivatedEventArgs();
 
         // Run redirection on background thread (required for STA compliance)
@@ -96,13 +79,9 @@ public static class Program
         });
         redirectTask.Wait();
 
-        // Bring existing window to foreground using reliable Win32 approach
         ActivateExistingWindow(keyInstance);
     }
 
-    /// <summary>
-    /// Brings the existing instance's main window to the foreground.
-    /// </summary>
     private static void ActivateExistingWindow(AppInstance keyInstance)
     {
         try
@@ -123,19 +102,15 @@ public static class Program
                 PInvoke.SetForegroundWindow(hwnd);
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is ArgumentException or Win32Exception)
         {
-            // Process may have exited - ignore gracefully
+            // The other instance is gone (or the process list was unreadable); nothing to bring forward.
         }
     }
 
-    /// <summary>
-    /// Handles activation from redirected instances.
-    /// </summary>
     private static void OnActivated(object? sender, AppActivationArguments args)
     {
         // This runs on the main instance when another instance redirects
         // The window is already being brought to foreground by the other instance
-        // Additional handling can be added here if needed (e.g., process command line args)
     }
 }

@@ -8,7 +8,6 @@
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
-    <!-- Resources are now defined in SettingTemplates.xaml -->
 
     <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>

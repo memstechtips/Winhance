@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Enums;
@@ -7,7 +6,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class WindowsUIManagementService : IWindowsUIManagementService
+internal class WindowsUIManagementService : IWindowsUIManagementService
 {
     // The shell's taskbar window class. Its presence IS the definition of "a shell is running", and it is
     // the window the graceful-exit message is posted to.
@@ -18,7 +17,7 @@ public class WindowsUIManagementService : IWindowsUIManagementService
 
     public WindowsUIManagementService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
     }
 
     public bool IsProcessRunning(string processName)
@@ -101,7 +100,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public bool IsShellWindowAlive()
     {
         try
@@ -117,7 +115,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public bool TryGracefulShellExit(int timeoutMs)
     {
         var deadline = Environment.TickCount64 + timeoutMs;
@@ -179,7 +176,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public void BroadcastShellRefresh()
     {
         try
@@ -197,7 +193,6 @@ public class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    /// <inheritdoc />
     public void BroadcastThemeRefresh()
     {
         try
@@ -216,7 +211,7 @@ public class WindowsUIManagementService : IWindowsUIManagementService
             {
                 // MUST STAY SYNCHRONOUS. lParam is a pointer to the string above and the finally below frees
                 // it, so an asynchronous send would return before the receivers had read it and they would read
-                // freed memory. Only the per-window timeout is reduced (1000ms -> 100ms); SMTO_ABORTIFHUNG stays.
+                // freed memory.
                 //
                 // THIS CALL IS THE COST. SendMessageTimeout charges its timeout PER TOP-LEVEL WINDOW on a
                 // broadcast (Microsoft docs: "if you specify a five second time-out period and there are three

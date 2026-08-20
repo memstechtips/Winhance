@@ -2,10 +2,7 @@ using Microsoft.UI.Xaml;
 
 namespace Winhance.UI.Features.Common.Resources;
 
-/// <summary>
-/// ResourceDictionary with code-behind to enable x:Bind in DataTemplates.
-/// This pattern is used by WinUI Gallery and is officially supported by Microsoft.
-/// </summary>
+// Code-behind so x:Bind works inside DataTemplates (the WinUI Gallery pattern).
 public sealed partial class SettingTemplates : ResourceDictionary
 {
     public SettingTemplates()

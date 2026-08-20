@@ -33,7 +33,6 @@ public class AppxPackageSourceTests
         var result = await _service.GetInstalledPackageNamesAsync();
 
         result.Should().NotBeNull();
-        // Verify the comparer is case-insensitive
         result.Comparer.Should().Be(StringComparer.OrdinalIgnoreCase);
     }
 

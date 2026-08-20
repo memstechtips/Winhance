@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -16,9 +13,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
-/// <summary>
-/// WIM Utility page for creating custom Windows installation images.
-/// </summary>
 public sealed partial class WimUtilPage : Page
 {
     private readonly ILocalizationService? _localizationService;
@@ -50,13 +44,6 @@ public sealed partial class WimUtilPage : Page
     {
         base.OnNavigatedTo(e);
 
-        // Set main window reference for file dialogs
-        if (App.MainWindow != null)
-        {
-            ViewModel.SetMainWindow(App.MainWindow);
-        }
-
-        // Initialize the ViewModel
         await ViewModel.OnNavigatedToAsync();
 
         // Live-region announcements when wizard action cards transition state (issue #647).

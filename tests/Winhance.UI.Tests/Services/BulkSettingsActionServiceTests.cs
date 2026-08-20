@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Models;
@@ -18,12 +13,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="BulkSettingsActionService"/> Apply Recommended / Reset to Default on
-/// Selection settings, plus round-trip agreement with <see cref="SettingItemViewModel"/> badge
-/// state. These lock in the wiring that reads Recommended/WindowsDefault roles from the catalog
-/// Setting's States.
-/// </summary>
 public class BulkSettingsActionServiceTests
 {
     private const string TestSettingId = "test-selection";
@@ -83,7 +72,6 @@ public class BulkSettingsActionServiceTests
                 {
                     if (s.Control == ControlKind.Selection)
                     {
-                        // Find the Recommended-role state index.
                         int recIdx = -1;
                         for (int i = 0; i < s.States.Count; i++)
                             if (s.States[i].HasRole(RoleKind.Recommended)) { recIdx = i; break; }
@@ -138,8 +126,6 @@ public class BulkSettingsActionServiceTests
         };
     }
 
-    // ── Apply / Reset: direct service behavior ──
-
     [Fact]
     public async Task ApplyRecommended_Selection_WritesRecommendedIndex()
     {
@@ -192,15 +178,12 @@ public class BulkSettingsActionServiceTests
             Times.Once);
     }
 
-    // ── Round-trip: apply service + SettingItemViewModel.ComputeBadgeState() agree ──
-
     [Fact]
     public async Task ApplyRecommended_Selection_RoundTrip_ViewModelShowsRecommendedBadge()
     {
         var setting = MakeSelectionSetting(recommendedIndex: 1, defaultIndex: 0);
         var sut = CreateSut(setting);
 
-        // Capture the Value the apply service writes.
         object? writtenValue = null;
         _applicationService
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
@@ -250,8 +233,6 @@ public class BulkSettingsActionServiceTests
                      "must agree that the effective selection matches Default.");
     }
 
-    // ── SettingItemViewModel construction helper (mirrors SettingItemViewModelTests) ──
-
     private static SettingItemViewModel CreateSettingItemViewModel(Setting setting)
     {
         var dispatcher = new Mock<IDispatcherService>();
@@ -289,7 +270,6 @@ public class BulkSettingsActionServiceTests
             dispatcher.Object,
             dialogService.Object,
             localization.Object,
-            new Mock<IEventBus>().Object,
             new Mock<IUserPreferencesService>().Object,
             new Mock<IRegeditLauncher>().Object);
     }

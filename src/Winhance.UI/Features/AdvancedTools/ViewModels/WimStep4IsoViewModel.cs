@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
@@ -13,9 +10,6 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM Utility Step 4: oscdimg download, output path selection, and ISO creation.
-/// </summary>
 public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
 {
     private readonly IOscdimgToolManager _oscdimgToolManager;
@@ -30,9 +24,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     private readonly IResourceService _resourceService;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -285,6 +276,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
 }

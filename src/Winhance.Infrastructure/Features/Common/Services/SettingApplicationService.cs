@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -11,13 +7,11 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
-
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SettingApplicationService(
+internal class SettingApplicationService(
     ICatalogSettingsRegistry settingsRegistry,
     ISpecialSettingHandlerRegistry specialHandlerRegistry,
     ILogService logService,
@@ -28,45 +22,15 @@ public class SettingApplicationService(
     ILocalizationService localizationService,
     IHardwareDetectionService hardwareDetectionService,
     IStateWriter stateWriter,
+    IAsyncEffectRunner asyncEffectRunner,
     IWindowsVersionService windowsVersionService,
     ICatalogDetectionService catalogDetection,
     ICatalogSettingStateProvider settingStateProvider,
     IConfigImportState configImportState) : ISettingApplicationService
 {
-    // Battery presence doesn't change mid-session, so resolve it once and cache. The async
-    // detection is awaited inside ApplySettingAsync (already async-adjacent to the receipt flow)
-    // and stored here so the synchronous formatters can consult it. Fail OPEN: a detection failure
-    // defaults to true (render BOTH AC and DC — more information, never a phantom suppression).
-    private bool? _hasBatteryCache;
-
-    private async Task<bool> GetHasBatteryAsync()
-    {
-        if (_hasBatteryCache.HasValue)
-            return _hasBatteryCache.Value;
-
-        try
-        {
-            _hasBatteryCache = await hardwareDetectionService.HasBatteryAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Debug, $"[SettingApplicationService] Battery detection failed, defaulting to true (render both AC/DC): {ex.Message}");
-            _hasBatteryCache = true;
-        }
-
-        return _hasBatteryCache.Value;
-    }
-
-    // The live Windows build, threaded into ApplyRequestResolver.Resolve / ResolveTargetLabel to gate
-    // ApplyPlanBuilder's per-target AppliesTo. Same source the config build-gating uses.
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
-    /// <summary>Apply a setting's operations through the catalog engine: <see cref="ApplyRequestResolver"/> resolves
-    /// the request to a plan and <see cref="ApplyExecutor"/> runs it against the live <see cref="IStateWriter"/>.
-    /// Resolve is TOTAL for every reachable request shape (proven by ResolveTotalityAuditTests), so a null plan can
-    /// only be an un-audited/unreachable shape - it is logged and returned as a failed OperationResult rather than
-    /// silently applied.</summary>
     private async Task<OperationResult> ApplyOperationsAsync(Setting setting, bool enable, object? value, bool resetToDefault)
     {
         // Pass the LIVE Windows build so ApplyPlanBuilder emits only the targets gated to this OS
@@ -84,17 +48,24 @@ public class SettingApplicationService(
             return OperationResult.Failed(nullPlanMessage);
         }
 
-        var result = ApplyExecutor.Execute(plan, stateWriter);
+        var applyPlan = ApplyPlan.From(plan);
+        var result = ApplyExecutor.Execute(applyPlan, stateWriter);
+
+        // Awaited before the restarts below, so a script's writes are in place when Explorer restarts.
+        var deferredFailures = await asyncEffectRunner.RunAllAsync(applyPlan.AsyncEffects).ConfigureAwait(false);
 
         // The apply engine performs no process/service restarts, so run them here explicitly - so a setting
         // that restarts Explorer/a service on apply still takes visual effect. This respects an active
         // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart.
         await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
-        if (result.AllSucceeded)
+        if (result.AllSucceeded && deferredFailures.Count == 0)
             return OperationResult.Succeeded();
 
-        var message = $"{result.Failed}/{result.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", result.Failures)}";
+        var allFailures = deferredFailures.Count == 0
+            ? result.Failures
+            : result.Failures.Concat(deferredFailures).ToList();
+        var message = $"{result.Failed + deferredFailures.Count}/{applyPlan.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", allFailures)}";
         logService.Log(LogLevel.Warning, $"[SettingApplicationService] {message}");
         return OperationResult.Failed(message);
     }
@@ -145,12 +116,12 @@ public class SettingApplicationService(
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE any relationship follow-on / nested applies run so they don't mutate the read.
-        // Resolve battery presence once here (cached, async-adjacent) so the synchronous formatters
-        // can render AC-only on battery-less machines and before/after CANNOT disagree.
+        // One read for both halves of the receipt, so before/after CANNOT disagree. Unknown battery state
+        // renders BOTH AC and DC - more information beats silently hiding the DC half.
         string? beforeDisplay = null;
         if (setting.Control != ControlKind.Action)
         {
-            var hasBattery = await GetHasBatteryAsync().ConfigureAwait(false);
+            var hasBattery = hardwareDetectionService.HasBattery() ?? true;
             try
             {
                 // The full-state provider reads the complete before-state incl. the typed AC/DC, consistent with
@@ -196,9 +167,6 @@ public class SettingApplicationService(
             using (processRestartManager.SuppressRestarts())
             {
                 operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-                // The recommended applier returns catalog Settings, so the coalesced restart set is built from
-                // Settings. The primary Action's restart targets come from its catalog Setting (renderSetting =
-                // Find(settingId)); the Setting-taking flush overload reads the unified ApplyBehavior.Restart.
                 if (renderSetting != null) toRestart.Add(renderSetting);
 
                 var recApplied = await recommendedSettingsApplier
@@ -286,10 +254,7 @@ public class SettingApplicationService(
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
-    /// <summary>True when a power-plan apply value identifies the Winhance Power Plan.
-    /// The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary
-    /// (ConfigurationApplicationBridgeService). Both forms route through the shared
-    /// <see cref="PowerPlanCatalog.IsWinhancePowerPlan"/> check.</summary>
+    // The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary.
     private static bool IsWinhancePowerPlanValue(object? value) => value switch
     {
         string guid => PowerPlanCatalog.IsWinhancePowerPlan(guid),
@@ -299,20 +264,14 @@ public class SettingApplicationService(
         _ => false,
     };
 
-    /// <summary>
-    /// The state label the catalog setting was just moved into, derived the same way
-    /// <see cref="ApplyRequestResolver"/> derives the apply label. Toggle/CheckBox -> "Enabled"/"Disabled";
-    /// Selection -> the catalog state label at the applied option index; resetToDefault -> the WindowsDefault
-    /// state's label. Returns null when the label cannot be derived (non-index selection value, or no
-    /// WindowsDefault state) so the caller skips relationship resolution rather than guessing.
-    /// </summary>
+    // Null when the label cannot be derived (non-index selection value, no WindowsDefault state), so the caller
+    // skips relationship resolution rather than guessing.
     private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault, WinBuild build)
     {
         if (resetToDefault)
             // Build-aware so a merged setting's OS-divergent WindowsDefault resolves for the live OS (see ApplyRequestResolver).
             return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
 
-        // A two-state Enabled/Disabled target is a toggle/check-box; map enable straight to its label.
         bool isToggle = setting.States.Any(s => s.Label == "Enabled") && setting.States.Any(s => s.Label == "Disabled");
         if (isToggle)
             return enable ? "Enabled" : "Disabled";
@@ -326,14 +285,8 @@ public class SettingApplicationService(
         return null;
     }
 
-    /// <summary>
-    /// Runs a paired setting's relationships through the <see cref="RelationshipResolver"/>
-    /// engine AFTER the main apply. Resolves forward (Requires/Enables + the target state's Controls), reverse
-    /// parent-sync, and reverse cascade-disable, then applies each follow-on as a LEAF
-    /// (SkipValuePrerequisites = true) so it triggers no further cascade. A shared visited set + self-skip
-    /// prevents loops. Current state is read once from the detection engine and served synchronously to the
-    /// pure resolvers.
-    /// </summary>
+    // Each follow-on is applied as a LEAF (SkipValuePrerequisites = true) so it triggers no further cascade; a
+    // shared visited set + self-skip prevents loops.
     private async Task ApplyCatalogRelationshipsAsync(Setting setting, string? targetLabel)
     {
         if (targetLabel is null)
@@ -353,9 +306,6 @@ public class SettingApplicationService(
         //                           it then reads that parent and every child its states Control.
         //   ResolveReverseCascade - a dependent can only act when one of its states declares
         //                           Requires(this id, ReverseCascade: true).
-        //
-        // What this replaces was correct but detected all 414 settings after EVERY interactive apply, which
-        // is why power plans and system restore appear in the log while the user is on the Taskbar page.
         var syncParents = SettingCatalog.All
             .Where(p => p.States.Any(st => st.Controls?.ContainsKey(setting.Id) == true))
             .ToList();
@@ -376,9 +326,8 @@ public class SettingApplicationService(
         // across 414 settings, so most applies stop here having read nothing.
         if (!forwardPossible && syncParents.Count == 0 && cascadeDependents.Count == 0)
         {
-            // SAY SO. This path used to return in silence, which made the scoping fix - the one that
-            // stopped every interactive apply detecting all 414 settings - invisible and unverifiable
-            // from a user's log.
+            // SAY SO: a silent return here would make the scoping (skipping detection for unrelated applies)
+            // invisible and unverifiable from a user's log.
             logService.Log(LogLevel.Debug,
                 $"[SettingApplicationService] Relationship scope for '{setting.Id}': 0 related settings - detection skipped");
             return;
@@ -466,16 +415,8 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>
-    /// Maps a relationship <c>ApplyAction</c> (target id + desired state label) into an
-    /// <see cref="ApplySettingRequest"/>. The follow-on is always a LEAF (SkipValuePrerequisites = true) so it
-    /// performs no further cascade. A two-state
-    /// Enabled/Disabled target maps the label to Enable; a selection maps the label to the option index (the
-    /// state index, which equals the ComboBox option index by construction). Returns null (logged) when the
-    /// target setting is missing or has no state with that label, so a bad relationship is skipped, never thrown.
-    /// A reverse-cascade action passes <paramref name="isReset"/> = true, so the follow-on applies with
-    /// ResetToDefault = true (deleting a [1,null] target via its ResetSet).
-    /// </summary>
+    // A follow-on is always a LEAF. Null (logged) when the target is missing or has no state with that label - a bad
+    // relationship is skipped, never thrown. State index == ComboBox option index by construction.
     private ApplySettingRequest? ToRequest(string targetId, string label, bool isReset)
     {
         var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
@@ -525,10 +466,9 @@ public class SettingApplicationService(
                 return;
             }
 
-            // Battery flag was resolved in ApplySettingAsync's before-capture block for every
-            // non-Action setting (and Action never hits the AC/DC formatting below). A null cache
-            // means detection never ran for this path — fail open to rendering both components.
-            var hasBattery = _hasBatteryCache ?? true;
+            // Same read as the before-capture block above. The service caches, so before and after
+            // cannot disagree; unknown renders both components.
+            var hasBattery = hardwareDetectionService.HasBattery() ?? true;
             var after = FormatStateDisplay(setting, enable, value, hasBattery);
             var before = beforeDisplay ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
             if (before == after)
@@ -542,18 +482,11 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>Returns the localized string, or null when the key is missing.</summary>
     private string? ResolveLocalized(string key) =>
         localizationService.TryGetString(key, out var value) ? value : null;
 
-    /// <summary>
-    /// Resolves a Selection option index to a human-readable label, mirroring the UI exactly
-    /// (<c>SettingLocalizationService</c>): a per-option <c>DisplayName</c> that is itself a
-    /// localization key (e.g. power settings' <c>Template_*</c> / <c>PowerPlan_*</c> keys) is
-    /// localized verbatim; otherwise the per-setting <c>Setting_{id}_Option_{index}</c> key is
-    /// used, with the raw <c>DisplayName</c> as the final fallback. Out-of-range indices resolve
-    /// to the localized "Custom" state.
-    /// </summary>
+    // Mirrors SettingLocalizationService: a DisplayName that is itself a key (Template_* / PowerPlan_*) is localized
+    // verbatim; otherwise Setting_{id}_Option_{index}, with the raw DisplayName as the final fallback.
     private string GetOptionLabel(Setting setting, int index)
     {
         if (index < 0 || index >= setting.States.Count)
@@ -566,10 +499,7 @@ public class SettingApplicationService(
         return ResolveLocalized(key) ?? dn;
     }
 
-    /// <summary>
-    /// Best-effort conversion of a JSON-sourced numeric (may be <see cref="long"/>/<see cref="double"/>)
-    /// to an int. Returns null when the value isn't numeric.
-    /// </summary>
+    // A JSON-sourced numeric may box as long or double.
     private static int? TryToInt(object? value)
     {
         if (value == null) return null;
@@ -601,10 +531,10 @@ public class SettingApplicationService(
 
                     // Separate AC/DC option indices (UI quick-set path). JSON sources may box these
                     // as long/double, so coerce defensively.
-                    if (dict.ContainsKey("ACValue") && dict.ContainsKey("DCValue"))
+                    if (dict.TryGetValue("ACValue", out var acRaw) && dict.TryGetValue("DCValue", out var dcRaw))
                     {
-                        var acInt = TryToInt(dict["ACValue"]);
-                        var dcInt = TryToInt(dict["DCValue"]);
+                        var acInt = TryToInt(acRaw);
+                        var dcInt = TryToInt(dcRaw);
                         if (acInt.HasValue && dcInt.HasValue)
                             return ComposeAcDc(GetOptionLabel(setting, acInt.Value), GetOptionLabel(setting, dcInt.Value), hasBattery);
                     }
@@ -614,8 +544,8 @@ public class SettingApplicationService(
                 return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
 
             case ControlKind.Slider:
-                // After-values are display units (the bridge fix converts on import; UI/recommended
-                // paths already supply display units) — render as-is, with unit suffix when available.
+                // After-values are display units (the config bridge converts on import; UI/recommended paths already
+                // supply display units) — render as-is, with unit suffix when available.
                 if (value is Dictionary<string, object?> acdcNum
                     && acdcNum.TryGetValue("ACValue", out var acNum)
                     && acdcNum.TryGetValue("DCValue", out var dcNum)
@@ -636,22 +566,11 @@ public class SettingApplicationService(
         }
     }
 
-    /// <summary>
-    /// Formats the pre-apply state for the change-history receipt. For PowerCfg Separate
-    /// NumericRange settings, <see cref="SettingStateResult.CurrentValue"/> isn't a usable AC/DC
-    /// pair and the typed <see cref="SettingStateResult.AcValue"/>/<see cref="SettingStateResult.DcValue"/>
-    /// are SYSTEM units (e.g. seconds) — convert them to display units so the "before" matches the
-    /// "after" rendering exactly (same <c>AC: x, DC: y</c> shape), keeping no-op detection working.
-    /// PowerCfg Separate Selection settings get the same treatment: <c>CurrentValue</c> is a single
-    /// AC-only option index, so the raw AC/DC system values are each mapped to an option index and
-    /// rendered to match the config-import after-format byte-for-byte. On battery-less machines the
-    /// DC component is omitted entirely (see <see cref="ComposeAcDc"/>) so before and after agree.
-    /// All other settings defer to <see cref="FormatStateDisplay"/>.
-    /// </summary>
+    // For PowerCfg Separate settings CurrentValue isn't a usable AC/DC pair: the typed AcValue/DcValue are SYSTEM
+    // units, converted here to display units so "before" matches the "after" rendering byte-for-byte (which keeps
+    // no-op detection working). On battery-less machines the DC component is omitted so before and after agree.
     private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
-        // Read AC/DC from the typed fields (threaded onto the before-state at the provider read).
-        // These are SYSTEM PowerCfg values (an enum/code), not option indices.
         int? acInt = state.AcValue;
         int? dcInt = state.DcValue;
 
@@ -685,20 +604,11 @@ public class SettingApplicationService(
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
 
-    /// <summary>
-    /// Composes an AC/DC receipt fragment. On battery-less machines (<paramref name="hasBattery"/> is
-    /// false) only the AC component is shown — the DC half is never written by PowerCfgApplier there,
-    /// so rendering it would be a phantom. With a battery present, both halves render as before.
-    /// </summary>
+    // On battery-less machines only AC is shown - the DC half is never written by PowerCfgApplier there, so
+    // rendering it would be a phantom.
     private static string ComposeAcDc(string ac, string dc, bool hasBattery) =>
         hasBattery ? $"AC: {ac}, DC: {dc}" : $"AC: {ac}";
 
-    /// <summary>
-    /// Formats a PowerCfg NumericRange AC/DC value pair with a localized unit suffix per value.
-    /// Mirrors <c>SettingLocalizationService.LocalizeUnits</c> so the receipt matches what the UI
-    /// displays on the slider.  When the unit string is null/empty the pair renders without a suffix.
-    /// On battery-less machines only the AC value renders (no phantom DC component).
-    /// </summary>
     private string FormatPowerNumeric(string? units, object? ac, object? dc, bool hasBattery)
     {
         var localizedUnit = LocalizeUnit(units);
@@ -707,11 +617,6 @@ public class SettingApplicationService(
         return ComposeAcDc($"{ac} {localizedUnit}", $"{dc} {localizedUnit}", hasBattery);
     }
 
-    /// <summary>
-    /// Localizes a raw unit string via the same key mapping used by
-    /// <c>SettingLocalizationService.LocalizeUnits</c>.  Returns the raw string
-    /// (or empty) when no localization key exists so the caller can suppress the suffix.
-    /// </summary>
     private string? LocalizeUnit(string? units)
     {
         if (string.IsNullOrEmpty(units)) return null;

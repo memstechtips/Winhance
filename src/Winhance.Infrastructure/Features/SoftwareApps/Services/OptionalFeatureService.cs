@@ -1,15 +1,11 @@
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class OptionalFeatureService(
+internal class OptionalFeatureService(
     ILogService logService) : IOptionalFeatureService
 {
     public Task<bool> EnableFeatureAsync(

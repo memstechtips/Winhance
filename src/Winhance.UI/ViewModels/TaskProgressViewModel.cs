@@ -7,10 +7,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for task progress display in the main window.
-/// Manages progress bar state, queue info, and multi-script slots.
-/// </summary>
 public partial class TaskProgressViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
@@ -18,7 +14,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly ILogService _logService;
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
@@ -46,10 +41,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial int ActiveScriptCount { get; set; }
 
-    /// <summary>
-    /// Event raised when a multi-script progress update is received.
-    /// Parameters: (slotIndex, detail).
-    /// </summary>
     public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public string CancelButtonLabel =>
@@ -62,14 +53,12 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
-        ILocalizationService localizationService,
-        ILogService logService)
+        ILocalizationService localizationService)
     {
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _logService = logService;
 
         AppName = string.Empty;
         LastTerminalLine = string.Empty;
@@ -88,6 +77,7 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         _localizationService.LanguageChanged -= OnLanguageChanged;
         _hideDelayCts?.Cancel();
         _hideDelayCts?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -113,7 +103,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         var title = _localizationService.GetString("Dialog_TerminalOutput_Title");
         await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
 
-        // After the dialog is closed, dismiss the progress control if the task is no longer running
         if (!_taskProgressService.IsTaskRunning)
         {
             IsTaskFailed = false;
@@ -127,7 +116,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         {
             if (detail.ScriptSlotCount > 0)
             {
-                // Multi-script mode: update slot count and raise per-slot event
                 ActiveScriptCount = detail.ScriptSlotCount;
                 ScriptProgressReceived?.Invoke(detail.ScriptSlotIndex, detail);
             }
@@ -143,7 +131,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
 
                 if (isNowRunning)
                 {
-                    // Cancel any pending hide-delay from a previous task
                     _hideDelayCts?.Cancel();
                     _hideDelayCts = null;
                     IsTaskFailed = false;
@@ -159,13 +146,11 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                 }
                 else if (wasRunning)
                 {
-                    // Task just stopped running -- handle completion
                     var wasCancelled = _taskProgressService.CurrentTaskCancellationSource
                         ?.IsCancellationRequested == true;
 
                     if (wasCancelled)
                     {
-                        // Cancelled by user: hide the control immediately
                         IsTaskFailed = false;
                         IsLoading = false;
                     }
@@ -177,7 +162,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                     }
                     else
                     {
-                        // Success: show the completion state briefly, then hide after 2 seconds
                         if (!string.IsNullOrEmpty(detail.StatusText))
                             AppName = detail.StatusText;
                         LastTerminalLine = detail.TerminalOutput ?? string.Empty;
@@ -185,7 +169,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
                     }
                 }
 
-                // Queue display
                 if (detail.QueueTotal > 1)
                 {
                     IsQueueVisible = true;
@@ -204,9 +187,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>
-    /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
-    /// </summary>
     private async Task ScheduleHideProgressAsync()
     {
         _hideDelayCts?.Cancel();

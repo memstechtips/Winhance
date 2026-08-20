@@ -1,13 +1,10 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ScriptMigrationService : IScriptMigrationService
+internal class ScriptMigrationService : IScriptMigrationService
 {
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;

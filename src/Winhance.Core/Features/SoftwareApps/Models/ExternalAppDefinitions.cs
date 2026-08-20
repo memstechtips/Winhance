@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.Core.Features.SoftwareApps.Models;
@@ -10,7 +8,6 @@ public static partial class ExternalAppDefinitions
     {
         var allItems = new List<ItemDefinition>();
 
-        // Add all category items
         allItems.AddRange(Browsers.GetBrowsers().Items);
         allItems.AddRange(DocumentViewers.GetDocumentViewers().Items);
         allItems.AddRange(MessagingEmailCalendar.GetMessagingEmailCalendar().Items);

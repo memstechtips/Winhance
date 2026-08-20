@@ -3,10 +3,6 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Converts a boolean value to a Visibility value, with the boolean value inverted.
-/// True becomes Collapsed, False becomes Visible.
-/// </summary>
 public sealed partial class InverseBooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)

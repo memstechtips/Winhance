@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 
-public class DriverCategorizer(ILogService logService, IFileSystemService fileSystemService) : IDriverCategorizer
+internal class DriverCategorizer(ILogService logService, IFileSystemService fileSystemService) : IDriverCategorizer
 {
     private static readonly HashSet<string> StorageClasses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -57,7 +53,7 @@ public class DriverCategorizer(ILogService logService, IFileSystemService fileSy
             {
                 var trimmedLine = line.Trim();
 
-                if (trimmedLine.StartsWith("Class", StringComparison.OrdinalIgnoreCase) && trimmedLine.Contains("="))
+                if (trimmedLine.StartsWith("Class", StringComparison.OrdinalIgnoreCase) && trimmedLine.Contains('='))
                 {
                     var parts = trimmedLine.Split('=');
                     if (parts.Length >= 2)

@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -12,11 +6,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet package detection — installed package enumeration and installer type lookup.
-/// Uses COM API with CLI fallback.
-/// </summary>
-public class WinGetDetectionService : IWinGetDetectionService
+internal class WinGetDetectionService : IWinGetDetectionService
 {
     private readonly WinGetComSession _comSession;
     private readonly ILogService _logService;
@@ -52,7 +42,6 @@ public class WinGetDetectionService : IWinGetDetectionService
                 _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
             }
 
-            // CLI fallback (uses winget export → JSON)
             _logService?.LogInformation("COM not available, falling back to CLI for installed package detection");
             return await GetInstalledPackageIdsViaCli(cancellationToken).ConfigureAwait(false);
         }
@@ -172,7 +161,6 @@ public class WinGetDetectionService : IWinGetDetectionService
         {
             try
             {
-                // Clean up any previous export file
                 if (_fileSystemService.FileExists(exportPath))
                     _fileSystemService.DeleteFile(exportPath);
 
@@ -257,7 +245,6 @@ public class WinGetDetectionService : IWinGetDetectionService
             }
         }
 
-        // Clean up export file
         try
         {
             if (_fileSystemService.FileExists(exportPath))
@@ -275,7 +262,6 @@ public class WinGetDetectionService : IWinGetDetectionService
 
         try
         {
-            // Try COM first
             if (_comSession.EnsureComInitialized())
             {
                 var package = await FindPackageAsync(packageId, cancellationToken).ConfigureAwait(false);
@@ -289,7 +275,6 @@ public class WinGetDetectionService : IWinGetDetectionService
                 }
             }
 
-            // CLI fallback: parse "winget show" output for Installer Type
             var result = await WinGetCliRunner.RunAsync(
                 $"show --id {packageId} --accept-source-agreements --disable-interactivity",
                 cancellationToken: cancellationToken,

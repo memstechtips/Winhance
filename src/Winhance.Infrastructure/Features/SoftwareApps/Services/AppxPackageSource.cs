@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Management;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppxPackageSource(
+internal class AppxPackageSource(
     ILogService logService,
     IPowerShellRunner powerShellRunner) : IAppxPackageSource
 {
@@ -42,19 +38,16 @@ public class AppxPackageSource(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // External cancellation — propagate immediately
             throw;
         }
         catch (OperationCanceledException)
         {
             logService.LogWarning("PackageManager enumeration timed out after 15s, falling back to WMI");
 
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
             var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
             if (wmiResult.Count > 0)
                 return wmiResult;
 
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
             logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
             return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
         }
@@ -62,12 +55,10 @@ public class AppxPackageSource(
         {
             logService.LogWarning($"PackageManager failed ({ex.Message}), falling back to WMI");
 
-            // Tier 2: WMI (Win32_InstalledStoreProgram)
             var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
             if (wmiResult.Count > 0)
                 return wmiResult;
 
-            // Tier 3: Get-AppxPackage via PowerShell (last resort)
             logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
             return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
         }

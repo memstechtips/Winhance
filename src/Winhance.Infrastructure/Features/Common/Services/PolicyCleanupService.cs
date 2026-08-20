@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PolicyCleanupService : IPolicyCleanupService
+internal class PolicyCleanupService : IPolicyCleanupService
 {
     private readonly ICatalogSettingsRegistry _catalogRegistry;
     private readonly IWindowsRegistryService _registryService;
@@ -61,8 +58,8 @@ public class PolicyCleanupService : IPolicyCleanupService
     {
         var policyPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // The OS-build-relaxed scope (hardware + existence still apply) reproduces the old registry's
-        // GetAllBypassedSettings() - policy keys are cleaned up regardless of the current Windows version.
+        // OS-build-relaxed scope (hardware + existence still apply): policy keys are cleaned up regardless of the
+        // current Windows version.
         var allSettings = _catalogRegistry.GetAll(includeOtherOsVersions: true);
 
         foreach (var featureSettings in allSettings.Values)

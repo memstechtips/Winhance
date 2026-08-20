@@ -1,7 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
@@ -10,11 +7,7 @@ internal static class DismSessionManager
 {
     private static readonly SemaphoreSlim _lock = new(1, 1);
 
-    /// <summary>
-    /// Hard timeout for DISM operations. Native DISM calls cannot be cancelled via
-    /// CancellationToken, so we use Task.WhenAny to abandon the blocking thread
-    /// if it exceeds this deadline.
-    /// </summary>
+    // Native DISM calls cannot be cancelled via CancellationToken, so Task.WhenAny abandons the blocking thread past this deadline.
     private const int HardTimeoutSeconds = 30;
 
     public static async Task<T> ExecuteAsync<T>(
@@ -57,14 +50,14 @@ internal static class DismSessionManager
                     finally
                     {
                         log?.Invoke("[DismSession] Calling DismCloseSession...");
-                        DismApi.DismCloseSession(session);
+                        _ = DismApi.DismCloseSession(session);
                         log?.Invoke("[DismSession] DismCloseSession done");
                     }
                 }
                 finally
                 {
                     log?.Invoke("[DismSession] Calling DismShutdown...");
-                    DismApi.DismShutdown();
+                    _ = DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
             }, ct);
@@ -135,14 +128,14 @@ internal static class DismSessionManager
                     finally
                     {
                         log?.Invoke("[DismSession] Calling DismCloseSession...");
-                        DismApi.DismCloseSession(session);
+                        _ = DismApi.DismCloseSession(session);
                         log?.Invoke("[DismSession] DismCloseSession done");
                     }
                 }
                 finally
                 {
                     log?.Invoke("[DismSession] Calling DismShutdown...");
-                    DismApi.DismShutdown();
+                    _ = DismApi.DismShutdown();
                     log?.Invoke("[DismSession] DismShutdown done");
                 }
             }, ct);

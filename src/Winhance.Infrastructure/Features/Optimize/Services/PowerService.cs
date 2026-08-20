@@ -1,46 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Native;
-using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
-using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class PowerService(
+internal class PowerService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
     IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler
 {
 
-    /// <summary>
-    /// Power-plan apply runs through the catalog engine (the funnel routes it via
-    /// ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan), so PowerService is no
-    /// longer registered as an apply handler. This <see cref="ISpecialSettingHandler"/> entry point is a dead stub
-    /// that always returns false; PowerService's live surface is the corrupt-plan cleanup + the plan queries.
-    /// </summary>
+    // Dead stub, always false: power-plan apply runs through the catalog engine (ApplyRequestResolver ->
+    // PowerPlanActivateOp -> WindowsStateWriter), so PowerService is not an apply handler.
     public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
 
-    /// <summary>
-    /// Detects and removes ghost/corrupt Winhance power plan entries that have the
-    /// correct GUID but wrong name (e.g., "Unknown Power Plan"). These entries are
-    /// visible to PowerEnumerate but are not functional plans. Called by the
-    /// detection (SystemDetectionContext.PrefetchAsync) before the power-plan dropdown is
-    /// populated, so a corrupt plan is never shown. Never throws.
-    /// </summary>
+    // Ghost entries (right GUID, wrong name, e.g. "Unknown Power Plan") are visible to PowerEnumerate but not
+    // functional. Called from SystemDetectionContext.PrefetchAsync before the dropdown is populated. Never throws.
     public async Task CleanupCorruptWinhancePlanAsync()
     {
         try
@@ -56,7 +34,6 @@ public class PowerService(
             {
                 logService.Log(LogLevel.Warning, $"[PowerService] Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
 
-                // If the ghost is active, switch to Balanced first
                 if (matchingPlan.IsActive)
                 {
                     var balancedGuid = Guid.Parse("381b4222-f694-41f0-9685-ff5bb260df2e");
@@ -85,13 +62,6 @@ public class PowerService(
         }
     }
 
-    /// <summary>
-    /// Gets the currently active power plan.
-    /// </summary>
-    /// <returns>
-    /// The active <see cref="PowerPlan"/>, or <see langword="null"/> if the
-    /// query fails (failure is logged as a warning, never thrown).
-    /// </returns>
     public async Task<PowerPlan?> GetActivePowerPlanAsync()
     {
         try
@@ -105,13 +75,6 @@ public class PowerService(
         }
     }
 
-    /// <summary>
-    /// Gets all power plans available on the system.
-    /// </summary>
-    /// <returns>
-    /// A list of power plan objects, or an empty enumerable if the query
-    /// fails (failure is logged as a warning, never thrown).
-    /// </returns>
     public async Task<IEnumerable<object>> GetAvailablePowerPlansAsync()
     {
         try
@@ -126,14 +89,6 @@ public class PowerService(
         }
     }
 
-    /// <summary>
-    /// Deletes a power plan by its GUID.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if the plan was deleted;
-    /// <see langword="false"/> if the plan is active, deletion failed, or an
-    /// error occurred (all failures are logged, never thrown).
-    /// </returns>
     public async Task<bool> DeletePowerPlanAsync(string powerPlanGuid)
     {
         try

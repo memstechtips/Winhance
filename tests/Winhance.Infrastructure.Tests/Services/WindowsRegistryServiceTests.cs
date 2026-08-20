@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -18,8 +17,6 @@ public class WindowsRegistryServiceTests
         _mockInteractiveUser.Setup(x => x.IsOtsElevation).Returns(false);
         _sut = new WindowsRegistryService(_mockLog.Object, _mockInteractiveUser.Object);
     }
-
-    // ── DeleteKey safeguards (BP-3) ──
 
     [Theory]
     [InlineData(@"HKLM\SOFTWARE")]

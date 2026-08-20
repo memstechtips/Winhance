@@ -12,6 +12,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class AppInstallationServiceTests
 {
+    private static readonly string[] App1PackageId = ["Publisher.App1"];
+    private static readonly string[] App2PackageId = ["Publisher.App2"];
+
     private readonly Mock<ILegacyCapabilityService> _capabilityService = new();
     private readonly Mock<IOptionalFeatureService> _featureService = new();
     private readonly Mock<ILogService> _logService = new();
@@ -34,8 +37,6 @@ public class AppInstallationServiceTests
         _taskProgressService.Object,
         _fileSystemService.Object,
         _changeHistoryService.Object);
-
-    // --- InstallAppAsync: routes to WindowsAppsService ---
 
     [Fact]
     public async Task InstallAppAsync_WindowsStoreApp_RoutesToWindowsAppsService()
@@ -67,8 +68,6 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
 
-    // --- InstallAppAsync: routes to ExternalAppsService ---
-
     [Fact]
     public async Task InstallAppAsync_ExternalApp_RoutesToExternalAppsService()
     {
@@ -97,8 +96,6 @@ public class AppInstallationServiceTests
         _windowsAppsService.Verify(
             x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
-
-    // --- InstallAppAsync: routes to capability service ---
 
     [Fact]
     public async Task InstallAppAsync_CapabilityApp_RoutesToCapabilityService()
@@ -153,8 +150,6 @@ public class AppInstallationServiceTests
         result.ErrorMessage.Should().Contain("Failed to launch PowerShell for capability");
     }
 
-    // --- InstallAppAsync: routes to optional feature service ---
-
     [Fact]
     public async Task InstallAppAsync_OptionalFeatureApp_RoutesToFeatureService()
     {
@@ -180,8 +175,6 @@ public class AppInstallationServiceTests
         result.Success.Should().BeTrue();
     }
 
-    // --- InstallAppAsync: unsupported type ---
-
     [Fact]
     public async Task InstallAppAsync_UnsupportedApp_ReturnsFailed()
     {
@@ -202,8 +195,6 @@ public class AppInstallationServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("not supported");
     }
-
-    // --- InstallAppAsync: bloat script cleanup ---
 
     [Fact]
     public async Task InstallAppAsync_ShouldRemoveFromBloatScript_CallsRemoveItemsFromScript()
@@ -255,8 +246,6 @@ public class AppInstallationServiceTests
             Times.Never);
     }
 
-    // --- InstallAppAsync: Edge cleanup ---
-
     [Fact]
     public async Task InstallAppAsync_EdgeApp_CleansUpDedicatedArtifacts()
     {
@@ -298,11 +287,8 @@ public class AppInstallationServiceTests
 
         _fileSystemService.Verify(x => x.DeleteFile(It.IsAny<string>()), Times.AtLeastOnce);
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("EdgeRemoval"), Times.Once);
-        // Also cleans up OpenWebSearch
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("OpenWebSearchRepair"), Times.Once);
     }
-
-    // --- InstallAppsAsync: batch install ---
 
     [Fact]
     public async Task InstallAppsAsync_MultipleApps_ReturnsSuccessCount()
@@ -315,14 +301,14 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             },
             new()
             {
                 Id = "app2",
                 Name = "App2",
                 Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
+                WinGetPackageId = App2PackageId
             }
         };
 
@@ -351,14 +337,14 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             },
             new()
             {
                 Id = "app2",
                 Name = "App2",
                 Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
+                WinGetPackageId = App2PackageId
             }
         };
 
@@ -366,7 +352,6 @@ public class AppInstallationServiceTests
             .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
             .ReturnsAsync(true);
 
-        // First succeeds, second fails
         _externalAppsService
             .SetupSequence(x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()))
             .ReturnsAsync(OperationResult<bool>.Succeeded(true))
@@ -411,7 +396,7 @@ public class AppInstallationServiceTests
                 Id = "app1",
                 Name = "App1",
                 Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
+                WinGetPackageId = App1PackageId
             }
         };
 
@@ -424,8 +409,6 @@ public class AppInstallationServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("cancelled");
     }
-
-    // --- InstallAppAsync: DownloadUrl-only routes to external ---
 
     [Fact]
     public async Task InstallAppAsync_DownloadUrlOnly_RoutesToExternalAppsService()
@@ -457,8 +440,6 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
 
-    // --- InstallAppAsync: RequiresDirectDownload routes to external ---
-
     [Fact]
     public async Task InstallAppAsync_RequiresDirectDownload_RoutesToExternalAppsService()
     {
@@ -485,8 +466,6 @@ public class AppInstallationServiceTests
         _externalAppsService.Verify(
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
-
-    // --- InstallAppAsync: change history logging ---
 
     [Fact]
     public async Task InstallAppAsync_Success_LogsAppInstalled()

@@ -3,11 +3,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
-/// <summary>
-/// Builds the <see cref="ConfirmationRequest"/> for app install/remove operations.
-/// Owns the install/remove domain knowledge (titles, headers) that used to live in
-/// the generic DialogService. Pure factory — no UI types.
-/// </summary>
 public static class AppOperationConfirmation
 {
     public static ConfirmationRequest Build(

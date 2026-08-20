@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,18 +10,25 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 
 public class SystemDetectionContextTests
 {
+    private static readonly string[] ParentSubKeys = ["a", "b"];
+
     private static readonly string CurrentVersionKey =
         @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
 
     private static (SystemDetectionContext ctx,
         Mock<IWindowsRegistryService> reg,
         Mock<ISystemRestoreService> restore,
-        Mock<IScheduledTaskService> tasks,
+        Mock<IScheduledTaskStateService> tasks,
         Mock<IPowerSettingsQueryService> power) Build()
     {
         var reg = new Mock<IWindowsRegistryService>();
         var restore = new Mock<ISystemRestoreService>();
-        var tasks = new Mock<IScheduledTaskService>();
+        var tasks = new Mock<IScheduledTaskStateService>();
+        // Default to the real contract: an entry for EVERY requested path, null meaning "not registered
+        // on this machine". Without this Moq hands back a null dictionary, which is a shape the service
+        // never produces. Individual tests override this Setup to return specific states.
+        tasks.Setup(t => t.GetTasksEnabled(It.IsAny<IReadOnlyCollection<string>>()))
+            .Returns((IReadOnlyCollection<string> paths) => paths.ToDictionary(p => p, _ => (bool?)null));
         var power = new Mock<IPowerSettingsQueryService>();
         var log = new Mock<ILogService>();
         var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, log.Object);
@@ -60,10 +65,10 @@ public class SystemDetectionContextTests
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.KeyExists("HKLM\\Present")).Returns(true);
-        reg.Setup(r => r.GetSubKeyNames("HKLM\\Parent")).Returns(new[] { "a", "b" });
+        reg.Setup(r => r.GetSubKeyNames("HKLM\\Parent")).Returns(ParentSubKeys);
 
         Assert.True(ctx.KeyExists("HKLM\\Present"));
-        Assert.Equal(new[] { "a", "b" }, ctx.GetSubKeyNames("HKLM\\Parent"));
+        Assert.Equal(ParentSubKeys, ctx.GetSubKeyNames("HKLM\\Parent"));
     }
 
     [Fact]
@@ -92,7 +97,8 @@ public class SystemDetectionContextTests
     public async Task ScheduledTaskEnabled_returns_the_prefetched_value()
     {
         var (ctx, _, _, tasks, _) = Build();
-        tasks.Setup(t => t.IsTaskEnabledAsync("\\MyTask")).ReturnsAsync((bool?)true);
+        tasks.Setup(t => t.GetTasksEnabled(It.IsAny<IReadOnlyCollection<string>>()))
+            .Returns(new Dictionary<string, bool?> { ["\\MyTask"] = true });
         var setting = SettingWith(new TaskTarget("Task", "\\MyTask"));
 
         await ctx.PrefetchAsync(new[] { setting });

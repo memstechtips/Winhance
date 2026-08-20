@@ -1,10 +1,8 @@
-using System.ComponentModel;
 using System.Reflection;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -14,13 +12,6 @@ using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-/// <summary>
-/// Review state now lives in one overlay object behind one nullable reference, so leaving review is
-/// a single assignment rather than a nine-line reset. These tests hold that property: that nothing
-/// survives the exit, that a value written outside a review cannot land at all, and — by
-/// reflection, so it stays true for review properties nobody has written yet — that dropping the
-/// overlay tells the UI about every property that reads from it.
-/// </summary>
 public class SettingItemViewModelReviewStateTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();
@@ -28,7 +19,6 @@ public class SettingItemViewModelReviewStateTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
 
     private SettingItemViewModel CreateSut()
     {
@@ -56,14 +46,10 @@ public class SettingItemViewModelReviewStateTests
             _logService.Object,
             _dispatcherService.Object,
             _dialogService.Object,
-            _localizationService.Object,
-            _eventBus.Object);
+            _localizationService.Object);
     }
 
-    /// <summary>
-    /// Every public property on the ViewModel that reads the review overlay, discovered rather than
-    /// listed so a review property added later is covered without anyone remembering to come back.
-    /// </summary>
+    // Discovered rather than listed, so a review property added later is covered without anyone remembering to come back.
     private static IReadOnlyList<PropertyInfo> ReviewProjections() =>
         typeof(SettingItemViewModel)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -84,8 +70,6 @@ public class SettingItemViewModelReviewStateTests
         vm.IsReviewActionApproved = true;
         return vm;
     }
-
-    // ── The overlay is the state ──
 
     [Fact]
     public void IsInReviewMode_ReflectsWhetherAnOverlayExists()
@@ -168,8 +152,6 @@ public class SettingItemViewModelReviewStateTests
         sut.IsReviewApproved.Should().BeFalse(
             because: "review values belong to a review; one landing outside it is the contamination the overlay prevents");
     }
-
-    // ── Behaviour the old observable properties had, preserved ──
 
     [Fact]
     public void ApprovingAfterRejecting_ClearsTheRejection()

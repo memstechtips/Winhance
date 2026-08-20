@@ -1,17 +1,13 @@
-using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class DismProcessRunner : IDismProcessRunner
+internal class DismProcessRunner : IDismProcessRunner
 {
     private readonly IProcessExecutor _processExecutor;
     private readonly ILogService _logService;

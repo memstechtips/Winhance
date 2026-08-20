@@ -1,19 +1,12 @@
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
 
 namespace Winhance.UI.Features.Common.Helpers;
 
-/// <summary>
-/// Provides Win32 file dialog functionality that works when running as administrator.
-/// WinRT file pickers fail with admin elevation, so we use COM IFileDialog instead.
-/// </summary>
+// WinRT file pickers fail under admin elevation, so this uses COM IFileDialog.
 public static class Win32FileDialogHelper
 {
-    #region COM Interfaces and GUIDs
-
     private static readonly Guid CLSID_FileOpenDialog = new("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7");
     private static readonly Guid CLSID_FileSaveDialog = new("C0B4E2F3-BA21-4773-8DBA-335EC946EB8B");
 
@@ -115,14 +108,6 @@ public static class Win32FileDialogHelper
         ref Guid riid,
         out IShellItem ppv);
 
-    #endregion
-
-    /// <summary>
-    /// Shows a folder picker dialog.
-    /// </summary>
-    /// <param name="window">The parent window.</param>
-    /// <param name="title">The dialog title.</param>
-    /// <returns>The selected folder path, or null if cancelled.</returns>
     public static string? ShowFolderPicker(Window window, string title)
     {
         var dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileOpenDialog)!)!;
@@ -139,14 +124,6 @@ public static class Win32FileDialogHelper
         return path;
     }
 
-    /// <summary>
-    /// Shows a file open dialog.
-    /// </summary>
-    /// <param name="window">The parent window.</param>
-    /// <param name="title">The dialog title.</param>
-    /// <param name="filterName">The filter display name (e.g., "ISO Files").</param>
-    /// <param name="filterPattern">The filter pattern (e.g., "*.iso").</param>
-    /// <returns>The selected file path, or null if cancelled.</returns>
     public static string? ShowOpenFilePicker(Window window, string title, string filterName, string filterPattern)
     {
         var dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileOpenDialog)!)!;
@@ -170,15 +147,6 @@ public static class Win32FileDialogHelper
         return path;
     }
 
-    /// <summary>
-    /// Shows a file open dialog with an initial folder.
-    /// </summary>
-    /// <param name="window">The parent window.</param>
-    /// <param name="title">The dialog title.</param>
-    /// <param name="filterName">The filter display name (e.g., "Winhance Configuration Files").</param>
-    /// <param name="filterPattern">The filter pattern (e.g., "*.winhance").</param>
-    /// <param name="initialFolderPath">The initial folder to open the dialog in.</param>
-    /// <returns>The selected file path, or null if cancelled.</returns>
     public static string? ShowOpenFilePicker(Window window, string title, string filterName, string filterPattern, string initialFolderPath)
     {
         var dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileOpenDialog)!)!;
@@ -207,16 +175,6 @@ public static class Win32FileDialogHelper
         return path;
     }
 
-    /// <summary>
-    /// Shows a file save dialog.
-    /// </summary>
-    /// <param name="window">The parent window.</param>
-    /// <param name="title">The dialog title.</param>
-    /// <param name="filterName">The filter display name (e.g., "ISO Files").</param>
-    /// <param name="filterPattern">The filter pattern (e.g., "*.iso").</param>
-    /// <param name="defaultFileName">The default file name.</param>
-    /// <param name="defaultExtension">The default extension (e.g., "iso").</param>
-    /// <returns>The selected file path, or null if cancelled.</returns>
     public static string? ShowSaveFilePicker(Window window, string title, string filterName, string filterPattern, string defaultFileName, string defaultExtension)
     {
         var dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileSaveDialog)!)!;
@@ -241,9 +199,6 @@ public static class Win32FileDialogHelper
         return path;
     }
 
-    /// <summary>
-    /// Sets the initial folder for a dialog.
-    /// </summary>
     private static void SetInitialFolder(IFileDialog dialog, string folderPath)
     {
         var guid = typeof(IShellItem).GUID;

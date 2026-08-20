@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -8,6 +7,16 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class ApplyExecutorTests
 {
+    private static readonly string[] HklmA = [@"HKLM\A"];
+    private static readonly string[] WriteThenEffectCalls = [@"W HKLM\A=1", "FX"];
+    private static readonly string[] BitThenByteCalls = [@"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03"];
+    private static readonly string[] PowerPlanActivateCall = ["PP 11111111-1111-1111-1111-111111111111"];
+    private static readonly string[] UnlockWriteLockCalls = [@"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A"];
+    private static readonly string[] CompositeSetThenRemoveCalls = [@"C HKCU\Pref[AutoHDREnable]=1", @"C HKCU\Pref[VRROptimizeEnable]=<del>"];
+    private static readonly string[] PerSubkeyWriteThenDeleteCalls = [@"PW HKLM\Interfaces=1", @"PD HKLM\Interfaces"];
+    private static readonly string[] WriteOnlyCall = [@"W HKLM\A=1"];
+    private static readonly string[] EffectOnlyCall = ["FX"];
+
     private sealed class RecordingWriter : IStateWriter
     {
         public readonly List<string> Calls = new();
@@ -29,7 +38,11 @@ public class ApplyExecutorTests
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 
-    private static RegTarget Reg() => new("K", new[] { @"HKLM\A" }, "V", RegistryValueKind.DWord);
+    private static RegTarget Reg() => new("K", HklmA, "V", RegistryValueKind.DWord);
+
+    // Production always partitions before executing, so the tests go the same way.
+    private static ApplyResult Execute(IReadOnlyList<ApplyOp> ops, IStateWriter writer) =>
+        ApplyExecutor.Execute(ApplyPlan.From(ops), writer);
 
     [Fact]
     public void Executes_every_op_and_reports_all_succeeded()
@@ -38,12 +51,12 @@ public class ApplyExecutorTests
         var plan = new ApplyOp[]
         {
             new RegistryWriteOp(Reg(), @"HKLM\A", 1),
-            new EffectOp(new ScriptEffect("x.ps1", RunContext.System)),
+            new EffectOp(new NativePowerEffect(1, 0)),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.Equal(2, result.Total);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"W HKLM\A=1", "FX" }, w.Calls);
+        Assert.Equal(WriteThenEffectCalls, w.Calls);
     }
 
     [Fact]
@@ -55,9 +68,9 @@ public class ApplyExecutorTests
             new RegistryBitSetOp(Reg(), @"HKLM\A", 4, 0x20, true),
             new RegistryByteSetOp(Reg(), @"HKLM\A", 8, 0x03),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03" }, w.Calls);
+        Assert.Equal(BitThenByteCalls, w.Calls);
     }
 
     [Fact]
@@ -65,9 +78,9 @@ public class ApplyExecutorTests
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[] { new PowerPlanActivateOp("11111111-1111-1111-1111-111111111111") };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { "PP 11111111-1111-1111-1111-111111111111" }, w.Calls);
+        Assert.Equal(PowerPlanActivateCall, w.Calls);
     }
 
     [Fact]
@@ -80,9 +93,9 @@ public class ApplyExecutorTests
             new RegistryWriteOp(Reg(), @"HKLM\A", 4),
             new RegistryLockKeyOp(Reg(), @"HKLM\A"),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A" }, w.Calls);
+        Assert.Equal(UnlockWriteLockCalls, w.Calls);
     }
 
     [Fact]
@@ -94,9 +107,9 @@ public class ApplyExecutorTests
             new RegistryCompositeSetOp(Reg(), @"HKCU\Pref", "AutoHDREnable", "1"),
             new RegistryCompositeSetOp(Reg(), @"HKCU\Pref", "VRROptimizeEnable", null),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"C HKCU\Pref[AutoHDREnable]=1", @"C HKCU\Pref[VRROptimizeEnable]=<del>" }, w.Calls);
+        Assert.Equal(CompositeSetThenRemoveCalls, w.Calls);
     }
 
     [Fact]
@@ -108,9 +121,9 @@ public class ApplyExecutorTests
             new RegistryPerSubkeyWriteOp(Reg(), @"HKLM\Interfaces", 1),
             new RegistryPerSubkeyDeleteOp(Reg(), @"HKLM\Interfaces"),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(new[] { @"PW HKLM\Interfaces=1", @"PD HKLM\Interfaces" }, w.Calls);
+        Assert.Equal(PerSubkeyWriteThenDeleteCalls, w.Calls);
     }
 
     [Fact]
@@ -120,11 +133,76 @@ public class ApplyExecutorTests
         var plan = new ApplyOp[]
         {
             new RegistryWriteOp(Reg(), @"HKLM\A", 1),
-            new EffectOp(new ScriptEffect("x.ps1", RunContext.System)),
+            new EffectOp(new NativePowerEffect(1, 0)),
         };
-        var result = ApplyExecutor.Execute(plan, w);
+        var result = Execute(plan, w);
         Assert.Equal(1, result.Failed);
         Assert.False(result.AllSucceeded);
         Assert.Contains("FX", w.Calls);
+    }
+
+    [Fact]
+    public void Process_launching_effects_never_reach_the_writer()
+    {
+        var w = new RecordingWriter();
+        var script = new ScriptEffect("x.ps1", RunContext.System);
+        var reg = new RegContentEffect("REGCONTENT");
+        var plan = ApplyPlan.From(new ApplyOp[]
+        {
+            new RegistryWriteOp(Reg(), @"HKLM\A", 1),
+            new EffectOp(script),
+            new EffectOp(reg),
+        });
+
+        var outcome = ApplyExecutor.Execute(plan, w);
+
+        Assert.Equal(WriteOnlyCall, w.Calls);
+        Assert.Equal(new Effect[] { script, reg }, plan.AsyncEffects);
+        Assert.True(outcome.AllSucceeded);
+        // Total counts what the executor RAN; the plan counts both halves.
+        Assert.Equal(1, outcome.Total);
+        Assert.Equal(3, plan.Total);
+    }
+
+    [Fact]
+    public void Blocking_effects_stay_on_the_writer()
+    {
+        var w = new RecordingWriter();
+        var plan = ApplyPlan.From(new ApplyOp[] { new EffectOp(new NativePowerEffect(1, 0)) });
+
+        var outcome = ApplyExecutor.Execute(plan, w);
+
+        Assert.Equal(EffectOnlyCall, w.Calls);
+        Assert.Empty(plan.AsyncEffects);
+        Assert.True(outcome.AllSucceeded);
+    }
+
+    [Fact]
+    public void A_plan_with_no_async_effects_keeps_its_op_list_intact()
+    {
+        var ops = new ApplyOp[] { new RegistryWriteOp(Reg(), @"HKLM\A", 1) };
+
+        var plan = ApplyPlan.From(ops);
+
+        Assert.Empty(plan.AsyncEffects);
+        Assert.Same(ops, plan.SyncOps);
+    }
+
+    [Fact]
+    public void Partitioning_preserves_the_authored_order_within_each_half()
+    {
+        var first = new ScriptEffect("first", RunContext.System);
+        var second = new RegContentEffect("second");
+        var plan = ApplyPlan.From(new ApplyOp[]
+        {
+            new EffectOp(first),
+            new RegistryWriteOp(Reg(), @"HKLM\A", 1),
+            new EffectOp(new NativePowerEffect(1, 0)),
+            new EffectOp(second),
+            new RegistryDeleteOp(Reg(), @"HKLM\B"),
+        });
+
+        Assert.Equal(new Effect[] { first, second }, plan.AsyncEffects);
+        Assert.Equal(3, plan.SyncOps.Count);
     }
 }

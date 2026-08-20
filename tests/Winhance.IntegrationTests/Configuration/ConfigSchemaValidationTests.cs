@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Models;
 using Winhance.IntegrationTests.Helpers;
@@ -8,11 +7,7 @@ using Xunit;
 
 namespace Winhance.IntegrationTests.Configuration;
 
-/// <summary>
-/// Validates that all embedded .winhance config files conform to the ConfigurationItem
-/// schema — catching type mismatches (e.g. string vs string[]) that would cause
-/// deserialization failures or silent data loss at runtime.
-/// </summary>
+// Catches type mismatches (string vs string[]) that would cause deserialization failures or silent data loss at runtime.
 [Trait("Category", "Integration")]
 public class ConfigSchemaValidationTests
 {
@@ -20,10 +15,7 @@ public class ConfigSchemaValidationTests
         TestContext.SolutionDir,
         "src", "Winhance.UI", "Features", "Common", "Resources", "Configs");
 
-    /// <summary>
-    /// Maps each ConfigurationItem property to its expected JSON token types.
-    /// This is the source of truth — if the model changes, update this map.
-    /// </summary>
+    // The source of truth - update this map when the model changes.
     private static readonly Dictionary<string, HashSet<JsonValueKind>> ExpectedPropertyTypes = new()
     {
         ["Id"] = new() { JsonValueKind.String },
@@ -61,11 +53,9 @@ public class ConfigSchemaValidationTests
         var root = doc.RootElement;
         var errors = new List<string>();
 
-        // Validate items in WindowsApps, ExternalApps
         ValidateItemsInSection(root, "WindowsApps", fileName, errors);
         ValidateItemsInSection(root, "ExternalApps", fileName, errors);
 
-        // Validate items in Customize.Features and Optimize.Features
         ValidateItemsInFeatureGroup(root, "Customize", fileName, errors);
         ValidateItemsInFeatureGroup(root, "Optimize", fileName, errors);
 

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Events;
@@ -10,10 +8,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Manages the Windows version filter state, persistence, and review mode interactions.
-/// Extracted from MainWindowViewModel for testability.
-/// </summary>
 public class WindowsVersionFilterService : IWindowsVersionFilterService
 {
     private readonly IUserPreferencesService _preferencesService;
@@ -36,13 +30,10 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         _logService = logService;
     }
 
-    /// <inheritdoc />
     public bool IsFilterEnabled { get; private set; } = true;
 
-    /// <inheritdoc />
     public event EventHandler<bool>? FilterStateChanged;
 
-    /// <inheritdoc />
     public async Task LoadFilterPreferenceAsync()
     {
         try
@@ -62,15 +53,12 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public async Task<bool> ToggleFilterAsync(bool isInReviewMode)
     {
-        // Don't allow toggling during review mode
         if (isInReviewMode) return false;
 
         try
         {
-            // Check if we should show explanation dialog
             var dontShowAgain = await _preferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
 
@@ -100,15 +88,12 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 if (!result.Confirmed) return false;
             }
 
-            // Toggle state
             IsFilterEnabled = !IsFilterEnabled;
 
-            // Persist preference
             await _preferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.EnableWindowsVersionFilter,
                 IsFilterEnabled);
 
-            // Publish event for all subscribers (pages/viewmodels) to refresh
             _eventBus.Publish(new FilterStateChangedEvent(IsFilterEnabled));
 
             FilterStateChanged?.Invoke(this, IsFilterEnabled);
@@ -126,7 +111,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public void ForceFilterOn()
     {
         if (!IsFilterEnabled)
@@ -137,7 +121,6 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public async Task RestoreFilterPreferenceAsync()
     {
         var savedPreference = await _preferencesService.GetPreferenceAsync(

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
@@ -13,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ExternalAppsService(
+internal class ExternalAppsService(
     ILogService logService,
     IWinGetPackageInstaller winGetPackageInstaller,
     IWinGetDetectionService winGetDetectionService,
@@ -58,10 +53,9 @@ public class ExternalAppsService(
                     : OperationResult<bool>.Failed("Direct download installation failed");
             }
 
-            // Build ordered source list: WinGet → MsStore → Choco
             var sources = new List<(string packageId, string source)>();
 
-            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
                 sources.Add((item.WinGetPackageId[0], "winget"));
             if (!string.IsNullOrEmpty(item.MsStoreId))
                 sources.Add((item.MsStoreId, "msstore"));
@@ -98,7 +92,6 @@ public class ExternalAppsService(
                 }
             }
 
-            // Chocolatey fallback when ChocoPackageId is defined
             if (!string.IsNullOrEmpty(item.ChocoPackageId))
             {
                 logService.LogInformation($"Attempting Chocolatey install for '{item.Name}' with '{item.ChocoPackageId}'");
@@ -136,7 +129,6 @@ public class ExternalAppsService(
                 }
             }
 
-            // Direct download fallback when WinGet/Store/Chocolatey all failed
             if (item.ExternalApp?.DownloadUrl != null)
             {
                 logService.LogInformation($"All package manager installs failed for '{item.Name}', attempting direct download fallback");
@@ -194,7 +186,7 @@ public class ExternalAppsService(
             }
 
             var exeFiles = fileSystemService.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
-            if (!exeFiles.Any())
+            if (exeFiles.Count == 0)
             {
                 logService.LogWarning($"No executables found for {item.Name}");
                 return;
@@ -243,7 +235,7 @@ public class ExternalAppsService(
                 .Where(f => !fileSystemService.GetFileName(f).Equals("ChocolateyInstall.ps1", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            if (!exeFiles.Any())
+            if (exeFiles.Count == 0)
             {
                 logService.LogWarning($"No executables found in Chocolatey package for {item.Name}");
                 return;
@@ -288,7 +280,6 @@ public class ExternalAppsService(
             if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;
 
-            // Also check without "tools" subfolder
             packageDir = fileSystemService.CombinePath(basePath, chocoPackageId);
             if (fileSystemService.DirectoryExists(packageDir))
                 return packageDir;

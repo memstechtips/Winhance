@@ -4,35 +4,28 @@ using Winhance.Infrastructure.Extensions.DI;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
-/// <summary>
-/// The composition root for the Winhance WinUI 3 application.
-/// Orchestrates the registration of all services following Clean Architecture principles.
-/// </summary>
 public static class CompositionRoot
 {
-    /// <summary>
-    /// Configures all services for the Winhance application.
-    /// </summary>
-    /// <param name="services">The service collection to configure</param>
-    /// <returns>The configured service collection for method chaining</returns>
     public static IServiceCollection ConfigureWinhanceServices(this IServiceCollection services)
     {
-        // Register services in dependency order
         services
-            .AddInfrastructureServices() // Infrastructure implementations
-            .AddSettingServices()        // Setting services (Customization, Optimization, SoftwareApps)
-            .AddUIServices();            // UI-specific services (ThemeService, etc.)
+            .AddInfrastructureServices()
+            .AddUIServices();
 
         return services;
     }
 
-    /// <summary>
-    /// Creates and configures a host builder with the Winhance service configuration.
-    /// </summary>
-    /// <returns>Configured host builder</returns>
     public static IHostBuilder CreateWinhanceHost()
     {
         return Host.CreateDefaultBuilder()
+            // The generic host validates the service graph only in the Development environment, which a shipped
+            // desktop app never is - so a registration with an unresolvable dependency would surface on first
+            // use. Force it on: a broken graph fails at startup, and WinhanceHostSmokeTests fails the gate first.
+            .UseDefaultServiceProvider(options =>
+            {
+                options.ValidateOnBuild = true;
+                options.ValidateScopes = true;
+            })
             .ConfigureServices((context, services) =>
             {
                 services.ConfigureWinhanceServices();

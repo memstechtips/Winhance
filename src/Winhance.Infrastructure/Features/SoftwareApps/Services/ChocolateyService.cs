@@ -1,16 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ChocolateyService : IChocolateyService
+internal class ChocolateyService : IChocolateyService
 {
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;
@@ -135,7 +129,6 @@ public class ChocolateyService : IChocolateyService
 
                 if (alreadyInstalled)
                 {
-                    // Cleanup didn't fully clear the ghost; don't pretend the install succeeded.
                     _logService.LogError($"Chocolatey still reports '{chocoPackageId}' as already-installed after ghost-cleanup. Install did not run.");
                     return false;
                 }
@@ -224,8 +217,7 @@ public class ChocolateyService : IChocolateyService
                     .ConfigureAwait(false);
 
             // Fallback: installed-list lookup may have returned empty (timeout / choco glitch).
-            // Try the bare ID directly so existing behavior is preserved when the variant sweep
-            // can't see anything to act on.
+            // Try the bare ID directly when the variant sweep can't see anything to act on.
             if (!attempted)
             {
                 _logService.LogInformation($"Uninstalling '{chocoPackageId}' via Chocolatey (bare-ID fallback)...");
@@ -252,16 +244,8 @@ public class ChocolateyService : IChocolateyService
         }
     }
 
-    /// <summary>
-    /// Sweeps Chocolatey's installed list for <paramref name="chocoPackageId"/> and its
-    /// .install / .portable bundle siblings. Uninstalls them with the given <paramref name="flags"/>,
-    /// meta-first so that --remove-dependencies (when included in flags) cascades cleanly without
-    /// triggering the interactive "uninstall sibling as well?" prompt.
-    /// </summary>
-    /// <returns>
-    /// (succeeded, failed, attempted) — attempted=false means the installed-list lookup
-    /// returned empty and the caller should consider its own fallback.
-    /// </returns>
+    // Meta-first so --remove-dependencies cascades cleanly without the interactive "uninstall sibling as well?"
+    // prompt. attempted=false means the installed-list lookup was empty and the caller should consider its own fallback.
     private async Task<(int succeeded, int failed, bool attempted)> SweepChocoUninstallVariantsAsync(
         string chocoPackageId,
         string flags,
@@ -420,12 +404,10 @@ public class ChocolateyService : IChocolateyService
 
     private string? FindChocoExecutable()
     {
-        // Check the standard installation path first
         var standardPath = @"C:\ProgramData\chocolatey\bin\choco.exe";
         if (_fileSystemService.FileExists(standardPath))
             return standardPath;
 
-        // Scan PATH
         var pathEnv = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrEmpty(pathEnv))
             return null;

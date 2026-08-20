@@ -20,7 +20,6 @@ public class StartupOrchestratorTests
 
     public StartupOrchestratorTests()
     {
-        // Default preferences
         _preferencesService.Setup(p => p.GetPreference(
             UserPreferenceKeys.InitialConfigBackupCompleted, false))
             .Returns(true);
@@ -46,8 +45,6 @@ public class StartupOrchestratorTests
         var detailedProgress = new Progress<TaskProgressDetail>();
         return (statusProgress, detailedProgress, statusReports);
     }
-
-    // --- Phase 1: Settings registry initialization ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_InitializesSettingsRegistry()
@@ -75,8 +72,6 @@ public class StartupOrchestratorTests
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
             s.Contains("Failed to initialize catalog settings registry"))), Times.Once);
     }
-
-    // --- Phase 2: User backup config ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_WhenBackupAlreadyCompleted_SkipsBackupPhase()
@@ -147,8 +142,6 @@ public class StartupOrchestratorTests
             s.Contains("User backup config failed"))), Times.Once);
     }
 
-    // --- IsFirstLaunch ---
-
     [Fact]
     public async Task RunStartupSequenceAsync_WhenBackupAlreadyCompleted_IsFirstLaunchIsFalse()
     {
@@ -181,8 +174,6 @@ public class StartupOrchestratorTests
         result.IsFirstLaunch.Should().BeTrue();
     }
 
-    // --- Phase 3: Script migration ---
-
     [Fact]
     public async Task RunStartupSequenceAsync_RunsScriptMigration()
     {
@@ -209,8 +200,6 @@ public class StartupOrchestratorTests
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
             s.Contains("Script migration failed"))), Times.Once);
     }
-
-    // --- Phase 4: Script updates ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_ChecksForScriptUpdates()
@@ -239,8 +228,6 @@ public class StartupOrchestratorTests
             s.Contains("Script update check failed"))), Times.Once);
     }
 
-    // --- Return value ---
-
     [Fact]
     public async Task RunStartupSequenceAsync_ReturnsStartupResult()
     {
@@ -252,8 +239,6 @@ public class StartupOrchestratorTests
         result.Should().NotBeNull();
         result.Should().BeOfType<StartupResult>();
     }
-
-    // --- Full sequence execution ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_ExecutesAllPhasesInOrder()
@@ -283,8 +268,6 @@ public class StartupOrchestratorTests
             "Phase3_Migration",
             "Phase4_Update");
     }
-
-    // --- Resilience: All phases fail gracefully ---
 
     [Fact]
     public async Task RunStartupSequenceAsync_WhenAllPhasesFail_StillReturnsResult()

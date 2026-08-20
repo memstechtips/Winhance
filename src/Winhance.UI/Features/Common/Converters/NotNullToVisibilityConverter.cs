@@ -3,9 +3,6 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Winhance.UI.Features.Common.Converters;
 
-/// <summary>
-/// Converts non-null values to Visible visibility and null values to Collapsed.
-/// </summary>
 public sealed partial class NotNullToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)

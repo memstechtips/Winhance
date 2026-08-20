@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -13,10 +10,6 @@ using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellSc
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Helpers;
 
-/// <summary>
-/// Emits PowerShell registry commands for toggle and selection settings.
-/// Eliminates duplication between toggle command emission and selection value resolution.
-/// </summary>
 internal class RegistryCommandEmitter
 {
     private readonly ILogService _logService;
@@ -26,8 +19,6 @@ internal class RegistryCommandEmitter
         _logService = logService;
     }
 
-    /// <summary>Emits the RegTarget's registry writes (Set-BinaryBit / Set-BinaryByte / Set-RegistryValue),
-    /// reading its Type / ByteIndex / BitMask / ByteOnly.</summary>
     public void EmitRegistryValueFromTarget(
         StringBuilder sb,
         RegTarget rt,
@@ -69,12 +60,8 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Emits the registry writes for a toggle setting. Sources the write decision from the catalog
-    /// Setting's active SettingState (the "Enabled" state when configItem.IsSelected is true, else the
-    /// "Disabled" state) and its RegTargets. A RegTarget with N Paths emits one command per path, in order.
-    /// The per-target write value is the active state's StateValue.WritePayload, or null when that StateValue
-    /// deletes (Absent/DeleteOnWrite) or the state carries no entry for the target. This method emits ONLY
-    /// registry targets; the RegContents tail is left to the call site.</summary>
+    // One command per path for a mirror target. Write value = the active state's WritePayload, or null when that
+    // StateValue deletes or the state has no entry for the target. Registry targets only; the RegContents tail is the call site's.
     public void AppendToggleCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem, bool isHkcu, string indent = "", Winhance.Core.Features.Common.Catalog.WinBuild? build = null)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -96,7 +83,6 @@ internal class RegistryCommandEmitter
 
             foreach (var path in rt.Paths)
             {
-                // Filter by hive
                 bool isHkcuEntry = path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase);
                 if (isHkcuEntry != isHkcu)
                     continue;
@@ -115,17 +101,13 @@ internal class RegistryCommandEmitter
                     sb.AppendLine($"{indent}Get-ChildItem -Path '{regPath}' -ErrorAction SilentlyContinue | ForEach-Object {{");
                 }
 
-                // The write value for this target from the active state: WritePayload unless the state deletes
-                // (Absent/DeleteOnWrite) or carries no entry for this target - both map to null.
                 state.Set.TryGetValue(rt.Key, out var sv);
                 object? writeValue = (sv != null && !sv.DeleteOnWrite) ? sv.WritePayload : null;
 
-                // Check if we have a raw value from the registry to use instead of definitions
                 var key = rt.ValueName ?? "KeyExists";
                 object? customValue = null;
                 bool hasCustomValue = configItem.CustomStateValues?.TryGetValue(key, out customValue) == true;
 
-                // Pattern 1: Key-Based Settings (CLSID folders, etc.)
                 // Detection: ValueName is null or empty - these control registry KEY existence, not values
                 if (string.IsNullOrEmpty(rt.ValueName))
                 {
@@ -172,7 +154,6 @@ internal class RegistryCommandEmitter
                     continue;
                 }
 
-                // Pattern 3: Null Value Deletion
                 if (value == null)
                 {
                     sb.AppendLine($"{innerIndent}Remove-RegistryValue -Path {effectivePath} -Name '{escapedValueName}' -Description '{escapedDescription}'");
@@ -180,7 +161,6 @@ internal class RegistryCommandEmitter
                     continue;
                 }
 
-                // Pattern 4: Regular Value Setting
                 EmitRegistryValueFromTarget(sb, rt, value, escapedDescription!, effectivePath!, escapedValueName!, innerIndent);
                 if (isPerSubkey) sb.AppendLine($"{indent}}}");
             }
@@ -206,9 +186,6 @@ internal class RegistryCommandEmitter
            && s_hkcuHeaderRegex.IsMatch(content)
            && s_systemHiveHeaderRegex.IsMatch(content);
 
-    /// <summary>Emits the .reg-content import commands for a toggle setting. Sources the .reg content from the
-    /// active SettingState's RegContentEffects (the "Enabled" state when isEnabled is true, else the "Disabled"
-    /// state). Each content is hive-routed and mixed-hive-rejected.</summary>
     public void AppendRegContentCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool? isEnabled, bool isHkcuPass, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -263,12 +240,8 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Emits the registry writes for an Action setting. Action settings carry SETTING-level Effects
-    /// (no States/Targets); an Action's effects are plain RegistryWriteEffects only, so only the plain
-    /// Set-RegistryValue path is reachable (no bit/byte/composite/per-subkey/key-existence writes). Each write
-    /// is hive-filtered by its Path. The caller guards IsSelected; this method assumes the Action is selected.
-    /// The Action population is RegistryWriteEffect/ScriptEffect-only, so RegContent/NativePower effects are not
-    /// emitted here.</summary>
+    // An Action's effects are plain RegistryWriteEffects only, so only the plain Set-RegistryValue path is reachable.
+    // The caller guards IsSelected.
     public void AppendActionRegistryCommandsFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, bool isHkcu, string indent = "")
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -287,10 +260,8 @@ internal class RegistryCommandEmitter
         }
     }
 
-    /// <summary>Emits a Selection setting's resolved value writes. The PowerPlanSelection skip stays (that id
-    /// is emitted by the Power Settings section). Value resolution: runtime CustomStateValues win; otherwise a
-    /// SelectedIndex resolves through the catalog States' Set (ResolveSelectionValuesFromCatalog); a selection
-    /// with neither logs a warning and emits nothing. Emission routes through ApplyResolvedValuesFromCatalog.</summary>
+    // Runtime CustomStateValues win; otherwise a SelectedIndex resolves through the catalog States' Set; neither ->
+    // a warning and nothing emitted. PowerPlanSelection is skipped here (the Power Settings section emits it).
     public void AppendSelectionCommands(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting setting, ConfigurationItem configItem, bool isHkcu, string indent = "")
     {
         if (setting.Id == SettingIds.PowerPlanSelection)
@@ -298,7 +269,7 @@ internal class RegistryCommandEmitter
 
         Dictionary<string, object> valuesToApply;
 
-        if (configItem.CustomStateValues != null && configItem.CustomStateValues.Any())
+        if (configItem.CustomStateValues != null && configItem.CustomStateValues.Count > 0)
         {
             valuesToApply = configItem.CustomStateValues;
         }
@@ -316,10 +287,8 @@ internal class RegistryCommandEmitter
         ApplyResolvedValuesFromCatalog(sb, setting, valuesToApply, isHkcu, indent);
     }
 
-    /// <summary>Builds the selected option's raw write-values dict from the catalog setting's States[index].Set
-    /// - each Set entry keyed by the matching Target's registry ValueName (or "KeyExists" when the RegTarget has
-    /// no value name), or "PowerCfgValue" for a PowerCfgTarget, valued by StateValue.WritePayload. Returns empty
-    /// when the selected STATE carries no write-values (an empty Set) or the index is out of range.</summary>
+    // Keyed by the matching Target's ValueName ("KeyExists" for a value-less RegTarget) or "PowerCfgValue";
+    // empty when the state's Set is empty or the index is out of range.
     private static Dictionary<string, object> ResolveSelectionValuesFromCatalog(Winhance.Core.Features.Common.Catalog.Setting catalogSetting, int index)
     {
         var result = new Dictionary<string, object>();
@@ -345,8 +314,6 @@ internal class RegistryCommandEmitter
         return result;
     }
 
-    /// <summary>Emits the resolved value writes, reading the catalog Setting's Display.Description + Targets
-    /// (PowerCfgTarget/RegTarget). A RegTarget with N Paths emits one command per path, in order.</summary>
     public void ApplyResolvedValuesFromCatalog(StringBuilder sb, Winhance.Core.Features.Common.Catalog.Setting catalogSetting, Dictionary<string, object> valuesToApply, bool isHkcu, string indent)
     {
         var escapedDescription = EscapePowerShellString(catalogSetting.Display.Description);
@@ -354,7 +321,7 @@ internal class RegistryCommandEmitter
         foreach (var kvp in valuesToApply)
         {
             var powerCfgTargets = catalogSetting.Targets.OfType<PowerCfgTarget>().ToList();
-            if (kvp.Key == "PowerCfgValue" && powerCfgTargets.Any())
+            if (kvp.Key == "PowerCfgValue" && powerCfgTargets.Count > 0)
             {
                 foreach (var powerCfgTarget in powerCfgTargets)
                 {

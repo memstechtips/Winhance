@@ -1,14 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <inheritdoc cref="IExplorerRestartService"/>
-public sealed class ExplorerRestartService : IExplorerRestartService
+internal sealed class ExplorerRestartService : IExplorerRestartService
 {
     private const string ExplorerProcessName = "explorer";
     private const string ExplorerExecutable = "explorer.exe";
@@ -20,7 +16,6 @@ public sealed class ExplorerRestartService : IExplorerRestartService
     private const int ManualRestartAttempts = 20;
     private const int PollDelayMs = 500;
 
-    // How long to wait for the killed Explorer processes to actually exit.
     private const int KillTimeoutMs = 5000;
 
     // How long the polite "please exit" request gets before we stop being polite. Explorer normally goes in
@@ -46,7 +41,7 @@ public sealed class ExplorerRestartService : IExplorerRestartService
     {
     }
 
-    /// <summary>Test seam: lets the suite exercise the poll loops without real delays.</summary>
+    // Test seam: lets the suite exercise the poll loops without real delays.
     internal ExplorerRestartService(
         IWindowsUIManagementService uiManagement,
         IInteractiveUserService interactiveUser,
@@ -54,20 +49,17 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         ILogService logService,
         Func<int, Task>? delay)
     {
-        _uiManagement = uiManagement ?? throw new ArgumentNullException(nameof(uiManagement));
-        _interactiveUser = interactiveUser ?? throw new ArgumentNullException(nameof(interactiveUser));
-        _pendingRestart = pendingRestart ?? throw new ArgumentNullException(nameof(pendingRestart));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _uiManagement = uiManagement;
+        _interactiveUser = interactiveUser;
+        _pendingRestart = pendingRestart;
+        _logService = logService;
         _delay = delay ?? (ms => Task.Delay(ms));
     }
 
-    /// <inheritdoc />
     public void BroadcastShellRefresh() => _uiManagement.BroadcastShellRefresh();
 
-    /// <inheritdoc />
     public void BroadcastThemeRefresh() => _uiManagement.BroadcastThemeRefresh();
 
-    /// <inheritdoc />
     public async Task<OperationResult> RestartAsync()
     {
         await _gate.WaitAsync().ConfigureAwait(false);
@@ -82,8 +74,6 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         }
         finally
         {
-            // Still runs on every path: a faulted or cancelled core surfaces through the await above, so the
-            // release cannot be skipped.
             _gate.Release();
         }
     }
@@ -116,7 +106,7 @@ public sealed class ExplorerRestartService : IExplorerRestartService
 
                 // ASK FIRST. A graceful exit lets Explorer save the desktop icon layout and folder view
                 // preferences; terminating it throws them away. The message behind this is UNDOCUMENTED, so
-                // it is strictly best-effort - which is why the fallback below is the OLD behaviour, unchanged.
+                // it is strictly best-effort - hence the terminate fallback below.
                 if (_uiManagement.TryGracefulShellExit(GracefulExitTimeoutMs))
                 {
                     _logService.Log(LogLevel.Info, "[ExplorerRestartService] Explorer exited gracefully");
@@ -196,17 +186,10 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         }
     }
 
-    /// <summary>
-    /// Relaunches the shell with the token captured before the kill. Falls back to
-    /// LaunchProcessAsInteractiveUser - a void API that is gated on OTS elevation and degrades to
-    /// Process.Start otherwise, so it is a last resort, not the plan.
-    /// <para>
-    /// Returns nothing on purpose. The fallback cannot report failure, so there is no honest bool to
-    /// hand back; WaitForExplorerAsync is the verdict. The two warnings below are kept distinct
-    /// because they are different faults with different fixes: no token could be captured at all,
-    /// versus a token that was captured and then failed to launch (CreateProcessWithTokenW).
-    /// </para>
-    /// </summary>
+    // Falls back to LaunchProcessAsInteractiveUser - a void API gated on OTS elevation that degrades to
+    // Process.Start otherwise, so a last resort, not the plan. Returns nothing on purpose: the fallback cannot
+    // report failure, so there is no honest bool; WaitForExplorerAsync is the verdict. The two warnings are distinct
+    // faults with different fixes: no token captured, versus a captured token that failed to launch.
     private void TryRelaunch(IShellRelaunchToken? relaunchToken)
     {
         if (relaunchToken is null)
@@ -233,10 +216,8 @@ public sealed class ExplorerRestartService : IExplorerRestartService
         return OperationResult.Failed(message);
     }
 
-    /// <summary>
-    /// Polls for Explorer coming back. Delays FIRST: this is only ever called just after the process
-    /// was killed, so checking before waiting is what produced the false "it is already back".
-    /// </summary>
+    // Delays FIRST: this is only ever called just after the kill, and checking before waiting is what produced the
+    // false "it is already back".
     private async Task<bool> WaitForExplorerAsync(int attempts)
     {
         for (int attempt = 0; attempt < attempts; attempt++)

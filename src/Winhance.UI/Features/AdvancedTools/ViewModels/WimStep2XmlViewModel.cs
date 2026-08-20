@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,9 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-/// <summary>
-/// Sub-ViewModel for WIM Utility Step 2: XML generation, download, and selection.
-/// </summary>
 public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
     private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
@@ -30,9 +24,6 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
-    /// <summary>
-    /// The working directory, set by the parent when Step 1 completes.
-    /// </summary>
     public string WorkingDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -128,8 +119,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 Message = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Description"),
                 Title = _localizationService.GetString("WIMUtil_Card_GenerateWinhanceXML_Title"),
-                ConfirmButtonText = "Yes",
-                CancelButtonText = "No",
+                ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                CancelButtonText = _localizationService.GetString("Button_No"),
             })).Confirmed;
             if (!confirmed) return;
 
@@ -140,8 +131,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 {
                     Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
                     Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                    ConfirmButtonText = "Yes",
-                    CancelButtonText = "No",
+                    ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+                    CancelButtonText = _localizationService.GetString("Button_No"),
                 })).Confirmed;
                 if (!continueAnyway) return;
             }
@@ -314,6 +305,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = null;
+        GC.SuppressFinalize(this);
     }
 
 }

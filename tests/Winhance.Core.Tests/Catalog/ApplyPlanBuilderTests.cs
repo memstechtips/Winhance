@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -10,10 +8,13 @@ namespace Winhance.Core.Tests.Catalog;
 public class ApplyPlanBuilderTests
 {
     private static RegTarget Reg(string key, string valueName, params string[] paths) =>
-        new(key, paths.Length == 0 ? new[] { @"HKEY_LOCAL_MACHINE\TEST" } : paths, valueName, RegistryValueKind.DWord);
+        new(key, paths.Length == 0 ? DefaultPaths : paths, valueName, RegistryValueKind.DWord);
 
     private static readonly WinBuild Win11 = new(22631);
     private static readonly WinBuild Win10 = new(19045);
+    private static readonly string[] DefaultPaths = [@"HKEY_LOCAL_MACHINE\TEST"];
+    private static readonly string[] SvcPath = [@"HKLM\Svc"];
+    private static readonly string[] SoftwareXPath = [@"HKLM\SOFTWARE\X"];
 
     private static Setting Make(IReadOnlyList<Target> targets, params SettingState[] states) =>
         new() { Id = "t", Display = new() { Name = "t", Description = "t" }, Targets = targets, States = states };
@@ -37,17 +38,15 @@ public class ApplyPlanBuilderTests
     public void Lockable_target_unlocks_before_and_locks_after_only_the_protective_value()
     {
         var setting = Make(
-            new Target[] { new RegTarget("Start", new[] { @"HKLM\Svc" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 } },
+            new Target[] { new RegTarget("Start", SvcPath, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 } },
             new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
             new SettingState { Label = "Manual",   Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } });
 
-        // The protective value (4): unlock, write, lock — in order.
         Assert.Collection(ApplyPlanBuilder.Build(setting, "Disabled"),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op),
             op => Assert.IsType<RegistryLockKeyOp>(op));
 
-        // A non-protective value (3): unlock + write, but NO lock.
         Assert.Collection(ApplyPlanBuilder.Build(setting, "Manual"),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op));
@@ -100,7 +99,7 @@ public class ApplyPlanBuilderTests
             });
 
         var plan = ApplyPlanBuilder.Build(setting, "Disabled");
-        Assert.True(plan.Last() is EffectOp);
+        Assert.True(plan[^1] is EffectOp);
         Assert.Equal("rename.ps1", ((ScriptEffect)plan.OfType<EffectOp>().Single().Effect).Script);
     }
 
@@ -254,13 +253,11 @@ public class ApplyPlanBuilderTests
             new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Of(1) } },
             new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Absent } });
 
-        // "Off" writes 1 to TcpAckFrequency under every interface sub-key; no plain write op.
         var write = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryPerSubkeyWriteOp>());
         Assert.Equal(@"HKLM\...\Interfaces", write.ParentPath);
         Assert.Equal(1, (int)write.Value);
         Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryWriteOp>());
 
-        // "On" (Absent) deletes the value under every sub-key; no plain delete op.
         Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyDeleteOp>());
         Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryDeleteOp>());
     }
@@ -330,7 +327,7 @@ public class ApplyPlanBuilderTests
         Assert.Equal("ConfigureStartPins", op.Target.ValueName);
         Assert.Equal(RegistryValueKind.String, op.Target.Type);
         Assert.True(op.Target.IsGroupPolicy);
-        Assert.Equal(new[] { @"HKLM\SOFTWARE\X" }, op.Target.Paths);
+        Assert.Equal(SoftwareXPath, op.Target.Paths);
     }
 
     [Fact]

@@ -1,27 +1,15 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-/// <summary>
-/// Resolves the bundled winget.exe path and runs it as a process.
-/// </summary>
-public static class WinGetCliRunner
+internal static class WinGetCliRunner
 {
     private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 
-    /// <summary>
-    /// Why the winget process stopped, when Winhance (not winget) ended it.
-    /// A killed process reports exit code -1 (0xFFFFFFFF), which is meaningless
-    /// as a winget exit code — callers use this to tell the user what really happened.
-    /// </summary>
+    // A killed process reports exit code -1 (0xFFFFFFFF), meaningless as a winget code - callers use this to tell
+    // the user what really happened.
     public enum TerminationReason
     {
         None,
@@ -36,11 +24,7 @@ public static class WinGetCliRunner
         string StandardError,
         TerminationReason Termination = TerminationReason.None);
 
-    /// <summary>
-    /// Returns a human-readable explanation when Winhance terminated the process,
-    /// or null when winget exited on its own. Intended for the terminal output
-    /// dialog so users (and support transcripts) don't see a bare -1 (0xFFFFFFFF).
-    /// </summary>
+    // For the terminal output dialog, so users and support transcripts don't see a bare -1 (0xFFFFFFFF).
     public static string? DescribeTermination(WinGetCliResult result, int timeoutMs, int idleTimeoutMs)
     {
         return result.Termination switch
@@ -56,25 +40,15 @@ public static class WinGetCliRunner
         };
     }
 
-    /// <summary>
-    /// Returns the path to winget.exe.
-    /// Priority: bundled copy (version-locked, ships with the app) →
-    /// system winget (fallback only when bundled is missing).
-    ///
-    /// Bundled is preferred because system winget can be arbitrarily stale on
-    /// machines with Microsoft Store updates blocked — newer flags
-    /// (e.g. --disable-interactivity, added in winget 1.4) cause hard exits on
-    /// old versions. The bundled copy is a controlled, known-good version.
-    /// </summary>
+    // Bundled copy first (version-locked); system winget only when the bundled one is missing. System winget can be
+    // arbitrarily stale on machines with Store updates blocked, and newer flags (--disable-interactivity, winget
+    // 1.4) hard-exit on old versions.
     public static string? GetWinGetExePath(IInteractiveUserService? interactiveUserService = null)
     {
-        // 1. Bundled (preferred — registration-free, version-locked).
         var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
         if (File.Exists(bundledPath))
             return bundledPath;
 
-        // 2. System fallback — only reached if the bundled CLI is missing
-        //    (corrupted Winhance install, dev build, etc.).
         if (interactiveUserService != null && interactiveUserService.IsOtsElevation)
         {
             // Under OTS, the admin's PATH points at admin's WindowsApps. Resolve
@@ -91,16 +65,9 @@ public static class WinGetCliRunner
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
-            try
-            {
-                var candidate = Path.Combine(dir, "winget.exe");
-                if (File.Exists(candidate))
-                    return candidate;
-            }
-            catch (Exception)
-            {
-                // Skip invalid PATH entries (e.g., malformed paths, access denied)
-            }
+            var candidate = Path.Combine(dir, "winget.exe");
+            if (File.Exists(candidate))
+                return candidate;
         }
 
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -111,11 +78,7 @@ public static class WinGetCliRunner
         return null;
     }
 
-    /// <summary>
-    /// Returns true if winget.exe is found in system PATH or WindowsApps
-    /// (indicates DesktopAppInstaller MSIX is registered).
-    /// Does NOT check the bundled path.
-    /// </summary>
+    // Does NOT check the bundled path.
     public static bool IsSystemWinGetAvailable(IInteractiveUserService? interactiveUserService = null)
     {
         // Under OTS, check the interactive user's WindowsApps (not admin's PATH)
@@ -127,43 +90,27 @@ public static class WinGetCliRunner
             return File.Exists(interactiveWinGet);
         }
 
-        // Non-OTS: standard check
-        // 1. System PATH
         var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
         foreach (var dir in pathDirs)
         {
-            try
-            {
-                var candidate = Path.Combine(dir, "winget.exe");
-                if (File.Exists(candidate))
-                    return true;
-            }
-            catch (Exception)
-            {
-                // Skip invalid PATH entries (e.g., malformed paths, access denied)
-            }
+            var candidate = Path.Combine(dir, "winget.exe");
+            if (File.Exists(candidate))
+                return true;
         }
 
-        // 2. WindowsApps (standard MSIX install location, may not be on PATH)
+        // WindowsApps (standard MSIX install location, may not be on PATH)
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var windowsAppsPath = Path.Combine(localAppData, "Microsoft", "WindowsApps", "winget.exe");
         return File.Exists(windowsAppsPath);
     }
 
-    /// <summary>
-    /// Returns the bundled winget.exe path only, or null if it doesn't exist.
-    /// </summary>
     public static string? GetBundledWinGetExePath()
     {
         var bundledPath = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
         return File.Exists(bundledPath) ? bundledPath : null;
     }
 
-    /// <summary>
-    /// Returns a short log tag identifying which winget binary <paramref name="exePath"/> is —
-    /// "bundled-winget" for the copy that ships with the app, "system-winget" for anything else.
-    /// Used in log line prefixes so support transcripts make it obvious which CLI ran.
-    /// </summary>
+    // Used in log line prefixes so support transcripts make it obvious which CLI ran.
     public static string GetLogTag(string? exePath)
     {
         var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
@@ -172,27 +119,12 @@ public static class WinGetCliRunner
             : "system-winget";
     }
 
-    /// <summary>
-    /// Runs winget.exe with the given arguments, streaming stdout/stderr.
-    /// </summary>
-    /// <param name="timeoutMs">
-    /// Wall-clock kill timeout. Pass 0 (or Timeout.Infinite = -1) to disable — useful when
-    /// the caller relies on <paramref name="idleTimeoutMs"/> instead. Default 5 minutes.
-    /// </param>
-    /// <param name="idleTimeoutMs">
-    /// Optional idle-output kill timeout. When &gt; 0, the process is killed if no output
-    /// (stdout, stderr, or progress line) arrives for this many milliseconds. The timer
-    /// resets on every line, so legitimately slow-but-progressing installs (large CDN
-    /// downloads, slow disks) keep renewing their deadline indefinitely. 0 = disabled.
-    /// </param>
-    /// <param name="exePathOverride">
-    /// If provided, uses this path instead of auto-resolving via <see cref="GetWinGetExePath"/>.
-    /// Useful for forcing the bundled copy (e.g. when installing AppInstaller itself).
-    /// </param>
-    /// <param name="interactiveUserService">
-    /// If provided and OTS elevation is active, runs winget as the interactive user
-    /// so packages install to the correct user's scope.
-    /// </param>
+    // timeoutMs: wall-clock kill; 0 or Timeout.Infinite disables it (callers relying on idleTimeoutMs). idleTimeoutMs:
+    // kill when no stdout/stderr/progress arrives for this long; the timer resets on every line, so slow-but-progressing
+    // installs keep renewing their deadline. exePathOverride forces a binary (e.g. the bundled copy when installing
+    // AppInstaller itself). interactiveUserService + OTS runs winget as the interactive user so packages land in the
+    // right scope. onProgressLine gets the transient \r fragments; only \r\n lines reach onOutputLine. Cancellation
+    // kills the process tree.
     public static async Task<WinGetCliResult> RunAsync(
         string arguments,
         Action<string>? onOutputLine = null,
@@ -284,7 +216,7 @@ public static class WinGetCliRunner
                     using var conPty = new ConPtyProcess();
                     var ptyResult = await conPty.RunAsync(
                         exePath, arguments,
-                        wrapOutput, wrapError, wrapProgress,
+                        wrapOutput, wrapProgress,
                         linkedCts.Token).ConfigureAwait(false);
                     return ptyResult with { Termination = GetTerminationReason(ptyResult.ExitCode) };
                 }
@@ -316,10 +248,9 @@ public static class WinGetCliRunner
 
             process.Start();
 
-            // Kill process tree on cancellation
             using var registration = linkedCts.Token.Register(() =>
             {
-                try { process.Kill(entireProcessTree: true); } catch { /* Best-effort process kill — process may have already exited */ }
+                try { process.Kill(entireProcessTree: true); } catch { }
             });
 
             // Read stdout char-by-char to detect \r (progress) vs \n (permanent) immediately.
@@ -365,15 +296,11 @@ public static class WinGetCliRunner
     {
         if (cts == null) return;
         try { cts.CancelAfter(idleTimeoutMs); }
-        catch (ObjectDisposedException) { /* race with cleanup; idle no longer relevant */ }
+        catch (ObjectDisposedException) { } // race with cleanup; idle no longer relevant
     }
 
-    /// <summary>
-    /// Reads stdout char-by-char, classifying lines by their terminator:
-    /// \r → progress (transient, emitted immediately via onProgressLine)
-    /// \n → permanent (emitted via onOutputLine)
-    /// \r\n → permanent (emitted via onOutputLine; \r fires onProgressLine first)
-    /// </summary>
+    // Classifies lines by terminator: \r -> progress (transient, onProgressLine); \n -> permanent (onOutputLine);
+    // \r\n -> permanent, with \r firing onProgressLine first.
     internal static async Task ReadStdoutCharByCharAsync(
         StreamReader reader,
         StringBuilder outputBuilder,
@@ -422,7 +349,6 @@ public static class WinGetCliRunner
             }
         }
 
-        // Flush remaining content at EOF
         if (currentLine.Length > 0)
         {
             string line = currentLine.ToString();

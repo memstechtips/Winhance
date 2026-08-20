@@ -1,21 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
-/// <summary>
-/// Handles the wallpaper + registry side of the Windows theme switch. The explorer
-/// refresh is no longer the handler's job — it's declarative via
-/// <c>setting.RestartProcess = "Explorer"</c>, handled by ProcessRestartManager.
-/// </summary>
-public sealed class ThemeWallpaperApplier(
+internal sealed class ThemeWallpaperApplier(
     IWallpaperService wallpaperService,
     IWindowsVersionService versionService,
     IStateWriter stateWriter,
@@ -49,9 +40,7 @@ public sealed class ThemeWallpaperApplier(
         // A DETECT-ONLY state ("Mixed", index 2) is NOT an apply target: it carries no Set, and the
         // relationship reverse-sync hands this handler exactly that index when the two theme children
         // disagree. It is handled (return true) but writes nothing - the mix IS the children's own
-        // states, and there is nothing for the master to write. The code this replaced read
-        // `index == 1 ? Dark : Light`, so ANY other index silently applied Light Mode, which would have
-        // clobbered the child the user had just changed.
+        // states, and there is nothing for the master to write.
         var themeState = selectionIndex >= 0 && selectionIndex < catalogSetting.States.Count
             ? catalogSetting.States[selectionIndex]
             : null;
@@ -62,18 +51,23 @@ public sealed class ThemeWallpaperApplier(
             return true;
         }
 
-        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, themeState), stateWriter);
+        var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, themeState));
+        var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
                 $"[ThemeWallpaperApplier] {result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
+
+        // This path is synchronous and cannot await, so a process-launching effect would be dropped.
+        // ThemeWallpaperEffectsConformanceTests asserts none exists; this catches it at runtime if one does.
+        if (plan.AsyncEffects.Count > 0)
+            logService.Log(LogLevel.Error,
+                $"[ThemeWallpaperApplier] {plan.AsyncEffects.Count} async effect(s) NOT run - a theme state gained one but this apply path is synchronous");
 
         // Import-flow checkbox: also change the wallpaper to match.
         if (additionalContext)
         {
             try
             {
-                // The wallpaper for the applied state lives on the catalog as a build-gated WallpaperEffect:
-                // pick the effect whose AppliesTo admits the live build.
                 var liveBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
                 var wallpaperPath = themeState.Effects
                     .OfType<WallpaperEffect>()

@@ -1,12 +1,8 @@
-// File: tests/Winhance.Infrastructure.Tests/Services/ThemeWallpaperApplierTests.cs
-using System.Collections.Generic;
-using Microsoft.Win32;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Xunit;
@@ -76,9 +72,9 @@ public class ThemeWallpaperApplierTests
     public async Task TryApply_DetectOnlyStateIndex_WritesNothing()
     {
         // Index 2 is the neutral "Mixed" state: detect-only, no Set. The relationship reverse-sync hands
-        // this handler exactly that index when the two theme children disagree. The code this replaced
-        // read `index == 1 ? Dark : Light`, so it silently applied LIGHT MODE - clobbering the child the
-        // user had just changed. It is still HANDLED (true), it just writes nothing.
+        // this handler exactly that index when the two theme children disagree.
+        // Falling through to Light Mode here would clobber the child the user had just changed.
+        // It is still HANDLED (true), it just writes nothing.
         _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
 
         var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 2, additionalContext: true);

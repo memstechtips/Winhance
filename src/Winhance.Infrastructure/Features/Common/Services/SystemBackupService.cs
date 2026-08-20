@@ -1,8 +1,5 @@
-using System;
 using System.Globalization;
 using System.Management;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,7 +8,7 @@ using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemBackupService : ISystemBackupService
+internal class SystemBackupService : ISystemBackupService
 {
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
@@ -21,10 +18,7 @@ public class SystemBackupService : ISystemBackupService
     private const int VerificationMaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
 
-    /// <summary>
-    /// Minimum percentage of shadow storage that must be free to create a restore point.
-    /// If free space drops below this threshold, the max size is doubled.
-    /// </summary>
+    // Below this free share of shadow storage, the max size is doubled before creating a restore point.
     private const double MinFreeStoragePercent = 15.0;
 
     public SystemBackupService(
@@ -51,7 +45,6 @@ public class SystemBackupService : ISystemBackupService
 
             _logService.Log(LogLevel.Info, $"Creating restore point '{restorePointName}'...");
 
-            // Check if System Restore is enabled
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_CheckingRestoreStatus"),
@@ -80,10 +73,8 @@ public class SystemBackupService : ISystemBackupService
                 _logService.Log(LogLevel.Info, "System Restore enabled successfully");
             }
 
-            // Ensure shadow storage has enough free space
             await EnsureSufficientShadowStorageAsync().ConfigureAwait(false);
 
-            // Create the restore point
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_CreatingRestorePoint"),
@@ -105,7 +96,6 @@ public class SystemBackupService : ISystemBackupService
                 _logService.Log(LogLevel.Warning, $"SRSetRestorePointW returned success but status code is {statusCode} ({statusDesc})");
             }
 
-            // Verify creation
             _logService.Log(LogLevel.Info, "Restore point API call succeeded, verifying creation...");
 
             var verifiedDate = await VerifyRestorePointCreatedAsync(restorePointName, cancellationToken).ConfigureAwait(false);
@@ -248,7 +238,7 @@ public class SystemBackupService : ISystemBackupService
             if (existing is int intVal)
             {
                 previousValue = intVal;
-                if (intVal == 0) return; // Already disabled
+                if (intVal == 0) return;
             }
 
             key.SetValue(FrequencyValueName, 0, RegistryValueKind.DWord);
@@ -282,9 +272,6 @@ public class SystemBackupService : ISystemBackupService
         }
     }
 
-    /// <summary>
-    /// Checks shadow storage usage and increases MaxSize if free space is below threshold.
-    /// </summary>
     private async Task EnsureSufficientShadowStorageAsync()
     {
         try
@@ -315,7 +302,6 @@ public class SystemBackupService : ISystemBackupService
             {
                 var newMaxBytes = maxBytes * 2;
                 var newMaxGb = newMaxBytes / (1024L * 1024 * 1024);
-                // Cap at a reasonable size and use at least 1 GB
                 newMaxGb = Math.Clamp(newMaxGb, 1, 64);
 
                 _logService.Log(LogLevel.Info, $"Shadow storage nearly full ({freePercent:F1}% free), resizing max to {newMaxGb} GB");
@@ -331,10 +317,6 @@ public class SystemBackupService : ISystemBackupService
         }
     }
 
-    /// <summary>
-    /// Parses vssadmin list shadowstorage output to extract Used and Maximum bytes.
-    /// Returns (-1, -1) if parsing fails.
-    /// </summary>
     private static (long UsedBytes, long MaxBytes) ParseShadowStorageOutput(string output)
     {
         long usedBytes = -1;
@@ -357,10 +339,6 @@ public class SystemBackupService : ISystemBackupService
         return (usedBytes, maxBytes);
     }
 
-    /// <summary>
-    /// Parses a vssadmin line like "Used Shadow Copy Storage space: 9.25 GB (14%)"
-    /// and returns the value in bytes. Returns -1 on failure.
-    /// </summary>
     private static long ParseByteValue(string line)
     {
         // Extract the part after the colon, e.g. " 9.25 GB (14%)"
@@ -369,12 +347,10 @@ public class SystemBackupService : ISystemBackupService
 
         var valuePart = line[(colonIndex + 1)..].Trim();
 
-        // Remove the parenthetical percentage if present, e.g. "(14%)"
         var parenIndex = valuePart.IndexOf('(');
         if (parenIndex > 0)
             valuePart = valuePart[..parenIndex].Trim();
 
-        // Split into number and unit, e.g. ["9.25", "GB"]
         var parts = valuePart.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2) return -1;
 
@@ -416,7 +392,6 @@ public class SystemBackupService : ISystemBackupService
 
             _logService.Log(LogLevel.Info, "System Restore enabled via WMI");
 
-            // Resize shadow storage
             await _processExecutor.ExecuteAsync(
                 "vssadmin",
                 $"Resize ShadowStorage /For={systemDrive}\\ /On={systemDrive}\\ /MaxSize=20GB")

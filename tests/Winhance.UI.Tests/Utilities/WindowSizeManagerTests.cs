@@ -42,7 +42,6 @@ public class WindowSizeManagerTests
     [Fact]
     public void IsWindowRectVisible_OnSecondaryDisplay_ReturnsTrue()
     {
-        // Window on the secondary monitor (x=2500) — valid when dual-display is active.
         WindowSizeManager.IsWindowRectVisible(R(2500, 100, 1280, 800), DualDisplay)
             .Should().BeTrue();
     }
@@ -50,7 +49,6 @@ public class WindowSizeManagerTests
     [Fact]
     public void IsWindowRectVisible_OnSecondary_AfterItDisconnects_ReturnsFalse()
     {
-        // Same rect as above, but the secondary display is no longer in the list.
         WindowSizeManager.IsWindowRectVisible(R(2500, 100, 1280, 800), SingleDisplay)
             .Should().BeFalse();
     }

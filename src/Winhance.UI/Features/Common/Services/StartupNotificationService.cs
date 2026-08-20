@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -37,7 +35,6 @@ public class StartupNotificationService : IStartupNotificationService
     {
         try
         {
-            // Check if we've already offered
             var alreadyOffered = _prefsService.GetPreference(
                 UserPreferenceKeys.InitialRestorePointOffered, false);
             if (alreadyOffered)
@@ -47,7 +44,6 @@ public class StartupNotificationService : IStartupNotificationService
             await _prefsService.SetPreferenceAsync(
                 UserPreferenceKeys.InitialRestorePointOffered, true);
 
-            // Build the consent dialog message
             var message = _localizationService.GetString("Startup_Backup_Intro") + "\n\n"
                 + _localizationService.GetString("Startup_Backup_ConfigCreated") + "\n\n"
                 + _localizationService.GetString("Startup_Backup_RestoreOffer") + "\n\n"

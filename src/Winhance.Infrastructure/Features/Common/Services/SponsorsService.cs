@@ -1,20 +1,11 @@
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Fetches sponsor/supporter data from the sponsors branch with a bundled-snapshot fallback.
-/// Results are cached for the lifetime of the session.
-/// </summary>
-public class SponsorsService : ISponsorsService
+internal class SponsorsService : ISponsorsService
 {
     private const string LiveUrl = "https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/sponsors.json";
     private const string UserAgent = "Winhance-Sponsors-Loader";
@@ -28,11 +19,10 @@ public class SponsorsService : ISponsorsService
 
     public SponsorsService(HttpClient httpClient, ILogService logService)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _httpClient = httpClient;
+        _logService = logService;
     }
 
-    /// <inheritdoc/>
     public async Task<SponsorsDocument?> GetSponsorsAsync(CancellationToken cancellationToken = default)
     {
         if (_cached is not null)
@@ -41,7 +31,6 @@ public class SponsorsService : ISponsorsService
         await _fetchLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Double-checked after acquiring the lock.
             if (_cached is not null)
                 return _cached;
 
@@ -59,14 +48,12 @@ public class SponsorsService : ISponsorsService
         }
     }
 
-    /// <inheritdoc/>
     public string GetLogoUri(SponsorEntry sponsor)
     {
         string logo = sponsor.Logo ?? string.Empty;
         return $"https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/{logo}";
     }
 
-    /// <inheritdoc/>
     public string? GetBundledLogoPath(SponsorEntry sponsor)
     {
         if (string.IsNullOrEmpty(sponsor.Logo))
@@ -78,14 +65,9 @@ public class SponsorsService : ISponsorsService
         if (!File.Exists(fullPath))
             return null;
 
-        // Return an ms-appx URI using forward slashes regardless of platform.
         string uriLogo = sponsor.Logo.Replace('\\', '/');
         return $"ms-appx:///Assets/Sponsors/{uriLogo}";
     }
-
-    // -----------------------------------------------------------------------
-    // Private helpers
-    // -----------------------------------------------------------------------
 
     private async Task<SponsorsDocument?> TryFetchLiveAsync(CancellationToken cancellationToken)
     {

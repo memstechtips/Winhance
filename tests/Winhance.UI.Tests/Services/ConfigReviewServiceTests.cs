@@ -52,11 +52,8 @@ public class ConfigReviewServiceTests : IDisposable
     public void Dispose()
     {
         _service?.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // -------------------------------------------------------
-    // Initial state
-    // -------------------------------------------------------
 
     [Fact]
     public void Constructor_InitializesWithCorrectDefaults()
@@ -70,10 +67,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.ReviewedChanges.Should().Be(0);
         service.TotalConfigItems.Should().Be(0);
     }
-
-    // -------------------------------------------------------
-    // Mode state (IApplicationModeService)
-    // -------------------------------------------------------
 
     [Fact]
     public void CurrentMode_DefaultsToNormal()
@@ -185,14 +178,10 @@ public class ConfigReviewServiceTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // Builder dirty-tracking
-    //
     // HasBuilderChanges exists because not every authored input type produces a serializable
     // BuilderEdit — NumericRange and AC/DC power settings do not (see the BuilderEdit scope note).
     // Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt entirely
     // for a session that had only moved sliders, and the authoring was discarded silently.
-    // -------------------------------------------------------
 
     [Fact]
     public void HasBuilderChanges_OnAFreshBuilderSession_IsFalse()
@@ -268,10 +257,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.HasBuilderChanges.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // Dispose
-    // -------------------------------------------------------
-
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
@@ -288,15 +273,10 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.Dispose();
 
-        // After dispose, raising language changed should not cause errors
         _mockLocalizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
 
         // No exception means unsubscribe worked
     }
-
-    // -------------------------------------------------------
-    // EnterReviewModeAsync
-    // -------------------------------------------------------
 
     [Fact]
     public async Task EnterReviewModeAsync_SetsIsInReviewMode()
@@ -535,7 +515,6 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        // Action settings are always registered even when there's no value diff
         service.TotalChanges.Should().Be(1);
         var diff = service.GetDiffForSetting("taskbar-clean");
         diff.Should().NotBeNull();
@@ -621,21 +600,15 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        // Enter review mode once
         await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
         service.IsInReviewMode.Should().BeTrue();
 
-        // Enter again with a different config
         var newConfig = new UnifiedConfigurationFile();
         await service.EnterReviewModeAsync(newConfig);
 
         service.ActiveConfig.Should().BeSameAs(newConfig);
-        service.TotalChanges.Should().Be(0); // Diffs cleared
+        service.TotalChanges.Should().Be(0);
     }
-
-    // -------------------------------------------------------
-    // ExitReviewMode
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ExitReviewMode_ClearsAllState()
@@ -697,26 +670,19 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        // Register diffs so badge queries return non-zero values
         service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy" });
         service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy" });
 
-        // Verify state exists before exit
         service.GetFeatureDiffCount("Privacy").Should().Be(2);
         service.IsFeatureInConfig(FeatureIds.WindowsApps).Should().BeTrue();
 
         service.ExitReviewMode();
 
-        // After exit, all badge queries must return cleared/default values
         service.GetFeatureDiffCount("Privacy").Should().Be(0);
         service.GetFeaturePendingDiffCount("Privacy").Should().Be(0);
         service.IsFeatureInConfig(FeatureIds.WindowsApps).Should().BeFalse();
         service.IsFeatureFullyReviewed("Privacy").Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // GetDiffForSetting
-    // -------------------------------------------------------
 
     [Fact]
     public void GetDiffForSetting_WhenNoDiff_ReturnsNull()
@@ -724,10 +690,6 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.GetDiffForSetting("nonexistent").Should().BeNull();
     }
-
-    // -------------------------------------------------------
-    // SetSettingApproval
-    // -------------------------------------------------------
 
     [Fact]
     public void SetSettingApproval_UpdatesDiffState()
@@ -778,10 +740,6 @@ public class ConfigReviewServiceTests : IDisposable
         act.Should().NotThrow();
     }
 
-    // -------------------------------------------------------
-    // GetApprovedDiffs
-    // -------------------------------------------------------
-
     [Fact]
     public void GetApprovedDiffs_ReturnsOnlyApprovedAndReviewed()
     {
@@ -810,10 +768,6 @@ public class ConfigReviewServiceTests : IDisposable
         approved.Should().HaveCount(1);
         approved[0].SettingId.Should().Be("approved");
     }
-
-    // -------------------------------------------------------
-    // RegisterDiff
-    // -------------------------------------------------------
 
     [Fact]
     public void RegisterDiff_AddsDiff()
@@ -854,10 +808,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.GetDiffForSetting("test")!.CurrentValueDisplay.Should().Be("New");
     }
 
-    // -------------------------------------------------------
-    // Approval counts
-    // -------------------------------------------------------
-
     [Fact]
     public void ApprovedChanges_ReturnsCorrectCount()
     {
@@ -873,10 +823,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.ApprovedChanges.Should().Be(1);
         service.ReviewedChanges.Should().Be(2);
     }
-
-    // -------------------------------------------------------
-    // Badge / feature tracking
-    // -------------------------------------------------------
 
     [Fact]
     public void MarkFeatureVisited_TracksVisitedFeatures()
@@ -899,7 +845,7 @@ public class ConfigReviewServiceTests : IDisposable
         service.BadgeStateChanged += (_, _) => fireCount++;
 
         service.MarkFeatureVisited("Privacy");
-        service.MarkFeatureVisited("Privacy"); // Second call should not fire again
+        service.MarkFeatureVisited("Privacy");
 
         fireCount.Should().Be(1);
     }
@@ -963,14 +909,10 @@ public class ConfigReviewServiceTests : IDisposable
         service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy" });
         service.RegisterDiff(new ConfigReviewDiff { SettingId = "s2", FeatureModuleId = "Privacy" });
 
-        service.SetSettingApproval("s1", true); // Reviewed
+        service.SetSettingApproval("s1", true);
 
         service.GetFeaturePendingDiffCount("Privacy").Should().Be(1);
     }
-
-    // -------------------------------------------------------
-    // IsFeatureInConfig
-    // -------------------------------------------------------
 
     [Fact]
     public async Task IsFeatureInConfig_ReturnsTrueForFeaturesInConfig()
@@ -994,10 +936,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.IsFeatureInConfig(FeatureIds.ExternalApps).Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // IsSectionFullyReviewed
-    // -------------------------------------------------------
-
     [Fact]
     public void IsSectionFullyReviewed_WhenNotInReviewMode_ReturnsFalse()
     {
@@ -1018,10 +956,6 @@ public class ConfigReviewServiceTests : IDisposable
         service.IsSectionFullyReviewed("SoftwareApps").Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // IsFeatureFullyReviewed
-    // -------------------------------------------------------
-
     [Fact]
     public void IsFeatureFullyReviewed_WhenNotInReviewMode_ReturnsFalse()
     {
@@ -1032,7 +966,6 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureFullyReviewed_WithNoDiffs_ReturnsTrue()
     {
-        // A feature that is in config but has zero diffs is considered fully reviewed
         var config = new UnifiedConfigurationFile
         {
             Optimize = new FeatureGroupSection
@@ -1115,13 +1048,10 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        // Has unreviewed diff - not fully reviewed even without visiting
         service.IsFeatureFullyReviewed("Privacy").Should().BeFalse();
 
-        // Review the diff
         service.SetSettingApproval("s1", true);
 
-        // Fully reviewed once all diffs are reviewed, regardless of visited state
         service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
     }
 
@@ -1184,10 +1114,8 @@ public class ConfigReviewServiceTests : IDisposable
         // Do NOT call MarkFeatureVisited - simulates entering review mode
         // while already on the sub-page
 
-        // Review the diff
         service.SetSettingApproval("s1", true);
 
-        // Should be fully reviewed even without visiting
         service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
     }
 
@@ -1247,16 +1175,11 @@ public class ConfigReviewServiceTests : IDisposable
         int badgeChangedCount = 0;
         service.BadgeStateChanged += (_, _) => badgeChangedCount++;
 
-        // Reviewing the last diff should fire BadgeStateChanged
         service.SetSettingApproval("s1", true);
 
         badgeChangedCount.Should().BeGreaterThan(0);
         service.IsFeatureFullyReviewed("Privacy").Should().BeTrue();
     }
-
-    // -------------------------------------------------------
-    // NotifyBadgeStateChanged
-    // -------------------------------------------------------
 
     [Fact]
     public void NotifyBadgeStateChanged_FiresBothEvents()
@@ -1273,10 +1196,6 @@ public class ConfigReviewServiceTests : IDisposable
         badgeFired.Should().BeTrue();
         approvalFired.Should().BeTrue();
     }
-
-    // -------------------------------------------------------
-    // Language change re-localization
-    // -------------------------------------------------------
 
     [Fact]
     public async Task LanguageChanged_WhenInReviewMode_RelocalizesDisplayStrings()
@@ -1331,7 +1250,6 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        // Now change the localization strings
         _mockLocalizationService
             .Setup(l => l.GetString("Common_On"))
             .Returns("Ein");
@@ -1339,7 +1257,6 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(l => l.GetString("Common_Off"))
             .Returns("Aus");
 
-        // Trigger language change
         _mockLocalizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
 
         var diff = service.GetDiffForSetting("s1");
@@ -1356,10 +1273,6 @@ public class ConfigReviewServiceTests : IDisposable
         // Should not throw
         _mockLocalizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
     }
-
-    // -------------------------------------------------------
-    // NumericRange diff computation
-    // -------------------------------------------------------
 
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_WithACValueDiff_RegistersDiff()
@@ -1419,10 +1332,6 @@ public class ConfigReviewServiceTests : IDisposable
         diff.ConfigValueDisplay.Should().Be("60");
     }
 
-    // -------------------------------------------------------
-    // Selection diff computation
-    // -------------------------------------------------------
-
     [Fact]
     public async Task EnterReviewModeAsync_Selection_WithDifferentIndex_RegistersDiff()
     {
@@ -1479,10 +1388,6 @@ public class ConfigReviewServiceTests : IDisposable
         var diff = service.GetDiffForSetting("selection-setting");
         diff.Should().NotBeNull();
     }
-
-    // -------------------------------------------------------
-    // Start menu version filtering
-    // -------------------------------------------------------
 
     [Fact]
     public async Task EnterReviewModeAsync_StartMenuClean10_OnWindows11_IsSkipped()
@@ -1600,9 +1505,7 @@ public class ConfigReviewServiceTests : IDisposable
         service.GetDiffForSetting("start-menu-clean-11").Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // NumericRange edge cases (guards #482 rendering)
-    // -------------------------------------------------------
+    // The NumericRange edge cases below guard #482 (review-mode rendering).
 
     [Fact]
     public async Task EnterReviewModeAsync_NumericRange_SameACValue_NoDiff()
@@ -1697,7 +1600,7 @@ public class ConfigReviewServiceTests : IDisposable
                                 Id = "nr-nopower",
                                 Name = "No Power Settings",
                                 InputType = InputType.NumericRange,
-                                PowerSettings = null // No PowerSettings dictionary
+                                PowerSettings = null
                             }
                         }
                     }
@@ -1751,7 +1654,7 @@ public class ConfigReviewServiceTests : IDisposable
                                 InputType = InputType.NumericRange,
                                 PowerSettings = new Dictionary<string, object>
                                 {
-                                    ["DCValue"] = 60 // Only DCValue, no ACValue
+                                    ["DCValue"] = 60
                                 }
                             }
                         }
@@ -1763,18 +1666,14 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        // Should not register a diff since ACValue is the comparison key and it's missing
         service.GetDiffForSetting("nr-dconly").Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // Multi-feature diff computation (guards #482 for all pages)
-    // -------------------------------------------------------
+    // The multi-feature diff test below guards #482 for all pages.
 
     [Fact]
     public async Task EnterReviewModeAsync_MultipleFeatures_ComputesDiffsPerFeature()
     {
-        // Privacy (Toggle)
         var privacySetting = new Setting
         {
             Id = "priv1",
@@ -1789,7 +1688,6 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
             .Returns(new[] { privacySetting });
 
-        // Power (Slider)
         var powerSetting = new Setting
         {
             Id = "pow1",
@@ -1916,7 +1814,7 @@ public class ConfigReviewServiceTests : IDisposable
                                 Id = "sel-null",
                                 Name = "Selection Null Index",
                                 InputType = InputType.Selection,
-                                SelectedIndex = null // Null index
+                                SelectedIndex = null
                             }
                         }
                     }
@@ -1955,7 +1853,7 @@ public class ConfigReviewServiceTests : IDisposable
                     Success = true,
                     CurrentValue = 0,
                     // The service reads the active plan from the typed DynamicSelection (scheme GUID) +
-                    // DynamicSelectionName (raw OS name), so drive those - not the retired RawValues bag.
+                    // DynamicSelectionName (raw OS name), so drive those.
                     DynamicSelection = "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
                     DynamicSelectionName = "Balanced"
                 }

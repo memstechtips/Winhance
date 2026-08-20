@@ -6,9 +6,6 @@
     <!--
     Icon sizes, keyed by what the icon IS rather than how big it is, so two concepts that happen
     to share a number today can be changed apart tomorrow.
-
-    These were literals duplicated across pages. The outcome icon had already drifted - 15 in the
-    feature banner against 16 everywhere else - which is the bug this file prevents.
     -->
 
     <!-- Detection-outcome glyph: setting cards, the toggle knob, and the feature banner. -->

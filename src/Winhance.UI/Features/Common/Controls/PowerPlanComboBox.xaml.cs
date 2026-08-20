@@ -9,19 +9,13 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Interfaces;
 using ComboBoxDisplayOption = Winhance.Core.Features.Common.Interfaces.ComboBoxDisplayOption;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Custom ComboBox control for Power Plan selection with status indicators,
-/// [Active] badges, and delete functionality.
-/// </summary>
 public sealed partial class PowerPlanComboBox : UserControl
 {
-    // Cached brushes for status indicators
     private static readonly SolidColorBrush ExistsBrush = new(Color.FromArgb(255, 0, 200, 60));
     private static readonly SolidColorBrush NotExistsBrush = new(Color.FromArgb(255, 200, 40, 0));
 
@@ -32,14 +26,12 @@ public sealed partial class PowerPlanComboBox : UserControl
             typeof(PowerPlanComboBox),
             new PropertyMetadata(null, OnItemsSourceChanged));
 
-    // Tracks the last CollectionChanged handler so we can unsubscribe when the collection changes
     private NotifyCollectionChangedEventHandler? _collectionChangedHandler;
 
     private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not PowerPlanComboBox control) return;
 
-        // Unsubscribe from the old collection
         if (e.OldValue is ObservableCollection<ComboBoxDisplayOption> oldCollection && control._collectionChangedHandler != null)
         {
             oldCollection.CollectionChanged -= control._collectionChangedHandler;
@@ -163,14 +155,8 @@ public sealed partial class PowerPlanComboBox : UserControl
         set => SetValue(NotExistsTooltipTextProperty, value);
     }
 
-    /// <summary>
-    /// Event raised when the delete button is clicked for a power plan.
-    /// </summary>
     public event EventHandler<PowerPlanComboBoxOption>? DeleteRequested;
 
-    /// <summary>
-    /// Event raised when the dropdown is closed (selection changed).
-    /// </summary>
     public event EventHandler<object>? DropDownClosed;
 
     public PowerPlanComboBox()
@@ -178,9 +164,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         this.InitializeComponent();
     }
 
-    /// <summary>
-    /// Handles the dropdown opened event to set up visual states for all items.
-    /// </summary>
     private void OnDropDownOpened(object sender, object e)
     {
         // Use DispatcherQueue to ensure the visual tree is ready
@@ -190,9 +173,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         });
     }
 
-    /// <summary>
-    /// Updates the visual state of all items in the ComboBox.
-    /// </summary>
     private void UpdateAllItemVisualStates()
     {
         if (ItemsSource == null) return;
@@ -206,11 +186,10 @@ public sealed partial class PowerPlanComboBox : UserControl
             var powerPlanOption = option.Tag as PowerPlanComboBoxOption;
             if (powerPlanOption == null) continue;
 
-            // Find the Grid in the item template
             var grid = FindChild<Grid>(container, null);
             if (grid == null) continue;
 
-            SetupItemVisualState(grid, powerPlanOption, option.Tag);
+            SetupItemVisualState(grid, powerPlanOption);
 
             // Keyboard accessibility: Delete key on the focused item triggers DeleteRequested.
             // The trash button itself can't be tab-reached inside an open ComboBox (Tab dismisses
@@ -221,10 +200,7 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Fires DeleteRequested when the user presses Delete on a focused deletable plan in the dropdown.
-    /// Matches the visibility gate of the trash icon: only fires on plans that exist on the system and aren't active.
-    /// </summary>
+    // Matches the visibility gate of the trash icon: only plans that exist on the system and aren't active.
     private void OnItemKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == VirtualKey.Delete
@@ -238,17 +214,12 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Sets up the visual state for a single item.
-    /// </summary>
-    private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption, object? tag)
+    private void SetupItemVisualState(Grid grid, PowerPlanComboBoxOption powerPlanOption)
     {
-        // Find child elements
         var statusIndicator = FindChild<Ellipse>(grid, "StatusIndicator");
         var activeBadge = FindChild<TextBlock>(grid, "ActiveBadge");
         var deleteButton = FindChild<Button>(grid, "DeleteButton");
 
-        // Set status indicator color and tooltip
         if (statusIndicator != null)
         {
             statusIndicator.Fill = powerPlanOption.ExistsOnSystem ? ExistsBrush : NotExistsBrush;
@@ -256,14 +227,12 @@ public sealed partial class PowerPlanComboBox : UserControl
                 powerPlanOption.ExistsOnSystem ? ExistsTooltipText : NotExistsTooltipText);
         }
 
-        // Set [Active] badge visibility and text
         if (activeBadge != null)
         {
             activeBadge.Visibility = powerPlanOption.IsActive ? Visibility.Visible : Visibility.Collapsed;
             activeBadge.Text = ActiveBadgeText;
         }
 
-        // Set delete button visibility: visible only when exists AND not active
         if (deleteButton != null)
         {
             deleteButton.Visibility = (powerPlanOption.ExistsOnSystem && !powerPlanOption.IsActive)
@@ -273,16 +242,12 @@ public sealed partial class PowerPlanComboBox : UserControl
             ToolTipService.SetToolTip(deleteButton, DeleteTooltipText);
             AutomationProperties.SetName(deleteButton, DeleteTooltipText);
 
-            // Wire up the click handler and set the tag for identifying the plan
             deleteButton.Tag = powerPlanOption;
             deleteButton.Click -= OnDeleteButtonClick;
             deleteButton.Click += OnDeleteButtonClick;
         }
     }
 
-    /// <summary>
-    /// Handles the delete button click event.
-    /// </summary>
     private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button button && button.Tag is PowerPlanComboBoxOption option)
@@ -291,9 +256,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Handles the dropdown closed event to propagate selection changes.
-    /// </summary>
     private void OnDropDownClosed(object sender, object e)
     {
         if (PowerPlanSelector.SelectedValue is { } value)
@@ -302,10 +264,6 @@ public sealed partial class PowerPlanComboBox : UserControl
         }
     }
 
-    /// <summary>
-    /// Helper method to find a child element by name within a parent element.
-    /// If name is null, returns the first child of the specified type.
-    /// </summary>
     private static T? FindChild<T>(DependencyObject parent, string? childName) where T : FrameworkElement
     {
         var count = VisualTreeHelper.GetChildrenCount(parent);

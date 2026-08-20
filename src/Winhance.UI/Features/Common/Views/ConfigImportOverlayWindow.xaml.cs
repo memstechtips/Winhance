@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
@@ -11,10 +10,6 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Views;
 
-/// <summary>
-/// A fullscreen overlay window shown during config application.
-/// Uses Win32 interop for semi-transparency and borderless maximized presentation.
-/// </summary>
 public sealed partial class ConfigImportOverlayWindow : Window
 {
     [DllImport("user32.dll")]
@@ -38,11 +33,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
     {
         this.InitializeComponent();
 
-        // Set initial text
         OverlayStatusText.Text = statusText;
         OverlayDetailText.Text = detailText ?? string.Empty;
 
-        // Set branding
         OverlayLogo.Source = new BitmapImage(
             new Uri("ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"));
 
@@ -58,7 +51,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
             OverlayTaglineText.Text = "";
         }
 
-        // Configure window after activation
         this.Activated += OnActivated;
     }
 
@@ -70,19 +62,17 @@ public sealed partial class ConfigImportOverlayWindow : Window
 
         try
         {
-            // Remove title bar
             ExtendsContentIntoTitleBar = true;
 
             var hwnd = WindowNative.GetWindowHandle(this);
 
             // Add WS_EX_LAYERED (for opacity) and WS_EX_TOOLWINDOW (hides from taskbar)
             var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+            _ = SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
 
-            // Set window opacity to ~90% (0xE6 = 230) — matches WPF's #E6000000
+            // Window opacity ~90% (0xE6 = 230).
             SetLayeredWindowAttributes(hwnd, 0, 230, LWA_ALPHA);
 
-            // Borderless, always-on-top, maximized
             if (AppWindow.Presenter is OverlappedPresenter presenter)
             {
                 presenter.SetBorderAndTitleBar(false, false);
@@ -95,13 +85,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
             _logService?.LogDebug($"Failed to configure overlay window: {ex.Message}");
         }
 
-        // Announce initial status text to Narrator
         AnnounceStatus(OverlayStatusText.Text);
     }
 
-    /// <summary>
-    /// Updates the status and detail text on the overlay.
-    /// </summary>
     public void UpdateStatus(string status, string? detail = null)
     {
         DispatcherQueue.TryEnqueue(() =>

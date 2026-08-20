@@ -1,15 +1,7 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// Abstracts file system operations for testability.
-/// Wraps System.IO.File, System.IO.Directory, and System.IO.Path static calls.
-/// </summary>
 public interface IFileSystemService
 {
-    // File operations
     bool FileExists(string path);
     string ReadAllText(string path);
     Task<string> ReadAllTextAsync(string path, CancellationToken ct = default);
@@ -26,14 +18,12 @@ public interface IFileSystemService
     void SetFileAttributes(string path, System.IO.FileAttributes attributes);
     DateTime GetLastWriteTime(string path);
 
-    // Directory operations
     bool DirectoryExists(string path);
     void CreateDirectory(string path);
     void DeleteDirectory(string path, bool recursive = false);
     string[] GetFiles(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);
     string[] GetDirectories(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);
 
-    // Path operations
     string GetTempPath();
     string CombinePath(params string[] paths);
     string GetFileName(string path);

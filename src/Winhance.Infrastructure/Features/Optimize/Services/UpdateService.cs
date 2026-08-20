@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class UpdateService(
+internal class UpdateService(
     ILogService logService,
     IWindowsRegistryService registryService,
     IProcessExecutor processExecutor,
@@ -27,7 +23,6 @@ public class UpdateService(
         return false;
     }
 
-    // Every mode re-resolves the updates-policy-mode Setting internally.
     public async Task ApplyUpdatesPolicyModeAsync(object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)
@@ -333,11 +328,8 @@ public class UpdateService(
 
     private void ApplyRegistrySettingsForIndex(int index)
     {
-        // The bounds check reads the States (authored one-per-option, so the length matches the option count).
-        // Apply the registry block through the apply engine (ApplyPlanBuilder + ApplyExecutor). The
-        // updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
-        // the chosen mode; its Set encodes that mode's per-option registry writes. The bespoke service/DLL/task
-        // orchestration around this call stays as-is.
+        // The updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
+        // the chosen mode; its Set encodes that mode's per-option registry writes.
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
@@ -346,10 +338,17 @@ public class UpdateService(
             return;
         }
 
-        var result = ApplyExecutor.Execute(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label), stateWriter);
+        var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label));
+        var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
                 $"[UpdateService] {result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
+
+        // This path is synchronous and cannot await, so a process-launching effect would be dropped.
+        // UpdatePolicyDetectorConformanceTests asserts none exists; this catches it at runtime if one does.
+        if (plan.AsyncEffects.Count > 0)
+            logService.Log(LogLevel.Error,
+                $"[UpdateService] {plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
     }
 
     public async Task<int> GetCurrentUpdatePolicyIndexAsync()

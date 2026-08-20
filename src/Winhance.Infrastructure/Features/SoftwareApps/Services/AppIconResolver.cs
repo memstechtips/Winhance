@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
@@ -14,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppIconResolver : IAppIconResolver
+internal class AppIconResolver : IAppIconResolver
 {
     private const string CacheSubDir = @"Winhance\IconCache";
 
@@ -36,7 +30,6 @@ public class AppIconResolver : IAppIconResolver
     // when displayed at 40 logical pixels on a 200% DPI screen.
     private static readonly Size LogoSize = new(96, 96);
 
-    // ====== TRIM TUNING KNOBS ======
     // Pixels with alpha at or below this threshold are treated as transparent
     // when computing the trim bounding box. The Square44x44Logo PNGs returned
     // by DisplayInfo.GetLogo for installed AppX packages typically have
@@ -50,7 +43,6 @@ public class AppIconResolver : IAppIconResolver
     // manually wipe %ProgramData%\Winhance\IconCache so cached files re-extract.
     private const byte AlphaTrimThreshold = 32;
 
-    // ====== BACKPLATE DETECTION KNOBS ======
     // Two unrelated icon sources ship art on a uniform opaque background:
     //   - Sticky Notes (and similar UWP icons) come back from AppX GetLogo
     //     as a small shape on a fully-opaque colored card.
@@ -88,7 +80,6 @@ public class AppIconResolver : IAppIconResolver
     private static bool _schemaEnsured;
     private static readonly object _schemaLock = new();
 
-    /// <summary>Production constructor — uses %ProgramData%\Winhance\IconCache.</summary>
     public AppIconResolver(
         IAppxIconSource appxSource,
         ILogService logService,
@@ -96,7 +87,6 @@ public class AppIconResolver : IAppIconResolver
         IIconManifestService manifest)
         : this(appxSource, logService, DefaultCacheRoot(), repoSource, manifest) { }
 
-    /// <summary>Test constructor — accepts a custom cache root and optional sources.</summary>
     internal AppIconResolver(
         IAppxIconSource appxSource,
         ILogService logService,
@@ -131,8 +121,7 @@ public class AppIconResolver : IAppIconResolver
             //   - AppX names → installed-package extraction (Layer 1).
             //   - external-app-* / windows-app-* / capability-* / feature-* ids whose
             //     RepoIconKey resolves → package-icons repo (Layer 2).
-            // MsStoreId is no longer an icon identity (the live Store API was
-            // removed); it remains on the definition for the installer.
+            // MsStoreId is not an icon identity; it stays on the definition for the installer.
             var candidates = definitions
                 .Where(d => (d.AppxPackageName?.Length > 0)
                          || RepoIconKey.For(d) is not null
@@ -150,7 +139,7 @@ public class AppIconResolver : IAppIconResolver
             // manifest is the authoritative list of hosted icons, so the repo
             // layer can skip guaranteed-404 fetches for paths it doesn't list.
             // A failed load (offline) leaves manifestLoaded false → repo fetches
-            // still run unconditionally as a best-effort, exactly as before, and
+            // still run unconditionally as a best-effort, and
             // RepoIconSource still validates whatever bytes come back.
             bool manifestLoaded = false;
             if (_manifest is not null)
@@ -188,8 +177,6 @@ public class AppIconResolver : IAppIconResolver
             int repoResolved = 0;
             if (_repoSource is not null)
             {
-                // Parallel (bounded): repo fetches are network round-trips on the
-                // blocking startup path; a serial loop over ~50 icons freezes the UI.
                 var repoCandidates = candidates.Where(d => d.IconPath is null).ToList();
                 if (repoCandidates.Count > 0)
                 {
@@ -223,7 +210,6 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    /// <summary>Runs the one-time cache-schema migration at most once per process.</summary>
     private void EnsureSchemaOnce()
     {
         if (_schemaEnsured) return;
@@ -276,15 +262,8 @@ public class AppIconResolver : IAppIconResolver
         return true;
     }
 
-    /// <summary>
-    /// Layer 2: package-icons repo. For external-app-* / capability-* / feature-*
-    /// the repo path is <see cref="RepoIconKey.For"/>; for windows-app-* each
-    /// <see cref="RepoIconKey.WindowsCandidates"/> is tried in order (first that
-    /// fetches wins). Bytes are sha256-verified against the manifest when known,
-    /// then cached under <c>"repo:" + sha</c> (or the path when no sha is known).
-    /// When <paramref name="manifestLoaded"/> is true, a path the manifest does
-    /// not list is treated as not-hosted and skipped without a network call.
-    /// </summary>
+    // windows-app-* tries each RepoIconKey.WindowsCandidates in order (first fetch wins). When the manifest loaded, a
+    // path it does not list is treated as not-hosted and skipped without a network call.
     private async Task<bool> TryResolveFromRepoAsync(
         ItemDefinition def,
         bool applyThemeAdaptation,
@@ -339,23 +318,14 @@ public class AppIconResolver : IAppIconResolver
         return false;
     }
 
-    /// <summary>
-    /// Builds the cache filename for an entry: <c>&lt;def.Id&gt;.&lt;short-hash&gt;.png</c>.
-    /// The id makes filenames readable; the 8-char SHA1-derived suffix flips when
-    /// the layer-specific source key changes (AppX full-name on version bump,
-    /// repo sha on icon change, local path on retarget) so the cache invalidates
-    /// automatically. 8 hex chars give 32 bits of distinguishing power —
-    /// collision probability across the catalog is negligible, and a collision
-    /// would only ever cause one entry to display the wrong icon (not a security
-    /// concern).
-    /// </summary>
+    // <def.Id>.<8-hex SHA1 of the source key>.png: the suffix flips when the source changes (AppX full-name on a
+    // version bump, repo sha on an icon change), so the cache invalidates itself; a collision would only show one wrong icon.
     private static string BuildCacheFileName(string defId, string sourceKey) =>
         $"{defId}.{ShortSha1Hex(sourceKey)}{CacheFileExtension}";
 
     private static string ShortSha1Hex(string input)
     {
-        using var sha1 = System.Security.Cryptography.SHA1.Create();
-        var bytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        var bytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes, 0, 4).ToLowerInvariant();
     }
 
@@ -420,20 +390,11 @@ public class AppIconResolver : IAppIconResolver
         File.Move(tmpPath, path, overwrite: true);
     }
 
-    /// <summary>
-    /// Sibling path for the light-mode variant of <paramref name="primaryPath"/>.
-    /// Replaces the trailing <c>.png</c> with <c>.light.png</c>. Survives prune
-    /// alongside the primary — see <see cref="PruneOldVersions"/>.
-    /// </summary>
     internal static string LightVariantPath(string primaryPath) =>
         Path.ChangeExtension(primaryPath, null) + ".light.png";
 
-    /// <summary>
-    /// Sibling path for the dark-mode variant of <paramref name="primaryPath"/>.
-    /// Replaces the trailing <c>.png</c> with <c>.dark.png</c>. Only written for
-    /// mono-dark source icons (e.g. Xbox Game Bar's <c>#333</c> grey) where the
-    /// primary's tone reads as faded against the dark card background.
-    /// </summary>
+    // Only written for mono-dark source icons (e.g. Xbox Game Bar's #333 grey), where the primary reads as faded
+    // against the dark card.
     internal static string DarkVariantPath(string primaryPath) =>
         Path.ChangeExtension(primaryPath, null) + ".dark.png";
 
@@ -448,34 +409,12 @@ public class AppIconResolver : IAppIconResolver
         return collector.ToArray();
     }
 
-    /// <summary>
-    /// Normalizes a source PNG/JPG: when a uniform opaque backplate is
-    /// detected, it is flood-filled to transparent from the image edges; the
-    /// result is then cropped to the bounding box of its non-transparent
-    /// pixels and re-encoded as PNG.
-    ///
-    /// This handles two cases the plain alpha trim cannot:
-    ///   - Sticky Notes ships its AppX logo as a small shape on a fully-opaque
-    ///     colored card — flood-filling the card leaves just the inner art.
-    ///   - Some icons arrive as a logo on a flat white background —
-    ///     flood-filling the white yields a clean transparent icon.
-    ///
-    /// Backplate detection requires all four corner pixels to be near-opaque
-    /// AND match each other within <see cref="BackplateCornerColorTolerance"/>.
-    /// The flood-fill clears every backplate-colored pixel reachable from the
-    /// border (<see cref="BackplateMatchColorTolerance"/>); backplate-colored
-    /// pixels enclosed by the artwork are preserved. Tolerances are tight on
-    /// purpose — we want deliberate backplates, not icons whose content
-    /// happens to share corner colors.
-    ///
-    /// Returns null on any decoder/encoder failure or when the input has no
-    /// visible content — caller falls back to the untrimmed source bytes.
-    ///
-    /// <paramref name="detectBackplate"/> gates the backplate flood-fill:
-    /// true for Windows Apps, false for External App vendor logos (which keep
-    /// whatever framing the vendor shipped). The basic transparent-border trim
-    /// runs regardless.
-    /// </summary>
+    // A uniform opaque backplate (all four corners near-opaque and matching within BackplateCornerColorTolerance) is
+    // flood-filled to transparent from the edges, then the result is cropped to its non-transparent bounds. Handles
+    // Sticky Notes' small logo on an opaque card and logos on a flat white background; enclosed backplate-coloured
+    // pixels survive. Tolerances are tight on purpose - deliberate backplates only. Null on any failure or empty
+    // content; the caller falls back to the untrimmed bytes. detectBackplate is false for External App vendor logos,
+    // which keep the vendor's framing.
     private async Task<byte[]?> TryTrimTransparentBordersAsync(
         byte[] source, bool detectBackplate, CancellationToken ct)
     {
@@ -575,13 +514,6 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    /// <summary>
-    /// Inspects the 4 corner pixels. If all four are near-opaque AND match
-    /// each other within <see cref="BackplateCornerColorTolerance"/>, returns
-    /// true with the detected backplate color set into the out parameters.
-    /// Returns false (and zeroed out params) otherwise — the trim then falls
-    /// back to alpha-only border detection.
-    /// </summary>
     private static bool TryDetectUniformBackplate(
         byte[] pixels, int width, int height,
         out byte r, out byte g, out byte b)
@@ -626,13 +558,6 @@ public class AppIconResolver : IAppIconResolver
         && Math.Abs(pixelG - bpG) <= BackplateMatchColorTolerance
         && Math.Abs(pixelB - bpB) <= BackplateMatchColorTolerance;
 
-    /// <summary>
-    /// 4-connected flood fill from the image border: every near-opaque pixel
-    /// matching the backplate color, reachable from an edge without crossing
-    /// the artwork, is set fully transparent. Backplate-colored pixels that
-    /// are enclosed by the artwork are not reached and stay intact. The
-    /// <paramref name="pixels"/> buffer is mutated in place (BGRA, premultiplied).
-    /// </summary>
     private static void FloodFillBackplateToTransparent(
         byte[] pixels, int width, int height, byte bpR, byte bpG, byte bpB)
     {
@@ -682,13 +607,8 @@ public class AppIconResolver : IAppIconResolver
         }
     }
 
-    /// <summary>
-    /// After a successful cache write, deletes any other cache files that
-    /// share this entry's def.Id but a different short-hash — i.e. icons cached
-    /// under older AppX package full-names or older repo shas from prior versions
-    /// of the same app. Keeps the cache from accumulating stale per-version
-    /// entries on long-lived installs.
-    /// </summary>
+    // Deletes cache files sharing this def.Id under a different short-hash - icons from older package versions - so
+    // long-lived installs don't accumulate them.
     private void PruneOldVersions(string defId, string keepFileName)
     {
         try

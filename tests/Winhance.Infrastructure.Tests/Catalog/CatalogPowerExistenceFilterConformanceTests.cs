@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -10,16 +8,14 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Machine-independent conformance for CatalogPowerExistenceFilter, driven off the catalog alone: with the
-/// probes stubbed (bulk powercfg AC/DC query, enablement write, hardware-control), a setting whose powercfg target is
-/// HIDDEN but is successfully unhidden through its enablement key survives the filter.</summary>
+// With the probes stubbed, a setting whose powercfg target is HIDDEN but successfully unhidden through its
+// enablement key survives the filter.
 public class CatalogPowerExistenceFilterConformanceTests
 {
     private static IReadOnlyList<Setting> Catalog => SettingCatalog.ByFeature[FeatureIds.Power];
 
-    /// <summary>Every powercfg GUID the power catalog targets. Catalog-derived. NOTE a PowerCfgTarget's
-    /// EnablementKey is a NESTED RegTarget, not a top-level Target, so reading the
-    /// powercfg targets off Targets yields the setting's own powercfg mechanisms and nothing else.</summary>
+    // A PowerCfgTarget's EnablementKey is a NESTED RegTarget, not a top-level Target, so reading powercfg targets
+    // off Targets yields the setting's own mechanisms and nothing else.
     private static HashSet<string> AllPowerGuids() => Catalog
         .SelectMany(s => s.Targets.OfType<PowerCfgTarget>()).Select(t => t.SettingGuid).ToHashSet();
 
@@ -29,7 +25,7 @@ public class CatalogPowerExistenceFilterConformanceTests
 
 
     [Fact]
-    public void New_filter_keeps_a_setting_whose_hidden_powercfg_target_is_enabled()
+    public async Task New_filter_keeps_a_setting_whose_hidden_powercfg_target_is_enabled()
     {
         var pick = Catalog.SelectMany(s => s.Targets.OfType<PowerCfgTarget>().Select(t => (s, t)))
             .First(x => x.t.EnablementKey is not null && x.s.Availability.ValidatesExistence);
@@ -45,17 +41,14 @@ public class CatalogPowerExistenceFilterConformanceTests
         var reg = new Mock<IWindowsRegistryService>();
         reg.Setup(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()))
             .Returns((string path, string vn, object v, RegistryValueKind k) => { present.Add(path.Split('\\').Last()); return true; });
-        var svc = new CatalogPowerExistenceFilter(query.Object, reg.Object, new Mock<IScheduledTaskService>().Object, new Mock<ILogService>().Object);
+        var svc = new CatalogPowerExistenceFilter(query.Object, reg.Object, new Mock<IScheduledTaskStateService>().Object, new Mock<ILogService>().Object);
 
-        var result = svc.FilterAsync(Catalog).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(Catalog);
         Assert.Contains(result, s => s.Id == pick.s.Id);
     }
 
-    /// <summary>Production hardcodes the unhide write as SetValue(path, "Attributes", 0, DWord) -- it MUST, because
-    /// PowerCfgTarget.EnablementKey models only path/name/type and carries NO write value. That hardcoding is safe
-    /// only because every enablement writes exactly that constant. The =0 VALUE half is unmodellable catalog-side;
-    /// the name/type half is still checkable, and is pinned here so a future enablement key authored with a
-    /// different name/type fails loudly instead of being silently mis-written.</summary>
+    // Production hardcodes the unhide write as SetValue(path, "Attributes", 0, DWord) because EnablementKey
+    // models no write value; safe only while every enablement writes exactly that constant - the name/type half is pinned here.
     [Fact]
     public void Every_powercfg_enablement_key_is_the_constant_attributes_dword()
     {
@@ -81,29 +74,28 @@ public class CatalogPowerExistenceFilterConformanceTests
         var query = new Mock<IPowerSettingsQueryService>();
         query.Setup(q => q.GetAllPowerSettingsACDCAsync(It.IsAny<string>()))
             .ReturnsAsync(new Dictionary<string, (int?, int?)>());
-        var tasks = new Mock<IScheduledTaskService>();
-        tasks.Setup(t => t.IsTaskEnabledAsync(It.IsAny<string>())).ReturnsAsync(taskEnabledAnswer);
+        var tasks = new Mock<IScheduledTaskStateService>();
+        tasks.Setup(t => t.GetTasksEnabled(It.IsAny<IReadOnlyCollection<string>>()))
+            .Returns((IReadOnlyCollection<string> paths) =>
+                paths.ToDictionary(p => p, _ => taskEnabledAnswer));
         var svc = new CatalogPowerExistenceFilter(
             query.Object, new Mock<IWindowsRegistryService>().Object, tasks.Object, new Mock<ILogService>().Object);
         return (svc, pick);
     }
 
-    /// <summary>A ValidatesExistence setting whose scheduled task is not registered on this system
-    /// (IsTaskEnabledAsync = null) is hidden - a task that does not exist cannot be toggled.</summary>
     [Fact]
-    public void Task_setting_with_no_registered_task_is_filtered_out()
+    public async Task Task_setting_with_no_registered_task_is_filtered_out()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: null);
-        var result = svc.FilterAsync(new[] { pick }).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(new[] { pick });
         Assert.DoesNotContain(result, s => s.Id == pick.Id);
     }
 
-    /// <summary>A registered task (enabled OR disabled - existence, not state) keeps its setting visible.</summary>
     [Fact]
-    public void Task_setting_with_a_registered_task_survives()
+    public async Task Task_setting_with_a_registered_task_survives()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: false);
-        var result = svc.FilterAsync(new[] { pick }).GetAwaiter().GetResult();
+        var result = await svc.FilterAsync(new[] { pick });
         Assert.Contains(result, s => s.Id == pick.Id);
     }
 }

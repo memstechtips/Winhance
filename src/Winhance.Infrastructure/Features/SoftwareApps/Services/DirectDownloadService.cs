@@ -1,15 +1,8 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.IO.Compression;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -19,7 +12,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class DirectDownloadService : IDirectDownloadService
+internal class DirectDownloadService : IDirectDownloadService
 {
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;
@@ -41,7 +34,7 @@ public class DirectDownloadService : IDirectDownloadService
         _interactiveUserService = interactiveUserService;
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     private static readonly string UserAgent = "Winhance-Download-Manager";
@@ -97,7 +90,6 @@ public class DirectDownloadService : IDirectDownloadService
 
             var downloadedFile = await DownloadFileAsync(downloadUrl, tempPath, item.Name, progress, cancellationToken).ConfigureAwait(false);
 
-            // Try fallback download URL if primary download failed
             if (string.IsNullOrEmpty(downloadedFile) && !string.IsNullOrEmpty(item.ExternalApp?.FallbackDownloadUrl))
             {
                 _logService?.LogInformation($"Primary download failed for {item.Name}, trying fallback URL: {item.ExternalApp.FallbackDownloadUrl}");
@@ -294,9 +286,9 @@ public class DirectDownloadService : IDirectDownloadService
             int bytesRead;
             int lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -448,10 +440,7 @@ public class DirectDownloadService : IDirectDownloadService
         return result.ExitCode;
     }
 
-    /// <summary>
-    /// Reads the ProductCode GUID from an MSI file using the Windows Installer API.
-    /// Opens the package in query-only mode (IGNOREMACHINESTATE) so no install logic runs.
-    /// </summary>
+    // Query-only mode (IGNOREMACHINESTATE) so no install logic runs.
     private static string? GetProductCodeFromMsi(string msiPath)
     {
         const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;
@@ -469,7 +458,7 @@ public class DirectDownloadService : IDirectDownloadService
         }
         finally
         {
-            MsiApi.MsiCloseHandle(hProduct);
+            _ = MsiApi.MsiCloseHandle(hProduct);
         }
     }
 
@@ -522,7 +511,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            await _processExecutor.ShellExecuteAsync(exePath).ConfigureAwait(false);
+            await _processExecutor.ShellExecuteAsync(exePath, ct: cancellationToken).ConfigureAwait(false);
 
             return true;
         }

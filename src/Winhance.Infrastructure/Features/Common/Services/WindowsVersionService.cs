@@ -1,16 +1,15 @@
-using System;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class WindowsVersionService : IWindowsVersionService
+internal class WindowsVersionService : IWindowsVersionService
 {
     private readonly ILogService _logService;
 
     public WindowsVersionService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
     }
 
     public int GetWindowsBuildNumber()
@@ -50,13 +49,11 @@ public class WindowsVersionService : IWindowsVersionService
             var os = Environment.OSVersion;
             if (os.Version.Major != 10) return false;
 
-            // Check build number first (most reliable)
             if (os.Version.Build >= 22000) return true;
 
-            // Fallback to registry check
             using var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
             var productName = key?.GetValue("ProductName")?.ToString() ?? "";
-            return productName.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
+            return productName.Contains("Windows 11", StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {

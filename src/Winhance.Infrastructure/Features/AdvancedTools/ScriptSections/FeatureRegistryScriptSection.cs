@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -12,10 +9,6 @@ using static Winhance.Infrastructure.Features.AdvancedTools.Helpers.PowerShellSc
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Emits registry entries for feature groups (Optimize/Customize), scheduled tasks,
-/// wallpaper settings, and Windows Update disabled mode hardening.
-/// </summary>
 internal class FeatureRegistryScriptSection
 {
     private readonly RegistryCommandEmitter _registryEmitter;
@@ -31,7 +24,6 @@ internal class FeatureRegistryScriptSection
         StringBuilder sb,
         FeatureGroupSection featureGroup,
         IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> allSettings,
-        string groupName,
         bool isHkcu,
         string indent,
         WinBuild? build = null)
@@ -79,7 +71,6 @@ internal class FeatureRegistryScriptSection
 
             if (!hasEntriesForCurrentHive) continue;
 
-            // Get the feature display name for the section header
             var featureDisplayName = GetFeatureDisplayName(featureId);
 
             sb.AppendLine();
@@ -88,10 +79,8 @@ internal class FeatureRegistryScriptSection
             sb.AppendLine($"{indent}# ============================================================================");
             sb.AppendLine();
 
-            // Process each setting in the feature
             foreach (var configItem in configSection.Items)
             {
-                // Alias-normalized lookup of the paired catalog Setting in the dict (see the presence gate above).
                 var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
                 if (setting == null)
                 {
@@ -99,9 +88,7 @@ internal class FeatureRegistryScriptSection
                     continue;
                 }
 
-                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power
-                // Settings section). Presence off the catalog Setting (PowerCfgTarget vs RegTarget/
-                // RegistryWriteEffect).
+                // Skip settings that are powercfg-backed with no registry writes (already handled in the Power Settings section).
                 bool powerCfgOnly = AutounattendMechanismPresence.HasPowerCfg(setting)
                     && !AutounattendMechanismPresence.HasRegistry(setting);
                 if (powerCfgOnly)
@@ -111,7 +98,6 @@ internal class FeatureRegistryScriptSection
                 // emitter below, so the shared PowerShell-script block does not double-emit its scripts.
                 bool actionHandledByCatalog = false;
 
-                // Dispatch off the catalog Control.
                 if (setting.Control == ControlKind.Toggle)
                 {
                     // Every toggle routes through the catalog emitter (AppendToggleCommandsFromCatalog) with
@@ -162,8 +148,6 @@ internal class FeatureRegistryScriptSection
 
                 foreach (var configItem in configSection.Items)
                 {
-                    // The scheduled-task paths + description come from the catalog Setting (TaskTarget +
-                    // Display.Description), looked up in the dict by the alias-normalized id.
                     var setting = settings.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(configItem.Id));
                     if (setting != null)
                     {
@@ -180,7 +164,7 @@ internal class FeatureRegistryScriptSection
                     }
                 }
 
-                if (scheduledTasksToApply.Any())
+                if (scheduledTasksToApply.Count > 0)
                 {
                     AppendScheduledTaskBatch(sb, scheduledTasksToApply, indent);
                 }
@@ -208,14 +192,9 @@ internal class FeatureRegistryScriptSection
         return definition != null ? $"{definition.DefaultName} Settings" : $"{featureId} Settings";
     }
 
-    /// <summary>Emits the PowerShell-script blocks for a setting's active <see cref="SettingState"/>
-    /// ScriptEffects whose RunContext matches the current pass. Each option's preset ScriptVariables are
-    /// already baked into <see cref="ScriptEffect.Script"/>, with the correct Enabled/Disabled/None script on
-    /// each state, so only the runtime CustomStateValues pass is re-applied here.
-    /// LIMITATION: a Selection whose <c>SelectedIndex</c> is null (a "Custom" value matching no preset option)
-    /// has no state to resolve, so this emits nothing - that shape needs the UN-BAKED scripts. The production
-    /// loop therefore routes Selection-without-index to <see cref="AppendCustomStateScriptsFromCatalog"/>
-    /// (reading Setting.CustomStateScripts) rather than here.</summary>
+    // Each option's preset ScriptVariables are already baked into ScriptEffect.Script, so only the runtime
+    // CustomStateValues pass is re-applied here. LIMITATION: a Selection with a null SelectedIndex has no state to
+    // resolve, so this emits nothing - the loop routes that shape to AppendCustomStateScriptsFromCatalog.
     internal void AppendPowerShellScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -235,7 +214,7 @@ internal class FeatureRegistryScriptSection
         }
         else
         {
-            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Any() == true;
+            var useEnabled = configItem.IsSelected == true || configItem.CustomStateValues?.Count > 0;
             var targetLabel = useEnabled ? "Enabled" : "Disabled";
             activeState = catalogSetting.States.FirstOrDefault(s => s.Label == targetLabel);
         }
@@ -247,7 +226,6 @@ internal class FeatureRegistryScriptSection
 
         foreach (var scriptEffect in activeState.Effects.OfType<ScriptEffect>())
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
             {
                 continue;
@@ -255,8 +233,6 @@ internal class FeatureRegistryScriptSection
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution only. The option's preset ScriptVariables are already
-            // baked into ScriptEffect.Script.
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 foreach (var kvp in customValues)
@@ -291,19 +267,11 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Handles the "Custom" Selection shape (no SelectedIndex: the persisted value matched no preset
-    /// option, so no state's baked ScriptEffects apply). Emits from
-    /// <see cref="Winhance.Core.Features.Common.Catalog.Setting.CustomStateScripts"/> (the UN-BAKED raw
-    /// EnabledScripts + RunContext, guarded by CatalogCustomStateScriptsConformanceTests): per-entry hive
-    /// filter (RunContext.User -&gt; HKCU pass), useEnabled = CustomStateValues?.Any() || IsSelected == true,
-    /// then ONLY the runtime CustomStateValues placeholder pass (OrdinalIgnoreCase merge, null values skipped,
-    /// ToString() ?? "", literal <c>{{key}}</c> Replace, unmatched placeholders survive - there is no
-    /// SelectedIndex, so no option ScriptVariables source exists), then the emit block.
-    ///
-    /// DELIBERATE: when useEnabled is FALSE (no CustomStateValues AND IsSelected != true) this emits NOTHING
-    /// rather than a Disabled/RESET script. A config item carrying NO index, NO custom values and NO selection
-    /// expresses no intent, and emitting a reset script for it (e.g. resetting the user's DNS to automatic) is
-    /// the riskier behavior, so it is deliberately suppressed.</summary>
+    // The "Custom" Selection shape (no SelectedIndex): emits from Setting.CustomStateScripts (the UN-BAKED scripts)
+    // with only the runtime CustomStateValues placeholder pass; unmatched placeholders survive, since there is no
+    // SelectedIndex and so no ScriptVariables source. DELIBERATE: with no CustomStateValues and IsSelected != true
+    // this emits NOTHING rather than a reset script - such an item expresses no intent, and resetting e.g. the
+    // user's DNS to automatic is the riskier behaviour.
     internal void AppendCustomStateScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -313,9 +281,8 @@ internal class FeatureRegistryScriptSection
     {
         // Custom state (user-entered values) always counts as "enabled" - the user picking Custom DNS is
         // expressing intent to configure, not to reset.
-        bool useEnabled = configItem.CustomStateValues?.Any() == true || configItem.IsSelected == true;
+        bool useEnabled = configItem.CustomStateValues?.Count > 0 || configItem.IsSelected == true;
 
-        // The deliberate no-intent behavior documented above: a no-intent shape emits nothing.
         if (!useEnabled)
         {
             return;
@@ -323,7 +290,6 @@ internal class FeatureRegistryScriptSection
 
         foreach (var scriptEffect in catalogSetting.CustomStateScripts)
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
             {
                 continue;
@@ -331,10 +297,7 @@ internal class FeatureRegistryScriptSection
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution - the ONLY placeholder source on this path (no SelectedIndex
-            // means no preset option, so no ScriptVariables merge source exists): OrdinalIgnoreCase keys, null
-            // values skipped, ToString() ?? "", literal {{key}} Replace; unmatched placeholders survive (the DNS
-            // DoH script self-guards on a literal {{dohtemplate}}).
+            // Unmatched placeholders survive: the DNS DoH script self-guards on a literal {{dohtemplate}}.
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -375,11 +338,7 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Emits an Action setting's registry writes and scripts. The catalog models an Action as
-    /// SETTING-level Effects (no States/Targets): the registry writes come from RegistryWriteEffects and the
-    /// scripts from ScriptEffects. ORDER: the registry pass runs before the script pass. Emits nothing unless
-    /// the Action is selected (matching the Action branch's IsSelected guard). The Action population is
-    /// RegistryWriteEffect/ScriptEffect-only.</summary>
+    // ORDER: the registry pass runs before the script pass. Emits nothing unless the Action is selected.
     internal void AppendActionCommandsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -387,20 +346,15 @@ internal class FeatureRegistryScriptSection
         bool isHkcu,
         string indent)
     {
-        // Action one-shot: emit only when the user selected it (matches the Action branch's IsSelected == true guard).
         if (configItem.IsSelected != true)
             return;
 
-        // Registry pass runs before the script pass.
         _registryEmitter.AppendActionRegistryCommandsFromCatalog(sb, catalogSetting, isHkcu, indent);
 
-        // Script pass: setting-level ScriptEffects.
         AppendActionScriptsFromCatalog(sb, catalogSetting, configItem, isHkcu, indent);
     }
 
-    /// <summary>Emits the PowerShell-script blocks for an Action setting's setting-level ScriptEffects whose
-    /// RunContext matches the current hive pass. An Action has no ComboBox options, so the only placeholder
-    /// pass that applies is the runtime CustomStateValues substitution (an Action has no ScriptVariables source).</summary>
+    // An Action has no options, so the only placeholder pass is the runtime CustomStateValues substitution.
     internal void AppendActionScriptsFromCatalog(
         StringBuilder sb,
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting,
@@ -410,14 +364,11 @@ internal class FeatureRegistryScriptSection
     {
         foreach (var scriptEffect in catalogSetting.Effects.OfType<ScriptEffect>())
         {
-            // User->HKCU / System->HKLM mapping.
             if ((scriptEffect.Run == RunContext.User) != isHkcu)
                 continue;
 
             var script = scriptEffect.Script;
 
-            // Runtime CustomStateValues substitution only (an Action has no ComboBox-option ScriptVariables, so
-            // that source is absent).
             if (!string.IsNullOrEmpty(script) && configItem.CustomStateValues is { } customValues)
             {
                 foreach (var kvp in customValues)
@@ -452,10 +403,6 @@ internal class FeatureRegistryScriptSection
         }
     }
 
-    /// <summary>Yields the (TaskPath, /Enable|/Disable, Description) tuples for a setting's scheduled tasks,
-    /// sourcing the task paths from the catalog Setting's <see cref="TaskTarget"/>s (one per scheduled task)
-    /// and the description from <see cref="Display.Description"/>. A setting with no scheduled tasks has no
-    /// TaskTargets, so this yields nothing.</summary>
     internal IEnumerable<(string TaskName, string Action, string Description)> CollectScheduledTasksFromCatalog(
         Winhance.Core.Features.Common.Catalog.Setting catalogSetting, ConfigurationItem configItem)
     {

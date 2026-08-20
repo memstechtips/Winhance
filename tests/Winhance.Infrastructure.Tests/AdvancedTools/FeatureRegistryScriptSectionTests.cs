@@ -12,8 +12,6 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
-/// <summary>AppendFeatureGroupRegistryEntries takes the catalog Setting dict, so every fixture here passes
-/// REAL catalog Settings via SettingCatalog.Find.</summary>
 public class FeatureRegistryScriptSectionTests
 {
     private readonly Mock<ILogService> _logService = new();
@@ -25,10 +23,6 @@ public class FeatureRegistryScriptSectionTests
         _registryEmitter = new RegistryCommandEmitter(_logService.Object);
         _sut = new FeatureRegistryScriptSection(_registryEmitter, _logService.Object);
     }
-
-    // ---------------------------------------------------------------
-    // GetFeatureDisplayName
-    // ---------------------------------------------------------------
 
     [Fact]
     public void GetFeatureDisplayName_KnownFeature_ReturnsDisplayNameWithSettings()
@@ -47,10 +41,6 @@ public class FeatureRegistryScriptSectionTests
         result.Should().Be("NonExistentFeature Settings");
     }
 
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - Empty feature group
-    // ---------------------------------------------------------------
-
     [Fact]
     public void AppendFeatureGroupRegistryEntries_NoMatchingSettings_LogsWarning()
     {
@@ -67,17 +57,13 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = new Dictionary<string, IReadOnlyList<Setting>>();
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         _logService.Verify(l => l.Log(
             LogLevel.Warning,
             It.Is<string>(s => s.Contains(FeatureIds.Privacy)),
             null), Times.Once);
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - HKLM toggle entries
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_HklmToggle_EmitsRegistryCommands()
@@ -97,16 +83,12 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor(FeatureIds.Privacy, "security-remote-assistance");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
         output.Should().Contain("fAllowToGetHelp");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - HKCU entries only in HKCU pass
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_HkcuEntries_NotEmittedInHklmPass()
@@ -126,7 +108,7 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "gaming-game-mode");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Customize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         sb.ToString().Should().NotContain("Set-RegistryValue");
     }
@@ -147,16 +129,12 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "gaming-game-mode");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Customize", isHkcu: true, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: true, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
         output.Should().Contain("AutoGameModeEnabled");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - Selection type
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_SelectionType_DelegatesCorrectly()
@@ -180,16 +158,12 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "gaming-touch-keyboard-service");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("Set-RegistryValue");
         output.Should().Contain("-Name 'Start'");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - Scheduled tasks
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_WithScheduledTask_EmitsTaskBatch()
@@ -209,17 +183,13 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "gaming-task-compatibility-appraiser");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("$scheduledTasks");
         output.Should().Contain("schtasks");
         output.Should().Contain("/Disable");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - Hibernation
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_Hibernation_EmitsPowercfgHibernate()
@@ -239,15 +209,11 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "power-hibernation-enable");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("powercfg /hibernate on");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - Section header
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_EmitsSectionHeader()
@@ -260,16 +226,12 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor(FeatureIds.Privacy, "security-remote-assistance");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "    ");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "    ");
 
         var output = sb.ToString();
         output.Should().Contain("============");
         output.Should().Contain("SETTINGS");
     }
-
-    // ---------------------------------------------------------------
-    // AppendFeatureGroupRegistryEntries - powercfg-only setting is skipped
-    // ---------------------------------------------------------------
 
     [Fact]
     public void AppendFeatureGroupRegistryEntries_PowerCfgOnlySetting_IsSkipped()
@@ -293,7 +255,7 @@ public class FeatureRegistryScriptSectionTests
 
         var allSettings = SettingsFor("TestFeature", "power-display-timeout", "security-remote-assistance");
 
-        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, "Optimize", isHkcu: false, indent: "");
+        _sut.AppendFeatureGroupRegistryEntries(sb, featureGroup, allSettings, isHkcu: false, indent: "");
 
         var output = sb.ToString();
         // The section ran (the rider toggle emitted), so the powercfg-only setting was skipped by the
@@ -301,10 +263,6 @@ public class FeatureRegistryScriptSectionTests
         output.Should().Contain("fAllowToGetHelp");
         output.Should().NotContain("powercfg");
     }
-
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
 
     private static FeatureGroupSection CreateFeatureGroup(string featureId, ConfigurationItem[] items)
     {

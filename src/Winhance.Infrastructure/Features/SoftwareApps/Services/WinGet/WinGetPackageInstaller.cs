@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -9,10 +6,7 @@ using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet CLI-based package install and uninstall operations.
-/// </summary>
-public class WinGetPackageInstaller : IWinGetPackageInstaller
+internal class WinGetPackageInstaller : IWinGetPackageInstaller
 {
     // No wall-clock cap (installs/uninstalls can legitimately run long); a stalled
     // process is caught by the idle-output timer instead.
@@ -48,7 +42,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         if (exePath != null && _fileSystemService.FileExists(exePath))
             return true;
 
-        // Fallback: try COM init (covers edge cases)
         try
         {
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -93,7 +86,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
 
             _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
 
-            // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -223,7 +215,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: HandleProgressLine).ConfigureAwait(false);
 
-            // Emit metadata footer for the task output dialog
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -311,7 +302,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
 
             _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
 
-            // Emit metadata header for the task output dialog
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -336,17 +326,14 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 {
                     try
                     {
-                        // Skip progress bar lines re-emitted as permanent output (see HandleOutputLine comment)
                         if (IsProgressBarLine(line))
                             return;
 
-                        // Translate raw resource keys to human-readable text
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
                         var progress = WinGetProgressParser.ParseLine(line);
                         if (progress != null)
                         {
-                            // Only log phase transitions (Found, Uninstalling, Complete, Error) — skip noisy progress updates
                             if (progress.Phase != lastLoggedPhase
                                 && progress.Phase is WinGetProgressParser.WinGetPhase.Found
                                     or WinGetProgressParser.WinGetPhase.Uninstalling
@@ -406,7 +393,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                 onErrorLine: line =>
                 {
                     _logService?.LogWarning($"[{logTag}-err] {line}");
-                    // Surface stderr in the terminal too (see HandleErrorLine comment)
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                     {
                         TerminalOutput = line
@@ -433,7 +419,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     }
                 }).ConfigureAwait(false);
 
-            // Emit metadata footer for the task output dialog
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
@@ -498,7 +483,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     return true;
                 }
 
-                // Timed out — uninstaller may require user interaction
                 _logService?.LogWarning($"[{logTag}] {packageId} still detected after 60s wait — uninstaller may require user interaction");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
                 return true; // WinGet did report success; don't block the UI
@@ -546,7 +530,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
                     return true;
                 }
 
-                // Package is genuinely still installed — fall through to failure reporting
                 _logService?.LogWarning($"[{logTag}] {packageId} is still installed after verification — uninstall truly failed");
             }
 
@@ -569,10 +552,6 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    /// <summary>
-    /// Quick check: runs "winget list --exact --id {packageId}" to see if a package is still installed.
-    /// Returns true if the package is still present.
-    /// </summary>
     private async Task<bool> IsPackageStillInstalledAsync(string packageId, string? source, CancellationToken cancellationToken)
     {
         try
@@ -597,11 +576,7 @@ public class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    /// <summary>
-    /// Returns true if the line is a progress bar (contains Unicode block elements).
-    /// These lines arrive as permanent output via onOutputLine when ConPTY re-emits
-    /// a \r\n terminated progress bar, but they are already handled by onProgressLine.
-    /// </summary>
+    // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
     private static bool IsProgressBarLine(string line)
     {
         foreach (char c in line)

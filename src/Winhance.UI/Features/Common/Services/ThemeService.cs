@@ -9,9 +9,6 @@ using Windows.UI.ViewManagement;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Service for managing application themes in WinUI 3.
-/// </summary>
 public class ThemeService : IThemeService
 {
     private readonly IUserPreferencesService _userPreferences;
@@ -21,10 +18,8 @@ public class ThemeService : IThemeService
     private readonly UISettings _uiSettings;
     private WinhanceTheme _currentTheme = WinhanceTheme.System;
 
-    /// <inheritdoc />
     public WinhanceTheme CurrentTheme => _currentTheme;
 
-    /// <inheritdoc />
     public event EventHandler<WinhanceTheme>? ThemeChanged;
 
     public ThemeService(
@@ -40,7 +35,6 @@ public class ThemeService : IThemeService
         _mainWindowProvider = mainWindowProvider;
         _uiSettings = new UISettings();
 
-        // Listen for Windows theme changes to update System theme followers
         _uiSettings.ColorValuesChanged += OnWindowsThemeChanged;
 
         // Under OTS, UISettings.ColorValuesChanged tracks the admin's theme.
@@ -51,7 +45,6 @@ public class ThemeService : IThemeService
         }
     }
 
-    /// <inheritdoc />
     public void SetTheme(WinhanceTheme theme)
     {
         _currentTheme = theme;
@@ -63,7 +56,6 @@ public class ThemeService : IThemeService
         ThemeChanged?.Invoke(this, theme);
     }
 
-    /// <inheritdoc />
     public void LoadSavedTheme()
     {
         // Load theme preference synchronously to avoid async/await deadlock on UI thread
@@ -75,12 +67,11 @@ public class ThemeService : IThemeService
     {
         try
         {
-            // Use synchronous method to get preference to avoid deadlock
             var themeString = _userPreferences.GetPreference<string>("Theme", string.Empty);
 
             if (string.IsNullOrEmpty(themeString))
             {
-                return WinhanceTheme.System; // Default to following Windows
+                return WinhanceTheme.System;
             }
 
             if (Enum.TryParse<WinhanceTheme>(themeString, out var theme))
@@ -96,7 +87,6 @@ public class ThemeService : IThemeService
         return WinhanceTheme.System;
     }
 
-    /// <inheritdoc />
     public ElementTheme GetEffectiveTheme()
     {
         return _currentTheme switch
@@ -177,7 +167,6 @@ public class ThemeService : IThemeService
 
     private void OnWindowsThemeChanged(UISettings sender, object args)
     {
-        // Only react if we're following system theme
         if (_currentTheme == WinhanceTheme.System)
         {
             // Must dispatch to UI thread

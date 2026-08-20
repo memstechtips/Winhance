@@ -1,16 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet/AppInstaller bootstrapping, upgrade, and readiness checks.
-/// </summary>
-public class WinGetBootstrapper : IWinGetBootstrapper
+internal class WinGetBootstrapper : IWinGetBootstrapper
 {
     private readonly WinGetComSession _comSession;
     private readonly ILogService _logService;
@@ -66,7 +60,6 @@ public class WinGetBootstrapper : IWinGetBootstrapper
 
             _logService?.LogInformation("AppInstaller installed, waiting for COM API readiness...");
 
-            // Retry COM init with loop (10 retries, 3s delay)
             for (int i = 0; i < 10; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -129,7 +122,6 @@ public class WinGetBootstrapper : IWinGetBootstrapper
                 }
                 else
                 {
-                    // System winget is present — try COM init (likely succeeds).
                     // Use Task.WhenAny to enforce a timeout without nesting Task.Run
                     // (nested Task.Run breaks COM activation context).
                     try
@@ -156,7 +148,6 @@ public class WinGetBootstrapper : IWinGetBootstrapper
                 _logService?.LogInformation("No system winget — bundled CLI will be used for detection");
             }
 
-            // Return true as long as bundled or system winget exists
             var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
             if (exePath == null || !_fileSystemService.FileExists(exePath))
             {

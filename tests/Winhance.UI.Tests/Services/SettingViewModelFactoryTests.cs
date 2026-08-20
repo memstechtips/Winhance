@@ -1,7 +1,5 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
@@ -20,7 +18,6 @@ public class SettingViewModelFactoryTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
@@ -58,7 +55,6 @@ public class SettingViewModelFactoryTests
             _mockLogService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockEventBus.Object,
             _mockRegeditLauncher.Object,
             _mockApplicationModeService.Object);
 
@@ -70,8 +66,6 @@ public class SettingViewModelFactoryTests
             _mockNewBadgeService.Object,
             _mockEnricher.Object);
     }
-
-    // ── CreateAsync basics ──
 
     [Fact]
     public async Task CreateAsync_ReturnsNonNullViewModel()
@@ -145,8 +139,6 @@ public class SettingViewModelFactoryTests
         result.IsSelected.Should().BeFalse();
     }
 
-    // ── Advanced unlock settings ──
-
     [Fact]
     public async Task CreateAsync_WhenRequiresAdvancedUnlock_SetsIsLocked()
     {
@@ -177,8 +169,6 @@ public class SettingViewModelFactoryTests
         result.IsLocked.Should().BeFalse();
     }
 
-    // ── Numeric range settings ──
-
     [Fact]
     public async Task CreateAsync_NumericRangeSetting_SetsMinMaxValues()
     {
@@ -203,8 +193,6 @@ public class SettingViewModelFactoryTests
         result.NumericValue.Should().Be(42);
     }
 
-    // ── Selection settings ──
-
     [Fact]
     public async Task CreateAsync_SelectionSetting_PopulatesComboBoxOptions()
     {
@@ -226,8 +214,6 @@ public class SettingViewModelFactoryTests
 
         result.SelectedValue.Should().Be(1);
     }
-
-    // ---- Detect-only states: skipped, never renumbered ----
 
     [Fact]
     public async Task CreateAsync_SelectionSetting_LeavesDetectOnlyStatesOutOfTheOptionList()
@@ -258,8 +244,6 @@ public class SettingViewModelFactoryTests
         result.ComboBoxOptions.Select(o => (int)o.Value).Should().Equal(0, 2);
     }
 
-    // ── Review diff ──
-
     [Fact]
     public async Task CreateAsync_CallsApplyReviewDiff()
     {
@@ -270,8 +254,6 @@ public class SettingViewModelFactoryTests
 
         _mockEnricher.Verify(e => e.ApplyReviewDiff(It.IsAny<SettingItemViewModel>(), state), Times.Once);
     }
-
-    // ── Non-selection types call InitializeCompatibilityBanner ──
 
     [Fact]
     public async Task CreateAsync_NonSelectionType_SetsSelectedValueFromCurrentState()
@@ -284,8 +266,6 @@ public class SettingViewModelFactoryTests
         result.SelectedValue.Should().Be("SomeValue");
     }
 
-    // ── Parent VM ──
-
     [Fact]
     public async Task CreateAsync_PassesParentViewModelToConfig()
     {
@@ -295,11 +275,8 @@ public class SettingViewModelFactoryTests
 
         var result = await _sut.CreateAsync(setting, state, parentVm, null, null, null);
 
-        // The VM was created successfully with the parent reference
         result.Should().NotBeNull();
     }
-
-    // ── Localization ──
 
     [Fact]
     public async Task CreateAsync_SetsOnAndOffTextFromLocalization()
@@ -320,8 +297,6 @@ public class SettingViewModelFactoryTests
         result.OnText.Should().Be("Enabled");
         result.OffText.Should().Be("Disabled");
     }
-
-    // ── Helper methods ──
 
     // Synthetic catalog Setting fixtures. The factory reads the passed Setting; these hand-built Settings
     // carry exactly the fields CreateAsync reads (Control -> InputType, Display, Availability, Numeric, States).

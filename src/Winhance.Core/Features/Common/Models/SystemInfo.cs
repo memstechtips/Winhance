@@ -1,8 +1,5 @@
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Diagnostic system information collected for log headers.
-/// </summary>
 public sealed record SystemInfo
 {
     public string AppVersion { get; init; } = "Unknown";

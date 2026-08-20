@@ -1,4 +1,3 @@
-using System.IO;
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
@@ -19,7 +18,6 @@ public class AppItemViewModelTests
 
     public AppItemViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcher
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
@@ -53,10 +51,6 @@ public class AppItemViewModelTests
             _mockThemeService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor / property passthrough
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_SetsPropertiesFromDefinition()
     {
@@ -72,10 +66,8 @@ public class AppItemViewModelTests
     [Fact]
     public void Constructor_SubscribesToLanguageChanged()
     {
-        // Arrange & Act
         var vm = CreateViewModel();
 
-        // Raise the event and verify property changed notifications fire
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
@@ -100,10 +92,6 @@ public class AppItemViewModelTests
 
         vm.GroupName.Should().BeEmpty();
     }
-
-    // -------------------------------------------------------
-    // IsSelected
-    // -------------------------------------------------------
 
     [Fact]
     public void IsSelected_DefaultIsFalse()
@@ -130,10 +118,6 @@ public class AppItemViewModelTests
         raised.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // IsInstalled
-    // -------------------------------------------------------
-
     [Fact]
     public void IsInstalled_SetToNewValue_UpdatesDefinitionAndRaisesPropertyChanged()
     {
@@ -156,7 +140,7 @@ public class AppItemViewModelTests
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
-        vm.IsInstalled = false; // same value
+        vm.IsInstalled = false;
 
         changedProperties.Should().BeEmpty();
     }
@@ -170,10 +154,6 @@ public class AppItemViewModelTests
 
         _mockDispatcher.Verify(d => d.RunOnUIThread(It.IsAny<Action>()), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // InstalledStatusText / ReinstallableStatusText
-    // -------------------------------------------------------
 
     [Fact]
     public void InstalledStatusText_WhenInstalled_ReturnsInstalledKey()
@@ -254,10 +234,6 @@ public class AppItemViewModelTests
         vm.ReinstallableStatusText.Should().Be("Cannot Reinstall");
     }
 
-    // -------------------------------------------------------
-    // ItemTypeDescription
-    // -------------------------------------------------------
-
     [Fact]
     public void ItemTypeDescription_WithCapabilityName_ReturnsLegacyCapability()
     {
@@ -334,10 +310,6 @@ public class AppItemViewModelTests
         vm.ItemTypeDescription.Should().Be("Legacy Capability");
     }
 
-    // -------------------------------------------------------
-    // WebsiteUrl
-    // -------------------------------------------------------
-
     [Fact]
     public void WebsiteUrl_ReflectsDefinition()
     {
@@ -361,17 +333,12 @@ public class AppItemViewModelTests
         vm.WebsiteUrl.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
-
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()
     {
         var vm = CreateViewModel();
         vm.Dispose();
 
-        // After dispose, raising LanguageChanged should not trigger PropertyChanged
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
@@ -394,10 +361,6 @@ public class AppItemViewModelTests
         act.Should().NotThrow();
     }
 
-    // -------------------------------------------------------
-    // CanBeReinstalled
-    // -------------------------------------------------------
-
     [Fact]
     public void CanBeReinstalled_ReflectsDefinition()
     {
@@ -412,10 +375,6 @@ public class AppItemViewModelTests
 
         vm.CanBeReinstalled.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // Fallback category booleans (drive XAML icon visibility)
-    // -------------------------------------------------------
 
     [Fact]
     public void IsAppXFallback_WhenAppxAndNoIcon_IsTrue()
@@ -496,10 +455,6 @@ public class AppItemViewModelTests
         vm.IsCapabilityFallback.Should().BeFalse();
         vm.IsOptionalFeatureFallback.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // HasDescription / HasWebsiteUrl / HasInstabilityWarning / ShowNonReinstallableChip
-    // -------------------------------------------------------
 
     [Fact]
     public void HasDescription_IsTrue_WhenDescriptionPresent()
@@ -604,10 +559,6 @@ public class AppItemViewModelTests
         vm.ShowNonReinstallableChip.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // HasIcon
-    // -------------------------------------------------------
-
     [Fact]
     public void HasIcon_NullIconPath_IsFalse()
     {
@@ -639,10 +590,6 @@ public class AppItemViewModelTests
 
         vm.HasIcon.Should().BeTrue();
     }
-
-    // -------------------------------------------------------
-    // Theme-aware icon path resolution
-    // -------------------------------------------------------
 
     [Fact]
     public void IconSource_LightTheme_WithLightSibling_ResolvesLightPath()
@@ -778,12 +725,7 @@ public class AppItemViewModelTests
         raised.Should().NotContain(nameof(AppItemViewModel.IconSource));
     }
 
-    /// <summary>
-    /// PNG-ish junk bytes — sufficient for File.Exists checks and lazy
-    /// BitmapImage URI assignment. The tests in this file only inspect
-    /// `BitmapImage.UriSource.LocalPath`, so the decoder never runs over
-    /// these bytes and their malformed CRC/payload doesn't matter.
-    /// </summary>
+    // PNG-ish junk: the tests only inspect BitmapImage.UriSource.LocalPath, so the decoder never runs over these bytes.
     private static byte[] MinimalPng() => new byte[]
     {
         0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,

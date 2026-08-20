@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -13,7 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ExternalAppUninstallService(
+internal class ExternalAppUninstallService(
     IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
@@ -64,8 +59,7 @@ public class ExternalAppUninstallService(
                 return UninstallMethod.FileSystem;
         }
 
-        // Default: prefer WinGet if available, then Registry
-        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
+        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
             return UninstallMethod.WinGet;
 
         if (!string.IsNullOrEmpty(item.ChocoPackageId))
@@ -89,7 +83,7 @@ public class ExternalAppUninstallService(
             string? packageId;
             string? source;
 
-            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
             {
                 packageId = item.WinGetPackageId[0];
                 source = "winget";
@@ -116,7 +110,6 @@ public class ExternalAppUninstallService(
 
             if (!success)
             {
-                // Fallback: try Chocolatey if available, then AppX, then registry.
                 // AppX defends against detection mis-classification: if the item carries
                 // an AppxPackageName but DetectedVia routed to WinGet (e.g. a Store-UI
                 // install that winget surfaces as MSIX\... and fails to uninstall by ID),
@@ -521,9 +514,9 @@ public class ExternalAppUninstallService(
 
         uninstallString = uninstallString.Trim();
 
-        if (uninstallString.StartsWith("\""))
+        if (uninstallString.StartsWith('"'))
         {
-            var endQuoteIndex = uninstallString.IndexOf("\"", 1);
+            var endQuoteIndex = uninstallString.IndexOf('"', 1);
             if (endQuoteIndex > 0)
             {
                 var fileName = uninstallString.Substring(1, endQuoteIndex - 1);

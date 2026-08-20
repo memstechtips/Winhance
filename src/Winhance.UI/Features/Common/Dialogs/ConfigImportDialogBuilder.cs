@@ -10,22 +10,15 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-/// <summary>
-/// Encapsulates the UI-building logic for the config import options dialog.
-/// Extracted from <see cref="Services.DialogService.ShowConfigImportOptionsDialogAsync"/>
-/// to keep DialogService focused on dialog lifecycle management.
-/// </summary>
 internal class ConfigImportDialogBuilder
 {
     private readonly ILocalizationService _localization;
 
-    // Selection state
     private ImportOption? _selectedOption;
     private Button? _selectedCardButton;
     private Border? _selectedBgBorder;
     private Border? _selectedAccentBorder;
 
-    // Controls needed for ExtractResult
     private ContentDialog _dialog = null!;
     private CheckBox _skipReviewCheckbox = null!;
     private RadioButton _winAppsInstallRadio = null!;
@@ -43,10 +36,7 @@ internal class ConfigImportDialogBuilder
         _localization = localization;
     }
 
-    /// <summary>
-    /// Builds the ContentDialog with all UI elements. The caller is responsible for
-    /// calling ConfigureDialog and ShowAsync.
-    /// </summary>
+    // The caller is responsible for ConfigureDialog and ShowAsync.
     public ContentDialog Build(XamlRoot xamlRoot)
     {
         bool isDark = (xamlRoot.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
@@ -61,14 +51,12 @@ internal class ConfigImportDialogBuilder
             MinWidth = 500
         };
 
-        // Card 1: Import own config - FolderOpen icon
         var ownIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.FolderOpen, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var ownCard = CreateOptionCard(ownIcon,
             "Dialog_ImportConfig_Option_Own_Title",
             "Dialog_ImportConfig_Option_Own_Description",
             ImportOption.ImportOwn, isDark);
 
-        // Card 2: Import recommended config - Winhance logo
         var logoUri = isDark
             ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
             : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
@@ -84,14 +72,12 @@ internal class ConfigImportDialogBuilder
             "Dialog_ImportConfig_Option_Recommended_Description",
             ImportOption.ImportRecommended, isDark);
 
-        // Card 3: Import backup config - History icon
         var backupIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var backupCard = CreateOptionCard(backupIcon,
             "Dialog_ImportConfig_Option_Backup_Title",
             "Dialog_ImportConfig_Option_Backup_Description",
             ImportOption.ImportBackup, isDark);
 
-        // Card 4: Import Windows defaults - Refresh icon
         var defaultsIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var defaultsCard = CreateOptionCard(defaultsIcon,
             "Dialog_ImportConfig_Option_Defaults_Title",
@@ -106,7 +92,7 @@ internal class ConfigImportDialogBuilder
             Margin = new Thickness(0, 12, 0, 0)
         };
 
-        var (optionsPanel, importControls) = BuildImportOptionsGrid(skipReviewText);
+        var (optionsPanel, importControls) = BuildImportOptionsGrid();
         _winAppsInstallRadio = importControls.WinAppsInstall;
         _winAppsUninstallRadio = importControls.WinAppsUninstall;
         _winAppsSelectOnlyRadio = importControls.WinAppsSelectOnly;
@@ -117,7 +103,6 @@ internal class ConfigImportDialogBuilder
         _cleanTaskbarCheckbox = importControls.CleanTaskbar;
         _cleanStartMenuCheckbox = importControls.CleanStartMenu;
 
-        // Enable/disable options panel based on skip review checkbox
         _skipReviewCheckbox.Checked += (_, _) =>
         {
             optionsPanel.Opacity = 1.0;
@@ -156,15 +141,12 @@ internal class ConfigImportDialogBuilder
         return _dialog;
     }
 
-    /// <summary>
-    /// Extracts the result from the dialog after it has been shown.
-    /// Must be called after the dialog's ShowAsync returns.
-    /// </summary>
+    // Must be called after ShowAsync returns.
     public (ImportOption? Option, ImportOptions Options) ExtractResult(ContentDialogResult dialogResult)
     {
         if (dialogResult != ContentDialogResult.Primary)
         {
-            _selectedOption = null; // Cancel was clicked, discard any selection
+            _selectedOption = null;
         }
 
         bool skipReview = _skipReviewCheckbox.IsChecked == true;
@@ -220,7 +202,6 @@ internal class ConfigImportDialogBuilder
         contentPanel2.Children.Add(icon);
         contentPanel2.Children.Add(textPanel);
 
-        // Layer 0: Background fill with subtle border
         var bgBorder = new Border
         {
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
@@ -229,7 +210,6 @@ internal class ConfigImportDialogBuilder
             CornerRadius = new CornerRadius(4)
         };
 
-        // Layer 1: Accent border
         var accentBorder = new Border
         {
             BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
@@ -262,16 +242,13 @@ internal class ConfigImportDialogBuilder
 
         cardButton.Click += (_, _) =>
         {
-            // Re-click same card: no-op
             if (_selectedCardButton == cardButton) return;
 
-            // Deselect previous card
             if (_selectedBgBorder != null)
                 _selectedBgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             if (_selectedAccentBorder != null)
                 _selectedAccentBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
-            // Select this card
             bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
             accentBorder.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
 
@@ -281,7 +258,6 @@ internal class ConfigImportDialogBuilder
             _selectedOption = option;
             _dialog.IsPrimaryButtonEnabled = true;
 
-            // Announce the selection to Narrator
             DialogAccessibilityHelper.AnnounceToNarrator(
                 cardButton,
                 $"{_localization.GetStringOrDefault("Accessibility_Selected", "Selected")}: {titleText}",
@@ -300,7 +276,6 @@ internal class ConfigImportDialogBuilder
                 bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         };
 
-        // Show hover-like state on keyboard focus
         cardButton.GotFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
@@ -315,9 +290,6 @@ internal class ConfigImportDialogBuilder
         return cardButton;
     }
 
-    /// <summary>
-    /// Record to hold references to import option controls for result extraction.
-    /// </summary>
     private record ImportOptionControls(
         RadioButton WinAppsInstall,
         RadioButton WinAppsUninstall,
@@ -329,7 +301,7 @@ internal class ConfigImportDialogBuilder
         CheckBox CleanTaskbar,
         CheckBox CleanStartMenu);
 
-    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid(string skipReviewText)
+    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid()
     {
         // Use a Grid so label and radio columns align across both rows
         var appsGrid = new Grid
@@ -351,7 +323,6 @@ internal class ConfigImportDialogBuilder
         var uninstallText = _localization.GetStringOrDefault("Config_Import_Options_Uninstall", "Uninstall");
         var selectOnlyText = _localization.GetStringOrDefault("Config_Import_Options_SelectOnly", "Select Only");
 
-        // Row 0: Windows Apps
         var winAppsLabel = new TextBlock
         {
             Text = winAppsText,
@@ -366,7 +337,6 @@ internal class ConfigImportDialogBuilder
         var winAppsUninstallRadio = CreateRadioButton(uninstallText, "WindowsApps", true, winAppsText, uninstallText, 0, 2);
         var winAppsSelectOnlyRadio = CreateRadioButton(selectOnlyText, "WindowsApps", false, winAppsText, selectOnlyText, 0, 3);
 
-        // Row 1: External Apps
         var extAppsLabel = new TextBlock
         {
             Text = extAppsText,
@@ -390,7 +360,6 @@ internal class ConfigImportDialogBuilder
         appsGrid.Children.Add(extAppsUninstallRadio);
         appsGrid.Children.Add(extAppsSelectOnlyRadio);
 
-        // Customize action checkboxes
         var themeWallpaperCheckbox = CreateAccessibleCheckBox(
             _localization.GetStringOrDefault("Config_Import_Options_ThemeWallpaper", "Apply default wallpaper for theme"),
             isChecked: true, margin: new Thickness(0, 2, 0, 0));

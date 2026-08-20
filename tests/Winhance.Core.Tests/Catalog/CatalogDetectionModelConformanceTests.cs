@@ -1,35 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
 
-/// <summary>
-/// Machine-INDEPENDENT model-conformance gate for the registry precedence audit. Each case runs a real
-/// <see cref="SettingCatalog"/> setting (by Id) through <see cref="CatalogDiscovery.Detect"/> over a
-/// CONSTRUCTED set of readings (clean / recommended-applied / group-policy-present / mirror-split), asserting it
-/// resolves to the value Windows would show. This pins the effective-value model across the states a single
-/// machine never shows -
-/// especially the clean/default state, where an untagged absent mirror is a real bug. Where these intentionally
-/// differ from the old app's `.Any` detection, the old app is the bug (it reports enabled when any one target is in
-/// its enabled state, treating an absent mirror hive as "enabled"); the model reads the highest-precedence present
-/// key, mirrors folding HKLM-first.
-/// </summary>
+// Machine-independent: real catalog settings run through CatalogDiscovery.Detect over CONSTRUCTED readings
+// (clean / recommended-applied / group-policy-present / mirror-split). Where these differ from the old app's
+// `.Any` detection, the old app is the bug: it reported enabled when any one target was in its enabled state,
+// treating an absent mirror hive as "enabled"; the model reads the highest-precedence present key, mirrors
+// folding HKLM-first.
 public class CatalogDetectionModelConformanceTests
 {
 
-    /// <summary>THE CANONICAL LIST. Settings whose registry detection was deliberately CORRECTED to the
-    /// effective-value-by-precedence model, and which therefore INTENTIONALLY diverge from the old app's
-    /// detection. The old `.Any` detection reports Enabled when ANY target is in its enabled state (so an absent
-    /// mirror hive reads as 'enabled'); it cannot express "absent = the Windows default state". The catalog adds
-    /// Of(v).OrAbsent() on the deciding key. Where they differ, THE OLD APP IS THE BUG -- their correctness is
-    /// pinned by the facts in THIS class, over constructed readings, on any machine.
-    ///
-    /// The CONCEPT is LIVE and is cited by SHIPPING code (ComboBoxResolver's value-match fallback documents its
-    /// by-design divergence by naming this list), so the list needs a durable home.</summary>
+    // THE CANONICAL LIST of settings whose registry detection deliberately diverges from the old `.Any` model
+    // (Of(v).OrAbsent() on the deciding key). Live and cited by shipping code: ComboBoxResolver's value-match
+    // fallback names this list, so it needs a durable home.
     public static readonly IReadOnlyList<string> PrecedenceCorrectedIds = new[]
     {
         "privacy-advertising-id", "privacy-diagnostics", "privacy-lock-screen-overlay",
@@ -37,9 +22,7 @@ public class CatalogDetectionModelConformanceTests
         "gaming-directx-flip-model", "gaming-directx-vrr-optimizations", "gaming-touch-keyboard-service",
     };
 
-    /// <summary>Rot guard: every precedence-corrected id must still be a real catalog setting. If one is renamed
-    /// or retired, this fails loudly instead of the list silently pointing at nothing (which would make the
-    /// divergence ComboBoxResolver documents unbounded and unexplained).</summary>
+    // Rot guard: a renamed or retired id would leave the divergence ComboBoxResolver documents unbounded and unexplained.
     [Fact]
     public void PrecedenceCorrectedIds_AllResolveToRealCatalogSettings()
     {
@@ -48,8 +31,7 @@ public class CatalogDetectionModelConformanceTests
         Assert.True(missing.Count == 0,
             "precedence-corrected ids no longer in the catalog: " + string.Join(", ", missing));
     }
-    /// <summary>Returns a value per (keyPath, valueName); a pair not in the dict reads as absent. KeyExists is false
-    /// (none of the audited settings are key-existence toggles).</summary>
+    // A pair not in the dict reads as absent; KeyExists is false (none of the audited settings are key-existence toggles).
     private sealed class Ctx : IDetectionContext
     {
         private readonly Dictionary<(string, string?), object?> _vals;
@@ -68,15 +50,11 @@ public class CatalogDetectionModelConformanceTests
 
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
-    /// <summary>Detects <paramref name="id"/> with the given (keyPath, valueName, value) readings present; everything
-    /// else reads absent.</summary>
     private static string? Detect(string id, params (string Path, string? Value, object? Data)[] reads)
     {
         var dict = reads.ToDictionary(r => (r.Path, r.Value), r => r.Data);
         return CatalogDiscovery.Detect(Catalog[id], new Ctx(dict)).Label;
     }
-
-    // ---- Path constants (verbatim from the catalog) -------------------------------------------------------------
 
     private const string AdPref = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo";
     private const string AdCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\AdvertisingInfo";
@@ -91,15 +69,13 @@ public class CatalogDetectionModelConformanceTests
     private const string InkCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization";
     private const string InkAccepted = @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings";
 
-    // ============================================================================================================
     //  The 6 detection-corrected settings (OrAbsent + ApplyOnly). These must hold ON A CLEAN MACHINE too.
-    // ============================================================================================================
 
     [Fact]
     public void Advertising_id_precedence() // CPSS Value is an apply-only mirror; the GP tier wins
     {
         Assert.Equal("Enabled", Detect("privacy-advertising-id"));                                   // clean -> ads on (default)
-        Assert.Equal("Disabled", Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));          // pref off, no policy
+        Assert.Equal("Disabled", Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));
         // GP disables while a stale pref says on: policy wins. (OLD `.Any` wrongly reports Enabled here.)
         Assert.Equal("Disabled", Detect("privacy-advertising-id",
             (AdPref, "Enabled", 1), (AdGpoHklm, "DisabledByGroupPolicy", 1)));
@@ -111,7 +87,7 @@ public class CatalogDetectionModelConformanceTests
     public void Diagnostics_precedence() // one preference + group-policy telemetry keys
     {
         Assert.Equal("Enabled", Detect("privacy-diagnostics"));                                      // clean -> telemetry on
-        Assert.Equal("Disabled", Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0))); // GP off
+        Assert.Equal("Disabled", Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0)));
         // a stale ShowedToastAtLevel=3 pref does not keep it "on" once the GP disables telemetry (OLD bug)
         Assert.Equal("Disabled", Detect("privacy-diagnostics",
             (DiagToast, "ShowedToastAtLevel", 3), (DiagTelemetryHklm, "AllowTelemetry", 0)));
@@ -159,7 +135,7 @@ public class CatalogDetectionModelConformanceTests
         // CPSS Value is tagged a policy tier (the connected-privacy store the Win11 Settings app binds to); the two
         // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
-        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));           // Win11 CPSS on
+        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));
         // CPSS is authoritative on Win11: Value=0 wins even over a stale AcceptedPrivacyPolicy=1
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary",
             (InkCpss, "Value", 0), (InkAccepted, "AcceptedPrivacyPolicy", 1)));
@@ -168,10 +144,8 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 0)));
     }
 
-    // ============================================================================================================
     //  Single GPO-mirror toggles (no catalog change). Clean -> default-on; a disable applied to ONE policy hive
     //  reads Disabled (mirror folds HKLM-first) - the exact case where OLD `.Any` falsely reports Enabled.
-    // ============================================================================================================
 
     [Theory]
     // id, hkcu policy path, value name, the "disabled" value (the recommended write)
@@ -192,11 +166,6 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Enabled", Detect(id));                                                  // clean -> default-on
         Assert.Equal("Disabled", Detect(id, (hkcuPath, valueName, disabledValue)));           // recommended applied to the user hive
     }
-
-    // ============================================================================================================
-    //  Multi-target precedence toggles, already correct (no catalog change): clean -> default-on; a preference or
-    //  policy in its off value -> Disabled.
-    // ============================================================================================================
 
     [Fact]
     public void Feedback_frequency_clean_on_and_policy_off()
@@ -226,10 +195,8 @@ public class CatalogDetectionModelConformanceTests
             (@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0)));
     }
 
-    // ============================================================================================================
     //  Explorer ThisPC-tree toggles (no catalog change): the only discriminating key is IsPinnedToNameSpaceTree
     //  (Of(1).OrAbsent() vs Of(0)); the other two keys accept absence in both states.
-    // ============================================================================================================
 
     [Theory]
     [InlineData("explorer-customization-gallery", @"HKEY_CURRENT_USER\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}")]
@@ -240,16 +207,10 @@ public class CatalogDetectionModelConformanceTests
         Assert.Equal("Disabled", Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
     }
 
-    // ============================================================================================================
-    //  Apply-engine invariant guarding the powercfg writer
-    // ============================================================================================================
-
-    /// <summary>ApplyPlanBuilder emits one PowerCfgSetOp per context (AC then DC) for EVERY powercfg target, and
-    /// WindowsStateWriter writes each unconditionally (battery-gating only the DC write). That is correct for
-    /// PowerModeSupport.Separate (both contexts are meant to be written). An ACOnly/DCOnly setting, however, would
-    /// need the other context SKIPPED - writing it would touch a context that setting does not use. Guard the
-    /// assumption: if a future powercfg setting is not Separate, this fails loud, signalling that ApplyPlanBuilder
-    /// must learn to honour PowerCfgTarget.Mode (skip DC for ACOnly, skip AC for DCOnly) before it can apply.</summary>
+    // ApplyPlanBuilder emits one PowerCfgSetOp per context for EVERY powercfg target and the writer writes each
+    // unconditionally (battery-gating only DC) - correct for PowerModeSupport.Separate. An ACOnly/DCOnly setting
+    // would need the other context SKIPPED, so if a future powercfg setting is not Separate this fails loud:
+    // ApplyPlanBuilder must learn to honour PowerCfgTarget.Mode first.
     [Fact]
     public void EveryPowerCfgTarget_IsSeparateMode()
     {

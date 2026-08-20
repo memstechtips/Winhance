@@ -4,10 +4,6 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Thin facade that preserves the IConfigurationService contract.
-/// All work is delegated to focused sub-services.
-/// </summary>
 public class ConfigurationService : IConfigurationService
 {
     private readonly ILogService _logService;
@@ -17,7 +13,6 @@ public class ConfigurationService : IConfigurationService
     private readonly IConfigApplicationExecutionService _configExecutionService;
     private readonly IConfigReviewOrchestrationService _configReviewOrchestrationService;
     private readonly IDialogService _dialogService;
-    private readonly ILocalizationService _localizationService;
 
     public ConfigurationService(
         ILogService logService,
@@ -26,8 +21,7 @@ public class ConfigurationService : IConfigurationService
         IConfigLoadService configLoadService,
         IConfigApplicationExecutionService configExecutionService,
         IConfigReviewOrchestrationService configReviewOrchestrationService,
-        IDialogService dialogService,
-        ILocalizationService localizationService)
+        IDialogService dialogService)
     {
         _logService = logService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
@@ -36,7 +30,6 @@ public class ConfigurationService : IConfigurationService
         _configExecutionService = configExecutionService;
         _configReviewOrchestrationService = configReviewOrchestrationService;
         _dialogService = dialogService;
-        _localizationService = localizationService;
     }
 
     // Idempotent catalog-registry init on the import entry points. Closes the import path's

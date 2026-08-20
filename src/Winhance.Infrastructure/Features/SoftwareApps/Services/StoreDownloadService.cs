@@ -1,22 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-/// <summary>
-/// Downloads Microsoft Store packages using the store.rg-adguard.net API.
-/// This service bypasses geographic market restrictions by accessing packages directly from Microsoft's CDN.
-/// </summary>
-public class StoreDownloadService : IStoreDownloadService
+internal class StoreDownloadService : IStoreDownloadService
 {
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService? _logService;
@@ -47,7 +36,7 @@ public class StoreDownloadService : IStoreDownloadService
         _localization = localization;
         _fileSystemService = fileSystemService;
         _logService = logService;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     public async Task<bool> DownloadAndInstallPackageAsync(
@@ -60,11 +49,9 @@ public class StoreDownloadService : IStoreDownloadService
 
         try
         {
-            // Create temporary directory
             _fileSystemService.CreateDirectory(tempPath);
             _logService?.LogInformation($"Created temporary directory: {tempPath}");
 
-            // Download the package
             _taskProgressService?.UpdateProgress(5, _localization.GetString("Progress_Store_FetchingLinks", displayName));
             var packagePath = await DownloadPackageAsync(productId, tempPath, displayName, cancellationToken).ConfigureAwait(false);
 
@@ -74,8 +61,6 @@ public class StoreDownloadService : IStoreDownloadService
                 return false;
             }
 
-            // If we reach here, the package was downloaded but not installed yet (no dependencies found)
-            // This shouldn't happen with the new flow, but handle it just in case
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             var installSuccess = await InstallPackageAsync(packagePath, displayName, cancellationToken).ConfigureAwait(false);
 
@@ -101,7 +86,6 @@ public class StoreDownloadService : IStoreDownloadService
         }
         finally
         {
-            // Cleanup temporary directory
             try
             {
                 if (_fileSystemService.DirectoryExists(tempPath))
@@ -127,14 +111,12 @@ public class StoreDownloadService : IStoreDownloadService
 
         try
         {
-            // Step 1: Get download links from store.rg-adguard.net API
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Store_RequestingInfo", displayName));
             var downloadLinks = await GetDownloadLinksAsync(productId, cancellationToken).ConfigureAwait(false);
 
-            // Check for cancellation after API call
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!downloadLinks.Any())
+            if (downloadLinks.Count == 0)
             {
                 _logService?.LogError($"No download links found for {productId}");
                 return null;
@@ -142,18 +124,16 @@ public class StoreDownloadService : IStoreDownloadService
 
             _logService?.LogInformation($"Found {downloadLinks.Count} package file(s) for {productId}");
 
-            // Step 2: Separate main packages and dependencies
             var currentArch = Common.Utilities.ArchitectureHelper.GetCurrentArchitecture();
             var mainPackages = FilterPackageLinks(downloadLinks, currentArch, isDependency: false);
             var allDependencies = FilterPackageLinks(downloadLinks, currentArch, isDependency: true);
 
-            if (!mainPackages.Any())
+            if (mainPackages.Count == 0)
             {
                 _logService?.LogError($"No suitable packages found for architecture {currentArch}");
                 return null;
             }
 
-            // Step 3: Download the main package first (prefer bundles)
             _taskProgressService?.UpdateProgress(30, _localization.GetString("Progress_Store_DownloadingMain", displayName));
             var mainPackage = mainPackages
                 .OrderByDescending(x => x.FileName.Contains("bundle", StringComparison.OrdinalIgnoreCase))
@@ -174,7 +154,6 @@ public class StoreDownloadService : IStoreDownloadService
 
             _logService?.LogInformation($"Successfully downloaded main package: {downloadedFile}");
 
-            // Step 4: Try installing without dependencies first
             _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_Installing", displayName));
             _logService?.LogInformation("Attempting installation without dependencies first...");
 
@@ -186,7 +165,6 @@ public class StoreDownloadService : IStoreDownloadService
                 return downloadedFile;
             }
 
-            // Check for non-recoverable errors (EOL, incompatible, etc.)
             if (IsNonRecoverableError(errorMessage))
             {
                 _logService?.LogError($"Cannot install {displayName}: {GetFriendlyErrorMessage(errorMessage)}");
@@ -194,7 +172,6 @@ public class StoreDownloadService : IStoreDownloadService
                 return null;
             }
 
-            // Step 5: Iteratively resolve and install dependencies (max 5 rounds)
             // Some apps need multiple dependencies that depend on each other
             var allDownloadedDependencies = new List<string>();
             const int maxDependencyRounds = 5;
@@ -205,7 +182,7 @@ public class StoreDownloadService : IStoreDownloadService
                 currentRound++;
                 var missingDependencies = ParseMissingDependencies(errorMessage);
 
-                if (!missingDependencies.Any())
+                if (missingDependencies.Count == 0)
                 {
                     _logService?.LogError($"Installation failed: {errorMessage}");
                     return null;
@@ -217,34 +194,28 @@ public class StoreDownloadService : IStoreDownloadService
                 var newDependencies = new List<string>();
                 foreach (var depName in missingDependencies)
                 {
-                    // Check for cancellation before downloading each dependency
                     cancellationToken.ThrowIfCancellationRequested();
 
                     _logService?.LogInformation($"Searching for dependency: {depName}");
                     _logService?.LogInformation($"Total filtered dependencies available: {allDependencies.Count}");
 
-                    // Find matching dependency
                     var matchingDeps = allDependencies.Where(d =>
                     {
                         var fileName = d.FileName;
 
-                        // Try exact prefix match first (case-insensitive)
                         if (fileName.StartsWith(depName + "_", StringComparison.OrdinalIgnoreCase))
                         {
                             _logService?.LogInformation($"  Exact match found: {fileName}");
                             return true;
                         }
 
-                        // Try matching the base framework name and version
                         var depParts = depName.Split('.');
                         if (depParts.Length >= 2)
                         {
-                            // Get the base name and version
                             var baseName = string.Join(".", depParts.Take(depParts.Length - 2));
                             var majorVersion = depParts[depParts.Length - 2];
                             var minorVersion = depParts[depParts.Length - 1];
 
-                            // Check if filename contains the base name and version
                             bool hasBaseName = fileName.Contains(baseName, StringComparison.OrdinalIgnoreCase);
                             bool hasVersion = fileName.Contains($".{majorVersion}.{minorVersion}", StringComparison.OrdinalIgnoreCase);
 
@@ -258,7 +229,7 @@ public class StoreDownloadService : IStoreDownloadService
                         return false;
                     }).ToList();
 
-                    if (!matchingDeps.Any())
+                    if (matchingDeps.Count == 0)
                     {
                         _logService?.LogWarning($"Could not find matching dependency for: {depName}");
                         _logService?.LogInformation($"Available dependencies:");
@@ -273,7 +244,6 @@ public class StoreDownloadService : IStoreDownloadService
                         continue;
                     }
 
-                    // If multiple matches, prefer the one that's an exact prefix match, or the first one
                     var matchingDep = matchingDeps.FirstOrDefault(d =>
                         d.FileName.StartsWith(depName + "_", StringComparison.OrdinalIgnoreCase))
                         ?? matchingDeps.First();
@@ -292,16 +262,14 @@ public class StoreDownloadService : IStoreDownloadService
                     }
                 }
 
-                if (!newDependencies.Any())
+                if (newDependencies.Count == 0)
                 {
                     _logService?.LogError($"Could not download required dependencies");
                     return null;
                 }
 
-                // Add newly downloaded dependencies to the full list
                 allDownloadedDependencies.AddRange(newDependencies);
 
-                // Try installing with all dependencies collected so far
                 _taskProgressService?.UpdateProgress(80, _localization.GetString("Progress_Store_InstallingWithDependencies", displayName, allDownloadedDependencies.Count));
                 var (retrySuccess, retryError) = await TryInstallPackageWithDependenciesAsync(
                     downloadedFile, allDownloadedDependencies, displayName, cancellationToken).ConfigureAwait(false);
@@ -312,7 +280,6 @@ public class StoreDownloadService : IStoreDownloadService
                     return downloadedFile;
                 }
 
-                // Update error message for next round
                 errorMessage = retryError;
                 _logService?.LogInformation($"Installation attempt {currentRound} failed, checking for more dependencies...");
             }
@@ -349,7 +316,6 @@ public class StoreDownloadService : IStoreDownloadService
 
         var htmlContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
-        // Parse HTML for download links
         var matches = DownloadLinkRegex.Matches(htmlContent);
 
         var links = new List<PackageLink>();
@@ -358,7 +324,6 @@ public class StoreDownloadService : IStoreDownloadService
             var url = match.Groups["url"].Value;
             var filename = match.Groups["filename"].Value;
 
-            // Only include package files
             if (IsPackageFile(filename))
             {
                 links.Add(new PackageLink
@@ -378,25 +343,20 @@ public class StoreDownloadService : IStoreDownloadService
         {
             var filename = link.FileName.ToLowerInvariant();
 
-            // Identify common framework dependencies
             bool isFrameworkDependency = filename.Contains("microsoft.ui.xaml") ||
                                         filename.Contains("microsoft.vclibs") ||
                                         filename.Contains("microsoft.net.native") ||
                                         filename.Contains("microsoft.services.store.engagement");
 
-            // If looking for dependencies, only return framework packages
             if (isDependency && !isFrameworkDependency)
                 return false;
 
-            // If looking for main packages, exclude framework packages
             if (!isDependency && isFrameworkDependency)
                 return false;
 
-            // Include if it matches current architecture or is neutral
             var matchesArch = filename.Contains($"_{currentArch.ToLowerInvariant()}_") ||
                              filename.Contains("_neutral_");
 
-            // Include common package extensions
             var isPackageType = filename.EndsWith(".appx") ||
                                filename.EndsWith(".appxbundle") ||
                                filename.EndsWith(".msix") ||
@@ -436,9 +396,9 @@ public class StoreDownloadService : IStoreDownloadService
             int bytesRead;
             var lastProgress = 0;
 
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (totalBytes > 0)
@@ -550,11 +510,9 @@ public class StoreDownloadService : IStoreDownloadService
         if (lowerError.Contains("end of life") || lowerError.Contains("0x80073cfd"))
             return true;
 
-        // Check for incompatible architecture
         if (lowerError.Contains("not supported on this architecture"))
             return true;
 
-        // Check for package conflicts (already installed newer version)
         if (lowerError.Contains("a higher version") && lowerError.Contains("already installed"))
             return true;
 

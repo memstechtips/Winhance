@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
@@ -14,14 +13,13 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-public class SettingItemViewModelTests : IDisposable
+public class SettingItemViewModelTests
 {
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
-    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
 
@@ -30,7 +28,6 @@ public class SettingItemViewModelTests : IDisposable
 
     public SettingItemViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -75,17 +72,9 @@ public class SettingItemViewModelTests : IDisposable
             _mockDispatcherService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
-            _mockEventBus.Object,
             _mockUserPreferencesService.Object,
             _mockRegeditLauncher.Object);
     }
-
-    public void Dispose()
-    {
-        // Intentionally empty; individual tests dispose their SUT as needed.
-    }
-
-    // ── Constructor / Initialization ──
 
     [Fact]
     public void Constructor_InitializesPropertiesFromConfig()
@@ -137,8 +126,6 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.ActionButtonText.Should().Be("Run");
     }
-
-    // ── Property Binding / Computed Properties ──
 
     [Fact]
     public void Action_WithRecommendedRegistryValue_ShowsNoStateBadges()
@@ -207,7 +194,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void UpdateStatusBanner_WithOptionWarning_SetsErrorBanner()
     {
-        // Arrange: selection setting where option 0 has a Warning string.
         // The option-warning banner is computed from config.OptionWarnings, not the Setting, so a minimal synthetic Setting suffices.
         var config = _defaultConfig with
         {
@@ -218,10 +204,8 @@ public class SettingItemViewModelTests : IDisposable
         };
         var sut = CreateSut(config);
 
-        // Act: user selects the Warning-flagged option (index 0).
         sut.UpdateStatusBanner(0);
 
-        // Assert: Error banner with the option Warning message.
         sut.StatusBannerMessage.Should().Be("WARNING: Disabling WSearch breaks Outlook search.");
         sut.StatusBannerSeverity.Should().Be(Microsoft.UI.Xaml.Controls.InfoBarSeverity.Error);
     }
@@ -252,8 +236,6 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut();
         sut.IsSubSetting.Should().BeFalse();
     }
-
-    // ── Visibility / Search Filtering ──
 
     [Fact]
     public void UpdateVisibility_EmptySearch_MakesVisible()
@@ -327,8 +309,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.IsVisible.Should().BeTrue();
     }
 
-    // ── UpdateStateFromEvent ──
-
     [Fact]
     public void UpdateStateFromEvent_ToggleType_UpdatesIsSelected()
     {
@@ -373,8 +353,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.NumericValue.Should().Be(42);
     }
 
-    // ── UpdateStateFromSystemState ──
-
     [Fact]
     public void UpdateStateFromSystemState_ToggleType_UpdatesIsSelected()
     {
@@ -395,7 +373,7 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(state);
 
-        sut.IsSelected.Should().BeTrue(); // unchanged
+        sut.IsSelected.Should().BeTrue();
     }
 
     [Fact]
@@ -422,8 +400,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.NumericValue.Should().Be(75);
     }
 
-    // ── UpdateStateFromSystemState: NumericRange unit conversion ──
-
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_WithMinuteUnits_ConvertsSecondsToMinutes()
     {
@@ -437,7 +413,7 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 1200 });
 
-        sut.NumericValue.Should().Be(20); // 1200 seconds / 60 = 20 minutes
+        sut.NumericValue.Should().Be(20);
     }
 
     [Fact]
@@ -453,7 +429,7 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 7200 });
 
-        sut.NumericValue.Should().Be(2); // 7200 seconds / 3600 = 2 hours
+        sut.NumericValue.Should().Be(2);
     }
 
     [Fact]
@@ -488,8 +464,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.NumericValue.Should().Be(0);
     }
 
-    // ── UpdateStateFromSystemState: AC/DC separate value handling for NumericRange ──
-
     [Fact]
     public void UpdateStateFromSystemState_NumericRange_SeparateACDC_UpdatesBothValues()
     {
@@ -503,8 +477,8 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 1200, DcValue = 600 });
 
-        sut.AcNumericValue.Should().Be(20); // 1200 / 60
-        sut.DcNumericValue.Should().Be(10); // 600 / 60
+        sut.AcNumericValue.Should().Be(20);
+        sut.DcNumericValue.Should().Be(10);
     }
 
     [Fact]
@@ -517,15 +491,13 @@ public class SettingItemViewModelTests : IDisposable
             InputType = InputType.NumericRange
         };
         var sut = CreateSut(config);
-        sut.DcNumericValue = 99; // pre-set DC value
+        sut.DcNumericValue = 99;
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 1200 });
 
-        sut.AcNumericValue.Should().Be(20); // 1200 / 60
-        sut.DcNumericValue.Should().Be(99); // unchanged
+        sut.AcNumericValue.Should().Be(20);
+        sut.DcNumericValue.Should().Be(99);
     }
-
-    // ── UpdateStateFromSystemState: AC/DC separate value handling for Selection ──
 
     [Fact]
     public void UpdateStateFromSystemState_Selection_SeparateACDC_UpdatesBothIndices()
@@ -540,8 +512,8 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 30, DcValue = 10 });
 
-        sut.AcValue.Should().Be(2); // PowerCfgValue 30 maps to index 2
-        sut.DcValue.Should().Be(0); // PowerCfgValue 10 maps to index 0
+        sut.AcValue.Should().Be(2);
+        sut.DcValue.Should().Be(0);
     }
 
     [Fact]
@@ -557,8 +529,8 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, AcValue = 99, DcValue = 10 });
 
-        sut.AcValue.Should().Be(ComboBoxConstants.CustomStateIndex); // 99 not in mappings -> Custom
-        sut.DcValue.Should().Be(0); // 10 maps to index 0
+        sut.AcValue.Should().Be(ComboBoxConstants.CustomStateIndex);
+        sut.DcValue.Should().Be(0);
     }
 
     [Fact]
@@ -577,8 +549,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.SelectedValue.Should().Be(2);
     }
 
-    // ── UpdateStateFromSystemState: Failed/missing state handling ──
-
     [Fact]
     public void UpdateStateFromSystemState_FailedResult_DoesNotResetNumericValue()
     {
@@ -593,7 +563,7 @@ public class SettingItemViewModelTests : IDisposable
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = false, CurrentValue = 0 });
 
-        sut.NumericValue.Should().Be(42); // preserved, NOT reset to 0
+        sut.NumericValue.Should().Be(42);
     }
 
     [Fact]
@@ -608,13 +578,10 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut(config);
         sut.NumericValue = 55;
 
-        // CurrentValue is null (not int), so the `is int` pattern match fails
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = null });
 
-        sut.NumericValue.Should().Be(55); // preserved
+        sut.NumericValue.Should().Be(55);
     }
-
-    // ── Review Mode ──
 
     [Fact]
     public void IsInReviewMode_ChangingValue_NotifiesEffectiveIsEnabled()
@@ -741,8 +708,6 @@ public class SettingItemViewModelTests : IDisposable
         raised.Should().BeFalse("ReviewApprovalChanged handler should have been cleared");
     }
 
-    // ── Technical Details ──
-
     [Fact]
     public void ToggleTechnicalDetails_TogglesIsTechnicalDetailsExpanded()
     {
@@ -777,8 +742,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.IsTechnicalDetailsExpanded.Should().BeFalse();
     }
 
-    // ── Advanced Unlock ──
-
     [Fact]
     public void RequiresAdvancedUnlock_ReturnsTrueWhenSettingRequiresIt()
     {
@@ -798,8 +761,6 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut();
         sut.RequiresAdvancedUnlock.Should().BeFalse();
     }
-
-    // ── PropertyChanged Notifications ──
 
     [Fact]
     public void IsEnabled_Change_NotifiesEffectiveIsEnabled()
@@ -861,8 +822,6 @@ public class SettingItemViewModelTests : IDisposable
         changedProperties.Should().Contain(nameof(sut.ShowTechnicalDetailsBar));
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
@@ -876,8 +835,6 @@ public class SettingItemViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Localized Strings with Fallbacks ──
 
     [Fact]
     public void TechnicalDetailsLabel_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -895,13 +852,9 @@ public class SettingItemViewModelTests : IDisposable
         sut.ClickToUnlockText.Should().Be("Click to unlock");
     }
 
-    // ── BadgeRow: multi-pill tests ──
-
     [Fact]
     public void BadgeRow_Toggle_NonSubjective_DisabledMatchesBothRecommendedAndDefault_BothLit()
     {
-        // fax-like: RecommendedValue = 0 (disabled), DefaultValue = 0 (disabled)
-        // IsSelected = false (disabled) => both Recommended + Default lit, Custom dim, no Preference.
         var config = ToggleConfig(ToggleSetting("toggle-fax-like", recommendedEnabled: false, defaultEnabled: false));
         var sut = CreateSut(config);
         sut.IsSelected = false;
@@ -936,7 +889,7 @@ public class SettingItemViewModelTests : IDisposable
         // RecommendedToggleState=false (recommend the blocking state).
         // Toggle OFF means user has the recommended blocking state applied.
         var sut = CreateSut(ToggleConfig(ToggleSetting("security-workplace-join-messages-like", recommendedEnabled: false, defaultEnabled: true)));
-        sut.IsSelected = false; // toggle OFF -> matches recommended, NOT default
+        sut.IsSelected = false;
         sut.ComputeBadgeState();
 
         sut.BadgeRow.Select(p => (p.Kind, p.IsHighlighted)).Should().BeEquivalentTo(new[]
@@ -982,8 +935,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_Toggle_BasePlusNullDefaultPolicyEnforcer_ToggleOff_RecommendedLit()
     {
-        // Same shape as above; toggle OFF is the recommended state. Default must
-        // be dim because the base reg's Windows default is ON.
         var sut = CreateSut(ToggleConfig(ToggleSetting("tailored-experiences-like-off", recommendedEnabled: false, defaultEnabled: true)));
         sut.IsSelected = false;
         sut.ComputeBadgeState();
@@ -1100,8 +1051,6 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Should().NotContain(p => p.Kind == SettingBadgeKind.Recommended);
     }
 
-    // ── AC/DC PowerCfg-Separate badge tests (issue #602 fix + Pattern 2 per-mode) ──
-
     [Fact]
     public void BadgeRow_AcDcSeparate_NoBattery_DcDiffersFromRec_RecommendedStillLit()
     {
@@ -1112,7 +1061,7 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
             "acdc-no-battery", recAc: 0, recDc: 600, defAc: 1200, defDc: 600)));
         sut.HasBattery = false;
-        sut.AcNumericValue = 0;     // matches RecAC
+        sut.AcNumericValue = 0;
         sut.DcNumericValue = 20;    // differs from RecDC (=600) — but DC must be ignored
         sut.ComputeBadgeState();
 
@@ -1132,7 +1081,7 @@ public class SettingItemViewModelTests : IDisposable
         var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
             "acdc-with-battery", recAc: 50, recDc: 25, defAc: 0, defDc: 25)));
         sut.HasBattery = true;
-        sut.AcNumericValue = 50;    // matches RecAC
+        sut.AcNumericValue = 50;
         sut.DcNumericValue = 25;    // matches both RecDC AND DefDC (Rec==Def on this side)
         sut.ComputeBadgeState();
 
@@ -1152,8 +1101,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void BadgeRow_AcDcSeparate_WithBattery_DcOnlyRecommendation_NoAcPillEmitted()
     {
-        // If a powercfg setting only declares RecommendedValueDC (no AC counterpart), the
-        // per-mode emitter must produce only the DC Recommended pill — not a phantom AC pill.
         var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting(
             "acdc-dc-only-rec", recAc: null, recDc: 600, defAc: null, defDc: 1200)));
         sut.HasBattery = true;
@@ -1163,17 +1110,10 @@ public class SettingItemViewModelTests : IDisposable
         sut.BadgeRow.Should().ContainSingle(p => p.Kind == SettingBadgeKind.Recommended && p.Mode == SettingBadgeMode.DC);
     }
 
-
-    // ---------------------------------------------------------------------------------------------------
-    // Synthetic catalog-Setting fixtures.
     // The SettingItemViewModel reads the PASSED Setting (no live-catalog resolution), so hand-built synthetic
     // Settings carrying exactly the fields the VM reads are correct here -- simpler, non-vacuous, and immune to
     // catalog edits.
-    // ---------------------------------------------------------------------------------------------------
 
-    // A toggle Setting: Enabled/Disabled states carrying the Recommended/WindowsDefault roles -- a role lands
-    // on the Enabled state when that role's toggle state is enabled, on the Disabled state when it is
-    // disabled. null = that role absent.
     private static Setting ToggleSetting(string id, bool? recommendedEnabled, bool? defaultEnabled)
     {
         var enabled = new List<StateRole>();
@@ -1192,9 +1132,8 @@ public class SettingItemViewModelTests : IDisposable
         };
     }
 
-    // A registry SELECTION Setting: one state per option carrying its Recommended/WindowsDefault roles. The badge
-    // logic reads only the state Roles + the selected index (never the accept-Set for a non-powercfg selection),
-    // so the Set is omitted. subjective -> Display.IsSubjectivePreference (the Preference badge).
+    // The badge logic reads only the state Roles + the selected index (never the accept-Set for a non-powercfg
+    // selection), so the Set is omitted.
     private static Setting SelectionSetting(string id, (string Label, bool Recommended, bool Default)[] options, bool subjective = false)
     {
         var states = new List<SettingState>();
@@ -1213,9 +1152,7 @@ public class SettingItemViewModelTests : IDisposable
         };
     }
 
-    // A single-spinner (Always-context) numeric Setting: the VM reads Numeric.Units for conversion and the
-    // Always-context Recommended/WindowsDefault for the quick-set/badge accessors. Registry single-spinner numerics
-    // had no powercfg peer, so this carries only the Always context.
+    // Carries only the Always context: registry single-spinner numerics have no powercfg peer.
     private static Setting AlwaysNumericSetting(string id, int min, int max, string? units, int? recommended = null, int? windowsDefault = null)
     {
         var rec = recommended is int r ? new[] { new ContextValue(PowerContext.Always, r) } : System.Array.Empty<ContextValue>();
@@ -1384,8 +1321,6 @@ public class SettingItemViewModelTests : IDisposable
             because: "ShowInfoBadges is on AND the setting has Recommended/Default data");
     }
 
-    // ── Pinned regression tests: real catalog Setting instances ──
-
     [Fact]
     public void WorkplaceJoinMessages_ToggleOff_RecommendedLit_DefaultDim()
     {
@@ -1398,7 +1333,7 @@ public class SettingItemViewModelTests : IDisposable
             Name = setting.Display.Name,
             Description = setting.Display.Description,
             InputType = InputType.Toggle,
-            IsSelected = false, // toggle OFF -> blocking state applied
+            IsSelected = false,
         };
         var sut = CreateSut(config);
         sut.ComputeBadgeState();
@@ -1419,7 +1354,7 @@ public class SettingItemViewModelTests : IDisposable
             Name = setting.Display.Name,
             Description = setting.Display.Description,
             InputType = InputType.Toggle,
-            IsSelected = true, // toggle ON -> Windows default
+            IsSelected = true,
         };
         var sut = CreateSut(config);
         sut.ComputeBadgeState();
@@ -1470,8 +1405,6 @@ public class SettingItemViewModelTests : IDisposable
             .Should().BeEquivalentTo(new[] { SettingBadgeKind.Default });
     }
 
-    // ── Review Mode auto-expand ──
-
     [Fact]
     public void EnteringReviewMode_ForcesExpanderExpanded()
     {
@@ -1489,8 +1422,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void ExitingReviewMode_DoesNotCollapseExpander()
     {
-        // Leaving Review Mode should not touch the expander state — whatever the user
-        // left it at (or whatever auto-expand set it to) stays.
         var sut = CreateSut();
         sut.IsInReviewMode = true;
         sut.IsExpanderExpanded.Should().BeTrue();
@@ -1503,9 +1434,6 @@ public class SettingItemViewModelTests : IDisposable
     [Fact]
     public void EnteringReviewMode_UserCanStillCollapseAfter()
     {
-        // The auto-expand only fires on the transition into Review Mode. After that,
-        // the user retains full control via the chevron overlay — collapsing is allowed
-        // and must stick (the auto-expand doesn't keep re-firing).
         var sut = CreateSut();
 
         sut.IsInReviewMode = true;

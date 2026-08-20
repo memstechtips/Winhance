@@ -8,12 +8,8 @@ using Xunit;
 
 namespace Winhance.Core.Tests.Services;
 
-/// <summary>
-/// The per-mode write strategies, which the five input handlers used to carry as their own
-/// <c>if (builderMode) { ...; return; }</c> early returns. Testing them here is the point of the
-/// split: those branches sat behind five async UI handlers and were effectively unreachable from a
-/// unit test, which is why two of them could stop recording edits without anything going red.
-/// </summary>
+// The branches these replace sat behind five async UI handlers and were effectively unreachable from a unit
+// test, which is how two of them could stop recording edits without anything going red.
 public class SettingWriteStrategyTests
 {
     private readonly Mock<ISettingApplicationService> _applyService = new();
@@ -64,8 +60,6 @@ public class SettingWriteStrategyTests
     private void ApplyFails() =>
         _applyService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Failed("nope"));
-
-    // ── Live ──
 
     [Fact]
     public async Task Live_AppliesToTheMachineAndReportsApplied()
@@ -202,8 +196,6 @@ public class SettingWriteStrategyTests
         _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<BuilderEdit>()), Times.Never);
     }
 
-    // ── Builder ──
-
     [Fact]
     public async Task Builder_RecordsTheEditAndReportsRecorded()
     {
@@ -248,8 +240,6 @@ public class SettingWriteStrategyTests
         _logService.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception?>()), Times.Once);
     }
 
-    // ── Read-only ──
-
     [Fact]
     public async Task ReadOnly_RefusesWithoutApplyingOrRecording()
     {
@@ -269,8 +259,6 @@ public class SettingWriteStrategyTests
 
         progress.Transitions.Should().BeEmpty();
     }
-
-    // ── Selection ──
 
     [Theory]
     [InlineData(WinhanceMode.Normal, typeof(LiveSettingWriteStrategy))]

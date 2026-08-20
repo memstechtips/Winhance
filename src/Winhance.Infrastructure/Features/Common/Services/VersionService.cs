@@ -1,17 +1,13 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class VersionService : IVersionService
+internal class VersionService : IVersionService
 {
     // Dev-only override: when WINHANCE_LOCAL_INSTALLER points at an existing
     // file, the in-app updater skips the GitHub round-trip entirely and uses
@@ -22,7 +18,6 @@ public class VersionService : IVersionService
     private const string LocalInstallerEnvVar = "WINHANCE_LOCAL_INSTALLER";
 
     private readonly ILogService _logService;
-    private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
     private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
@@ -30,19 +25,17 @@ public class VersionService : IVersionService
     private readonly string _userAgent = "Winhance-Update-Checker";
     private string? _downloadedInstallerPath;
 
-    public VersionService(ILogService logService, IProcessExecutor processExecutor, IFileSystemService fileSystemService, HttpClient httpClient)
+    public VersionService(ILogService logService, IFileSystemService fileSystemService, HttpClient httpClient)
     {
         _logService = logService;
-        _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
-        _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _fileSystemService = fileSystemService;
+        _httpClient = httpClient;
     }
 
     public VersionInfo GetCurrentVersion()
     {
         try
         {
-            // Get the assembly version
             Assembly assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
             string? location = assembly.Location;
 
@@ -53,18 +46,16 @@ public class VersionService : IVersionService
             }
 
             // Get the InformationalVersion which can include the -beta tag
-            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(location);
+            var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0";
 
-            // Trim any build metadata (anything after the + symbol)
             int plusIndex = version.IndexOf('+');
             if (plusIndex > 0)
             {
                 version = version.Substring(0, plusIndex);
             }
 
-            // If the version doesn't start with 'v', add it
-            if (!version.StartsWith("v"))
+            if (!version.StartsWith('v'))
             {
                 version = $"v{version}";
             }
@@ -80,7 +71,6 @@ public class VersionService : IVersionService
 
     public async Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
-        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
@@ -104,16 +94,14 @@ public class VersionService : IVersionService
                     ? "Checking for updates..."
                     : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
-                // Get the latest release information from GitHub API
                 using var request = new HttpRequestMessage(HttpMethod.Get, _latestReleaseApiUrl);
                 request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
                 HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                using JsonDocument doc = JsonDocument.Parse(responseBody);
+                using var doc = JsonDocument.Parse(responseBody);
 
-                // Extract the tag name (version) from the response
                 string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
                 string htmlUrl = doc.RootElement.GetProperty("html_url").GetString() ?? string.Empty;
                 DateTime publishedAt = doc.RootElement.TryGetProperty("published_at", out JsonElement publishedElement) &&
@@ -121,9 +109,8 @@ public class VersionService : IVersionService
                                       ? published
                                       : DateTime.MinValue;
 
-                VersionInfo latestVersion = VersionInfo.FromTag(tagName);
+                var latestVersion = VersionInfo.FromTag(tagName);
 
-                // Compare with current version
                 VersionInfo currentVersion = GetCurrentVersion();
                 latestVersion = latestVersion with { IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion) };
 
@@ -165,7 +152,6 @@ public class VersionService : IVersionService
 
     public async Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
     {
-        // Dev-only short-circuit. See LocalInstallerEnvVar docs.
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
@@ -178,7 +164,6 @@ public class VersionService : IVersionService
 
         _logService.Log(LogLevel.Info, "Downloading update...");
 
-        // Create a temporary file to download the installer
         string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
 
         // Download the installer using streaming to avoid loading the entire file into memory
@@ -223,10 +208,6 @@ public class VersionService : IVersionService
         });
     }
 
-    /// <summary>
-    /// Returns the local installer path if WINHANCE_LOCAL_INSTALLER is set and
-    /// points at an existing file, otherwise null. Inert in normal user runs.
-    /// </summary>
     private string? TryGetLocalInstallerOverride()
     {
         string? path = Environment.GetEnvironmentVariable(LocalInstallerEnvVar);
@@ -241,20 +222,10 @@ public class VersionService : IVersionService
         return path;
     }
 
-    /// <summary>
-    /// Builds the Inno Setup installer arguments for an in-app silent update.
-    /// Always pins the install directory to <paramref name="appDir"/> via /DIR=
-    /// (issue #649): without /DIR, Inno's UsePreviousAppDir/DefaultDirName chain
-    /// can resolve {app} to C:\Program Files\Winhance for regular installs at a
-    /// custom path, or to ~\Desktop\Winhance for portable installs, silently
-    /// relocating the install. The installer script (Winhance.Installer.iss)
-    /// cooperates by skipping its custom-dir-page sync when /DIR= is passed in
-    /// silent mode.
-    /// </summary>
-    /// <remarks>
-    /// Internal for testability via the test project's InternalsVisibleTo grant.
-    /// Pure function — no side effects.
-    /// </remarks>
+    // Always pins the install directory via /DIR= (issue #649): without it Inno's UsePreviousAppDir/DefaultDirName
+    // chain can resolve {app} to C:\Program Files\Winhance for a custom-path install, or ~\Desktop\Winhance for a
+    // portable one, silently relocating the install. Winhance.Installer.iss skips its custom-dir-page sync when
+    // /DIR= is passed silently.
     internal static string BuildInstallerArgs(string appDir, bool isPortable)
     {
         string dirArg = $"/DIR=\"{appDir.TrimEnd('\\', '/')}\"";
@@ -265,7 +236,6 @@ public class VersionService : IVersionService
 
     private VersionInfo CreateDefaultVersion()
     {
-        // Create a default version based on the current date
         DateTime now = DateTime.Now;
         string versionTag = $"v{now.Year - 2000:D2}.{now.Month:D2}.{now.Day:D2}";
 

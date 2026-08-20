@@ -10,24 +10,14 @@ using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Manages the startup loading overlay and initial navigation sequence.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class StartupUiCoordinator
 {
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly ILogService? _logService;
 
-    /// <summary>
-    /// Whether this is the first launch of the application.
-    /// </summary>
     public bool IsFirstLaunch { get; private set; }
 
     public StartupUiCoordinator(DispatcherQueue dispatcherQueue, ILogService? logService)
@@ -36,9 +26,6 @@ internal sealed class StartupUiCoordinator
         _logService = logService;
     }
 
-    /// <summary>
-    /// Sets all overlay text from localization keys and updates the loading logo.
-    /// </summary>
     public void InitializeLoadingOverlay(
         TextBlock loadingTitleText,
         TextBlock loadingTaglineText,
@@ -64,9 +51,6 @@ internal sealed class StartupUiCoordinator
         }
     }
 
-    /// <summary>
-    /// Sets the loading overlay logo based on the current theme.
-    /// </summary>
     public void UpdateLoadingLogo(Image loadingLogo, Grid rootGrid)
     {
         try
@@ -88,9 +72,6 @@ internal sealed class StartupUiCoordinator
         }
     }
 
-    /// <summary>
-    /// Delegates startup to the orchestrator, then dispatches completion on the UI thread.
-    /// </summary>
     public async Task RunStartupAndCompleteAsync(
         TextBlock loadingStatusText,
         Frame contentFrame,
@@ -164,9 +145,6 @@ internal sealed class StartupUiCoordinator
         });
     }
 
-    /// <summary>
-    /// Navigates to SoftwareApps, waits for initialization, then hides the loading overlay.
-    /// </summary>
     private async Task CompleteStartupAsync(
         Frame contentFrame,
         NavSidebar navSidebar,
@@ -205,12 +183,10 @@ internal sealed class StartupUiCoordinator
             _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
         }
 
-        // Hide overlay and mark startup complete
         markStartupComplete();
         loadingOverlay.Visibility = Visibility.Collapsed;
         StartupLogger.Log("StartupUiCoordinator", "Startup complete, overlay hidden");
 
-        // Show first-launch restore point offer if this is the first launch
         try
         {
             if (IsFirstLaunch)
@@ -227,7 +203,6 @@ internal sealed class StartupUiCoordinator
         // Pre-warm the sponsors cache so the exit dialog opens instantly even offline.
         App.Services.GetService<ISponsorsService>()?.GetSponsorsAsync().FireAndForget(_logService!);
 
-        // Check for updates silently (only shows InfoBar if update available)
         var viewModel = getViewModel();
         if (viewModel != null)
         {

@@ -1,25 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using Microsoft.Win32;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
-using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class WindowsAppsService(
+internal class WindowsAppsService(
     ILogService logService,
     IWinGetPackageInstaller winGetPackageInstaller,
     IWinGetBootstrapper winGetBootstrapper,
@@ -67,9 +56,8 @@ public class WindowsAppsService(
     {
         try
         {
-            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()) || item.AppxPackageName?.Length > 0)
+            if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0) || item.AppxPackageName?.Length > 0)
             {
-                // Determine package ID and source
                 string? packageId = null;
                 string? source = null;
 
@@ -78,7 +66,7 @@ public class WindowsAppsService(
                     packageId = item.MsStoreId;
                     source = "msstore";
                 }
-                else if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+                else if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
                 {
                     packageId = item.WinGetPackageId.FirstOrDefault();
                     source = "winget";
@@ -88,7 +76,6 @@ public class WindowsAppsService(
                     packageId = item.AppxPackageName?.FirstOrDefault();
                 }
 
-                // Try WinGet first (official method)
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = taskProgressService.GetCurrentCancellationToken();
                 var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -98,7 +85,6 @@ public class WindowsAppsService(
                     return OperationResult<bool>.Succeeded(true);
                 }
 
-                // If WinGet failed, check if Windows Update policy is blocking installations
                 if (await IsUpdatePolicyDisabledAsync().ConfigureAwait(false))
                 {
                     logService?.LogWarning($"Windows Update DLLs appear to be renamed (Disabled mode). Offering to fix for {item.Name}...");
@@ -150,19 +136,15 @@ public class WindowsAppsService(
                     }
                 }
 
-                // If WinGet failed and we have a WinGetPackageId, try fallback to direct download
-                // This bypasses market restrictions
-                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
+                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
                 {
                     logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
 
-                    // Check if user has opted to not show the confirmation dialog
                     bool skipConfirmation = false;
                     skipConfirmation = await userPreferencesService.GetPreferenceAsync(FallbackConfirmationPreferenceKey, false).ConfigureAwait(false);
 
                     bool userConsent = skipConfirmation;
 
-                    // Show confirmation dialog if needed
                     if (!skipConfirmation)
                     {
                         var title = localizationService.GetStringOrDefault("Dialog_FallbackDownload", "Alternative Download Method");
@@ -189,7 +171,6 @@ public class WindowsAppsService(
 
                         userConsent = confirmed;
 
-                        // Save preference if user checked "don't show again"
                         if (dontShowAgain)
                         {
                             await userPreferencesService.SetPreferenceAsync(FallbackConfirmationPreferenceKey, true).ConfigureAwait(false);
@@ -253,7 +234,6 @@ public class WindowsAppsService(
     {
         try
         {
-            // Resolve UpdatesPolicyMode from the catalog (not aliased), binding the Setting-list GetStatesAsync.
             var policySetting = SettingCatalog.Find(SettingIds.UpdatesPolicyMode);
             if (policySetting == null)
                 return false;

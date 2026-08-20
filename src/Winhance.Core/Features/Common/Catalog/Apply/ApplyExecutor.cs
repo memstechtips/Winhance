@@ -1,17 +1,12 @@
-using System;
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Catalog;
 
-/// <summary>Runs an apply plan against an <see cref="IStateWriter"/> best-effort: every op is attempted,
-/// per-op failures are caught and collected, and an <see cref="ApplyResult"/> summarises the outcome.</summary>
 public static class ApplyExecutor
 {
-    public static ApplyResult Execute(IReadOnlyList<ApplyOp> plan, IStateWriter writer)
+    public static ApplyResult Execute(ApplyPlan plan, IStateWriter writer)
     {
         var failures = new List<string>();
 
-        foreach (var op in plan)
+        foreach (var op in plan.SyncOps)
         {
             try
             {
@@ -43,6 +38,6 @@ public static class ApplyExecutor
             }
         }
 
-        return new ApplyResult(plan.Count, failures.Count, failures);
+        return new ApplyResult(plan.SyncOps.Count, failures.Count, failures);
     }
 }

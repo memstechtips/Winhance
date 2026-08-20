@@ -1,4 +1,3 @@
-using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
@@ -8,17 +7,12 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Manages app-local UI zoom for the main content area. Emulates a LayoutTransform
-/// (absent in WinUI 3) by inverse-sizing the zoom host (Width = viewport / factor)
-/// and applying a ScaleTransform(factor), which produces DPI-like reflow without
-/// nested scrollbars. Persists the factor via IUserPreferencesService, mirroring
-/// WindowSizeManager.
-/// </summary>
+// Emulates a LayoutTransform (absent in WinUI 3) by inverse-sizing the zoom host (Width = viewport / factor) and
+// applying a ScaleTransform(factor) - DPI-like reflow without nested scrollbars.
 public class UiZoomManager
 {
-    private readonly FrameworkElement _viewport; // measures available space (row-4 cell)
-    private readonly FrameworkElement _zoomHost; // inverse-sized + scaled content host
+    private readonly FrameworkElement _viewport;
+    private readonly FrameworkElement _zoomHost;
     private readonly ScaleTransform _scale;
     private readonly IUserPreferencesService _preferences;
     private readonly ILogService _logService;
@@ -31,10 +25,10 @@ public class UiZoomManager
         IUserPreferencesService preferences,
         ILogService logService)
     {
-        _viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
-        _zoomHost = zoomHost ?? throw new ArgumentNullException(nameof(zoomHost));
-        _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _viewport = viewport;
+        _zoomHost = zoomHost;
+        _preferences = preferences;
+        _logService = logService;
 
         _scale = new ScaleTransform();
         _zoomHost.RenderTransform = _scale;
@@ -47,7 +41,6 @@ public class UiZoomManager
 
     public double Factor => _factor;
 
-    /// <summary>Reads the persisted factor (sync, startup-safe) and applies it.</summary>
     public void Initialize()
     {
         try
@@ -80,7 +73,6 @@ public class UiZoomManager
         Persist();
     }
 
-    /// <summary>Inverse-sizes the host to the current viewport and applies the scale.</summary>
     public void Apply()
     {
         var w = _viewport.ActualWidth;

@@ -20,13 +20,6 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNull()
-    {
-        var action = () => new EventBus(null!);
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void Publish_NullEvent_ThrowsArgumentNull()
     {
         var action = () => _eventBus.Publish<SettingAppliedEvent>(null!);
@@ -146,7 +139,7 @@ public class EventBusTests
     {
         var token = _eventBus.Subscribe<SettingAppliedEvent>(_ => { });
 
-        token.EventType.Should().Be(typeof(SettingAppliedEvent));
+        token.EventType.Should().Be<SettingAppliedEvent>();
         token.SubscriptionId.Should().NotBeEmpty();
     }
 
@@ -169,7 +162,7 @@ public class EventBusTests
     [Fact]
     public void SubscribeAsync_PublishInvokesAsyncHandler()
     {
-        // Signalled, not slept on. This waited 100ms and read a plain bool, which failed
+        // Signalled, not slept on. A fixed delay plus a plain bool fails
         // intermittently under the full suite while always passing in isolation: the handler
         // finishes on a thread-pool continuation that a loaded pool does not reliably schedule
         // inside a fixed delay, and a Thread.Sleep is not a memory barrier either. The wait below
@@ -193,7 +186,7 @@ public class EventBusTests
     {
         var token = _eventBus.SubscribeAsync<ReviewModeExitedEvent>(async _ => await Task.CompletedTask);
 
-        token.EventType.Should().Be(typeof(ReviewModeExitedEvent));
+        token.EventType.Should().Be<ReviewModeExitedEvent>();
     }
 
     [Fact]

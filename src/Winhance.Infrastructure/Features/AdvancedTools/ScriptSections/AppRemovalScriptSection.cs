@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -10,9 +6,6 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.ScriptSections;
 
-/// <summary>
-/// Handles scripts directory setup, app removal script embedding, and the Winhance installer script.
-/// </summary>
 internal class AppRemovalScriptSection
 {
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
@@ -29,7 +22,6 @@ internal class AppRemovalScriptSection
 
     public async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<ConfigurationItem> selectedApps, string indent = "")
     {
-        // Categorize apps by type
         var regularApps = new List<string>();
         var capabilities = new List<string>();
         var optionalFeatures = new List<string>();
@@ -39,7 +31,6 @@ internal class AppRemovalScriptSection
 
         foreach (var app in selectedApps)
         {
-            // Check for special apps that need dedicated scripts
             if (app.Id == "windows-app-edge")
             {
                 edgeRemovalNeeded = true;
@@ -52,7 +43,6 @@ internal class AppRemovalScriptSection
                 continue;
             }
 
-            // Categorize apps by their specific property
             if (!string.IsNullOrEmpty(app.CapabilityName))
             {
                 capabilities.Add(app.CapabilityName);
@@ -78,31 +68,27 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}# ============================================================================");
         sb.AppendLine();
 
-        // Embed BloatRemoval.ps1 if there are regular apps to remove
-        if (regularApps.Any() || capabilities.Any() || optionalFeatures.Any() || specialApps.Any())
+        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
             AppendEmbeddedScript(sb, "BloatRemoval", "bloatRemoval",
                 GenerateBloatRemovalScriptContent(regularApps, capabilities, optionalFeatures, specialApps), indent);
         }
 
-        // Embed EdgeRemoval.ps1 if needed
         if (edgeRemovalNeeded)
         {
             AppendEmbeddedScript(sb, "EdgeRemoval", "edgeRemoval", EdgeRemovalScript.GetScript(), indent);
         }
 
-        // Embed OneDriveRemoval.ps1 if needed
         if (oneDriveRemovalNeeded)
         {
             AppendEmbeddedScript(sb, "OneDriveRemoval", "oneDriveRemoval", OneDriveRemovalScript.GetScript(), indent);
         }
 
-        // Execute the scripts and register scheduled tasks
         sb.AppendLine();
         sb.AppendLine($"{indent}# Execute removal scripts and register scheduled tasks");
         sb.AppendLine($"{indent}$scriptsToExecute = @()");
 
-        if (regularApps.Any() || capabilities.Any() || optionalFeatures.Any() || specialApps.Any())
+        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
             sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\BloatRemoval.ps1\"; Name = \"BloatRemoval\"; TriggerType = \"Logon\"}}");
         }
@@ -153,9 +139,6 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}Write-Log \"Windows Apps removal configuration completed\" \"SUCCESS\"");
     }
 
-    /// <summary>
-    /// Unified helper that replaces the three structurally identical AppendXxxScriptContent methods.
-    /// </summary>
     private void AppendEmbeddedScript(StringBuilder sb, string scriptName, string varPrefix, string scriptContent, string indent)
     {
         sb.AppendLine($"{indent}# Create {scriptName}.ps1 script");

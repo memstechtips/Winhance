@@ -10,23 +10,16 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-/// <summary>
-/// Encapsulates the terminal rendering, sizing, live update subscription, and clipboard logic
-/// for the task output dialog. Extracted from <see cref="Services.DialogService.ShowTaskOutputDialogAsync"/>
-/// to keep DialogService focused on dialog lifecycle management.
-/// </summary>
 internal class TaskOutputDialogBuilder
 {
     private readonly ILocalizationService _localization;
     private readonly ITaskProgressService _taskProgressService;
 
-    // Live update state
     private bool _isSubscribed;
     private bool _lastLineWasProgress;
     private int _lastLineRunCount = 1;
     private EventHandler<TaskProgressDetail>? _liveHandler;
 
-    // UI elements needed for live updates
     private Paragraph _paragraph = null!;
     private ScrollViewer _scrollViewer = null!;
     private List<string> _allLines = null!;
@@ -37,20 +30,11 @@ internal class TaskOutputDialogBuilder
         _taskProgressService = taskProgressService;
     }
 
-    /// <summary>
-    /// Builds the ContentDialog with terminal rendering UI. The caller is responsible for
-    /// calling ConfigureDialog, StartLiveUpdates (if needed), ShowAsync, and StopLiveUpdates.
-    /// </summary>
-    /// <param name="xamlRoot">The XamlRoot for sizing calculations.</param>
-    /// <param name="title">The dialog title.</param>
-    /// <param name="logMessages">Initial log messages to display.</param>
+    // The caller owns ConfigureDialog, StartLiveUpdates (if the task is running), ShowAsync and StopLiveUpdates.
     public ContentDialog Build(XamlRoot xamlRoot, string title, IReadOnlyList<string> logMessages)
     {
-        // Mutable list of all lines -- snapshot + live additions.
-        // Used by Copy to Clipboard at click time.
         _allLines = new List<string>(logMessages);
 
-        // Build a single RichTextBlock with one Paragraph containing Runs.
         // Unlike individual TextBlocks, RichTextBlock renders block characters
         // with consistent line height -- no overlapping artifacts.
         _paragraph = new Paragraph();
@@ -81,7 +65,6 @@ internal class TaskOutputDialogBuilder
             Padding = new Thickness(14, 10, 14, 10)
         };
 
-        // Auto-scroll to bottom on initial load
         _scrollViewer.Loaded += (_, _) =>
             _scrollViewer.ChangeView(null, _scrollViewer.ScrollableHeight, null, true);
 
@@ -134,10 +117,7 @@ internal class TaskOutputDialogBuilder
         return dialog;
     }
 
-    /// <summary>
-    /// Subscribes to live progress events and appends/replaces terminal lines in real-time.
-    /// Should be called after ConfigureDialog and before ShowAsync if the task is running.
-    /// </summary>
+    // Call after ConfigureDialog and before ShowAsync when the task is running.
     public void StartLiveUpdates(DispatcherQueue dispatcherQueue)
     {
         if (!_taskProgressService.IsTaskRunning)
@@ -210,9 +190,7 @@ internal class TaskOutputDialogBuilder
         _taskProgressService.ProgressUpdated += _liveHandler;
     }
 
-    /// <summary>
-    /// Unsubscribes from live progress events. Should be called in a finally block after ShowAsync.
-    /// </summary>
+    // Call in a finally block after ShowAsync.
     public void StopLiveUpdates()
     {
         if (_isSubscribed && _liveHandler != null)

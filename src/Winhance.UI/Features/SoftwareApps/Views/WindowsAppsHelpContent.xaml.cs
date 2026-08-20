@@ -1,8 +1,6 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -40,19 +38,16 @@ public sealed partial class WindowsAppsHelpContent : UserControl
         var pathIcon = FindDescendant<PathIcon>(button);
         if (pathIcon == null) return;
 
-        // Resolve the icon geometry from FeatureIcons resources
         if (Application.Current.Resources.TryGetValue(item.IconPath, out var pathData) && pathData is string pathString)
         {
             pathIcon.Data = GeometryHelper.FromPathData(pathString);
         }
 
-        // Apply initial color
         UpdateIconColor(pathIcon, item);
 
         bool wasLoading = item.IsLoading;
         item.PropertyChanged += (s, args) =>
         {
-            // Update icon color when IsActive flips.
             if (args.PropertyName == nameof(RemovalStatusViewModel.IsActive))
             {
                 DispatcherQueue.TryEnqueue(() => UpdateIconColor(pathIcon, item));

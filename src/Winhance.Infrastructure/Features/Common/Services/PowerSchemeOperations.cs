@@ -1,14 +1,10 @@
-using System;
 using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Wraps PowrProf.dll plan-level P/Invoke calls behind an injectable interface.
-/// </summary>
-public class PowerSchemeOperations : IPowerSchemeOperations
+internal class PowerSchemeOperations : IPowerSchemeOperations
 {
     public uint DeleteScheme(Guid schemeGuid)
     {

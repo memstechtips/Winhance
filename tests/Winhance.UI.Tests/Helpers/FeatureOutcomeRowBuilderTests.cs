@@ -3,7 +3,6 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
@@ -14,10 +13,6 @@ using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Helpers;
 
-/// <summary>
-/// The banner's row rules: which outcomes appear, in what order, and how many names before "+N more".
-/// These ran only through the UserControl before, so they needed a XAML application to reach.
-/// </summary>
 public class FeatureOutcomeRowBuilderTests
 {
     private readonly Mock<ISettingApplicationService> _settingAppService = new();
@@ -25,7 +20,6 @@ public class FeatureOutcomeRowBuilderTests
     private readonly Mock<IDispatcherService> _dispatcherService = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
-    private readonly Mock<IEventBus> _eventBus = new();
 
     public FeatureOutcomeRowBuilderTests()
     {
@@ -164,8 +158,6 @@ public class FeatureOutcomeRowBuilderTests
         row.Label.Should().Be(setting.OverlayStateTextFor(SettingDetectionOutcome.Malformed));
     }
 
-    // ── helpers ──
-
     private ISettingsFeatureViewModel Feature(params SettingItemViewModel[] settings)
     {
         var mock = new Mock<ISettingsFeatureViewModel>();
@@ -193,7 +185,6 @@ public class FeatureOutcomeRowBuilderTests
             _logService.Object,
             _dispatcherService.Object,
             _dialogService.Object,
-            _localizationService.Object,
-            _eventBus.Object);
+            _localizationService.Object);
     }
 }

@@ -10,10 +10,6 @@
     in ONE place. Every dropdown in the app is an instance of this - registry selections and the AC and DC
     halves of a powercfg selection alike - so "a combo box" is one thing, and a change to how a dropdown
     reports its state is a change to one file.
-
-    This replaces four separately hand-written ComboBox declarations across four DataTemplates. The
-    outcome overlay had been added to one of them and forgotten on the other three, which is exactly the
-    failure this structure removes.
     -->
     <UserControl.Resources>
         <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>

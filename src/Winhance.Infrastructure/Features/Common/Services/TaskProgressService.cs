@@ -1,17 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Service that manages task progress reporting across the application.
-/// </summary>
-public class TaskProgressService : ITaskProgressService, IMultiScriptProgressService
+internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressService
 {
     private const int MaxTerminalOutputLines = 10_000;
 
@@ -24,64 +17,35 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
     private bool _lastTerminalLineWasProgress;
     private CancellationTokenSource? _cancellationSource;
 
-    // Queue sticky state
     private int _queueTotal;
     private int _queueCurrent;
     private string? _queueNextItemName;
 
-    // Multi-script slot state
     private int _activeScriptSlotCount;
     private string[]? _scriptSlotNames;
 
-    // Skip-next flag
     private volatile bool _skipNextRequested;
 
-    /// <summary>
-    /// Gets whether a task is currently running.
-    /// </summary>
     public bool IsTaskRunning => _isTaskRunning;
 
-    /// <summary>
-    /// Gets the current status text.
-    /// </summary>
     public string CurrentStatusText => _currentStatusText;
 
-    /// <summary>
-    /// Gets whether the current task is in indeterminate mode.
-    /// </summary>
     public bool IsIndeterminate => _isIndeterminate;
 
-    /// <summary>
-    /// Gets the cancellation token source for the current task.
-    /// </summary>
     public CancellationTokenSource? CurrentTaskCancellationSource => _cancellationSource;
 
-    /// <summary>
-    /// Event raised when progress changes.
-    /// </summary>
     public event EventHandler<TaskProgressDetail>? ProgressUpdated;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TaskProgressService"/> class.
-    /// </summary>
-    /// <param name="logService">The log service.</param>
     public TaskProgressService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
         _currentStatusText = string.Empty;
         _isTaskRunning = false;
         _isIndeterminate = false;
     }
 
-    /// <summary>
-    /// Starts a new task with the specified name.
-    /// </summary>
-    /// <param name="taskName">The name of the task.</param>
-    /// <param name="isIndeterminate">Whether the task progress is indeterminate.</param>
-    /// <returns>A cancellation token source for the task.</returns>
     public CancellationTokenSource StartTask(string taskName, bool isIndeterminate = false)
     {
-        // Cancel any existing task
         CancelCurrentTask();
 
         if (string.IsNullOrEmpty(taskName))
@@ -101,7 +65,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}"); // Corrected Log call
+        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}");
         AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
         OnProgressChanged(
             new TaskProgressDetail
@@ -115,11 +79,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         return _cancellationSource;
     }
 
-    /// <summary>
-    /// Updates the progress of the current task.
-    /// </summary>
-    /// <param name="progressPercentage">The progress percentage (0-100).</param>
-    /// <param name="statusText">The status text.</param>
     public void UpdateProgress(int progressPercentage, string? statusText = null)
     {
         if (!_isTaskRunning)
@@ -141,12 +100,12 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             _logService.Log(
                 LogLevel.Info,
                 $"Task progress ({progressPercentage}%): {statusText}"
-            ); // Corrected Log call
+            );
             AddLogMessage($"Task progress ({progressPercentage}%): {statusText}");
         }
         else
         {
-            _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%"); // Corrected Log call
+            _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%");
             AddLogMessage($"Task progress: {progressPercentage}%");
         }
         OnProgressChanged(
@@ -158,10 +117,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         );
     }
 
-    /// <summary>
-    /// Updates the progress with detailed information.
-    /// </summary>
-    /// <param name="detail">The detailed progress information.</param>
     public void UpdateDetailedProgress(TaskProgressDetail detail)
     {
         if (!_isTaskRunning)
@@ -174,7 +129,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             if (detail.Progress.Value < 0 || detail.Progress.Value > 100)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(detail.Progress),
+                    nameof(detail),
                     "Progress must be between 0 and 100."
                 );
             }
@@ -187,10 +142,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         _isIndeterminate = detail.IsIndeterminate;
 
-        // Accumulate terminal output lines for the details dialog,
-        // filtering out noise (blank lines).
-        // Always remove the last progress line
-        // before adding ANY new line. This handles:
+        // Always remove the last progress line before adding ANY new line. This handles:
         //   progress → progress: replacement (progress bar filling)
         //   progress → permanent: cleanup (stale progress/spinner removed)
         //   permanent → permanent: normal append
@@ -225,15 +177,12 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         if (!string.IsNullOrEmpty(detail.DetailedMessage))
         {
-            _logService.Log(detail.LogLevel, detail.DetailedMessage); // Corrected Log call
+            _logService.Log(detail.LogLevel, detail.DetailedMessage);
             AddLogMessage(detail.DetailedMessage);
         }
         OnProgressChanged(detail);
     }
 
-    /// <summary>
-    /// Completes the current task.
-    /// </summary>
     public void CompleteTask()
     {
         if (!_isTaskRunning)
@@ -248,7 +197,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}"); // Corrected Log call
+        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}");
         AddLogMessage($"Task completed: {_currentStatusText}");
 
         OnProgressChanged(
@@ -260,15 +209,10 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             }
         );
 
-        // Dispose cancellation token source
         _cancellationSource?.Dispose();
         _cancellationSource = null;
     }
 
-    /// <summary>
-    /// Adds a log message.
-    /// </summary>
-    /// <param name="message">The message content.</param>
     private void AddLogMessage(string message)
     {
         if (string.IsNullOrEmpty(message))
@@ -277,15 +221,8 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _logMessages.Add(message);
     }
 
-    /// <summary>
-    /// Gets a snapshot of all terminal output lines accumulated during the current (or last) task.
-    /// These are the raw output lines from winget/process stdout.
-    /// </summary>
     public IReadOnlyList<string> GetTerminalOutputLines() => _terminalOutputLines.AsReadOnly();
 
-    /// <summary>
-    /// Cancels the current task.
-    /// </summary>
     public void CancelCurrentTask()
     {
         if (_cancellationSource != null && !_cancellationSource.IsCancellationRequested)
@@ -295,27 +232,16 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         }
     }
 
-    /// <summary>
-    /// Creates a progress reporter for detailed progress.
-    /// </summary>
-    /// <returns>The progress reporter.</returns>
     public IProgress<TaskProgressDetail> CreateDetailedProgress()
     {
         return new Progress<TaskProgressDetail>(UpdateDetailedProgress);
     }
 
-    /// <summary>
-    /// Creates a progress reporter for PowerShell progress.
-    /// </summary>
-    /// <returns>The progress reporter.</returns>
     public IProgress<TaskProgressDetail> CreatePowerShellProgress()
     {
         return new Progress<TaskProgressDetail>(UpdateDetailedProgress);
     }
 
-    /// <summary>
-    /// Starts a multi-script task with the specified script names.
-    /// </summary>
     public CancellationTokenSource StartMultiScriptTask(string[] scriptNames)
     {
         CancelCurrentTask();
@@ -338,7 +264,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
 
         _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Multi-script task started with {scriptNames.Length} slots");
 
-        // Fire initial progress for each slot
         for (int i = 0; i < scriptNames.Length; i++)
         {
             ProgressUpdated?.Invoke(this, new TaskProgressDetail
@@ -354,10 +279,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         return _cancellationSource;
     }
 
-    /// <summary>
-    /// Creates a progress reporter for a specific script slot.
-    /// Must be called on the UI thread so Progress&lt;T&gt; captures the SynchronizationContext.
-    /// </summary>
     public IProgress<TaskProgressDetail> CreateScriptProgress(int slotIndex)
     {
         var slotCount = _activeScriptSlotCount;
@@ -368,11 +289,9 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             detail.ScriptSlotIndex = slotIndex;
             detail.ScriptSlotCount = slotCount;
 
-            // Prefix terminal output with script name when multiple scripts run in parallel
             if (slotName != null && slotCount > 1 && !string.IsNullOrEmpty(detail.TerminalOutput))
                 detail.TerminalOutput = $"[{slotName}] {detail.TerminalOutput}";
 
-            // Accumulate terminal output for the details dialog
             if (!string.IsNullOrEmpty(detail.TerminalOutput)
                 && !IsTerminalNoise(detail.TerminalOutput))
             {
@@ -397,9 +316,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         });
     }
 
-    /// <summary>
-    /// Completes the multi-script task and resets slot state.
-    /// </summary>
     public void CompleteMultiScriptTask()
     {
         _isTaskRunning = false;
@@ -426,10 +342,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _cancellationSource = null;
     }
 
-    /// <summary>
-    /// Checks and clears the skip-next flag (atomic check-and-clear).
-    /// </summary>
-    /// <returns>True if a skip was requested since the last call.</returns>
     public bool ConsumeSkipNextRequest()
     {
         if (!_skipNextRequested) return false;
@@ -437,20 +349,15 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         return true;
     }
 
-    /// <summary>
-    /// Raises the ProgressUpdated event, applying sticky queue state.
-    /// Multi-script updates (ScriptSlotCount &gt; 0) bypass sticky queue logic.
-    /// </summary>
+    // Multi-script updates (ScriptSlotCount > 0) bypass the sticky-queue logic.
     protected virtual void OnProgressChanged(TaskProgressDetail detail)
     {
-        // Multi-script updates bypass sticky queue logic entirely
         if (detail.ScriptSlotCount > 0)
         {
             ProgressUpdated?.Invoke(this, detail);
             return;
         }
 
-        // Update sticky queue state if incoming detail has queue info
         if (detail.QueueTotal > 0)
         {
             _queueTotal = detail.QueueTotal;
@@ -458,7 +365,6 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
             _queueNextItemName = detail.QueueNextItemName;
         }
 
-        // Always populate queue info from sticky state if we're in a queue
         if (_queueTotal > 1)
         {
             detail.QueueTotal = _queueTotal;
@@ -469,23 +375,14 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         ProgressUpdated?.Invoke(this, detail);
     }
 
-    /// <summary>
-    /// Returns true if the line is noise that doesn't add value
-    /// (e.g. blank/whitespace-only lines).
-    /// Spinner characters (-, \, |, /) are NOT filtered — they are
-    /// delivered as IsProgressIndicator=true and animate in-place via
-    /// the removal pattern in the live terminal dialog.
-    /// </summary>
+    // Spinner characters (-, \, |, /) are NOT filtered - they are delivered as IsProgressIndicator=true and animate
+    // in place in the live terminal dialog.
     private static bool IsTerminalNoise(string line)
     {
         var trimmed = line.Trim();
         return string.IsNullOrEmpty(trimmed);
     }
 
-    /// <summary>
-    /// Adds a terminal output line, enforcing a maximum capacity to prevent unbounded growth.
-    /// When the limit is reached, the oldest 10% of lines are discarded to make room.
-    /// </summary>
     private void AddTerminalOutputLine(string line)
     {
         if (_terminalOutputLines.Count >= MaxTerminalOutputLines)
@@ -496,11 +393,7 @@ public class TaskProgressService : ITaskProgressService, IMultiScriptProgressSer
         _terminalOutputLines.Add(line);
     }
 
-    /// <summary>
-    /// Detects whether a line looks like a progress bar (contains Unicode block elements).
-    /// Used to catch the duplicate first progress bar line that winget sometimes emits
-    /// with \n before switching to \r.
-    /// </summary>
+    // Catches the duplicate first progress-bar line winget sometimes emits with \n before switching to \r.
     private static bool LooksLikeProgressBar(string line)
     {
         foreach (char c in line)

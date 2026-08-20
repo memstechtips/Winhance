@@ -6,8 +6,6 @@
 
     <!--
     The green "Set to Recommended" / grey "Set to Windows Default" pair that precedes every input control.
-    This pair was copy-pasted NINE times across the card templates - once per control type, twice more for
-    each AC/DC split - differing only in which command it invoked. One control, nine usages.
 
     The icons carry their own Foreground so the default ButtonForegroundPointerOver override cannot wipe
     out the green/grey on hover; only the background hover tint renders.

@@ -1,18 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>Deletion precondition gate: for EVERY catalog setting, exercise the reachable apply-request shapes its
-/// producers (per-card VM handlers, bulk apply/reset, config-import bridge, relationship cascade) can dispatch, and
-/// assert ApplyRequestResolver.Resolve returns a NON-null plan for each. Green => every reachable input is handled by
-/// the new engine, so the old SettingOperationExecutor fallback is dead and safe to delete. Special-handled settings
-/// (intercepted before ApplyOperationsAsync) are excluded - they never reach Resolve. Run: --filter ResolveTotalityAudit</summary>
+// For EVERY catalog setting, every reachable apply-request shape must resolve to a NON-null plan;
+// special-handled settings are excluded (they never reach Resolve). Run: --filter ResolveTotalityAudit
 public class ResolveTotalityAuditTests
 {
     private readonly ITestOutputHelper _output;

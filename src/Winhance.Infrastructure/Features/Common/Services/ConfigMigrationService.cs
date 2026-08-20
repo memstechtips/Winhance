@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -7,11 +5,7 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Migrates legacy configuration items to their current format.
-/// Each migration is registered by setting ID and transforms a ConfigurationItem in-place.
-/// </summary>
-public class ConfigMigrationService : IConfigMigrationService
+internal class ConfigMigrationService : IConfigMigrationService
 {
     private readonly ILogService _logService;
 
@@ -31,14 +25,10 @@ public class ConfigMigrationService : IConfigMigrationService
         };
     }
 
-    /// <summary>
-    /// Applies all registered migrations to items in the given configuration file.
-    /// </summary>
     public void MigrateConfig(UnifiedConfigurationFile config)
     {
         if (config == null) return;
 
-        // Walk Customize features
         if (config.Customize?.Features != null)
         {
             foreach (var kvp in config.Customize.Features)
@@ -47,7 +37,6 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk Optimize features
         if (config.Optimize?.Features != null)
         {
             foreach (var kvp in config.Optimize.Features)
@@ -56,10 +45,8 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk WindowsApps
         MigrateSection(config.WindowsApps, "WindowsApps");
 
-        // Walk ExternalApps
         MigrateSection(config.ExternalApps, "ExternalApps");
     }
 
@@ -92,11 +79,7 @@ public class ConfigMigrationService : IConfigMigrationService
         }
     }
 
-    /// <summary>
-    /// Migrates a Toggle-based setting to Selection format.
-    /// Old format: InputType=Toggle, IsSelected=true (action applied) or false (default).
-    /// New format: InputType=Selection, SelectedIndex=0 (default/first option), 1 (action applied/second option).
-    /// </summary>
+    // Old: Toggle IsSelected true (applied) / false (default). New: Selection index 0 (default), 1 (applied).
     private void MigrateToggleToSelection(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -104,11 +87,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // The "action" option (e.g., "Remove")
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // The "default" option (e.g., "Keep"/"Show")
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -119,14 +102,10 @@ public class ConfigMigrationService : IConfigMigrationService
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
     }
 
-    /// <summary>
-    /// Migrates the old Toggle-based "updates-notification-level" to the three-option Selection.
-    /// Both toggle positions map to index 0 ("Show all update notifications"), on purpose:
-    /// IsSelected=false is what an untouched setting exported as, and IsSelected=true meant "I want update
-    /// notifications", which IS index 0. Nobody had working suppression to preserve either way - the old
-    /// state wrote SetUpdateNotificationLevel=2, which the ADMX gives no meaning, so it suppressed nothing.
-    /// Applying index 0 also clears that stale value off the machine.
-    /// </summary>
+    // Both toggle positions map to index 0 ("Show all update notifications"), on purpose: IsSelected=false is
+    // what an untouched setting exported as, and IsSelected=true meant "I want update notifications", which IS
+    // index 0. Nobody had working suppression to preserve - the old state wrote SetUpdateNotificationLevel=2, which
+    // the ADMX gives no meaning; applying index 0 also clears that stale value.
     private void MigrateUpdateNotificationLevel(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -141,13 +120,9 @@ public class ConfigMigrationService : IConfigMigrationService
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex=0)");
     }
 
-    /// <summary>
-    /// Migrates the old Toggle-based "gaming-background-apps" setting to the new Selection-based format.
-    /// Old format: InputType=Toggle, IsSelected=false (intended to block background apps) or true (allow).
-    /// New format: InputType=Selection, SelectedIndex=0 (User in Control), 1 (Force Allow), 2 (Force Deny).
-    /// Note: The old toggle had a bug where DisabledValue was 0 (User in Control) instead of 2 (Force Deny).
-    /// We map IsSelected=false to Force Deny (index 2) since that was the user's intent.
-    /// </summary>
+    // Old: Toggle IsSelected false (block background apps) / true (allow). New: index 0 User in Control, 1 Force
+    // Allow, 2 Force Deny. The old toggle's DisabledValue was 0 (User in Control) by mistake; IsSelected=false maps
+    // to Force Deny (2), which was the user's intent.
     private void MigrateBackgroundApps(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -155,11 +130,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == false)
         {
-            item.SelectedIndex = 2; // Force Deny — what the user intended
+            item.SelectedIndex = 2;
         }
         else
         {
-            item.SelectedIndex = 0; // User in Control (default)
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -170,11 +145,7 @@ public class ConfigMigrationService : IConfigMigrationService
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
     }
 
-    /// <summary>
-    /// Migrates the old Toggle-based "taskbar-transparent" setting to the new Selection-based format.
-    /// Old format: InputType=Toggle, IsSelected=true (transparent) or false (Windows default).
-    /// New format: InputType=Selection, SelectedIndex=0 (Windows default), 1 (Transparent), 2 (Opaque).
-    /// </summary>
+    // Old: Toggle IsSelected true (transparent) / false (default). New: index 0 Windows default, 1 Transparent, 2 Opaque.
     private void MigrateTaskbarTransparent(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -182,11 +153,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // Transparent
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // Windows default
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;

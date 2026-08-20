@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -9,10 +6,6 @@ using Windows.Graphics;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Manages window size and position persistence for WinUI 3.
-/// Saves/restores window bounds and maximized state via user preferences.
-/// </summary>
 public class WindowSizeManager
 {
     private readonly AppWindow _appWindow;
@@ -40,14 +33,11 @@ public class WindowSizeManager
 
     public WindowSizeManager(AppWindow appWindow, IUserPreferencesService userPreferencesService, ILogService logService)
     {
-        _appWindow = appWindow ?? throw new ArgumentNullException(nameof(appWindow));
-        _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _appWindow = appWindow;
+        _userPreferencesService = userPreferencesService;
+        _logService = logService;
     }
 
-    /// <summary>
-    /// Initializes window size and position, restoring from preferences if available.
-    /// </summary>
     public async Task InitializeAsync()
     {
         try
@@ -60,7 +50,6 @@ public class WindowSizeManager
                 CenterOnScreen();
             }
 
-            // Start tracking normal bounds after initial positioning
             RecordNormalBounds();
             SubscribeToWindowChanges();
         }
@@ -74,10 +63,6 @@ public class WindowSizeManager
         }
     }
 
-    /// <summary>
-    /// Saves current window settings to preferences.
-    /// Called by ApplicationCloseService.BeforeShutdown which properly awaits before exiting.
-    /// </summary>
     public async Task SaveWindowSettingsAsync()
     {
         try
@@ -94,7 +79,6 @@ public class WindowSizeManager
             if (state == OverlappedPresenterState.Maximized)
             {
                 prefs[UserPreferenceKeys.WindowMaximized] = true;
-                // Save tracked normal bounds (pre-maximize size/position)
                 prefs[UserPreferenceKeys.WindowWidth] = (double)_normalWidth;
                 prefs[UserPreferenceKeys.WindowHeight] = (double)_normalHeight;
                 prefs[UserPreferenceKeys.WindowLeft] = (double)_normalX;
@@ -287,7 +271,6 @@ public class WindowSizeManager
         if (!_isTrackingBounds)
             return;
 
-        // Only record bounds when the window is in normal (restored) state
         if (args.DidPositionChange || args.DidSizeChange)
         {
             var presenter = sender.Presenter as OverlappedPresenter;

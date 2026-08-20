@@ -62,9 +62,8 @@ public class WimStep4IsoViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // ── Constructor ──
 
     [Fact]
     public void Constructor_InitializesOutputIsoPathToEmpty()
@@ -103,8 +102,6 @@ public class WimStep4IsoViewModelTests : IDisposable
     {
         _sut.WorkingDirectory.Should().BeEmpty();
     }
-
-    // ── DownloadOscdimg command ──
 
     [Fact]
     public async Task DownloadOscdimgCommand_OnSuccess_SetsIsOscdimgAvailable()
@@ -151,8 +148,6 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.DownloadOscdimgCard.IsEnabled.Should().BeTrue();
     }
 
-    // ── SelectIsoOutputLocation command ──
-
     [Fact]
     public void SelectIsoOutputLocationCommand_WhenFileSelected_SetsOutputIsoPath()
     {
@@ -188,8 +183,6 @@ public class WimStep4IsoViewModelTests : IDisposable
 
         _sut.SelectOutputCard.Description.Should().Contain("Winhance_Windows.iso");
     }
-
-    // ── CreateIso command ──
 
     [Fact]
     public async Task CreateIsoCommand_WhenOscdimgNotAvailable_ShowsWarning()
@@ -367,11 +360,8 @@ public class WimStep4IsoViewModelTests : IDisposable
         await _sut.CreateIsoCommand.ExecuteAsync(null);
 
         wasDisabledDuring.Should().BeTrue();
-        // After completion, card should be re-enabled
         _sut.SelectOutputCard.IsEnabled.Should().BeTrue();
     }
-
-    // ── UpdateDownloadOscdimgCardState ──
 
     [Fact]
     public void UpdateDownloadOscdimgCardState_WhenAvailable_DisablesAndMarkComplete()
@@ -394,8 +384,6 @@ public class WimStep4IsoViewModelTests : IDisposable
         _sut.DownloadOscdimgCard.IsEnabled.Should().BeTrue();
         _sut.DownloadOscdimgCard.IsComplete.Should().BeFalse();
     }
-
-    // ── IDisposable ──
 
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
@@ -420,8 +408,6 @@ public class WimStep4IsoViewModelTests : IDisposable
 
         act.Should().NotThrow();
     }
-
-    // ── Property change notifications ──
 
     [Fact]
     public void SettingIsOscdimgAvailable_RaisesPropertyChanged()

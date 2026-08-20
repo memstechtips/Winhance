@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -9,7 +6,7 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class RemovalScriptUpdateService : IRemovalScriptUpdateService
+internal class RemovalScriptUpdateService : IRemovalScriptUpdateService
 {
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;

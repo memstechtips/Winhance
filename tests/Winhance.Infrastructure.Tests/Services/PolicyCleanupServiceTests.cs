@@ -100,7 +100,6 @@ public class PolicyCleanupServiceTests
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
 
-        // Parent path should be kept, child path should be deduplicated
         paths.Should().Contain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate");
         paths.Should().NotContain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU");
     }
@@ -195,7 +194,6 @@ public class PolicyCleanupServiceTests
         _mockRegistry.Setup(r => r.GetAll(true)).Returns(settings);
         _mockRegistryService.Setup(r => r.KeyExists(It.IsAny<string>())).Returns(true);
 
-        // First key fails, second succeeds
         _mockRegistryService
             .Setup(r => r.DeleteKey(@"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo"))
             .Returns(false);
@@ -206,9 +204,7 @@ public class PolicyCleanupServiceTests
         var service = CreateService();
         var deletedCount = service.CleanupPolicyKeys();
 
-        // Only one succeeded
         deletedCount.Should().Be(1);
-        // Both were attempted
         _mockRegistryService.Verify(r => r.DeleteKey(It.IsAny<string>()), Times.Exactly(2));
     }
 

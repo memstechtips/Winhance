@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
@@ -10,43 +6,22 @@ using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-/// <summary>
-/// Conformance: on a CLEAN Windows install, the catalog's detection must resolve every setting to its
-/// WindowsDefault state. Replays the REAL detection pipeline (<see cref="CatalogDiscovery.Detect"/> over
-/// <see cref="RegTargetReader"/> / <see cref="StateDetectionEngine"/>) against three committed clean-install
-/// probe captures (tests/.../Catalog/Fixtures/cleaninstall-*.json), hydrating <see cref="IDetectionContext"/>
-/// from the probe readings. This is the C# successor to the audit's Python reconciler
-/// (extras/probe/reconcile-defaults.py) - same replay, but through the production code itself, so a
-/// WindowsDefault role or accepted-value regression fails here without a Windows machine.
-///
-/// Fixtures (see the 2026-07-2x windows-defaults audit docs for provenance):
-///  - cleaninstall-win10-22h2-pro-vm.json: 19045.2965 Pro VM, express OOBE, at image patch level, en-ZA.
-///  - cleaninstall-win11-25h2-gold-laptop.json: 26200.8037 Home SL laptop, PRE-UPDATE, privacy-DECLINED,
-///    en-US - the audit's gold oracle. Only this fixture carries powercfg data (Balanced shipped defaults;
-///    a clean install's SCHEME_CURRENT equals them).
-///  - cleaninstall-win11-25h2-post-update-vm.json: 26200.8246 Pro VM, express OOBE, ~2 CUs past the image,
-///    en-ZA. Carries documented post-update drift; its EXPECTED set is correspondingly larger.
-///
-/// Each fixture pins its EXPECTED divergence set exactly (SetEquals): a NEW divergence fails, and a pinned
-/// divergence that silently resolves fails too (the pin must then be removed consciously). Every pinned id
-/// carries its audit-doc reason. Scope mirrors what the app would surface on that machine: settings hidden by
-/// Availability (build gating, absent tasks, absent powercfg) are excluded, as are custom-detector settings,
-/// Actions, sliders (no state labels; their defaults are pinned by DefaultConfigConformanceTests), the dynamic
-/// power-plan selection, and settings whose targets the fixture predates (catalog drift past the probe).
-///
-/// Run: winhance-harness CatalogCleanInstallConformanceTests
-/// </summary>
+// Replays the REAL detection pipeline against three committed clean-install probe captures
+// (Fixtures/cleaninstall-*.json), so a WindowsDefault role or accepted-value regression fails without a Windows
+// machine. Fixtures: win10-22h2-pro-vm (19045.2965, en-ZA); win11-25h2-gold-laptop (26200.8037 Home SL,
+// PRE-UPDATE, privacy-DECLINED, en-US - the gold oracle and the only one with powercfg data);
+// win11-25h2-post-update-vm (26200.8246, ~2 CUs past the image, documented drift). Each pins its EXPECTED
+// divergence set exactly: a new divergence fails, and a pinned one that silently resolves fails too. Excluded:
+// settings hidden by Availability, custom-detector settings, Actions, sliders (DefaultConfigConformanceTests),
+// the dynamic power-plan selection, and targets the fixture predates. Run: winhance-harness CatalogCleanInstallConformanceTests
 public class CatalogCleanInstallConformanceTests
 {
     private readonly ITestOutputHelper _output;
 
     public CatalogCleanInstallConformanceTests(ITestOutputHelper output) => _output = output;
 
-    // ---------------------------------------------------------------------------------------------
     // Expected divergences, per fixture. Reasons cite the audit findings (docs/2026-07-2*-windows-
     // defaults-*.md). "@AC"/"@DC" suffixes mark powercfg per-context comparisons.
-    // ---------------------------------------------------------------------------------------------
-
     private static readonly IReadOnlyDictionary<string, string> Win10VmExpected = new Dictionary<string, string>
     {
         ["gaming-memory-integrity"] = "hardware-conditional: VBS values absent on incapable/VM hardware; capable hardware writes Enabled=1 (held, no OrAbsent)",
@@ -87,8 +62,6 @@ public class CatalogCleanInstallConformanceTests
     [Fact]
     public void Win11_25H2_post_update_vm_clean_install_detects_windows_defaults()
         => RunFixture("cleaninstall-win11-25h2-post-update-vm.json", PostUpdateVmExpected);
-
-    // ---------------------------------------------------------------------------------------------
 
     private void RunFixture(string fixtureName, IReadOnlyDictionary<string, string> expectedDivergent)
     {
@@ -207,12 +180,6 @@ public class CatalogCleanInstallConformanceTests
     // resolve from the repo even when the build output is redirected off the network share.
     private static string SolutionDir() => RepoPaths.SolutionDir();
 
-    // ---------------------------------------------------------------------------------------------
-    // Fixture model + detection context
-    // ---------------------------------------------------------------------------------------------
-
-    /// <summary>A parsed clean-install probe capture: per-setting per-target per-path registry readings,
-    /// scheduled-task enabled flags, and (when captured) the shipped Balanced-scheme powercfg defaults.</summary>
     private sealed class ProbeFixture
     {
         // Matches CatalogProbeManifestGeneratorTests.EmptyKeySentinel (a target with Key == "" reads a key's
@@ -299,8 +266,7 @@ public class CatalogCleanInstallConformanceTests
 
         private static string JoinKey(string key) => key.Length == 0 ? EmptyKeySentinel : key;
 
-        /// <summary>True when the fixture holds a per-path reading for EVERY path of the target (the catalog
-        /// has not drifted past the probe for this target).</summary>
+        // True when the fixture holds a reading for EVERY path of the target (the catalog has not drifted past the probe).
         public bool CoversRegTarget(string settingId, RegTarget reg)
         {
             if (!_registry.TryGetValue((settingId, JoinKey(reg.Key)), out var perPath))
@@ -328,10 +294,8 @@ public class CatalogCleanInstallConformanceTests
         };
     }
 
-    /// <summary>IDetectionContext hydrated from a probe fixture. Registry reads are served from a
-    /// (path, valueName) map built by JOINING the live catalog's RegTargets with the fixture's per-path
-    /// readings; key existence from KeyPresent/KeyMissing rows plus any path with a present/value-absent
-    /// reading. Custom-detector members keep their interface defaults - detector settings are out of scope.</summary>
+    // Registry reads come from a (path, valueName) map built by JOINING the live catalog's RegTargets with the
+    // fixture's readings; custom-detector members keep their interface defaults.
     private sealed class ProbeDetectionContext : IDetectionContext
     {
         private readonly ProbeFixture _fixture;
@@ -342,7 +306,6 @@ public class CatalogCleanInstallConformanceTests
         {
             _fixture = fixture;
 
-            // Join catalog targets to fixture readings once, keyed (path \n valueName) / path.
             foreach (var setting in SettingCatalog.All)
             {
                 foreach (var reg in setting.Targets.OfType<RegTarget>())

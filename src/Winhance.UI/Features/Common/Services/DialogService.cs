@@ -9,13 +9,7 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// WinUI 3 implementation of IDialogService using ContentDialog.
-/// </summary>
-/// <remarks>
-/// This service uses a SemaphoreSlim to ensure only one ContentDialog is shown at a time,
-/// as WinUI 3 throws an exception if multiple ContentDialogs are open simultaneously.
-/// </remarks>
+// A SemaphoreSlim serialises dialogs: WinUI 3 throws if two ContentDialogs are open at once.
 public class DialogService : IDialogService
 {
     private readonly ILocalizationService _localization;
@@ -24,10 +18,7 @@ public class DialogService : IDialogService
     private readonly ISponsorsService _sponsorsService;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
 
-    /// <summary>
-    /// The XamlRoot required for showing ContentDialogs.
-    /// Must be set by MainWindow after content is loaded.
-    /// </summary>
+    // Must be set by MainWindow after content is loaded.
     public XamlRoot? XamlRoot { get; set; }
 
     public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService)
@@ -38,10 +29,6 @@ public class DialogService : IDialogService
         _sponsorsService = sponsorsService;
     }
 
-    /// <summary>
-    /// Applies common dialog configuration: XamlRoot, theme, and a semi-transparent
-    /// background so the window's Mica/Acrylic backdrop shows through the dialog.
-    /// </summary>
     private void ConfigureDialog(ContentDialog dialog)
     {
         dialog.XamlRoot = XamlRoot;
@@ -70,12 +57,6 @@ public class DialogService : IDialogService
         };
     }
 
-    #region Guard Helpers
-
-    /// <summary>
-    /// Acquires the dialog semaphore, checks XamlRoot, and executes the dialog action.
-    /// Returns <paramref name="defaultValue"/> if XamlRoot is null.
-    /// </summary>
     private async Task<T> ExecuteDialogAsync<T>(Func<Task<T>> dialogAction, T defaultValue)
     {
         await _dialogSemaphore.WaitAsync();
@@ -94,21 +75,11 @@ public class DialogService : IDialogService
         }
     }
 
-    /// <summary>
-    /// Acquires the dialog semaphore, checks XamlRoot, and executes a void dialog action.
-    /// </summary>
     private async Task ExecuteDialogAsync(Func<Task> dialogAction)
     {
         await ExecuteDialogAsync(async () => { await dialogAction(); return true; }, true);
     }
 
-    #endregion
-
-    #region Simple Dialogs
-
-    /// <summary>
-    /// Shared implementation for ShowInformationAsync, ShowWarningAsync, and ShowErrorAsync.
-    /// </summary>
     private async Task ShowSimpleDialogAsync(string message, string title, string buttonText)
     {
         await ExecuteDialogAsync(async () =>
@@ -127,20 +98,23 @@ public class DialogService : IDialogService
 
     public void ShowMessage(string message, string title = "")
     {
-        // Fire-and-forget for non-async message display
         _ = ShowInformationAsync(message, title);
     }
 
-    public async Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
+    public async Task ShowInformationAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Information") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
-    public async Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
+    public async Task ShowWarningAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Warning") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
-    public async Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK")
-        => await ShowSimpleDialogAsync(message, title, buttonText);
-
-    #endregion
+    public async Task ShowErrorAsync(string message, string title = "", string buttonText = "")
+        => await ShowSimpleDialogAsync(message,
+            string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Error") : title,
+            string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
     public async Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode)
     {
@@ -224,7 +198,6 @@ public class DialogService : IDialogService
                     IsChecked = confirmationRequest.CheckboxInitiallyChecked
                 };
 
-                // Announce checkbox state changes to Narrator
                 checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
                     $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}",
@@ -243,11 +216,15 @@ public class DialogService : IDialogService
                     ? _localization.GetString("Dialog_Confirmation")
                     : confirmationRequest.Title,
                 Content = contentPanel,
-                PrimaryButtonText = confirmationRequest.ConfirmButtonText,
+                PrimaryButtonText = string.IsNullOrEmpty(confirmationRequest.ConfirmButtonText)
+                    ? _localization.GetString("Button_OK")
+                    : confirmationRequest.ConfirmButtonText,
                 SecondaryButtonText = confirmationRequest.SecondaryButtonText,
-                CloseButtonText = confirmationRequest.CancelButtonText,
+                CloseButtonText = string.IsNullOrEmpty(confirmationRequest.CancelButtonText)
+                    ? _localization.GetString("Button_Cancel")
+                    : confirmationRequest.CancelButtonText,
                 // A three-button dialog defaults Enter to Cancel (the safe choice); the classic
-                // two-button shape keeps Primary, as before.
+                // two-button shape keeps Primary.
                 DefaultButton = confirmationRequest.SecondaryButtonText is null
                     ? ContentDialogButton.Primary
                     : ContentDialogButton.Close
@@ -283,7 +260,7 @@ public class DialogService : IDialogService
         });
     }
 
-    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "Close")
+    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "")
     {
         await ExecuteDialogAsync(async () =>
         {
@@ -291,7 +268,9 @@ public class DialogService : IDialogService
             {
                 Title = title,
                 Content = content,
-                CloseButtonText = closeButtonText,
+                CloseButtonText = string.IsNullOrEmpty(closeButtonText)
+                    ? _localization.GetString("Button_Close")
+                    : closeButtonText,
                 DefaultButton = ContentDialogButton.Close
             };
             ConfigureDialog(dialog);

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,17 +10,15 @@ public class SystemInfoProviderTests
 {
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
 
-    #region WMI test seam
-
-    // The WMI-backed fields used to be asserted against whatever hardware ran the suite, so they
-    // failed outright wherever WMI is degraded - and proved almost nothing when they passed.
+    // Asserting the WMI-backed fields against whatever hardware runs the suite fails outright wherever
+    // WMI is degraded - and proves almost nothing when it passes.
     // These helpers push constructed rows through the provider's internal query seam instead, so
     // the assertions are about Winhance's parsing.
 
     private SystemInfoProvider Create(SystemInfoProvider.WmiQuery query) =>
         new(_mockInteractiveUserService.Object, query);
 
-    /// <summary>One WMI row. Keys are matched case-insensitively, as WMI does.</summary>
+    // Keys are matched case-insensitively, as WMI does.
     private static IReadOnlyDictionary<string, object?> Row(
         params (string Key, object? Value)[] fields)
     {
@@ -32,10 +28,7 @@ public class SystemInfoProviderTests
         return row;
     }
 
-    /// <summary>
-    /// A fake query keyed by WMI class name. A query for a class with no entry returns no rows,
-    /// which is what the real WMI does when nothing matches.
-    /// </summary>
+    // A class with no entry returns no rows, which is what real WMI does when nothing matches.
     private static SystemInfoProvider.WmiQuery Wmi(
         params (string ClassName, IReadOnlyDictionary<string, object?>[] Rows)[] table)
     {
@@ -51,19 +44,6 @@ public class SystemInfoProviderTests
         };
     }
 
-    #endregion
-
-    #region Constructor
-
-    [Fact]
-    public void Constructor_NullInteractiveUserService_ThrowsArgumentNullException()
-    {
-        var act = () => new SystemInfoProvider(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("interactiveUserService");
-    }
-
     [Fact]
     public void Constructor_ValidService_CreatesInstance()
     {
@@ -71,10 +51,6 @@ public class SystemInfoProviderTests
 
         provider.Should().NotBeNull();
     }
-
-    #endregion
-
-    #region Collect — resilience
 
     [Fact]
     public void Collect_DoesNotThrow()
@@ -114,10 +90,6 @@ public class SystemInfoProviderTests
         info.DomainJoined.Should().Be("Unknown");
         info.Tpm.Should().Be("Not Detected");
     }
-
-    #endregion
-
-    #region Field-specific assertions
 
     [Fact]
     public void Collect_Architecture_IsRecognizedValue()
@@ -259,6 +231,4 @@ public class SystemInfoProviderTests
 
         info.SecureBoot.Should().BeOneOf("Enabled", "Disabled", "Not Supported", "Unknown");
     }
-
-    #endregion
 }

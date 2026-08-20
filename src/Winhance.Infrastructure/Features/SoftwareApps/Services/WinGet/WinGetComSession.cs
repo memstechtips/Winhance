@@ -4,11 +4,7 @@ using WindowsPackageManager.Interop;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Owns the WinGet COM state (factory, package manager, lock, flags).
-/// Shared singleton — injected into services that need COM access.
-/// </summary>
-public class WinGetComSession
+internal class WinGetComSession
 {
     private readonly ILogService _logService;
 

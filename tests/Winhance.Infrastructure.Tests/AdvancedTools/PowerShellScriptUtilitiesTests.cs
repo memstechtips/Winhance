@@ -7,9 +7,6 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class PowerShellScriptUtilitiesTests
 {
-    // ---------------------------------------------------------------
-    // SanitizeVariableName
-    // ---------------------------------------------------------------
 
     [Theory]
     [InlineData("power-plan", "power_plan")]
@@ -20,10 +17,6 @@ public class PowerShellScriptUtilitiesTests
     {
         PowerShellScriptUtilities.SanitizeVariableName(input).Should().Be(expected);
     }
-
-    // ---------------------------------------------------------------
-    // EscapePowerShellString
-    // ---------------------------------------------------------------
 
     [Theory]
     [InlineData(null, null)]
@@ -36,10 +29,6 @@ public class PowerShellScriptUtilitiesTests
         PowerShellScriptUtilities.EscapePowerShellString(input).Should().Be(expected);
     }
 
-    // ---------------------------------------------------------------
-    // ConvertRegistryPath
-    // ---------------------------------------------------------------
-
     [Theory]
     [InlineData("HKEY_CURRENT_USER\\Software\\Foo", "HKCU:\\Software\\Foo")]
     [InlineData("HKEY_LOCAL_MACHINE\\SYSTEM\\Bar", "HKLM:\\SYSTEM\\Bar")]
@@ -50,10 +39,6 @@ public class PowerShellScriptUtilitiesTests
     {
         PowerShellScriptUtilities.ConvertRegistryPath(input).Should().Be(expected);
     }
-
-    // ---------------------------------------------------------------
-    // ConvertToRegistryType
-    // ---------------------------------------------------------------
 
     [Theory]
     [InlineData(RegistryValueKind.DWord, "DWord")]
@@ -67,10 +52,6 @@ public class PowerShellScriptUtilitiesTests
     {
         PowerShellScriptUtilities.ConvertToRegistryType(kind).Should().Be(expected);
     }
-
-    // ---------------------------------------------------------------
-    // FormatValueForPowerShell
-    // ---------------------------------------------------------------
 
     [Fact]
     public void FormatValueForPowerShell_NullValue_ReturnsDollarNull()
@@ -112,7 +93,7 @@ public class PowerShellScriptUtilitiesTests
     {
         // Empty REG_BINARY (e.g. taskbar-clean's Favorites) must emit a typed empty
         // array so Set-ItemProperty -Type Binary writes a zero-length value, not "@()".
-        var result = PowerShellScriptUtilities.FormatValueForPowerShell(new byte[0], RegistryValueKind.Binary);
+        var result = PowerShellScriptUtilities.FormatValueForPowerShell(Array.Empty<byte>(), RegistryValueKind.Binary);
 
         result.Should().Be("([byte[]]@())");
     }

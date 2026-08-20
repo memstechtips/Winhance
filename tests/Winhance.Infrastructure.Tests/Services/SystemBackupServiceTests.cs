@@ -17,7 +17,6 @@ public class SystemBackupServiceTests
 
     public SystemBackupServiceTests()
     {
-        // Default localization returns the key itself for any GetString call
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -29,8 +28,6 @@ public class SystemBackupServiceTests
             _mockSystemRestore.Object);
     }
 
-    // ── CreateRestorePointAsync ──
-
     [Fact]
     public async Task CreateRestorePointAsync_WhenExceptionThrown_ReturnsFailureResult()
     {
@@ -38,8 +35,6 @@ public class SystemBackupServiceTests
         // This exercises the outer catch block.
         var result = await _sut.CreateRestorePointAsync();
 
-        // The service catches all exceptions and returns a failure result
-        // (on a test machine, WMI calls typically fail)
         result.Should().NotBeNull();
     }
 
@@ -49,11 +44,9 @@ public class SystemBackupServiceTests
         var progressReports = new List<TaskProgressDetail>();
         var progress = new Progress<TaskProgressDetail>(detail => progressReports.Add(detail));
 
-        // This will fail on WMI (expected in test env), but progress should be reported
         await _sut.CreateRestorePointAsync(progress: progress);
 
-        // At minimum, the first progress report (checking restore point) should have been sent
-        // (Progress<T> may not have delivered synchronously, so we just validate no throw)
+        // Progress<T> may not have delivered synchronously, so this only validates no throw.
     }
 
     [Fact]
@@ -61,7 +54,6 @@ public class SystemBackupServiceTests
     {
         using var cts = new CancellationTokenSource();
 
-        // Verify the method signature accepts a CancellationToken
         var result = await _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
 
         result.Should().NotBeNull();
@@ -70,10 +62,8 @@ public class SystemBackupServiceTests
     [Fact]
     public async Task CreateRestorePointAsync_FailureResult_ContainsErrorMessage()
     {
-        // On a test environment, WMI calls will fail, producing a failure with an error message
         var result = await _sut.CreateRestorePointAsync();
 
-        // The service either succeeds or returns a failure with a message
         if (!result.Success)
         {
             result.ErrorMessage.Should().NotBeNullOrEmpty();
@@ -93,11 +83,6 @@ public class SystemBackupServiceTests
             Times.Once);
     }
 
-    // Skipped: environment-dependent. CreateRestorePointAsync drives the real WMI
-    // System Restore path (no mockable seam). The test expects the name to be logged
-    // exactly once, but on a real Windows machine the call proceeds through creation +
-    // a verification retry loop, logging the name multiple times (4x observed) and
-    // creating actual restore points as a side effect.
     // Re-enable once SystemBackupService exposes an injectable WMI/restore wrapper to mock.
     [Fact(Skip = "Environment-dependent: hits real WMI System Restore (no mockable seam) and has side effects; the name is logged multiple times via the verification retry loop.")]
     public async Task CreateRestorePointAsync_WithCustomName_UsesProvidedName()
@@ -113,8 +98,6 @@ public class SystemBackupServiceTests
                 It.IsAny<Exception?>()),
             Times.Once);
     }
-
-    // ── BackupResult model coverage ──
 
     [Fact]
     public void BackupResult_CreateSuccess_SetsCorrectProperties()
