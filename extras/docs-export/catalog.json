@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "winhanceVersion": "26.08.18",
-  "catalogHash": "6e519d928288f5b74582e4deb5b968a59b9b06b15b06542cd726fd1afcf1fe5b",
+  "winhanceVersion": "26.08.20",
+  "catalogHash": "631d3d31ff2216e6d2797c9bc004bd14517cbb9aa3f33c86604aeb86a4daee1a",
   "settingCount": 414,
   "referenceBuilds": {
     "win10": 19045,
@@ -53762,7 +53762,139 @@
               "win11": null
             }
           },
-          "matrix": null,
+          "matrix": {
+            "groups": [
+              {
+                "label": "Power plan",
+                "kind": "PowerPlan",
+                "description": "Selecting a power plan applies it by its scheme GUID, creating the plan if it isn\u0027t installed.",
+                "paths": [],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": false,
+                "canOpenRegedit": false
+              }
+            ],
+            "columns": [
+              {
+                "header": "Scheme GUID",
+                "typeName": "",
+                "kind": "Power",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": false,
+                "hasChips": false
+              }
+            ],
+            "options": [
+              {
+                "label": "Power Saver",
+                "cells": [
+                  {
+                    "text": "a1841308-3541-4fab-bc81-f71556f20b4a",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Balanced",
+                "cells": [
+                  {
+                    "text": "381b4222-f694-41f0-9685-ff5bb260df2e",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "High Performance",
+                "cells": [
+                  {
+                    "text": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Ultimate Performance",
+                "cells": [
+                  {
+                    "text": "e9a42b02-d5df-448d-aa00-03f14749eb61",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Winhance Power Plan",
+                "cells": [
+                  {
+                    "text": "57696e68-616e-6365-506f-776572000000",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "Power Saver: Scheme GUID a1841308-3541-4fab-bc81-f71556f20b4a. Balanced: Scheme GUID 381b4222-f694-41f0-9685-ff5bb260df2e. High Performance: Scheme GUID 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c. Ultimate Performance: Scheme GUID e9a42b02-d5df-448d-aa00-03f14749eb61. Winhance Power Plan: Scheme GUID 57696e68-616e-6365-506f-776572000000. ."
+          },
           "matrixWin10": null
         },
         {

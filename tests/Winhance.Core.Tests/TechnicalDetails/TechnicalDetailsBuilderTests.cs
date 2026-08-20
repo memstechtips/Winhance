@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -711,5 +711,45 @@ public class TechnicalDetailsBuilderTests
 
         MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build))
             .AccessibleSummary.Should().NotBeEmpty();
+    }
+
+    private static Setting PowerPlanSetting() => new()
+    {
+        Id = "power-plan-selection",
+        Display = Show("Power Plan"),
+        OptionSource = new PowerPlanOptionSource(),
+    };
+
+    private static SettingStateSnapshot PowerPlanSnap(bool live) => new()
+    {
+        InputType = InputType.Selection,
+        Options = PowerPlanCatalog.BuiltInPowerPlans
+            .Select(p => new ComboBoxDisplayOption(
+                p.Name,
+                p.Guid,
+                tag: live ? new PowerPlanComboBoxOption { Guid = p.Guid, ExistsOnSystem = true } : null))
+            .ToList(),
+    };
+
+    [Fact]
+    public void PowerPlan_ReportsInstalledStatus_WhenTheOptionsCameFromTheMachine()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live: true), FallbackLoc(), Build));
+
+        matrix.Columns.Should().HaveCount(2);
+        matrix.Columns[1].Header.Should().Be("Status");
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 2);
+    }
+
+    [Fact]
+    public void PowerPlan_LeavesOffTheStatusColumn_WhenTheOptionsAreReferenceData()
+    {
+        // The docs export lists the predefined plans without a live enumeration behind them, so there is
+        // no machine to report installed-or-not for and the column would only ever hold a guess.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live: false), FallbackLoc(), Build));
+
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("Scheme GUID");
+        matrix.Options.Should().HaveCount(PowerPlanCatalog.BuiltInPowerPlans.Count);
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 1);
     }
 }

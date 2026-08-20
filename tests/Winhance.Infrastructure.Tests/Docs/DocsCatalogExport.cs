@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -122,8 +122,19 @@ internal static class DocsCatalogExport
     // but the builder indexes Snapshot.Options by state index, so skipping would shift every later label.
     private static SettingStateSnapshot Snapshot(Setting s, ILocalizationService loc) => new()
     {
-        Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
+        Options = s.Control == ControlKind.PowerPlan
+            ? PowerPlanOptions(loc)
+            : s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
     };
+
+    // A power plan setting has no States at all - the dropdown is built at runtime from the schemes on the
+    // machine, so on a doc page there is nothing to enumerate. The predefined plans are the part that IS
+    // build-time true: Winhance always offers these five, creating one that isn't installed. No Tag, so
+    // BuildPowerPlanMatrix leaves off its per-machine Status column.
+    private static List<ComboBoxDisplayOption> PowerPlanOptions(ILocalizationService loc) =>
+        PowerPlanCatalog.BuiltInPowerPlans
+            .Select(p => new ComboBoxDisplayOption(Text(loc, p.LocalizationKey, p.Name), p.Guid))
+            .ToList();
 
     private static string OptionLabel(Setting s, SettingState state, int i, ILocalizationService loc)
     {

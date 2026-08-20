@@ -1,4 +1,4 @@
-using Winhance.Core.Features.Common.Catalog;
+﻿using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
@@ -502,6 +502,12 @@ public static class TechnicalDetailsBuilder
     // The rows come from the live dropdown - the only place the scheme GUID exists.
     private static OptionMatrix? BuildPowerPlanMatrix(BuildContext ctx)
     {
+        // Installed-or-not is a fact about THIS machine, read off the live enumeration. A caller that
+        // supplies plans without one (the docs export, which lists the predefined plans as reference
+        // data) has no machine to report on, so the column is left out rather than filled with a
+        // guess - the same reason the docs never show which option is currently selected.
+        var hasStatus = ctx.Snapshot.Options.Any(o => o.Tag is PowerPlanComboBoxOption);
+
         var options = new List<MatrixOption>();
         foreach (var option in ctx.Snapshot.Options)
         {
@@ -510,16 +516,18 @@ public static class TechnicalDetailsBuilder
             if (option.Value is not string guid || guid.Length == 0) continue;
 
             var plan = option.Tag as PowerPlanComboBoxOption;
+            var cells = new List<MatrixCell> { new(guid) };
+            if (hasStatus)
+            {
+                cells.Add(new MatrixCell(plan?.ExistsOnSystem == true
+                    ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
+                    : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")));
+            }
+
             options.Add(new MatrixOption
             {
                 Label = option.DisplayText,
-                Cells =
-                [
-                    new MatrixCell(guid),
-                    new MatrixCell(plan?.ExistsOnSystem == true
-                        ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
-                        : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")),
-                ],
+                Cells = cells,
                 IsCurrent = plan?.IsActive == true,
             });
         }
@@ -528,8 +536,11 @@ public static class TechnicalDetailsBuilder
         var columns = new List<MatrixColumn>
         {
             new() { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanScheme, "Scheme GUID"), Kind = MatrixColumnKind.Power },
-            new() { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"), Kind = MatrixColumnKind.Power },
         };
+        if (hasStatus)
+        {
+            columns.Add(new MatrixColumn { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"), Kind = MatrixColumnKind.Power });
+        }
 
         var groups = new List<MatrixColumnGroup>
         {
