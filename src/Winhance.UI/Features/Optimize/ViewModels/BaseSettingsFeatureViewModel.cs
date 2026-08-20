@@ -320,7 +320,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private async Task OnFilterStateChangedAsync(FilterStateChangedEvent e)
     {
-        await RefreshSettingsForFilterChangeAsync();
+        await ApplyFilterScopeChangeAsync();
     }
 
     private void OnReviewModeExited(ReviewModeExitedEvent e)
@@ -344,7 +344,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         // the way review state does: the ViewModels are disposed and recreated, so a newly added
         // field cannot survive the transition. There is no cleanup list here to fall out of date.
         if (Settings?.Any() != true) return;
-        await RefreshSettingsForFilterChangeAsync();
+        await ReloadAllSettingsAsync();
     }
 
     // The seed records its edits after these cards were built from live state, so their toggles still show the
@@ -363,14 +363,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         });
     }
 
-    private async Task RefreshSettingsForFilterChangeAsync()
+    private async Task ReloadAllSettingsAsync()
     {
         try
         {
             // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it.
             var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
             _logService.Log(LogLevel.Info, $"PERF-TRACE refresh START '{DisplayName}' thread={Environment.CurrentManagedThreadId}");
-            _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
+            _logService.Log(LogLevel.Info, $"Reloading every setting for {DisplayName}");
 
             _settingsLoaded = false;
 
@@ -393,7 +393,98 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error refreshing settings for filter change: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error reloading settings for {DisplayName}: {ex.Message}");
+        }
+    }
+
+    // Changes only what the scope change actually moved. A hardware-gate flip alters membership for nine
+    // settings, all of them in Power, so nine of the ten features reconcile to "nothing moved" and never
+    // touch the visual tree - which is where the saving is, since the cost the user sees is the WinUI layout
+    // pass, not the managed work. Authoring exit deliberately does NOT come through here; see
+    // OnAuthoringModeExitedAsync for why that one still tears everything down.
+    private async Task ApplyFilterScopeChangeAsync()
+    {
+        // An unopened feature reads fresh state when it is first opened, so there is nothing to reconcile.
+        if (!_settingsLoaded || Settings is null || Settings.Count == 0)
+            return;
+
+        try
+        {
+            var membership = _settingsLoadingService.GetFeatureSettingIds(ModuleId);
+            var currentIds = new HashSet<string>(membership, StringComparer.Ordinal);
+            var byId = _settingsById; // volatile snapshot; the dictionary is swapped wholesale, never mutated in place
+
+            var arrivedIds = new List<string>();
+            foreach (var id in membership)
+            {
+                if (!byId.ContainsKey(id))
+                    arrivedIds.Add(id);
+            }
+
+            var departed = new List<SettingItemViewModel>();
+            var survivors = new List<SettingItemViewModel>();
+            foreach (var setting in Settings)
+            {
+                if (currentIds.Contains(setting.SettingId))
+                    survivors.Add(setting);
+                else
+                    departed.Add(setting);
+            }
+
+            foreach (var setting in departed)
+            {
+                Settings.Remove(setting);
+                setting.Dispose();
+            }
+
+            IReadOnlyList<SettingItemViewModel> arrived = arrivedIds.Count > 0
+                ? await _settingsLoadingService.LoadSettingsSubsetAsync(ModuleId, arrivedIds, this)
+                : Array.Empty<SettingItemViewModel>();
+
+            InsertInCatalogOrder(membership, arrived);
+
+            await _settingsLoadingService.RefreshScopeDerivedStateAsync(survivors);
+
+            RebuildSettingIndexes();
+
+            if (arrived.Count == 0 && departed.Count == 0)
+                return;
+
+            RebuildGroupedSettings();
+
+            OnPropertyChanged(nameof(HasVisibleSettings));
+            OnPropertyChanged(nameof(IsVisibleInSearch));
+            OnPropertyChanged(nameof(SettingsCount));
+            OnPropertyChanged(nameof(GroupDescriptionText));
+
+            _logService.Log(LogLevel.Info, $"Scope change moved {arrived.Count} in and {departed.Count} out of {DisplayName}");
+
+            // Fresh cards carry default badge/technical-details visibility, so the page has to re-apply the
+            // View-menu state the same way it does after a full rebuild.
+            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error applying scope change for {DisplayName}: {ex.Message}");
+        }
+    }
+
+    // Settings holds the survivors in catalog order and membership is that same order with the arrivals back
+    // in, so walking the two together lands each new card exactly where a full load would have put it.
+    // RebuildGroupedSettings groups by first-seen order, so an insert in the wrong place reorders the groups.
+    private void InsertInCatalogOrder(IReadOnlyList<string> membership, IReadOnlyList<SettingItemViewModel> arrived)
+    {
+        if (arrived.Count == 0)
+            return;
+
+        var arrivedById = arrived.ToDictionary(setting => setting.SettingId, StringComparer.Ordinal);
+        int index = 0;
+        foreach (var id in membership)
+        {
+            if (index < Settings.Count && string.Equals(Settings[index].SettingId, id, StringComparison.Ordinal))
+                index++;
+            else if (arrivedById.TryGetValue(id, out var setting))
+                Settings.Insert(index++, setting);
         }
     }
 
@@ -497,42 +588,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             Settings = loadedSettings;
 
-            // Build new dictionaries and atomically swap references.
-            // Readers on other threads (OnSettingApplied) see either the old
-            // complete dictionary or the new complete one — never a partial build.
-            var newSettingsById = new Dictionary<string, SettingItemViewModel>();
-            var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
-            foreach (var setting in Settings)
-            {
-                if (!string.IsNullOrEmpty(setting.SettingId))
-                    newSettingsById[setting.SettingId] = setting;
-
-                var parentId = setting.EffectiveUiParentId;
-                if (!string.IsNullOrEmpty(parentId))
-                {
-                    if (!newChildrenByParentId.TryGetValue(parentId, out var children))
-                    {
-                        children = new List<SettingItemViewModel>();
-                        newChildrenByParentId[parentId] = children;
-                    }
-                    children.Add(setting);
-                }
-            }
-            _settingsById = newSettingsById;
-            _childrenByParentId = newChildrenByParentId;
-
-            foreach (var kvp in newChildrenByParentId)
-            {
-                if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
-                {
-                    var childList = kvp.Value;
-                    if (childList.Count > 0)
-                        childList[^1].IsLastChild = true;
-                    parentVm.Children = new ObservableCollection<SettingItemViewModel>(childList);
-                }
-            }
-
-            RefreshDeclaredGates();
+            RebuildSettingIndexes();
             RebuildGroupedSettings();
 
             OnPropertyChanged(nameof(HasVisibleSettings));
@@ -667,6 +723,50 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             return true;
 
         return gate.States.Contains(label, StringComparer.Ordinal);
+    }
+
+    // Every per-card index this feature holds is derived from Settings, and nothing else holds per-card
+    // state - which is what lets the filter path mutate Settings in place and then just re-run this. The
+    // dictionaries are built whole and swapped by reference, so a reader on another thread
+    // (OnSettingApplied) sees either the old complete one or the new complete one, never a partial build.
+    private void RebuildSettingIndexes()
+    {
+        var newSettingsById = new Dictionary<string, SettingItemViewModel>();
+        var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
+        foreach (var setting in Settings)
+        {
+            if (!string.IsNullOrEmpty(setting.SettingId))
+                newSettingsById[setting.SettingId] = setting;
+
+            var parentId = setting.EffectiveUiParentId;
+            if (!string.IsNullOrEmpty(parentId))
+            {
+                if (!newChildrenByParentId.TryGetValue(parentId, out var children))
+                {
+                    children = new List<SettingItemViewModel>();
+                    newChildrenByParentId[parentId] = children;
+                }
+                children.Add(setting);
+            }
+        }
+        _settingsById = newSettingsById;
+        _childrenByParentId = newChildrenByParentId;
+
+        foreach (var kvp in newChildrenByParentId)
+        {
+            if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
+            {
+                var childList = kvp.Value;
+                for (int i = 0; i < childList.Count; i++)
+                    childList[i].IsLastChild = i == childList.Count - 1;
+
+                // Replacing Children rebinds the parent's expander, so only do it when the child set moved.
+                if (parentVm.Children is null || !parentVm.Children.SequenceEqual(childList))
+                    parentVm.Children = new ObservableCollection<SettingItemViewModel>(childList);
+            }
+        }
+
+        RefreshDeclaredGates();
     }
 
     private void RebuildGroupedSettings()

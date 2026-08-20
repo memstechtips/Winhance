@@ -180,7 +180,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [ObservableProperty]
     public partial bool IsEnabled { get; set; }
 
-    // Pre-built message for cross-group child settings (built during initialization)
+    // Names this setting's cross-group children. The child list is filtered by the catalog scope, so a
+    // scope change rebuilds it (SettingsLoadingService.RefreshScopeDerivedStateAsync).
     public string? CrossGroupInfoMessage { get; set; }
 
     // Windows-version compatibility warning text (set by the loading bridge when the

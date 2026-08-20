@@ -21,6 +21,7 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly ILocalizationService _localization;
     private readonly IApplicationModeService _applicationModeService;
+    private readonly ISettingViewModelEnricher _enricher;
 
     public SettingsLoadingService(
         ICatalogSettingStateProvider settingStateProvider,
@@ -33,7 +34,8 @@ public class SettingsLoadingService : ISettingsLoadingService
         ISettingViewModelFactory viewModelFactory,
         ISettingLocalizationService settingLocalizationService,
         ILocalizationService localization,
-        IApplicationModeService applicationModeService)
+        IApplicationModeService applicationModeService,
+        ISettingViewModelEnricher enricher)
     {
         _settingStateProvider = settingStateProvider;
         _logService = logService;
@@ -46,6 +48,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         _settingLocalizationService = settingLocalizationService;
         _localization = localization;
         _applicationModeService = applicationModeService;
+        _enricher = enricher;
     }
 
     public async Task<ObservableCollection<SettingItemViewModel>> LoadConfiguredSettingsAsync(
@@ -59,51 +62,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             _initializationService.StartFeatureInitialization(featureModuleId);
 
             var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, _scopeProvider.Current);
-
-            var settingViewModels = new ObservableCollection<SettingItemViewModel>();
-
-            var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(
-                Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
-
-            _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-            // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it.
-            var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            var traceThreadIn = Environment.CurrentManagedThreadId;
-            var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
-            var traceStated = System.Diagnostics.Stopwatch.GetTimestamp();
-
-            var liveBuild = LiveBuild();
-
-            foreach (var setting in settingsList)
-            {
-                if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)
-                {
-                    _logService.Log(LogLevel.Debug, $"Skipping setting '{setting.Id}': {settingState.ErrorMessage}");
-                    continue;
-                }
-
-                var currentState = batchStates.TryGetValue(setting.Id, out var s) ? s : new SettingStateResult();
-
-                var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
-
-                // Builder mode keeps the index-valued power-plan dropdown; the recorded choice reads the plan GUID
-                // off the option's Tag.
-                // Build it here from the DynamicOptions (the same runtime options the live GUID-valued
-                // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
-                // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
-                ComboBoxSetupResult? builderComboBoxOptions =
-                    (_applicationModeService.Capabilities().AuthorsIntent && setting.OptionSource is not null)
-                        ? BuildBuilderPowerPlanOptions(currentState)
-                        : null;
-
-                var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)), liveBuild);
-                viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
-                settingViewModels.Add(viewModel);
-            }
-
-            var traceBuilt = System.Diagnostics.Stopwatch.GetTimestamp();
-            long freq = System.Diagnostics.Stopwatch.Frequency;
-            _logService.Log(LogLevel.Info, $"PERF-TRACE load '{featureModuleId}' n={settingsList.Count} states={(traceStated - traceStart) * 1000 / freq}ms create={(traceBuilt - traceStated) * 1000 / freq}ms threadIn={traceThreadIn} threadOut={Environment.CurrentManagedThreadId}");
+            var settingViewModels = await BuildViewModelsAsync(featureModuleId, settingsList, parentViewModel);
 
             _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
             _initializationService.CompleteFeatureInitialization(featureModuleId);
@@ -116,6 +75,114 @@ public class SettingsLoadingService : ISettingsLoadingService
             _logService.Log(LogLevel.Error, $"Error loading settings for {featureModuleId}: {ex.Message}");
             throw;
         }
+    }
+
+    public IReadOnlyList<string> GetFeatureSettingIds(string featureModuleId) =>
+        _catalogSettingsRegistry.GetByFeature(featureModuleId, _scopeProvider.Current).Select(s => s.Id).ToList();
+
+    // No Start/CompleteFeatureInitialization here: the feature is already initialized, and completing it a
+    // second time would re-fire the startup handshake for a handful of cards.
+    public async Task<IReadOnlyList<SettingItemViewModel>> LoadSettingsSubsetAsync(
+        string featureModuleId,
+        IReadOnlyCollection<string> settingIds,
+        ISettingsFeatureViewModel? parentViewModel = null)
+    {
+        if (settingIds.Count == 0)
+            return Array.Empty<SettingItemViewModel>();
+
+        var wanted = new HashSet<string>(settingIds, StringComparer.Ordinal);
+        var settingsList = _catalogSettingsRegistry
+            .GetByFeature(featureModuleId, _scopeProvider.Current)
+            .Where(s => wanted.Contains(s.Id))
+            .ToList();
+
+        return await BuildViewModelsAsync(featureModuleId, settingsList, parentViewModel);
+    }
+
+    // Two card fields are read off the catalog SCOPE rather than off the setting, so a scope change leaves
+    // them stale on every card that survived it: HasBattery (authoring for other hardware shows the DC half
+    // on a machine that has none) and the cross-group info message (its child list is scope-filtered, and two
+    // of those children are Windows-10-only). Everything else on a card derives from the setting or from live
+    // system state, and a scope change moves neither.
+    public async Task RefreshScopeDerivedStateAsync(IEnumerable<SettingItemViewModel> settings)
+    {
+        foreach (var viewModel in settings)
+        {
+            if (viewModel.SupportsSeparateACDC)
+            {
+                bool hadBattery = viewModel.HasBattery;
+                await _enricher.DetectBatteryAsync(viewModel);
+                if (viewModel.HasBattery != hadBattery)
+                {
+                    viewModel.ComputeBadgeState();
+                    viewModel.RefreshTechnicalDetails();
+                }
+            }
+
+            if (viewModel.Setting is not { } setting)
+                continue;
+
+            var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+            if (crossGroupInfoMessage != viewModel.CrossGroupInfoMessage)
+            {
+                viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
+                viewModel.UpdateStatusBanner(viewModel.SelectedValue);
+            }
+        }
+    }
+
+    // The card build shared by the full feature load and the incremental subset load.
+    private async Task<ObservableCollection<SettingItemViewModel>> BuildViewModelsAsync(
+        string featureModuleId,
+        IReadOnlyList<Setting> settingsList,
+        ISettingsFeatureViewModel? parentViewModel)
+    {
+        var settingViewModels = new ObservableCollection<SettingItemViewModel>();
+
+        var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(
+            Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
+
+        _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
+        // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it.
+        var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        var traceThreadIn = Environment.CurrentManagedThreadId;
+        var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
+        var traceStated = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        var liveBuild = LiveBuild();
+
+        foreach (var setting in settingsList)
+        {
+            if (batchStates.TryGetValue(setting.Id, out var settingState) && !settingState.Success)
+            {
+                _logService.Log(LogLevel.Debug, $"Skipping setting '{setting.Id}': {settingState.ErrorMessage}");
+                continue;
+            }
+
+            var currentState = batchStates.TryGetValue(setting.Id, out var s) ? s : new SettingStateResult();
+
+            var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
+
+            // Builder mode keeps the index-valued power-plan dropdown; the recorded choice reads the plan GUID
+            // off the option's Tag.
+            // Build it here from the DynamicOptions (the same runtime options the live GUID-valued
+            // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
+            // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
+            ComboBoxSetupResult? builderComboBoxOptions =
+                (_applicationModeService.Capabilities().AuthorsIntent && setting.OptionSource is not null)
+                    ? BuildBuilderPowerPlanOptions(currentState)
+                    : null;
+
+            var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)), liveBuild);
+            viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
+            settingViewModels.Add(viewModel);
+        }
+
+        var traceBuilt = System.Diagnostics.Stopwatch.GetTimestamp();
+        long freq = System.Diagnostics.Stopwatch.Frequency;
+        _logService.Log(LogLevel.Info, $"PERF-TRACE load '{featureModuleId}' n={settingsList.Count} states={(traceStated - traceStart) * 1000 / freq}ms create={(traceBuilt - traceStated) * 1000 / freq}ms threadIn={traceThreadIn} threadOut={Environment.CurrentManagedThreadId}");
+
+        return settingViewModels;
     }
 
     public async Task<Dictionary<string, SettingStateResult>> RefreshSettingStatesAsync(
