@@ -20,8 +20,12 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
     {
         var results = new Dictionary<string, CatalogDetectionResult>();
 
+        // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it once the filter-refresh
+        // cost is measured on Windows. Marco ticks the Builder hardware checkbox once and sends the log.
+        var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
         var context = _contextFactory.Create();
         await context.PrefetchAsync(settings).ConfigureAwait(false);
+        var tracePrefetched = System.Diagnostics.Stopwatch.GetTimestamp();
 
         foreach (var setting in settings)
         {
@@ -97,8 +101,13 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
             }
         }
 
+        var traceDetected = System.Diagnostics.Stopwatch.GetTimestamp();
+        _log.Log(LogLevel.Info, $"PERF-TRACE detect n={settings.Count} prefetch={Ms(traceStart, tracePrefetched)}ms loop={Ms(tracePrefetched, traceDetected)}ms thread={Environment.CurrentManagedThreadId}");
+
         return results;
     }
+
+    private static long Ms(long from, long to) => (to - from) * 1000 / System.Diagnostics.Stopwatch.Frequency;
 
     private static IReadOnlyDictionary<string, object?>? BuildReadings(Setting setting, IDetectionContext context)
     {

@@ -367,6 +367,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     {
         try
         {
+            // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it.
+            var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            _logService.Log(LogLevel.Info, $"PERF-TRACE refresh START '{DisplayName}' thread={Environment.CurrentManagedThreadId}");
             _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
 
             _settingsLoaded = false;
@@ -382,6 +385,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             await LoadSettingsAsync();
 
+            _logService.Log(LogLevel.Info, $"PERF-TRACE refresh END '{DisplayName}' total={(System.Diagnostics.Stopwatch.GetTimestamp() - traceStart) * 1000 / System.Diagnostics.Stopwatch.Frequency}ms thread={Environment.CurrentManagedThreadId}");
             _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
 
             // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
