@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Den unteren Abschnitt ein- oder ausblenden, der kürzlich geöffnete Dateien und vorgeschlagene Apps anzeigt. Das Ausblenden dieses Abschnitts entfernt auch Windows-Blickpunkt vom Sperrbildschirm und vorgeschlagene Inhalte in der Einstellungs-App",
   "Setting_start-recommended-section_Option_0": "Anzeigen",
   "Setting_start-recommended-section_Option_1": "Ausblenden",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home behält den Empfohlenen Abschnitt auf dem Bildschirm und leert ihn nur. Vollständig entfernt wird der Abschnitt erst ab Pro.",
   "Setting_start-show-all-pins-by-default_Name": "Standardmäßig alle Pins anzeigen",
   "Setting_start-show-all-pins-by-default_Description": "Automatisch erweitern, um alle angehefteten Apps anzuzeigen, anstatt dass Sie auf 'Alle Apps' klicken müssen",
   "Setting_start-show-recently-added-apps_Name": "Zuletzt hinzugefügte Apps anzeigen",

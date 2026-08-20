@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Mostra o nascondi la sezione inferiore che visualizza i file aperti di recente e le app suggerite. Nascondere questa sezione rimuove anche In evidenza di Windows dalla schermata di blocco e i contenuti suggeriti nell'app Impostazioni",
   "Setting_start-recommended-section_Option_0": "Mostra",
   "Setting_start-recommended-section_Option_1": "Nascondi",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home mantiene la Sezione consigliata sullo schermo e si limita a svuotarla. La sezione viene rimossa del tutto solo su Pro e versioni superiori.",
   "Setting_start-show-all-pins-by-default_Name": "Mostra tutti gli elementi aggiunti per impostazione predefinita",
   "Setting_start-show-all-pins-by-default_Description": "Espandi automaticamente per mostrare tutte le app aggiunte invece di richiedere di fare clic su 'Tutte le app'",
   "Setting_start-show-recently-added-apps_Name": "Mostra app aggiunte di recente",

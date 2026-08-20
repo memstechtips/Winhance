@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "最近開いたファイルや提案されたアプリを表示する下部セクションを表示または非表示にする。このセクションを非表示にすると、ロック画面からWindowsスポットライトおよび設定アプリの提案されたコンテンツも削除されます",
   "Setting_start-recommended-section_Option_0": "表示",
   "Setting_start-recommended-section_Option_1": "非表示",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home では推奨セクションは画面に残り、中身が空になるだけです。セクションが完全に削除されるのは Pro 以上のエディションのみです。",
   "Setting_start-show-all-pins-by-default_Name": "デフォルトですべてのピンを表示",
   "Setting_start-show-all-pins-by-default_Description": "「すべてのアプリ」をクリックする必要なく、自動的に展開してすべてのピン留めされたアプリを表示",
   "Setting_start-show-recently-added-apps_Name": "最近追加されたアプリを表示",

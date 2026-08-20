@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "显示或隐藏显示最近打开的文件和建议的应用的下方区域。隐藏此区域还会从锁屏中移除 Windows 聚焦以及设置应用中的建议内容",
   "Setting_start-recommended-section_Option_0": "显示",
   "Setting_start-recommended-section_Option_1": "隐藏",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 家庭版会保留推荐部分，只是将其清空。只有专业版及以上版本才会完全移除该部分。",
   "Setting_start-show-all-pins-by-default_Name": "默认显示所有图钉",
   "Setting_start-show-all-pins-by-default_Description": "自动展开以显示所有固定的应用，而不是要求您单击“所有应用”",
   "Setting_start-show-recently-added-apps_Name": "显示最近添加的应用",

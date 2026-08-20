@@ -344,6 +344,7 @@
   "Setting_start-recommended-section_Description": "بخش پایینی که فایل‌های اخیراً باز شده و برنامه‌های پیشنهادی را نمایش می‌دهد، نشان داده یا پنهان می‌کند. پنهان کردن این بخش، Windows Spotlight را نیز از صفحه قفل و محتوای پیشنهادی را از برنامه تنظیمات حذف می‌کند",
   "Setting_start-recommended-section_Option_0": "نمایش",
   "Setting_start-recommended-section_Option_1": "مخفی",
+  "Setting_start-recommended-section_OptionWarning_1": "ویندوز Windows 11 Home بخش توصیه شده را روی صفحه نگه می‌دارد و فقط آن را خالی می‌کند. این بخش تنها در نسخه Pro و بالاتر به‌طور کامل حذف می‌شود.",
   "Setting_start-show-all-pins-by-default_Name": "نمایش همه چسبیده‌ها به طور پیش‌فرض",
   "Setting_start-show-all-pins-by-default_Description": "به‌جای کلیک روی «همه برنامه‌ها»، فهرست را به‌صورت خودکار باز می‌کند تا تمامی برنامه‌های سنجاق‌شده نمایش داده شوند",
   "Setting_start-show-recently-added-apps_Name": "نمایش برنامه‌های اضافه شده اخیر",

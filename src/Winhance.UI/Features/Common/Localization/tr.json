@@ -344,6 +344,7 @@
   "Setting_start-recommended-section_Description": "Son açılan dosyaları ve önerilen uygulamaları görüntüleyen alt bölümü gösterin veya gizleyin. Bu bölümü gizlemek, kilit ekranından Windows Spotlight'ı ve Ayarlar uygulamasındaki önerilen içeriği de kaldırır",
   "Setting_start-recommended-section_Option_0": "Göster",
   "Setting_start-recommended-section_Option_1": "Gizle",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home, Önerilen bölümü ekranda tutar ve yalnızca içeriğini boşaltır. Bölüm yalnızca Pro ve üzeri sürümlerde tamamen kaldırılır.",
   "Setting_start-show-all-pins-by-default_Name": "Varsayılan olarak tüm sabitlemeleri göster",
   "Setting_start-show-all-pins-by-default_Description": "'Tüm uygulamalar'a tıklamanıza gerek kalmadan tüm sabitlenmiş uygulamaları göstermek için otomatik olarak genişlet",
   "Setting_start-show-recently-added-apps_Name": "Son eklenen uygulamaları göster",

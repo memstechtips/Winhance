@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Muestra u oculta la sección inferior que muestra los archivos abiertos recientemente y las aplicaciones sugeridas. Ocultar esta sección también elimina Windows Spotlight de la pantalla de bloqueo y el contenido sugerido en la aplicación de Configuración",
   "Setting_start-recommended-section_Option_0": "Mostrar",
   "Setting_start-recommended-section_Option_1": "Ocultar",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home mantiene la Sección recomendada en pantalla y solo la vacía. La sección se elimina por completo únicamente en Pro y superiores.",
   "Setting_start-show-all-pins-by-default_Name": "Mostrar todos los elementos anclados por defecto",
   "Setting_start-show-all-pins-by-default_Description": "Expandir automáticamente para mostrar todas las aplicaciones ancladas en lugar de requerir que hagas clic en 'Todas las aplicaciones'",
   "Setting_start-show-recently-added-apps_Name": "Mostrar aplicaciones agregadas recientemente",

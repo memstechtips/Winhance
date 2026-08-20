@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -204,6 +204,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                     Label = "Hide",
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["HideRecommendedSection"] = Of(1), ["IsEducationEnvironment"] = Of(1) },
+                    Warning = "Windows 11 Home keeps the Recommended section on screen and only empties it. The section is removed entirely on Pro and above.",
                 },
             },
         },

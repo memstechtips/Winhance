@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Afficher ou masquer la section inférieure qui affiche les fichiers récemment ouverts et les applications suggérées. Masquer cette section supprime également Windows à la une de l'écran de verrouillage et le contenu suggéré dans l'application Paramètres",
   "Setting_start-recommended-section_Option_0": "Afficher",
   "Setting_start-recommended-section_Option_1": "Masquer",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home conserve la Section Recommandé à l'écran et se contente de la vider. La section n'est entièrement supprimée qu'à partir de Pro.",
   "Setting_start-show-all-pins-by-default_Name": "Afficher toutes les épingles par défaut",
   "Setting_start-show-all-pins-by-default_Description": "Développez automatiquement pour afficher toutes les applications épinglées au lieu de vous obliger à cliquer sur 'Toutes les applications'",
   "Setting_start-show-recently-added-apps_Name": "Afficher les applications récemment ajoutées",

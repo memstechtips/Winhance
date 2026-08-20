@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Показати або приховати нижній розділ, що відображає нещодавно відкриті файли та запропоновані програми. Приховування цього розділу також видаляє Windows Spotlight з екрана блокування та рекомендований вміст у додатку «Параметри»",
   "Setting_start-recommended-section_Option_0": "Показати",
   "Setting_start-recommended-section_Option_1": "Приховати",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home залишає розділ 'Рекомендовані' на екрані й лише очищає його. Повністю розділ вилучається лише в Pro та вище.",
   "Setting_start-show-all-pins-by-default_Name": "Показувати всі закріплені елементи за замовчуванням",
   "Setting_start-show-all-pins-by-default_Description": "Автоматично розгортати, щоб показати всі закріплені програми, замість того, щоб вимагати натискання 'Всі програми'",
   "Setting_start-show-recently-added-apps_Name": "Показувати нещодавно додані програми",

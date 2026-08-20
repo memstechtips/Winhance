@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Mostrar ou ocultar a secção inferior que exibe ficheiros abertos recentemente e aplicações sugeridas. Ocultar esta secção também remove o Destaque do Windows do ecrã de bloqueio e o conteúdo sugerido na aplicação Definições",
   "Setting_start-recommended-section_Option_0": "Mostrar",
   "Setting_start-recommended-section_Option_1": "Ocultar",
+  "Setting_start-recommended-section_OptionWarning_1": "O Windows 11 Home mantém a Secção Recomendado no ecrã e limita-se a esvaziá-la. A secção só é removida por completo no Pro e superior.",
   "Setting_start-show-all-pins-by-default_Name": "Mostrar todos os afixados por predefinição",
   "Setting_start-show-all-pins-by-default_Description": "Expandir automaticamente para mostrar todas as aplicações afixadas em vez de exigir que clique em 'Todas as aplicações'",
   "Setting_start-show-recently-added-apps_Name": "Mostrar aplicações adicionadas recentemente",

@@ -283,6 +283,7 @@
   "Setting_start-recommended-section_Description": "إظهار أو إخفاء القسم السفلي الذي يعرض الملفات المفتوحة مؤخرًا والتطبيقات المقترحة. يؤدي إخفاء هذا القسم أيضًا إلى إزالة Windows Spotlight من شاشة القفل والمحتوى المقترح في تطبيق الإعدادات",
   "Setting_start-recommended-section_Option_0": "إظهار",
   "Setting_start-recommended-section_Option_1": "إخفاء",
+  "Setting_start-recommended-section_OptionWarning_1": "يُبقي Windows 11 Home قسم الموصى به ظاهرًا على الشاشة ويكتفي بإفراغه. لا يُزال القسم بالكامل إلا في إصدار Pro وما فوقه.",
   "Setting_start-show-all-pins-by-default_Name": "إظهار كل المثبتات افتراضيًا",
   "Setting_start-show-all-pins-by-default_Description": "توسيع القائمة تلقائيًا لعرض كل التطبيقات المثبتة دون الحاجة للنقر على 'كل التطبيقات'",
   "Setting_start-show-recently-added-apps_Name": "إظهار التطبيقات المضافة مؤخرًا",

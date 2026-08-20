@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Pokaż lub ukryj dolną sekcję, która wyświetla ostatnio otwarte pliki i sugerowane aplikacje. Ukrycie tej sekcji usuwa również Windows Spotlight z ekranu blokady oraz sugerowaną zawartość w aplikacji Ustawienia",
   "Setting_start-recommended-section_Option_0": "Pokaż",
   "Setting_start-recommended-section_Option_1": "Ukryj",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home pozostawia Sekcję rekomendacji na ekranie i tylko ją opróżnia. Sekcja znika całkowicie dopiero w wersji Pro i wyższych.",
   "Setting_start-show-all-pins-by-default_Name": "Pokaż wszystkie przypięte domyślnie",
   "Setting_start-show-all-pins-by-default_Description": "Automatycznie rozwiń, aby pokazać wszystkie przypięte aplikacje, zamiast wymagać kliknięcia 'Wszystkie aplikacje'",
   "Setting_start-show-recently-added-apps_Name": "Pokaż ostatnio dodane aplikacje",

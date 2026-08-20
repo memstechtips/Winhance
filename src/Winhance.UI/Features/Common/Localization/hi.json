@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "हाल ही में खोली गई फ़ाइलें और सुझाई गई ऐप्स दिखाने वाले निचले अनुभाग को दिखाएं या छुपाएं। इस अनुभाग को छुपाने से लॉक स्क्रीन से Windows Spotlight और सेटिंग्स ऐप में सुझाई गई सामग्री भी हट जाती है",
   "Setting_start-recommended-section_Option_0": "दिखाएँ",
   "Setting_start-recommended-section_Option_1": "छिपाएँ",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home अनुशंसित अनुभाग को स्क्रीन पर बनाए रखता है और उसे केवल खाली करता है। यह अनुभाग पूरी तरह से केवल Pro और उससे ऊपर के संस्करणों में हटाया जाता है।",
   "Setting_start-show-all-pins-by-default_Name": "डिफ़ॉल्ट रूप से सभी पिन दिखाएं",
   "Setting_start-show-all-pins-by-default_Description": "'सभी ऐप्स' पर क्लिक करने की आवश्यकता के बजाय सभी पिन किए गए ऐप्स दिखाने के लिए स्वचालित रूप से विस्तार करें",
   "Setting_start-show-recently-added-apps_Name": "हाल ही में जोड़े गए ऐप्स दिखाएं",

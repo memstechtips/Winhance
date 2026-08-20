@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Zobrazit nebo skrýt spodní sekci, která zobrazuje nedávno otevřené soubory a navrhované aplikace. Skrytí této sekce také odstraní Windows Spotlight ze zamykací obrazovky a navrhovaný obsah v aplikaci Nastavení",
   "Setting_start-recommended-section_Option_0": "Zobrazit",
   "Setting_start-recommended-section_Option_1": "Skrýt",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home ponechá sekci Doporučené na obrazovce a pouze ji vyprázdní. Zcela se sekce odebere jen v edici Pro a vyšší.",
   "Setting_start-show-all-pins-by-default_Name": "Ve výchozím nastavení zobrazit všechny připnuté položky",
   "Setting_start-show-all-pins-by-default_Description": "Automaticky rozbalit pro zobrazení všech připnutých aplikací místo nutnosti kliknout na 'Všechny aplikace'",
   "Setting_start-show-recently-added-apps_Name": "Zobrazovat nedávno přidané aplikace",

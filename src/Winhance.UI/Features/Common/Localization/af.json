@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Wys of verberg die onderste afdeling wat onlangs oopgemaakte lêers en voorgestelde toepassings vertoon. As hierdie afdeling verberg word, verwyder dit ook Windows Kollig van die sluitskerm en voorgestelde inhoud in die Instellings-toepassing",
   "Setting_start-recommended-section_Option_0": "Wys",
   "Setting_start-recommended-section_Option_1": "Verberg",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home hou die Aanbevole afdeling op die skerm en maak dit net leeg. Die afdeling word slegs op Pro en hoër heeltemal verwyder.",
   "Setting_start-show-all-pins-by-default_Name": "Wys alle vasgespeldes by verstek",
   "Setting_start-show-all-pins-by-default_Description": "Brei outomaties uit om alle vasgespelde toepassings te wys in plaas daarvan om te vereis dat jy op 'Alle toepassings' klik",
   "Setting_start-show-recently-added-apps_Name": "Wys onlangs bygevoegde toepassings",

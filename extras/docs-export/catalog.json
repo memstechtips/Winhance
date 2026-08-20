@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "winhanceVersion": "26.08.20",
-  "catalogHash": "631d3d31ff2216e6d2797c9bc004bd14517cbb9aa3f33c86604aeb86a4daee1a",
+  "catalogHash": "0138666d454ea2b2867dadf6b8d7e871bae8fc649d71a7567a48e7d7e6187fc0",
   "settingCount": 414,
   "referenceBuilds": {
     "win10": 19045,
@@ -33,6 +33,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -442,6 +443,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -558,6 +560,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -765,6 +768,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -886,6 +890,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1010,6 +1015,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1172,6 +1178,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1302,6 +1309,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1432,6 +1440,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1562,6 +1571,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1692,6 +1702,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1827,6 +1838,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -1951,6 +1963,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2120,6 +2133,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2302,6 +2316,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2418,6 +2433,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2595,6 +2611,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2813,6 +2830,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -2990,6 +3008,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3172,6 +3191,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3354,6 +3374,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3475,6 +3496,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3591,6 +3613,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3707,6 +3730,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3855,6 +3879,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -3987,6 +4012,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4159,6 +4185,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4294,6 +4321,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4415,6 +4443,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4531,6 +4560,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4652,6 +4682,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4773,6 +4804,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -4889,6 +4921,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5005,6 +5038,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5145,6 +5179,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5267,6 +5302,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5383,6 +5419,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5499,6 +5536,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5615,6 +5653,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5731,6 +5770,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5847,6 +5887,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -5978,6 +6019,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6152,6 +6194,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6343,6 +6386,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6459,6 +6503,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6575,6 +6620,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6691,6 +6737,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6807,6 +6854,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -6923,6 +6971,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7039,6 +7088,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7155,6 +7205,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7271,6 +7322,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7387,6 +7439,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7503,6 +7556,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7619,6 +7673,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7735,6 +7790,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -7851,6 +7907,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -8156,6 +8213,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -8461,6 +8519,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -8766,6 +8825,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -9071,6 +9131,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -9376,6 +9437,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -9686,6 +9748,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -9813,6 +9876,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10008,6 +10072,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10198,6 +10263,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10314,6 +10380,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10430,6 +10497,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10603,6 +10671,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10756,6 +10825,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -10909,6 +10979,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11062,6 +11133,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11215,6 +11287,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11368,6 +11441,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11521,6 +11595,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11719,6 +11794,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11849,6 +11925,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -11965,6 +12042,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12081,6 +12159,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12253,6 +12332,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12457,6 +12537,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12613,6 +12694,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12737,6 +12819,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -12861,6 +12944,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -13017,6 +13101,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -13183,6 +13268,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -13609,6 +13695,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -13762,6 +13849,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -13907,6 +13995,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14031,6 +14120,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14163,6 +14253,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14358,6 +14449,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14479,6 +14571,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14595,6 +14688,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14719,6 +14813,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14864,6 +14959,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -14985,6 +15081,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15101,6 +15198,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15241,6 +15339,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15386,6 +15485,7 @@
               "win11": "Requires Windows build 26100.4484 or higher"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15531,6 +15631,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15680,6 +15781,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -15809,6 +15911,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [],
             "columns": [],
@@ -15917,6 +16020,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16046,6 +16150,7 @@
               "win11": "Compatible with builds: 22621-26099"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16175,6 +16280,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16304,6 +16410,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16433,6 +16540,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16562,6 +16670,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16705,6 +16814,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -16848,6 +16958,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -17000,6 +17111,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -17129,6 +17241,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -17255,6 +17368,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [],
             "columns": [],
@@ -17455,6 +17569,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -17857,6 +17972,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -17994,6 +18110,7 @@
               "win11": "Requires Windows build 26100.7171 or higher"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18139,6 +18256,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Hide",
+              "text": "Windows 11 Home keeps the Recommended section on screen and only empties it. The section is removed entirely on Pro and above."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -18320,6 +18443,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18441,6 +18565,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18562,6 +18687,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18683,6 +18809,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18799,6 +18926,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -18928,6 +19056,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19049,6 +19178,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19165,6 +19295,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19337,6 +19468,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19490,6 +19622,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19638,6 +19771,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19754,6 +19888,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19870,6 +20005,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -19986,6 +20122,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -20102,6 +20239,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -20223,6 +20361,16 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Paused for a long time (Unpause in Settings)",
+              "text": "WARNING: Pausing updates for a long time leaves your system vulnerable to security threats. Use at your own risk."
+            },
+            {
+              "option": "Disabled (NOT Recommended, Security Risk)",
+              "text": "WARNING: Disabling updates leaves your system vulnerable to security threats and will prevent app installations from the Microsoft Store from completing until updates are enabled. Use at your own risk."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -21052,6 +21200,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -21214,6 +21363,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -21330,6 +21480,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -21446,6 +21597,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -21562,6 +21714,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -21692,6 +21845,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Hide all notifications",
+              "text": "This also hides restart warnings, so Windows will not tell you when it needs to restart to finish installing an update."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -21960,6 +22119,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22076,6 +22236,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22192,6 +22353,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22322,6 +22484,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22438,6 +22601,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22573,6 +22737,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22697,6 +22862,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22813,6 +22979,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -22974,6 +23141,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23098,6 +23266,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23214,6 +23383,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23330,6 +23500,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23446,6 +23617,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23562,6 +23734,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23678,6 +23851,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23794,6 +23968,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -23910,6 +24085,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24026,6 +24202,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24142,6 +24319,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24321,6 +24499,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24442,6 +24621,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24558,6 +24738,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24682,6 +24863,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24870,6 +25052,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -24986,6 +25169,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Force Deny",
+              "text": "WARNING: Force Deny removes background app permissions from Windows Settings entirely. Apps requiring background access (Teams, Zoom, WhatsApp, etc.) may not function correctly."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -25132,6 +25321,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25262,6 +25452,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25378,6 +25569,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25570,6 +25762,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25694,6 +25887,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25810,6 +26004,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -25926,6 +26121,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26042,6 +26238,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26158,6 +26355,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26274,6 +26472,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26390,6 +26589,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26634,6 +26834,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26750,6 +26951,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26874,6 +27076,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -26998,6 +27201,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27127,6 +27331,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27251,6 +27456,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27367,6 +27573,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27502,6 +27709,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27623,6 +27831,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27755,6 +27964,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -27879,6 +28089,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -28003,6 +28214,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -28127,6 +28339,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -28243,6 +28456,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -28394,6 +28608,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [],
             "columns": [],
@@ -28690,6 +28905,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -28852,6 +29068,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29021,6 +29238,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29219,6 +29437,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29335,6 +29554,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29451,6 +29671,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29567,6 +29788,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled (Recommended for SSD)",
+              "text": "WARNING: Disabling SysMain on systems with a traditional hard drive (HDD) can noticeably reduce responsiveness and slow app launches. Recommended only for SSD-only systems."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -29707,6 +29934,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -29823,6 +30051,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled",
+              "text": "WARNING: Disabling WSearch stops file content indexing. Outlook search, Start Menu search, and File Explorer search will become slow or return no results until re-enabled."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -29963,6 +30197,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -30103,6 +30338,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -30243,6 +30479,16 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled",
+              "text": "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light."
+            },
+            {
+              "option": "Manual (Recommended)",
+              "text": "Manual or Disabled startup can break Windows Night Light and delay cross-device features (Phone Link, Nearby Sharing, clipboard sync). Choose Automatic if you use Night Light."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -30389,6 +30635,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -30644,6 +30891,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -30784,6 +31032,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -30924,6 +31173,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31064,6 +31314,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31204,6 +31455,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31344,6 +31596,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31484,6 +31737,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31636,6 +31890,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -31776,6 +32031,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32031,6 +32287,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32171,6 +32428,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32426,6 +32684,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32566,6 +32825,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32706,6 +32966,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32846,6 +33107,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -32986,6 +33248,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33126,6 +33389,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33381,6 +33645,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33521,6 +33786,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33661,6 +33927,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33801,6 +34068,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -33941,6 +34209,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled",
+              "text": "Disabling will prevent Xbox Game Pass and Microsoft Store games from working"
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -34081,6 +34355,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -34221,6 +34496,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -34361,6 +34637,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -34501,6 +34778,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled",
+              "text": "Disabling this removes the Windows Input Experience host, which also provides the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing and handwriting. Do not disable it if you use a touchscreen, a pen, or a Chinese, Japanese or Korean input method."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -34740,6 +35023,12 @@
               "win11": null
             }
           },
+          "optionWarnings": [
+            {
+              "option": "Disabled",
+              "text": "Disabling Telephony breaks Phone Link audio relay, fax software, dial-up modems, and VoIP softphones (e.g. 3CX, Cisco Jabber)."
+            }
+          ],
           "matrix": {
             "groups": [
               {
@@ -34880,6 +35169,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35020,6 +35310,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35165,6 +35456,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35305,6 +35597,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35421,6 +35714,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35537,6 +35831,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35653,6 +35948,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35769,6 +36065,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -35885,6 +36182,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36001,6 +36299,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36117,6 +36416,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36233,6 +36533,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36349,6 +36650,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36465,6 +36767,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36581,6 +36884,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36697,6 +37001,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36813,6 +37118,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -36929,6 +37235,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37050,6 +37357,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37203,6 +37511,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37319,6 +37628,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37713,6 +38023,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37845,6 +38156,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -37969,6 +38281,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38093,6 +38406,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38217,6 +38531,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38349,6 +38664,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38481,6 +38797,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38613,6 +38930,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38737,6 +39055,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -38869,6 +39188,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39001,6 +39321,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39125,6 +39446,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39249,6 +39571,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39373,6 +39696,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39505,6 +39829,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39629,6 +39954,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39761,6 +40087,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -39885,6 +40212,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40001,6 +40329,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40117,6 +40446,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40233,6 +40563,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40349,6 +40680,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40465,6 +40797,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40581,6 +40914,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [],
             "columns": [],
@@ -40676,6 +41010,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -40874,6 +41209,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41009,6 +41345,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41125,6 +41462,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41247,6 +41585,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41363,6 +41702,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41493,6 +41833,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41614,6 +41955,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41746,6 +42088,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -41862,6 +42205,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42032,6 +42376,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42389,6 +42734,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42505,6 +42851,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42621,6 +42968,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42737,6 +43085,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42853,6 +43202,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -42969,6 +43319,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43085,6 +43436,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43201,6 +43553,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43317,6 +43670,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43433,6 +43787,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43557,6 +43912,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -43700,6 +44056,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44099,6 +44456,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44215,6 +44573,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44331,6 +44690,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44493,6 +44853,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44609,6 +44970,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44776,6 +45138,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -44892,6 +45255,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -45008,6 +45372,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -45259,6 +45624,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -45796,6 +46162,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -45957,6 +46324,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46124,6 +46492,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46296,6 +46665,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46431,6 +46801,7 @@
               "win11": "This setting applies to Windows 10 only"
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46547,6 +46918,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46663,6 +47035,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46779,6 +47152,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -46895,6 +47269,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47011,6 +47386,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47141,6 +47517,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47450,6 +47827,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47566,6 +47944,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47682,6 +48061,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47798,6 +48178,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -47914,6 +48295,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48049,6 +48431,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48289,6 +48672,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48418,6 +48802,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48547,6 +48932,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48676,6 +49062,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48805,6 +49192,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -48934,6 +49322,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49063,6 +49452,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49192,6 +49582,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49321,6 +49712,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49442,6 +49834,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49571,6 +49964,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49783,6 +50177,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -49995,6 +50390,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50161,6 +50557,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50346,6 +50743,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50473,6 +50871,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50602,6 +51001,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50731,6 +51131,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50860,6 +51261,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -50989,6 +51391,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51118,6 +51521,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51239,6 +51643,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51360,6 +51765,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51484,6 +51890,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51608,6 +52015,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51732,6 +52140,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51856,6 +52265,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -51980,6 +52390,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52104,6 +52515,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52228,6 +52640,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52352,6 +52765,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52476,6 +52890,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52600,6 +53015,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52724,6 +53140,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52848,6 +53265,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -52972,6 +53390,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53096,6 +53515,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53247,6 +53667,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53363,6 +53784,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53479,6 +53901,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53633,6 +54056,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53762,6 +54186,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -53919,6 +54344,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -54265,6 +54691,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -54395,6 +54822,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -54517,6 +54945,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -54639,6 +55068,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -54793,6 +55223,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -55139,6 +55570,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -55277,6 +55709,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -55414,6 +55847,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -55762,6 +56196,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -55892,6 +56327,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56016,6 +56452,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56140,6 +56577,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56277,6 +56715,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56399,6 +56838,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56561,6 +57001,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56699,6 +57140,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -56877,6 +57319,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57057,6 +57500,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57219,6 +57663,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57357,6 +57802,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57503,6 +57949,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57633,6 +58080,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57763,6 +58211,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -57973,6 +58422,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58135,6 +58585,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58281,6 +58732,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58425,6 +58877,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58569,6 +59022,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58706,6 +59160,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -58859,6 +59314,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59012,6 +59468,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59128,6 +59585,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59250,6 +59708,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59372,6 +59831,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59512,6 +59972,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59636,6 +60097,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59792,6 +60254,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -59924,6 +60387,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60056,6 +60520,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60180,6 +60645,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60336,6 +60802,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60466,6 +60933,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60620,6 +61088,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60758,6 +61227,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -60896,6 +61366,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {
@@ -61020,6 +61491,7 @@
               "win11": null
             }
           },
+          "optionWarnings": [],
           "matrix": {
             "groups": [
               {

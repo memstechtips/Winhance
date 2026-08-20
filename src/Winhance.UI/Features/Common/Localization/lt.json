@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Rodyti arba slėpti apatinį skyrių, kuriame rodomi neseniai atidaryti failai ir siūlomos programos. Paslėpus šį skyrių, „Windows Spotlight” taip pat pašalinamas iš užrakinimo ekrano ir siūlomas turinys nustatymų programoje",
   "Setting_start-recommended-section_Option_0": "Rodyti",
   "Setting_start-recommended-section_Option_1": "Slėpti",
+  "Setting_start-recommended-section_OptionWarning_1": "„Windows 11 Home“ palieka Rekomenduojamą skyrių ekrane ir tik jį ištuština. Visiškai skyrius pašalinamas tik „Pro“ ir aukštesnėse leidimuose.",
   "Setting_start-show-all-pins-by-default_Name": "Pagal numatytuosius nustatymus rodyti visus prisegimus",
   "Setting_start-show-all-pins-by-default_Description": "Automatiškai išplėsti, kad būtų rodomos visos prisegtos programos, o ne reikalauti spustelėti „Visos programos“",
   "Setting_start-show-recently-added-apps_Name": "Rodyti neseniai pridėtas programas",

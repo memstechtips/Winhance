@@ -344,6 +344,7 @@
   "Setting_start-recommended-section_Description": "הצג או הסתר את המקטע התחתון שמציג קבצים שנפתחו לאחרונה ואפליקציות מוצעות. הסתרת מקטע זה מסירה גם את Windows Spotlight ממסך הנעילה ואת התוכן המוצע באפליקציית ההגדרות",
   "Setting_start-recommended-section_Option_0": "הצג",
   "Setting_start-recommended-section_Option_1": "הסתר",
+  "Setting_start-recommended-section_OptionWarning_1": "‏Windows 11 Home משאיר את המקטע 'מומלץ' על המסך ורק מרוקן אותו. המקטע מוסר לחלוטין רק ב-Pro ומעלה.",
   "Setting_start-show-all-pins-by-default_Name": "הצג את כל ההצמדות כברירת מחדל",
   "Setting_start-show-all-pins-by-default_Description": "הרחב אוטומטית כדי להציג את כל האפליקציות המוצמדות במקום לדרוש לחיצה על 'כל האפליקציות'",
   "Setting_start-show-recently-added-apps_Name": "הצג אפליקציות שנוספו לאחרונה",

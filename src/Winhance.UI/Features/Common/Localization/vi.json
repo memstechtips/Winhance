@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Hiển thị hoặc ẩn phần dưới hiển thị các tệp được mở gần đây và các ứng dụng được đề xuất. Ẩn phần này cũng sẽ xóa Windows Spotlight khỏi màn hình khóa và nội dung đề xuất trong ứng dụng Cài đặt",
   "Setting_start-recommended-section_Option_0": "Hiển thị",
   "Setting_start-recommended-section_Option_1": "Ẩn",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home vẫn giữ Phần được đề xuất trên màn hình và chỉ làm trống nó. Phần này chỉ bị xóa hoàn toàn trên Pro trở lên.",
   "Setting_start-show-all-pins-by-default_Name": "Hiển thị tất cả các ghim theo mặc định",
   "Setting_start-show-all-pins-by-default_Description": "Tự động mở rộng để hiển thị tất cả các ứng dụng đã ghim thay vì yêu cầu bạn nhấp vào 'Tất cả ứng dụng'",
   "Setting_start-show-recently-added-apps_Name": "Hiển thị các ứng dụng được thêm gần đây",

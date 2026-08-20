@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Visa eller dölj den nedre sektionen som visar nyligen öppnade filer och föreslagna appar. Om du döljer denna sektion tas även Windows Blickfång bort från låsskärmen och föreslagit innehåll i appen Inställningar",
   "Setting_start-recommended-section_Option_0": "Visa",
   "Setting_start-recommended-section_Option_1": "Dölj",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home behåller den Rekommenderade sektionen på skärmen och tömmer den bara. Sektionen tas bort helt först i Pro och högre.",
   "Setting_start-show-all-pins-by-default_Name": "Visa alla fästa som standard",
   "Setting_start-show-all-pins-by-default_Description": "Expandera automatiskt för att visa alla fästa appar istället för att kräva att du klickar på 'Alla appar'",
   "Setting_start-show-recently-added-apps_Name": "Visa nyligen tillagda appar",

@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Rādīt vai slēpt apakšējo sadaļu, kas parāda nesen atvērtos failus un ieteiktās lietotnes. Slēpjot šo sadaļu, tiek noņemts arī Windows Spotlight no bloķēšanas ekrāna un ieteiktais saturs iestatījumu lietotnē",
   "Setting_start-recommended-section_Option_0": "Rādīt",
   "Setting_start-recommended-section_Option_1": "Slēpt",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home atstāj Ieteikumu sadaļu ekrānā un tikai iztukšo to. Pilnībā sadaļa tiek noņemta tikai Pro un augstākos izdevumos.",
   "Setting_start-show-all-pins-by-default_Name": "Pēc noklusējuma rādīt visas piespraudes",
   "Setting_start-show-all-pins-by-default_Description": "Automātiski izvērst, lai parādītu visas piesaistītās lietotnes, nevis pieprasītu noklikšķināt uz 'Visas lietotnes'",
   "Setting_start-show-recently-added-apps_Name": "Rādīt nesen pievienotās lietotnes",

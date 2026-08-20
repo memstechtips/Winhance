@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "Toon of verberg de onderste sectie die recent geopende bestanden en voorgestelde apps weergeeft. Het verbergen van deze sectie verwijdert ook Windows Spotlight van het vergrendelingsscherm en voorgestelde inhoud in de Instellingen-app",
   "Setting_start-recommended-section_Option_0": "Weergeven",
   "Setting_start-recommended-section_Option_1": "Verbergen",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home laat de Aanbevolen sectie op het scherm staan en maakt die alleen leeg. De sectie verdwijnt pas volledig op Pro en hoger.",
   "Setting_start-show-all-pins-by-default_Name": "Alle vastgemaakte items standaard tonen",
   "Setting_start-show-all-pins-by-default_Description": "Automatisch uitvouwen om alle vastgemaakte apps te tonen in plaats van te moeten klikken op 'Alle apps'",
   "Setting_start-show-recently-added-apps_Name": "Recent toegevoegde apps weergeven",

@@ -344,6 +344,7 @@
   "Setting_start-recommended-section_Description": "최근에 열어본 파일과 제안된 앱을 표시하는 하단 섹션을 표시하거나 숨깁니다. 이 섹션을 숨기면 잠금 화면에서 Windows 추천 및 설정 앱의 추천 콘텐츠도 제거됩니다",
   "Setting_start-recommended-section_Option_0": "표시",
   "Setting_start-recommended-section_Option_1": "숨기기",
+  "Setting_start-recommended-section_OptionWarning_1": "Windows 11 Home에서는 추천 섹션이 화면에 그대로 남고 내용만 비워집니다. 섹션이 완전히 제거되는 것은 Pro 이상 에디션뿐입니다.",
   "Setting_start-show-all-pins-by-default_Name": "기본적으로 모든 고정 항목 표시",
   "Setting_start-show-all-pins-by-default_Description": "'모든 앱'을 클릭할 필요 없이 자동으로 모든 고정 앱을 확장하여 표시합니다",
   "Setting_start-show-recently-added-apps_Name": "최근에 추가된 앱 표시",

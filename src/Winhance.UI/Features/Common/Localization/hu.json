@@ -300,6 +300,7 @@
   "Setting_start-recommended-section_Description": "A nemrég megnyitott fájlokat és javasolt alkalmazásokat megjelenítő alsó rész megjelenítése vagy elrejtése. Ennek a szakasznak az elrejtése eltávolítja a Windows Reflektort a zárolási képernyőről és a javasolt tartalmakat a Beállítások alkalmazásból",
   "Setting_start-recommended-section_Option_0": "Megjelenít",
   "Setting_start-recommended-section_Option_1": "Elrejt",
+  "Setting_start-recommended-section_OptionWarning_1": "A Windows 11 Home a képernyőn hagyja az Ajánlott részt, és csak kiüríti azt. A rész teljesen csak a Pro és afeletti kiadásokban tűnik el.",
   "Setting_start-show-all-pins-by-default_Name": "Alapértelmezés szerint az összes kitűzést mutassa",
   "Setting_start-show-all-pins-by-default_Description": "Automatikusan bontsa ki az összes rögzített alkalmazás megjelenítéséhez a 'Minden alkalmazás' kattintás helyett ",
   "Setting_start-show-recently-added-apps_Name": "Nemrég hozzáadott alkalmazások megjelenítése",
