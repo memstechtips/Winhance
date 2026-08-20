@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -26,6 +27,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
     private readonly IChangeHistoryService _changeHistoryService;
+    private readonly IHardwareFilterService _hardwareFilter;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -42,7 +44,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
-        IChangeHistoryService changeHistoryService)
+        IChangeHistoryService changeHistoryService,
+        IHardwareFilterService hardwareFilter)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -59,6 +62,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
+        _hardwareFilter = hardwareFilter;
 
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
@@ -95,6 +99,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         if (leftAnAuthoringMode)
         {
+            // Authoring for other hardware is Builder-only: outside it a setting this PC cannot have would
+            // read as applicable and apply to nothing. Reset BEFORE the reload, because the reload reads the
+            // scope synchronously before its first await - and the FilterStateChangedEvent refresh that a later
+            // reset would raise no-ops while that first load still holds the loading semaphore.
+            _hardwareFilter.ResetAsync().FireAndForget(_logService);
             _eventBus.Publish(new AuthoringModeExitedEvent());
             _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
         }
@@ -132,7 +141,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     }
 
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
     {
         try
         {
@@ -360,11 +369,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
-    private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(
-        UnifiedConfigurationFile original,
+    private WinhanceConfigFile BuildFilteredConfigFromApprovals(
+        WinhanceConfigFile original,
         HashSet<string> approvedSettingIds)
     {
-        var filtered = new UnifiedConfigurationFile
+        var filtered = new WinhanceConfigFile
         {
             Version = original.Version,
             CreatedAt = original.CreatedAt,

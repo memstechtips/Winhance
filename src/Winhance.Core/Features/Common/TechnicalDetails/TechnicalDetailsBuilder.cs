@@ -1,4 +1,4 @@
-using Winhance.Core.Features.Common.Catalog;
+﻿using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
@@ -298,43 +298,59 @@ public static class TechnicalDetailsBuilder
                 break;
         }
 
-        var seen = new HashSet<string>();
-        foreach (var link in setting.States.SelectMany(s => s.Links))
-        {
-            if (!seen.Add($"link:{link.Kind}:{link.OtherId}:{link.RequiredState}")) continue;
-            var verb = link.Kind == LinkKind.Requires
-                ? ctx.Text(TechnicalDetailKeys.RelRequires, "Requires")
-                : ctx.Text(TechnicalDetailKeys.RelEnables, "Enables");
-            var other = ctx.SettingName(link.OtherId);
-            var automatic = ctx.Text(TechnicalDetailKeys.RelSetAutomatically, "set automatically");
-            chips.Add(new MatrixChip($"{verb}: {other} ({automatic})", $"{other} = {link.RequiredState}")
-            {
-                LinkSettingId = link.OtherId,
-                LinkText = other,
-            });
-        }
+        return chips;
+    }
 
-        // Controls joins the same chips. "This also sets X" and "this requires X" are one fact to a
-        // reader -- that changing this setting changes another one too. Which of the two shapes the
-        // catalog reached for is not something they should have to care about.
-        foreach (var state in setting.States)
+    // Links and Controls are authored PER STATE, so they are grouped by the option that causes them rather
+    // than flattened into the setting's chip strip beside its apply behaviour. Both shapes read as one fact --
+    // that picking this option changes another setting too -- so which one the catalog reached for is not
+    // something the reader has to care about, and they share a row.
+    private static IReadOnlyList<MatrixOptionLinks> BuildOptionLinks(BuildContext ctx)
+    {
+        var rows = new List<MatrixOptionLinks>();
+        var setting = ctx.Setting;
+
+        for (int i = 0; i < setting.States.Count; i++)
         {
-            if (state.Controls is null) continue;
-            foreach (var pair in state.Controls)
+            var state = setting.States[i];
+            var chips = new List<MatrixChip>();
+            var seen = new HashSet<string>();
+
+            foreach (var link in state.Links)
             {
-                if (!seen.Add($"controls:{pair.Key}:{pair.Value}")) continue;
-                var controlled = ctx.SettingName(pair.Key);
-                chips.Add(new MatrixChip(
-                    $"{ctx.Text(TechnicalDetailKeys.RelControls, "Sets")}: {controlled} ({pair.Value})",
-                    $"{controlled} = {pair.Value}")
+                if (!seen.Add($"link:{link.Kind}:{link.OtherId}:{link.RequiredState}")) continue;
+                var verb = link.Kind == LinkKind.Requires
+                    ? ctx.Text(TechnicalDetailKeys.RelRequires, "Requires")
+                    : ctx.Text(TechnicalDetailKeys.RelEnables, "Enables");
+                var other = ctx.SettingName(link.OtherId);
+                var automatic = ctx.Text(TechnicalDetailKeys.RelSetAutomatically, "set automatically");
+                chips.Add(new MatrixChip($"{verb}: {other} ({automatic})", $"{other} = {link.RequiredState}")
                 {
-                    LinkSettingId = pair.Key,
-                    LinkText = controlled,
+                    LinkSettingId = link.OtherId,
+                    LinkText = other,
                 });
             }
+
+            if (state.Controls is not null)
+            {
+                foreach (var pair in state.Controls)
+                {
+                    if (!seen.Add($"controls:{pair.Key}:{pair.Value}")) continue;
+                    var controlled = ctx.SettingName(pair.Key);
+                    chips.Add(new MatrixChip(
+                        $"{ctx.Text(TechnicalDetailKeys.RelControls, "Sets")}: {controlled} ({pair.Value})",
+                        $"{controlled} = {pair.Value}")
+                    {
+                        LinkSettingId = pair.Key,
+                        LinkText = controlled,
+                    });
+                }
+            }
+
+            if (chips.Count > 0) rows.Add(new MatrixOptionLinks(ctx.OptionLabel(i), chips));
         }
 
-        return chips;
+        return rows;
     }
 
     // An Action carries no States: one row, the action itself. Its writes hang off Setting.Effects, so each column
@@ -502,6 +518,12 @@ public static class TechnicalDetailsBuilder
     // The rows come from the live dropdown - the only place the scheme GUID exists.
     private static OptionMatrix? BuildPowerPlanMatrix(BuildContext ctx)
     {
+        // Installed-or-not is a fact about THIS machine, read off the live enumeration. A caller that
+        // supplies plans without one (the docs export, which lists the predefined plans as reference
+        // data) has no machine to report on, so the column is left out rather than filled with a
+        // guess - the same reason the docs never show which option is currently selected.
+        var hasStatus = ctx.Snapshot.Options.Any(o => o.Tag is PowerPlanComboBoxOption);
+
         var options = new List<MatrixOption>();
         foreach (var option in ctx.Snapshot.Options)
         {
@@ -510,16 +532,18 @@ public static class TechnicalDetailsBuilder
             if (option.Value is not string guid || guid.Length == 0) continue;
 
             var plan = option.Tag as PowerPlanComboBoxOption;
+            var cells = new List<MatrixCell> { new(guid) };
+            if (hasStatus)
+            {
+                cells.Add(new MatrixCell(plan?.ExistsOnSystem == true
+                    ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
+                    : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")));
+            }
+
             options.Add(new MatrixOption
             {
                 Label = option.DisplayText,
-                Cells =
-                [
-                    new MatrixCell(guid),
-                    new MatrixCell(plan?.ExistsOnSystem == true
-                        ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
-                        : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")),
-                ],
+                Cells = cells,
                 IsCurrent = plan?.IsActive == true,
             });
         }
@@ -528,8 +552,11 @@ public static class TechnicalDetailsBuilder
         var columns = new List<MatrixColumn>
         {
             new() { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanScheme, "Scheme GUID"), Kind = MatrixColumnKind.Power },
-            new() { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"), Kind = MatrixColumnKind.Power },
         };
+        if (hasStatus)
+        {
+            columns.Add(new MatrixColumn { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"), Kind = MatrixColumnKind.Power });
+        }
 
         var groups = new List<MatrixColumnGroup>
         {
@@ -597,6 +624,8 @@ public static class TechnicalDetailsBuilder
             : ctx.Text(TechnicalDetailKeys.SectionOptionsDescription,
                 "Selecting an option makes the changes shown to the right."),
         Requirements = BuildRequirements(ctx),
+        OptionLinks = BuildOptionLinks(ctx),
+        OptionLinksHeading = ctx.Text(TechnicalDetailKeys.OptionLinksHeading, "Also sets"),
         Notes = BuildNotes(ctx),
         CodeBlocks = BuildCodeBlocks(ctx),
         // A setting that asks before it runs does these only if you say yes -- the wallpaper prompt
@@ -618,7 +647,8 @@ public static class TechnicalDetailsBuilder
     };
 
     private static bool HasDocumentableContent(BuildContext ctx) =>
-        BuildRequirements(ctx).Count > 0 || BuildNotes(ctx).Count > 0 || BuildCodeBlocks(ctx).Count > 0;
+        BuildRequirements(ctx).Count > 0 || BuildOptionLinks(ctx).Count > 0
+        || BuildNotes(ctx).Count > 0 || BuildCodeBlocks(ctx).Count > 0;
 
     // Catalogs author task states as Of(true)/Of(false), so the bool payload is the answer; a state that deletes the
     // target counts as disabled.

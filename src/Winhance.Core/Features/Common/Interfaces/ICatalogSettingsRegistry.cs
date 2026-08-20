@@ -6,9 +6,8 @@ namespace Winhance.Core.Features.Common.Interfaces;
 public interface ICatalogSettingsRegistry
 {
     Task InitializeAsync();
-    // includeOtherOsVersions relaxes ONLY the OS-build gate; hardware and existence still apply.
-    IReadOnlyList<Setting> GetByFeature(string featureId, bool includeOtherOsVersions = false);
-    Setting? GetById(string settingId, bool includeOtherOsVersions = false);
+    IReadOnlyList<Setting> GetByFeature(string featureId, CatalogScope scope = default);
+    Setting? GetById(string settingId, CatalogScope scope = default);
     string? GetFeatureIdForSetting(string settingId);
-    IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(bool includeOtherOsVersions = false);
+    IReadOnlyDictionary<string, IReadOnlyList<Setting>> GetAll(CatalogScope scope = default);
 }

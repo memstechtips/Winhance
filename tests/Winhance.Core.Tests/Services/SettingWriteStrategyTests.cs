@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.Services;
 using Xunit;
 
@@ -33,7 +34,7 @@ public class SettingWriteStrategyTests
 
     private static SettingWriteRequest Request(
         string settingId = "some-setting",
-        BuilderEdit? authoredEdit = null,
+        SettingChoice? authoredEdit = null,
         bool requiresConfirmation = false,
         bool checkboxAlsoAppliesRecommended = false,
         object? value = null) =>
@@ -41,7 +42,7 @@ public class SettingWriteStrategyTests
         {
             Description = "test edit",
             SystemRequest = new ApplySettingRequest { SettingId = settingId, Enable = true, Value = value },
-            AuthoredEdit = authoredEdit ?? new BuilderEdit { SettingId = settingId, InputType = InputType.Toggle, IsSelected = true },
+            AuthoredEdit = authoredEdit ?? new SettingChoice(settingId, new ChoiceValue.Toggle(true)),
             RequiresConfirmation = requiresConfirmation,
             CheckboxAlsoAppliesRecommended = checkboxAlsoAppliesRecommended,
         };
@@ -193,13 +194,13 @@ public class SettingWriteStrategyTests
 
         await Live().WriteAsync(Request(), new ProgressSpy());
 
-        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<BuilderEdit>()), Times.Never);
+        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
     }
 
     [Fact]
     public async Task Builder_RecordsTheEditAndReportsRecorded()
     {
-        var edit = new BuilderEdit { SettingId = "authored", InputType = InputType.NumericRange, NumericValue = 42 };
+        var edit = new SettingChoice("authored", new ChoiceValue.Number(42));
 
         var result = await Builder().WriteAsync(Request(authoredEdit: edit), new ProgressSpy());
 
@@ -236,7 +237,7 @@ public class SettingWriteStrategyTests
 
         result.Outcome.Should().Be(SettingWriteOutcome.Recorded,
             because: "the value the user set still has to show on the card");
-        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<BuilderEdit>()), Times.Never);
+        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
         _logService.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception?>()), Times.Once);
     }
 
@@ -247,7 +248,7 @@ public class SettingWriteStrategyTests
 
         result.Outcome.Should().Be(SettingWriteOutcome.Rejected);
         _applyService.Verify(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
-        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<BuilderEdit>()), Times.Never);
+        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
     }
 
     [Fact]

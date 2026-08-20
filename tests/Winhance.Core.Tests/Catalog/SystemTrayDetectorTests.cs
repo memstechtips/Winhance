@@ -16,6 +16,7 @@ public class SystemTrayDetectorTests
         public bool KeyExists(string keyPath) => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public string? PrimaryDnsV4OfActiveAdapter() => null;
+        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => System.Array.Empty<string>();
         public bool IsSystemRestoreEnabled() => false;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
         public string? ActivePowerPlanGuid() => null;

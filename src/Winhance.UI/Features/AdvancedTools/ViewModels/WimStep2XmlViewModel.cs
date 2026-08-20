@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
@@ -12,9 +13,9 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 {
-    private readonly IAutounattendXmlGeneratorService _xmlGeneratorService;
+    private readonly ISelectionSaveService _saves;
     private readonly IWimCustomizationService _wimCustomizationService;
-    private readonly ISelectedAppsProvider _selectedAppsProvider;
+    private readonly ISelectionSetBuilder _selections;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
@@ -40,9 +41,9 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     public WizardActionCard SelectXmlCard { get; private set; } = new();
 
     public WimStep2XmlViewModel(
-        IAutounattendXmlGeneratorService xmlGeneratorService,
+        ISelectionSaveService saves,
         IWimCustomizationService wimCustomizationService,
-        ISelectedAppsProvider selectedAppsProvider,
+        ISelectionSetBuilder selections,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
@@ -50,9 +51,9 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         ILogService logService,
         IResourceService resourceService)
     {
-        _xmlGeneratorService = xmlGeneratorService;
+        _saves = saves;
         _wimCustomizationService = wimCustomizationService;
-        _selectedAppsProvider = selectedAppsProvider;
+        _selections = selections;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -124,22 +125,17 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             })).Confirmed;
             if (!confirmed) return;
 
-            var selectedApps = await _selectedAppsProvider.GetSelectedWindowsAppsAsync();
-            if (selectedApps.Count == 0)
-            {
-                var continueAnyway = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                {
-                    Message = _localizationService.GetString("Dialog_NoAppsSelected_Xml_Message"),
-                    Title = _localizationService.GetString("Dialog_NoAppsSelected_Title"),
-                    ConfirmButtonText = _localizationService.GetString("Button_Yes"),
-                    CancelButtonText = _localizationService.GetString("Button_No"),
-                })).Confirmed;
-                if (!continueAnyway) return;
-            }
-
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenerating");
+            var set = await _selections.FromMachineAsync();
+
             var outputPath = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            var generatedPath = await _xmlGeneratorService.GenerateFromCurrentSelectionsAsync(outputPath);
+            string? generatedPath = await _saves.SaveAsync(BuilderTarget.Autounattend, set, new SelectionSaveOptions
+            {
+                FixedPath = outputPath,
+                ReportSuccessInDialog = false,
+            });
+
+            if (generatedPath == null) return;
 
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;

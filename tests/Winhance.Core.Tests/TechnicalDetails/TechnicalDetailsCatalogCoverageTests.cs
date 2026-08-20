@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
@@ -78,7 +78,8 @@ public class TechnicalDetailsCatalogCoverageTests
 
         // Non-vacuity: a matrix that exists but carries nothing would render an empty box, which is
         // no better than the missing panel this test exists to prevent.
-        var carriesSomething = matrix!.CodeBlocks.Count > 0 || matrix.Notes.Count > 0 || matrix.Requirements.Count > 0;
+        var carriesSomething = matrix!.CodeBlocks.Count > 0 || matrix.Notes.Count > 0
+            || matrix.Requirements.Count > 0 || matrix.HasOptionLinks;
         carriesSomething.Should().BeTrue($"{settingId}'s panel must actually contain something to read");
 
         // The panel existing is not enough on its own: the first fix returned a matrix with no

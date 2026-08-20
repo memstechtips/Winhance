@@ -77,6 +77,13 @@ public class ResolveTotalityAuditTests
                         foreach (var vn in valueNames) cs[vn] = 0;
                         Check(true, cs, false, "customstate");
                     }
+
+                    // gaming-dns-server / taskbar-system-tray-icons-11: nothing registry-side to write, so the
+                    // Custom state exports the reconstructed bag and the plan comes from CustomStateScripts.
+                    if (s.CustomStateScripts.Count > 0 && !s.Targets.OfType<RegTarget>().Any())
+                    {
+                        Check(true, new Dictionary<string, object> { ["DetectedIndex"] = -1 }, false, "script-customstate");
+                    }
                     break;
 
                 case ControlKind.Slider:

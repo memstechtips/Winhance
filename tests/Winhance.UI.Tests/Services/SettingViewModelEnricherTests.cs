@@ -17,6 +17,7 @@ public class SettingViewModelEnricherTests
 {
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
     private readonly Mock<ISettingReviewDiffApplier> _mockReviewDiffApplier = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScopeProvider = new();
 
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
@@ -39,13 +40,16 @@ public class SettingViewModelEnricherTests
             .Returns((string key) => key);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _mockLocalizationService.MirrorTryGetString();
+
+        _mockScopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
     }
 
     private SettingViewModelEnricher CreateService()
     {
         return new SettingViewModelEnricher(
             _mockHardwareDetectionService.Object,
-            _mockReviewDiffApplier.Object);
+            _mockReviewDiffApplier.Object,
+            _mockScopeProvider.Object);
     }
 
     private SettingItemViewModel CreateSettingViewModel(
@@ -117,6 +121,26 @@ public class SettingViewModelEnricherTests
         await service.DetectBatteryAsync(vm);
 
         vm.HasBattery.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DetectBatteryAsync_WhenAuthoringForOtherHardware_ShowsBatteryOnADesktop()
+    {
+        // Builder authoring a config for a laptop: the DC half has to stay on screen even though this
+        // machine has no battery to read.
+        _mockHardwareDetectionService
+            .Setup(h => h.HasBattery())
+            .Returns(false);
+        _mockScopeProvider
+            .Setup(p => p.Current)
+            .Returns(new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: true));
+
+        var vm = CreateSettingViewModel();
+
+        var service = CreateService();
+        await service.DetectBatteryAsync(vm);
+
+        vm.HasBattery.Should().BeTrue();
     }
 
     [Fact]

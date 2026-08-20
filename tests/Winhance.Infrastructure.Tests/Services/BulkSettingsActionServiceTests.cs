@@ -128,7 +128,7 @@ public class BulkSettingsActionServiceTests
     private static Setting ActionSetting(string id) => new() { Id = id, Display = Disp(id) };
 
     private void SetupRegistry(string id, Setting? setting)
-        => _mockRegistry.Setup(r => r.GetById(id, It.IsAny<bool>())).Returns(setting);
+        => _mockRegistry.Setup(r => r.GetById(id, It.IsAny<CatalogScope>())).Returns(setting);
 
     [Fact]
     public async Task ApplyRecommendedAsync_DelegatesToApplier_ThenFlushesOnce()

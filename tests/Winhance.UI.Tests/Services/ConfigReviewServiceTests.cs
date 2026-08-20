@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
@@ -83,7 +84,7 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.CurrentMode.Should().Be(WinhanceMode.ConfigReview);
         service.IsInReviewMode.Should().BeTrue();
@@ -93,7 +94,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_ResetsCurrentModeToNormal()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.ExitReviewMode();
 
@@ -108,7 +109,7 @@ public class ConfigReviewServiceTests : IDisposable
         var raised = false;
         service.ModeChanged += (_, _) => raised = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         raised.Should().BeTrue();
     }
@@ -117,7 +118,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_RaisesModeChanged()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
         var raised = false;
         service.ModeChanged += (_, _) => raised = true;
 
@@ -178,10 +179,9 @@ public class ConfigReviewServiceTests : IDisposable
         raised.Should().BeTrue();
     }
 
-    // HasBuilderChanges exists because not every authored input type produces a serializable
-    // BuilderEdit — NumericRange and AC/DC power settings do not (see the BuilderEdit scope note).
-    // Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt entirely
-    // for a session that had only moved sliders, and the authoring was discarded silently.
+    // HasBuilderChanges exists because not every authored input shape produces a serializable
+    // ChoiceValue. Gating the discard prompt on GetBuilderEdits().Count therefore skipped the prompt
+    // entirely for a session whose authoring recorded nothing, and that work was discarded silently.
 
     [Fact]
     public void HasBuilderChanges_OnAFreshBuilderSession_IsFalse()
@@ -201,7 +201,7 @@ public class ConfigReviewServiceTests : IDisposable
 
         service.MarkBuilderDirty();
 
-        // This is the whole point: dirty without a serializable edit — the slider case.
+        // This is the whole point: dirty without any recorded edit.
         service.HasBuilderChanges.Should().BeTrue();
         service.GetBuilderEdits().Should().BeEmpty();
     }
@@ -222,12 +222,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
 
-        service.RecordBuilderEdit(new BuilderEdit
-        {
-            SettingId = "some-setting",
-            InputType = InputType.Toggle,
-            IsSelected = true
-        });
+        service.RecordBuilderEdit(new SettingChoice("some-setting", new ChoiceValue.Toggle(true)));
 
         service.HasBuilderChanges.Should().BeTrue();
     }
@@ -281,7 +276,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_SetsIsInReviewMode()
     {
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
@@ -297,7 +292,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.ReviewModeChanged += (_, _) => eventFired = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         eventFired.Should().BeTrue();
     }
@@ -309,7 +304,7 @@ public class ConfigReviewServiceTests : IDisposable
         var service = CreateService();
         service.BadgeStateChanged += (_, _) => eventFired = true;
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         eventFired.Should().BeTrue();
     }
@@ -317,7 +312,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task EnterReviewModeAsync_CountsConfigItems()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -359,7 +354,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -369,7 +364,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -419,7 +414,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -429,7 +424,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["privacy-setting"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -476,7 +471,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Taskbar", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Taskbar", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -487,7 +482,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["taskbar-clean"] = new SettingStateResult { Success = true, IsEnabled = true }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -539,7 +534,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -561,7 +556,7 @@ public class ConfigReviewServiceTests : IDisposable
             .Setup(l => l.GetString("Theme_DarkNative"))
             .Returns("Dark");
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -600,10 +595,10 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
 
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
         service.IsInReviewMode.Should().BeTrue();
 
-        var newConfig = new UnifiedConfigurationFile();
+        var newConfig = new WinhanceConfigFile();
         await service.EnterReviewModeAsync(newConfig);
 
         service.ActiveConfig.Should().BeSameAs(newConfig);
@@ -614,7 +609,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_ClearsAllState()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.ExitReviewMode();
 
@@ -628,7 +623,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_FiresReviewModeChangedEvent()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         bool eventFired = false;
         service.ReviewModeChanged += (_, _) => eventFired = true;
@@ -642,7 +637,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task ExitReviewMode_FiresBadgeStateChangedEvent()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         bool eventFired = false;
         service.BadgeStateChanged += (_, _) => eventFired = true;
@@ -655,7 +650,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task ExitReviewMode_ClearsBadgeRelatedState()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -860,7 +855,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task GetNavBadgeCount_ForSoftwareApps_ReturnsConfigItemCount()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -917,7 +912,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureInConfig_ReturnsTrueForFeaturesInConfig()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -947,7 +942,7 @@ public class ConfigReviewServiceTests : IDisposable
     public async Task IsSectionFullyReviewed_SoftwareApps_UsesSoftwareAppsReviewed()
     {
         var service = CreateService();
-        await service.EnterReviewModeAsync(new UnifiedConfigurationFile());
+        await service.EnterReviewModeAsync(new WinhanceConfigFile());
 
         service.IsSoftwareAppsReviewed = false;
         service.IsSectionFullyReviewed("SoftwareApps").Should().BeFalse();
@@ -966,7 +961,7 @@ public class ConfigReviewServiceTests : IDisposable
     [Fact]
     public async Task IsFeatureFullyReviewed_WithNoDiffs_ReturnsTrue()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -986,7 +981,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(Array.Empty<Setting>());
 
         var service = CreateService();
@@ -1010,7 +1005,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1020,7 +1015,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1073,7 +1068,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1083,7 +1078,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1134,7 +1129,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1144,7 +1139,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1212,7 +1207,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1222,7 +1217,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["s1"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1285,7 +1280,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1295,7 +1290,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["numeric-setting"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1347,7 +1342,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1357,7 +1352,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["selection-setting"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1406,7 +1401,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1416,7 +1411,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["start-menu-clean-10"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -1464,7 +1459,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("StartMenu", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1474,7 +1469,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["start-menu-clean-11"] = new SettingStateResult { Success = true, IsEnabled = false }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -1518,7 +1513,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1528,7 +1523,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-same"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1573,7 +1568,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1583,7 +1578,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-nopower"] = new SettingStateResult { Success = true, CurrentValue = 50 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1625,7 +1620,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1635,7 +1630,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["nr-dconly"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1685,7 +1680,7 @@ public class ConfigReviewServiceTests : IDisposable
             }
         };
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { privacySetting });
 
         var powerSetting = new Setting
@@ -1695,7 +1690,7 @@ public class ConfigReviewServiceTests : IDisposable
             Numeric = new() { Min = 0, Max = 3600 }
         };
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { powerSetting });
 
         _mockSettingStateProvider
@@ -1714,7 +1709,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["pow1"] = new SettingStateResult { Success = true, CurrentValue = 30 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1787,7 +1782,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Privacy", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1797,7 +1792,7 @@ public class ConfigReviewServiceTests : IDisposable
                 ["sel-null"] = new SettingStateResult { Success = true, CurrentValue = 0 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -1841,7 +1836,7 @@ public class ConfigReviewServiceTests : IDisposable
         };
 
         _mockCatalogSettingsRegistry
-            .Setup(r => r.GetByFeature("Power", It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature("Power", It.IsAny<CatalogScope>()))
             .Returns(new[] { setting });
 
         _mockSettingStateProvider
@@ -1859,7 +1854,7 @@ public class ConfigReviewServiceTests : IDisposable
                 }
             });
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {

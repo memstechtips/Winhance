@@ -60,7 +60,7 @@ internal class PolicyCleanupService : IPolicyCleanupService
 
         // OS-build-relaxed scope (hardware + existence still apply): policy keys are cleaned up regardless of the
         // current Windows version.
-        var allSettings = _catalogRegistry.GetAll(includeOtherOsVersions: true);
+        var allSettings = _catalogRegistry.GetAll(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
 
         foreach (var featureSettings in allSettings.Values)
         {

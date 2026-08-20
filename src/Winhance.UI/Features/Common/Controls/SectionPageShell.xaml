@@ -271,8 +271,8 @@
                                                                 Visibility="{x:Bind ArePillsVisible, Mode=OneWay}">
                                                         <Border Style="{StaticResource BadgeRecommendedStyle}" Opacity="{x:Bind RecommendedOpacity, Mode=OneWay}">
                                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource BadgePillIconFontSize}" VerticalAlignment="Center"
-                                                                          Margin="{StaticResource BadgePillIconMargin}" Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                <PathIcon Data="{StaticResource BadgeRecommendedIconPath}" Height="12" Width="12"
+                                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                                 <TextBlock Text="{x:Bind RecommendedText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
                                                                            Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                             </StackPanel>

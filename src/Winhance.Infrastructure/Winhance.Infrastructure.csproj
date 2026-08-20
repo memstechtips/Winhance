@@ -34,6 +34,12 @@
     </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Features\AdvancedTools\Resources\autounattend-template.xml">
+      <LogicalName>Winhance.Infrastructure.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Features\SoftwareApps\Services\WinGet\winget-cli\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>winget-cli\%(RecursiveDir)%(Filename)%(Extension)</Link>

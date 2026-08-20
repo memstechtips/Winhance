@@ -93,7 +93,7 @@ public class RecommendedSettingsApplierTests
             .Setup(r => r.GetFeatureIdForSetting(triggerSettingId))
             .Returns(featureId);
         _mockRegistry
-            .Setup(r => r.GetByFeature(featureId, It.IsAny<bool>()))
+            .Setup(r => r.GetByFeature(featureId, It.IsAny<CatalogScope>()))
             .Returns(featureSettings);
     }
 

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Helpers;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -142,6 +143,18 @@ public class DialogService : IDialogService
             var result = await dialog.ShowAsync();
             return builder.ExtractResult(result);
         }, ((ImportOption?)null, new ImportOptions { ReviewBeforeApplying = true }));
+    }
+
+    public async Task<BuilderSeed?> ShowBuilderSeedDialogAsync()
+    {
+        return await ExecuteDialogAsync(async () =>
+        {
+            var builder = new Dialogs.BuilderSeedDialogBuilder(_localization);
+            var dialog = builder.Build();
+            ConfigureDialog(dialog);
+            var result = await dialog.ShowAsync();
+            return builder.ExtractResult(result);
+        }, (BuilderSeed?)null);
     }
 
     public async Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest)

@@ -25,7 +25,7 @@ internal class ConfigMigrationService : IConfigMigrationService
         };
     }
 
-    public void MigrateConfig(UnifiedConfigurationFile config)
+    public void MigrateConfig(WinhanceConfigFile config)
     {
         if (config == null) return;
 

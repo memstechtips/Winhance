@@ -6,8 +6,8 @@ public interface IConfigReviewModeService
 {
     bool IsInReviewMode { get; }
     bool IsWindowsDefaults { get; }
-    UnifiedConfigurationFile? ActiveConfig { get; }
-    Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false);
+    WinhanceConfigFile? ActiveConfig { get; }
+    Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false);
     void ExitReviewMode();
     event EventHandler? ReviewModeChanged;
 }

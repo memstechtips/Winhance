@@ -119,7 +119,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         }
     }
 
-    private (ConfigurationItem? item, string? featureId) FindConfigItemForSetting(string settingId, UnifiedConfigurationFile config)
+    private (ConfigurationItem? item, string? featureId) FindConfigItemForSetting(string settingId, WinhanceConfigFile config)
     {
         foreach (var feature in config.Optimize.Features)
         {

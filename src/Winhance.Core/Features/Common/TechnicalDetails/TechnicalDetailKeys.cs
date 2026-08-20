@@ -1,4 +1,4 @@
-namespace Winhance.Core.Features.Common.TechnicalDetails;
+﻿namespace Winhance.Core.Features.Common.TechnicalDetails;
 
 // A test reflects over these constants and asserts each one exists in en.json and in all 29 language files.
 public static class TechnicalDetailKeys
@@ -92,6 +92,9 @@ public static class TechnicalDetailKeys
     // Used instead when the setting asks first: then these happen only if you agree.
     public const string NotesHeadingConditional = "TechnicalDetails_Notes_Heading_Conditional";
     public const string NotesDetailHeader = "TechnicalDetails_Notes_DetailHeader";
+
+    // Heads the band under the grid that lists, per option, which other settings that option changes.
+    public const string OptionLinksHeading = "TechnicalDetails_OptionLinks_Heading";
 
     public const string EffectRegistryWrite = "TechnicalDetails_Effect_RegistryWrite";
     public const string EffectNativePower = "TechnicalDetails_Effect_NativePower";

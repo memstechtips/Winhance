@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.TechnicalDetails;
@@ -25,15 +25,26 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Every_setting_but_the_power_plan_picker_has_a_matrix()
+    public void Every_setting_has_a_matrix()
     {
         var missing = Export.Features.SelectMany(f => f.Settings)
-            .Where(s => s.Matrix is null && s.Control != "PowerPlan")
+            .Where(s => s.Matrix is null)
             .Select(s => s.Id)
             .ToList();
 
         Assert.Empty(missing);
-        Assert.Null(Find("power-plan-selection").Matrix);
+    }
+
+    [Fact]
+    public void The_power_plan_picker_documents_the_predefined_plans_without_a_per_machine_status()
+    {
+        var matrix = Find("power-plan-selection").Matrix;
+
+        Assert.NotNull(matrix);
+        Assert.Equal(PowerPlanCatalog.BuiltInPowerPlans.Count, matrix.Options.Count);
+        Assert.All(PowerPlanCatalog.BuiltInPowerPlans,
+            p => Assert.Contains(matrix.Options, o => o.Cells.Any(c => c.Text == p.Guid)));
+        Assert.Single(matrix.Columns);
     }
 
     [Fact]

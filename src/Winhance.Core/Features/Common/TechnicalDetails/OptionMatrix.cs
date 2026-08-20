@@ -1,4 +1,4 @@
-namespace Winhance.Core.Features.Common.TechnicalDetails;
+﻿namespace Winhance.Core.Features.Common.TechnicalDetails;
 
 public sealed record MatrixChip(string Text, string Tooltip)
 {
@@ -81,6 +81,13 @@ public sealed record MatrixColumnGroup
     public bool CanOpenRegedit => Kind == MatrixGroupKind.Registry && HasPaths;
 }
 
+// Which OTHER settings one option changes, and to what. Per-option, so it cannot live in the setting's own
+// chip strip beside the apply behaviour: privacy-ads-promotional-master carries 32 of these across two
+// options and visual-effects-mode 35 across three, and a strip that flattens them says nothing about which
+// option causes which. Rendered below the grid rather than inside it, so the chips wrap against the panel's
+// width instead of the table's - a table wider than the card would otherwise put half of them out of reach.
+public sealed record MatrixOptionLinks(string Option, IReadOnlyList<MatrixChip> Chips);
+
 // Not a Target - a Target holds a value per option and belongs in the grid; these fire whichever option you pick.
 public sealed record MatrixNote(string Label, string Detail)
 {
@@ -146,6 +153,10 @@ public sealed record OptionMatrix
     // Belong to the SETTING, not to any one option (ApplyBehavior hangs off Setting), so they sit in the setting's
     // own cell rather than a column that would repeat on every row.
     public IReadOnlyList<MatrixChip> Requirements { get; init; } = [];
+
+    public IReadOnlyList<MatrixOptionLinks> OptionLinks { get; init; } = [];
+    public string OptionLinksHeading { get; init; } = string.Empty;
+    public bool HasOptionLinks => OptionLinks.Count > 0;
 
     public IReadOnlyList<MatrixNote> Notes { get; init; } = [];
     public string NotesHeading { get; init; } = string.Empty;

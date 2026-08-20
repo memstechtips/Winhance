@@ -85,7 +85,7 @@ public class CatalogSettingsRegistryCompositionTests
         bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps);
 
         var currentActual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
-        var relaxedActual = reg.GetAll(includeOtherOsVersions: true).SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
+        var relaxedActual = reg.GetAll(new CatalogScope(true, false)).SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
         Assert.Equal(SettingCatalog.All.Where(Current).Select(s => s.Id).OrderBy(x => x).ToList(), currentActual);
         Assert.Equal(SettingCatalog.All.Where(Relaxed).Select(s => s.Id).OrderBy(x => x).ToList(), relaxedActual);
 
@@ -95,13 +95,77 @@ public class CatalogSettingsRegistryCompositionTests
         foreach (var (featureId, settings) in SettingCatalog.ByFeature)
         {
             var exp = settings.Where(Relaxed).Select(s => s.Id).OrderBy(x => x).ToList();
-            var act = reg.GetByFeature(featureId, includeOtherOsVersions: true).Select(s => s.Id).OrderBy(x => x).ToList();
+            var act = reg.GetByFeature(featureId, new CatalogScope(true, false)).Select(s => s.Id).OrderBy(x => x).ToList();
             Assert.Equal(exp, act);
         }
 
         var osIncompatible = SettingCatalog.All.First(s => !Current(s) && Relaxed(s));
         Assert.Null(reg.GetById(osIncompatible.Id));
-        Assert.Equal(osIncompatible.Id, reg.GetById(osIncompatible.Id, includeOtherOsVersions: true)!.Id);
+        Assert.Equal(osIncompatible.Id, reg.GetById(osIncompatible.Id, new CatalogScope(true, false))!.Id);
+    }
+
+    [Fact]
+    public async Task IncludeOtherHardware_ShowsBatteryOnlySetting_OnDesktop()
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var hardware = new Mock<IHardwareDetectionService>();
+        hardware.Setup(h => h.HasBattery()).Returns(false);
+        hardware.Setup(h => h.SupportsHybridSleep()).Returns(true);
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync((IReadOnlyList<Setting> s) => s); // passthrough - existence proven separately
+
+        var reg = new CatalogSettingsRegistry(version.Object, hardware.Object, existence.Object);
+        await reg.InitializeAsync();
+
+        var build = new WinBuild(26100, 0);
+        var batteryOnly = SettingCatalog.All.First(s =>
+            s.Availability.Hardware.Contains(HardwareRequirement.Battery) && s.Availability.Allows(build));
+        var otherHardware = new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: true);
+
+        Assert.Null(reg.GetById(batteryOnly.Id));
+        Assert.Equal(batteryOnly.Id, reg.GetById(batteryOnly.Id, otherHardware)!.Id);
+
+        var current = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).ToHashSet();
+        var relaxed = reg.GetAll(otherHardware).SelectMany(kv => kv.Value).Select(s => s.Id).ToHashSet();
+        Assert.DoesNotContain(batteryOnly.Id, current);
+        Assert.Contains(batteryOnly.Id, relaxed);
+        Assert.Subset(relaxed, current);
+    }
+
+    [Fact]
+    public async Task IncludeOtherHardware_KeepsExistenceGate_ForHardwareNeutralSettings()
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var hardware = new Mock<IHardwareDetectionService>();
+        hardware.Setup(h => h.HasBattery()).Returns(false);
+        hardware.Setup(h => h.SupportsHybridSleep()).Returns(true);
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        // No powercfg GUID resolves on this machine, so nothing reaches the existence-passed set.
+        existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(Array.Empty<Setting>());
+
+        var reg = new CatalogSettingsRegistry(version.Object, hardware.Object, existence.Object);
+        await reg.InitializeAsync();
+
+        var build = new WinBuild(26100, 0);
+        var otherHardware = new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: true);
+
+        var hardwareNeutral = SettingCatalog.All.First(s =>
+            s.Availability.ValidatesExistence && s.Availability.Hardware.Count == 0 && s.Availability.Allows(build));
+        var batteryGated = SettingCatalog.All.First(s =>
+            s.Availability.ValidatesExistence
+            && s.Availability.Hardware.Contains(HardwareRequirement.Battery)
+            && s.Availability.Allows(build));
+
+        // The hardware relax is not an existence relax: a setting this machine could have and simply does not
+        // expose stays hidden.
+        Assert.Null(reg.GetById(hardwareNeutral.Id, otherHardware));
+        Assert.Equal(batteryGated.Id, reg.GetById(batteryGated.Id, otherHardware)!.Id);
     }
 
     [Fact]

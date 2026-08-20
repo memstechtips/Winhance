@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,10 +13,12 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
     private readonly IApplicationModeService _applicationModeService;
-    private readonly IConfigExportService _configExportService;
+    private readonly IBuilderSaveService _builderSave;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
+    private readonly IHardwareFilterService _hardwareFilter;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
 
     [ObservableProperty]
@@ -36,6 +39,12 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public string BuilderAutounattendTargetText =>
         _localizationService.GetStringOrDefault("Builder_Mode_Target_Autounattend", "Autounattend");
 
+    public bool ShowOtherHardware => !_hardwareFilter.IsFilterEnabled;
+
+    public string ShowOtherHardwareText => _localizationService.GetString("Builder_Mode_ShowOtherHardware");
+
+    public string ShowOtherHardwareTooltip => _localizationService.GetString("Builder_Mode_ShowOtherHardware_Tooltip");
+
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
             ? (_localizationService.GetStringOrDefault("Builder_Mode_Save_Autounattend", "Save autounattend.xml"))
@@ -46,21 +55,26 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 
     public BuilderModeBarViewModel(
         IApplicationModeService applicationModeService,
-        IConfigExportService configExportService,
+        IBuilderSaveService builderSave,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         IDialogService dialogService,
+        IHardwareFilterService hardwareFilter,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService)
     {
         _applicationModeService = applicationModeService;
-        _configExportService = configExportService;
+        _builderSave = builderSave;
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
+        _hardwareFilter = hardwareFilter;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
 
         _applicationModeService.ModeChanged += OnModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged += OnHardwareFilterChanged;
     }
 
     public void Dispose()
@@ -69,6 +83,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _disposed = true;
         _applicationModeService.ModeChanged -= OnModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged -= OnHardwareFilterChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -84,6 +99,15 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         }).FireAndForget(_logService);
     }
 
+    private void OnHardwareFilterChanged(object? sender, bool e)
+    {
+        _dispatcherService.RunOnUIThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(ShowOtherHardware));
+            return Task.CompletedTask;
+        }).FireAndForget(_logService);
+    }
+
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(BuilderModeTitleText));
@@ -92,6 +116,37 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderAutounattendTargetText));
         OnPropertyChanged(nameof(BuilderSaveButtonText));
         OnPropertyChanged(nameof(BuilderCancelButtonText));
+        OnPropertyChanged(nameof(ShowOtherHardwareText));
+        OnPropertyChanged(nameof(ShowOtherHardwareTooltip));
+    }
+
+    public async Task SetShowOtherHardwareAsync(bool show)
+    {
+        if (!show && !await ConfirmNarrowingAsync())
+        {
+            // IsChecked binds OneWay, so nothing has moved the checkbox back off the state the user declined.
+            OnPropertyChanged(nameof(ShowOtherHardware));
+            return;
+        }
+
+        await _hardwareFilter.SetAsync(!show);
+    }
+
+    // The edits survive the narrowing either way - the writers just resolve the catalog under the narrowed
+    // scope at Save, so anything absent from it silently misses the file.
+    private async Task<bool> ConfirmNarrowingAsync()
+    {
+        int outOfScope = _applicationModeService.GetBuilderEdits()
+            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, CatalogScope.CurrentMachine) is null);
+        if (outOfScope == 0) return true;
+
+        var request = new ConfirmationRequest
+        {
+            Title = _localizationService.GetString("Dialog_NarrowHardware_Title"),
+            Message = _localizationService.GetString("Dialog_NarrowHardware_Message", outOfScope),
+        };
+
+        return (await _dialogService.ShowConfirmationAsync(request)).Confirmed;
     }
 
     public void SelectConfigTarget()
@@ -115,14 +170,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     {
         try
         {
-            if (_applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend)
-            {
-                await _configExportService.ExportBuilderAutounattendAsync();
-            }
-            else
-            {
-                await _configExportService.ExportBuilderConfigAsync();
-            }
+            await _builderSave.SaveAsync(_applicationModeService.CurrentBuilderTarget);
         }
         catch (Exception ex)
         {

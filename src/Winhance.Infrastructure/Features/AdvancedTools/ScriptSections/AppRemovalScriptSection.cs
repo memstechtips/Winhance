@@ -1,6 +1,6 @@
 using System.Text;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 
@@ -20,7 +20,7 @@ internal class AppRemovalScriptSection
         sb.AppendLine();
     }
 
-    public async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<ConfigurationItem> selectedApps, string indent = "")
+    public async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<AppChoice> selectedApps, string indent = "")
     {
         var regularApps = new List<string>();
         var capabilities = new List<string>();

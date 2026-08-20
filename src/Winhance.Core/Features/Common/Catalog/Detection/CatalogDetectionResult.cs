@@ -28,6 +28,10 @@ public sealed record CatalogDetectionResult
 
     // Keyed by ValueName ?? "KeyExists"; the source the config-export custom-state path reads.
     public IReadOnlyDictionary<string, object?>? Readings { get; init; }
+
+    // The active adapter's IPv4 servers, in adapter order; null for every setting without a DnsServerDetector.
+    // A Custom reading has to carry them so another machine can be put on the same servers.
+    public IReadOnlyList<string>? DnsServers { get; init; }
 }
 
 public interface ICatalogDetectionService

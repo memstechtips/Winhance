@@ -42,9 +42,10 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 InputType.NumericRange => NumericTemplate,
                 InputType.Action => ActionTemplate,
                 // No InputType.CheckBox arm: nothing produces that value. ControlKind has no CheckBox
-                // member and all three ControlToInputType maps fall through to Toggle, so a CheckBox
-                // view model cannot exist. The enum member survives only because ConfigurationItem
-                // persists InputType into .winhance files. It falls to the Toggle default below.
+                // member and ConfigFileMapper.InputTypeFor - the one map from control to input type -
+                // falls through to Toggle, so a CheckBox view model cannot exist. The enum member survives
+                // only because ConfigurationItem persists InputType into .winhance files. It falls to the
+                // Toggle default below.
                 _ => ToggleTemplate
             };
         }

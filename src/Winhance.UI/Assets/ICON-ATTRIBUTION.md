@@ -46,3 +46,14 @@ covered by the CC BY-SA term above.
 
 > Any rocket-free original icon added later (e.g. under `FeatureIcons/`) belongs in this
 > section. Only icons that embed the OpenMoji rocket fall under CC BY-SA.
+
+---
+
+## Fluent UI System Icons — MIT
+
+Two pill icons are path geometries taken from Microsoft's **Fluent UI System Icons**
+(<https://github.com/microsoft/fluentui-system-icons>, MIT License): `ic_fluent_star_12_regular`
+(the Recommended pill) and `ic_fluent_person_12_regular` (the Preference pill). They live as
+`x:String` resources in `Features/Common/Resources/FeatureIcons.xaml` (`BadgeRecommendedIconPath`,
+`BadgePreferenceIconPath`) rather than as Segoe Fluent Icons glyphs so the same shape can be rendered
+outside the app (the generated winhance.net docs).

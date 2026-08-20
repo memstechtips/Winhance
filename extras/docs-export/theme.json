@@ -328,6 +328,14 @@
         "Padding": "12,0"
       }
     },
+    "TechDetail.Table.LinkRow": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "Padding": "12,8"
+      }
+    },
     "TechDetail.Table.CodeSeparator": {
       "target": "Border",
       "basedOn": null,

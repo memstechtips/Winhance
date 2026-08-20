@@ -59,23 +59,29 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public string? PrimaryDnsV4OfActiveAdapter()
     {
+        var servers = DnsV4ServersOfActiveAdapter();
+        return servers.Count > 0 ? servers[0] : null;
+    }
+
+    public IReadOnlyList<string> DnsV4ServersOfActiveAdapter()
+    {
         var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
                 && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
         if (activeAdapter == null)
-            return null;
+            return System.Array.Empty<string>();
 
         // DNS via DHCP leaves NameServer empty; that reads as the Automatic state.
         var nameServer = _reg.GetValue(
             $@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{activeAdapter.Id}",
             "NameServer") as string;
         if (string.IsNullOrEmpty(nameServer))
-            return null;
+            return System.Array.Empty<string>();
 
-        var primaryDns = activeAdapter.GetIPProperties().DnsAddresses
-            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
-            .ToString();
-        return string.IsNullOrEmpty(primaryDns) ? null : primaryDns;
+        return activeAdapter.GetIPProperties().DnsAddresses
+            .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
+            .Select(a => a.ToString())
+            .ToList();
     }
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();

@@ -1,12 +1,11 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
 
@@ -14,60 +13,38 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class AutounattendGeneratorViewModelTests
 {
-    private readonly Mock<IAutounattendXmlGeneratorService> _xmlGeneratorService = new();
+    private const string XmlPath = @"C:\Users\Test\autounattend.xml";
+
+    private readonly Mock<ISelectionSaveService> _saves = new();
     private readonly Mock<IDialogService> _dialogService = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<ILogService> _logService = new();
-
-    private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
-    private readonly Mock<IAppInstallationService> _appInstallationService = new();
-    private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
-    private readonly Mock<ITaskProgressService> _progressService = new();
-    private readonly Mock<ILogService> _winLogService = new();
-    private readonly Mock<IDialogService> _winDialogService = new();
-    private readonly Mock<ILocalizationService> _winLocalizationService = new();
-    private readonly Mock<IDispatcherService> _dispatcherService = new();
-    private readonly Mock<IThemeService> _themeService = new();
+    private readonly Mock<ISelectionSetBuilder> _selections = new();
 
     public AutounattendGeneratorViewModelTests()
     {
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
         _localizationService.MirrorTryGetString();
-        _winLocalizationService.Setup(l => l.GetString(It.IsAny<string>()))
-            .Returns<string>(k => k);
-        _winLocalizationService.MirrorTryGetString();
-        _dispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
-            .Callback<Action>(a => a());
-        _dispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
-            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
-            .Returns(Task.CompletedTask);
-        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
-            .Callback<Func<Task>>(f => f().GetAwaiter().GetResult())
-            .Returns(Task.CompletedTask);
+
+        _selections.Setup(s => s.FromMachineAsync()).ReturnsAsync(SelectionSet.Empty);
+
+        _saves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(XmlPath);
     }
 
-    private WindowsAppsViewModel CreateWindowsAppsVm() => new(
-        _windowsAppsService.Object,
-        _appInstallationService.Object,
-        _windowsAppUninstallService.Object,
-        _progressService.Object,
-        _winLogService.Object,
-        _winDialogService.Object,
-        _winLocalizationService.Object,
-        _dispatcherService.Object,
-        _themeService.Object);
-
-    private AutounattendGeneratorViewModel CreateSut(WindowsAppsViewModel? windowsAppsVm = null)
-    {
-        var winVm = windowsAppsVm ?? CreateWindowsAppsVm();
-        return new AutounattendGeneratorViewModel(
-            _xmlGeneratorService.Object,
+    private AutounattendGeneratorViewModel CreateSut() =>
+        new(
+            _saves.Object,
             _dialogService.Object,
             _localizationService.Object,
             _logService.Object,
-            winVm);
-    }
+            _selections.Object);
+
+    private void ArrangeSnapshotConfirmed() =>
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
     [Fact]
     public void Constructor_SetsDefaults()
@@ -140,55 +117,47 @@ public class AutounattendGeneratorViewModelTests
     }
 
     [Fact]
-    public void NavigateToWimUtilRequested_CanBeSubscribedTo()
-    {
-        var sut = CreateSut();
-        bool eventRaised = false;
-
-        sut.NavigateToWimUtilRequested += (_, _) => eventRaised = true;
-
-        eventRaised.Should().BeFalse();
-    }
-
-    [Fact]
-    public void SetMainWindow_DoesNotThrow()
-    {
-        var sut = CreateSut();
-
-        // SetMainWindow requires a Microsoft.UI.Xaml.Window which we can't easily mock in unit tests,
-        // but we can test with null to verify it does not throw
-        var act = () => sut.SetMainWindow(null!);
-
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public async Task GenerateAutounattendXmlCommand_WhenUserCancelsConfirmation_DoesNotGenerate()
+    public async Task GenerateAutounattendXmlCommand_WhenUserCancelsConfirmation_DoesNotSave()
     {
         _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
         var sut = CreateSut();
-        sut.SetMainWindow(null!);
 
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
-        _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Models.ConfigurationItem>>()), Times.Never);
+        _saves.Verify(s => s.SaveAsync(
+            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
     }
 
     [Fact]
-    public async Task GenerateAutounattendXmlCommand_WhenMainWindowIsNull_ReturnsAfterConfirmation()
+    public async Task GenerateAutounattendXmlCommand_SavesTheMachineSnapshot_WithTheServiceDefaults()
     {
-        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        ArrangeSnapshotConfirmed();
 
         var sut = CreateSut();
 
         await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
 
-        _xmlGeneratorService.Verify(s => s.GenerateFromCurrentSelectionsAsync(
-            It.IsAny<string>(), It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Models.ConfigurationItem>>()), Times.Never);
+        _selections.Verify(s => s.FromMachineAsync(), Times.Once);
+        _saves.Verify(s => s.SaveAsync(BuilderTarget.Autounattend, SelectionSet.Empty, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateAutounattendXmlCommand_WhenTheSaveThrows_ShowsErrorDialog()
+    {
+        ArrangeSnapshotConfirmed();
+        _saves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ThrowsAsync(new IOException("disk full"));
+
+        var sut = CreateSut();
+
+        await sut.GenerateAutounattendXmlCommand.ExecuteAsync(null);
+
+        _dialogService.Verify(d => d.ShowErrorAsync(
+            "AdvancedTools_Msg_XmlGenError", "Dialog_XmlGenError", ""), Times.Once);
+        sut.IsGenerating.Should().BeFalse();
     }
 
     [Fact]

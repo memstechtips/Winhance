@@ -79,7 +79,7 @@ public static class TestSettingFactory
         };
     }
 
-    public static UnifiedConfigurationFile CreateFullConfig()
+    public static WinhanceConfigFile CreateFullConfig()
     {
         var toggleItem = CreateToggleItem("toggle1", "Toggle Setting", true);
         var falseToggle = CreateToggleItem("toggle2", "Disabled Toggle", false);
@@ -99,7 +99,7 @@ public static class TestSettingFactory
             winGetPackageId: "TestVendor.TestApp",
             capabilityName: "TestCapability");
 
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Version = "2.0",
             CreatedAt = new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc),

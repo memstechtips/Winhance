@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -100,118 +101,42 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
 
     private object ResolveSelectionValue(Setting setting, ConfigurationItem item)
     {
-        if (setting.Id == SettingIds.PowerPlanSelection)
+        switch (ConfigFileMapper.DecodeValue(setting, item))
         {
-            return ResolvePowerPlanValue(item);
+            case ChoiceValue.PowerPlan p:
+                return new Dictionary<string, object> { ["Guid"] = p.Guid, ["Name"] = p.Name };
+            case ChoiceValue.CustomValues c:
+                return new Dictionary<string, object>(c.Values);
+            case ChoiceValue.AcDcOption a:
+                return (a.AcIndex, a.DcIndex);
+            case ChoiceValue.Option o:
+                return o.Index;
+            case null when setting.Id == SettingIds.PowerPlanSelection:
+                _logService.Log(LogLevel.Error, "Config file is missing PowerPlanGuid for power-plan-selection.");
+                throw new InvalidOperationException("Configuration file is invalid or corrupted.");
+            default:
+                _logService.Log(LogLevel.Warning,
+                    $"Config item '{item.Id}' is a selection but carries no resolvable value " +
+                    "(no SelectedIndex, PowerSettings, or CustomStateValues); defaulting to option index 0. " +
+                    "This usually means a stale toggle-era config entry for a setting that is now a selection.");
+                return 0;
         }
-
-        if (item.CustomStateValues != null && item.CustomStateValues.Count > 0)
-        {
-            return item.CustomStateValues;
-        }
-
-        if (item.PowerSettings != null &&
-            item.PowerSettings.TryGetValue("ACIndex", out var acRaw) &&
-            item.PowerSettings.TryGetValue("DCIndex", out var dcRaw))
-        {
-            var acIndex = Convert.ToInt32(UnwrapJsonElement(acRaw));
-            var dcIndex = Convert.ToInt32(UnwrapJsonElement(dcRaw));
-            return (acIndex, dcIndex);
-        }
-
-        if (item.SelectedIndex.HasValue)
-        {
-            return item.SelectedIndex.Value;
-        }
-
-        _logService.Log(LogLevel.Warning,
-            $"Config item '{item.Id}' is a selection but carries no resolvable value " +
-            "(no SelectedIndex, PowerSettings, or CustomStateValues); defaulting to option index 0. " +
-            "This usually means a stale toggle-era config entry for a setting that is now a selection.");
-        return 0;
     }
 
-    private object ResolvePowerPlanValue(ConfigurationItem item)
+    // The file holds powercfg values in SYSTEM units; the apply funnel expects DISPLAY units (it converts back),
+    // so convert here exactly as the quick-set path does. Non-powercfg sliders pass through unchanged.
+    private static object? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
     {
-        if (!string.IsNullOrEmpty(item.PowerPlanGuid))
-        {
-            return new Dictionary<string, object>
-            {
-                ["Guid"] = item.PowerPlanGuid,
-                ["Name"] = item.PowerPlanName ?? "Unknown"
-            };
-        }
-
-        _logService.Log(LogLevel.Error, "Config file is missing PowerPlanGuid for power-plan-selection.");
-        throw new InvalidOperationException("Configuration file is invalid or corrupted.");
-    }
-
-    private object? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
-    {
-        if (item.PowerSettings == null || item.PowerSettings.Count == 0)
-            return null;
-
-        // PowerCfg-backed NumericRange settings are exported in SYSTEM units (raw powercfg
-        // reads, e.g. seconds). PowerCfgApplier treats incoming dict/scalar values as DISPLAY
-        // units and converts display→system itself, so we must convert system→display here —
-        // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
-        // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgTarget and pass
-        // through unchanged.
         bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
         string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
+        int Display(int system) => displayUnits is null ? system : RecommendedSettingsResolver.ConvertSystemToDisplayUnits(system, displayUnits);
 
-        var hasAcValue = item.PowerSettings.TryGetValue("ACValue", out var acVal);
-        var hasDcValue = item.PowerSettings.TryGetValue("DCValue", out var dcVal);
-
-        if (hasAcValue || hasDcValue)
+        return ConfigFileMapper.DecodeValue(setting, item) switch
         {
-            return new Dictionary<string, object?>
-            {
-                ["ACValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(acVal), isPowerCfg, displayUnits),
-                ["DCValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(dcVal ?? acVal), isPowerCfg, displayUnits)
-            };
-        }
-
-        if (item.PowerSettings.TryGetValue("Value", out var singleVal))
-        {
-            return ConvertToDisplayIfPowerCfg(UnwrapJsonElement(singleVal), isPowerCfg, displayUnits);
-        }
-
-        return null;
-    }
-
-    private static object? ConvertToDisplayIfPowerCfg(object? value, bool isPowerCfg, string? displayUnits)
-    {
-        if (!isPowerCfg || value == null)
-            return value;
-
-        try
-        {
-            int systemValue = Convert.ToInt32(value);
-            return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(systemValue, displayUnits);
-        }
-        catch
-        {
-            return value;
-        }
-    }
-
-    private static object? UnwrapJsonElement(object? value)
-    {
-        if (value is System.Text.Json.JsonElement je)
-        {
-            return je.ValueKind switch
-            {
-                System.Text.Json.JsonValueKind.Number when je.TryGetInt32(out var i) => i,
-                System.Text.Json.JsonValueKind.Number when je.TryGetInt64(out var l) => l,
-                System.Text.Json.JsonValueKind.Number when je.TryGetDouble(out var d) => d,
-                System.Text.Json.JsonValueKind.String => je.GetString(),
-                System.Text.Json.JsonValueKind.True => true,
-                System.Text.Json.JsonValueKind.False => false,
-                _ => value
-            };
-        }
-        return value;
+            ChoiceValue.AcDcNumber n => new Dictionary<string, object?> { ["ACValue"] = Display(n.Ac), ["DCValue"] = Display(n.Dc) },
+            ChoiceValue.Number n => Display(n.Value),
+            _ => null,
+        };
     }
 
     private enum ApplyStatus

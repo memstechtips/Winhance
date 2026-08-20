@@ -386,8 +386,19 @@
                              IsChecked="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
                              Checked="BuilderAutounattendRadio_Checked"
                              Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                <CheckBox x:Name="BuilderOtherHardwareCheck"
+                          Content="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareText, Mode=OneWay}"
+                          IsChecked="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardware, Mode=OneWay}"
+                          ToolTipService.ToolTip="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareTooltip, Mode=OneWay}"
+                          Checked="BuilderOtherHardwareCheck_Changed"
+                          Unchecked="BuilderOtherHardwareCheck_Changed"
+                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                          VerticalAlignment="Center"
+                          MinWidth="0"/>
             </StackPanel>
 
+            <!-- MinWidth: the label changes with the target ("Save Config" / "Save autounattend.xml") and this
+                 column is Auto, so without it the button resizes and every control to its left shifts. -->
             <Button Grid.Column="5"
                     x:Name="BuilderSaveButton"
                     Click="BuilderSaveButton_Click"
@@ -395,6 +406,8 @@
                     Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                     BorderThickness="0"
                     VerticalAlignment="Center"
+                    MinWidth="200"
+                    HorizontalContentAlignment="Center"
                     Margin="4,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>

@@ -11,16 +11,16 @@ public class SettingLocalizationService : ISettingLocalizationService
 {
     private readonly ILocalizationService _localization;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
-    private readonly IWindowsVersionFilterService _windowsVersionFilter;
+    private readonly ICatalogScopeProvider _scopeProvider;
 
     public SettingLocalizationService(
         ILocalizationService localization,
         ICatalogSettingsRegistry catalogSettingsRegistry,
-        IWindowsVersionFilterService windowsVersionFilter)
+        ICatalogScopeProvider scopeProvider)
     {
         _localization = localization;
         _catalogSettingsRegistry = catalogSettingsRegistry;
-        _windowsVersionFilter = windowsVersionFilter;
+        _scopeProvider = scopeProvider;
     }
 
     public string? BuildCrossGroupInfoMessage(Setting setting)
@@ -39,8 +39,7 @@ public class SettingLocalizationService : ISettingLocalizationService
             {
                 // A null means the id is not in the mode-scoped membership (the skip condition). None of the
                 // authored cross-group child ids is alias-affected, so Normalize is identity here.
-                var childSetting = _catalogSettingsRegistry.GetById(
-                    childSettingId, includeOtherOsVersions: !_windowsVersionFilter.IsFilterEnabled);
+                var childSetting = _catalogSettingsRegistry.GetById(childSettingId, _scopeProvider.Current);
 
                 if (childSetting == null) continue;
 

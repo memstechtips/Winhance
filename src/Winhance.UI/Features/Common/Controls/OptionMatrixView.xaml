@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="Winhance.UI.Features.Common.Controls.OptionMatrixView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -29,6 +29,11 @@
                        IndicatorMode="MouseIndicator"
                        Visibility="Collapsed"
                        Scroll="OnScroll"/>
+
+            <!-- Which other settings each option changes, built in code. Outside the table on purpose:
+                 the chips wrap against the panel's width, so a setting with 32 of them stays readable
+                 in a narrow window instead of running off the end of a row nothing can scroll. -->
+            <StackPanel x:Name="LinksHost"/>
 
             <!-- Scripts and .reg payloads, built in code. Each gets a scroller of its own so a long
                  line is reachable without widening anything above it. -->

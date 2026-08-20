@@ -61,6 +61,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             AcValue = r.AcValue,
             DcValue = r.DcValue,
             Readings = r.Readings,
+            DnsServers = r.DnsServers,
         };
 
         if (catalogSetting.OptionSource is not null)

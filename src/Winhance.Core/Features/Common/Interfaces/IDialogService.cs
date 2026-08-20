@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -18,6 +19,8 @@ public interface IDialogService
     Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode);
 
     Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
+
+    Task<BuilderSeed?> ShowBuilderSeedDialogAsync();
 
     Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest);
 

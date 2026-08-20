@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Selections;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -22,9 +23,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
-    private readonly Dictionary<string, BuilderEdit> _builderEdits = new();
+    private readonly Dictionary<string, SettingChoice> _builderEdits = new();
 
-    // Includes input types that do not yet produce a serializable BuilderEdit; gates the discard prompt.
+    // Includes input types that produce no serializable ChoiceValue; gates the discard prompt.
     private bool _builderDirty;
 
     // Action settings that always need confirmation, even when current matches config
@@ -65,7 +66,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
-    public UnifiedConfigurationFile? ActiveConfig { get; private set; }
+    public WinhanceConfigFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
     public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
     public int ReviewedChanges => _diffs.Values.Count(static d => d.IsReviewed);
@@ -77,7 +78,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? BadgeStateChanged;
     public event EventHandler? ModeChanged;
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
     {
         // Fully tear down whatever mode we're leaving (clears Builder edits / prior review
         // state) before seeding review. Review entry is the one async transition, so it
@@ -176,7 +177,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         IsWindowsDefaults = false;
     }
 
-    public void RecordBuilderEdit(BuilderEdit edit)
+    public void RecordBuilderEdit(SettingChoice edit)
     {
         if (edit == null || string.IsNullOrEmpty(edit.SettingId))
         {
@@ -187,12 +188,12 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _builderDirty = true;
     }
 
-    public IReadOnlyCollection<BuilderEdit> GetBuilderEdits()
+    public IReadOnlyCollection<SettingChoice> GetBuilderEdits()
     {
         return _builderEdits.Values.ToList();
     }
 
-    public BuilderEdit? GetBuilderEdit(string settingId)
+    public SettingChoice? GetBuilderEdit(string settingId)
     {
         if (string.IsNullOrEmpty(settingId))
         {
@@ -367,7 +368,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         return featureDiffs.All(d => d.IsReviewed);
     }
 
-    private void ComputeConfigItemCounts(UnifiedConfigurationFile config)
+    private void ComputeConfigItemCounts(WinhanceConfigFile config)
     {
         int total = 0;
 
@@ -408,7 +409,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         TotalConfigItems = total;
     }
 
-    private async Task ComputeEagerDiffsAsync(UnifiedConfigurationFile config)
+    private async Task ComputeEagerDiffsAsync(WinhanceConfigFile config)
     {
         var onText = _localizationService.GetStringOrDefault("Common_On", "On");
         var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");

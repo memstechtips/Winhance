@@ -46,7 +46,7 @@ public class ConfigLoadService : IConfigLoadService
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
-    public async Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync()
+    public async Task<WinhanceConfigFile?> LoadAndValidateConfigurationFromFileAsync()
     {
         try
         {
@@ -70,7 +70,7 @@ public class ConfigLoadService : IConfigLoadService
             _configImportState.SourceName = Path.GetFileName(filePath);
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
+            var loadedConfig = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
 
             if (loadedConfig == null)
             {
@@ -101,7 +101,7 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    public async Task<UnifiedConfigurationFile?> LoadRecommendedConfigurationAsync()
+    public async Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync()
     {
         try
         {
@@ -125,7 +125,7 @@ public class ConfigLoadService : IConfigLoadService
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
+            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
 
             _logService.Log(LogLevel.Info, "Successfully loaded embedded recommended configuration");
             return config;
@@ -138,7 +138,7 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    public async Task<UnifiedConfigurationFile?> LoadWindowsDefaultsConfigurationAsync()
+    public async Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync()
     {
         try
         {
@@ -165,7 +165,7 @@ public class ConfigLoadService : IConfigLoadService
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
+            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
 
             _logService.Log(LogLevel.Info, "Successfully loaded embedded Windows defaults configuration");
             return config;
@@ -178,7 +178,7 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    public async Task<UnifiedConfigurationFile?> LoadUserBackupConfigurationAsync()
+    public async Task<WinhanceConfigFile?> LoadUserBackupConfigurationAsync()
     {
         try
         {
@@ -238,7 +238,7 @@ public class ConfigLoadService : IConfigLoadService
             _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
+            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
 
             if (config == null)
             {
@@ -259,7 +259,7 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    public List<string> DetectIncompatibleSettings(UnifiedConfigurationFile config)
+    public List<string> DetectIncompatibleSettings(WinhanceConfigFile config)
     {
         var incompatible = new List<string>();
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
@@ -296,7 +296,7 @@ public class ConfigLoadService : IConfigLoadService
         return incompatible;
     }
 
-    public UnifiedConfigurationFile FilterConfigForCurrentSystem(UnifiedConfigurationFile config)
+    public WinhanceConfigFile FilterConfigForCurrentSystem(WinhanceConfigFile config)
     {
         var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
         var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
@@ -304,7 +304,7 @@ public class ConfigLoadService : IConfigLoadService
         var filteredOptimize = FilterFeatureGroup(config.Optimize, buildNumber, buildRevision);
         var filteredCustomize = FilterFeatureGroup(config.Customize, buildNumber, buildRevision);
 
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Version = config.Version,
             Optimize = filteredOptimize,

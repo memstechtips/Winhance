@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -34,8 +34,11 @@ internal sealed record DocsSetting(
     string? AddedInVersion,
     string? UiParentId,
     DocsAvailability Availability,
+    IReadOnlyList<DocsOptionWarning> OptionWarnings,
     OptionMatrix? Matrix,
     OptionMatrix? MatrixWin10);
+
+internal sealed record DocsOptionWarning(string Option, string Text);
 
 internal sealed record DocsIcon(string Pack, string Name);
 
@@ -112,6 +115,7 @@ internal static class DocsCatalogExport
             s.Display.AddedInVersion,
             s.UiParentId,
             Availability(s, loc),
+            OptionWarnings(s, loc),
             win11,
             sameOnBothBuilds ? null : win10);
     }
@@ -122,8 +126,36 @@ internal static class DocsCatalogExport
     // but the builder indexes Snapshot.Options by state index, so skipping would shift every later label.
     private static SettingStateSnapshot Snapshot(Setting s, ILocalizationService loc) => new()
     {
-        Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
+        Options = s.Control == ControlKind.PowerPlan
+            ? PowerPlanOptions(loc)
+            : s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
     };
+
+    // A power plan setting has no States at all - the dropdown is built at runtime from the schemes on the
+    // machine, so on a doc page there is nothing to enumerate. The predefined plans are the part that IS
+    // build-time true: Winhance always offers these five, creating one that isn't installed. No Tag, so
+    // BuildPowerPlanMatrix leaves off its per-machine Status column.
+    private static List<ComboBoxDisplayOption> PowerPlanOptions(ILocalizationService loc) =>
+        PowerPlanCatalog.BuiltInPowerPlans
+            .Select(p => new ComboBoxDisplayOption(Text(loc, p.LocalizationKey, p.Name), p.Guid))
+            .ToList();
+
+    // SettingViewModelFactory.BuildCatalogOptionWarnings, minus the states that carry no warning. The app
+    // raises these as an Error banner under the card, and only ever for a selection: the banner is looked up
+    // by the selected value, which is a state index only for a ComboBox (a Toggle carries a bool, a slider a
+    // number), so a warning authored on any other control kind never surfaces there and must not here either.
+    private static List<DocsOptionWarning> OptionWarnings(Setting s, ILocalizationService loc)
+    {
+        if (s.Control != ControlKind.Selection) return [];
+
+        return s.States
+            .Select((state, i) => (state, i))
+            .Where(x => !string.IsNullOrEmpty(x.state.Warning))
+            .Select(x => new DocsOptionWarning(
+                OptionLabel(s, x.state, x.i, loc),
+                Text(loc, SettingLocalizationKeys.OptionWarning(s, x.i), x.state.Warning!)))
+            .ToList();
+    }
 
     private static string OptionLabel(Setting s, SettingState state, int i, ILocalizationService loc)
     {

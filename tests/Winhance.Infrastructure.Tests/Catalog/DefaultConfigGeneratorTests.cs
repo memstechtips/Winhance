@@ -28,10 +28,10 @@ public class DefaultConfigGeneratorTests
 
             // Version / CreatedAt / the apps sections are carried forward from the file, so a damaged file
             // cannot be regenerated from the catalog alone. Say that, rather than surfacing a raw JsonException.
-            UnifiedConfigurationFile existing;
+            WinhanceConfigFile existing;
             try
             {
-                existing = JsonSerializer.Deserialize<UnifiedConfigurationFile>(
+                existing = JsonSerializer.Deserialize<WinhanceConfigFile>(
                         File.ReadAllText(path), ConfigFileConstants.JsonOptions)
                     ?? throw new InvalidOperationException($"{fileName} deserialized to null.");
             }
@@ -43,7 +43,7 @@ public class DefaultConfigGeneratorTests
                     + $"it and cannot rebuild it from the catalog alone.", ex);
             }
 
-            var generated = new UnifiedConfigurationFile
+            var generated = new WinhanceConfigFile
             {
                 Version = existing.Version,
                 CreatedAt = existing.CreatedAt,

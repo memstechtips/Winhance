@@ -161,7 +161,7 @@ public class RecommendedConfigConformanceTests
     }
 
     // Powercfg SLIDER: BuildPowerCfgApplyValue returns AC/DC in DISPLAY units; the config stores SYSTEM units
-    // (ConfigExportService writes the raw state.AcValue/DcValue). Convert expected display -> system before comparing.
+    // (SettingSnapshotSource captures the raw state.AcValue/DcValue). Convert expected display -> system before comparing.
     private static string? CompareSlider(object expected, ConfigurationItem item, string units)
     {
         if (expected is IReadOnlyDictionary<string, object?> dict)
@@ -201,13 +201,13 @@ public class RecommendedConfigConformanceTests
 
     private static string FmtBool(bool? v) => v.HasValue ? v.Value.ToString() : "<unset>";
 
-    private static UnifiedConfigurationFile LoadRecommendedConfig()
+    private static WinhanceConfigFile LoadRecommendedConfig()
     {
         var path = Path.Combine(
             SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources", "Configs",
             "Winhance_Recommended_Config.winhance");
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions)
+        return JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions)
             ?? throw new InvalidOperationException("Recommended config deserialized to null.");
     }
 

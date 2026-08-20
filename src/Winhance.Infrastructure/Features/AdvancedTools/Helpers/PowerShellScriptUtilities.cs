@@ -17,6 +17,17 @@ internal static class PowerShellScriptUtilities
         return input.Replace("'", "''");
     }
 
+    // For text pasted inside a double-quoted PowerShell string (Write-Log "..."), where a backtick, a double quote and
+    // a dollar sign are all live. A setting description quoting an option name ("Show all icons") used to break the
+    // generated script here.
+    public static string EscapeForDoubleQuotedString(string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return input.Replace("`", "``").Replace("\"", "`\"").Replace("$", "`$");
+    }
+
     public static string ConvertRegistryPath(string registryPath)
     {
         return registryPath
