@@ -747,7 +747,7 @@
   "Setting_updates-store-auto-download_Description": "دانلود و نصب خودکار آپدیت برنامه‌ها از Microsoft Store",
   "Setting_security-bitlocker-auto-encryption_Name": "رمزگذاری خودکار BitLocker",
   "Setting_security-bitlocker-auto-encryption_Description": "کنترل اینکه آیا ویندوز می‌تواند درایوها را به طور خودکار با BitLocker رمزگذاری کند. اگر رمزگذاری BitLocker از قبل روی دستگاه شما فعال باشد تأثیری ندارد",
-  "Setting_security-wifi-sense_Name": "WiFi-Sense",
+  "Setting_security-wifi-sense_Name": "حسگر WiFi",
   "Setting_security-wifi-sense_Description": "اجازه اشتراک‌گذاری رمزهای WiFi با مخاطبین و اتصال خودکار به هات‌اسپات‌های باز پیشنهادی",
   "Setting_security-automatic-maintenance_Name": "نگهداری خودکار",
   "Setting_security-automatic-maintenance_Description": "انتخاب کنید که آیا ویندوز باید وظایف نگهداری خودکار را در زمان بیکاری اجرا کند",
