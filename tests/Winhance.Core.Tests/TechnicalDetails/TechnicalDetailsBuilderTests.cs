@@ -713,6 +713,36 @@ public class TechnicalDetailsBuilderTests
             .AccessibleSummary.Should().NotBeEmpty();
     }
 
+    [Fact]
+    public void OptionLinks_GroupWhatEachOptionChangesUnderThatOption()
+    {
+        // The old flat chip strip deduped Allow's writes against Deny's and hung the survivors off the
+        // setting, so a reader could see 32 chips and still not tell which option caused which.
+        var setting = SettingCatalog.Find("privacy-ads-promotional-master");
+        setting.Should().NotBeNull("the ads master control is the setting this band exists for");
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(), FallbackLoc(), Build));
+
+        matrix.OptionLinks.Should().HaveCount(2, "Allow and Deny each set the other settings; Custom sets none");
+        matrix.OptionLinks.Should().OnlyContain(r => r.Chips.Count > 0, "an option with nothing to say gets no row");
+        matrix.OptionLinks[0].Chips.Should().OnlyContain(c => c.Text.Contains("(Enabled)"));
+        matrix.OptionLinks[1].Chips.Should().OnlyContain(c => c.Text.Contains("(Disabled)"));
+        matrix.OptionLinks.Should().OnlyContain(r => r.Chips.All(c => c.HasLink),
+            "every chip names another setting, so every chip is somewhere to go");
+    }
+
+    [Fact]
+    public void Requirements_HoldOnlyWhatTheSettingItselfDoes()
+    {
+        // What one OPTION changes is not a fact about the setting, and the strip has no room for it:
+        // 32 chips in a horizontal StackPanel drew off the end of the card with nothing able to scroll.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
+            SettingCatalog.Find("privacy-ads-promotional-master"), Snap(), FallbackLoc(), Build));
+
+        matrix.Requirements.Should().NotContain(c => c.HasLink,
+            "a chip pointing at another setting belongs to the option that changes it");
+    }
+
     private static Setting PowerPlanSetting() => new()
     {
         Id = "power-plan-selection",

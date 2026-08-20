@@ -1,4 +1,4 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using FluentIcons.Common;
 using FluentIcons.WinUI;
 using Microsoft.UI.Xaml;
@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Helpers;
+using WrapPanel = CommunityToolkit.WinUI.Controls.WrapPanel;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -96,6 +97,7 @@ public sealed partial class OptionMatrixView : UserControl
             // Cleared here as well as at the top of AddCodeBlocks, which this return never reaches:
             // rebinding from a matrix with scripts to one without left the old scripts on screen.
             CodeHost.Children.Clear();
+            LinksHost.Children.Clear();
             return;
         }
 
@@ -121,7 +123,7 @@ public sealed partial class OptionMatrixView : UserControl
             ? FirstOptionRow + rowsBelowHeaders - 1
             : (HasColumnHeaderRow(matrix) ? ColumnHeaderRow : MechanismRow);
 
-        _gridIsLastElement = !matrix.HasCode;
+        _gridIsLastElement = !matrix.HasCode && !matrix.HasOptionLinks;
 
         AddGroupHeaders(matrix);
         AddColumnHeaders(matrix);
@@ -135,12 +137,68 @@ public sealed partial class OptionMatrixView : UserControl
         if (matrix.HasNotes)
             AddNotes(matrix, FirstOptionRow + matrix.Options.Count + (matrix.HasReading ? 1 : 0));
 
+        AddOptionLinks(matrix);
         AddCodeBlocks(matrix);
     }
 
     // A matrix with no columns still renders when it carries notes, code or requirement chips - the shape of a script-only setting.
     private static bool HasAnythingToShow(OptionMatrix m) =>
-        m.Columns.Count > 0 || m.HasNotes || m.HasCode || m.Requirements.Count > 0;
+        m.Columns.Count > 0 || m.HasNotes || m.HasCode || m.Requirements.Count > 0 || m.HasOptionLinks;
+
+    // Under the grid rather than in it, because these chips WRAP: a horizontal strip inside the setting's
+    // header cell drew privacy-ads-promotional-master's 32 of them in one line and clipped everything past
+    // the fifth with nothing able to scroll to the rest. Out here they wrap against the panel's own width,
+    // and a row per option finally says which option causes which change.
+    private void AddOptionLinks(OptionMatrix matrix)
+    {
+        LinksHost.Children.Clear();
+        if (!matrix.HasOptionLinks) return;
+
+        LinksHost.Children.Add(new Border
+        {
+            Style = Named("TechDetail.Table.HeaderBand"),
+            // No top line: the grid's own last row draws it once _gridIsLastElement is false.
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Child = new TextBlock { Text = matrix.OptionLinksHeading, Style = Named("TechDetail.Table.GroupLabel") },
+        });
+
+        for (int i = 0; i < matrix.OptionLinks.Count; i++)
+        {
+            var links = matrix.OptionLinks[i];
+
+            var chips = new WrapPanel { HorizontalSpacing = 4, VerticalSpacing = 4 };
+            foreach (var chip in links.Chips) chips.Children.Add(Chip(chip));
+            Grid.SetColumn(chips, 1);
+
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition(),
+                },
+            };
+            row.Children.Add(new TextBlock
+            {
+                Text = links.Option,
+                Style = Named("TechDetail.Table.OptionLabel"),
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 2, 12, 0),
+            });
+            row.Children.Add(chips);
+
+            LinksHost.Children.Add(new Border
+            {
+                Style = Named("TechDetail.Table.LinkRow"),
+                // The box's own border closes the last row when nothing follows it; two hairlines a
+                // pixel apart read as a smudge. Code blocks below need it, and their first heading
+                // band deliberately draws no top line of its own.
+                BorderThickness = new Thickness(0, 0, 0,
+                    i == matrix.OptionLinks.Count - 1 && !matrix.HasCode ? 0 : 1),
+                Child = row,
+            });
+        }
+    }
 
     // With neither columns nor options the Option/Role headers would be a band over two empty columns - a table that lost its rows.
     private static bool HasColumnHeaderRow(OptionMatrix m) =>
