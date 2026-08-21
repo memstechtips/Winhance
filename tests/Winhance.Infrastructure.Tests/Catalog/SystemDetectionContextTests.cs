@@ -120,7 +120,7 @@ public class SystemDetectionContextTests
     public async Task PowerCfgValue_serves_ac_and_dc_from_the_batched_read()
     {
         var (ctx, _, _, _, power) = Build();
-        power.Setup(p => p.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT"))
+        power.Setup(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)> { ["set-guid"] = (5, 9) });
         var setting = SettingWith(new PowerCfgTarget("Power", "sub-guid", "set-guid", PowerModeSupport.Both));
 
@@ -134,13 +134,33 @@ public class SystemDetectionContextTests
     public async Task PowerCfgValue_returns_null_when_the_setting_is_absent_from_the_read_set()
     {
         var (ctx, _, _, _, power) = Build();
-        power.Setup(p => p.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT"))
+        power.Setup(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()))
             .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
         var setting = SettingWith(new PowerCfgTarget("Power", "sub-guid", "set-guid", PowerModeSupport.Both));
 
         await ctx.PrefetchAsync(new[] { setting });
 
         Assert.Null(ctx.PowerCfgValue("sub-guid", "set-guid", PowerContext.AC));
+    }
+
+    [Fact]
+    public async Task PrefetchAsync_requests_only_the_batch_s_own_power_targets()
+    {
+        var (ctx, _, _, _, power) = Build();
+        IReadOnlyCollection<(string subgroupGuid, string settingGuid)>? asked = null;
+        power.Setup(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()))
+            .Callback((IReadOnlyCollection<(string subgroupGuid, string settingGuid)> s) => asked = s)
+            .ReturnsAsync(new Dictionary<string, (int? acValue, int? dcValue)>());
+
+        await ctx.PrefetchAsync(new[]
+        {
+            SettingWith(new PowerCfgTarget("Power", "sub-a", "set-a", PowerModeSupport.Both)),
+            SettingWith(new PowerCfgTarget("Power", "sub-b", "set-b", PowerModeSupport.Both)),
+            SettingWith(new PowerCfgTarget("Power", "sub-a", "set-a", PowerModeSupport.Both)),
+        });
+
+        Assert.Equal(new[] { ("sub-a", "set-a"), ("sub-b", "set-b") }, asked);
+        power.Verify(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -179,6 +199,7 @@ public class SystemDetectionContextTests
         await ctx.PrefetchAsync(new[] { SettingWith(new TaskTarget("Task", "\\T")) });
 
         power.Verify(p => p.GetAllPowerSettingsACDCAsync(It.IsAny<string>()), Times.Never);
+        power.Verify(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()), Times.Never);
         power.Verify(p => p.GetActivePowerPlanAsync(), Times.Never);
         power.Verify(p => p.GetAvailablePowerPlansAsync(), Times.Never);
     }

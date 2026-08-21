@@ -1,6 +1,6 @@
+using Windows.Win32.Foundation;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 
@@ -38,14 +38,14 @@ internal class PowerService(
                 {
                     var balancedGuid = Guid.Parse("381b4222-f694-41f0-9685-ff5bb260df2e");
                     var activateResult = powerSchemeOperations.SetActiveScheme(balancedGuid);
-                    if (activateResult == PowerProf.ERROR_SUCCESS)
+                    if (activateResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                     {
                         logService.Log(LogLevel.Info, "[PowerService] Switched to Balanced before deleting corrupt Winhance plan");
                     }
                 }
 
                 var deleteResult = powerSchemeOperations.DeleteScheme(Guid.Parse(winhanceGuid));
-                if (deleteResult == PowerProf.ERROR_SUCCESS)
+                if (deleteResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
                     logService.Log(LogLevel.Info, "[PowerService] Successfully deleted corrupt Winhance plan");
                     powerSettingsQueryService.InvalidateCache();
@@ -105,7 +105,7 @@ internal class PowerService(
             var schemeGuid = Guid.Parse(powerPlanGuid);
             var result = powerSchemeOperations.DeleteScheme(schemeGuid);
 
-            if (result == PowerProf.ERROR_SUCCESS)
+            if (result == (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
                 powerSettingsQueryService.InvalidateCache();
                 logService.Log(LogLevel.Info, $"Successfully deleted power plan: {powerPlanGuid}");

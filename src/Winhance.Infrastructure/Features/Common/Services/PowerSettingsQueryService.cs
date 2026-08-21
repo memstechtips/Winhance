@@ -1,7 +1,9 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
 using System.Runtime.InteropServices;
 
@@ -43,14 +45,16 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
 
             try
             {
+                unsafe
+                {
                 while (true)
                 {
-                    uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, PowerProf.ACCESS_SCHEME, index, buffer, ref bufferSize);
+                    var ret = PInvoke.PowerEnumerate(null, null, null, POWER_DATA_ACCESSOR.ACCESS_SCHEME, index, (byte*)buffer, ref bufferSize);
                     
-                    if (ret == PowerProf.ERROR_NO_MORE_ITEMS)
+                    if (ret == WIN32_ERROR.ERROR_NO_MORE_ITEMS)
                         break;
 
-                    if (ret == PowerProf.ERROR_SUCCESS)
+                    if (ret == WIN32_ERROR.ERROR_SUCCESS)
                     {
                         var guidBytes = new byte[16];
                         Marshal.Copy(buffer, guidBytes, 0, 16);
@@ -68,6 +72,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                     }
                     index++;
                     bufferSize = 16; // Reset for next call
+                }
                 }
             }
             finally
@@ -94,40 +99,39 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         }
     }
 
-    private Guid GetActivePowerSchemeGuid()
+    private unsafe Guid GetActivePowerSchemeGuid()
     {
-        IntPtr ptr = IntPtr.Zero;
+        Guid* active = null;
         try
         {
-            uint ret = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out ptr);
-            if (ret == PowerProf.ERROR_SUCCESS && ptr != IntPtr.Zero)
+            if (PInvoke.PowerGetActiveScheme(null, out active) == WIN32_ERROR.ERROR_SUCCESS && active is not null)
             {
-                return Marshal.PtrToStructure<Guid>(ptr);
+                return *active;
             }
             return Guid.Empty;
         }
         finally
         {
-            if (ptr != IntPtr.Zero)
+            if (active is not null)
             {
-                PowerProf.LocalFree(ptr);
+                PInvoke.LocalFree((HLOCAL)(IntPtr)active);
             }
         }
     }
 
-    private string GetPowerPlanName(Guid schemeGuid)
+    private unsafe string GetPowerPlanName(Guid schemeGuid)
     {
         uint bufferSize = 0;
         // First call to get size
-        _ = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
+        _ = PInvoke.PowerReadFriendlyName(null, schemeGuid, null, null, null, ref bufferSize);
 
         if (bufferSize == 0) return "Unknown Power Plan";
 
         IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
         try
         {
-            uint ret = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, buffer, ref bufferSize);
-            if (ret == PowerProf.ERROR_SUCCESS)
+            var ret = PInvoke.PowerReadFriendlyName(null, schemeGuid, null, null, (byte*)buffer, ref bufferSize);
+            if (ret == WIN32_ERROR.ERROR_SUCCESS)
             {
                 return Marshal.PtrToStringUni(buffer) ?? "Unknown Power Plan";
             }
@@ -188,10 +192,10 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                 uint acIndex, dcIndex;
                 int? ac = null, dc = null;
 
-                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
                     ac = (int)acIndex;
 
-                if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
                     dc = (int)dcIndex;
 
                 return (ac, dc);
@@ -204,13 +208,59 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         }
     }
 
+    // Reads only what the caller asked for: two native calls per setting against one scheme lookup, where
+    // GetAllPowerSettingsACDCAsync below costs ~225 PowerEnumerate + ~400 PowerRead* no matter how small the
+    // batch. Keyed and filtered identically to it, so a caller can swap between the two.
+    public async Task<Dictionary<string, (int? acValue, int? dcValue)>> GetPowerSettingsACDCAsync(IReadOnlyCollection<(string subgroupGuid, string settingGuid)> settings)
+    {
+        try
+        {
+            return await Task.Run(() =>
+            {
+                var results = new Dictionary<string, (int? acValue, int? dcValue)>(StringComparer.OrdinalIgnoreCase);
+
+                var schemeGuid = GetActivePowerSchemeGuid();
+                if (schemeGuid == Guid.Empty) return results;
+
+                foreach (var (subgroup, setting) in settings)
+                {
+                    if (!Guid.TryParse(subgroup, out var subGuid) || !Guid.TryParse(setting, out var setGuid))
+                        continue;
+
+                    uint acIndex, dcIndex;
+                    int? ac = null, dc = null;
+
+                    if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
+                        ac = (int)acIndex;
+
+                    if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
+                        dc = (int)dcIndex;
+
+                    // Omitted rather than stored as (null, null): absent from the map is how a caller reads
+                    // "this setting does not exist on this machine", the same contract the full walk has.
+                    if (ac.HasValue || dc.HasValue)
+                        results[setGuid.ToString()] = (ac, dc);
+                }
+
+                return results;
+            }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"Error in GetPowerSettingsACDCAsync: {ex.Message}");
+            return new Dictionary<string, (int?, int?)>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     public async Task<Dictionary<string, (int? acValue, int? dcValue)>> GetAllPowerSettingsACDCAsync(string powerPlanGuid = "SCHEME_CURRENT")
     {
         try
         {
             return await Task.Run(() =>
             {
-                var results = new Dictionary<string, (int? acValue, int? dcValue)>();
+                // OrdinalIgnoreCase because two paths now fill this map and catalog GUIDs are authored as
+                // strings, while the walk keys on Guid.ToString().
+                var results = new Dictionary<string, (int? acValue, int? dcValue)>(StringComparer.OrdinalIgnoreCase);
 
                 Guid schemeGuid;
                 if (string.Equals(powerPlanGuid, "SCHEME_CURRENT", StringComparison.OrdinalIgnoreCase))
@@ -230,11 +280,13 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
 
                 try
                 {
+                    unsafe
+                    {
                     while (true)
                     {
-                        uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, PowerProf.ACCESS_SUBGROUP, subIndex, buffer, ref bufferSize);
-                        if (ret == PowerProf.ERROR_NO_MORE_ITEMS) break;
-                        if (ret == PowerProf.ERROR_SUCCESS)
+                        var ret = PInvoke.PowerEnumerate(null, schemeGuid, null, POWER_DATA_ACCESSOR.ACCESS_SUBGROUP, subIndex, (byte*)buffer, ref bufferSize);
+                        if (ret == WIN32_ERROR.ERROR_NO_MORE_ITEMS) break;
+                        if (ret == WIN32_ERROR.ERROR_SUCCESS)
                         {
                             var subBytes = new byte[16];
                             Marshal.Copy(buffer, subBytes, 0, 16);
@@ -248,9 +300,9 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                             {
                                 while (true)
                                 {
-                                    uint setRet = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, ref subGuid, PowerProf.ACCESS_INDIVIDUAL_SETTING, setIndex, setBuffer, ref setBufferSize);
-                                    if (setRet == PowerProf.ERROR_NO_MORE_ITEMS) break;
-                                    if (setRet == PowerProf.ERROR_SUCCESS)
+                                    var setRet = PInvoke.PowerEnumerate(null, schemeGuid, subGuid, POWER_DATA_ACCESSOR.ACCESS_INDIVIDUAL_SETTING, setIndex, (byte*)setBuffer, ref setBufferSize);
+                                    if (setRet == WIN32_ERROR.ERROR_NO_MORE_ITEMS) break;
+                                    if (setRet == WIN32_ERROR.ERROR_SUCCESS)
                                     {
                                         var setBytes = new byte[16];
                                         Marshal.Copy(setBuffer, setBytes, 0, 16);
@@ -259,10 +311,10 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                                         uint acIndex, dcIndex;
                                         int? ac = null, dc = null;
 
-                                        if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
+                                        if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
                                             ac = (int)acIndex;
 
-                                        if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
+                                        if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
                                             dc = (int)dcIndex;
 
                                         if (ac.HasValue || dc.HasValue)
@@ -282,6 +334,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                         subIndex++;
                         bufferSize = 16;
                     }
+                    }
                 }
                 finally
                 {
@@ -294,7 +347,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"Error in GetAllPowerSettingsACDCAsync: {ex.Message}");
-            return new Dictionary<string, (int?, int?)>();
+            return new Dictionary<string, (int?, int?)>(StringComparer.OrdinalIgnoreCase);
         }
     }
 
@@ -320,10 +373,10 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
 
                 int? min = null, max = null;
 
-                if (PowerProf.PowerReadValueMin(IntPtr.Zero, ref subGuid, ref setGuid, out uint minVal) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadValueMin(null, subGuid, setGuid, out uint minVal) == WIN32_ERROR.ERROR_SUCCESS)
                     min = (int)minVal;
 
-                if (PowerProf.PowerReadValueMax(IntPtr.Zero, ref subGuid, ref setGuid, out uint maxVal) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadValueMax(null, subGuid, setGuid, out uint maxVal) == WIN32_ERROR.ERROR_SUCCESS)
                     max = (int)maxVal;
 
                 return (min, max);

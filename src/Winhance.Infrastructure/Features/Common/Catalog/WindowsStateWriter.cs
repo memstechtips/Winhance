@@ -1,8 +1,9 @@
 using System.Runtime.Versioning;
+using Windows.Win32;
+using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
@@ -138,7 +139,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         // native P/Invoke already lives and is exercised by the powercfg apply-smoke.
         _powerCfg.WriteValueIndex(target, context, value);
 
-    public bool RunEffect(Effect effect)
+    public unsafe bool RunEffect(Effect effect)
     {
         // Routed to IAsyncEffectRunner instead; arriving here is a routing bug, and the permissive
         // default below would hide it as a success.
@@ -154,7 +155,8 @@ internal sealed class WindowsStateWriter : IStateWriter
             case NativePowerEffect n:
                 // CallNtPowerInformation (e.g. the hibernate toggle); status 0 is success.
                 byte value = n.Value;
-                return PowerProf.CallNtPowerInformation(n.InformationLevel, ref value, 1, IntPtr.Zero, 0) == 0;
+                return PInvoke.CallNtPowerInformation(
+                    (POWER_INFORMATION_LEVEL)n.InformationLevel, &value, 1, null, 0) == 0;
 
             case RegistryWriteEffect w:
                 if (!_reg.CreateKey(w.Path))

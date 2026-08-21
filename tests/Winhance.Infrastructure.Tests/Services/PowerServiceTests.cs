@@ -1,9 +1,9 @@
 using FluentAssertions;
+using Windows.Win32.Foundation;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
@@ -140,11 +140,11 @@ public class PowerServiceTests
 
         _powerSchemeOperations
             .Setup(s => s.SetActiveScheme(Guid.Parse(balancedGuid)))
-            .Returns(PowerProf.ERROR_SUCCESS);
+            .Returns((uint)WIN32_ERROR.ERROR_SUCCESS);
 
         _powerSchemeOperations
             .Setup(s => s.DeleteScheme(Guid.Parse(winhanceGuid)))
-            .Returns(PowerProf.ERROR_SUCCESS);
+            .Returns((uint)WIN32_ERROR.ERROR_SUCCESS);
 
         await _sut.CleanupCorruptWinhancePlanAsync();
 

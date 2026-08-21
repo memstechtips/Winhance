@@ -143,11 +143,7 @@ public class SettingsLoadingService : ISettingsLoadingService
             Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
         _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-        // PERF-TRACE (temporary, 2026-08-20): remove with the commit that added it.
-        var traceStart = System.Diagnostics.Stopwatch.GetTimestamp();
-        var traceThreadIn = Environment.CurrentManagedThreadId;
         var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
-        var traceStated = System.Diagnostics.Stopwatch.GetTimestamp();
 
         var liveBuild = LiveBuild();
 
@@ -177,10 +173,6 @@ public class SettingsLoadingService : ISettingsLoadingService
             viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
             settingViewModels.Add(viewModel);
         }
-
-        var traceBuilt = System.Diagnostics.Stopwatch.GetTimestamp();
-        long freq = System.Diagnostics.Stopwatch.Frequency;
-        _logService.Log(LogLevel.Info, $"PERF-TRACE load '{featureModuleId}' n={settingsList.Count} states={(traceStated - traceStart) * 1000 / freq}ms create={(traceBuilt - traceStated) * 1000 / freq}ms threadIn={traceThreadIn} threadOut={Environment.CurrentManagedThreadId}");
 
         return settingViewModels;
     }

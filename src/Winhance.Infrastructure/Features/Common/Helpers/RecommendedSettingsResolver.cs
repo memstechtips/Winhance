@@ -177,7 +177,7 @@ internal static class RecommendedSettingsResolver
     }
 
     // The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created plan via
-    // PowerProf.PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
+    // PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
     // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC
     // fall back to each other.
     internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)

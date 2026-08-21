@@ -1,10 +1,10 @@
-using System.Text.RegularExpressions;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
@@ -16,9 +16,13 @@ internal class PowerPlanActivationService(
     IPowerSettingsQueryService powerSettingsQueryService,
     IPowerSchemeOperations powerSchemeOperations,
     IProcessExecutor processExecutor,
+    IPowerCfgApplier powerCfgApplier,
     IFileSystemService fileSystemService,
     ICatalogSettingsRegistry catalogSettingsRegistry) : IPowerPlanActivationService
 {
+    // A custom plan is duplicated from Balanced, the one scheme every Windows install ships with.
+    private const string BalancedSchemeGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+
     private volatile IReadOnlyList<Setting>? _cachedSettings;
     private readonly object _cacheLock = new object();
 
@@ -70,21 +74,21 @@ internal class PowerPlanActivationService(
                 // Clean up any ghost/corrupt plan entry that may block duplication with this GUID
                 var targetGuid = Guid.Parse(powerPlanGuid);
                 var cleanupResult = powerSchemeOperations.DeleteScheme(targetGuid);
-                if (cleanupResult == PowerProf.ERROR_SUCCESS)
+                if (cleanupResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
                     logService.Log(LogLevel.Info, $"[PowerService] Cleaned up ghost plan entry with GUID {powerPlanGuid}");
                 }
 
-                // Use powercfg for specific-GUID duplication (P/Invoke doesn't support destination GUID)
-                var (dupSuccess, dupOutput) = await RunPowercfgAsync($"/duplicatescheme 381b4222-f694-41f0-9685-ff5bb260df2e {powerPlanGuid}").ConfigureAwait(false);
+                var dupRc = powerSchemeOperations.DuplicateScheme(
+                    Guid.Parse(BalancedSchemeGuid), Guid.Parse(powerPlanGuid), out var createdGuid);
 
-                if (dupSuccess)
+                if (dupRc == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
-                    // Parse the actual GUID — powercfg may assign a different one
-                    var actualGuid = ParseGuidFromPowercfgOutput(dupOutput) ?? powerPlanGuid;
+                    // The API may hand back a different GUID than the one asked for, so the created one wins.
+                    var actualGuid = createdGuid.ToString("D");
                     if (!string.Equals(actualGuid, powerPlanGuid, StringComparison.OrdinalIgnoreCase))
                     {
-                        logService.Log(LogLevel.Warning, $"[PowerService] powercfg assigned GUID {actualGuid} instead of requested {powerPlanGuid}");
+                        logService.Log(LogLevel.Warning, $"[PowerService] Windows assigned GUID {actualGuid} instead of requested {powerPlanGuid}");
                     }
 
                     SetPowerPlanName(Guid.Parse(actualGuid), planName);
@@ -97,7 +101,7 @@ internal class PowerPlanActivationService(
                 }
                 else
                 {
-                    logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan '{planName}' with GUID {powerPlanGuid}");
+                    logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan '{planName}' with GUID {powerPlanGuid} (rc={dupRc})");
                     return (false, powerPlanGuid);
                 }
             }
@@ -124,7 +128,7 @@ internal class PowerPlanActivationService(
             var schemeGuid = Guid.Parse(powerPlanGuid);
             var result = powerSchemeOperations.SetActiveScheme(schemeGuid);
 
-            if (result == PowerProf.ERROR_SUCCESS)
+            if (result == (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
                 powerSettingsQueryService.InvalidateCache();
                 return true;
@@ -162,9 +166,9 @@ internal class PowerPlanActivationService(
                 }
 
                 var sourceGuid = Guid.Parse(predefinedPlan.Guid);
-                var dupResult = powerSchemeOperations.DuplicateScheme(sourceGuid, out var newGuid);
+                var dupResult = powerSchemeOperations.DuplicateScheme(sourceGuid, null, out var newGuid);
 
-                if (dupResult == PowerProf.ERROR_SUCCESS)
+                if (dupResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
                     powerSettingsQueryService.InvalidateCache();
 
@@ -193,9 +197,9 @@ internal class PowerPlanActivationService(
 
                 logService.Log(LogLevel.Info, $"Attempting to duplicate power plan '{predefinedPlan.Name}' using GUID {predefinedPlan.Guid}");
                 var srcGuid = Guid.Parse(predefinedPlan.Guid);
-                var duplicateResult = powerSchemeOperations.DuplicateScheme(srcGuid, out var dupNewGuid);
+                var duplicateResult = powerSchemeOperations.DuplicateScheme(srcGuid, null, out var dupNewGuid);
 
-                if (duplicateResult == PowerProf.ERROR_SUCCESS)
+                if (duplicateResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
                     powerSettingsQueryService.InvalidateCache();
 
@@ -246,7 +250,7 @@ internal class PowerPlanActivationService(
             // that may block duplication with this GUID
             var winhanceGuid = Guid.Parse(predefinedPlan.Guid);
             var cleanupResult = powerSchemeOperations.DeleteScheme(winhanceGuid);
-            if (cleanupResult == PowerProf.ERROR_SUCCESS)
+            if (cleanupResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
                 logService.Log(LogLevel.Info, existingPlan != null
                     ? $"[PowerService] Deleted corrupt Winhance plan (name was: '{existingPlan.Name}')"
@@ -256,20 +260,20 @@ internal class PowerPlanActivationService(
 
             logService.Log(LogLevel.Info, "Creating Winhance Power Plan from Ultimate Performance");
 
-            // Use powercfg for specific-GUID duplication (P/Invoke doesn't support destination GUID)
-            var (dupSuccess, dupOutput) = await RunPowercfgAsync($"/duplicatescheme {ultimatePerformancePlan.Guid} {predefinedPlan.Guid}").ConfigureAwait(false);
+            var dupRc = powerSchemeOperations.DuplicateScheme(
+                Guid.Parse(ultimatePerformancePlan.Guid), Guid.Parse(predefinedPlan.Guid), out var createdGuid);
 
-            if (!dupSuccess)
+            if (dupRc != (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
-                logService.Log(LogLevel.Error, "Failed to duplicate plan for Winhance Power Plan");
+                logService.Log(LogLevel.Error, $"Failed to duplicate plan for Winhance Power Plan (rc={dupRc})");
                 return new PowerPlanImportResult(false, "", "Failed to create plan");
             }
 
-            // Parse the actual GUID from powercfg output — it may differ from the requested one
-            var actualGuid = ParseGuidFromPowercfgOutput(dupOutput) ?? predefinedPlan.Guid;
+            // The API may hand back a different GUID than the one asked for, so the created one wins.
+            var actualGuid = createdGuid.ToString("D");
             if (!string.Equals(actualGuid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase))
             {
-                logService.Log(LogLevel.Warning, $"[PowerService] powercfg assigned GUID {actualGuid} instead of requested {predefinedPlan.Guid}");
+                logService.Log(LogLevel.Warning, $"[PowerService] Windows assigned GUID {actualGuid} instead of requested {predefinedPlan.Guid}");
             }
 
             SetPowerPlanNameAndDescription(Guid.Parse(actualGuid), predefinedPlan.Name, predefinedPlan.Description);
@@ -296,8 +300,8 @@ internal class PowerPlanActivationService(
         {
             await BackupCustomPlansAsync(backupDir).ConfigureAwait(false);
 
-            var restoreResult = PowerProf.PowerRestoreDefaultPowerSchemes();
-            if (restoreResult != PowerProf.ERROR_SUCCESS)
+            var restoreResult = (uint)PInvoke.PowerRestoreDefaultPowerSchemes();
+            if (restoreResult != (uint)WIN32_ERROR.ERROR_SUCCESS)
                 return new PowerPlanImportResult(false, "", "Failed to restore default schemes");
 
             await Task.Delay(1000).ConfigureAwait(false);
@@ -349,12 +353,19 @@ internal class PowerPlanActivationService(
         var backupFiles = fileSystemService.GetFiles(backupFolder, "*.pow");
         foreach (var file in backupFiles)
         {
-            var importResult = PowerProf.PowerImportPowerScheme(IntPtr.Zero, file, out var importedPtr);
-            if (importResult == PowerProf.ERROR_SUCCESS)
-            {
-                PowerProf.LocalFree(importedPtr);
-            }
+            ImportScheme(file);
             await Task.Delay(200).ConfigureAwait(false);
+        }
+    }
+
+    // The API allocates the imported scheme's GUID; nothing here needs it, so it is freed immediately.
+    private static unsafe void ImportScheme(string file)
+    {
+        Guid* imported = null;
+        if (PInvoke.PowerImportPowerScheme(null, file, ref imported) == WIN32_ERROR.ERROR_SUCCESS
+            && imported is not null)
+        {
+            PInvoke.LocalFree((HLOCAL)(IntPtr)imported);
         }
     }
 
@@ -404,14 +415,13 @@ internal class PowerPlanActivationService(
                     logService.Log(LogLevel.Debug, $"Applying {setting.Id} - AC: {w.Ac}, DC: {w.Dc}");
 
                     var planSchemeGuid = Guid.Parse(planGuid);
-                    var subgroupGuid = Guid.Parse(w.SubgroupGuid);
-                    var settGuid = Guid.Parse(w.SettingGuid);
+                    var target = new PowerCfgTarget("Power", w.SubgroupGuid, w.SettingGuid, PowerModeSupport.Separate);
 
-                    var acRc = PowerProf.PowerWriteACValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Ac);
-                    var dcRc = PowerProf.PowerWriteDCValueIndex(IntPtr.Zero, ref planSchemeGuid, ref subgroupGuid, ref settGuid, (uint)w.Dc);
-                    if (acRc != PowerProf.ERROR_SUCCESS || dcRc != PowerProf.ERROR_SUCCESS)
+                    bool ac = powerCfgApplier.WriteValueIndex(target, PowerContext.AC, w.Ac, planSchemeGuid);
+                    bool dc = powerCfgApplier.WriteValueIndex(target, PowerContext.DC, w.Dc, planSchemeGuid);
+                    if (!ac || !dc)
                     {
-                        logService.Log(LogLevel.Warning, $"Recommended setting '{setting.Id}' did not fully apply (AC rc={acRc}, DC rc={dcRc})");
+                        logService.Log(LogLevel.Warning, $"Recommended setting '{setting.Id}' did not fully apply to the new plan");
                         continue;
                     }
 
@@ -447,14 +457,6 @@ internal class PowerPlanActivationService(
     }
 
     // Expected format: "Power Scheme GUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (Name)".
-    private static string? ParseGuidFromPowercfgOutput(string output)
-    {
-        if (string.IsNullOrWhiteSpace(output)) return null;
-
-        var match = Regex.Match(output, @"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})");
-        return match.Success ? match.Groups[1].Value : null;
-    }
-
     private async Task<(bool Success, string Output)> RunPowercfgAsync(string arguments, bool useCmd = false)
     {
         try

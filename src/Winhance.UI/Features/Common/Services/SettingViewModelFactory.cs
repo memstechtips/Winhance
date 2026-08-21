@@ -82,6 +82,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _newBadgeService,
             _viewModelDeps.ApplicationModeService);
 
+        viewModel.RecordKnownState(currentState);
         viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
         viewModel.CompatibilityMessage = compatibilityMessage;
 

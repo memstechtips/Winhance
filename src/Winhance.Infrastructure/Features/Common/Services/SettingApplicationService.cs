@@ -26,6 +26,7 @@ internal class SettingApplicationService(
     IWindowsVersionService windowsVersionService,
     ICatalogDetectionService catalogDetection,
     ICatalogSettingStateProvider settingStateProvider,
+    IPowerSettingsQueryService powerSettingsQueryService,
     IConfigImportState configImportState) : ISettingApplicationService
 {
     private WinBuild CurrentBuild()
@@ -127,8 +128,14 @@ internal class SettingApplicationService(
                 // The full-state provider reads the complete before-state incl. the typed AC/DC, consistent with
                 // the after-state and the live UI. A genuinely unpaired setting returns Success=false here, leaving
                 // beforeDisplay null - a cosmetic change-history gap that cannot arise for a real setting.
-                var states = await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false);
-                if (renderSetting != null && states.TryGetValue(settingId, out var state) && state.Success)
+                var state = request.BeforeState;
+                if (state is null)
+                {
+                    var states = await settingStateProvider.GetStatesAsync(new[] { setting }).ConfigureAwait(false);
+                    states.TryGetValue(settingId, out state);
+                }
+
+                if (renderSetting != null && state is { Success: true })
                 {
                     beforeDisplay = FormatBeforeDisplay(renderSetting, state, hasBattery);
                 }
@@ -137,6 +144,16 @@ internal class SettingApplicationService(
             {
                 logService.Log(LogLevel.Debug, $"[SettingApplicationService] Change-history before-state read failed for '{settingId}': {ex.Message}");
             }
+        }
+
+        // The recommended stamp belongs to CREATING the Winhance plan, not to selecting it. Read before the
+        // apply, because the apply is what creates it - afterwards the plan always exists. Switching between
+        // existing plans must leave each plan's own stored values alone, the way Windows plans behave.
+        bool winhancePlanIsNew = false;
+        if (settingId == SettingIds.PowerPlanSelection && IsWinhancePowerPlanValue(value))
+        {
+            var existingPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
+            winhancePlanIsNew = !existingPlans.Any(p => PowerPlanCatalog.IsWinhancePowerPlan(p.Guid, p.Name));
         }
 
         var specialHandler = specialHandlerRegistry.TryGet(settingId);
@@ -194,13 +211,15 @@ internal class SettingApplicationService(
         // have succeeded and listeners need to re-read actual system state.
         eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
 
-        // After a SUCCESSFUL switch TO the Winhance plan (resolver -> PowerPlanActivateOp -> writer), re-apply
-        // the recommended power settings for the feature - the same machinery the Action-recommended branch
-        // uses. ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot loop on power-plan.
-        // Skipped during a config import that supplies its own individual power values (the import is the
-        // source of truth).
+        // Stamp the recommended power settings into the Winhance plan the FIRST time it is created (resolver
+        // -> PowerPlanActivateOp -> writer creates it), never on a later switch back to it - re-stamping would
+        // silently revert any adjustment the user made while on that plan. Same machinery as the
+        // Action-recommended branch; ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot
+        // loop on power-plan. Skipped during a config import that supplies its own individual power values (the
+        // import is the source of truth).
         if (settingId == SettingIds.PowerPlanSelection
             && operationResult.Success
+            && winhancePlanIsNew
             && IsWinhancePowerPlanValue(value)
             && !(configImportState.IsActive && configImportState.ImportSuppliesPowerValues))
         {

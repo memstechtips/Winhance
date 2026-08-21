@@ -1274,6 +1274,45 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
+    public void AcDcNumericInput_RepeatingTheDisplayedValue_DoesNotWrite()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-rebind", recAc: 50, recDc: 25, defAc: 0, defDc: 0)));
+        sut.AcNumericValue = 10;
+        sut.DcNumericValue = 20;
+
+        // What the NumberBox raises when its binding re-pushes the value it already holds - which is what
+        // revealing the DC input does. Builder mode recorded these as edits the user never made.
+        sut.AcNumericInputChanged(10);
+        sut.DcNumericInputChanged(20);
+
+        _mockSettingApplicationService.Verify(
+            s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public void AcDcNumericInput_ANewValue_StillWrites()
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-edit", recAc: 50, recDc: 25, defAc: 0, defDc: 0)));
+        sut.AcNumericValue = 10;
+        sut.DcNumericValue = 20;
+
+        sut.AcNumericInputChanged(35);
+
+        sut.AcNumericValue.Should().Be(35);
+        _mockSettingApplicationService.Verify(
+            s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "acdc-edit")),
+            Times.Once);
+    }
+
+    [Fact]
     public void SetAcNumericToRecommendedCommand_PowerCfgSeparate_OnlySetsAcValue()
     {
         _mockSettingApplicationService

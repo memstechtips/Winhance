@@ -10,6 +10,7 @@ internal class RecommendedSettingsApplier(
     ICatalogSettingsRegistry catalogSettingsRegistry,
     IWindowsVersionService versionService,
     IProcessRestartManager processRestartManager,
+    IPowerCfgApplier powerCfgApplier,
     ILogService logService) : IRecommendedSettingsApplier
 {
     public async Task<IReadOnlyList<Setting>> ApplyRecommendedToSettingsAsync(
@@ -17,6 +18,10 @@ internal class RecommendedSettingsApplier(
         ISettingApplicationService apply,
         IProgress<TaskProgressDetail>? progress = null)
     {
+        // A feature's worth of powercfg settings is one logical change, and re-activating the scheme
+        // after each write costs ~80ms apiece. One commit at the end covers all of them.
+        using var powerBatch = powerCfgApplier.BeginBatch();
+
         var appliedForRestart = new List<Setting>(settings.Count);
         int total = settings.Count;
         var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());

@@ -1,7 +1,8 @@
 using System.Management;
+using Windows.Win32;
+using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -12,11 +13,13 @@ internal class HardwareDetectionService : IHardwareDetectionService
     // ExecutionAndPublication so a second caller arriving mid-query waits rather than starting its own
     // WMI round trip.
     private readonly Lazy<bool?> _hasBattery;
+    private readonly Lazy<bool> _supportsHybridSleep;
 
     public HardwareDetectionService(ILogService logService)
     {
         _logService = logService;
         _hasBattery = new Lazy<bool?>(QueryHasBattery, LazyThreadSafetyMode.ExecutionAndPublication);
+        _supportsHybridSleep = new Lazy<bool>(QuerySupportsHybridSleep, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public bool? HasBattery() => _hasBattery.Value;
@@ -37,11 +40,13 @@ internal class HardwareDetectionService : IHardwareDetectionService
         }
     }
 
-    public bool SupportsHybridSleep()
+    public bool SupportsHybridSleep() => _supportsHybridSleep.Value;
+
+    private bool QuerySupportsHybridSleep()
     {
         try
         {
-            if (!PowerProf.GetPwrCapabilities(out var caps))
+            if (!PInvoke.GetPwrCapabilities(out SYSTEM_POWER_CAPABILITIES caps))
             {
                 _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
                 return false;

@@ -1,47 +1,46 @@
-using System.Runtime.InteropServices;
+using System.Text;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 internal class PowerSchemeOperations : IPowerSchemeOperations
 {
-    public uint DeleteScheme(Guid schemeGuid)
+    public uint DeleteScheme(Guid schemeGuid) =>
+        (uint)PInvoke.PowerDeleteScheme(null, schemeGuid);
+
+    public unsafe uint DuplicateScheme(Guid sourceGuid, Guid? desiredGuid, out Guid destinationGuid)
     {
-        return PowerProf.PowerDeleteScheme(IntPtr.Zero, ref schemeGuid);
+        // DestinationSchemeGuid is a GUID**: pointing it at our own GUID asks for that GUID, leaving it
+        // null asks the API to allocate one. Whichever happened, the answer is read back from the same
+        // slot afterwards - the API is free to hand back a different GUID and the caller must know.
+        Guid wanted = desiredGuid ?? Guid.Empty;
+        Guid* slot = desiredGuid.HasValue ? &wanted : null;
+
+        var result = PInvoke.PowerDuplicateScheme(null, sourceGuid, ref slot);
+
+        destinationGuid = result == WIN32_ERROR.ERROR_SUCCESS && slot is not null
+            ? *slot
+            : Guid.Empty;
+
+        // Only free what the API allocated; our own GUID lives on the stack.
+        if (slot is not null && slot != &wanted)
+            PInvoke.LocalFree((HLOCAL)(IntPtr)slot);
+
+        return (uint)result;
     }
 
-    public uint DuplicateScheme(Guid sourceGuid, out Guid destinationGuid)
-    {
-        var result = PowerProf.PowerDuplicateScheme(IntPtr.Zero, ref sourceGuid, out var destPtr);
-        if (result == PowerProf.ERROR_SUCCESS)
-        {
-            destinationGuid = Marshal.PtrToStructure<Guid>(destPtr);
-            PowerProf.LocalFree(destPtr);
-        }
-        else
-        {
-            destinationGuid = Guid.Empty;
-        }
-        return result;
-    }
+    public uint SetActiveScheme(Guid schemeGuid) =>
+        (uint)PInvoke.PowerSetActiveScheme(null, schemeGuid);
 
-    public uint SetActiveScheme(Guid schemeGuid)
-    {
-        return PowerProf.PowerSetActiveScheme(IntPtr.Zero, ref schemeGuid);
-    }
+    public uint WriteFriendlyName(Guid schemeGuid, string name) =>
+        (uint)PInvoke.PowerWriteFriendlyName(null, schemeGuid, null, null, NullTerminated(name));
 
-    public uint WriteFriendlyName(Guid schemeGuid, string name)
-    {
-        var nameBytes = (uint)(name.Length * 2 + 2);
-        return PowerProf.PowerWriteFriendlyName(
-            IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, name, nameBytes);
-    }
+    public uint WriteDescription(Guid schemeGuid, string description) =>
+        (uint)PInvoke.PowerWriteDescription(null, schemeGuid, null, null, NullTerminated(description));
 
-    public uint WriteDescription(Guid schemeGuid, string description)
-    {
-        var descBytes = (uint)(description.Length * 2 + 2);
-        return PowerProf.PowerWriteDescription(
-            IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, description, descBytes);
-    }
+    // The API takes a byte buffer sized in bytes, and Windows expects the trailing NUL to be part of it.
+    private static ReadOnlySpan<byte> NullTerminated(string value) =>
+        Encoding.Unicode.GetBytes(value + "\0");
 }

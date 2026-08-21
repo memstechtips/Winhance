@@ -32,17 +32,20 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 
         var detected = await _detection.DetectAsync(detectionInput).ConfigureAwait(false);
 
+        // GetWindowsBuildRevision opens a registry key on every call, so read the build once for the batch.
+        var build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
+
         var results = new Dictionary<string, SettingStateResult>();
         foreach (var setting in settings)
         {
             var r = detected.TryGetValue(setting.Id, out var dr) ? dr : null;
-            results[setting.Id] = Map(setting, r);
+            results[setting.Id] = Map(setting, r, build);
         }
 
         return results;
     }
 
-    private SettingStateResult Map(Setting catalogSetting, CatalogDetectionResult? r)
+    private SettingStateResult Map(Setting catalogSetting, CatalogDetectionResult? r, WinBuild build)
     {
         if (r is null)
         {
@@ -57,7 +60,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         {
             Success = true,
             ErrorMessage = null,
-            IsEnabled = DeriveIsEnabled(catalogSetting, r, new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision())),
+            IsEnabled = DeriveIsEnabled(catalogSetting, r, build),
             AcValue = r.AcValue,
             DcValue = r.DcValue,
             Readings = r.Readings,

@@ -3,6 +3,8 @@
         <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- CsWin32's generated power bindings use pointers (GUID**, byte*), as the real API does. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +16,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+
+    <!-- Win32 Interop - P/Invoke generated from Microsoft's Win32 SDK metadata (see NativeMethods.txt).
+         Generated members are internal, so they live in the assembly that consumes them. -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

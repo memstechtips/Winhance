@@ -30,6 +30,17 @@ internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
         if (bulk.Count == 0)
             _log.Log(LogLevel.Warning, "[CatalogPowerExistenceFilter] Could not get bulk power settings; powercfg existence checks are skipped");
 
+        // One connection for every task path in the catalog. GetTasksEnabled activates an out-of-process COM
+        // server per call, and 17 settings carry task targets, so a per-setting read opened 17 of them.
+        var allTaskPaths = settings
+            .SelectMany(s => s.Targets.OfType<TaskTarget>())
+            .Select(t => t.TaskPath)
+            .Distinct()
+            .ToList();
+        var taskStates = allTaskPaths.Count > 0
+            ? new Dictionary<string, bool?>(await Task.Run(() => _tasks.GetTasksEnabled(allTaskPaths)).ConfigureAwait(false), StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+
         var result = new List<Setting>();
         foreach (var setting in settings)
         {
@@ -67,13 +78,9 @@ internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
 
             // A scheduled task exists when the OS can answer its enabled state at all (null = the
             // task is not registered on this system, e.g. removed on this build or app not installed).
-            // Read this setting's task targets over one Task Scheduler connection rather than opening one
-            // per target; the read is off-thread because the COM call blocks.
             if (!hasValid && taskTargets.Count > 0)
             {
-                var paths = taskTargets.Select(t => t.TaskPath).Distinct().ToList();
-                var states = await Task.Run(() => _tasks.GetTasksEnabled(paths)).ConfigureAwait(false);
-                hasValid = states.Values.Any(state => state is not null);
+                hasValid = taskTargets.Any(t => taskStates.TryGetValue(t.TaskPath, out var state) && state is not null);
             }
 
             if (!hasValid)
