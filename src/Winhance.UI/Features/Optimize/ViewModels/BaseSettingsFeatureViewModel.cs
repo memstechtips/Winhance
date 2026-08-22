@@ -344,7 +344,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         // the way review state does: the ViewModels are disposed and recreated, so a newly added
         // field cannot survive the transition. There is no cleanup list here to fall out of date.
         if (Settings?.Any() != true) return;
-        await ReloadAllSettingsAsync();
+        await RefreshSettingsAsync();
     }
 
     // The seed records its edits after these cards were built from live state, so their toggles still show the
@@ -361,36 +361,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 setting.RefreshTechnicalDetails();
             }
         });
-    }
-
-    private async Task ReloadAllSettingsAsync()
-    {
-        try
-        {
-            _logService.Log(LogLevel.Info, $"Reloading every setting for {DisplayName}");
-
-            _settingsLoaded = false;
-
-            if (Settings?.Any() == true)
-            {
-                foreach (var setting in Settings.OfType<IDisposable>())
-                {
-                    setting?.Dispose();
-                }
-                Settings.Clear();
-            }
-
-            await LoadSettingsAsync();
-
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
-
-            // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
-            _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error reloading settings for {DisplayName}: {ex.Message}");
-        }
     }
 
     // Changes only what the scope change actually moved. A hardware-gate flip alters membership for nine
