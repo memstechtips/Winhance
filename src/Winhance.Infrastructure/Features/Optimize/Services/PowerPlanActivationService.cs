@@ -23,6 +23,16 @@ internal class PowerPlanActivationService(
     // A custom plan is duplicated from Balanced, the one scheme every Windows install ships with.
     private const string BalancedSchemeGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
 
+    // The three schemes Windows itself owns. None can be recreated by duplication - the only
+    // source to duplicate from would be the missing plan itself - so PowerRestoreDefaultPowerSchemes
+    // is the sole way back.
+    private static readonly HashSet<string> WindowsDefaultSchemeGuids = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "a1841308-3541-4fab-bc81-f71556f20b4a",
+        BalancedSchemeGuid,
+        "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+    };
+
     private volatile IReadOnlyList<Setting>? _cachedSettings;
     private readonly object _cacheLock = new object();
 
@@ -193,6 +203,12 @@ internal class PowerPlanActivationService(
                 {
                     logService.Log(LogLevel.Info, $"Power plan '{predefinedPlan.Name}' already exists with GUID: {existingPlan.Guid}");
                     return new PowerPlanImportResult(true, existingPlan.Guid);
+                }
+
+                if (WindowsDefaultSchemeGuids.Contains(predefinedPlan.Guid))
+                {
+                    logService.Log(LogLevel.Info, $"Restoring Windows default power plan '{predefinedPlan.Name}' from the system defaults");
+                    return await SimpleBackupRestore(predefinedPlan).ConfigureAwait(false);
                 }
 
                 logService.Log(LogLevel.Info, $"Attempting to duplicate power plan '{predefinedPlan.Name}' using GUID {predefinedPlan.Guid}");
@@ -371,20 +387,13 @@ internal class PowerPlanActivationService(
 
     private List<PowerPlan> IdentifyCustomPlans(List<PowerPlan> allPlans)
     {
-        var builtInGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "a1841308-3541-4fab-bc81-f71556f20b4a",
-            "381b4222-f694-41f0-9685-ff5bb260df2e",
-            "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
-        };
-
         var builtInNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Power Saver", "Balanced", "High Performance"
         };
 
         return allPlans.Where(plan =>
-            !builtInGuids.Contains(plan.Guid) ||
+            !WindowsDefaultSchemeGuids.Contains(plan.Guid) ||
             !builtInNames.Contains(Common.Utilities.PowerPlanHelper.CleanPlanName(plan.Name))
         ).ToList();
     }
