@@ -1,6 +1,6 @@
-namespace Winhance.Core.Features.AdvancedTools.Interfaces;
+namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public interface IIsoImageReader
+internal interface IIsoImageReader
 {
     IIsoAttachment Attach(string isoPath);
 }
@@ -8,7 +8,7 @@ public interface IIsoImageReader
 // Disposing detaches the image. The attachment is bound to a handle Winhance owns, so Windows
 // also detaches it if the process dies mid-run - which is what the PowerShell Mount-DiskImage
 // spawn could not do, since that process exited immediately and left the ISO attached.
-public interface IIsoAttachment : IDisposable
+internal interface IIsoAttachment : IDisposable
 {
     string RootPath { get; }
 }

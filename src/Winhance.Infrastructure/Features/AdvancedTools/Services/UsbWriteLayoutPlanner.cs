@@ -21,7 +21,6 @@ internal static class UsbWriteLayoutPlanner
     {
         return new UsbWriteLayout(
             RequiresSplit: largestFileBytes >= Fat32MaxFileBytes,
-            SplitSizeMb: SplitSizeMb,
             TotalPayloadBytes: totalPayloadBytes,
             ExceedsFat32Ceiling: totalPayloadBytes > Fat32MaxVolumeBytes);
     }

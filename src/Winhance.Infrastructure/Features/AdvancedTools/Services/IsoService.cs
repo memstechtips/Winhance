@@ -152,7 +152,7 @@ internal class IsoService : IIsoService
                     TerminalOutput = $"Source: {attachment.RootPath}"
                 });
 
-                await Task.Run(() => _mediaCopier.CopyTree(attachment.RootPath, workingDirectory, null, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
+                await Task.Run(() => _mediaCopier.CopyTree(attachment.RootPath, workingDirectory, null, null, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -251,8 +251,7 @@ internal class IsoService : IIsoService
 
             if (!_fileSystemService.FileExists(outputPath))
             {
-                _logService.LogError("ISO file was not created");
-                return false;
+                throw new InvalidOperationException($"IMAPI2 finished without producing {outputPath}.");
             }
 
             var isoFileSize = _fileSystemService.GetFileSize(outputPath);
@@ -283,7 +282,10 @@ internal class IsoService : IIsoService
                 StatusText = _localization.GetString("Progress_IsoCreationFailed"),
                 TerminalOutput = ex.Message
             });
-            return false;
+
+            // The ViewModel shows the message. Swallowed into false, the user got "check the logs"
+            // for the ISO while the USB path next to it named the reason.
+            throw;
         }
     }
 }

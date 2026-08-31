@@ -1,14 +1,11 @@
 using System.Globalization;
-using System.Management;
 using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
+internal sealed class WmiStorageService(IStorageManagementApi api, ILogService logService) : IStorageOperations
 {
-    private const string StorageNamespace = @"root\Microsoft\Windows\Storage";
-
     // MSFT_Disk's PartitionStyle. MBR, not GPT: one MBR + FAT32 + active partition boots both
     // firmware types, which is exactly why Microsoft's instructions specify FAT32. IsActive is
     // documented as "only valid when the disk's PartitionStyle property is MBR".
@@ -25,30 +22,20 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
     // MSFT_Disk.CreatePartition's MbrType for FAT32.
     private const ushort MbrTypeFat32 = 12;
 
-    private readonly ILogService _logService;
-
-    public WmiStorageService(ILogService logService)
-    {
-        _logService = logService;
-    }
-
     public IReadOnlyList<RemovableDrive> GetDisks()
     {
         var disks = new List<RemovableDrive>();
-
-        using var searcher = new ManagementObjectSearcher(
-            new ManagementScope(StorageNamespace),
-            new ObjectQuery("SELECT Number, FriendlyName, Size, BusType, IsSystem FROM MSFT_Disk"));
-
-        foreach (var result in searcher.Get())
+        foreach (var disk in api.Query("MSFT_Disk", null))
         {
-            using var disk = (ManagementObject)result;
-            disks.Add(new RemovableDrive(
-                Convert.ToInt32(disk["Number"], CultureInfo.InvariantCulture),
-                disk["FriendlyName"] as string ?? "Unknown device",
-                Convert.ToInt64(disk["Size"], CultureInfo.InvariantCulture),
-                DescribeBusType(Convert.ToUInt16(disk["BusType"], CultureInfo.InvariantCulture)),
-                Convert.ToBoolean(disk["IsSystem"], CultureInfo.InvariantCulture)));
+            using (disk)
+            {
+                disks.Add(new RemovableDrive(
+                    Convert.ToInt32(disk.Get("Number"), CultureInfo.InvariantCulture),
+                    disk.Get("FriendlyName") as string ?? "Unknown device",
+                    Convert.ToInt64(disk.Get("Size"), CultureInfo.InvariantCulture),
+                    DescribeBusType(Convert.ToUInt16(disk.Get("BusType"), CultureInfo.InvariantCulture)),
+                    Convert.ToBoolean(disk.Get("IsSystem"), CultureInfo.InvariantCulture)));
+            }
         }
 
         return disks;
@@ -61,7 +48,7 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
         {
             using (partition)
             {
-                var letter = (char)Convert.ToUInt16(partition["DriveLetter"], CultureInfo.InvariantCulture);
+                var letter = ReadDriveLetter(partition);
                 if (letter != '\0')
                 {
                     letters.Add(letter);
@@ -75,13 +62,13 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
     public void Clear(int diskNumber)
     {
         using var disk = GetDisk(diskNumber);
-        using var parameters = disk.GetMethodParameters("Clear");
-        parameters["RemoveData"] = true;
-        parameters["RemoveOEM"] = true;
-        parameters["ZeroOutEntireDisk"] = false;
-
-        Invoke(disk, "Clear", parameters, $"clear disk {diskNumber}");
-        _logService.LogInformation($"Cleared disk {diskNumber}");
+        Invoke(disk, "Clear", new Dictionary<string, object>
+        {
+            ["RemoveData"] = true,
+            ["RemoveOEM"] = true,
+            ["ZeroOutEntireDisk"] = false,
+        }, $"clear disk {diskNumber}").Dispose();
+        logService.LogInformation($"Cleared disk {diskNumber}");
 
         DeleteSurvivingPartitions(diskNumber);
     }
@@ -98,8 +85,8 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
             using (partition)
             {
                 Invoke(partition, "DeleteObject", null, $"delete a partition on disk {diskNumber}",
-                    DeletedButAccessPathsRemain);
-                _logService.LogInformation($"Deleted a partition that survived clearing disk {diskNumber}");
+                    DeletedButAccessPathsRemain).Dispose();
+                logService.LogInformation($"Deleted a partition that survived clearing disk {diskNumber}");
             }
         }
 
@@ -112,7 +99,7 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
                 $"Disk {diskNumber} still reports no free space after being cleared.");
         }
 
-        _logService.LogInformation($"Disk {diskNumber} has {free:N0} bytes free");
+        logService.LogInformation($"Disk {diskNumber} has {free:N0} bytes free");
     }
 
     // Clear is documented as returning a disk "to a RAW state", and on the super-floppy stick above it
@@ -124,7 +111,7 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
         var style = ReadPartitionStyle(diskNumber);
         if (style == PartitionStyleMbr)
         {
-            _logService.LogInformation($"Disk {diskNumber} is already MBR");
+            logService.LogInformation($"Disk {diskNumber} is already MBR");
             return;
         }
 
@@ -133,19 +120,18 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
         var method = style == PartitionStyleGpt ? "ConvertStyle" : "Initialize";
 
         using var disk = GetDisk(diskNumber);
-        using var parameters = disk.GetMethodParameters(method);
-        parameters["PartitionStyle"] = PartitionStyleMbr;
 
         // Windows can initialize the disk between the read above and this call - it does so on its
         // own for removable media - so 41001 from Initialize is tolerated. It says nothing about
         // which style Windows chose, and ConvertStyle has no such race, hence the read-back below.
         var benign = method == "Initialize" ? AlreadyInitialized : (uint?)null;
-        Invoke(disk, method, parameters, $"make disk {diskNumber} MBR", benign);
+        Invoke(disk, method, new Dictionary<string, object> { ["PartitionStyle"] = PartitionStyleMbr },
+            $"make disk {diskNumber} MBR", benign).Dispose();
 
         var after = ReadPartitionStyle(diskNumber);
         if (after != PartitionStyleMbr)
         {
-            Invoke(disk, "Refresh", null, $"refresh disk {diskNumber}");
+            Invoke(disk, "Refresh", null, $"refresh disk {diskNumber}").Dispose();
             after = ReadPartitionStyle(diskNumber);
         }
 
@@ -157,13 +143,17 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
                 $"Disk {diskNumber} is still partition style {after} after {method}; an MBR disk is required.");
         }
 
-        _logService.LogInformation($"Disk {diskNumber} is MBR");
+        logService.LogInformation($"Disk {diskNumber} is MBR");
     }
 
     public int CreateActiveFat32Partition(int diskNumber)
     {
         using var disk = GetDisk(diskNumber);
-        using var parameters = disk.GetMethodParameters("CreatePartition");
+        var parameters = new Dictionary<string, object>
+        {
+            ["MbrType"] = MbrTypeFat32,
+            ["IsActive"] = true,
+        };
 
         // Windows' own formatter refuses FAT32 past 32 GB, so on a bigger stick the partition
         // stops there and the rest of the drive stays unallocated.
@@ -177,49 +167,46 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
             parameters["UseMaximumSize"] = true;
         }
 
-        parameters["MbrType"] = MbrTypeFat32;
-        parameters["IsActive"] = true;
-
         // No AssignDriveLetter: the letter is assigned after the format.
-        using var output = Invoke(disk, "CreatePartition", parameters, $"partition disk {diskNumber}");
+        using var result = Invoke(disk, "CreatePartition", parameters, $"partition disk {diskNumber}");
 
         // The method page types CreatedPartition as a String; the wire carries the embedded
         // MSFT_Partition itself, not a path to one.
-        using var created = (ManagementBaseObject)output["CreatedPartition"];
-        var partitionNumber = Convert.ToInt32(created["PartitionNumber"], CultureInfo.InvariantCulture);
+        using var created = result.Output.Get("CreatedPartition") as IStorageInstance
+            ?? throw new InvalidOperationException($"CreatePartition on disk {diskNumber} returned no partition.");
+        var partitionNumber = Convert.ToInt32(created.Get("PartitionNumber"), CultureInfo.InvariantCulture);
 
-        _logService.LogInformation($"Created active FAT32 partition {partitionNumber} on disk {diskNumber}");
+        logService.LogInformation($"Created active FAT32 partition {partitionNumber} on disk {diskNumber}");
         return partitionNumber;
     }
 
     public void FormatFat32(int diskNumber, int partitionNumber, string label)
     {
         using var volume = GetVolume(diskNumber, partitionNumber);
-        using var parameters = volume.GetMethodParameters("Format");
-        parameters["FileSystem"] = "FAT32";
-        parameters["FileSystemLabel"] = label;
 
         // A full format zeroes the whole stick, which on a 64 GB drive is minutes of nothing.
-        parameters["Full"] = false;
-
-        Invoke(volume, "Format", parameters, $"format partition {partitionNumber} on disk {diskNumber}");
-        _logService.LogInformation($"Formatted partition {partitionNumber} on disk {diskNumber} as FAT32");
+        Invoke(volume, "Format", new Dictionary<string, object>
+        {
+            ["FileSystem"] = "FAT32",
+            ["FileSystemLabel"] = label,
+            ["Full"] = false,
+        }, $"format partition {partitionNumber} on disk {diskNumber}").Dispose();
+        logService.LogInformation($"Formatted partition {partitionNumber} on disk {diskNumber} as FAT32");
     }
 
     public char AssignDriveLetter(int diskNumber, int partitionNumber)
     {
         // Windows may already have mounted the volume with a letter of its own; only ask when
         // it has not.
-        var letter = ReadDriveLetter(diskNumber, partitionNumber);
+        using var partition = GetPartition(diskNumber, partitionNumber);
+        var letter = ReadDriveLetter(partition);
         if (!char.IsLetter(letter))
         {
-            using var partition = GetPartition(diskNumber, partitionNumber);
-            using var parameters = partition.GetMethodParameters("AddAccessPath");
-            parameters["AssignDriveLetter"] = true;
+            Invoke(partition, "AddAccessPath", new Dictionary<string, object> { ["AssignDriveLetter"] = true },
+                $"assign a drive letter to partition {partitionNumber} on disk {diskNumber}").Dispose();
 
-            Invoke(partition, "AddAccessPath", parameters,
-                $"assign a drive letter to partition {partitionNumber} on disk {diskNumber}");
-            letter = ReadDriveLetter(diskNumber, partitionNumber);
+            using var refreshed = GetPartition(diskNumber, partitionNumber);
+            letter = ReadDriveLetter(refreshed);
         }
 
         if (!char.IsLetter(letter))
@@ -228,106 +215,95 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
                 $"Partition {partitionNumber} on disk {diskNumber} still has no drive letter.");
         }
 
-        _logService.LogInformation($"Partition {partitionNumber} on disk {diskNumber} is mounted at {letter}:");
+        logService.LogInformation($"Partition {partitionNumber} on disk {diskNumber} is mounted at {letter}:");
         return letter;
     }
 
     private ushort ReadPartitionStyle(int diskNumber)
     {
         using var disk = GetDisk(diskNumber);
-        return Convert.ToUInt16(disk["PartitionStyle"], CultureInfo.InvariantCulture);
+        return Convert.ToUInt16(disk.Get("PartitionStyle"), CultureInfo.InvariantCulture);
     }
 
     private ulong ReadLargestFreeExtent(int diskNumber)
     {
         using var disk = GetDisk(diskNumber);
-        return Convert.ToUInt64(disk["LargestFreeExtent"], CultureInfo.InvariantCulture);
+        return Convert.ToUInt64(disk.Get("LargestFreeExtent"), CultureInfo.InvariantCulture);
     }
 
-    private static IEnumerable<ManagementObject> GetPartitions(int diskNumber)
+    private static char ReadDriveLetter(IStorageInstance partition) =>
+        (char)Convert.ToUInt16(partition.Get("DriveLetter"), CultureInfo.InvariantCulture);
+
+    private IReadOnlyList<IStorageInstance> GetPartitions(int diskNumber) =>
+        api.Query("MSFT_Partition", $"DiskNumber = {diskNumber}");
+
+    private IStorageInstance GetDisk(int diskNumber) =>
+        Single("MSFT_Disk", $"Number = {diskNumber}", $"Disk {diskNumber}");
+
+    private IStorageInstance GetPartition(int diskNumber, int partitionNumber) =>
+        Single("MSFT_Partition", $"DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
+            $"Partition {partitionNumber} on disk {diskNumber}");
+
+    private IStorageInstance Single(string className, string condition, string what)
     {
-        using var searcher = new ManagementObjectSearcher(
-            new ManagementScope(StorageNamespace),
-            new ObjectQuery($"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber}"));
-
-        return searcher.Get().Cast<ManagementObject>().ToArray();
-    }
-
-    private ManagementObject GetDisk(int diskNumber)
-    {
-        using var searcher = new ManagementObjectSearcher(
-            new ManagementScope(StorageNamespace),
-            new ObjectQuery($"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}"));
-
-        foreach (var result in searcher.Get())
+        var matches = api.Query(className, condition);
+        if (matches.Count == 0)
         {
-            return (ManagementObject)result;
+            throw new InvalidOperationException($"{what} is no longer present.");
         }
 
-        throw new InvalidOperationException($"Disk {diskNumber} is no longer present.");
-    }
-
-    private static ManagementObject GetPartition(int diskNumber, int partitionNumber)
-    {
-        using var searcher = new ManagementObjectSearcher(
-            new ManagementScope(StorageNamespace),
-            new ObjectQuery(
-                $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}"));
-
-        foreach (var result in searcher.Get())
+        foreach (var extra in matches.Skip(1))
         {
-            return (ManagementObject)result;
+            extra.Dispose();
         }
 
-        throw new InvalidOperationException(
-            $"Partition {partitionNumber} on disk {diskNumber} is no longer present.");
+        return matches[0];
     }
 
     // MSFT_Volume carries no disk or partition number; the MSFT_PartitionToVolume association is
     // the only way from one to the other, and it is how Get-Partition | Get-Volume gets there too.
-    private static ManagementObject GetVolume(int diskNumber, int partitionNumber)
+    private IStorageInstance GetVolume(int diskNumber, int partitionNumber)
     {
         using var partition = GetPartition(diskNumber, partitionNumber);
-        using var volumes = partition.GetRelated("MSFT_Volume");
-
-        foreach (var result in volumes)
+        var volumes = partition.GetRelated("MSFT_Volume");
+        if (volumes.Count == 0)
         {
-            return (ManagementObject)result;
+            throw new InvalidOperationException(
+                $"Partition {partitionNumber} on disk {diskNumber} has no volume to format.");
         }
 
-        throw new InvalidOperationException(
-            $"Partition {partitionNumber} on disk {diskNumber} has no volume to format.");
+        foreach (var extra in volumes.Skip(1))
+        {
+            extra.Dispose();
+        }
+
+        return volumes[0];
     }
 
-    private static char ReadDriveLetter(int diskNumber, int partitionNumber)
-    {
-        using var partition = GetPartition(diskNumber, partitionNumber);
-        return (char)Convert.ToUInt16(partition["DriveLetter"], CultureInfo.InvariantCulture);
-    }
-
-    private static ManagementBaseObject Invoke(
-        ManagementObject target,
+    private static StorageMethodResult Invoke(
+        IStorageInstance target,
         string method,
-        ManagementBaseObject? parameters,
+        IReadOnlyDictionary<string, object>? parameters,
         string description,
         uint? benignReturnValue = null)
     {
-        var output = target.InvokeMethod(method, parameters, null);
-        var returnValue = Convert.ToUInt32(output["ReturnValue"], CultureInfo.InvariantCulture);
-
-        if (returnValue == 0 || returnValue == benignReturnValue)
+        var result = target.Invoke(method, parameters);
+        if (result.ReturnValue == 0 || result.ReturnValue == benignReturnValue)
         {
-            return output;
+            return result;
         }
 
-        throw new InvalidOperationException(
-            $"Could not {description}: {DescribeFailure(returnValue, output)}");
+        using (result)
+        {
+            throw new InvalidOperationException(
+                $"Could not {description}: {DescribeFailure(result.ReturnValue, result.Output)}");
+        }
     }
 
     // The API's own text where it supplies one; its return codes are far more actionable than a
     // generic failure - 41000 tells the user the disk was never initialized, "operation failed"
     // tells them nothing.
-    private static string DescribeFailure(uint returnValue, ManagementBaseObject output)
+    private static string DescribeFailure(uint returnValue, IStorageInstance output)
     {
         var extended = ReadExtendedStatus(output);
         if (!string.IsNullOrWhiteSpace(extended))
@@ -346,36 +322,29 @@ internal sealed class WmiStorageService : IStorageEnumerator, IStorageOperations
         };
     }
 
-    private static string? ReadExtendedStatus(ManagementBaseObject output)
+    // The method pages type this as a String; the wire carries an embedded MSFT_StorageExtendedStatus.
+    // Read both, or a failure arrives as a bare number.
+    private static string? ReadExtendedStatus(IStorageInstance output)
     {
-        try
+        var value = output.Get("ExtendedStatus");
+        if (value is string text)
         {
-            // The method pages type this as a String; the wire carries an embedded
-            // MSFT_StorageExtendedStatus. Read both, or a failure arrives as a bare number.
-            var value = output.Properties["ExtendedStatus"]?.Value;
-            if (value is string text)
-            {
-                return text;
-            }
-
-            if (value is ManagementBaseObject status)
-            {
-                using (status)
-                {
-                    return status["Message"] as string ?? status["CIMStatusCodeDescription"] as string;
-                }
-            }
+            return text;
         }
-        catch (ManagementException)
+
+        if (value is IStorageInstance status)
         {
-            // Not every method populates ExtendedStatus; the numeric code below still identifies it.
+            using (status)
+            {
+                return status.Get("Message") as string ?? status.Get("CIMStatusCodeDescription") as string;
+            }
         }
 
         return null;
     }
 
-    // MSFT_Disk.BusType. Only USB is load-bearing (it is what makes a disk a candidate target);
-    // the rest exist so the picker can say what an excluded disk actually is.
+    // MSFT_Disk.BusType. Only USB is load-bearing (it is what makes a disk a candidate target); the
+    // rest exist so the log line that lists every disk can say what an excluded one actually is.
     private static string DescribeBusType(ushort busType) => busType switch
     {
         1 => "SCSI",

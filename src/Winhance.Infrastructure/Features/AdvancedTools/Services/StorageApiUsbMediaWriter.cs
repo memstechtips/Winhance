@@ -12,7 +12,6 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
     private const string UsbBusType = "USB";
     private const string VolumeLabel = "WINHANCE";
 
-    private readonly IStorageEnumerator _enumerator;
     private readonly IStorageOperations _operations;
     private readonly IMediaCopier _mediaCopier;
     private readonly IDismProcessRunner _dismProcessRunner;
@@ -22,7 +21,6 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
     private readonly TimeProvider _timeProvider;
 
     public StorageApiUsbMediaWriter(
-        IStorageEnumerator enumerator,
         IStorageOperations operations,
         IMediaCopier mediaCopier,
         IDismProcessRunner dismProcessRunner,
@@ -31,7 +29,6 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         ILogService logService,
         TimeProvider timeProvider)
     {
-        _enumerator = enumerator;
         _operations = operations;
         _mediaCopier = mediaCopier;
         _dismProcessRunner = dismProcessRunner;
@@ -43,7 +40,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
 
     public IReadOnlyList<RemovableDrive> GetCandidateTargets()
     {
-        var disks = _enumerator.GetDisks();
+        var disks = _operations.GetDisks();
 
         // Logged in full, because the only question users ask about this list is why their drive
         // is not on it, and the two reasons it can be missing are both here.
@@ -78,7 +75,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         // are still readable here and gone once Clear has run, so this is the moment to look.
         var sourceRoot = _fileSystemService.GetPathRoot(workingDirectory);
         if (!string.IsNullOrEmpty(sourceRoot)
-            && _enumerator.GetDriveLetters(target.DiskNumber)
+            && _operations.GetDriveLetters(target.DiskNumber)
                 .Any(letter => char.ToUpperInvariant(letter) == char.ToUpperInvariant(sourceRoot[0])))
         {
             throw new InvalidOperationException(_localization.GetStringOrDefault(
@@ -88,9 +85,12 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 target.Model));
         }
 
-        var files = _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories);
-        var totalBytes = files.Sum(_fileSystemService.GetFileSize);
-        var largestFile = files.Length == 0 ? 0 : files.Max(_fileSystemService.GetFileSize);
+        // One pass over the tree: the layout, the split decision and the copier's total all come
+        // from these sizes, so nothing walks the working folder twice.
+        var sizes = _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories)
+            .ToDictionary(file => file, _fileSystemService.GetFileSize, StringComparer.OrdinalIgnoreCase);
+        var totalBytes = sizes.Values.Sum();
+        var largestFile = sizes.Count == 0 ? 0 : sizes.Values.Max();
         var layout = UsbWriteLayoutPlanner.Plan(totalBytes, largestFile);
         var payloadGigabytes = (layout.TotalPayloadBytes / (1024.0 * 1024 * 1024)).ToString("F1");
 
@@ -114,7 +114,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 payloadGigabytes));
         }
 
-        var imageToSplit = layout.RequiresSplit ? FindImageToSplit(workingDirectory, files) : null;
+        var imageToSplit = layout.RequiresSplit ? FindImageToSplit(workingDirectory, sizes) : null;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -146,12 +146,13 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 workingDirectory,
                 mediaRoot,
                 imageToSplit is null ? null : path => string.Equals(path, imageToSplit, StringComparison.OrdinalIgnoreCase),
+                imageToSplit is not null && sizes.TryGetValue(imageToSplit, out var wimBytes) ? totalBytes - wimBytes : totalBytes,
                 progress,
                 cancellationToken);
 
             if (imageToSplit is not null)
             {
-                SplitImageOntoMedia(imageToSplit, mediaRoot, layout, progress, cancellationToken);
+                SplitImageOntoMedia(imageToSplit, mediaRoot, progress, cancellationToken);
             }
         }
         catch (OperationCanceledException ex)
@@ -167,12 +168,12 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
     // dism /Split-Image splits sources\install.wim and nothing else, so any other file past FAT32's
     // limit - an ESD, or a stale one left beside a converted WIM - has to be dealt with first, and
     // before the drive is touched.
-    private string FindImageToSplit(string workingDirectory, string[] files)
+    private string FindImageToSplit(string workingDirectory, IReadOnlyDictionary<string, long> sizes)
     {
         var wimPath = _fileSystemService.CombinePath(workingDirectory, "sources", "install.wim");
-        var unsplittable = files.FirstOrDefault(file =>
-            _fileSystemService.GetFileSize(file) >= UsbWriteLayoutPlanner.Fat32MaxFileBytes
-            && !string.Equals(file, wimPath, StringComparison.OrdinalIgnoreCase));
+        var unsplittable = sizes.FirstOrDefault(entry =>
+            entry.Value >= UsbWriteLayoutPlanner.Fat32MaxFileBytes
+            && !string.Equals(entry.Key, wimPath, StringComparison.OrdinalIgnoreCase)).Key;
 
         if (unsplittable is not null)
         {
@@ -191,7 +192,6 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
     private void SplitImageOntoMedia(
         string imagePath,
         string mediaRoot,
-        UsbWriteLayout layout,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
@@ -208,7 +208,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         // in the ADK rather than the SDK. This is also literally the command in Microsoft's own USB
         // instructions, so it is the documented method rather than a fallback from one.
         var arguments =
-            $"/Split-Image /ImageFile:\"{imagePath}\" /SWMFile:\"{target}\" /FileSize:{layout.SplitSizeMb}";
+            $"/Split-Image /ImageFile:\"{imagePath}\" /SWMFile:\"{target}\" /FileSize:{UsbWriteLayoutPlanner.SplitSizeMb}";
 
         var splitProgress = progress is null
             ? null
@@ -227,7 +227,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
             throw new InvalidOperationException($"Splitting the Windows image failed with exit code {exitCode}.");
         }
 
-        _logService.LogInformation($"Split {imagePath} into {target} at {layout.SplitSizeMb} MB per piece");
+        _logService.LogInformation($"Split {imagePath} into {target} at {UsbWriteLayoutPlanner.SplitSizeMb} MB per piece");
     }
 
     // DISM prints only its own bar, and the bytes behind each percent are the image size, so the

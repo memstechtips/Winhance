@@ -1,8 +1,8 @@
 using Winhance.Core.Features.Common.Models;
 
-namespace Winhance.Core.Features.AdvancedTools.Interfaces;
+namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-public interface IIsoImageWriter
+internal interface IIsoImageWriter
 {
     void Write(
         string workingDirectory,

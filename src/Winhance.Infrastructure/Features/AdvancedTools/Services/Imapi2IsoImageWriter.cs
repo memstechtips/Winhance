@@ -1,4 +1,3 @@
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -18,17 +17,20 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
     private readonly IFileSystemService _fileSystemService;
     private readonly ILocalizationService _localization;
     private readonly ILogService _logService;
+    private readonly TimeProvider _timeProvider;
 
     public Imapi2IsoImageWriter(
         Func<IFileSystemImageWrapper> imageFactory,
         IFileSystemService fileSystemService,
         ILocalizationService localization,
-        ILogService logService)
+        ILogService logService,
+        TimeProvider timeProvider)
     {
         _imageFactory = imageFactory;
         _fileSystemService = fileSystemService;
         _localization = localization;
         _logService = logService;
+        _timeProvider = timeProvider;
     }
 
     public void Write(
@@ -83,36 +85,14 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
         using var result = image.CreateResultImage();
         _logService.LogInformation($"IMAPI2 built a {result.TotalBytes:N0} byte image for {outputPath}");
 
-        var lastPercent = -1;
+        var reporter = new ByteProgressReporter(
+            progress,
+            new TransferRate(_timeProvider),
+            percent => _localization.GetString("Progress_WritingIsoPercent", percent.ToString()));
+        var outputName = _fileSystemService.GetFileName(outputPath);
         result.WriteTo(
             outputPath,
-            (written, total) => ReportProgress(progress, written, total, ref lastPercent),
+            (written, total) => reporter.Report(written, total, outputName),
             cancellationToken);
-    }
-
-    private void ReportProgress(
-        IProgress<TaskProgressDetail>? progress,
-        long written,
-        long total,
-        ref int lastPercent)
-    {
-        if (progress is null || total <= 0)
-        {
-            return;
-        }
-
-        var percent = (int)Math.Min(100, written * 100 / total);
-        if (percent == lastPercent)
-        {
-            return;
-        }
-
-        lastPercent = percent;
-        progress.Report(new TaskProgressDetail
-        {
-            Progress = percent,
-            StatusText = _localization.GetString("Progress_WritingIsoPercent", percent.ToString()),
-            IsProgressIndicator = true
-        });
     }
 }

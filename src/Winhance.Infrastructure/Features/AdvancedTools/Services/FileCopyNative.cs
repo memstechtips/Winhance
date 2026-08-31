@@ -19,16 +19,16 @@ internal sealed class FileCopyNative : IFileCopyNative
     public unsafe void CopyWithProgress(
         string source,
         string destination,
-        Action<long, long> onProgress,
+        Action<long> onProgress,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         // Returning PROGRESS_CANCEL from the routine is what stops a copy mid-file; the pbCancel
         // pointer only helps a caller cancelling from another thread, which is not this shape.
-        LPPROGRESS_ROUTINE routine = (totalFileSize, totalBytesTransferred, _, _, _, _, _, _, _) =>
+        LPPROGRESS_ROUTINE routine = (_, totalBytesTransferred, _, _, _, _, _, _, _) =>
         {
-            onProgress(totalBytesTransferred, totalFileSize);
+            onProgress(totalBytesTransferred);
             return cancellationToken.IsCancellationRequested ? PInvoke.PROGRESS_CANCEL : PInvoke.PROGRESS_CONTINUE;
         };
 

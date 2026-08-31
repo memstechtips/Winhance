@@ -21,12 +21,9 @@ public class UsbWriteLayoutPlannerTests
     }
 
     [Fact]
-    public void Plan_SplitRequired_UsesTheDocumented3800Megabytes()
+    public void SplitSizeMb_IsTheDocumented3800Megabytes()
     {
-        var layout = UsbWriteLayoutPlanner.Plan(
-            totalPayloadBytes: 8_465_957_864L, largestFileBytes: 7_578_075_168L);
-
-        layout.SplitSizeMb.Should().Be(3800);
+        UsbWriteLayoutPlanner.SplitSizeMb.Should().Be(3800);
     }
 
     [Fact]

@@ -150,6 +150,7 @@ public class Imapi2IsoImageWriterTests
             () => image,
             fileSystem ?? _fileSystem.Object,
             _localization.Object,
-            Mock.Of<ILogService>());
+            Mock.Of<ILogService>(),
+            TimeProvider.System);
     }
 }

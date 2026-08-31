@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
@@ -103,26 +102,26 @@ public class IsoServiceTests
     }
 
     [Fact]
-    public async Task CreateIsoAsync_WriterThrows_ReturnsFalse()
+    public async Task CreateIsoAsync_WriterThrows_SurfacesTheReason()
     {
         GivenEnoughRoomToWrite();
         _mockIsoImageWriter
             .Setup(w => w.Write(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .Throws(new FileNotFoundException(@"Boot file not found: C:\work\boot\etfsboot.com"));
 
-        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
+        Func<Task> act = () => _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
 
-        result.Should().BeFalse();
+        await act.Should().ThrowAsync<FileNotFoundException>().WithMessage("*etfsboot.com*");
     }
 
     [Fact]
-    public async Task CreateIsoAsync_WriterProducedNoFile_ReturnsFalse()
+    public async Task CreateIsoAsync_WriterProducedNoFile_Throws()
     {
         GivenEnoughRoomToWrite();
 
-        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
+        Func<Task> act = () => _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
 
-        result.Should().BeFalse();
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*output.iso*");
         _mockIsoImageWriter.Verify(
             w => w.Write(@"C:\work", @"C:\output\output.iso", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -136,7 +135,7 @@ public class IsoServiceTests
         var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
 
         result.Should().BeTrue();
-        _mockMediaCopier.Verify(c => c.CopyTree(@"\\?\Volume{1111}\", @"C:\work", null,
+        _mockMediaCopier.Verify(c => c.CopyTree(@"\\?\Volume{1111}\", @"C:\work", null, null,
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
         attachment.Verify(a => a.Dispose(), Times.Once);
     }
@@ -146,7 +145,7 @@ public class IsoServiceTests
     {
         var attachment = GivenAnExtractableIso();
         _mockMediaCopier
-            .Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(),
+            .Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(), It.IsAny<long?>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .Throws(new IOException("The device is not ready."));
 

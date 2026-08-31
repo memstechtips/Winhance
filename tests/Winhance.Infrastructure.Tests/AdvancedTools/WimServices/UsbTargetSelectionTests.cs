@@ -12,7 +12,6 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools.WimServices;
 
 public class UsbTargetSelectionTests
 {
-    private readonly Mock<IStorageEnumerator> _enumerator = new();
     private readonly Mock<IStorageOperations> _operations = new();
     private readonly Mock<IFileSystemService> _fileSystem = new();
     private readonly ManualTimeProvider _clock = new();
@@ -26,7 +25,7 @@ public class UsbTargetSelectionTests
     [Fact]
     public void GetCandidateTargets_FixedDisk_IsNotOffered()
     {
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[]
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
         {
             new RemovableDrive(0, "Samsung SSD 990", 2_000_398_934_016L, "NVMe", IsSystemDisk: true),
             new RemovableDrive(2, "SanDisk Ultra",     61_530_439_680L, "USB",  IsSystemDisk: false),
@@ -40,7 +39,7 @@ public class UsbTargetSelectionTests
     [Fact]
     public void GetCandidateTargets_SystemDiskOnUsb_IsRefused()
     {
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[]
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
         {
             new RemovableDrive(0, "Odd controller", 500_000_000_000L, "USB", IsSystemDisk: true),
         });
@@ -53,7 +52,7 @@ public class UsbTargetSelectionTests
     [Fact]
     public void GetCandidateTargets_NonUsbDataDisk_IsNotOffered()
     {
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[]
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
         {
             new RemovableDrive(1, "Seagate Barracuda", 4_000_787_030_016L, "SATA", IsSystemDisk: false),
         });
@@ -66,7 +65,7 @@ public class UsbTargetSelectionTests
     [Fact]
     public void Write_DiskIsNotACandidate_ErasesNothing()
     {
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[]
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
         {
             new RemovableDrive(0, "Samsung SSD 990", 2_000_398_934_016L, "NVMe", IsSystemDisk: true),
         });
@@ -82,7 +81,7 @@ public class UsbTargetSelectionTests
     public void Write_PayloadOver32Gb_RefusesBeforeErasing()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(34_359_738_369L);
@@ -97,7 +96,7 @@ public class UsbTargetSelectionTests
     public void Write_DriveTooSmall_RefusesBeforeErasing()
     {
         var stick = new RemovableDrive(2, "Tiny stick", 2_000_000_000L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(3_000_000_000L);
@@ -112,7 +111,7 @@ public class UsbTargetSelectionTests
     public void Write_OversizedEsd_RefusesRatherThanSplitting()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.esd"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.esd")).Returns(7_578_075_168L);
@@ -128,7 +127,7 @@ public class UsbTargetSelectionTests
     public void Write_ValidTarget_FormatsThenAssignsLetterThenCopies()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(3_000_000_000L);
@@ -140,14 +139,14 @@ public class UsbTargetSelectionTests
         _operations.Setup(o => o.FormatFat32(2, 1, It.IsAny<string>())).Callback(() => order.Add("Format"));
         _operations.Setup(o => o.AssignDriveLetter(2, 1)).Returns('E').Callback(() => order.Add("AssignLetter"));
         var copier = new Mock<IMediaCopier>();
-        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(),
+        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(), It.IsAny<long?>(),
                   It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
               .Callback(() => order.Add("Copy"));
 
         BuildWriter(copier.Object).Write(stick, @"C:\work", null, CancellationToken.None);
 
         order.Should().Equal("Clear", "EnsureMbr", "CreatePartition", "Format", "AssignLetter", "Copy");
-        copier.Verify(c => c.CopyTree(@"C:\work", @"E:\", null,
+        copier.Verify(c => c.CopyTree(@"C:\work", @"E:\", null, 3_000_000_000L,
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -155,7 +154,7 @@ public class UsbTargetSelectionTests
     public void Write_ImageNeedsSplitting_CopiesEverythingElseThenSplitsOntoTheMedia()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\setup.exe", @"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\setup.exe")).Returns(1_000_000L);
@@ -165,11 +164,12 @@ public class UsbTargetSelectionTests
         _operations.Setup(o => o.AssignDriveLetter(2, 1)).Returns('E');
 
         Func<string, bool>? skip = null;
+        long? copyBytes = null;
         var copier = new Mock<IMediaCopier>();
-        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(),
+        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(), It.IsAny<long?>(),
                   It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-              .Callback<string, string, Func<string, bool>?, IProgress<TaskProgressDetail>?, CancellationToken>(
-                  (_, _, predicate, _, _) => skip = predicate);
+              .Callback<string, string, Func<string, bool>?, long?, IProgress<TaskProgressDetail>?, CancellationToken>(
+                  (_, _, predicate, total, _, _) => { skip = predicate; copyBytes = total; });
 
         var dism = new Mock<IDismProcessRunner>();
         dism.Setup(d => d.RunProcessWithProgressAsync(It.IsAny<string>(), It.IsAny<string>(),
@@ -179,6 +179,7 @@ public class UsbTargetSelectionTests
         BuildWriter(copier.Object, dism.Object).Write(stick, @"C:\work", null, CancellationToken.None);
 
         skip.Should().NotBeNull();
+        copyBytes.Should().Be(1_000_000L, "the split image is not part of the copy");
         skip!(@"C:\work\sources\install.wim").Should().BeTrue();
         skip(@"C:\work\setup.exe").Should().BeFalse();
         dism.Verify(d => d.RunProcessWithProgressAsync(
@@ -192,7 +193,7 @@ public class UsbTargetSelectionTests
     public void Write_SplittingTheImage_AppendsTheWriteSpeedToDismsBar()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(7_578_075_168L);
@@ -225,7 +226,7 @@ public class UsbTargetSelectionTests
     public void Write_OversizedFileBesideTheWim_RefusesBeforeErasing()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim", @"C:\work\sources\install.esd"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(3_000_000_000L);
@@ -242,8 +243,8 @@ public class UsbTargetSelectionTests
     public void Write_TargetHoldsTheWorkingFolder_RefusesBeforeErasing()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
-        _enumerator.Setup(e => e.GetDriveLetters(2)).Returns(['F']);
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDriveLetters(2)).Returns(['F']);
         _fileSystem.Setup(fs => fs.GetPathRoot(@"F:\work")).Returns(@"F:\");
 
         Action act = () => BuildWriter().Write(stick, @"F:\work", null, CancellationToken.None);
@@ -256,7 +257,7 @@ public class UsbTargetSelectionTests
     public void Write_StepFailsAfterTheErase_ReportsTheDriveAsErased()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(3_000_000_000L);
@@ -276,14 +277,14 @@ public class UsbTargetSelectionTests
     public void Write_CancelledDuringTheCopy_ReportsTheDriveAsErased()
     {
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
-        _enumerator.Setup(e => e.GetDisks()).Returns(new[] { stick });
+        _operations.Setup(o => o.GetDisks()).Returns(new[] { stick });
         _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories))
                    .Returns([@"C:\work\sources\install.wim"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"C:\work\sources\install.wim")).Returns(3_000_000_000L);
         _operations.Setup(o => o.CreateActiveFat32Partition(2)).Returns(1);
         _operations.Setup(o => o.AssignDriveLetter(2, 1)).Returns('E');
         var copier = new Mock<IMediaCopier>();
-        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(),
+        copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(), It.IsAny<long?>(),
                   It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
               .Throws(new OperationCanceledException());
 
@@ -297,7 +298,6 @@ public class UsbTargetSelectionTests
         IDismProcessRunner? dismProcessRunner = null)
     {
         return new StorageApiUsbMediaWriter(
-            _enumerator.Object,
             _operations.Object,
             mediaCopier ?? Mock.Of<IMediaCopier>(),
             dismProcessRunner ?? Mock.Of<IDismProcessRunner>(),

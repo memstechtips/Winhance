@@ -6,11 +6,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 internal interface IMediaCopier
 {
     // skipFile is how the USB path leaves install.wim behind: FAT32 cannot hold it whole, so it
-    // is split onto the media afterwards rather than copied.
+    // is split onto the media afterwards rather than copied. knownTotalBytes is the byte count
+    // the caller already measured for the files that will be copied; null makes the copier walk
+    // the tree itself, which the ISO extraction has no other reason to do.
     void CopyTree(
         string sourceDirectory,
         string destinationDirectory,
         Func<string, bool>? skipFile,
+        long? knownTotalBytes,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken);
 }
@@ -41,16 +44,20 @@ internal sealed class MediaCopier : IMediaCopier
         string sourceDirectory,
         string destinationDirectory,
         Func<string, bool>? skipFile,
+        long? knownTotalBytes,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
-        // The tree total is measured once, up front: it is what turns a per-file callback into a
-        // bar that moves smoothly through a 7 GB install.wim instead of standing still and jumping.
+        // The tree total is what turns a per-file callback into a bar that moves smoothly through
+        // a 7 GB install.wim instead of standing still and jumping.
         var state = new TreeCopy
         {
             SkipFile = skipFile,
-            Rate = new TransferRate(_timeProvider),
-            TotalBytes = _fileSystemService
+            Reporter = new ByteProgressReporter(
+                progress,
+                new TransferRate(_timeProvider),
+                percent => _localization.GetString("Progress_CopyingIsoContentsPercent", percent.ToString())),
+            TotalBytes = knownTotalBytes ?? _fileSystemService
                 .GetFiles(sourceDirectory, "*", SearchOption.AllDirectories)
                 .Where(f => skipFile is null || !skipFile(f))
                 .Sum(f => _fileSystemService.GetFileSize(f)),
@@ -58,14 +65,13 @@ internal sealed class MediaCopier : IMediaCopier
 
         _logService.LogInformation($"Copying {state.TotalBytes:N0} bytes from {sourceDirectory}");
 
-        CopyInto(sourceDirectory, destinationDirectory, state, progress, cancellationToken);
+        CopyInto(sourceDirectory, destinationDirectory, state, cancellationToken);
     }
 
     private void CopyInto(
         string sourceDirectory,
         string destinationDirectory,
         TreeCopy state,
-        IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -88,7 +94,7 @@ internal sealed class MediaCopier : IMediaCopier
             _native.CopyWithProgress(
                 file,
                 target,
-                (transferred, _) => Report(state, startedAt + transferred, fileName, progress),
+                transferred => state.Reporter.Report(startedAt + transferred, state.TotalBytes, fileName),
                 cancellationToken);
 
             state.CopiedBytes = startedAt + _fileSystemService.GetFileSize(file);
@@ -103,44 +109,18 @@ internal sealed class MediaCopier : IMediaCopier
                 subDirectory,
                 _fileSystemService.CombinePath(destinationDirectory, name),
                 state,
-                progress,
                 cancellationToken);
         }
-    }
-
-    private void Report(TreeCopy state, long done, string fileName, IProgress<TaskProgressDetail>? progress)
-    {
-        // CopyFileEx fires its routine every chunk, which on a multi-GB tree is thousands of calls;
-        // only a whole-percent change or a fresh speed sample is worth pushing at the UI.
-        var percent = state.TotalBytes <= 0 ? 0 : (int)Math.Min(100, done * 100 / state.TotalBytes);
-        var freshRate = state.Rate.Update(done);
-        if (percent == state.LastReportedPercent && !freshRate)
-        {
-            return;
-        }
-
-        state.LastReportedPercent = percent;
-
-        var rate = state.Rate.ToString();
-        progress?.Report(new TaskProgressDetail
-        {
-            Progress = percent,
-            StatusText = _localization.GetString("Progress_CopyingIsoContentsPercent", percent.ToString()),
-            TerminalOutput = rate.Length == 0 ? fileName : $"{fileName} ({rate})",
-            IsProgressIndicator = true
-        });
     }
 
     private sealed class TreeCopy
     {
         internal Func<string, bool>? SkipFile { get; set; }
 
-        internal required TransferRate Rate { get; init; }
+        internal required ByteProgressReporter Reporter { get; init; }
 
         internal long TotalBytes { get; set; }
 
         internal long CopiedBytes { get; set; }
-
-        internal int LastReportedPercent { get; set; } = -1;
     }
 }

@@ -32,12 +32,12 @@ public class MediaCopierTests
     {
         GivenOneFileOf(4_000);
         _native.Setup(n => n.CopyWithProgress(It.IsAny<string>(), It.IsAny<string>(),
-                   It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()))
-               .Callback<string, string, Action<long, long>, CancellationToken>(
-                   (_, _, cb, _) => { cb(1_000, 4_000); cb(4_000, 4_000); });
+                   It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()))
+               .Callback<string, string, Action<long>, CancellationToken>(
+                   (_, _, cb, _) => { cb(1_000); cb(4_000); });
 
         var reports = new List<TaskProgressDetail>();
-        BuildCopier().CopyTree(@"E:\", @"C:\work", null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
+        BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
 
         reports.Should().Contain(r => r.Progress == 25);
         reports.Should().Contain(r => r.Progress == 100);
@@ -48,12 +48,12 @@ public class MediaCopierTests
     {
         GivenOneFileOf(4_000);
         _native.Setup(n => n.CopyWithProgress(It.IsAny<string>(), It.IsAny<string>(),
-                   It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()))
-               .Callback<string, string, Action<long, long>, CancellationToken>(
-                   (_, _, cb, _) => { cb(1_000, 4_000); cb(1_001, 4_000); cb(4_000, 4_000); });
+                   It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()))
+               .Callback<string, string, Action<long>, CancellationToken>(
+                   (_, _, cb, _) => { cb(1_000); cb(1_001); cb(4_000); });
 
         var reports = new List<TaskProgressDetail>();
-        BuildCopier().CopyTree(@"E:\", @"C:\work", null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
+        BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
 
         reports.Select(r => r.Progress).Should().Equal(25d, 100d);
     }
@@ -64,16 +64,16 @@ public class MediaCopierTests
         const long mebibyte = 1024 * 1024;
         GivenOneFileOf(8 * mebibyte);
         _native.Setup(n => n.CopyWithProgress(It.IsAny<string>(), It.IsAny<string>(),
-                   It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()))
-               .Callback<string, string, Action<long, long>, CancellationToken>((_, _, cb, _) =>
+                   It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()))
+               .Callback<string, string, Action<long>, CancellationToken>((_, _, cb, _) =>
                {
-                   cb(2 * mebibyte, 8 * mebibyte);
+                   cb(2 * mebibyte);
                    _clock.Advance(TimeSpan.FromSeconds(1));
-                   cb(4 * mebibyte, 8 * mebibyte);
+                   cb(4 * mebibyte);
                });
 
         var reports = new List<TaskProgressDetail>();
-        BuildCopier().CopyTree(@"E:\", @"C:\work", null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
+        BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, new SynchronousProgress<TaskProgressDetail>(reports.Add), CancellationToken.None);
 
         // Four mebibytes had moved by the time the clock reached one second.
         reports.Select(r => r.TerminalOutput).Should().Equal("setup.exe", $"setup.exe ({4.0:F1} MB/s)");
@@ -86,11 +86,11 @@ public class MediaCopierTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        Action act = () => BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, cts.Token);
+        Action act = () => BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, null, cts.Token);
 
         act.Should().Throw<OperationCanceledException>();
         _native.Verify(n => n.CopyWithProgress(It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // A copy that ignored the token would run a 7 GB install.wim to the end under a dead Cancel
@@ -102,16 +102,16 @@ public class MediaCopierTests
         using var cts = new CancellationTokenSource();
         var seen = CancellationToken.None;
         _native.Setup(n => n.CopyWithProgress(It.IsAny<string>(), It.IsAny<string>(),
-                   It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()))
-               .Callback<string, string, Action<long, long>, CancellationToken>((_, _, cb, ct) =>
+                   It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()))
+               .Callback<string, string, Action<long>, CancellationToken>((_, _, cb, ct) =>
                {
                    seen = ct;
-                   cb(1_000, 4_000);
+                   cb(1_000);
                    cts.Cancel();
                    throw new OperationCanceledException(ct);
                });
 
-        Action act = () => BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, cts.Token);
+        Action act = () => BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, null, cts.Token);
 
         act.Should().Throw<OperationCanceledException>();
         seen.Should().Be(cts.Token);
@@ -127,12 +127,12 @@ public class MediaCopierTests
         _fileSystem.Setup(fs => fs.GetDirectories(@"E:\")).Returns([@"E:\sources"]);
         _fileSystem.Setup(fs => fs.GetFileSize(@"E:\sources\install.wim")).Returns(7_578_075_168L);
 
-        BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, CancellationToken.None);
+        BuildCopier().CopyTree(@"E:\", @"C:\work", null, null, null, CancellationToken.None);
 
         _native.Verify(n => n.CopyWithProgress(
             @"E:\sources\install.wim",
             @"C:\work\sources\install.wim",
-            It.IsAny<Action<long, long>>(),
+            It.IsAny<Action<long>>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -145,12 +145,12 @@ public class MediaCopierTests
         _fileSystem.Setup(fs => fs.GetFileSize(@"E:\setup.exe")).Returns(1_000L);
         _fileSystem.Setup(fs => fs.GetFileSize(@"E:\install.wim")).Returns(7_000_000_000L);
 
-        BuildCopier().CopyTree(@"E:\", @"C:\work", path => path.EndsWith("install.wim"), null, CancellationToken.None);
+        BuildCopier().CopyTree(@"E:\", @"C:\work", path => path.EndsWith("install.wim"), null, null, CancellationToken.None);
 
         _native.Verify(n => n.CopyWithProgress(@"E:\setup.exe", It.IsAny<string>(),
-            It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()), Times.Once);
         _native.Verify(n => n.CopyWithProgress(@"E:\install.wim", It.IsAny<string>(),
-            It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<Action<long>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private void GivenOneFileOf(long sizeBytes)

@@ -2,20 +2,17 @@ using Winhance.Core.Features.AdvancedTools.Models;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-internal interface IStorageEnumerator
+// The Windows Storage Management API (WMI, root\Microsoft\Windows\Storage), NOT VDS: Microsoft's
+// own VDS page opens with "superseded by the Windows Storage Management API" and adds "we strongly
+// recommend using the Storage Management API".
+internal interface IStorageOperations
 {
     IReadOnlyList<RemovableDrive> GetDisks();
 
     // The letters currently mounted from the disk's partitions; Clear takes them away, so the
     // writer reads them first to catch a working folder that lives on the target.
     IReadOnlyList<char> GetDriveLetters(int diskNumber);
-}
 
-// The Windows Storage Management API (WMI, root\Microsoft\Windows\Storage), NOT VDS: Microsoft's
-// own VDS page opens with "superseded by the Windows Storage Management API" and adds "we strongly
-// recommend using the Storage Management API".
-internal interface IStorageOperations
-{
     void Clear(int diskNumber);
 
     void EnsureMbr(int diskNumber);

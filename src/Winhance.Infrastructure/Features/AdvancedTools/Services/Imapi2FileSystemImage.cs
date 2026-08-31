@@ -17,6 +17,7 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
     private readonly object _raw;
     private readonly IFileSystemImage2 _image;
     private readonly List<object> _bootObjects = [];
+    private readonly List<IStream> _bootStreams = [];
     private bool _disposed;
 
     public Imapi2FileSystemImage()
@@ -94,7 +95,6 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
     public void SetBootImageOptions(IReadOnlyList<BootEntry> entries)
     {
         var options = entries.Select(CreateBootOptions).ToArray();
-        _bootObjects.AddRange(options);
 
         // A late-bound put, not the typed SAFEARRAY property: measured 2026-08-26, a C#
         // object[] through IDispatch was accepted and read back two entries, while a
@@ -132,16 +132,32 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
         if (_disposed) return;
         _disposed = true;
 
-        foreach (var boot in _bootObjects)
+        foreach (var stream in _bootStreams)
         {
-            _ = Marshal.ReleaseComObject(boot);
+            Release(stream);
         }
 
+        foreach (var boot in _bootObjects)
+        {
+            Release(boot);
+        }
+
+        _bootStreams.Clear();
         _bootObjects.Clear();
-        _ = Marshal.ReleaseComObject(_raw);
+        Release(_raw);
     }
 
-    private static object CreateBootOptions(BootEntry entry)
+    // CsWin32 generates these as [ComImport] interfaces, so every one is a runtime RCW; the guard
+    // is for the day that stops being true, when there would be nothing to release.
+    private static void Release(object com)
+    {
+        if (Marshal.IsComObject(com))
+        {
+            _ = Marshal.ReleaseComObject(com);
+        }
+    }
+
+    private object CreateBootOptions(BootEntry entry)
     {
         var type = Type.GetTypeFromCLSID(typeof(BootOptions).GUID)
             ?? throw new InvalidOperationException("IMAPI2FS boot options are not registered on this system.");
@@ -149,13 +165,20 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
         var raw = Activator.CreateInstance(type)
             ?? throw new InvalidOperationException("Could not create the IMAPI2 boot options.");
 
+        // Tracked before anything can throw, so Dispose releases it even if AssignBootImage fails.
+        _bootObjects.Add(raw);
+
         var options = (IBootOptions)raw;
         options.PlatformId = (PlatformId)entry.Platform;
 
         // oscdimg's ",e," - the boot image is read directly, not through a floppy or hard-disk
         // emulation, which is what every Windows installation ISO uses.
         options.Emulation = EmulationType.EmulationNone;
-        options.AssignBootImage(OpenBootImage(entry.BootImagePath));
+        // IMAPI2 keeps its own reference for CreateResultImage; this one is released in Dispose,
+        // which is what lets the working folder be deleted straight after a build.
+        var stream = OpenBootImage(entry.BootImagePath);
+        _bootStreams.Add(stream);
+        options.AssignBootImage(stream);
 
         return raw;
     }
