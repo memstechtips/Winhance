@@ -4,9 +4,10 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using Microsoft.Win32;
+using Windows.Win32;
+using Windows.Win32.System.SystemInformation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -394,12 +395,13 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            if (Kernel32Api.GetFirmwareType(out var firmwareType))
+            var firmwareType = default(FIRMWARE_TYPE);
+            if (PInvoke.GetFirmwareType(ref firmwareType))
             {
                 return firmwareType switch
                 {
-                    Kernel32Api.FirmwareType.Bios => "Legacy BIOS",
-                    Kernel32Api.FirmwareType.Uefi => "UEFI",
+                    FIRMWARE_TYPE.FirmwareTypeBios => "Legacy BIOS",
+                    FIRMWARE_TYPE.FirmwareTypeUefi => "UEFI",
                     _ => "Unknown"
                 };
             }

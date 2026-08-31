@@ -7,9 +7,13 @@ using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Security;
+using Windows.Win32.System.RemoteDesktop;
+using Windows.Win32.System.Threading;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -24,13 +28,13 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     private readonly string? _interactiveUserSid;
     private readonly string _interactiveUserName;
     private readonly string _interactiveUserProfilePath;
-    private IntPtr _interactiveUserToken = IntPtr.Zero;
+    private HANDLE _interactiveUserToken;
     private bool _disposed;
 
     public bool IsOtsElevation => _isOtsElevation;
     public string? InteractiveUserSid => _interactiveUserSid;
     public string InteractiveUserName => _interactiveUserName;
-    public bool HasInteractiveUserToken => _interactiveUserToken != IntPtr.Zero;
+    public bool HasInteractiveUserToken => !_interactiveUserToken.IsNull;
 
     public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)
     {
@@ -63,7 +67,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 $"process running as '{Environment.UserName}'. " +
                 $"HKCU registry operations will be redirected to HKU\\{detectedSid}");
 
-            if (_interactiveUserToken != IntPtr.Zero)
+            if (!_interactiveUserToken.IsNull)
             {
                 _logService.Log(LogLevel.Info,
                     "Interactive user token acquired — WinGet and other processes will run as the interactive user");
@@ -119,7 +123,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         int timeoutMs = 300_000,
         Action<string>? onProgressLine = null)
     {
-        if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
+        if (!_isOtsElevation || _interactiveUserToken.IsNull)
         {
             return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
         }
@@ -155,67 +159,56 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         int timeoutMs,
         Action<string>? onProgressLine = null)
     {
-        var sa = new UserTokenApi.SECURITY_ATTRIBUTES
-        {
-            nLength = Marshal.SizeOf<UserTokenApi.SECURITY_ATTRIBUTES>(),
-            bInheritHandle = true,
-            lpSecurityDescriptor = IntPtr.Zero
-        };
-
-        if (!UserTokenApi.CreatePipe(out IntPtr stdoutReadHandle, out IntPtr stdoutWriteHandle, ref sa, 0))
+        if (!CreateInheritablePipe(out HANDLE stdoutReadHandle, out HANDLE stdoutWriteHandle))
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stdout pipe");
 
-        if (!UserTokenApi.CreatePipe(out IntPtr stderrReadHandle, out IntPtr stderrWriteHandle, ref sa, 0))
+        if (!CreateInheritablePipe(out HANDLE stderrReadHandle, out HANDLE stderrWriteHandle))
         {
-            UserTokenApi.CloseHandle(stdoutReadHandle);
-            UserTokenApi.CloseHandle(stdoutWriteHandle);
+            PInvoke.CloseHandle(stdoutReadHandle);
+            PInvoke.CloseHandle(stdoutWriteHandle);
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stderr pipe");
         }
 
         // Create a pipe for stdin (process won't use it, but we need a handle)
-        if (!UserTokenApi.CreatePipe(out IntPtr stdinReadHandle, out IntPtr stdinWriteHandle, ref sa, 0))
+        if (!CreateInheritablePipe(out HANDLE stdinReadHandle, out HANDLE stdinWriteHandle))
         {
-            UserTokenApi.CloseHandle(stdoutReadHandle);
-            UserTokenApi.CloseHandle(stdoutWriteHandle);
-            UserTokenApi.CloseHandle(stderrReadHandle);
-            UserTokenApi.CloseHandle(stderrWriteHandle);
+            PInvoke.CloseHandle(stdoutReadHandle);
+            PInvoke.CloseHandle(stdoutWriteHandle);
+            PInvoke.CloseHandle(stderrReadHandle);
+            PInvoke.CloseHandle(stderrWriteHandle);
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create stdin pipe");
         }
 
-        UserTokenApi.SetHandleInformation(stdoutReadHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
-        UserTokenApi.SetHandleInformation(stderrReadHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
-        UserTokenApi.SetHandleInformation(stdinWriteHandle, UserTokenApi.HANDLE_FLAG_INHERIT, 0);
+        PInvoke.SetHandleInformation(stdoutReadHandle, (uint)HANDLE_FLAGS.HANDLE_FLAG_INHERIT, 0);
+        PInvoke.SetHandleInformation(stderrReadHandle, (uint)HANDLE_FLAGS.HANDLE_FLAG_INHERIT, 0);
+        PInvoke.SetHandleInformation(stdinWriteHandle, (uint)HANDLE_FLAGS.HANDLE_FLAG_INHERIT, 0);
 
         try
         {
-            IntPtr envBlock = IntPtr.Zero;
-            UserTokenApi.CreateEnvironmentBlock(out envBlock, _interactiveUserToken, false);
-            var processHandle = IntPtr.Zero;
+            IntPtr envBlock = CreateEnvironmentBlockFor(_interactiveUserToken);
+            var processHandle = HANDLE.Null;
 
             try
             {
-                var si = new UserTokenApi.STARTUPINFO
+                var startupInfo = new STARTUPINFOW
                 {
-                    cb = Marshal.SizeOf<UserTokenApi.STARTUPINFO>(),
-                    dwFlags = UserTokenApi.STARTF_USESTDHANDLES,
+                    dwFlags = STARTUPINFOW_FLAGS.STARTF_USESTDHANDLES,
                     hStdInput = stdinReadHandle,
                     hStdOutput = stdoutWriteHandle,
                     hStdError = stderrWriteHandle,
                 };
 
                 var commandLine = $"\"{fileName}\" {arguments}";
-                int creationFlags = UserTokenApi.CREATE_NO_WINDOW | UserTokenApi.CREATE_UNICODE_ENVIRONMENT;
+                var creationFlags = PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW | PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
 
-                if (!UserTokenApi.CreateProcessWithTokenW(
+                if (!TryCreateProcessWithToken(
                     _interactiveUserToken,
-                    UserTokenApi.LOGON_WITH_PROFILE,
-                    null,
                     commandLine,
                     creationFlags,
                     envBlock,
-                    null,
-                    ref si,
-                    out UserTokenApi.PROCESS_INFORMATION pi))
+                    desktop: null,
+                    startupInfo,
+                    out PROCESS_INFORMATION pi))
                 {
                     var error = Marshal.GetLastWin32Error();
                     _logService.Log(LogLevel.Warning,
@@ -225,17 +218,17 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 processHandle = pi.hProcess;
                 // Close the thread handle immediately — we only need the process handle
-                UserTokenApi.CloseHandle(pi.hThread);
+                PInvoke.CloseHandle(pi.hThread);
 
                 // Close the write ends of the pipes (child process has them now)
-                UserTokenApi.CloseHandle(stdoutWriteHandle);
-                stdoutWriteHandle = IntPtr.Zero;
-                UserTokenApi.CloseHandle(stderrWriteHandle);
-                stderrWriteHandle = IntPtr.Zero;
-                UserTokenApi.CloseHandle(stdinReadHandle);
-                stdinReadHandle = IntPtr.Zero;
-                UserTokenApi.CloseHandle(stdinWriteHandle);
-                stdinWriteHandle = IntPtr.Zero;
+                PInvoke.CloseHandle(stdoutWriteHandle);
+                stdoutWriteHandle = default;
+                PInvoke.CloseHandle(stderrWriteHandle);
+                stderrWriteHandle = default;
+                PInvoke.CloseHandle(stdinReadHandle);
+                stdinReadHandle = default;
+                PInvoke.CloseHandle(stdinWriteHandle);
+                stdinWriteHandle = default;
 
                 _logService.Log(LogLevel.Debug,
                     $"Launched process as interactive user '{_interactiveUserName}' (PID {pi.dwProcessId})");
@@ -244,9 +237,9 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 var stderrBuilder = new StringBuilder();
 
                 var stdoutSafeHandle = new SafeFileHandle(stdoutReadHandle, ownsHandle: true);
-                stdoutReadHandle = IntPtr.Zero; // SafeFileHandle now owns it
+                stdoutReadHandle = default; // SafeFileHandle now owns it
                 var stderrSafeHandle = new SafeFileHandle(stderrReadHandle, ownsHandle: true);
-                stderrReadHandle = IntPtr.Zero; // SafeFileHandle now owns it
+                stderrReadHandle = default; // SafeFileHandle now owns it
 
                 // timeoutMs 0 = no wall-clock limit (WinGetCliRunner's contract). CancellationTokenSource(0) is born
                 // cancelled and would fire the kill below before the child has run.
@@ -256,7 +249,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 {
                     try
                     {
-                        using var proc = Process.GetProcessById(pi.dwProcessId);
+                        using var proc = Process.GetProcessById((int)pi.dwProcessId);
                         proc.Kill(entireProcessTree: true);
                     }
                     catch (Exception ex) { _logService.LogDebug($"Best-effort process kill on cancellation/timeout: {ex.Message}"); }
@@ -283,12 +276,12 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 await Task.WhenAll(readStdout, readStderr).ConfigureAwait(false);
 
-                var waitMs = timeoutMs > 0 ? (uint)timeoutMs : UserTokenApi.INFINITE;
-                var waitResult = await Task.Run(() => UserTokenApi.WaitForSingleObject(processHandle, waitMs)).ConfigureAwait(false);
-                if (waitResult != UserTokenApi.WAIT_OBJECT_0)
-                    _logService.Log(LogLevel.Warning, $"Process did not signal exit (wait result 0x{waitResult:X}); the exit code read below cannot be trusted");
+                var waitMs = timeoutMs > 0 ? (uint)timeoutMs : PInvoke.INFINITE;
+                var waitResult = await Task.Run(() => PInvoke.WaitForSingleObject(processHandle, waitMs)).ConfigureAwait(false);
+                if (waitResult != WAIT_EVENT.WAIT_OBJECT_0)
+                    _logService.Log(LogLevel.Warning, $"Process did not signal exit (wait result 0x{(uint)waitResult:X}); the exit code read below cannot be trusted");
 
-                if (!UserTokenApi.GetExitCodeProcess(processHandle, out uint exitCode))
+                if (!TryGetExitCode(processHandle, out uint exitCode))
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed; the process's exit code is unknown");
 
                 return new InteractiveProcessResult(
@@ -298,27 +291,27 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             }
             finally
             {
-                if (processHandle != IntPtr.Zero)
-                    UserTokenApi.CloseHandle(processHandle);
+                if (!processHandle.IsNull)
+                    PInvoke.CloseHandle(processHandle);
                 if (envBlock != IntPtr.Zero)
-                    UserTokenApi.DestroyEnvironmentBlock(envBlock);
+                    FreeEnvironmentBlock(envBlock);
             }
         }
         finally
         {
-            if (stdoutReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdoutReadHandle);
-            if (stdoutWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdoutWriteHandle);
-            if (stderrReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stderrReadHandle);
-            if (stderrWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stderrWriteHandle);
-            if (stdinReadHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdinReadHandle);
-            if (stdinWriteHandle != IntPtr.Zero) UserTokenApi.CloseHandle(stdinWriteHandle);
+            if (!stdoutReadHandle.IsNull) PInvoke.CloseHandle(stdoutReadHandle);
+            if (!stdoutWriteHandle.IsNull) PInvoke.CloseHandle(stdoutWriteHandle);
+            if (!stderrReadHandle.IsNull) PInvoke.CloseHandle(stderrReadHandle);
+            if (!stderrWriteHandle.IsNull) PInvoke.CloseHandle(stderrWriteHandle);
+            if (!stdinReadHandle.IsNull) PInvoke.CloseHandle(stdinReadHandle);
+            if (!stdinWriteHandle.IsNull) PInvoke.CloseHandle(stdinWriteHandle);
         }
     }
 
     // CreateProcessWithTokenW without pipe redirection, so the child can create its own window on the interactive user's desktop.
     public void LaunchProcessAsInteractiveUser(string fileName, string arguments = "")
     {
-        if (!_isOtsElevation || _interactiveUserToken == IntPtr.Zero)
+        if (!_isOtsElevation || _interactiveUserToken.IsNull)
         {
             _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
             return;
@@ -327,30 +320,20 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         IntPtr envBlock = IntPtr.Zero;
         try
         {
-            UserTokenApi.CreateEnvironmentBlock(out envBlock, _interactiveUserToken, false);
-
-            var si = new UserTokenApi.STARTUPINFO
-            {
-                cb = Marshal.SizeOf<UserTokenApi.STARTUPINFO>(),
-                lpDesktop = "winsta0\\default",
-            };
+            envBlock = CreateEnvironmentBlockFor(_interactiveUserToken);
 
             var commandLine = string.IsNullOrEmpty(arguments)
                 ? $"\"{fileName}\""
                 : $"\"{fileName}\" {arguments}";
 
-            int creationFlags = UserTokenApi.CREATE_UNICODE_ENVIRONMENT;
-
-            if (!UserTokenApi.CreateProcessWithTokenW(
+            if (!TryCreateProcessWithToken(
                 _interactiveUserToken,
-                UserTokenApi.LOGON_WITH_PROFILE,
-                null,
                 commandLine,
-                creationFlags,
+                PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT,
                 envBlock,
-                null,
-                ref si,
-                out UserTokenApi.PROCESS_INFORMATION pi))
+                "winsta0\\default",
+                default,
+                out PROCESS_INFORMATION pi))
             {
                 var error = Marshal.GetLastWin32Error();
                 _logService.Log(LogLevel.Warning,
@@ -363,13 +346,13 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 $"Launched GUI process as interactive user '{_interactiveUserName}' (PID {pi.dwProcessId}): {fileName}");
 
             // Close both handles — we don't need to wait for the process
-            UserTokenApi.CloseHandle(pi.hThread);
-            UserTokenApi.CloseHandle(pi.hProcess);
+            PInvoke.CloseHandle(pi.hThread);
+            PInvoke.CloseHandle(pi.hProcess);
         }
         finally
         {
             if (envBlock != IntPtr.Zero)
-                UserTokenApi.DestroyEnvironmentBlock(envBlock);
+                FreeEnvironmentBlock(envBlock);
         }
     }
 
@@ -378,7 +361,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         try
         {
-            uint consoleSessionId = UserTokenApi.WTSGetActiveConsoleSessionId();
+            uint consoleSessionId = PInvoke.WTSGetActiveConsoleSessionId();
             if (consoleSessionId == 0xFFFFFFFF)
                 return null;
 
@@ -387,66 +370,42 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             {
                 try
                 {
-                    if (!UserTokenApi.ProcessIdToSessionId((uint)proc.Id, out uint procSessionId))
+                    if (!PInvoke.ProcessIdToSessionId((uint)proc.Id, out uint procSessionId))
                         continue;
 
                     if (procSessionId != consoleSessionId)
                         continue;
 
-                    if (!UserTokenApi.OpenProcessToken(proc.Handle,
-                        UserTokenApi.TOKEN_QUERY | UserTokenApi.TOKEN_DUPLICATE,
-                        out IntPtr tokenHandle))
+                    if (!TryOpenProcessToken(proc, out HANDLE tokenHandle))
                         continue;
 
                     try
                     {
-                        // First call: get required buffer size
-                        UserTokenApi.GetTokenInformation(tokenHandle,
-                            UserTokenApi.TOKEN_INFORMATION_CLASS.TokenUser,
-                            IntPtr.Zero, 0, out uint tokenInfoLength);
+                        string? sid = ReadTokenUserSid(tokenHandle);
+                        if (sid == null)
+                            continue;
 
-                        IntPtr tokenInfo = Marshal.AllocHGlobal((int)tokenInfoLength);
-                        try
+                        _logService.Log(LogLevel.Debug,
+                            $"OTS detection: explorer.exe (PID {proc.Id}, session {consoleSessionId}) SID: {sid}");
+
+                        // Duplicate the token as a primary token for CreateProcessWithTokenW
+                        if (TryDuplicatePrimaryToken(tokenHandle, out HANDLE duplicatedToken))
                         {
-                            if (UserTokenApi.GetTokenInformation(tokenHandle,
-                                UserTokenApi.TOKEN_INFORMATION_CLASS.TokenUser,
-                                tokenInfo, tokenInfoLength, out _))
-                            {
-                                var tokenUser = Marshal.PtrToStructure<UserTokenApi.TOKEN_USER>(tokenInfo);
-                                var sid = new SecurityIdentifier(tokenUser.User.Sid);
-                                _logService.Log(LogLevel.Debug,
-                                    $"OTS detection: explorer.exe (PID {proc.Id}, session {consoleSessionId}) SID: {sid.Value}");
-
-                                // Duplicate the token as a primary token for CreateProcessWithTokenW
-                                if (UserTokenApi.DuplicateTokenEx(
-                                    tokenHandle,
-                                    UserTokenApi.TOKEN_ALL_ACCESS,
-                                    IntPtr.Zero,
-                                    UserTokenApi.SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
-                                    UserTokenApi.TOKEN_TYPE.TokenPrimary,
-                                    out IntPtr duplicatedToken))
-                                {
-                                    _interactiveUserToken = duplicatedToken;
-                                    _logService.Log(LogLevel.Debug,
-                                        "OTS detection: Successfully duplicated interactive user token for process creation");
-                                }
-                                else
-                                {
-                                    _logService.Log(LogLevel.Warning,
-                                        $"OTS detection: Failed to duplicate token (error {Marshal.GetLastWin32Error()})");
-                                }
-
-                                return sid.Value;
-                            }
+                            _interactiveUserToken = duplicatedToken;
+                            _logService.Log(LogLevel.Debug,
+                                "OTS detection: Successfully duplicated interactive user token for process creation");
                         }
-                        finally
+                        else
                         {
-                            Marshal.FreeHGlobal(tokenInfo);
+                            _logService.Log(LogLevel.Warning,
+                                $"OTS detection: Failed to duplicate token (error {Marshal.GetLastWin32Error()})");
                         }
+
+                        return sid;
                     }
                     finally
                     {
-                        UserTokenApi.CloseHandle(tokenHandle);
+                        PInvoke.CloseHandle(tokenHandle);
                     }
                 }
                 catch (Exception ex)
@@ -509,12 +468,12 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         try
         {
-            uint consoleSessionId = UserTokenApi.WTSGetActiveConsoleSessionId();
+            uint consoleSessionId = PInvoke.WTSGetActiveConsoleSessionId();
             if (consoleSessionId == 0xFFFFFFFF)
                 return null;
 
-            string? username = QueryWtsSessionString(consoleSessionId, UserTokenApi.WTS_INFO_CLASS.WTSUserName);
-            string? domain = QueryWtsSessionString(consoleSessionId, UserTokenApi.WTS_INFO_CLASS.WTSDomainName);
+            string? username = QueryWtsSessionString(consoleSessionId, WTS_INFO_CLASS.WTSUserName);
+            string? domain = QueryWtsSessionString(consoleSessionId, WTS_INFO_CLASS.WTSDomainName);
 
             if (string.IsNullOrEmpty(username))
                 return null;
@@ -543,19 +502,137 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    private static string? QueryWtsSessionString(uint sessionId, UserTokenApi.WTS_INFO_CLASS infoClass)
+    private static unsafe string? QueryWtsSessionString(uint sessionId, WTS_INFO_CLASS infoClass)
     {
-        if (!UserTokenApi.WTSQuerySessionInformationW(IntPtr.Zero, sessionId, infoClass,
-            out IntPtr buffer, out uint bytesReturned))
+        if (!PInvoke.WTSQuerySessionInformation(HANDLE.Null, sessionId, infoClass,
+            out PWSTR buffer, out uint bytesReturned))
             return null;
 
         try
         {
-            return bytesReturned > 0 ? Marshal.PtrToStringUni(buffer) : null;
+            return bytesReturned > 0 ? buffer.ToString() : null;
         }
         finally
         {
-            UserTokenApi.WTSFreeMemory(buffer);
+            PInvoke.WTSFreeMemory(buffer.Value);
+        }
+    }
+
+    private static unsafe bool CreateInheritablePipe(out HANDLE readHandle, out HANDLE writeHandle)
+    {
+        var sa = new SECURITY_ATTRIBUTES
+        {
+            nLength = (uint)sizeof(SECURITY_ATTRIBUTES),
+            bInheritHandle = true,
+            lpSecurityDescriptor = null
+        };
+
+        HANDLE read, write;
+        bool created = PInvoke.CreatePipe(&read, &write, &sa, 0);
+        readHandle = read;
+        writeHandle = write;
+        return created;
+    }
+
+    private static unsafe bool TryOpenProcessToken(Process process, out HANDLE tokenHandle)
+    {
+        HANDLE token;
+        bool opened = PInvoke.OpenProcessToken(
+            (HANDLE)process.Handle,
+            TOKEN_ACCESS_MASK.TOKEN_QUERY | TOKEN_ACCESS_MASK.TOKEN_DUPLICATE,
+            &token);
+        tokenHandle = token;
+        return opened;
+    }
+
+    private static unsafe bool TryDuplicatePrimaryToken(HANDLE token, out HANDLE primaryToken)
+    {
+        HANDLE duplicated;
+        bool duplicatedOk = PInvoke.DuplicateTokenEx(
+            token,
+            TOKEN_ACCESS_MASK.TOKEN_ALL_ACCESS,
+            null,
+            SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
+            TOKEN_TYPE.TokenPrimary,
+            &duplicated);
+        primaryToken = duplicated;
+        return duplicatedOk;
+    }
+
+    // TOKEN_USER is variable length - the SID bytes trail the struct in the same buffer - so the size comes
+    // from a zero-length probe call and the SID must be copied out before the buffer is freed.
+    private static unsafe string? ReadTokenUserSid(HANDLE token)
+    {
+        uint bufferLength;
+        PInvoke.GetTokenInformation(token, TOKEN_INFORMATION_CLASS.TokenUser, null, 0, &bufferLength);
+
+        IntPtr buffer = Marshal.AllocHGlobal((int)bufferLength);
+        try
+        {
+            uint returnLength;
+            if (!PInvoke.GetTokenInformation(token, TOKEN_INFORMATION_CLASS.TokenUser,
+                (void*)buffer, bufferLength, &returnLength))
+                return null;
+
+            return new SecurityIdentifier(((TOKEN_USER*)buffer)->User.Sid).Value;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    private static unsafe IntPtr CreateEnvironmentBlockFor(HANDLE token)
+    {
+        void* environmentBlock = null;
+        PInvoke.CreateEnvironmentBlock(&environmentBlock, token, false);
+        return (IntPtr)environmentBlock;
+    }
+
+    private static unsafe void FreeEnvironmentBlock(IntPtr environmentBlock) =>
+        PInvoke.DestroyEnvironmentBlock((void*)environmentBlock);
+
+    private static unsafe bool TryGetExitCode(HANDLE process, out uint exitCode)
+    {
+        uint code;
+        bool read = PInvoke.GetExitCodeProcess(process, &code);
+        exitCode = code;
+        return read;
+    }
+
+    // CreateProcessWithTokenW writes into lpCommandLine, so it gets a writable null-terminated buffer rather
+    // than a string, and lpDesktop stays pinned for the whole call. Kept out of the async caller because
+    // taking the address of a local there is CS9123 - the compiler may hoist it onto the GC heap.
+    private static unsafe bool TryCreateProcessWithToken(
+        HANDLE token,
+        string commandLine,
+        PROCESS_CREATION_FLAGS creationFlags,
+        IntPtr environmentBlock,
+        string? desktop,
+        STARTUPINFOW startupInfo,
+        out PROCESS_INFORMATION processInformation)
+    {
+        startupInfo.cb = (uint)sizeof(STARTUPINFOW);
+        char[] commandLineBuffer = (commandLine + '\0').ToCharArray();
+
+        fixed (char* pCommandLine = commandLineBuffer)
+        fixed (char* pDesktop = desktop)
+        {
+            startupInfo.lpDesktop = pDesktop;
+
+            PROCESS_INFORMATION pi;
+            bool created = PInvoke.CreateProcessWithToken(
+                token,
+                CREATE_PROCESS_LOGON_FLAGS.LOGON_WITH_PROFILE,
+                default,
+                pCommandLine,
+                creationFlags,
+                (void*)environmentBlock,
+                default,
+                &startupInfo,
+                &pi);
+            processInformation = pi;
+            return created;
         }
     }
 
@@ -609,7 +686,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         // explorer.exe instead, while it still exists.
         try
         {
-            uint consoleSessionId = UserTokenApi.WTSGetActiveConsoleSessionId();
+            uint consoleSessionId = PInvoke.WTSGetActiveConsoleSessionId();
             if (consoleSessionId == 0xFFFFFFFF)
             {
                 _logService.Log(LogLevel.Warning, "[InteractiveUserService] No active console session - cannot capture a shell relaunch token");
@@ -620,24 +697,16 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             {
                 try
                 {
-                    if (!UserTokenApi.ProcessIdToSessionId((uint)proc.Id, out uint procSessionId)
+                    if (!PInvoke.ProcessIdToSessionId((uint)proc.Id, out uint procSessionId)
                         || procSessionId != consoleSessionId)
                         continue;
 
-                    if (!UserTokenApi.OpenProcessToken(proc.Handle,
-                        UserTokenApi.TOKEN_QUERY | UserTokenApi.TOKEN_DUPLICATE,
-                        out IntPtr tokenHandle))
+                    if (!TryOpenProcessToken(proc, out HANDLE tokenHandle))
                         continue;
 
                     try
                     {
-                        if (UserTokenApi.DuplicateTokenEx(
-                            tokenHandle,
-                            UserTokenApi.TOKEN_ALL_ACCESS,
-                            IntPtr.Zero,
-                            UserTokenApi.SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
-                            UserTokenApi.TOKEN_TYPE.TokenPrimary,
-                            out IntPtr duplicatedToken))
+                        if (TryDuplicatePrimaryToken(tokenHandle, out HANDLE duplicatedToken))
                         {
                             _logService.Log(LogLevel.Debug,
                                 $"[InteractiveUserService] Captured a shell relaunch token from explorer.exe (PID {proc.Id})");
@@ -649,7 +718,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                     }
                     finally
                     {
-                        UserTokenApi.CloseHandle(tokenHandle);
+                        PInvoke.CloseHandle(tokenHandle);
                     }
                 }
                 catch (Exception ex)
@@ -673,40 +742,32 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         }
     }
 
-    private sealed class ShellRelaunchToken(IntPtr token, ILogService logService) : IShellRelaunchToken
+    private sealed class ShellRelaunchToken(HANDLE token, ILogService logService) : IShellRelaunchToken
     {
-        private IntPtr _token = token;
+        private HANDLE _token = token;
 
         public bool TryLaunch(string fileName, string arguments = "")
         {
-            if (_token == IntPtr.Zero)
+            if (_token.IsNull)
                 return false;
 
             IntPtr envBlock = IntPtr.Zero;
             try
             {
-                UserTokenApi.CreateEnvironmentBlock(out envBlock, _token, false);
-
-                var si = new UserTokenApi.STARTUPINFO
-                {
-                    cb = Marshal.SizeOf<UserTokenApi.STARTUPINFO>(),
-                    lpDesktop = "winsta0\\default",
-                };
+                envBlock = CreateEnvironmentBlockFor(_token);
 
                 var commandLine = string.IsNullOrEmpty(arguments)
                     ? $"\"{fileName}\""
                     : $"\"{fileName}\" {arguments}";
 
-                if (!UserTokenApi.CreateProcessWithTokenW(
+                if (!TryCreateProcessWithToken(
                     _token,
-                    UserTokenApi.LOGON_WITH_PROFILE,
-                    null,
                     commandLine,
-                    UserTokenApi.CREATE_UNICODE_ENVIRONMENT,
+                    PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT,
                     envBlock,
-                    null,
-                    ref si,
-                    out UserTokenApi.PROCESS_INFORMATION pi))
+                    "winsta0\\default",
+                    default,
+                    out PROCESS_INFORMATION pi))
                 {
                     logService.Log(LogLevel.Warning,
                         $"[ShellRelaunchToken] CreateProcessWithTokenW failed for '{fileName}' (error {Marshal.GetLastWin32Error()})");
@@ -715,8 +776,8 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
                 logService.Log(LogLevel.Info,
                     $"[ShellRelaunchToken] Relaunched '{fileName}' as the interactive shell user (PID {pi.dwProcessId})");
-                UserTokenApi.CloseHandle(pi.hThread);
-                UserTokenApi.CloseHandle(pi.hProcess);
+                PInvoke.CloseHandle(pi.hThread);
+                PInvoke.CloseHandle(pi.hProcess);
                 return true;
             }
             catch (Exception ex)
@@ -727,16 +788,16 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             finally
             {
                 if (envBlock != IntPtr.Zero)
-                    UserTokenApi.DestroyEnvironmentBlock(envBlock);
+                    FreeEnvironmentBlock(envBlock);
             }
         }
 
         public void Dispose()
         {
-            if (_token != IntPtr.Zero)
+            if (!_token.IsNull)
             {
-                UserTokenApi.CloseHandle(_token);
-                _token = IntPtr.Zero;
+                PInvoke.CloseHandle(_token);
+                _token = default;
             }
         }
     }
@@ -745,10 +806,10 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         if (!_disposed)
         {
-            if (_interactiveUserToken != IntPtr.Zero)
+            if (!_interactiveUserToken.IsNull)
             {
-                UserTokenApi.CloseHandle(_interactiveUserToken);
-                _interactiveUserToken = IntPtr.Zero;
+                PInvoke.CloseHandle(_interactiveUserToken);
+                _interactiveUserToken = default;
             }
             _disposed = true;
         }
