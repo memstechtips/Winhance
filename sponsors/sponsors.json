@@ -73,6 +73,11 @@
   ],
   "supporters": [
     {
+      "name": "Friction",
+      "since": "2026-08",
+      "src": "Michael Baker"
+    },
+    {
       "name": "Paul Block",
       "since": "2026-08"
     },
