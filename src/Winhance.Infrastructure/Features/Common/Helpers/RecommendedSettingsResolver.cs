@@ -204,6 +204,8 @@ internal static class RecommendedSettingsResolver
         // is the Recommended-context-role state's Set["Power"] payload. Gating on States.Count (not Control ==
         // Selection) keeps a future powercfg setting whose two states happen to compute as Toggle from silently
         // dropping its plan write. A Numeric slider has no states and falls through to Numeric.Recommended below.
+        // NO powercfg setting derives as Toggle today, and CatalogPowerCfgControlKindConformanceTests is what
+        // holds that line - it fails the build the moment one does.
         if (setting.States.Count > 0)
         {
             foreach (var st in setting.States)
