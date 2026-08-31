@@ -24,3 +24,90 @@ SYSTEM_POWER_CAPABILITIES
 
 // Frees the GUID buffers PowerGetActiveScheme / PowerDuplicateScheme allocate
 LocalFree
+
+// Boot firmware: BIOS vs UEFI (kernel32.dll)
+GetFirmwareType
+FIRMWARE_TYPE
+
+// Product code of a downloaded MSI, read without touching machine state (msi.dll)
+MsiOpenPackageEx
+MsiGetProductProperty
+MsiCloseHandle
+MSIHANDLE
+MSIOPENPACKAGEFLAGS
+
+// System restore points (srrestoreptapi.h). MAX_DESC_W caps szDescription. The generated
+// import binds sfc.dll, which forwards through sfc_os.dll to the documented srclient.dll.
+SRSetRestorePoint
+RESTOREPOINTINFOW
+STATEMGRSTATUS
+RESTOREPOINTINFO_EVENT_TYPE
+RESTOREPOINTINFO_TYPE
+MAX_DESC_W
+WIN32_ERROR
+
+// Shell windows and broadcast messages (user32.dll). Constants, unlike structs and enums,
+// are only emitted when they are listed here.
+SendMessageTimeout
+SendNotifyMessage
+PostMessage
+FindWindow
+SetForegroundWindow
+ShowWindow
+IsIconic
+SystemParametersInfo
+SEND_MESSAGE_TIMEOUT_FLAGS
+SHOW_WINDOW_CMD
+SYSTEM_PARAMETERS_INFO_ACTION
+SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS
+HWND_BROADCAST
+WM_SETTINGCHANGE
+WM_SYSCOLORCHANGE
+WM_THEMECHANGED
+
+// ConPTY: a pseudoconsole so winget sees isatty(stdout) and emits progress bars (kernel32.dll)
+CreatePseudoConsole
+ClosePseudoConsole
+InitializeProcThreadAttributeList
+UpdateProcThreadAttribute
+DeleteProcThreadAttributeList
+CreateProcess
+GetExitCodeProcess
+WaitForSingleObject
+CloseHandle
+CreatePipe
+COORD
+HPCON
+SECURITY_ATTRIBUTES
+STARTUPINFOEXW
+PROCESS_INFORMATION
+PROCESS_CREATION_FLAGS
+PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE
+INFINITE
+
+// Interactive-user tokens: launch a child as the console user during OTS elevation (advapi32.dll,
+// kernel32.dll, userenv.dll, wtsapi32.dll). CloseHandle, CreatePipe, GetExitCodeProcess,
+// WaitForSingleObject and INFINITE come from the ConPTY block above; a name is only listed once.
+OpenProcessToken
+GetTokenInformation
+DuplicateTokenEx
+CreateProcessWithToken
+ProcessIdToSessionId
+WTSGetActiveConsoleSessionId
+SetHandleInformation
+CreateEnvironmentBlock
+DestroyEnvironmentBlock
+WTSQuerySessionInformation
+WTSFreeMemory
+TOKEN_ACCESS_MASK
+TOKEN_INFORMATION_CLASS
+TOKEN_USER
+SID_AND_ATTRIBUTES
+SECURITY_IMPERSONATION_LEVEL
+TOKEN_TYPE
+CREATE_PROCESS_LOGON_FLAGS
+STARTUPINFOW
+STARTUPINFOW_FLAGS
+HANDLE_FLAGS
+WTS_INFO_CLASS
+WAIT_EVENT

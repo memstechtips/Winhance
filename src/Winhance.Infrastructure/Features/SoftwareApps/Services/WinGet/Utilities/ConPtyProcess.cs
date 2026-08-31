@@ -1,18 +1,24 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using static Winhance.Core.Features.Common.Native.ConPtyApi;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Security;
+using Windows.Win32.System.Console;
+using Windows.Win32.System.Threading;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-// So the child sees isatty(stdout)==true and emits real-time progress bars.
+// So the child sees isatty(stdout)==true and emits real-time progress bars. ConPTY needs Windows 10 build
+// 17763 (1809); below that CreatePseudoConsole is absent from kernel32 and every call here throws
+// EntryPointNotFoundException.
 internal sealed class ConPtyProcess : IDisposable
 {
-    private IntPtr _hPC = IntPtr.Zero;
-    private IntPtr _pipeWeWriteToConsole = IntPtr.Zero;
-    private IntPtr _pipeWeReadFromConsole = IntPtr.Zero;
-    private IntPtr _hProcess = IntPtr.Zero;
-    private IntPtr _hThread = IntPtr.Zero;
-    private IntPtr _attrList = IntPtr.Zero;
+    private HPCON _hPC;
+    private HANDLE _pipeWeWriteToConsole;
+    private HANDLE _pipeWeReadFromConsole;
+    private HANDLE _hProcess;
+    private HANDLE _hThread;
+    private LPPROC_THREAD_ATTRIBUTE_LIST _attrList;
     private bool _disposed;
 
     public int ExitCode { get; private set; } = -1;
@@ -26,69 +32,7 @@ internal sealed class ConPtyProcess : IDisposable
         Action<string>? onProgressLine,
         CancellationToken cancellationToken)
     {
-        var sa = new SECURITY_ATTRIBUTES
-        {
-            nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
-            bInheritHandle = true
-        };
-
-        IntPtr inputReadSide = IntPtr.Zero;
-        IntPtr outputWriteSide = IntPtr.Zero;
-
-        try
-        {
-            if (!CreatePipe(out inputReadSide, out _pipeWeWriteToConsole, ref sa, 0))
-                throw new InvalidOperationException($"CreatePipe(input) failed: {Marshal.GetLastWin32Error()}");
-
-            if (!CreatePipe(out _pipeWeReadFromConsole, out outputWriteSide, ref sa, 0))
-                throw new InvalidOperationException($"CreatePipe(output) failed: {Marshal.GetLastWin32Error()}");
-
-            var size = new COORD(120, 30);
-            int hr = CreatePseudoConsole(size, inputReadSide, outputWriteSide, 0, out _hPC);
-            if (hr != 0)
-                throw new InvalidOperationException($"CreatePseudoConsole failed: HRESULT 0x{hr:X8}");
-        }
-        catch
-        {
-            if (inputReadSide != IntPtr.Zero) CloseHandle(inputReadSide);
-            if (outputWriteSide != IntPtr.Zero) CloseHandle(outputWriteSide);
-            throw;
-        }
-
-        CloseHandle(inputReadSide);
-        CloseHandle(outputWriteSide);
-
-        var attrSize = IntPtr.Zero;
-        InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref attrSize);
-        _attrList = Marshal.AllocHGlobal(attrSize);
-
-        if (!InitializeProcThreadAttributeList(_attrList, 1, 0, ref attrSize))
-            throw new InvalidOperationException($"InitializeProcThreadAttributeList failed: {Marshal.GetLastWin32Error()}");
-
-        if (!UpdateProcThreadAttribute(
-                _attrList, 0,
-                PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-                _hPC,
-                (IntPtr)IntPtr.Size,
-                IntPtr.Zero, IntPtr.Zero))
-            throw new InvalidOperationException($"UpdateProcThreadAttribute failed: {Marshal.GetLastWin32Error()}");
-
-        var si = new STARTUPINFOEX();
-        si.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
-        si.lpAttributeList = _attrList;
-
-        var cmdLine = $"\"{exePath}\" {arguments}";
-
-        if (!CreateProcessW(
-                null, cmdLine,
-                IntPtr.Zero, IntPtr.Zero,
-                false, EXTENDED_STARTUPINFO_PRESENT,
-                IntPtr.Zero, null,
-                ref si, out var pi))
-            throw new InvalidOperationException($"CreateProcessW failed: {Marshal.GetLastWin32Error()}");
-
-        _hProcess = pi.hProcess;
-        _hThread = pi.hThread;
+        uint processId = StartChild(exePath, arguments);
 
         var stdoutBuilder = new StringBuilder();
 
@@ -96,7 +40,7 @@ internal sealed class ConPtyProcess : IDisposable
         {
             try
             {
-                using var proc = System.Diagnostics.Process.GetProcessById(pi.dwProcessId);
+                using var proc = System.Diagnostics.Process.GetProcessById((int)processId);
                 proc.Kill(entireProcessTree: true);
             }
             catch { }
@@ -110,15 +54,14 @@ internal sealed class ConPtyProcess : IDisposable
         }, CancellationToken.None);
 
         // Wait on a thread pool thread to avoid blocking the UI thread.
-        await Task.Run(() => WaitForSingleObject(_hProcess, INFINITE)).ConfigureAwait(false);
-        GetExitCodeProcess(_hProcess, out uint exitCode);
-        ExitCode = (int)exitCode;
+        await Task.Run(() => PInvoke.WaitForSingleObject(_hProcess, PInvoke.INFINITE)).ConfigureAwait(false);
+        ExitCode = (int)GetExitCode(_hProcess);
 
         // Close pseudo console so the output pipe sees EOF.
-        if (_hPC != IntPtr.Zero)
+        if (!_hPC.IsNull)
         {
-            ClosePseudoConsole(_hPC);
-            _hPC = IntPtr.Zero;
+            PInvoke.ClosePseudoConsole(_hPC);
+            _hPC = default;
         }
 
         await readTask.ConfigureAwait(false);
@@ -127,6 +70,108 @@ internal sealed class ConPtyProcess : IDisposable
             ExitCode,
             stdoutBuilder.ToString(),
             string.Empty); // ConPTY merges stderr into stdout
+    }
+
+    // Kept out of RunAsync because taking the address of a local inside an async method is CS9123: the
+    // compiler may hoist that local into the state machine on the heap, where the GC can move it out from
+    // under the pointer.
+    private unsafe uint StartChild(string exePath, string arguments)
+    {
+        var sa = new SECURITY_ATTRIBUTES
+        {
+            nLength = (uint)sizeof(SECURITY_ATTRIBUTES),
+            bInheritHandle = true
+        };
+
+        HANDLE inputReadSide = default;
+        HANDLE outputWriteSide = default;
+
+        try
+        {
+            HANDLE writeToConsole;
+            if (!PInvoke.CreatePipe(&inputReadSide, &writeToConsole, &sa, 0))
+                throw new InvalidOperationException($"CreatePipe(input) failed: {Marshal.GetLastWin32Error()}");
+            _pipeWeWriteToConsole = writeToConsole;
+
+            HANDLE readFromConsole;
+            if (!PInvoke.CreatePipe(&readFromConsole, &outputWriteSide, &sa, 0))
+                throw new InvalidOperationException($"CreatePipe(output) failed: {Marshal.GetLastWin32Error()}");
+            _pipeWeReadFromConsole = readFromConsole;
+
+            var size = new COORD { X = 120, Y = 30 };
+            HPCON hPC;
+            HRESULT hr = PInvoke.CreatePseudoConsole(size, inputReadSide, outputWriteSide, 0, &hPC);
+            _hPC = hPC;
+            if (hr != 0)
+                throw new InvalidOperationException($"CreatePseudoConsole failed: HRESULT 0x{(int)hr:X8}");
+        }
+        catch
+        {
+            if (!inputReadSide.IsNull) PInvoke.CloseHandle(inputReadSide);
+            if (!outputWriteSide.IsNull) PInvoke.CloseHandle(outputWriteSide);
+            throw;
+        }
+
+        PInvoke.CloseHandle(inputReadSide);
+        PInvoke.CloseHandle(outputWriteSide);
+
+        nuint attrSize = 0;
+        PInvoke.InitializeProcThreadAttributeList(default, 1, ref attrSize);
+        var attrList = (LPPROC_THREAD_ATTRIBUTE_LIST)Marshal.AllocHGlobal((nint)attrSize);
+
+        // The field is assigned only once init has succeeded. Dispose runs DeleteProcThreadAttributeList over
+        // whatever the field holds, and running that over uninitialised heap is an access violation that takes
+        // the process down rather than an exception a caller could catch.
+        if (!PInvoke.InitializeProcThreadAttributeList(attrList, 1, ref attrSize))
+        {
+            var error = Marshal.GetLastWin32Error();
+            Marshal.FreeHGlobal(attrList);
+            throw new InvalidOperationException($"InitializeProcThreadAttributeList failed: {error}");
+        }
+
+        _attrList = attrList;
+
+        // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE is the exception to lpValue-is-a-pointer: the HPCON goes in BY
+        // VALUE, as Microsoft's own ConPTY samples do it. Passing its address instead compiles, returns
+        // success, and silently starts a child with no pseudoconsole.
+        if (!PInvoke.UpdateProcThreadAttribute(
+                _attrList, 0,
+                PInvoke.PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+                (void*)(nint)_hPC,
+                (nuint)sizeof(HPCON),
+                null, null))
+            throw new InvalidOperationException($"UpdateProcThreadAttribute failed: {Marshal.GetLastWin32Error()}");
+
+        var si = default(STARTUPINFOEXW);
+        si.StartupInfo.cb = (uint)sizeof(STARTUPINFOEXW);
+        si.lpAttributeList = _attrList;
+
+        // CreateProcess is documented to modify lpCommandLine in place, so it gets its own writable,
+        // null-terminated buffer rather than a string.
+        char[] commandLine = $"\"{exePath}\" {arguments}\0".ToCharArray();
+
+        PROCESS_INFORMATION pi;
+        fixed (char* pCommandLine = commandLine)
+        {
+            if (!PInvoke.CreateProcess(
+                    default, pCommandLine,
+                    null, null,
+                    false, PROCESS_CREATION_FLAGS.EXTENDED_STARTUPINFO_PRESENT,
+                    null, default,
+                    (STARTUPINFOW*)&si, &pi))
+                throw new InvalidOperationException($"CreateProcessW failed: {Marshal.GetLastWin32Error()}");
+        }
+
+        _hProcess = pi.hProcess;
+        _hThread = pi.hThread;
+        return pi.dwProcessId;
+    }
+
+    private static unsafe uint GetExitCode(HANDLE process)
+    {
+        uint exitCode = 0;
+        PInvoke.GetExitCodeProcess(process, &exitCode);
+        return exitCode;
     }
 
     private enum VtState { Normal, EscSeen, Csi, Osc }
@@ -138,7 +183,7 @@ internal sealed class ConPtyProcess : IDisposable
     // \r and \x1b[G / \x1b[1G are progress-line indicators. Progress lines get their unfilled bar track filled in -
     // winget draws it with cursor positioning + background colours, invisible without terminal colour support.
     private static void ReadConPtyOutput(
-        IntPtr pipeHandle,
+        HANDLE pipeHandle,
         StringBuilder outputBuilder,
         Action<string>? onOutputLine,
         Action<string>? onProgressLine)
@@ -348,22 +393,22 @@ internal sealed class ConPtyProcess : IDisposable
         if (_disposed) return;
         _disposed = true;
 
-        if (_hPC != IntPtr.Zero)
+        if (!_hPC.IsNull)
         {
-            ClosePseudoConsole(_hPC);
-            _hPC = IntPtr.Zero;
+            PInvoke.ClosePseudoConsole(_hPC);
+            _hPC = default;
         }
 
-        if (_attrList != IntPtr.Zero)
+        if (!_attrList.IsNull)
         {
-            DeleteProcThreadAttributeList(_attrList);
+            PInvoke.DeleteProcThreadAttributeList(_attrList);
             Marshal.FreeHGlobal(_attrList);
-            _attrList = IntPtr.Zero;
+            _attrList = default;
         }
 
-        if (_hThread != IntPtr.Zero) { CloseHandle(_hThread); _hThread = IntPtr.Zero; }
-        if (_hProcess != IntPtr.Zero) { CloseHandle(_hProcess); _hProcess = IntPtr.Zero; }
-        if (_pipeWeWriteToConsole != IntPtr.Zero) { CloseHandle(_pipeWeWriteToConsole); _pipeWeWriteToConsole = IntPtr.Zero; }
-        if (_pipeWeReadFromConsole != IntPtr.Zero) { CloseHandle(_pipeWeReadFromConsole); _pipeWeReadFromConsole = IntPtr.Zero; }
+        if (!_hThread.IsNull) { PInvoke.CloseHandle(_hThread); _hThread = default; }
+        if (!_hProcess.IsNull) { PInvoke.CloseHandle(_hProcess); _hProcess = default; }
+        if (!_pipeWeWriteToConsole.IsNull) { PInvoke.CloseHandle(_pipeWeWriteToConsole); _pipeWeWriteToConsole = default; }
+        if (!_pipeWeReadFromConsole.IsNull) { PInvoke.CloseHandle(_pipeWeReadFromConsole); _pipeWeReadFromConsole = default; }
     }
 }

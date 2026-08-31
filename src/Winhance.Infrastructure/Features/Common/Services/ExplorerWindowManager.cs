@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -41,12 +43,12 @@ internal class ExplorerWindowManager(
 
                             if (windowPath == normalizedPath)
                             {
-                                IntPtr handle = new IntPtr(window.HWND);
-                                if (User32Api.IsIconic(handle))
+                                var handle = (HWND)new IntPtr(window.HWND);
+                                if (PInvoke.IsIconic(handle))
                                 {
-                                    User32Api.ShowWindow(handle, User32Api.SW_RESTORE);
+                                    PInvoke.ShowWindow(handle, SHOW_WINDOW_CMD.SW_RESTORE);
                                 }
-                                User32Api.SetForegroundWindow(handle);
+                                PInvoke.SetForegroundWindow(handle);
                                 return;
                             }
                         }

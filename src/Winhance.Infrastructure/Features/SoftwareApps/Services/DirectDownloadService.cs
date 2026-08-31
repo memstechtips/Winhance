@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
+using Windows.Win32;
+using Windows.Win32.System.ApplicationInstallationAndServicing;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
@@ -441,24 +441,19 @@ internal class DirectDownloadService : IDirectDownloadService
     }
 
     // Query-only mode (IGNOREMACHINESTATE) so no install logic runs.
-    private static string? GetProductCodeFromMsi(string msiPath)
+    private static unsafe string? GetProductCodeFromMsi(string msiPath)
     {
-        const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;
-
-        uint result = MsiApi.MsiOpenPackageEx(msiPath, MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE, out var hProduct);
+        const uint ignoreMachineState = (uint)MSIOPENPACKAGEFLAGS.MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE;
+        uint result = PInvoke.MsiOpenPackageEx(msiPath, ignoreMachineState, out MsiCloseHandleSafeHandle hProduct);
         if (result != 0)
             return null;
 
-        try
+        using (hProduct)
         {
-            var buffer = new StringBuilder(39); // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
-            uint bufferSize = 39;
-            result = MsiApi.MsiGetProductProperty(hProduct, "ProductCode", buffer, ref bufferSize);
-            return result == 0 ? buffer.ToString() : null;
-        }
-        finally
-        {
-            _ = MsiApi.MsiCloseHandle(hProduct);
+            var buffer = new char[39]; // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
+            uint bufferSize = (uint)buffer.Length;
+            result = PInvoke.MsiGetProductProperty(hProduct, "ProductCode", buffer, &bufferSize);
+            return result == 0 ? new string(buffer, 0, (int)bufferSize) : null;
         }
     }
 

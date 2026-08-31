@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -12,6 +14,12 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
     // the window the graceful-exit message is posted to.
     private const string ShellTrayWindowClass = "Shell_TrayWnd";
     private const string ShellProcessName = "explorer";
+
+    // UNDOCUMENTED. Posted to the taskbar window it asks Explorer to shut the shell down
+    // GRACEFULLY - the path behind the hidden Ctrl+Shift+right-click "Exit Explorer" item; Explorer saves its state
+    // on the way out, which Process.Kill does not. Reference: ExplorerPatcher's utility.h ExitExplorer(); the same
+    // value appears in long-standing AutoHotkey samples. Best-effort by construction: callers keep the kill as fallback.
+    private const uint WM_SHELL_GRACEFUL_EXIT = 0x5B4;
 
     private readonly ILogService _logService;
 
@@ -104,7 +112,7 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
     {
         try
         {
-            return User32Api.FindWindow(ShellTrayWindowClass, null) != IntPtr.Zero;
+            return !PInvoke.FindWindow(ShellTrayWindowClass, null).IsNull;
         }
         catch (Exception ex)
         {
@@ -120,8 +128,8 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         var deadline = Environment.TickCount64 + timeoutMs;
         try
         {
-            var taskbar = User32Api.FindWindow(ShellTrayWindowClass, null);
-            if (taskbar == IntPtr.Zero)
+            var taskbar = PInvoke.FindWindow(ShellTrayWindowClass, null);
+            if (taskbar.IsNull)
             {
                 _logService.Log(LogLevel.Debug,
                     "No taskbar window found, so there is nothing to post the graceful shell-exit message to");
@@ -136,7 +144,7 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
 
             try
             {
-                if (!User32Api.PostMessage(taskbar, User32Api.WM_SHELL_GRACEFUL_EXIT, IntPtr.Zero, IntPtr.Zero))
+                if (!PInvoke.PostMessage(taskbar, WM_SHELL_GRACEFUL_EXIT, default, default))
                 {
                     _logService.Log(LogLevel.Debug, "Posting the graceful shell-exit message failed");
                     return false;
@@ -184,8 +192,7 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
             // can read after we return: SendNotifyMessage returns immediately and is Microsoft's own
             // recommendation for HWND_BROADCAST. It costs nothing per window, which is exactly why this is
             // the one message every Explorer-restart setting gets.
-            User32Api.SendNotifyMessage(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE, IntPtr.Zero, IntPtr.Zero);
+            PInvoke.SendNotifyMessage(HWND.HWND_BROADCAST, PInvoke.WM_SETTINGCHANGE, default, default);
         }
         catch (Exception ex)
         {
@@ -193,16 +200,14 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    public void BroadcastThemeRefresh()
+    public unsafe void BroadcastThemeRefresh()
     {
         try
         {
             // These two carry NO POINTER PAYLOAD, so there is nothing a receiver can read after we return:
             // SendNotifyMessage returns immediately and is Microsoft's own recommendation for HWND_BROADCAST.
-            User32Api.SendNotifyMessage(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SYSCOLORCHANGE, IntPtr.Zero, IntPtr.Zero);
-            User32Api.SendNotifyMessage(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_THEMECHANGE, IntPtr.Zero, IntPtr.Zero);
+            PInvoke.SendNotifyMessage(HWND.HWND_BROADCAST, PInvoke.WM_SYSCOLORCHANGE, default, default);
+            PInvoke.SendNotifyMessage(HWND.HWND_BROADCAST, PInvoke.WM_THEMECHANGED, default, default);
 
             string themeChanged = "ImmersiveColorSet";
             IntPtr themeChangedPtr = Marshal.StringToHGlobalUni(themeChanged);
@@ -218,10 +223,12 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
                 // top-level windows that fail to process the message, you could have up to a 15 second delay"),
                 // so 100ms x ~20 busy windows is the 2s stall a user saw with nothing in the log. Splitting the
                 // broadcast is what keeps the other ~43 Explorer-restart settings from paying it.
-                IntPtr result;
-                User32Api.SendMessageTimeout(
-                    (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
-                    IntPtr.Zero, themeChangedPtr, User32Api.SMTO_ABORTIFHUNG, 100, out result);
+                //
+                // unsafe only because lpdwResult is a raw pointer on the generated import; it is optional
+                // and no receiver's result is wanted, so it is left off.
+                PInvoke.SendMessageTimeout(
+                    HWND.HWND_BROADCAST, PInvoke.WM_SETTINGCHANGE,
+                    default, themeChangedPtr, SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG, 100);
             }
             finally
             {
@@ -234,15 +241,14 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         }
     }
 
-    public void BroadcastRegionalSettingChange()
+    public unsafe void BroadcastRegionalSettingChange()
     {
         IntPtr intlPtr = Marshal.StringToHGlobalUni("intl");
         try
         {
-            IntPtr result;
-            User32Api.SendMessageTimeout(
-                (IntPtr)User32Api.HWND_BROADCAST, User32Api.WM_SETTINGCHANGE,
-                IntPtr.Zero, intlPtr, User32Api.SMTO_ABORTIFHUNG, 1000, out result);
+            PInvoke.SendMessageTimeout(
+                HWND.HWND_BROADCAST, PInvoke.WM_SETTINGCHANGE,
+                default, intlPtr, SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG, 1000);
         }
         finally
         {

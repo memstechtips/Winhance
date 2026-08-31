@@ -1,10 +1,12 @@
 using System.Globalization;
 using System.Management;
 using Microsoft.Win32;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Restore;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -85,14 +87,14 @@ internal class SystemBackupService : ISystemBackupService
 
             if (!apiSuccess)
             {
-                var statusDesc = SrClientApi.GetStatusDescription(statusCode);
+                var statusDesc = GetStatusDescription(statusCode);
                 _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({statusDesc})");
                 return BackupResult.CreateFailure($"Failed to create system restore point: {statusDesc}");
             }
 
-            if (statusCode != SrClientApi.ERROR_SUCCESS)
+            if (statusCode != (int)WIN32_ERROR.ERROR_SUCCESS)
             {
-                var statusDesc = SrClientApi.GetStatusDescription(statusCode);
+                var statusDesc = GetStatusDescription(statusCode);
                 _logService.Log(LogLevel.Warning, $"SRSetRestorePointW returned success but status code is {statusCode} ({statusDesc})");
             }
 
@@ -181,6 +183,10 @@ internal class SystemBackupService : ISystemBackupService
         }).ConfigureAwait(false);
     }
 
+    // szDescription is a fixed MAX_DESC_W-char buffer whose setter throws instead of truncating,
+    // so a longer name must be trimmed, and the last slot is reserved for the null terminator.
+    private const int MaxDescriptionLength = (int)PInvoke.MAX_DESC_W - 1;
+
     private async Task<(bool Success, int StatusCode)> CreateRestorePointNativeAsync(string description)
     {
         return await Task.Run(() =>
@@ -195,20 +201,21 @@ internal class SystemBackupService : ISystemBackupService
 
                 try
                 {
-                    var restorePointInfo = new SrClientApi.RESTOREPOINTINFO
+                    var restorePointInfo = new RESTOREPOINTINFOW
                     {
-                        dwEventType = SrClientApi.BEGIN_SYSTEM_CHANGE,
-                        dwRestorePtType = SrClientApi.MODIFY_SETTINGS,
+                        dwEventType = RESTOREPOINTINFO_EVENT_TYPE.BEGIN_SYSTEM_CHANGE,
+                        dwRestorePtType = RESTOREPOINTINFO_TYPE.MODIFY_SETTINGS,
                         llSequenceNumber = 0,
-                        szDescription = description
+                        szDescription = description.AsSpan(0, Math.Min(description.Length, MaxDescriptionLength))
                     };
 
-                    var success = SrClientApi.SRSetRestorePointW(ref restorePointInfo, out var status);
+                    bool success = PInvoke.SRSetRestorePoint(restorePointInfo, out var status);
+                    var statusCode = (int)status.nStatus;
                     if (!success)
                     {
-                        _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {status.nStatus} ({SrClientApi.GetStatusDescription(status.nStatus)})");
+                        _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({GetStatusDescription(statusCode)})");
                     }
-                    return (success, status.nStatus);
+                    return (success, statusCode);
                 }
                 finally
                 {
@@ -221,6 +228,19 @@ internal class SystemBackupService : ISystemBackupService
                 return (false, -1);
             }
         }).ConfigureAwait(false);
+    }
+
+    private static string GetStatusDescription(int statusCode)
+    {
+        return statusCode switch
+        {
+            (int)WIN32_ERROR.ERROR_SUCCESS => "Success",
+            (int)WIN32_ERROR.ERROR_SERVICE_DISABLED => "System Restore service is disabled",
+            (int)WIN32_ERROR.ERROR_DISK_FULL => "Insufficient disk space for restore point",
+            (int)WIN32_ERROR.ERROR_INTERNAL_ERROR => "Internal error in System Restore service",
+            (int)WIN32_ERROR.ERROR_TIMEOUT => "Operation timed out",
+            _ => $"Unknown status code ({statusCode})"
+        };
     }
 
     private const string SystemRestoreKeyPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore";
