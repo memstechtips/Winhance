@@ -124,9 +124,12 @@ public class LocalizationUntranslatedValueTests
         "Setting_gaming-performance-mouse-hover-time_Option_4",
         "Setting_taskbar-extended-hover-time_Option_4",
 
-        // A placeholder and its punctuation, with no word in it. French, Japanese and both Chinese files
-        // adjust the spacing or use a fullwidth colon, which is typography rather than translation.
+        // Placeholders and their punctuation, with no word in either. French, Japanese and both Chinese
+        // files adjust the spacing or use a fullwidth colon, which is typography rather than translation.
+        // The change-history one exists precisely so a language CAN do that, which a colon baked into
+        // C# would not allow.
         "Overview_OutcomeBanner_Label",
+        "ChangeHistory_SettingChanged",
 
         // Windows itself labels this button "OK" in most of its UI languages, German, French and Japanese
         // included; the locales that chose a word of their own were free to.

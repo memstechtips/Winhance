@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
@@ -7,6 +8,13 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
 internal static class WinGetCliRunner
 {
     private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
+
+    // Installs need a wall clock because the idle timer cannot see a stall: winget prints a spinner frame every
+    // 5 seconds whether or not it is progressing (measured on v1.28.240), so a wedged run re-arms the idle deadline
+    // forever. 2 hours is deliberately generous - the 1.5 GB package measured needs ~100 minutes on a 2 Mbps link,
+    // and a user who wants out sooner has the cancel button.
+    public const int InstallTimeoutMs = 7_200_000;
+    public const int InstallIdleTimeoutMs = 180_000;
 
     // A killed process reports exit code -1 (0xFFFFFFFF), meaningless as a winget code - callers use this to tell
     // the user what really happened.
@@ -25,17 +33,29 @@ internal static class WinGetCliRunner
         TerminationReason Termination = TerminationReason.None);
 
     // For the terminal output dialog, so users and support transcripts don't see a bare -1 (0xFFFFFFFF).
-    public static string? DescribeTermination(WinGetCliResult result, int timeoutMs, int idleTimeoutMs)
+    // These four reasons are the ONLY explanation a user gets when Winhance kills winget itself, and they
+    // land in the task-output dialog and in support transcripts, so they are localized. The service is
+    // optional because WinGetInstaller holds a nullable one; GetStringOrDefault handles the null.
+    public static string? DescribeTermination(
+        WinGetCliResult result, int timeoutMs, int idleTimeoutMs, ILocalizationService? localization = null)
     {
+        var idleMinutes = idleTimeoutMs / 60_000;
+        var limitMinutes = timeoutMs / 60_000;
+
         return result.Termination switch
         {
-            TerminationReason.IdleTimeout =>
-                $"winget was terminated by Winhance after producing no output for {idleTimeoutMs / 60_000} minutes. " +
-                "The package source or the system's app deployment services may be unresponsive on this system.",
-            TerminationReason.WallClockTimeout =>
-                $"winget was terminated by Winhance after exceeding the {timeoutMs / 60_000} minute time limit.",
-            TerminationReason.Cancelled =>
-                "winget was terminated because the operation was cancelled.",
+            TerminationReason.IdleTimeout => localization.GetStringOrDefault(
+                "WinGet_TerminatedIdle",
+                $"winget was terminated by Winhance after producing no output for {idleMinutes} minutes. " +
+                "It normally prints progress every few seconds, so it had stopped responding rather than working slowly.",
+                idleMinutes),
+            TerminationReason.WallClockTimeout => localization.GetStringOrDefault(
+                "WinGet_TerminatedTimeLimit",
+                $"winget was terminated by Winhance after exceeding the {limitMinutes} minute time limit.",
+                limitMinutes),
+            TerminationReason.Cancelled => localization.GetStringOrDefault(
+                "WinGet_TerminatedCancelled",
+                "winget was terminated because the operation was cancelled."),
             _ => null,
         };
     }

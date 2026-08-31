@@ -1,5 +1,6 @@
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -22,8 +23,12 @@ internal class ChangeHistoryService(
         "Winhance",
         "ChangeHistory.txt");
 
-    public void LogSettingChange(string displayName, string? localizedGroupName, string before, string after) =>
-        WriteEntry(FormatSettingLabel(displayName, localizedGroupName) + $": {before} → {after}");
+    public void LogSettingChange(string displayName, string? localizedGroupName, string before, string after)
+    {
+        var label = FormatSettingLabel(displayName, localizedGroupName);
+        WriteEntry(localizationService.GetStringOrDefault(
+            "ChangeHistory_SettingChanged", $"{label}: {before} → {after}", label, before, after));
+    }
 
     public void LogSettingAction(string displayName, string? localizedGroupName) =>
         WriteEntry(FormatSettingLabel(displayName, localizedGroupName));
@@ -32,16 +37,15 @@ internal class ChangeHistoryService(
     {
         try
         {
+            // The separator between label and name lives in the template, not here: French wants a space
+            // before the colon and CJK a fullwidth one, and no translation can correct a colon baked into C#.
             var (key, fallback) = kind switch
             {
-                AppChangeKind.Removed => ("ChangeHistory_AppRemoved", "App removed"),
-                AppChangeKind.EnableStarted => ("ChangeHistory_AppEnableStarted", "Enable started in a separate window (success can only be determined there)"),
-                _ => ("ChangeHistory_AppInstalled", "App installed"),
+                AppChangeKind.Removed => ("ChangeHistory_AppRemoved", $"App removed: {appDisplayName}"),
+                AppChangeKind.EnableStarted => ("ChangeHistory_AppEnableStarted", $"Enable started for {appDisplayName} in a separate window; success can only be determined there"),
+                _ => ("ChangeHistory_AppInstalled", $"App installed: {appDisplayName}"),
             };
-            var template = localizationService.GetString(key);
-            if (string.IsNullOrEmpty(template))
-                template = fallback;
-            WriteEntry($"{template}: {appDisplayName}");
+            WriteEntry(localizationService.GetStringOrDefault(key, fallback, appDisplayName));
         }
         catch (Exception ex)
         {

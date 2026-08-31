@@ -8,10 +8,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
 internal class WinGetPackageInstaller : IWinGetPackageInstaller
 {
-    // No wall-clock cap (installs/uninstalls can legitimately run long); a stalled
-    // process is caught by the idle-output timer instead.
-    private const int IdleTimeoutMs = 180_000;
-
     private readonly WinGetComSession _comSession;
     private readonly ITaskProgressService _taskProgressService;
     private readonly ILogService _logService;
@@ -210,8 +206,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 onOutputLine: HandleOutputLine,
                 onErrorLine: HandleErrorLine,
                 cancellationToken: cancellationToken,
-                timeoutMs: 0,
-                idleTimeoutMs: IdleTimeoutMs,
+                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: HandleProgressLine).ConfigureAwait(false);
 
@@ -223,7 +219,9 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
             // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict —
             // say so, or support transcripts read like a winget bug (see issue #675).
-            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: IdleTimeoutMs);
+            var terminationNote = WinGetCliRunner.DescribeTermination(
+                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                localization: _localization);
             if (terminationNote != null)
             {
                 _logService?.LogWarning($"[{logTag}] {terminationNote}");
@@ -399,8 +397,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                     });
                 },
                 cancellationToken: cancellationToken,
-                timeoutMs: 0,
-                idleTimeoutMs: IdleTimeoutMs,
+                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
                 onProgressLine: line =>
                 {
@@ -426,7 +424,9 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
             });
 
             // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
-            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: IdleTimeoutMs);
+            var terminationNote = WinGetCliRunner.DescribeTermination(
+                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                localization: _localization);
             if (terminationNote != null)
             {
                 _logService?.LogWarning($"[{logTag}] {terminationNote}");

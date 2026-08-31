@@ -188,10 +188,8 @@ internal class WinGetInstaller
                     });
                 },
                 cancellationToken: cancellationToken,
-                // Install can legitimately take >5 min for slow CDNs / large packages.
-                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
-                timeoutMs: 0,
-                idleTimeoutMs: 180_000,
+                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 exePathOverride: bundledPath,
                 onProgressLine: line =>
                 {
@@ -218,7 +216,9 @@ internal class WinGetInstaller
             }
 
             // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
-            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: 180_000);
+            var terminationNote = WinGetCliRunner.DescribeTermination(
+                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                localization: _localization);
             if (terminationNote != null)
             {
                 _logService?.LogWarning($"[bundled-winget] {terminationNote}");

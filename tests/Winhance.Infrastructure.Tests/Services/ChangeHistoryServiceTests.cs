@@ -54,16 +54,45 @@ public class ChangeHistoryServiceTests
     }
 
     [Theory]
-    [InlineData(AppChangeKind.Installed, "ChangeHistory_AppInstalled", "App installed")]
-    [InlineData(AppChangeKind.Removed, "ChangeHistory_AppRemoved", "App removed")]
-    [InlineData(AppChangeKind.EnableStarted, "ChangeHistory_AppEnableStarted", "Enable started in a separate window (success can only be determined there)")]
+    [InlineData(AppChangeKind.Installed, "ChangeHistory_AppInstalled", "App installed: {0}")]
+    [InlineData(AppChangeKind.Removed, "ChangeHistory_AppRemoved", "App removed: {0}")]
+    [InlineData(AppChangeKind.EnableStarted, "ChangeHistory_AppEnableStarted", "Enable started for {0} in a separate window")]
     public void LogAppChange_UsesLocalizedTemplate(AppChangeKind kind, string key, string template)
     {
-        _mockLocalization.Setup(l => l.GetString(key)).Returns(template);
+        var value = template;
+        _mockLocalization.Setup(l => l.TryGetString(key, out value)).Returns(true);
 
         _service.LogAppChange("Microsoft Edge", kind);
 
-        _appended.Should().Contain($"] {template}: Microsoft Edge\r\n");
+        _appended.Should().Contain($"] {template.Replace("{0}", "Microsoft Edge")}\r\n");
+    }
+
+    // The separator between label and name has to come from the template: a colon baked into the C#
+    // cannot be a fullwidth one for CJK, and cannot take the space French puts in front of it.
+    [Theory]
+    [InlineData("App installed\uFF1A{0}", "] App installed\uFF1AMicrosoft Edge\r\n")]
+    [InlineData("App installed : {0}", "] App installed : Microsoft Edge\r\n")]
+    [InlineData("{0} was installed", "] Microsoft Edge was installed\r\n")]
+    public void LogAppChange_SeparatorAndOrderComeFromTheTemplate(string template, string expected)
+    {
+        var value = template;
+        _mockLocalization.Setup(l => l.TryGetString("ChangeHistory_AppInstalled", out value)).Returns(true);
+
+        _service.LogAppChange("Microsoft Edge", AppChangeKind.Installed);
+
+        // EndWith, not Contain: it proves the C# appended nothing of its own after the template.
+        _appended.Should().EndWith(expected);
+    }
+
+    [Fact]
+    public void LogSettingChange_UsesLocalizedTemplate()
+    {
+        var value = "{0}\uFF1A{1} \u2192 {2}";
+        _mockLocalization.Setup(l => l.TryGetString("ChangeHistory_SettingChanged", out value)).Returns(true);
+
+        _service.LogSettingChange("Telemetry", null, "Enabled", "Disabled");
+
+        _appended.Should().Contain("] Telemetry\uFF1AEnabled \u2192 Disabled\r\n");
     }
 
     [Fact]
@@ -172,7 +201,7 @@ public class ChangeHistoryServiceTests
     public void LogAppChange_LocalizationThrows_DoesNotThrow()
     {
         _mockLocalization
-            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Setup(l => l.TryGetString(It.IsAny<string>(), out It.Ref<string>.IsAny))
             .Throws(new InvalidOperationException("boom"));
 
         var act = () => _service.LogAppChange("Microsoft Edge", AppChangeKind.Installed);
