@@ -649,19 +649,85 @@
                                     Padding="16,0,16,16"
                                     Spacing="0">
 
-                            <!-- Download Oscdimg Card (conditional - hidden when already installed) -->
-                            <ContentPresenter Content="{x:Bind ViewModel.DownloadOscdimgCard}"
-                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"
-                                              Visibility="{x:Bind ViewModel.IsOscdimgAvailable, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                            <!-- Destination: the same customised working directory feeds either writer.
+                                 Hand-built rather than a WizardActionCard because the card template's
+                                 trailing column is a Button, and this one needs the radio pair. -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="16"
+                                    Margin="0,0,0,8">
+                                <Grid MinHeight="40">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <fluentIcons:FluentIcon Grid.Column="0"
+                                              Icon="DocumentSave" IconVariant="Regular"
+                                              FontSize="24"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,16,0"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind ViewModel.DestinationCardTitle}"
+                                                   Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                        <TextBlock Text="{x:Bind ViewModel.DestinationCardDescription}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2"
+                                                Margin="16,0,0,0"
+                                                VerticalAlignment="Center">
+                                        <RadioButton x:Name="DestinationIsoRadio"
+                                                     GroupName="WimUtilDestination"
+                                                     MinWidth="0"
+                                                     Content="{x:Bind ViewModel.DestinationIsoText}"
+                                                     IsChecked="{x:Bind ViewModel.IsIsoDestination, Mode=OneWay}"
+                                                     Checked="DestinationIsoRadio_Checked"/>
+                                        <RadioButton x:Name="DestinationUsbRadio"
+                                                     GroupName="WimUtilDestination"
+                                                     MinWidth="0"
+                                                     Content="{x:Bind ViewModel.DestinationUsbText}"
+                                                     IsChecked="{x:Bind ViewModel.IsUsbDestination, Mode=OneWay}"
+                                                     Checked="DestinationUsbRadio_Checked"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
 
                             <!-- Select Output Card -->
                             <ContentPresenter Content="{x:Bind ViewModel.SelectOutputCard}"
-                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+                                              ContentTemplate="{StaticResource WizardActionCardTemplate}"
+                                              Visibility="{x:Bind ViewModel.IsIsoDestination, Mode=OneWay}"/>
 
-                            <!-- Create ISO Button -->
-                            <Button Content="{x:Bind ViewModel.ButtonCreateIsoText}"
+                            <!-- USB destination -->
+                            <StackPanel Visibility="{x:Bind ViewModel.IsUsbDestination, Mode=OneWay}"
+                                        Spacing="8">
+                                <ContentPresenter Content="{x:Bind ViewModel.SelectUsbCard}"
+                                                  ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                                <ComboBox ItemsSource="{x:Bind ViewModel.UsbTargets}"
+                                          SelectedItem="{x:Bind ViewModel.SelectedUsbTarget, Mode=TwoWay}"
+                                          DisplayMemberPath="DisplayName"
+                                          PlaceholderText="{x:Bind ViewModel.NoUsbSelectedText}"
+                                          HorizontalAlignment="Stretch"
+                                          Margin="0,0,0,4"/>
+
+                                <InfoBar IsOpen="True"
+                                         IsClosable="False"
+                                         Severity="Error"
+                                         Message="{x:Bind ViewModel.UsbEraseWarningText}"/>
+                            </StackPanel>
+
+                            <!-- Create Button -->
+                            <Button Content="{x:Bind ViewModel.ButtonCreateMediaText}"
                                     Style="{StaticResource AccentButtonStyle}"
-                                    Command="{x:Bind ViewModel.CreateIsoCommand}"
+                                    Command="{x:Bind ViewModel.CreateMediaCommand}"
                                     HorizontalAlignment="Center"
                                     MinWidth="160"
                                     Margin="0,8,0,4"/>

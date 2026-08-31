@@ -173,4 +173,21 @@ public class WimCustomizationServiceTests
 
         result.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task AddDriversAsync_StorageDriversGoToTheMediaRootNotTheSourcesFolder()
+    {
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverCategorizer
+            .Setup(d => d.CategorizeAndCopyDrivers(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(1);
+
+        await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
+
+        _mockDriverCategorizer.Verify(d => d.CategorizeAndCopyDrivers(
+            It.IsAny<string>(),
+            @"C:\work\$WinpeDriver$",
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
+    }
 }

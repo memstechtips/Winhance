@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Common;
@@ -77,6 +78,7 @@ public class DismProcessRunnerTests
             "dism.exe", "/args", syncProgress, CancellationToken.None);
 
         reportedDetails.Should().ContainSingle(d => d.Progress.HasValue && Math.Abs(d.Progress.Value - 25.5) < 0.01);
+        reportedDetails[0].IsProgressIndicator.Should().BeTrue();
     }
 
     [Fact]
@@ -128,6 +130,7 @@ public class DismProcessRunnerTests
 
         reportedDetails.Should().ContainSingle();
         reportedDetails[0].Progress.Should().BeNull();
+        reportedDetails[0].IsProgressIndicator.Should().BeFalse();
         reportedDetails[0].TerminalOutput.Should().Contain("Deployment Image");
     }
 
@@ -142,13 +145,5 @@ public class DismProcessRunnerTests
 
         // The catch block returns true on unexpected errors.
         result.Should().BeTrue();
-    }
-
-    // Unlike Progress<T>, invokes the callback immediately on the calling thread.
-    private sealed class SynchronousProgress<T> : IProgress<T>
-    {
-        private readonly Action<T> _handler;
-        public SynchronousProgress(Action<T> handler) => _handler = handler;
-        public void Report(T value) => _handler(value);
     }
 }

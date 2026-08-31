@@ -44,10 +44,14 @@ internal class DismProcessRunner : IDismProcessRunner
                 var match = ProgressRegex.Match(line);
                 if (match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
                 {
+                    // Every percent update arrives as its own line, and a 20-minute conversion
+                    // prints hundreds of them; the flag is what lets the terminal redraw one bar
+                    // instead of stacking them.
                     progress?.Report(new TaskProgressDetail
                     {
                         TerminalOutput = line,
-                        Progress = pct
+                        Progress = pct,
+                        IsProgressIndicator = true
                     });
                 }
                 else

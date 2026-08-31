@@ -54,6 +54,9 @@ internal class WimCustomizationService : IWimCustomizationService
 
                 try
                 {
+                    // dism.exe, not the DISM API: DismGetDrivers only enumerates drivers already
+                    // inside a mounted image, so nothing in the API harvests them from the running
+                    // machine. This shell-out is permanent.
                     var arguments = $"/Online /Export-Driver /Destination:\"{tempDriverPath}\"";
 
                     progress?.Report(new TaskProgressDetail
@@ -99,7 +102,11 @@ internal class WimCustomizationService : IWimCustomizationService
                 TerminalOutput = "Separating storage and post-install drivers"
             });
 
-            var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$WinpeDriver$");
+            // The media ROOT, not sources\. KB 2686316 publishes the paths Setup actually scans and
+            // every one is a drive root (C:\$WinPEDriver$, D:\, E:\, X:\) - Setup enumerates drive
+            // letters and probes each root. Nothing documents a sources\ variant, so the storage
+            // drivers sat somewhere Setup never looked.
+            var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "$WinpeDriver$");
             var oemDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
 
             _logService.LogInformation($"Searching for drivers in: {sourceDirectory}");

@@ -473,6 +473,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
+            _progressService.FailTask();
             _logService.LogError("Error installing apps", ex);
             StatusText = $"Error: {ex.Message}";
         }

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Xunit;
 
@@ -14,7 +15,9 @@ public class IsoServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IDismProcessRunner> _mockDismRunner = new();
-    private readonly Mock<IOscdimgToolManager> _mockOscdimgManager = new();
+    private readonly Mock<IIsoImageReader> _mockIsoImageReader = new();
+    private readonly Mock<IIsoImageWriter> _mockIsoImageWriter = new();
+    private readonly Mock<IMediaCopier> _mockMediaCopier = new();
     private readonly IsoService _service;
 
     public IsoServiceTests()
@@ -36,7 +39,9 @@ public class IsoServiceTests
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
             _mockDismRunner.Object,
-            _mockOscdimgManager.Object);
+            _mockIsoImageReader.Object,
+            _mockIsoImageWriter.Object,
+            _mockMediaCopier.Object);
     }
 
     [Fact]
@@ -92,34 +97,104 @@ public class IsoServiceTests
         var result = await _service.CreateIsoAsync(workingDirectory!, @"C:\output.iso");
 
         result.Should().BeFalse();
-        _mockOscdimgManager.Verify(m => m.GetOscdimgPath(), Times.Never);
+        _mockIsoImageWriter.Verify(
+            w => w.Write(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task CreateIsoAsync_OscdimgNotAvailable_ReturnsFalse()
+    public async Task CreateIsoAsync_WriterThrows_ReturnsFalse()
     {
-        _mockOscdimgManager.Setup(m => m.GetOscdimgPath()).Returns(string.Empty);
-        _mockOscdimgManager.Setup(m => m.IsOscdimgAvailableAsync()).ReturnsAsync(false);
+        GivenEnoughRoomToWrite();
+        _mockIsoImageWriter
+            .Setup(w => w.Write(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Throws(new FileNotFoundException(@"Boot file not found: C:\work\boot\etfsboot.com"));
 
-        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output.iso");
+        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public async Task CreateIsoAsync_BootFileNotFound_ReturnsFalse()
+    public async Task CreateIsoAsync_WriterProducedNoFile_ReturnsFalse()
     {
-        _mockOscdimgManager.Setup(m => m.GetOscdimgPath()).Returns(@"C:\tools\oscdimg.exe");
-        _mockOscdimgManager.Setup(m => m.IsOscdimgAvailableAsync()).ReturnsAsync(true);
+        GivenEnoughRoomToWrite();
+
+        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
+
+        result.Should().BeFalse();
+        _mockIsoImageWriter.Verify(
+            w => w.Write(@"C:\work", @"C:\output\output.iso", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractIsoAsync_Always_CopiesFromTheAttachedVolumeAndDetachesIt()
+    {
+        var attachment = GivenAnExtractableIso();
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
+
+        result.Should().BeTrue();
+        _mockMediaCopier.Verify(c => c.CopyTree(@"\\?\Volume{1111}\", @"C:\work", null,
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachment.Verify(a => a.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractIsoAsync_CopyThrows_DetachesAndReturnsFalse()
+    {
+        var attachment = GivenAnExtractableIso();
+        _mockMediaCopier
+            .Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Throws(new IOException("The device is not ready."));
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
+
+        result.Should().BeFalse();
+        attachment.Verify(a => a.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractIsoAsync_MediaHasNoSourcesFolder_ReturnsFalse()
+    {
+        GivenAnExtractableIso();
+        _mockFileSystem
+            .Setup(fs => fs.GetDirectories(@"C:\work", "*", System.IO.SearchOption.TopDirectoryOnly))
+            .Returns([@"C:\work\boot", @"C:\work\efi"]);
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
+
+        result.Should().BeFalse();
+    }
+
+    private Mock<IIsoAttachment> GivenAnExtractableIso()
+    {
+        _mockFileSystem.Setup(fs => fs.FileExists(@"C:\src.iso")).Returns(true);
+        _mockFileSystem.Setup(fs => fs.GetExtension(@"C:\src.iso")).Returns(".iso");
+        _mockFileSystem.Setup(fs => fs.GetFileSize(@"C:\src.iso")).Returns(5_000_000_000L);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(@"C:\work")).Returns(false);
+        _mockFileSystem
+            .Setup(fs => fs.GetDirectories(@"C:\work", "*", System.IO.SearchOption.TopDirectoryOnly))
+            .Returns([@"C:\work\sources", @"C:\work\boot"]);
+        _mockFileSystem.Setup(fs => fs.GetFileName(It.IsAny<string>())).Returns((string p) => Path.GetFileName(p));
+        _mockDismRunner.Setup(d => d.CheckDiskSpaceAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var attachment = new Mock<IIsoAttachment>();
+        attachment.SetupGet(a => a.RootPath).Returns(@"\\?\Volume{1111}\");
+        _mockIsoImageReader.Setup(r => r.Attach(@"C:\src.iso")).Returns(attachment.Object);
+        return attachment;
+    }
+
+    private void GivenEnoughRoomToWrite()
+    {
         _mockFileSystem.Setup(fs => fs.GetFiles(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<System.IO.SearchOption>()))
             .Returns(Array.Empty<string>());
         _mockDismRunner.Setup(d => d.CheckDiskSpaceAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
         _mockFileSystem.Setup(fs => fs.GetDirectoryName(It.IsAny<string>())).Returns(@"C:\output");
-
-        var result = await _service.CreateIsoAsync(@"C:\work", @"C:\output\output.iso");
-
-        result.Should().BeFalse();
     }
 }

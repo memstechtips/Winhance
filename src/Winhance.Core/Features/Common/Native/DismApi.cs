@@ -34,7 +34,13 @@ public static class DismApi
         public int State;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    // Pack = 4 for the same reason as the two structs above, and this one is the expensive case:
+    // packed it is 140 bytes, unpacked 144, so MarshalArray strides 4 bytes too far per element.
+    // Element 0 still reads correctly - ImageName sits at offset 8 either way - and every element
+    // after it takes its pointer fields from a 4-byte-shifted splice of two neighbours, so
+    // PtrToStringUni dereferences garbage and the PROCESS DIES with no managed exception. A
+    // single-edition image therefore looks fine; a real Windows 11 install.wim has eleven.
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct DISM_IMAGE_INFO
     {
         public int ImageType;

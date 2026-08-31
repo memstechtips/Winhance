@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,8 +14,8 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
 {
-    private readonly IOscdimgToolManager _oscdimgToolManager;
     private readonly IIsoService _isoService;
+    private readonly IUsbMediaWriter _usbMediaWriter;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IProcessExecutor _processExecutor;
     private readonly IDialogService _dialogService;
@@ -21,13 +23,9 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
-    private readonly IResourceService _resourceService;
     private bool _disposed;
 
     public string WorkingDirectory { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial bool IsOscdimgAvailable { get; set; }
 
     [ObservableProperty]
     public partial string OutputIsoPath { get; set; }
@@ -35,23 +33,37 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool IsIsoCreated { get; set; }
 
-    public WizardActionCard DownloadOscdimgCard { get; private set; } = new();
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIsoDestination))]
+    [NotifyPropertyChangedFor(nameof(IsUsbDestination))]
+    public partial WimOutputDestination Destination { get; set; }
+
+    [ObservableProperty]
+    public partial RemovableDrive? SelectedUsbTarget { get; set; }
+
+    public bool IsIsoDestination => Destination == WimOutputDestination.Iso;
+
+    public bool IsUsbDestination => Destination == WimOutputDestination.Usb;
+
+    public ObservableCollection<RemovableDrive> UsbTargets { get; } = [];
+
     public WizardActionCard SelectOutputCard { get; private set; } = new();
 
+    public WizardActionCard SelectUsbCard { get; private set; } = new();
+
     public WimStep4IsoViewModel(
-        IOscdimgToolManager oscdimgToolManager,
         IIsoService isoService,
+        IUsbMediaWriter usbMediaWriter,
         ITaskProgressService taskProgressService,
         IProcessExecutor processExecutor,
         IDialogService dialogService,
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService,
-        IResourceService resourceService)
+        ILogService logService)
     {
-        _oscdimgToolManager = oscdimgToolManager;
         _isoService = isoService;
+        _usbMediaWriter = usbMediaWriter;
         _taskProgressService = taskProgressService;
         _processExecutor = processExecutor;
         _dialogService = dialogService;
@@ -59,7 +71,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
-        _resourceService = resourceService;
 
         OutputIsoPath = string.Empty;
 
@@ -68,16 +79,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
 
     private void CreateActionCards()
     {
-        DownloadOscdimgCard = new WizardActionCard
-        {
-            IconPath = _resourceService.GetResourceIconPath("ToolBoxIconPath"),
-            Title = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Button"),
-            ButtonCommand = DownloadOscdimgCommand,
-            IsEnabled = true
-        };
-
         SelectOutputCard = new WizardActionCard
         {
             Icon = "\uE74E",
@@ -87,59 +88,56 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             ButtonCommand = SelectIsoOutputLocationCommand,
             IsEnabled = true
         };
+
+        SelectUsbCard = new WizardActionCard
+        {
+            Icon = "\uE88E",
+            Title = _localizationService.GetString("WIMUtil_Card_SelectUsb_Title"),
+            Description = _localizationService.GetString("WIMUtil_Card_SelectUsb_Description"),
+            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectUsb_Button"),
+            ButtonCommand = RefreshUsbTargetsCommand,
+            IsEnabled = true
+        };
     }
 
     [RelayCommand]
-    private async Task DownloadOscdimg()
+    private void SelectIsoDestination() => Destination = WimOutputDestination.Iso;
+
+    [RelayCommand]
+    private async Task SelectUsbDestination()
+    {
+        Destination = WimOutputDestination.Usb;
+        await RefreshUsbTargets();
+    }
+
+    [RelayCommand]
+    private async Task RefreshUsbTargets()
     {
         try
         {
-            DownloadOscdimgCard.IsComplete = false;
-            DownloadOscdimgCard.HasFailed = false;
-            DownloadOscdimgCard.IsProcessing = true;
-            DownloadOscdimgCard.IsEnabled = false;
+            SelectUsbCard.IsProcessing = true;
+            var previous = SelectedUsbTarget?.DiskNumber;
+            var targets = await Task.Run(_usbMediaWriter.GetCandidateTargets);
 
-            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_InstallingOscdimg"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
-
-            var success = await _oscdimgToolManager.EnsureOscdimgAvailableAsync(
-                progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
-
-            DownloadOscdimgCard.IsProcessing = false;
-
-            if (success)
+            UsbTargets.Clear();
+            foreach (var target in targets)
             {
-                IsOscdimgAvailable = true;
-                DownloadOscdimgCard.IsComplete = true;
-                DownloadOscdimgCard.IsEnabled = false;
-                DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
-                DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgInstalled");
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_AdkInstallComplete"),
-                    _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
+                UsbTargets.Add(target);
             }
-            else
-            {
-                DownloadOscdimgCard.IsEnabled = true;
-                DownloadOscdimgCard.HasFailed = true;
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_AdkInstallFailed"),
-                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
-            }
+
+            SelectedUsbTarget = UsbTargets.FirstOrDefault(t => t.DiskNumber == previous) ?? UsbTargets.FirstOrDefault();
+            SelectUsbCard.Description = SelectedUsbTarget is null
+                ? _localizationService.GetString("WIMUtil_Label_NoUsbFound")
+                : _localizationService.GetString("WIMUtil_Card_SelectUsb_Description");
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error installing ADK: {ex.Message}", ex);
-            DownloadOscdimgCard.IsProcessing = false;
-            DownloadOscdimgCard.IsEnabled = true;
-            DownloadOscdimgCard.HasFailed = true;
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_AdkInstallError"), ex.Message),
-                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
+            _logService.LogError($"Could not list USB drives: {ex.Message}", ex);
+            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
         }
         finally
         {
-            _taskProgressService.CompleteTask();
+            SelectUsbCard.IsProcessing = false;
         }
     }
 
@@ -158,30 +156,28 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task CreateIso()
+    private async Task CreateMedia()
     {
+        if (string.IsNullOrEmpty(WorkingDirectory))
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
+                _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
+            return;
+        }
+
+        if (Destination == WimOutputDestination.Usb)
+        {
+            await WriteUsbMedia();
+            return;
+        }
+
         try
         {
-            if (!IsOscdimgAvailable)
-            {
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_OscdimgRequired"),
-                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
-                return;
-            }
-
             if (string.IsNullOrEmpty(OutputIsoPath))
             {
                 await _dialogService.ShowWarningAsync(
                     _localizationService.GetString("WIMUtil_Msg_OutputRequired"),
-                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
-                return;
-            }
-
-            if (string.IsNullOrEmpty(WorkingDirectory))
-            {
-                await _dialogService.ShowWarningAsync(
-                    _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
                     _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
                 return;
             }
@@ -216,6 +212,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             }
             else
             {
+                _taskProgressService.FailTask();
                 SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"),
@@ -224,6 +221,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            _taskProgressService.CancelTask();
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
             try { if (_fileSystemService.FileExists(OutputIsoPath)) _fileSystemService.DeleteFile(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
@@ -231,6 +229,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         }
         catch (InsufficientDiskSpaceException spaceEx)
         {
+            _taskProgressService.FailTask();
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
             SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
@@ -240,6 +239,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            _taskProgressService.FailTask();
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
             SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
@@ -253,22 +253,91 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void UpdateDownloadOscdimgCardState()
+    private async Task WriteUsbMedia()
     {
-        if (IsOscdimgAvailable)
+        var target = SelectedUsbTarget;
+        if (target is null)
         {
-            DownloadOscdimgCard.IsEnabled = false;
-            DownloadOscdimgCard.IsComplete = true;
-            DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_OscdimgFound");
-            DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Desc_OscdimgFound");
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_UsbRequired"),
+                _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
+            return;
         }
-        else
+
+        // Winhance's one destructive operation. The dialog names the device and its size, because
+        // "are you sure" next to a drive picker is how people wipe the wrong stick.
+        var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
-            DownloadOscdimgCard.IsEnabled = true;
-            DownloadOscdimgCard.IsComplete = false;
-            DownloadOscdimgCard.ButtonText = _localizationService.GetString("WIMUtil_Button_Download");
-            DownloadOscdimgCard.Description = _localizationService.GetString("WIMUtil_Card_DownloadOscdimg_Description");
-            DownloadOscdimgCard.IconPath = _resourceService.GetResourceIconPath("ToolBoxIconPath");
+            Message = string.Format(
+                _localizationService.GetString("WIMUtil_Msg_UsbEraseConfirm"),
+                target.Model,
+                target.SizeGigabytes.ToString("F1"),
+                target.DiskNumber.ToString()),
+            Title = _localizationService.GetString("WIMUtil_Msg_UsbEraseTitle"),
+            ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_EraseAndWrite"),
+            CancelButtonText = _localizationService.GetString("Button_Close"),
+        })).Confirmed;
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            SelectUsbCard.IsEnabled = false;
+            SelectUsbCard.Opacity = 0.5;
+
+            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_WritingUsb"), true);
+            var progress = _taskProgressService.CreatePowerShellProgress();
+            var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
+
+            await Task.Run(() => _usbMediaWriter.Write(target, WorkingDirectory, progress, token), token);
+
+            IsIsoCreated = true;
+            SelectUsbCard.IsComplete = true;
+            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteSuccess");
+
+            await _dialogService.ShowInformationAsync(
+                string.Format(_localizationService.GetString("WIMUtil_Msg_UsbWriteSuccess"), target.Model),
+                _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
+        }
+        catch (UsbMediaErasedException erased) when (erased.WasCancelled)
+        {
+            _taskProgressService.CancelTask();
+            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled");
+            await _dialogService.ShowWarningAsync(
+                string.Format(_localizationService.GetString("WIMUtil_Msg_UsbDriveErased"), erased.Target?.Model),
+                _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled"));
+        }
+        catch (OperationCanceledException)
+        {
+            _taskProgressService.CancelTask();
+            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled");
+        }
+        catch (Exception ex)
+        {
+            _taskProgressService.FailTask();
+            _logService.LogError($"Could not write the USB drive: {ex.Message}", ex);
+            SelectUsbCard.HasFailed = true;
+            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
+
+            // Once the drive has been wiped, "could not write" on its own reads as "nothing
+            // happened", and the user unplugs a blank stick.
+            var message = string.Format(_localizationService.GetString("WIMUtil_Msg_UsbWriteFailed"), ex.Message);
+            if (ex is UsbMediaErasedException failedAfterErase)
+            {
+                message += Environment.NewLine + Environment.NewLine
+                    + string.Format(_localizationService.GetString("WIMUtil_Msg_UsbDriveErased"), failedAfterErase.Target?.Model);
+            }
+
+            await _dialogService.ShowErrorAsync(message, _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
+        }
+        finally
+        {
+            SelectUsbCard.IsEnabled = true;
+            SelectUsbCard.Opacity = 1.0;
+            _taskProgressService.CompleteTask();
         }
     }
 

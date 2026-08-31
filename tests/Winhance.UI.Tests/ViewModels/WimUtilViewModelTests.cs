@@ -11,8 +11,8 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimUtilViewModelTests : IDisposable
 {
-    private readonly Mock<IOscdimgToolManager> _mockOscdimgToolManager = new();
     private readonly Mock<IIsoService> _mockIsoService = new();
+    private readonly Mock<IUsbMediaWriter> _mockUsbMediaWriter = new();
     private readonly Mock<IWimImageService> _mockWimImageService = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
@@ -59,8 +59,8 @@ public class WimUtilViewModelTests : IDisposable
             .Returns(Task.CompletedTask);
 
         _sut = new WimUtilViewModel(
-            _mockOscdimgToolManager.Object,
             _mockIsoService.Object,
+            _mockUsbMediaWriter.Object,
             _mockWimImageService.Object,
             _mockWimCustomizationService.Object,
             _mockTaskProgressService.Object,
@@ -193,29 +193,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2State.IsExpanded.Should().BeFalse();
     }
 
-    [Fact]
-    public async Task OnNavigatedToAsync_ChecksOscdimgAvailabilityAndUpdatesStep4()
-    {
-        _mockOscdimgToolManager
-            .Setup(o => o.IsOscdimgAvailableAsync())
-            .ReturnsAsync(true);
 
-        await _sut.OnNavigatedToAsync();
-
-        _sut.Step4.IsOscdimgAvailable.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task OnNavigatedToAsync_WhenOscdimgNotAvailable_Step4IsOscdimgAvailableIsFalse()
-    {
-        _mockOscdimgToolManager
-            .Setup(o => o.IsOscdimgAvailableAsync())
-            .ReturnsAsync(false);
-
-        await _sut.OnNavigatedToAsync();
-
-        _sut.Step4.IsOscdimgAvailable.Should().BeFalse();
-    }
 
     [Fact]
     public void SelectedIsoPath_ForwardsToStep1()
@@ -266,9 +244,9 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void CreateIsoCommand_ForwardsToStep4()
+    public void CreateMediaCommand_ForwardsToStep4()
     {
-        _sut.CreateIsoCommand.Should().BeSameAs(_sut.Step4.CreateIsoCommand);
+        _sut.CreateMediaCommand.Should().BeSameAs(_sut.Step4.CreateMediaCommand);
     }
 
     [Fact]

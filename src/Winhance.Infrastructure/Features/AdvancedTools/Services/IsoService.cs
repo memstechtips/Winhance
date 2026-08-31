@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -8,13 +7,14 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
 internal class IsoService : IIsoService
 {
-    private static readonly Regex DriveLetterRegex = new(@"\b[A-Z]\b", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
     private readonly IDismProcessRunner _dismProcessRunner;
-    private readonly IOscdimgToolManager _oscdimgToolManager;
+    private readonly IIsoImageReader _isoImageReader;
+    private readonly IIsoImageWriter _isoImageWriter;
+    private readonly IMediaCopier _mediaCopier;
 
     public IsoService(
         IFileSystemService fileSystemService,
@@ -22,14 +22,18 @@ internal class IsoService : IIsoService
         ILocalizationService localization,
         IProcessExecutor processExecutor,
         IDismProcessRunner dismProcessRunner,
-        IOscdimgToolManager oscdimgToolManager)
+        IIsoImageReader isoImageReader,
+        IIsoImageWriter isoImageWriter,
+        IMediaCopier mediaCopier)
     {
         _fileSystemService = fileSystemService;
         _logService = logService;
         _localization = localization;
         _processExecutor = processExecutor;
         _dismProcessRunner = dismProcessRunner;
-        _oscdimgToolManager = oscdimgToolManager;
+        _isoImageReader = isoImageReader;
+        _isoImageWriter = isoImageWriter;
+        _mediaCopier = mediaCopier;
     }
 
     public Task<bool> ValidateIsoFileAsync(string isoPath)
@@ -72,8 +76,6 @@ internal class IsoService : IIsoService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var isoMounted = false;
-
         try
         {
             if (!await ValidateIsoFileAsync(isoPath).ConfigureAwait(false))
@@ -138,48 +140,26 @@ internal class IsoService : IIsoService
                 TerminalOutput = $"ISO: {isoPath}"
             });
 
-            _logService.LogInformation($"Mounting ISO: {isoPath}");
+            _logService.LogInformation($"Attaching ISO: {isoPath}");
 
-            var mountResult = await _processExecutor.ExecuteAsync(
-                "powershell.exe",
-                $"-NoProfile -Command \"(Mount-DiskImage -ImagePath '{isoPath}' -PassThru | Get-Volume).DriveLetter\"",
-                cancellationToken).ConfigureAwait(false);
-            var rawOutput = mountResult.StandardOutput;
-
-            var driveLetterMatch = DriveLetterRegex.Match(rawOutput);
-            var driveLetter = driveLetterMatch.Success ? driveLetterMatch.Value : string.Empty;
-
-            if (string.IsNullOrEmpty(driveLetter) || !mountResult.Succeeded)
+            // The attachment lives and dies with this using block, so a cancellation or a crash
+            // mid-copy cannot leave the image attached for the user to clear by hand.
+            using (var attachment = _isoImageReader.Attach(isoPath))
             {
-                _logService.LogError("Failed to mount ISO or get drive letter");
-                return false;
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_CopyingIsoContents"),
+                    TerminalOutput = $"Source: {attachment.RootPath}"
+                });
+
+                await Task.Run(() => _mediaCopier.CopyTree(attachment.RootPath, workingDirectory, null, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
+
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_DismountingIso"),
+                    TerminalOutput = "Cleaning up..."
+                });
             }
-
-            isoMounted = true;
-            var mountedPath = $"{driveLetter}:\\";
-            _logService.LogInformation($"ISO mounted to: {mountedPath}");
-
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_CopyingIsoContents"),
-                TerminalOutput = $"Source: {mountedPath}"
-            });
-
-            await Task.Run(() => CopyDirectory(mountedPath, workingDirectory, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
-
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_DismountingIso"),
-                TerminalOutput = "Cleaning up..."
-            });
-
-            _logService.LogInformation("Dismounting ISO");
-
-            await _processExecutor.ExecuteAsync(
-                "powershell.exe",
-                $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                cancellationToken).ConfigureAwait(false);
-            isoMounted = false;
 
             var extractedDirs = _fileSystemService.GetDirectories(workingDirectory);
             var dirNames = extractedDirs.Select(d => _fileSystemService.GetFileName(d)).ToList();
@@ -209,24 +189,6 @@ internal class IsoService : IIsoService
         catch (OperationCanceledException)
         {
             _logService.LogInformation("ISO extraction was cancelled");
-
-            if (isoMounted)
-            {
-                try
-                {
-                    _logService.LogInformation("Dismounting ISO due to cancellation");
-                    await _processExecutor.ExecuteAsync(
-                        "powershell.exe",
-                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                        CancellationToken.None).ConfigureAwait(false);
-                    _logService.LogInformation("ISO dismounted successfully");
-                }
-                catch (Exception dismountEx)
-                {
-                    _logService.LogWarning($"Failed to dismount ISO on cancellation: {dismountEx.Message}");
-                }
-            }
-
             throw;
         }
         catch (InsufficientDiskSpaceException)
@@ -236,22 +198,6 @@ internal class IsoService : IIsoService
         catch (Exception ex)
         {
             _logService.LogError($"Error extracting ISO: {ex.Message}", ex);
-
-            if (isoMounted)
-            {
-                try
-                {
-                    _logService.LogInformation("Dismounting ISO due to error");
-                    await _processExecutor.ExecuteAsync(
-                        "powershell.exe",
-                        $"-NoProfile -Command \"Dismount-DiskImage -ImagePath '{isoPath}'\"",
-                        CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception dismountEx)
-                {
-                    _logService.LogWarning($"Failed to dismount ISO on error: {dismountEx.Message}");
-                }
-            }
 
             progress?.Report(new TaskProgressDetail
             {
@@ -276,14 +222,6 @@ internal class IsoService : IIsoService
                 return false;
             }
 
-            var oscdimgPath = _oscdimgToolManager.GetOscdimgPath();
-
-            if (!await _oscdimgToolManager.IsOscdimgAvailableAsync().ConfigureAwait(false))
-            {
-                _logService.LogError("oscdimg.exe is not available. Please download it first.");
-                return false;
-            }
-
             var workingDirSize = _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories)
                 .Sum(f => _fileSystemService.GetFileSize(f));
 
@@ -297,15 +235,6 @@ internal class IsoService : IIsoService
                 TerminalOutput = $"Output: {outputPath}"
             });
 
-            var efisysPath = _fileSystemService.CombinePath(workingDirectory, "efi", "microsoft", "boot", "efisys.bin");
-            var etfsbootPath = _fileSystemService.CombinePath(workingDirectory, "boot", "etfsboot.com");
-
-            if (!_fileSystemService.FileExists(etfsbootPath))
-                throw new FileNotFoundException($"Boot file not found: {etfsbootPath}");
-
-            if (!_fileSystemService.FileExists(efisysPath))
-                throw new FileNotFoundException($"UEFI boot file not found: {efisysPath}");
-
             var outputDir = _fileSystemService.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(outputDir) && !_fileSystemService.DirectoryExists(outputDir))
                 _fileSystemService.CreateDirectory(outputDir);
@@ -316,18 +245,9 @@ internal class IsoService : IIsoService
                 _logService.LogInformation("Removed existing ISO file");
             }
 
-            var arguments = $"-m -o -u2 -udfver102 -bootdata:2#p0,e,b\"{etfsbootPath}\"#pEF,e,b\"{efisysPath}\" \"{workingDirectory}\" \"{outputPath}\"";
-
-            progress?.Report(new TaskProgressDetail
-            {
-                TerminalOutput = "Running oscdimg.exe...\nThis may take several minutes..."
-            });
-
-            var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync(oscdimgPath, arguments, progress, cancellationToken).ConfigureAwait(false);
-            if (exitCode != 0)
-            {
-                throw new Exception($"oscdimg.exe failed with exit code: {exitCode}");
-            }
+            await Task.Run(
+                () => _isoImageWriter.Write(workingDirectory, outputPath, progress, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
 
             if (!_fileSystemService.FileExists(outputPath))
             {
@@ -364,38 +284,6 @@ internal class IsoService : IIsoService
                 TerminalOutput = ex.Message
             });
             return false;
-        }
-    }
-
-    private void CopyDirectory(string sourceDir, string destDir, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var dirs = _fileSystemService.GetDirectories(sourceDir);
-
-        _fileSystemService.CreateDirectory(destDir);
-
-        foreach (var file in _fileSystemService.GetFiles(sourceDir))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var fileName = _fileSystemService.GetFileName(file);
-            var targetFilePath = _fileSystemService.CombinePath(destDir, fileName);
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_CopyingFile", fileName),
-                TerminalOutput = fileName
-            });
-            _fileSystemService.CopyFile(file, targetFilePath, true);
-        }
-
-        foreach (var subDir in dirs)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var subDirName = _fileSystemService.GetFileName(subDir);
-            var newDestDir = _fileSystemService.CombinePath(destDir, subDirName);
-            CopyDirectory(subDir, newDestDir, progress, cancellationToken);
         }
     }
 }

@@ -17,8 +17,6 @@ public interface IProcessExecutor
         Action<string>? onErrorLine = null,
         CancellationToken ct = default);
 
-    void KillProcessesByName(string processName);
-
     // Returns the exit code when waiting, 0 when launched without waiting, null when the process failed to start.
     Task<int?> ShellExecuteAsync(
         string fileName,

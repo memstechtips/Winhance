@@ -111,3 +111,45 @@ STARTUPINFOW_FLAGS
 HANDLE_FLAGS
 WTS_INFO_CLASS
 WAIT_EVENT
+
+// Attaching the source ISO (virtdisk.dll). The attachment is bound to the handle, so Windows
+// detaches it when Winhance closes it or exits - Mount-DiskImage could not offer that.
+OpenVirtualDisk
+AttachVirtualDisk
+GetVirtualDiskPhysicalPath
+DetachVirtualDisk
+ATTACH_VIRTUAL_DISK_FLAG
+OPEN_VIRTUAL_DISK_FLAG
+VIRTUAL_DISK_ACCESS_MASK
+VIRTUAL_STORAGE_TYPE_DEVICE_ISO
+VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT
+
+// Resolving the attached ISO's volume, since NO_DRIVE_LETTER leaves it without one (kernel32.dll)
+FindFirstVolume
+FindNextVolume
+FindVolumeClose
+CreateFile
+DeviceIoControl
+STORAGE_DEVICE_NUMBER
+IOCTL_STORAGE_GET_DEVICE_NUMBER
+
+// Copying the extracted media with byte-level progress instead of one report per file (kernel32.dll)
+CopyFileEx
+PROGRESS_CONTINUE
+PROGRESS_CANCEL
+
+// Authoring the bootable ISO in-box (imapi2fs.dll).
+// CsWin32 emits the COM interfaces, so no interop assembly is involved.
+IFileSystemImage
+IFileSystemImage2
+IFsiDirectoryItem
+IBootOptions
+IFileSystemImageResult
+FsiFileSystems
+EmulationType
+PlatformId
+MsftFileSystemImage
+BootOptions
+
+// An IStream over each boot image, the only form IBootOptions.AssignBootImage takes (shlwapi.dll)
+SHCreateStreamOnFileEx

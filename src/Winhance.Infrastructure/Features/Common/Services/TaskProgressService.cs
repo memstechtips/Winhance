@@ -190,6 +190,42 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
             return;
         }
 
+        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}");
+        AddLogMessage($"Task completed: {_currentStatusText}");
+        EndTask(100, "Task completed");
+    }
+
+    public void FailTask()
+    {
+        if (!_isTaskRunning)
+        {
+            return;
+        }
+
+        _logService.Log(LogLevel.Warning, $"Task failed: {_currentStatusText}");
+        AddLogMessage($"Task failed: {_currentStatusText}");
+
+        // Progress 0 with a status while the task still counts as running is how
+        // TaskProgressViewModel learns of a failure; it then keeps the bar up with its
+        // "click to see details" line instead of hiding it as finished.
+        OnProgressChanged(new TaskProgressDetail { Progress = 0, StatusText = _currentStatusText });
+        EndTask(0, "Task failed");
+    }
+
+    public void CancelTask()
+    {
+        if (!_isTaskRunning)
+        {
+            return;
+        }
+
+        _logService.Log(LogLevel.Info, $"Task cancelled: {_currentStatusText}");
+        AddLogMessage($"Task cancelled: {_currentStatusText}");
+        EndTask(0, "Task cancelled");
+    }
+
+    private void EndTask(int progress, string detailedMessage)
+    {
         _isTaskRunning = false;
         _isIndeterminate = false;
         _queueTotal = 0;
@@ -197,15 +233,12 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}");
-        AddLogMessage($"Task completed: {_currentStatusText}");
-
         OnProgressChanged(
             new TaskProgressDetail
             {
-                Progress = 100,
+                Progress = progress,
                 StatusText = _currentStatusText,
-                DetailedMessage = "Task completed",
+                DetailedMessage = detailedMessage,
             }
         );
 

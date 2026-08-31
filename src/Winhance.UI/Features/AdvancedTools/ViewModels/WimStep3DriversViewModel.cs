@@ -130,6 +130,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            _taskProgressService.FailTask();
             _logService.LogError($"Error extracting system drivers: {ex.Message}", ex);
             ExtractSystemDriversCard.IsProcessing = false;
             ExtractSystemDriversCard.IsEnabled = true;
@@ -214,6 +215,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            _taskProgressService.FailTask();
             _logService.LogError($"Error adding custom drivers: {ex.Message}", ex);
             SelectCustomDriversCard.IsProcessing = false;
             SelectCustomDriversCard.IsEnabled = true;

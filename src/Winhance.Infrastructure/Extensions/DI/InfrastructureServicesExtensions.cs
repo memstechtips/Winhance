@@ -127,10 +127,30 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
 
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDismImageInfoReader,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.DismImageInfoReader>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimImageService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WimImageService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IOscdimgToolManager,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.OscdimgToolManager>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IVirtualDiskNative,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskNative>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoImageReader,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskIsoImageReader>();
+        services.AddSingleton<Func<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileSystemImageWrapper>>(
+            _ => () => new Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2FileSystemImage());
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoImageWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2IsoImageWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileCopyNative,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.FileCopyNative>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IMediaCopier,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.MediaCopier>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageEnumerator>(
+            sp => sp.GetRequiredService<Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>());
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageOperations>(
+            sp => sp.GetRequiredService<Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>());
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IUsbMediaWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.StorageApiUsbMediaWriter>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,

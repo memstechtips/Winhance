@@ -72,10 +72,9 @@ public class StartupNotificationService : IStartupNotificationService
                     var result = await _backupService.CreateRestorePointAsync(
                         progress: progress, cancellationToken: cts.Token);
 
-                    _taskProgressService.CompleteTask();
-
                     if (result.Success && result.RestorePointCreated)
                     {
+                        _taskProgressService.CompleteTask();
                         var successMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedSuccess");
                         await _dialogService.ShowInformationAsync(
                             successMsg,
@@ -83,6 +82,7 @@ public class StartupNotificationService : IStartupNotificationService
                     }
                     else
                     {
+                        _taskProgressService.FailTask();
                         var failMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedFail")
                             + (result.ErrorMessage != null ? $"\n\n{result.ErrorMessage}" : "");
                         await _dialogService.ShowWarningAsync(
@@ -92,7 +92,7 @@ public class StartupNotificationService : IStartupNotificationService
                 }
                 catch
                 {
-                    _taskProgressService.CompleteTask();
+                    _taskProgressService.FailTask();
                     throw;
                 }
             }

@@ -211,6 +211,7 @@ public partial class WimStep1ViewModel : ObservableObject
             }
             else
             {
+                _taskProgressService.FailTask();
                 SelectIsoCard.HasFailed = true;
                 SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionFailed");
                 await _dialogService.ShowErrorAsync(
@@ -220,11 +221,13 @@ public partial class WimStep1ViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+            _taskProgressService.CancelTask();
             ResetExtractionState();
             SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Status_IsoExtractionCancelled");
         }
         catch (InsufficientDiskSpaceException spaceEx)
         {
+            _taskProgressService.FailTask();
             ResetExtractionState();
             SelectIsoCard.HasFailed = true;
             SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
@@ -234,6 +237,7 @@ public partial class WimStep1ViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            _taskProgressService.FailTask();
             ResetExtractionState();
             SelectIsoCard.HasFailed = true;
             SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
