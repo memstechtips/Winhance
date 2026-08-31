@@ -103,7 +103,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             ExtractSystemDriversCard.IsEnabled = false;
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_ExportingDrivers"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _wimCustomizationService.AddDriversAsync(
                 WorkingDirectory, null, progress,
@@ -188,7 +188,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_AddingCustomDrivers"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _wimCustomizationService.AddDriversAsync(
                 WorkingDirectory, selectedPath, progress,

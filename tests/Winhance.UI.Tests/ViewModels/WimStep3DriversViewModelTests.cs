@@ -39,7 +39,7 @@ public class WimStep3DriversViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _sut = new WimStep3DriversViewModel(

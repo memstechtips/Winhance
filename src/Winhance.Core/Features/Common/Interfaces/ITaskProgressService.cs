@@ -30,8 +30,6 @@ public interface ITaskProgressService
 
     IProgress<TaskProgressDetail> CreateDetailedProgress();
 
-    IProgress<TaskProgressDetail> CreatePowerShellProgress();
-
     event EventHandler<TaskProgressDetail>? ProgressUpdated;
 
     bool ConsumeSkipNextRequest();

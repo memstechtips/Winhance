@@ -12,7 +12,7 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
-public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
+public partial class WimStep4IsoViewModel : ObservableObject
 {
     private readonly IIsoService _isoService;
     private readonly IUsbMediaWriter _usbMediaWriter;
@@ -23,7 +23,6 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
-    private bool _disposed;
 
     public string WorkingDirectory { get; set; } = string.Empty;
 
@@ -186,7 +185,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             SelectOutputCard.Opacity = 0.5;
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
@@ -289,7 +288,7 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             SelectUsbCard.Opacity = 0.5;
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_WritingUsb"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
             var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
 
             await Task.Run(() => _usbMediaWriter.Write(target, WorkingDirectory, progress, token), token);
@@ -340,12 +339,4 @@ public partial class WimStep4IsoViewModel : ObservableObject, IDisposable
             _taskProgressService.CompleteTask();
         }
     }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        GC.SuppressFinalize(this);
-    }
-
 }

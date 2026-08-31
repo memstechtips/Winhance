@@ -252,11 +252,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         return new Progress<TaskProgressDetail>(UpdateDetailedProgress);
     }
 
-    public IProgress<TaskProgressDetail> CreatePowerShellProgress()
-    {
-        return new Progress<TaskProgressDetail>(UpdateDetailedProgress);
-    }
-
     public CancellationTokenSource StartMultiScriptTask(string[] scriptNames)
     {
         CancelCurrentTask();

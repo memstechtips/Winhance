@@ -286,7 +286,7 @@ public class WimImageFormatViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockWimImageService
@@ -332,7 +332,7 @@ public class WimImageFormatViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockWimImageService

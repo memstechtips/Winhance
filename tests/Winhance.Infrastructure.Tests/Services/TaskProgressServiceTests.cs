@@ -338,16 +338,6 @@ public class TaskProgressServiceTests
     }
 
     [Fact]
-    public void CreatePowerShellProgress_ReturnsNonNullProgressReporter()
-    {
-        _sut.StartTask("Work");
-
-        var progress = _sut.CreatePowerShellProgress();
-
-        progress.Should().NotBeNull();
-    }
-
-    [Fact]
     public void UpdateDetailedProgress_WithQueueInfo_PersistsStickily()
     {
         _sut.StartTask("Queue Task");

@@ -11,7 +11,7 @@ using Winhance.Core.Features.Common.Exceptions;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-public class WimStep4IsoViewModelTests : IDisposable
+public class WimStep4IsoViewModelTests
 {
     private readonly Mock<IIsoService> _mockIsoService = new();
     private readonly Mock<IUsbMediaWriter> _mockUsbMediaWriter = new();
@@ -44,7 +44,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _sut = new WimStep4IsoViewModel(
@@ -57,12 +57,6 @@ public class WimStep4IsoViewModelTests : IDisposable
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
             _mockLogService.Object);
-    }
-
-    public void Dispose()
-    {
-        _sut.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -178,7 +172,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockIsoService
@@ -212,7 +206,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockIsoService
@@ -241,7 +235,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockIsoService
@@ -275,7 +269,7 @@ public class WimStep4IsoViewModelTests : IDisposable
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
         _mockIsoService
@@ -299,29 +293,6 @@ public class WimStep4IsoViewModelTests : IDisposable
     }
 
 
-
-    [Fact]
-    public void Dispose_CanBeCalledMultipleTimes()
-    {
-        var vm = new WimStep4IsoViewModel(
-            _mockIsoService.Object,
-            _mockUsbMediaWriter.Object,
-            _mockTaskProgressService.Object,
-            _mockProcessExecutor.Object,
-            _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockFileSystemService.Object,
-            _mockFilePickerService.Object,
-            _mockLogService.Object);
-
-        var act = () =>
-        {
-            vm.Dispose();
-            vm.Dispose();
-        };
-
-        act.Should().NotThrow();
-    }
 
 
     [Fact]

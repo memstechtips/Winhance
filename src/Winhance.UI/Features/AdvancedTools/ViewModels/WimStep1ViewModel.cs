@@ -194,7 +194,7 @@ public partial class WimStep1ViewModel : ObservableObject
             IsExtracting = true;
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_Extracting"), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _isoService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 

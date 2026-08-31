@@ -122,7 +122,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName);
 
             _taskProgressService.StartTask(string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _wimImageService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
