@@ -184,23 +184,6 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 });
             }
 
-            void HandleProgressLine(string line)
-            {
-                try
-                {
-                    var displayLine = WinGetProgressParser.TranslateLine(line);
-                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                    {
-                        TerminalOutput = displayLine ?? line,
-                        IsProgressIndicator = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                }
-            }
-
             var result = await WinGetCliRunner.RunAsync(
                 arguments,
                 onOutputLine: HandleOutputLine,
@@ -209,7 +192,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 timeoutMs: WinGetCliRunner.InstallTimeoutMs,
                 idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
-                onProgressLine: HandleProgressLine).ConfigureAwait(false);
+                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
 
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -400,22 +383,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 timeoutMs: WinGetCliRunner.InstallTimeoutMs,
                 idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
-                onProgressLine: line =>
-                {
-                    try
-                    {
-                        var displayLine = WinGetProgressParser.TranslateLine(line);
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                        {
-                            TerminalOutput = displayLine ?? line,
-                            IsProgressIndicator = true
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                    }
-                }).ConfigureAwait(false);
+                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
 
             var endTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail

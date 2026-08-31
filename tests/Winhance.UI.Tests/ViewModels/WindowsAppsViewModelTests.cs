@@ -486,7 +486,7 @@ public class WindowsAppsViewModelTests
         _progressService.Setup(p => p.CreateDetailedProgress())
             .Returns(Mock.Of<IProgress<TaskProgressDetail>>());
         _appInstallationService
-            .Setup(s => s.EnableServicingBatchAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()))
+            .Setup(s => s.EnableServicingBatchAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<IProgress<TaskProgressDetail>?>()))
             .ReturnsAsync(OperationResult<bool>.DeferredSuccess(true, "handed off"));
 
         var sut = CreateSut();
@@ -501,7 +501,7 @@ public class WindowsAppsViewModelTests
         _appInstallationService.Verify(s => s.EnableServicingBatchAsync(
             It.Is<IReadOnlyList<ItemDefinition>>(a => a.Count == 2
                 && a.Any(x => x.Id == "feature-app") && a.Any(x => x.Id == "cap-app")),
-            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()), Times.Once);
+            It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
         _appInstallationService.Verify(s => s.InstallAppAsync(
             It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()), Times.Never);
     }

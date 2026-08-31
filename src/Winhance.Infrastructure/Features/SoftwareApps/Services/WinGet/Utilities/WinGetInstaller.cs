@@ -191,22 +191,7 @@ internal class WinGetInstaller
                 timeoutMs: WinGetCliRunner.InstallTimeoutMs,
                 idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 exePathOverride: bundledPath,
-                onProgressLine: line =>
-                {
-                    try
-                    {
-                        var displayLine = WinGetProgressParser.TranslateLine(line);
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                        {
-                            TerminalOutput = displayLine ?? line,
-                            IsProgressIndicator = true
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                    }
-                }).ConfigureAwait(false);
+                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {

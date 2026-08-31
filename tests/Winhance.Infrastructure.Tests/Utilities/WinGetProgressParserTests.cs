@@ -1,4 +1,7 @@
 using FluentAssertions;
+using Moq;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 using Xunit;
 using static Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities.WinGetProgressParser;
@@ -378,5 +381,35 @@ public class WinGetProgressParserTests
         var a = new WinGetProgressInfo(WinGetPhase.Downloading, 50);
         var b = new WinGetProgressInfo(WinGetPhase.Installing, 50);
         a.Should().NotBe(b);
+    }
+
+    [Fact]
+    public void Forward_Line_ShowsTheTranslationAsARedrawingProgressLine()
+    {
+        var progress = new Mock<ITaskProgressService>();
+        TaskProgressDetail? shown = null;
+        progress.Setup(p => p.UpdateDetailedProgress(It.IsAny<TaskProgressDetail>()))
+                .Callback<TaskProgressDetail>(detail => shown = detail);
+
+        WinGetProgressParser.Forward("InstallFlowInstallSuccess", progress.Object, null);
+
+        shown.Should().NotBeNull();
+        shown!.TerminalOutput.Should().Be("Installation successful");
+        shown.IsProgressIndicator.Should().BeTrue();
+    }
+
+    // A progress line is decoration; whatever goes wrong showing it must not end the install.
+    [Fact]
+    public void Forward_ProgressServiceThrows_LogsAWarningInsteadOfThrowing()
+    {
+        var progress = new Mock<ITaskProgressService>();
+        progress.Setup(p => p.UpdateDetailedProgress(It.IsAny<TaskProgressDetail>()))
+                .Throws(new InvalidOperationException("dispatcher gone"));
+        var log = new Mock<ILogService>();
+
+        Action act = () => WinGetProgressParser.Forward("50%", progress.Object, log.Object);
+
+        act.Should().NotThrow();
+        log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("dispatcher gone"))), Times.Once);
     }
 }

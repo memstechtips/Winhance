@@ -111,7 +111,8 @@ public class WinGetCliRunnerTests
         var note = WinGetCliRunner.DescribeTermination(
             KilledBy(WinGetCliRunner.TerminationReason.WallClockTimeout),
             timeoutMs: WinGetCliRunner.InstallTimeoutMs,
-            idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs);
+            idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+            localization: null);
 
         note.Should().Contain("120 minute").And.NotContain("the 0 minute");
     }
@@ -122,7 +123,8 @@ public class WinGetCliRunnerTests
         var note = WinGetCliRunner.DescribeTermination(
             KilledBy(WinGetCliRunner.TerminationReason.IdleTimeout),
             timeoutMs: WinGetCliRunner.InstallTimeoutMs,
-            idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs);
+            idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+            localization: null);
 
         note.Should().Contain("no output for 3 minutes")
             .And.NotContain("package source")

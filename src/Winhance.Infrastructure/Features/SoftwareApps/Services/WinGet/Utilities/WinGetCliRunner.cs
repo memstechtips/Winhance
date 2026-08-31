@@ -35,9 +35,9 @@ internal static class WinGetCliRunner
     // For the terminal output dialog, so users and support transcripts don't see a bare -1 (0xFFFFFFFF).
     // These four reasons are the ONLY explanation a user gets when Winhance kills winget itself, and they
     // land in the task-output dialog and in support transcripts, so they are localized. The service is
-    // optional because WinGetInstaller holds a nullable one; GetStringOrDefault handles the null.
+    // nullable because WinGetInstaller holds a nullable one; GetStringOrDefault handles the null.
     public static string? DescribeTermination(
-        WinGetCliResult result, int timeoutMs, int idleTimeoutMs, ILocalizationService? localization = null)
+        WinGetCliResult result, int timeoutMs, int idleTimeoutMs, ILocalizationService? localization)
     {
         var idleMinutes = idleTimeoutMs / 60_000;
         var limitMinutes = timeoutMs / 60_000;

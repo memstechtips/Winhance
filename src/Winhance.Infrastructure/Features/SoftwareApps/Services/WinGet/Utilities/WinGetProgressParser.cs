@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
@@ -59,6 +61,24 @@ internal static class WinGetProgressParser
         ["UnexpectedErrorExecutingCommand"] = "Unexpected error",
         ["InstallingDependencies"] = "Installing dependencies...",
     };
+
+    // A translation that throws must not take the install down with it.
+    public static void Forward(string line, ITaskProgressService? progress, ILogService? log)
+    {
+        try
+        {
+            var displayLine = TranslateLine(line);
+            progress?.UpdateDetailedProgress(new TaskProgressDetail
+            {
+                TerminalOutput = displayLine ?? line,
+                IsProgressIndicator = true
+            });
+        }
+        catch (Exception ex)
+        {
+            log?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+        }
+    }
 
     public static string? TranslateLine(string? line)
     {

@@ -506,7 +506,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         });
 
         var result = await _appInstallationService.EnableServicingBatchAsync(
-            apps.Select(a => a.Definition).ToList(), progress, true);
+            apps.Select(a => a.Definition).ToList(), progress);
         if (result.Success)
             return true;
 
