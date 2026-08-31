@@ -11,6 +11,7 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 internal class AppInstallationService(
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
+    IServicingSession servicingSession,
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IExternalAppsService externalAppsService,
@@ -20,6 +21,10 @@ internal class AppInstallationService(
     IFileSystemService fileSystemService,
     IChangeHistoryService changeHistory) : IAppInstallationService
 {
+    // Enabling a feature or capability is handed to a PowerShell window Winhance does not watch, so
+    // every servicing path reports this rather than an install it cannot vouch for.
+    private const string HandedOffMessage = "Enable started in a separate window; success can only be determined there";
+
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
         try
@@ -81,11 +86,85 @@ internal class AppInstallationService(
         }
     }
 
+    public async Task<OperationResult<bool>> EnableServicingBatchAsync(
+        IReadOnlyList<ItemDefinition> apps,
+        IProgress<TaskProgressDetail>? progress = null,
+        bool shouldRemoveFromBloatScript = true)
+    {
+        try
+        {
+            var batch = apps?
+                .Where(a => !string.IsNullOrEmpty(a.CapabilityName) || !string.IsNullOrEmpty(a.OptionalFeatureName))
+                .ToList();
+            if (batch == null || batch.Count == 0)
+                return OperationResult<bool>.Failed("No apps provided");
+
+            var cancellationToken = taskProgressService.GetCurrentCancellationToken();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (shouldRemoveFromBloatScript)
+            {
+                await bloatRemovalService.RemoveItemsFromScriptAsync(batch).ConfigureAwait(false);
+
+                foreach (var app in batch)
+                {
+                    await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
+                }
+            }
+
+            // An item may carry both names; capability wins, the same way InstallSingleAppCoreAsync
+            // routes a single app, so nothing is serviced twice.
+            var featureNames = batch
+                .Where(a => string.IsNullOrEmpty(a.CapabilityName))
+                .Select(a => a.OptionalFeatureName!)
+                .ToList();
+            var capabilityNames = batch
+                .Where(a => !string.IsNullOrEmpty(a.CapabilityName))
+                .Select(a => a.CapabilityName!)
+                .ToList();
+
+            var statements = new List<string>();
+            if (featureNames.Count > 0)
+                statements.Add(featureService.BuildEnableStatement(featureNames));
+            if (capabilityNames.Count > 0)
+                statements.Add(capabilityService.BuildEnableStatement(capabilityNames));
+
+            var launched = await servicingSession.RunAsync(
+                statements,
+                string.Join(", ", batch.Select(a => a.Name)),
+                progress,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!launched)
+                return OperationResult<bool>.Failed("Failed to launch PowerShell");
+
+            foreach (var app in batch)
+            {
+                changeHistory.LogAppChange(app.Name, AppChangeKind.EnableStarted);
+            }
+
+            return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
+        }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, "Enabling was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Failed to enable: {ex.Message}");
+            return OperationResult<bool>.Failed(ex.Message);
+        }
+    }
+
     private async Task<OperationResult<bool>> InstallSingleAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
     {
         var result = await InstallSingleAppCoreAsync(app, progress).ConfigureAwait(false);
         if (result.Success)
-            changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
+        {
+            // An InfoMessage means another window owns the outcome, so the receipt must not claim an install.
+            changeHistory.LogAppChange(app.Name, result.InfoMessage is null ? AppChangeKind.Installed : AppChangeKind.EnableStarted);
+        }
         return result;
     }
 
@@ -99,11 +178,11 @@ internal class AppInstallationService(
 
             if (!string.IsNullOrEmpty(app?.CapabilityName))
             {
-                var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name).ConfigureAwait(false);
+                var launched = await capabilityService.EnableCapabilitiesAsync([app.CapabilityName], [app.Name], progress, cancellationToken).ConfigureAwait(false);
                 if (launched)
                 {
                     logService.Log(LogLevel.Info, $"PowerShell launched for capability '{app.Id}'");
-                    return OperationResult<bool>.Succeeded(true);
+                    return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
                 }
                 return OperationResult<bool>.Failed("Failed to launch PowerShell for capability");
             }
@@ -112,11 +191,11 @@ internal class AppInstallationService(
 
             if (!string.IsNullOrEmpty(app?.OptionalFeatureName))
             {
-                var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name).ConfigureAwait(false);
+                var launched = await featureService.EnableFeaturesAsync([app.OptionalFeatureName], [app.Name], progress, cancellationToken).ConfigureAwait(false);
                 if (launched)
                 {
                     logService.Log(LogLevel.Info, $"PowerShell launched for feature '{app.Id}'");
-                    return OperationResult<bool>.Succeeded(true);
+                    return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
                 }
                 return OperationResult<bool>.Failed("Failed to launch PowerShell for feature");
             }

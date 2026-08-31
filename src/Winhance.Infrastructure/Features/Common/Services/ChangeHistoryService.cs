@@ -32,10 +32,15 @@ internal class ChangeHistoryService(
     {
         try
         {
-            var key = kind == AppChangeKind.Installed ? "ChangeHistory_AppInstalled" : "ChangeHistory_AppRemoved";
+            var (key, fallback) = kind switch
+            {
+                AppChangeKind.Removed => ("ChangeHistory_AppRemoved", "App removed"),
+                AppChangeKind.EnableStarted => ("ChangeHistory_AppEnableStarted", "Enable started in a separate window (success can only be determined there)"),
+                _ => ("ChangeHistory_AppInstalled", "App installed"),
+            };
             var template = localizationService.GetString(key);
             if (string.IsNullOrEmpty(template))
-                template = kind == AppChangeKind.Installed ? "App installed" : "App removed";
+                template = fallback;
             WriteEntry($"{template}: {appDisplayName}");
         }
         catch (Exception ex)

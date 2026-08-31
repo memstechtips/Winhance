@@ -1,60 +1,27 @@
-using System.Diagnostics;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-internal class LegacyCapabilityService(
-    ILogService logService) : ILegacyCapabilityService
+internal class LegacyCapabilityService(IServicingSession servicingSession) : ILegacyCapabilityService
 {
-    public Task<bool> EnableCapabilityAsync(
-        string capabilityName,
-        string? displayName = null,
+    // Add-WindowsCapability documents no array -Name, so the batch is one statement per name rather
+    // than the single call OptionalFeatureService makes. It also has no -NoRestart switch at all
+    // (Get-Command, DISM module 3.0 on build 26100, 2026-08-26), so the asymmetry with the feature
+    // statement is forced by the cmdlets - passing it would fail the command at runtime.
+    public string BuildEnableStatement(IReadOnlyList<string> capabilityNames) =>
+        string.Join("; ", capabilityNames.Select(n => $"Add-WindowsCapability -Online -Name '{n.Replace("'", "''")}'"));
+
+    public Task<bool> EnableCapabilitiesAsync(
+        IReadOnlyList<string> capabilityNames,
+        IReadOnlyList<string>? displayNames = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        displayName ??= capabilityName;
-
-        try
-        {
-            logService?.LogInformation($"Enabling Windows Capability: {displayName} ({capabilityName})");
-
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = $"Enabling {displayName}...",
-                IsIndeterminate = true
-            });
-
-            var psCommand = $"Add-WindowsCapability -Online -Name '{capabilityName}'";
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -Command \"& {{ {psCommand}; pause }}\"",
-                UseShellExecute = true,
-                CreateNoWindow = false
-            });
-
-            logService?.LogInformation($"PowerShell launched for capability '{capabilityName}'.");
-
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = $"PowerShell launched for {displayName}",
-                IsIndeterminate = false
-            });
-
-            return Task.FromResult(true);
-        }
-        catch (Exception ex)
-        {
-            logService?.LogError($"Error enabling capability {capabilityName}: {ex.Message}");
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = $"Failed to enable {displayName}: {ex.Message}",
-                IsIndeterminate = false,
-                LogLevel = Core.Features.Common.Enums.LogLevel.Error
-            });
+        if (capabilityNames is null || capabilityNames.Count == 0)
             return Task.FromResult(false);
-        }
+
+        var label = string.Join(", ", displayNames is { Count: > 0 } ? displayNames : capabilityNames);
+        return servicingSession.RunAsync([BuildEnableStatement(capabilityNames)], label, progress, cancellationToken);
     }
 }

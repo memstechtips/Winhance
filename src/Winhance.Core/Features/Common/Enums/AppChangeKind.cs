@@ -4,4 +4,5 @@ public enum AppChangeKind
 {
     Installed,
     Removed,
+    EnableStarted,
 }

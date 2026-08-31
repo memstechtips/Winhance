@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Utils;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -422,6 +423,12 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         bool confirmed = r.Confirmed;
         if (!confirmed) return;
 
+        var servicingApps = selectedItems
+            .Where(a => !string.IsNullOrEmpty(a.Definition.CapabilityName) || !string.IsNullOrEmpty(a.Definition.OptionalFeatureName))
+            .ToList();
+        var installApps = selectedItems.Except(servicingApps).ToList();
+        int queueTotal = installApps.Count + (servicingApps.Count > 0 ? 1 : 0);
+
         IsTaskRunning = true;
         StatusText = _localizationService.GetString("Progress_Task_InstallingWindowsApps");
 
@@ -431,17 +438,17 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             var progress = _progressService.CreateDetailedProgress();
 
             int successCount = 0;
-            for (int i = 0; i < selectedItems.Count; i++)
+            for (int i = 0; i < installApps.Count; i++)
             {
                 if (_progressService.ConsumeSkipNextRequest())
                     continue;
 
-                var app = selectedItems[i];
-                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
+                var app = installApps[i];
+                var nextName = i + 1 < installApps.Count ? installApps[i + 1].Name : null;
                 progress.Report(new TaskProgressDetail
                 {
                     StatusText = _localizationService.GetString("Progress_Installing", app.Name),
-                    QueueTotal = selectedItems.Count,
+                    QueueTotal = queueTotal,
                     QueueCurrent = i + 1,
                     QueueNextItemName = nextName
                 });
@@ -454,7 +461,15 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
                 }
             }
 
-            StatusText = $"Installed {successCount} of {selectedItems.Count} items";
+            bool handedOff = servicingApps.Count > 0
+                && await DispatchEnableBatchAsync(servicingApps, progress, queueTotal);
+
+            var status = new List<string>();
+            if (installApps.Count > 0 || !handedOff)
+                status.Add(_localizationService.GetString("WindowsApps_InstallSummary", successCount, installApps.Count));
+            if (handedOff)
+                status.Add(_localizationService.GetString("WindowsApps_EnableHandedOff"));
+            StatusText = LocalizedText.JoinSentences(status);
         }
         catch (Exception ex)
         {
@@ -471,6 +486,31 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
 
         await RefreshAfterOperationAsync();
+    }
+
+    // Features and capabilities go into ONE window for the whole batch, named in the progress line, and
+    // it is always the last queue slot. Nothing is marked installed here: the enable runs where Winhance
+    // cannot see it, so only the detection pass in RefreshAfterOperationAsync may flip a pill.
+    private async Task<bool> DispatchEnableBatchAsync(
+        List<AppItemViewModel> apps,
+        IProgress<TaskProgressDetail> progress,
+        int queueTotal)
+    {
+        var names = string.Join(", ", apps.Select(a => a.Name));
+        progress.Report(new TaskProgressDetail
+        {
+            StatusText = _localizationService.GetString("Progress_Installing", names),
+            QueueTotal = queueTotal,
+            QueueCurrent = queueTotal
+        });
+
+        var result = await _appInstallationService.EnableServicingBatchAsync(
+            apps.Select(a => a.Definition).ToList(), progress, true);
+        if (result.Success)
+            return true;
+
+        _logService.LogError($"Failed to start the enable for: {names}");
+        return false;
     }
 
     public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()

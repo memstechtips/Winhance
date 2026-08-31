@@ -199,6 +199,7 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<ILegacyCapabilityService, LegacyCapabilityService>();
         services.AddSingleton<IOptionalFeatureService, OptionalFeatureService>();
+        services.AddSingleton<IServicingSession, ServicingSession>();
 
         services.AddSingleton<IBloatRemovalService, BloatRemovalService>();
 

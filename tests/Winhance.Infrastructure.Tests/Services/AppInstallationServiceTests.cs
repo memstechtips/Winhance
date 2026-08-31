@@ -17,6 +17,7 @@ public class AppInstallationServiceTests
 
     private readonly Mock<ILegacyCapabilityService> _capabilityService = new();
     private readonly Mock<IOptionalFeatureService> _featureService = new();
+    private readonly Mock<IServicingSession> _servicingSession = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
@@ -25,10 +26,13 @@ public class AppInstallationServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private IReadOnlyList<string>? _statements;
+    private string? _label;
 
     private AppInstallationService CreateSut() => new(
         _capabilityService.Object,
         _featureService.Object,
+        _servicingSession.Object,
         _logService.Object,
         _windowsAppsService.Object,
         _externalAppsService.Object,
@@ -114,14 +118,19 @@ public class AppInstallationServiceTests
             .ReturnsAsync(true);
 
         _capabilityService
-            .Setup(x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()))
+            .Setup(x => x.EnableCapabilitiesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<IReadOnlyList<string>?>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
         _capabilityService.Verify(
-            x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()), Times.Once);
+            x => x.EnableCapabilitiesAsync(
+                It.Is<IReadOnlyList<string>>(n => n.Count == 1 && n[0] == "App.StepsRecorder"),
+                It.Is<IReadOnlyList<string>?>(d => d != null && d.Count == 1 && d[0] == "Test Capability"),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -141,7 +150,7 @@ public class AppInstallationServiceTests
             .ReturnsAsync(true);
 
         _capabilityService
-            .Setup(x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()))
+            .Setup(x => x.EnableCapabilitiesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<IReadOnlyList<string>?>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var result = await sut.InstallAppAsync(item);
@@ -167,7 +176,7 @@ public class AppInstallationServiceTests
             .ReturnsAsync(true);
 
         _featureService
-            .Setup(x => x.EnableFeatureAsync("TelnetClient", "Test Feature", null, It.IsAny<CancellationToken>()))
+            .Setup(x => x.EnableFeaturesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<IReadOnlyList<string>?>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
@@ -517,5 +526,223 @@ public class AppInstallationServiceTests
 
         _changeHistoryService.Verify(
             x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
+    }
+
+    private void ArrangeServicingSession(bool launched = true)
+    {
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _featureService
+            .Setup(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()))
+            .Returns("FEATURES");
+        _capabilityService
+            .Setup(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()))
+            .Returns("CAPABILITIES");
+        _servicingSession
+            .Setup(x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback<IReadOnlyList<string>, string, IProgress<TaskProgressDetail>?, CancellationToken>(
+                (statements, label, _, _) => { _statements = statements; _label = label; })
+            .ReturnsAsync(launched);
+    }
+
+    private void VerifySessionsRun(Times times) => _servicingSession.Verify(
+        x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+        times);
+
+    // The bug this replaced: features and capabilities were dispatched as two batches, so two CBS
+    // servicing sessions were live at once and the second one failed.
+    [Fact]
+    public async Task EnableServicingBatchAsync_BothKinds_RunsOneSessionCarryingBothStatements()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" },
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("FEATURES", "CAPABILITIES");
+        _label.Should().Be("Sandbox, OpenSSH Client");
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_BothKinds_LogsEnableStartedOncePerApp()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" },
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession();
+
+        await sut.EnableServicingBatchAsync(apps);
+
+        _changeHistoryService.Verify(x => x.LogAppChange("Sandbox", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange("OpenSSH Client", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_ThreeFeatures_SendsAllThreeNamesInOneStatement()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "WSL", Description = "d", OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux" },
+            new() { Id = "f2", Name = ".NET 3.5", Description = "d", OptionalFeatureName = "NetFx3" },
+            new() { Id = "f3", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("FEATURES");
+        _featureService.Verify(
+            x => x.BuildEnableStatement(It.Is<IReadOnlyList<string>>(n => n.Count == 3
+                && n[0] == "Microsoft-Windows-Subsystem-Linux"
+                && n[1] == "NetFx3"
+                && n[2] == "Containers-DisposableClientVM")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_ThreeCapabilities_SendsAllThreeNamesInOneStatement()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" },
+            new() { Id = "c2", Name = "OpenSSH Server", Description = "d", CapabilityName = "OpenSSH.Server" },
+            new() { Id = "c3", Name = "Steps Recorder", Description = "d", CapabilityName = "App.StepsRecorder" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("CAPABILITIES");
+        _capabilityService.Verify(
+            x => x.BuildEnableStatement(It.Is<IReadOnlyList<string>>(n => n.Count == 3
+                && n[0] == "OpenSSH.Client"
+                && n[1] == "OpenSSH.Server"
+                && n[2] == "App.StepsRecorder")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_AppCarryingBothNames_IsEnabledOnlyAsACapability()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new()
+            {
+                Id = "both",
+                Name = "Two Names",
+                Description = "d",
+                CapabilityName = "OpenSSH.Client",
+                OptionalFeatureName = "NetFx3"
+            }
+        };
+        ArrangeServicingSession();
+
+        await sut.EnableServicingBatchAsync(apps);
+
+        _statements.Should().Equal("CAPABILITIES");
+        _featureService.Verify(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _changeHistoryService.Verify(x => x.LogAppChange("Two Names", AppChangeKind.EnableStarted), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_Launched_DefersAndNeverLogsAnInstall()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f3", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        result.InfoMessage.Should().NotBeNullOrEmpty();
+        _changeHistoryService.Verify(
+            x => x.LogAppChange("Sandbox", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), AppChangeKind.Installed), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_LaunchFails_ReturnsFailedAndWritesNoHistory()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession(launched: false);
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeFalse();
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_NothingToService_ReturnsFailedAndStartsNoSession()
+    {
+        var sut = CreateSut();
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(new List<ItemDefinition>
+        {
+            new() { Id = "a1", Name = "Plain App", Description = "d", WinGetPackageId = App1PackageId }
+        });
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("No apps provided");
+        VerifySessionsRun(Times.Never());
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_CapabilityApp_DefersAndLogsEnableStarted()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "cap-app",
+            Name = "Test Capability",
+            Description = "A capability app",
+            CapabilityName = "App.StepsRecorder"
+        };
+
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+
+        _capabilityService
+            .Setup(x => x.EnableCapabilitiesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<IReadOnlyList<string>?>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        result.InfoMessage.Should().NotBeNullOrEmpty();
+        _changeHistoryService.Verify(
+            x => x.LogAppChange("Test Capability", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), AppChangeKind.Installed), Times.Never);
     }
 }
