@@ -56,6 +56,7 @@ public class ChangeHistoryServiceTests
     [Theory]
     [InlineData(AppChangeKind.Installed, "ChangeHistory_AppInstalled", "App installed")]
     [InlineData(AppChangeKind.Removed, "ChangeHistory_AppRemoved", "App removed")]
+    [InlineData(AppChangeKind.EnableStarted, "ChangeHistory_AppEnableStarted", "Enable started in a separate window (success can only be determined there)")]
     public void LogAppChange_UsesLocalizedTemplate(AppChangeKind kind, string key, string template)
     {
         _mockLocalization.Setup(l => l.GetString(key)).Returns(template);

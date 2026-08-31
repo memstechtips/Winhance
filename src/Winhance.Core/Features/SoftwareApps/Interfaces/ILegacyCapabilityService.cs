@@ -4,5 +4,6 @@ namespace Winhance.Core.Features.SoftwareApps.Interfaces;
 
 public interface ILegacyCapabilityService
 {
-    Task<bool> EnableCapabilityAsync(string capabilityName, string? displayName = null, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
+    string BuildEnableStatement(IReadOnlyList<string> capabilityNames);
+    Task<bool> EnableCapabilitiesAsync(IReadOnlyList<string> capabilityNames, IReadOnlyList<string>? displayNames = null, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
 }

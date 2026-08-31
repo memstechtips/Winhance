@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -456,5 +457,52 @@ public class WindowsAppsViewModelTests
         sut.Dispose();
 
         sut.Items.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task InstallAppsAsync_ServicingItems_ShareOneWindowAcrossBothKinds()
+    {
+        var feature = new ItemDefinition
+        {
+            Id = "feature-app",
+            Name = "Windows Sandbox",
+            Description = "Sandbox",
+            OptionalFeatureName = "Containers-DisposableClientVM"
+        };
+        var capability = new ItemDefinition
+        {
+            Id = "cap-app",
+            Name = "OpenSSH Client",
+            Description = "OpenSSH",
+            CapabilityName = "OpenSSH.Client"
+        };
+
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new[] { feature, capability });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["feature-app"] = false, ["cap-app"] = false });
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false });
+        _progressService.Setup(p => p.CreateDetailedProgress())
+            .Returns(Mock.Of<IProgress<TaskProgressDetail>>());
+        _appInstallationService
+            .Setup(s => s.EnableServicingBatchAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<bool>.DeferredSuccess(true, "handed off"));
+
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        foreach (var item in sut.Items)
+        {
+            item.IsSelected = true;
+        }
+
+        await sut.InstallAppsAsync();
+
+        _appInstallationService.Verify(s => s.EnableServicingBatchAsync(
+            It.Is<IReadOnlyList<ItemDefinition>>(a => a.Count == 2
+                && a.Any(x => x.Id == "feature-app") && a.Any(x => x.Id == "cap-app")),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()), Times.Once);
+        _appInstallationService.Verify(s => s.InstallAppAsync(
+            It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()), Times.Never);
     }
 }
