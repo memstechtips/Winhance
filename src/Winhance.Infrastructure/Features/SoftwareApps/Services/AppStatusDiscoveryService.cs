@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Common.Native;
 using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;

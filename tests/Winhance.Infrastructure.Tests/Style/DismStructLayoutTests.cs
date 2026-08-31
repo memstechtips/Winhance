@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
 using FluentAssertions;
-using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Native;
 using Xunit;
 
-namespace Winhance.Core.Tests.Style;
+namespace Winhance.Infrastructure.Tests.Style;
 
 // DISM is not in the Win32 metadata (it ships with the ADK, not the SDK - microsoft/win32metadata#1289),
 // so CsWin32 cannot generate these and nothing checks the layout at compile time. No P/Invoke style

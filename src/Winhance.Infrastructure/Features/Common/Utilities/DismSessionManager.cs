@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 

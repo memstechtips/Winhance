@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Native;
 using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;

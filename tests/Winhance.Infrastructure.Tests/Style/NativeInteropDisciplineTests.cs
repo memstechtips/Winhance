@@ -14,61 +14,51 @@ namespace Winhance.Infrastructure.Tests.Style;
 public class NativeInteropDisciplineTests
 {
     // Core only. Winhance.UI declares its own by hand for shell and dialog APIs and was never part of this
-    // migration, so widening the scope would ship this red instead of catching anything.
-    private static readonly string ScopedDirectory = Path.Combine("src", "Winhance.Core");
+    // migration, so widening the scope would ship this red instead of catching anything. The one
+    // hand-written file that has to exist lives in Infrastructure: DISM has no Win32 metadata
+    // (microsoft/win32metadata#1289, closed by a maintainer: the API is not in the SDK, so it would have to
+    // come from the kit owner), leaving CsWin32 nothing to generate.
+    private static readonly string CoreDirectory = Path.Combine("src", "Winhance.Core");
 
-    // DISM has no Win32 metadata (microsoft/win32metadata#1289, closed by a maintainer: the API is not in
-    // the SDK, so it would have to come from the kit owner), leaving CsWin32 nothing to generate. Exempted
-    // by path rather than by file name: a second DismApi.cs elsewhere under Core would otherwise inherit
-    // the exemption, and moving this one is worth a look either way.
-    private static readonly string[] HandWrittenByNecessity =
-        [Path.Combine(ScopedDirectory, "Features", "Common", "Native", "DismApi.cs")];
+    private static readonly string HandWrittenByNecessity =
+        Path.Combine("src", "Winhance.Infrastructure", "Features", "Common", "Native");
 
     [Fact]
-    public void Core_declares_no_hand_written_DllImport_outside_the_allowlist()
+    public void Core_declares_no_hand_written_DllImport()
     {
-        var (filesScanned, declarations) = ScanScopedDirectory();
+        var (filesScanned, declarations) = Scan(CoreDirectory);
 
         filesScanned.Should().BeGreaterThan(200,
             "Winhance.Core is a few hundred files - a collapse here means the scan lost the tree, not that Core shrank");
 
-        var allowlisted = declarations
-            .Where(d => HandWrittenByNecessity.Contains(d.RelativePath, StringComparer.Ordinal))
-            .ToList();
-
-        allowlisted.Should().NotBeEmpty(
-            "the allowlisted files still declare their imports by hand, so a scan that finds none of them "
-            + "has stopped matching the attribute and would pass over anything");
-
-        var offenders = declarations
-            .Where(d => !HandWrittenByNecessity.Contains(d.RelativePath, StringComparer.Ordinal))
-            .Select(d => $"{d.RelativePath}:{d.Line}")
-            .ToList();
+        var offenders = declarations.Select(d => $"{d.RelativePath}:{d.Line}").ToList();
 
         offenders.Should().BeEmpty(
             "generate the API with CsWin32, or use [LibraryImport] when the metadata does not carry it. "
-            + "Adding a path to HandWrittenByNecessity needs the justification DISM has - the API is "
-            + "genuinely absent from the metadata - and is not a way to quiet this test. Offenders:"
+            + "An API genuinely absent from the metadata, as DISM is, belongs in Infrastructure beside "
+            + "DismApi.cs, never in Core. Offenders:"
             + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
+    // A clean Core proves nothing if the scan has stopped matching the attribute. DismApi.cs is the one
+    // file guaranteed to declare imports by hand, so it is the control - and the only file allowed to.
     [Fact]
-    public void Every_allowlisted_file_still_declares_interop_by_hand()
+    public void The_scan_still_recognises_a_hand_written_DllImport()
     {
-        var (_, declarations) = ScanScopedDirectory();
-        var declaring = declarations.Select(d => d.RelativePath).ToHashSet(StringComparer.Ordinal);
+        var (_, declarations) = Scan(HandWrittenByNecessity);
 
-        HandWrittenByNecessity.Where(path => !declaring.Contains(path)).Should().BeEmpty(
-            "an allowlisted path that no longer declares a [DllImport] excuses nothing and hides whatever "
-            + "took its place; repoint the entry if the file moved, delete it if CsWin32 can generate the "
-            + "API now");
+        declarations.Should().NotBeEmpty(
+            "DismApi.cs declares its DISM imports by hand; a scan that finds none of them has stopped matching");
+        declarations.Should().OnlyContain(
+            d => d.RelativePath.EndsWith("DismApi.cs", StringComparison.Ordinal),
+            "any other hand-written interop under Infrastructure needs the justification DISM has");
     }
 
-    private static (int FilesScanned, List<(string RelativePath, int Line)> Declarations) ScanScopedDirectory()
+    private static (int FilesScanned, List<(string RelativePath, int Line)> Declarations) Scan(string scopedDirectory)
     {
         var root = RepoPaths.SolutionDir();
-        var directory = Path.Combine(root, ScopedDirectory);
-        Directory.Exists(directory).Should().BeTrue($"scoped directory '{ScopedDirectory}' should exist - has it moved?");
+        var directory = Path.Combine(root, scopedDirectory);
+        Directory.Exists(directory).Should().BeTrue($"scoped directory '{scopedDirectory}' should exist - has it moved?");
 
         var filesScanned = 0;
         var declarations = new List<(string RelativePath, int Line)>();

@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace Winhance.Core.Features.Common.Native;
+namespace Winhance.Infrastructure.Features.Common.Native;
 
-public static class DismApi
+internal static class DismApi
 {
     public const string DISM_ONLINE_IMAGE_PATH = "DISM_{53BFAE52-B167-4E2F-A258-0A37B57FF845}";
     public const int DismLogErrors = 0;
