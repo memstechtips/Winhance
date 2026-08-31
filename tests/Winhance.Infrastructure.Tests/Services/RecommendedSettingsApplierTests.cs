@@ -18,6 +18,8 @@ public class RecommendedSettingsApplierTests
     private readonly Mock<ISettingApplicationService> _mockAppService = new();
     private readonly RecommendedSettingsApplier _applier;
 
+    private readonly Mock<IPowerCfgApplier> _mockPowerCfgApplier = new();
+
     public RecommendedSettingsApplierTests()
     {
         _mockVersionService.Setup(v => v.IsWindows11()).Returns(true);
@@ -37,10 +39,13 @@ public class RecommendedSettingsApplierTests
             .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
+        _mockPowerCfgApplier.Setup(p => p.BeginBatch()).Returns(Mock.Of<IDisposable>());
+
         _applier = new RecommendedSettingsApplier(
             _mockRegistry.Object,
             _mockVersionService.Object,
             _mockProcessRestartManager.Object,
+            _mockPowerCfgApplier.Object,
             _mockLog.Object);
     }
 

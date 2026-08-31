@@ -177,7 +177,7 @@ internal static class RecommendedSettingsResolver
     }
 
     // The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created plan via
-    // PowerProf.PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
+    // PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
     // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC
     // fall back to each other.
     internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
@@ -204,6 +204,8 @@ internal static class RecommendedSettingsResolver
         // is the Recommended-context-role state's Set["Power"] payload. Gating on States.Count (not Control ==
         // Selection) keeps a future powercfg setting whose two states happen to compute as Toggle from silently
         // dropping its plan write. A Numeric slider has no states and falls through to Numeric.Recommended below.
+        // NO powercfg setting derives as Toggle today, and CatalogPowerCfgControlKindConformanceTests is what
+        // holds that line - it fails the build the moment one does.
         if (setting.States.Count > 0)
         {
             foreach (var st in setting.States)

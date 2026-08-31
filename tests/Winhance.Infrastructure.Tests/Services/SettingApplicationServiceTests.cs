@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
@@ -29,6 +30,7 @@ public class SettingApplicationServiceTests
     private readonly Mock<ICatalogDetectionService> _mockCatalogDetection = new();
     private readonly Mock<ICatalogSettingStateProvider> _mockSettingStateProvider = new();
     private readonly Mock<IConfigImportState> _mockConfigImportState = new();
+    private readonly Mock<IPowerSettingsQueryService> _mockPowerQuery = new();
     private readonly SettingApplicationService _service;
 
     public SettingApplicationServiceTests()
@@ -75,13 +77,20 @@ public class SettingApplicationServiceTests
             .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
+        // Default: no Winhance plan on the machine, so selecting it counts as creating it and the recommended
+        // stamp runs. An unstubbed mock returns a null list, which the existence check would throw on.
+        _mockPowerQuery
+            .Setup(p => p.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan>());
+
         _service = new SettingApplicationService(
             _mockSettingsRegistry.Object, _mockSpecialHandlerRegistry.Object,
             _mockLog.Object,
             _mockEventBus.Object, _mockRecommended.Object, _mockRestart.Object,
             _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockAsyncEffects.Object, _mockVersion.Object,
-            _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockConfigImportState.Object);
+            _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockPowerQuery.Object,
+            _mockConfigImportState.Object);
     }
 
     // The catalog Setting the funnel resolves for an id. REAL catalog Setting for a paired id (so
@@ -616,6 +625,50 @@ public class SettingApplicationServiceTests
 
         _mockChangeHistory.Verify(h => h.LogSettingChange(
             It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), "AC: Never, DC: 4 minutes"), Times.Once);
+    }
+
+    // The pair matters: if the "already exists" test stood alone it would pass even when the cascade never
+    // fires for an unrelated reason, and prove nothing.
+    [Fact]
+    public async Task ApplySettingAsync_WinhancePlanDoesNotExistYet_StampsRecommendedSettings()
+    {
+        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = SettingIds.PowerPlanSelection,
+            Enable = true,
+            SkipValuePrerequisites = true,
+            Value = PowerPlanCatalog.WinhancePowerPlanGuid,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            SettingIds.PowerPlanSelection, It.IsAny<ISettingApplicationService>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_WinhancePlanAlreadyExists_LeavesItsSettingsAlone()
+    {
+        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        _mockPowerQuery
+            .Setup(p => p.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan>
+            {
+                new() { Guid = PowerPlanCatalog.WinhancePowerPlanGuid, Name = "Winhance Power Plan" },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = SettingIds.PowerPlanSelection,
+            Enable = true,
+            SkipValuePrerequisites = true,
+            Value = PowerPlanCatalog.WinhancePowerPlanGuid,
+        });
+
+        // Switching back to a plan that already exists must not re-stamp it: that would silently revert any
+        // adjustment the user made while on it.
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
     [Fact]

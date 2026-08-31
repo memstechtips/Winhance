@@ -17,6 +17,8 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     private Dictionary<string, bool?> _taskCache = new();
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
+    private WinBuild? _currentBuild;
+    private IReadOnlyList<string>? _dnsServers;
     private bool _powerPrefetched;
     private string? _activePlanGuid;
     private string? _activePlanName;
@@ -37,15 +39,15 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         _log = log;
     }
 
-    public WinBuild CurrentBuild
+    // Two registry reads, and every AppliesTo-gated target asks for it - so once per batch, not per target.
+    public WinBuild CurrentBuild => _currentBuild ??= ReadCurrentBuild();
+
+    private WinBuild ReadCurrentBuild()
     {
-        get
-        {
-            const string key = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
-            int build = int.TryParse(_reg.GetValue(key, "CurrentBuildNumber")?.ToString(), out var b) ? b : 0;
-            int ubr = int.TryParse(_reg.GetValue(key, "UBR")?.ToString(), out var r) ? r : 0;
-            return new WinBuild(build, ubr);
-        }
+        const string key = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+        int build = int.TryParse(_reg.GetValue(key, "CurrentBuildNumber")?.ToString(), out var b) ? b : 0;
+        int ubr = int.TryParse(_reg.GetValue(key, "UBR")?.ToString(), out var r) ? r : 0;
+        return new WinBuild(build, ubr);
     }
 
     public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
@@ -63,7 +65,11 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         return servers.Count > 0 ? servers[0] : null;
     }
 
-    public IReadOnlyList<string> DnsV4ServersOfActiveAdapter()
+    // DnsServerDetector reads this through PrimaryDnsV4OfActiveAdapter and CatalogDetectionService reads it
+    // again for the same setting, so an unmemoized call enumerates every adapter twice per batch.
+    public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => _dnsServers ??= ReadDnsV4Servers();
+
+    private IReadOnlyList<string> ReadDnsV4Servers()
     {
         var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
@@ -166,12 +172,18 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _taskCache = new Dictionary<string, bool?>(read, StringComparer.OrdinalIgnoreCase);
         }
 
-        // PowerCfg: one batched read of the active scheme's AC/DC values, keyed by setting GUID. PowerCfgValue
-        // serves it via the same key (PowerCfgTarget.SettingGuid).
-        bool needsPower = settings.Any(s => LiveTargets(s, build).OfType<PowerCfgTarget>().Any());
-        if (needsPower)
+        // PowerCfg: read this batch's own targets, keyed by setting GUID. PowerCfgValue serves it via the same
+        // key (PowerCfgTarget.SettingGuid). A full store walk costs ~225 PowerEnumerate + ~400 PowerRead*
+        // whatever the batch size, which is what made a one-setting pre-apply read cost 72ms; two native reads
+        // per target beats that for every batch this catalog can produce (41 powercfg targets in total).
+        var powerTargets = settings
+            .SelectMany(s => LiveTargets(s, build).OfType<PowerCfgTarget>())
+            .Select(t => (t.SubgroupGuid, t.SettingGuid))
+            .Distinct()
+            .ToList();
+        if (powerTargets.Count > 0)
         {
-            _powerCache = await _power.GetAllPowerSettingsACDCAsync("SCHEME_CURRENT").ConfigureAwait(false);
+            _powerCache = await _power.GetPowerSettingsACDCAsync(powerTargets).ConfigureAwait(false);
             _powerPrefetched = true;
         }
 

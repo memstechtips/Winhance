@@ -11,4 +11,10 @@ public sealed record ApplySettingRequest
     // Applies the WindowsDefault state with its per-target ResetSet overrides (the [1,null] Explorer settings DELETE
     // instead of writing Set). Also set by the reverse cascade (ApplyAction.IsReset).
     public bool ResetToDefault { get; init; }
+
+    // The change-history receipt's "before" half, when the caller already knows it. A card has just displayed
+    // this setting's state, so re-reading the setting we are about to change buys nothing. Null from every
+    // caller that has no card behind it (config import, bulk actions, the relationship cascade), and those
+    // still read.
+    public SettingStateResult? BeforeState { get; init; }
 }

@@ -1037,7 +1037,20 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     // Resolved per write, not held in a field: the mode changes while this ViewModel stays alive.
     private Task<SettingWriteResult> WriteAsync(SettingWriteRequest request) =>
-        _writeStrategySelector.ForCurrentMode().WriteAsync(request, this);
+        _writeStrategySelector.ForCurrentMode().WriteAsync(
+            request with { SystemRequest = request.SystemRequest with { BeforeState = _lastKnownState } },
+            this);
+
+    // What this card last showed. The apply service builds the change-history receipt's "before" half from it
+    // rather than re-reading the setting: the read cost nothing for a registry setting but collided with the
+    // powercfg commit of the apply before it, which is what made a single-setting refresh take 500ms.
+    private SettingStateResult? _lastKnownState;
+
+    public void RecordKnownState(SettingStateResult state)
+    {
+        if (state.Success)
+            _lastKnownState = state;
+    }
 
     // Every input handler funnels through here on a write that stuck: the discard prompt has to fire for authored
     // work even when it produced no serializable ChoiceValue, and a new input type gets it for free.
@@ -1635,6 +1648,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public void UpdateStateFromSystemState(SettingStateResult state)
     {
         if (!state.Success) return;
+        RecordKnownState(state);
         _isUpdatingFromEvent = true;
         try
         {
@@ -1800,19 +1814,36 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public void OnACNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
-        {
-            AcNumericValue = (int)e.NewValue;
-            HandleACDCNumericChangedAsync().FireAndForget(_logService);
-        }
+            AcNumericInputChanged((int)e.NewValue);
     }
 
     public void OnDCNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)
     {
         if (!double.IsNaN(e.NewValue))
-        {
-            DcNumericValue = (int)e.NewValue;
-            HandleACDCNumericChangedAsync().FireAndForget(_logService);
-        }
+            DcNumericInputChanged((int)e.NewValue);
+    }
+
+    // Split from the event handler above because NumberBoxValueChangedEventArgs cannot be constructed in a test.
+    // The box re-raises ValueChanged every time its OneWay binding re-pushes the number it already holds, which
+    // is what happens when the DC input appears after the hardware filter reveals other-hardware settings. The
+    // value did not change, so there is nothing to write - and in Builder mode a write here recorded a setting
+    // the user never touched. HandleValueChangedAsync makes the same check for the single-value input.
+    public void AcNumericInputChanged(int value)
+    {
+        if (value == AcNumericValue)
+            return;
+
+        AcNumericValue = value;
+        HandleACDCNumericChangedAsync().FireAndForget(_logService);
+    }
+
+    public void DcNumericInputChanged(int value)
+    {
+        if (value == DcNumericValue)
+            return;
+
+        DcNumericValue = value;
+        HandleACDCNumericChangedAsync().FireAndForget(_logService);
     }
 
     // Invariant-culture NumberFormatter so the box parses and formats en-US regardless of system locale - Russian

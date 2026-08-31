@@ -1,0 +1,26 @@
+// Power schemes and per-setting AC/DC values (PowrProf.dll)
+PowerEnumerate
+PowerGetActiveScheme
+PowerSetActiveScheme
+PowerReadFriendlyName
+PowerWriteFriendlyName
+PowerWriteDescription
+PowerReadACValueIndex
+PowerReadDCValueIndex
+PowerWriteACValueIndex
+PowerWriteDCValueIndex
+PowerReadValueMin
+PowerReadValueMax
+PowerReadValueIncrement
+PowerDuplicateScheme
+PowerDeleteScheme
+PowerRestoreDefaultPowerSchemes
+PowerImportPowerScheme
+GetPwrCapabilities
+CallNtPowerInformation
+POWER_DATA_ACCESSOR
+POWER_INFORMATION_LEVEL
+SYSTEM_POWER_CAPABILITIES
+
+// Frees the GUID buffers PowerGetActiveScheme / PowerDuplicateScheme allocate
+LocalFree
