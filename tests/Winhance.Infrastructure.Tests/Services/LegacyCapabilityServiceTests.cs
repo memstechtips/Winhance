@@ -1,7 +1,4 @@
 using FluentAssertions;
-using Moq;
-using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Xunit;
 
@@ -9,20 +6,7 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class LegacyCapabilityServiceTests
 {
-    private readonly Mock<IServicingSession> _session = new();
-    private IReadOnlyList<string>? _statements;
-    private string? _label;
-
-    public LegacyCapabilityServiceTests()
-    {
-        _session
-            .Setup(x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
-            .Callback<IReadOnlyList<string>, string, IProgress<TaskProgressDetail>?, CancellationToken>(
-                (statements, label, _, _) => { _statements = statements; _label = label; })
-            .ReturnsAsync(true);
-    }
-
-    private LegacyCapabilityService CreateSut() => new(_session.Object);
+    private LegacyCapabilityService CreateSut() => new();
 
     [Fact]
     public void BuildEnableStatement_ThreeCapabilities_IsOneCallPerName()
@@ -52,41 +36,5 @@ public class LegacyCapabilityServiceTests
         var statement = CreateSut().BuildEnableStatement(["OpenSSH.Client"]);
 
         statement.Should().NotContain("-NoRestart");
-    }
-
-    [Fact]
-    public async Task EnableCapabilitiesAsync_RunsOneSessionCarryingTheStatement()
-    {
-        var sut = CreateSut();
-
-        var launched = await sut.EnableCapabilitiesAsync(["OpenSSH.Client", "OpenSSH.Server"]);
-
-        launched.Should().BeTrue();
-        _session.Verify(
-            x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-        _statements.Should().ContainSingle()
-            .Which.Should().Be(sut.BuildEnableStatement(["OpenSSH.Client", "OpenSSH.Server"]));
-    }
-
-    [Fact]
-    public async Task EnableCapabilitiesAsync_LabelNamesEveryCapabilityByDisplayName()
-    {
-        await CreateSut().EnableCapabilitiesAsync(
-            ["OpenSSH.Client", "Media.WindowsMediaPlayer"],
-            ["OpenSSH Client", "Windows Media Player"]);
-
-        _label.Should().Be("OpenSSH Client, Windows Media Player");
-    }
-
-    [Fact]
-    public async Task EnableCapabilitiesAsync_EmptyList_StartsNoSession()
-    {
-        var launched = await CreateSut().EnableCapabilitiesAsync([]);
-
-        launched.Should().BeFalse();
-        _session.Verify(
-            x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 }

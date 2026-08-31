@@ -12,7 +12,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
     private string _currentStatusText;
     private bool _isTaskRunning;
     private bool _isIndeterminate;
-    private List<string> _logMessages = new List<string>();
     private List<string> _terminalOutputLines = new List<string>();
     private bool _lastTerminalLineWasProgress;
     private CancellationTokenSource? _cancellationSource;
@@ -57,7 +56,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _currentStatusText = taskName;
         _isTaskRunning = true;
         _isIndeterminate = isIndeterminate;
-        _logMessages.Clear();
         _terminalOutputLines.Clear();
         _lastTerminalLineWasProgress = false;
         _queueTotal = 0;
@@ -66,7 +64,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _skipNextRequested = false;
 
         _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}");
-        AddLogMessage($"[TASKPROGRESSSERVICE] Task started: {taskName}");
         OnProgressChanged(
             new TaskProgressDetail
             {
@@ -101,12 +98,10 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
                 LogLevel.Info,
                 $"Task progress ({progressPercentage}%): {statusText}"
             );
-            AddLogMessage($"Task progress ({progressPercentage}%): {statusText}");
         }
         else
         {
             _logService.Log(LogLevel.Info, $"Task progress: {progressPercentage}%");
-            AddLogMessage($"Task progress: {progressPercentage}%");
         }
         OnProgressChanged(
             new TaskProgressDetail
@@ -178,7 +173,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         if (!string.IsNullOrEmpty(detail.DetailedMessage))
         {
             _logService.Log(detail.LogLevel, detail.DetailedMessage);
-            AddLogMessage(detail.DetailedMessage);
         }
         OnProgressChanged(detail);
     }
@@ -191,7 +185,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         }
 
         _logService.Log(LogLevel.Info, $"Task completed: {_currentStatusText}");
-        AddLogMessage($"Task completed: {_currentStatusText}");
         EndTask(100, "Task completed");
     }
 
@@ -203,7 +196,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         }
 
         _logService.Log(LogLevel.Warning, $"Task failed: {_currentStatusText}");
-        AddLogMessage($"Task failed: {_currentStatusText}");
 
         // Progress 0 with a status while the task still counts as running is how
         // TaskProgressViewModel learns of a failure; it then keeps the bar up with its
@@ -220,7 +212,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         }
 
         _logService.Log(LogLevel.Info, $"Task cancelled: {_currentStatusText}");
-        AddLogMessage($"Task cancelled: {_currentStatusText}");
         EndTask(0, "Task cancelled");
     }
 
@@ -246,14 +237,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _cancellationSource = null;
     }
 
-    private void AddLogMessage(string message)
-    {
-        if (string.IsNullOrEmpty(message))
-            return;
-
-        _logMessages.Add(message);
-    }
-
     public IReadOnlyList<string> GetTerminalOutputLines() => _terminalOutputLines.AsReadOnly();
 
     public void CancelCurrentTask()
@@ -261,7 +244,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         if (_cancellationSource != null && !_cancellationSource.IsCancellationRequested)
         {
             _cancellationSource.Cancel();
-            AddLogMessage("Task cancelled by user");
         }
     }
 
@@ -287,7 +269,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _activeScriptSlotCount = scriptNames.Length;
         _scriptSlotNames = scriptNames;
         _currentStatusText = string.Empty;
-        _logMessages.Clear();
         _terminalOutputLines.Clear();
         _lastTerminalLineWasProgress = false;
         _queueTotal = 0;

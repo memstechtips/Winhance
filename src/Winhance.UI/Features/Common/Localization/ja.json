@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "古いイメージファイルを削除中...",
   "Progress_ConversionCompleted": "変換が正常に完了しました",
   "Progress_ConversionFailed": "変換に失敗しました",
-  "Progress_CheckingWinget": "wingetを確認中...",
-  "Progress_InstallingWinget": "wingetをインストール中...",
   "Progress_MountingIso": "ISOをマウント中...",
   "Progress_CopyingIsoContents": "ISOコンテンツをコピー中...",
   "Progress_CopyingIsoContentsPercent": "ISOコンテンツをコピー中 {0}%",

@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Verwyder ou beeldlêer...",
   "Progress_ConversionCompleted": "Omskakeling suksesvol voltooi",
   "Progress_ConversionFailed": "Omskakeling misluk",
-  "Progress_CheckingWinget": "Kontroleer vir winget...",
-  "Progress_InstallingWinget": "Installeer winget...",
   "Progress_MountingIso": "Monteer ISO...",
   "Progress_CopyingIsoContents": "Kopieer ISO inhoud...",
   "Progress_CopyingIsoContentsPercent": "Kopieer ISO inhoud {0}%",

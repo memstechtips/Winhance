@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Tar bort gammal bildfil...",
   "Progress_ConversionCompleted": "Konvertering slutförd framgångsrikt",
   "Progress_ConversionFailed": "Konvertering misslyckades",
-  "Progress_CheckingWinget": "Kontrollerar för winget...",
-  "Progress_InstallingWinget": "Installerar winget...",
   "Progress_MountingIso": "Monterar ISO...",
   "Progress_CopyingIsoContents": "Kopierar ISO-innehåll...",
   "Progress_CopyingIsoContentsPercent": "Kopierar ISO-innehåll {0}%",

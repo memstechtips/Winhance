@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Αφαίρεση παλιού αρχείου εικόνας...",
   "Progress_ConversionCompleted": "Η μετατροπή ολοκληρώθηκε επιτυχώς",
   "Progress_ConversionFailed": "Η μετατροπή απέτυχε",
-  "Progress_CheckingWinget": "Έλεγχος για winget...",
-  "Progress_InstallingWinget": "Εγκατάσταση winget...",
   "Progress_MountingIso": "Προσάρτηση ISO...",
   "Progress_CopyingIsoContents": "Αντιγραφή περιεχομένων ISO...",
   "Progress_CopyingIsoContentsPercent": "Αντιγραφή περιεχομένων ISO {0}%",

@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "पुरानी छवि फ़ाइल हटाई जा रही है...",
   "Progress_ConversionCompleted": "रूपांतरण सफलतापूर्वक पूरा हुआ",
   "Progress_ConversionFailed": "रूपांतरण विफल",
-  "Progress_CheckingWinget": "winget की जाँच हो रही है...",
-  "Progress_InstallingWinget": "winget स्थापित किया जा रहा है...",
   "Progress_MountingIso": "आईएसओ माउंट किया जा रहा है...",
   "Progress_CopyingIsoContents": "आईएसओ सामग्री की प्रतिलिपि बनाई जा रही है...",
   "Progress_CopyingIsoContentsPercent": "आईएसओ सामग्री की प्रतिलिपि बनाई जा रही है {0}%",

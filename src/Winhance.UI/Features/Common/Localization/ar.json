@@ -1530,8 +1530,6 @@
   "Progress_RemovingOldFile": "جارٍ إزالة ملف الصورة القديم...",
   "Progress_ConversionCompleted": "اكتمل التحويل بنجاح",
   "Progress_ConversionFailed": "فشل التحويل",
-  "Progress_CheckingWinget": "جارٍ التحقق من وجود winget...",
-  "Progress_InstallingWinget": "جارٍ تثبيت winget...",
   "Progress_MountingIso": "جارٍ تركيب ISO...",
   "Progress_CopyingIsoContents": "جارٍ نسخ محتويات ISO...",
   "Progress_CopyingIsoContentsPercent": "جارٍ نسخ محتويات ISO {0}%",

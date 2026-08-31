@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Odstraňování starého souboru obrazu...",
   "Progress_ConversionCompleted": "Převod úspěšně dokončen",
   "Progress_ConversionFailed": "Převod se nezdařil",
-  "Progress_CheckingWinget": "Kontrola winget...",
-  "Progress_InstallingWinget": "Instalace winget...",
   "Progress_MountingIso": "Připojování ISO...",
   "Progress_CopyingIsoContents": "Kopírování obsahu ISO...",
   "Progress_CopyingIsoContentsPercent": "Kopírování obsahu ISO {0}%",

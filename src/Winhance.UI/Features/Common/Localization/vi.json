@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Đang xóa tệp hình ảnh cũ...",
   "Progress_ConversionCompleted": "Chuyển đổi hoàn tất thành công",
   "Progress_ConversionFailed": "Chuyển đổi không thành công",
-  "Progress_CheckingWinget": "Đang kiểm tra winget...",
-  "Progress_InstallingWinget": "Đang cài đặt winget...",
   "Progress_MountingIso": "Đang gắn ISO...",
   "Progress_CopyingIsoContents": "Đang sao chép nội dung ISO...",
   "Progress_CopyingIsoContentsPercent": "Đang sao chép nội dung ISO {0}%",

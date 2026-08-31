@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Noņem veco attēla failu...",
   "Progress_ConversionCompleted": "Konversija veiksmīgi pabeigta",
   "Progress_ConversionFailed": "Konversija neizdevās",
-  "Progress_CheckingWinget": "Pārbauda winget...",
-  "Progress_InstallingWinget": "Instalē winget...",
   "Progress_MountingIso": "Montē ISO...",
   "Progress_CopyingIsoContents": "Kopē ISO saturu...",
   "Progress_CopyingIsoContentsPercent": "Kopē ISO saturu {0}%",

@@ -1626,8 +1626,6 @@
   "Progress_RemovingOldFile": "Eski görüntü dosyası kaldırılıyor...",
   "Progress_ConversionCompleted": "Dönüştürme başarıyla tamamlandı",
   "Progress_ConversionFailed": "Dönüştürme başarısız oldu",
-  "Progress_CheckingWinget": "winget kontrol ediliyor...",
-  "Progress_InstallingWinget": "winget yükleniyor...",
   "Progress_MountingIso": "ISO bağlanıyor...",
   "Progress_CopyingIsoContents": "ISO içeriği kopyalanıyor...",
   "Progress_CopyingIsoContentsPercent": "ISO içeriği kopyalanıyor {0}%",

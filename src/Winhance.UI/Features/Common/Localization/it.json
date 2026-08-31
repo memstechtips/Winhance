@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Rimozione del vecchio file immagine in corso...",
   "Progress_ConversionCompleted": "Conversione completata correttamente",
   "Progress_ConversionFailed": "Conversione non riuscita",
-  "Progress_CheckingWinget": "Verifica di winget in corso...",
-  "Progress_InstallingWinget": "Installazione di winget in corso...",
   "Progress_MountingIso": "Montaggio dell'ISO in corso...",
   "Progress_CopyingIsoContents": "Copia del contenuto dell'ISO in corso...",
   "Progress_CopyingIsoContentsPercent": "Copia del contenuto dell'ISO in corso {0}%",

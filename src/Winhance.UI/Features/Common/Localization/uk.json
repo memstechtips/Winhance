@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Видалення старого файлу зображення...",
   "Progress_ConversionCompleted": "Перетворення успішно завершено",
   "Progress_ConversionFailed": "Не вдалося перетворити",
-  "Progress_CheckingWinget": "Перевірка наявності winget...",
-  "Progress_InstallingWinget": "Встановлення winget...",
   "Progress_MountingIso": "Монтування ISO...",
   "Progress_CopyingIsoContents": "Копіювання вмісту ISO...",
   "Progress_CopyingIsoContentsPercent": "Копіювання вмісту ISO {0}%",

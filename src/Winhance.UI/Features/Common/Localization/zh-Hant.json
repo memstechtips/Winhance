@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "正在移除舊的映像檔...",
   "Progress_ConversionCompleted": "轉換成功完成",
   "Progress_ConversionFailed": "轉換失敗",
-  "Progress_CheckingWinget": "正在檢查 winget...",
-  "Progress_InstallingWinget": "正在安裝 winget...",
   "Progress_MountingIso": "正在掛載 ISO...",
   "Progress_CopyingIsoContents": "正在複製 ISO 內容...",
   "Progress_CopyingIsoContentsPercent": "正在複製 ISO 內容 {0}%",

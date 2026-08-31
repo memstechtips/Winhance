@@ -1626,8 +1626,6 @@
   "Progress_RemovingOldFile": "در حال حذف فایل تصویر قدیمی...",
   "Progress_ConversionCompleted": "تبدیل با موفقیت کامل شد",
   "Progress_ConversionFailed": "تبدیل شکست خورد",
-  "Progress_CheckingWinget": "در حال بررسی وجود winget...",
-  "Progress_InstallingWinget": "در حال نصب winget...",
   "Progress_MountingIso": "در حال mount کردن ISO...",
   "Progress_CopyingIsoContents": "در حال کپی کردن محتویات ISO...",
   "Progress_CopyingIsoContentsPercent": "در حال کپی کردن محتویات ISO {0}%",

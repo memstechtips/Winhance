@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Régi kép fájl eltávolítása...",
   "Progress_ConversionCompleted": "Átalakítás sikeresen befejeződött",
   "Progress_ConversionFailed": "Átalakítás sikertelen",
-  "Progress_CheckingWinget": "Winget ellenőrzése...",
-  "Progress_InstallingWinget": "A winget telepítése...",
   "Progress_MountingIso": "ISO csatolása...",
   "Progress_CopyingIsoContents": "ISO-tartalom másolása...",
   "Progress_CopyingIsoContentsPercent": "ISO-tartalom másolása {0}%",

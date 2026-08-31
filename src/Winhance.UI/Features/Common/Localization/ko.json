@@ -1626,8 +1626,6 @@
   "Progress_RemovingOldFile": "이전 이미지 파일을 제거하는 중...",
   "Progress_ConversionCompleted": "변환이 성공적으로 완료되었습니다",
   "Progress_ConversionFailed": "변환에 실패했습니다",
-  "Progress_CheckingWinget": "WinGet 확인 중...",
-  "Progress_InstallingWinget": "WinGet 설치 중...",
   "Progress_MountingIso": "ISO를 마운트하는 중...",
   "Progress_CopyingIsoContents": "ISO 내용을 복사하는 중...",
   "Progress_CopyingIsoContentsPercent": "ISO 내용을 복사하는 중 {0}%",

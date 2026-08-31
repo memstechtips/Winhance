@@ -11,7 +11,6 @@ PowerWriteACValueIndex
 PowerWriteDCValueIndex
 PowerReadValueMin
 PowerReadValueMax
-PowerReadValueIncrement
 PowerDuplicateScheme
 PowerDeleteScheme
 PowerRestoreDefaultPowerSchemes
@@ -117,7 +116,6 @@ WAIT_EVENT
 OpenVirtualDisk
 AttachVirtualDisk
 GetVirtualDiskPhysicalPath
-DetachVirtualDisk
 ATTACH_VIRTUAL_DISK_FLAG
 OPEN_VIRTUAL_DISK_FLAG
 VIRTUAL_DISK_ACCESS_MASK

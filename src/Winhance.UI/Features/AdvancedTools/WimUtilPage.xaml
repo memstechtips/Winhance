@@ -684,14 +684,12 @@
                                     <StackPanel Grid.Column="2"
                                                 Margin="16,0,0,0"
                                                 VerticalAlignment="Center">
-                                        <RadioButton x:Name="DestinationIsoRadio"
-                                                     GroupName="WimUtilDestination"
+                                        <RadioButton GroupName="WimUtilDestination"
                                                      MinWidth="0"
                                                      Content="{x:Bind ViewModel.DestinationIsoText}"
                                                      IsChecked="{x:Bind ViewModel.IsIsoDestination, Mode=OneWay}"
                                                      Checked="DestinationIsoRadio_Checked"/>
-                                        <RadioButton x:Name="DestinationUsbRadio"
-                                                     GroupName="WimUtilDestination"
+                                        <RadioButton GroupName="WimUtilDestination"
                                                      MinWidth="0"
                                                      Content="{x:Bind ViewModel.DestinationUsbText}"
                                                      IsChecked="{x:Bind ViewModel.IsUsbDestination, Mode=OneWay}"

@@ -48,44 +48,6 @@ internal class AppInstallationService(
         }
     }
 
-    public async Task<OperationResult<int>> InstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
-    {
-        try
-        {
-            if (apps == null || apps.Count == 0)
-                return OperationResult<int>.Failed("No apps provided");
-
-            if (shouldRemoveFromBloatScript)
-            {
-                await bloatRemovalService.RemoveItemsFromScriptAsync(apps).ConfigureAwait(false);
-
-                foreach (var app in apps)
-                {
-                    await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
-                }
-            }
-
-            int successCount = 0;
-            foreach (var app in apps)
-            {
-                var result = await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
-                if (result.Success) successCount++;
-            }
-
-            return OperationResult<int>.Succeeded(successCount);
-        }
-        catch (OperationCanceledException)
-        {
-            logService.Log(LogLevel.Info, "Bulk installation was cancelled");
-            return OperationResult<int>.Cancelled("Operation was cancelled");
-        }
-        catch (Exception ex)
-        {
-            logService.LogError($"Failed to install apps: {ex.Message}");
-            return OperationResult<int>.Failed(ex.Message);
-        }
-    }
-
     public async Task<OperationResult<bool>> EnableServicingBatchAsync(
         IReadOnlyList<ItemDefinition> apps,
         IProgress<TaskProgressDetail>? progress = null,
@@ -112,8 +74,7 @@ internal class AppInstallationService(
                 }
             }
 
-            // An item may carry both names; capability wins, the same way InstallSingleAppCoreAsync
-            // routes a single app, so nothing is serviced twice.
+            // An item may carry both names; capability wins, so nothing is serviced twice.
             var featureNames = batch
                 .Where(a => string.IsNullOrEmpty(a.CapabilityName))
                 .Select(a => a.OptionalFeatureName!)
@@ -162,8 +123,7 @@ internal class AppInstallationService(
         var result = await InstallSingleAppCoreAsync(app, progress).ConfigureAwait(false);
         if (result.Success)
         {
-            // An InfoMessage means another window owns the outcome, so the receipt must not claim an install.
-            changeHistory.LogAppChange(app.Name, result.InfoMessage is null ? AppChangeKind.Installed : AppChangeKind.EnableStarted);
+            changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
         }
         return result;
     }
@@ -174,32 +134,6 @@ internal class AppInstallationService(
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!string.IsNullOrEmpty(app?.CapabilityName))
-            {
-                var launched = await capabilityService.EnableCapabilitiesAsync([app.CapabilityName], [app.Name], progress, cancellationToken).ConfigureAwait(false);
-                if (launched)
-                {
-                    logService.Log(LogLevel.Info, $"PowerShell launched for capability '{app.Id}'");
-                    return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
-                }
-                return OperationResult<bool>.Failed("Failed to launch PowerShell for capability");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!string.IsNullOrEmpty(app?.OptionalFeatureName))
-            {
-                var launched = await featureService.EnableFeaturesAsync([app.OptionalFeatureName], [app.Name], progress, cancellationToken).ConfigureAwait(false);
-                if (launched)
-                {
-                    logService.Log(LogLevel.Info, $"PowerShell launched for feature '{app.Id}'");
-                    return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
-                }
-                return OperationResult<bool>.Failed("Failed to launch PowerShell for feature");
-            }
-
             cancellationToken.ThrowIfCancellationRequested();
 
             if ((app?.WinGetPackageId != null && app.WinGetPackageId.Length > 0) ||

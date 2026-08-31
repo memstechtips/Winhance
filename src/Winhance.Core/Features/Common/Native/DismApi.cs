@@ -8,14 +8,6 @@ public static class DismApi
     public const string DISM_ONLINE_IMAGE_PATH = "DISM_{53BFAE52-B167-4E2F-A258-0A37B57FF845}";
     public const int DismLogErrors = 0;
     public const int DismStateInstalled = 4;
-    public const int S_OK = 0;
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DismProgressCallback(uint current, uint total, IntPtr userData);
-
-    // No-op callback required by the DISM servicing engine to pump its internal state machine.
-    // Passing null for the progress callback on write operations causes the engine to hang.
-    public static readonly DismProgressCallback NoOpProgressCallback = (_, _, _) => { };
 
     // Pack = 4 is required: the native DISM structs are 12 bytes on x64
     // (IntPtr 8 + int 4), not 16. Default managed packing pads to 16,
@@ -103,39 +95,6 @@ public static class DismApi
         int packageIdentifier,
         out IntPtr feature,
         out uint count);
-
-    [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern int DismRemoveCapability(
-        uint session,
-        [MarshalAs(UnmanagedType.LPWStr)] string capabilityName,
-        IntPtr cancelEvent,
-        DismProgressCallback? progress,
-        IntPtr userData);
-
-    [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern int DismDisableFeature(
-        uint session,
-        [MarshalAs(UnmanagedType.LPWStr)] string featureName,
-        [MarshalAs(UnmanagedType.LPWStr)] string? packageName,
-        [MarshalAs(UnmanagedType.Bool)] bool removePayload,
-        IntPtr cancelEvent,
-        DismProgressCallback? progress,
-        IntPtr userData);
-
-    [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern int DismAddProvisionedAppxPackage(
-        uint session,
-        [MarshalAs(UnmanagedType.LPWStr)] string appPath,
-        [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr)] string[]? dependencyPackages,
-        uint dependencyPackageCount,
-        [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr)] string[]? licensePaths,
-        uint licensePathCount,
-        [MarshalAs(UnmanagedType.Bool)] bool skipLicense,
-        [MarshalAs(UnmanagedType.LPWStr)] string? customDataPath,
-        [MarshalAs(UnmanagedType.LPWStr)] string? region,
-        IntPtr cancelEvent,
-        DismProgressCallback? progress,
-        IntPtr userData);
 
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int DismGetImageInfo(

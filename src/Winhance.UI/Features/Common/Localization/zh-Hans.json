@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "正在移除旧图像文件...",
   "Progress_ConversionCompleted": "转换成功完成",
   "Progress_ConversionFailed": "转换失败",
-  "Progress_CheckingWinget": "正在检查 winget...",
-  "Progress_InstallingWinget": "正在安装 winget...",
   "Progress_MountingIso": "正在装载 ISO...",
   "Progress_CopyingIsoContents": "正在复制 ISO 内容...",
   "Progress_CopyingIsoContentsPercent": "正在复制 ISO 内容 {0}%",

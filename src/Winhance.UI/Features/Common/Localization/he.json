@@ -1626,8 +1626,6 @@
   "Progress_RemovingOldFile": "מסיר קובץ תמונה ישן...",
   "Progress_ConversionCompleted": "ההמרה הושלמה בהצלחה",
   "Progress_ConversionFailed": "ההמרה נכשלה",
-  "Progress_CheckingWinget": "בודק אם winget מותקן...",
-  "Progress_InstallingWinget": "מתקין את winget...",
   "Progress_MountingIso": "טוען את ה-ISO...",
   "Progress_CopyingIsoContents": "מעתיק את תוכן ה-ISO...",
   "Progress_CopyingIsoContentsPercent": "מעתיק את תוכן ה-ISO {0}%",

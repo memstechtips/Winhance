@@ -1565,8 +1565,6 @@
   "Progress_RemovingOldFile": "Šalinamas senas vaizdo failas...",
   "Progress_ConversionCompleted": "Konvertavimas sėkmingai baigtas",
   "Progress_ConversionFailed": "Konvertavimas nepavyko",
-  "Progress_CheckingWinget": "Tikrinamas winget...",
-  "Progress_InstallingWinget": "Diegiamas winget...",
   "Progress_MountingIso": "Prijungiamas ISO...",
   "Progress_CopyingIsoContents": "Kopijuojamas ISO turinys...",
   "Progress_CopyingIsoContentsPercent": "Kopijuojamas ISO turinys {0}%",

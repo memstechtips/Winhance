@@ -190,13 +190,4 @@ internal static class DismSessionManager
             log?.Invoke($"[DismSession] Semaphore released. Total elapsed={sw.ElapsedMilliseconds}ms");
         }
     }
-
-    public static (ManualResetEvent Event, CancellationTokenRegistration Registration) CreateCancelEvent(CancellationToken ct)
-    {
-        var cancelEvent = new ManualResetEvent(false);
-        var registration = ct.CanBeCanceled
-            ? ct.Register(() => cancelEvent.Set())
-            : default;
-        return (cancelEvent, registration);
-    }
 }
