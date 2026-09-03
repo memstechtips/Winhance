@@ -4,6 +4,7 @@ using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
@@ -23,6 +24,8 @@ public class WimStep4IsoViewModelTests
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly AnswerFileCheckState _checkState = new();
 
     private readonly WimStep4IsoViewModel _sut;
 
@@ -31,6 +34,9 @@ public class WimStep4IsoViewModelTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] _) => key);
 
         _mockFileSystemService
             .Setup(f => f.GetFileName(It.IsAny<string>()))
@@ -58,7 +64,12 @@ public class WimStep4IsoViewModelTests
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object);
+            _mockLogService.Object,
+            _mockAnswerFileValidator.Object,
+            _checkState);
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([]));
     }
 
     [Fact]
@@ -486,5 +497,159 @@ public class WimStep4IsoViewModelTests
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
         _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    private const string AnswerFileTitle = "WIMUtil_AnswerFile_DialogTitle";
+
+    private void ArrangeIsoRun(AnswerFileReport report)
+    {
+        _sut.OutputIsoPath = "D:\\Output\\test.iso";
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFileSystemService.Setup(f => f.CombinePath(It.IsAny<string[]>())).Returns((string[] parts) => string.Join("\\", parts));
+        _mockFileSystemService.Setup(f => f.FileExists("C:\\WorkDir\\autounattend.xml")).Returns(true);
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(report);
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        // The "open folder" prompt after a successful ISO: Close.
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+    }
+
+    private static AnswerFileReport OneError() =>
+        new([new AnswerFileFinding(AnswerFileRule.CommandTooLong, AnswerFileSeverity.Error, "line 40: settings[specialize]", "300 characters, limit 259")]);
+
+    [Fact]
+    public async Task CreateMediaCommand_FindingsAndCancel_CreatesNothing()
+    {
+        ArrangeIsoRun(OneError());
+        _mockDialogService
+            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeFalse();
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowTaskOutputConfirmationAsync(
+            AnswerFileTitle,
+            It.Is<IReadOnlyList<string>>(l => l.Contains("WIMUtil_AnswerFile_Verdict_WillFail")
+                && l.Contains("WIMUtil_AnswerFile_Summary")
+                && l.Contains("300 characters, limit 259")),
+            "WIMUtil_Button_ContinueAnyway",
+            "Button_Cancel"), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_FindingsAndContinueAnyway_CreatesTheIso()
+    {
+        ArrangeIsoRun(OneError());
+        _mockDialogService
+            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_PublishesTheReportForTheBanner()
+    {
+        var report = OneError();
+        ArrangeIsoRun(report);
+        _mockDialogService
+            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _checkState.LastReport.Should().BeSameAs(report);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_CleanAnswerFile_AsksNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeTrue();
+        _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowTaskOutputConfirmationAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_IsoWithoutOutputPath_AsksAboutTheOutputBeforeTheAnswerFile()
+    {
+        ArrangeIsoRun(OneError());
+        _sut.OutputIsoPath = string.Empty;
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync("WIMUtil_Msg_OutputRequired", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockAnswerFileValidator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_UsbFindingsAndCancel_WritesNothingAndNeverAsksToErase()
+    {
+        var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
+        _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets()).Returns([stick]);
+        _sut.WorkingDirectory = "C:\\work";
+        _mockFileSystemService.Setup(f => f.CombinePath(It.IsAny<string[]>())).Returns((string[] parts) => string.Join("\\", parts));
+        _mockFileSystemService.Setup(f => f.FileExists("C:\\work\\autounattend.xml")).Returns(true);
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync("C:\\work\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OneError());
+        _mockDialogService
+            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Title == "WIMUtil_Msg_UsbEraseTitle")), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_EnsuresTheDriverStepBeforeCheckingTheAnswerFile()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        var ensured = false;
+        _mockWimCustomizationService
+            .Setup(s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()))
+            .Callback(() => ensured = true)
+            .ReturnsAsync(DriverInstallStepResult.AlreadyPresent);
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                ensured.Should().BeTrue();
+                return new AnswerFileReport([]);
+            });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_CheckThrows_CreatesTheIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeTrue();
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom"))), Times.Once);
     }
 }

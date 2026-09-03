@@ -22,6 +22,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
     private readonly IResourceService _resourceService;
+    private readonly IAnswerFileValidator _answerFileValidator;
+    private readonly AnswerFileCheckState _checkState;
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
@@ -49,7 +51,9 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
         ILogService logService,
-        IResourceService resourceService)
+        IResourceService resourceService,
+        IAnswerFileValidator answerFileValidator,
+        AnswerFileCheckState checkState)
     {
         _saves = saves;
         _wimCustomizationService = wimCustomizationService;
@@ -60,6 +64,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         _filePickerService = filePickerService;
         _logService = logService;
         _resourceService = resourceService;
+        _answerFileValidator = answerFileValidator;
+        _checkState = checkState;
 
         SelectedXmlPath = string.Empty;
         XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
@@ -151,6 +157,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenSuccess");
             ClearOtherXmlCardCompletions("generate");
             GenerateWinhanceXmlCard.IsComplete = true;
+            await CheckAnswerFileAsync();
         }
         catch (Exception ex)
         {
@@ -195,6 +202,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlDownloadSuccess");
                 ClearOtherXmlCardCompletions("download");
                 DownloadXmlCard.IsComplete = true;
+                await CheckAnswerFileAsync();
             }
             else
             {
@@ -243,6 +251,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             {
                 SelectXmlCard.HasFailed = true;
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
+                await PublishRejectedFileReportAsync(selectedPath);
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlInvalidError"),
                     _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
@@ -258,6 +267,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlSelectSuccess");
                 ClearOtherXmlCardCompletions("select");
                 SelectXmlCard.IsComplete = true;
+                await CheckAnswerFileAsync();
             }
             else
             {
@@ -286,6 +296,19 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         catch (Exception ex) { _logService.LogError($"Error opening Schneegans XML generator: {ex.Message}", ex); }
     }
 
+    // The refused file never reaches the media, but the banner still shows where it breaks.
+    private async Task PublishRejectedFileReportAsync(string selectedPath)
+    {
+        try
+        {
+            _checkState.LastReport = await _answerFileValidator.ValidateAsync(selectedPath);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not check the selected file: {ex.Message}");
+        }
+    }
+
     private async Task<bool> ValidateXmlFile(string xmlPath)
     {
         try
@@ -294,6 +317,32 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             return true;
         }
         catch (Exception ex) { _logService.LogDebug($"XML validation failed for '{xmlPath}': {ex.Message}"); return false; }
+    }
+
+    // The copy on the media is what Setup reads, so that is the one checked. The verdict never
+    // undoes the card: the user sees the findings and decides.
+    private async Task CheckAnswerFileAsync()
+    {
+        var previousStatus = XmlStatus;
+        try
+        {
+            _checkState.LastReport = null;
+            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlChecking");
+            var report = await _answerFileValidator.ValidateAsync(_fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml"));
+            _checkState.LastReport = report;
+            XmlStatus = AnswerFileReportDialog.Verdict(report, _localizationService);
+            if (report.Findings.Count > 0)
+            {
+                await _dialogService.ShowTaskOutputDialogAsync(
+                    _localizationService.GetString("WIMUtil_AnswerFile_DialogTitle"),
+                    AnswerFileReportDialog.Lines(report, _localizationService));
+            }
+        }
+        catch (Exception ex)
+        {
+            XmlStatus = previousStatus;
+            _logService.LogWarning($"Could not check autounattend.xml: {ex.Message}");
+        }
     }
 
     internal void ClearOtherXmlCardCompletions(string exceptCard)

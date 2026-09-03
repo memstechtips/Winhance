@@ -237,6 +237,69 @@ exit 0";
         }
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> FindParseErrorsAsync(
+        IReadOnlyDictionary<string, string> scriptsByName,
+        CancellationToken ct = default)
+    {
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (scriptsByName.Count == 0)
+            return errors;
+
+        var names = scriptsByName.Keys.ToList();
+        var batch = Guid.NewGuid().ToString("N");
+        var tempFiles = names
+            .Select((_, i) => _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_parse_{batch}_{i}.ps1"))
+            .ToList();
+        try
+        {
+            var utf8WithPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            for (var i = 0; i < names.Count; i++)
+            {
+                var bytes = utf8WithPreamble.GetPreamble().Concat(utf8WithPreamble.GetBytes(scriptsByName[names[i]])).ToArray();
+                await _fileSystemService.WriteAllBytesAsync(tempFiles[i], bytes, ct).ConfigureAwait(false);
+            }
+
+            var fileList = string.Join(", ", tempFiles.Select(f => "'" + f.Replace("'", "''", StringComparison.Ordinal) + "'"));
+            var parseScript = @"
+$files = @(" + fileList + @")
+for ($i = 0; $i -lt $files.Count; $i++) {
+    $errors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile($files[$i], [ref]$null, [ref]$errors)
+    foreach ($e in $errors) { Write-Host (""PARSE_ERROR`t"" + $i + ""`tline "" + $e.Extent.StartLineNumber + "": "" + ($e.Message -replace '[\r\n]+', ' ')) }
+}
+Write-Host 'PARSE_DONE'
+exit 0";
+
+            var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+            if (!output.Contains("PARSE_DONE", StringComparison.Ordinal))
+                throw new InvalidOperationException($"PowerShell parse batch did not complete:\n{output}");
+
+            foreach (var rawLine in output.Split('\n'))
+            {
+                var line = rawLine.TrimEnd('\r');
+                if (!line.StartsWith("PARSE_ERROR\t", StringComparison.Ordinal))
+                    continue;
+
+                var parts = line.Split('\t', 3);
+                if (parts.Length < 3 || !int.TryParse(parts[1], out var index) || index < 0 || index >= names.Count)
+                    continue;
+
+                var name = names[index];
+                errors[name] = errors.TryGetValue(name, out var previous) ? previous + Environment.NewLine + parts[2] : parts[2];
+            }
+
+            return errors;
+        }
+        finally
+        {
+            foreach (var tempFile in tempFiles)
+            {
+                try { _fileSystemService.DeleteFile(tempFile); }
+                catch { }
+            }
+        }
+    }
+
     public async Task ValidateXmlSyntaxAsync(
         string xmlContent,
         CancellationToken ct = default)

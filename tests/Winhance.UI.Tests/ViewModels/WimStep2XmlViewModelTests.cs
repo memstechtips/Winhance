@@ -1,10 +1,12 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
@@ -24,6 +26,8 @@ public class WimStep2XmlViewModelTests : IDisposable
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IResourceService> _mockResourceService = new();
+    private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly AnswerFileCheckState _checkState = new();
 
     private readonly WimStep2XmlViewModel _sut;
 
@@ -32,6 +36,12 @@ public class WimStep2XmlViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] _) => key);
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([]));
 
         _mockFileSystemService
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))
@@ -59,7 +69,9 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
             _mockLogService.Object,
-            _mockResourceService.Object);
+            _mockResourceService.Object,
+            _mockAnswerFileValidator.Object,
+            _checkState);
     }
 
     public void Dispose()
@@ -477,7 +489,9 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
             _mockLogService.Object,
-            _mockResourceService.Object);
+            _mockResourceService.Object,
+            _mockAnswerFileValidator.Object,
+            _checkState);
 
         var act = () =>
         {
@@ -516,5 +530,155 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.XmlStatus = "New status";
 
         raised.Should().BeTrue();
+    }
+
+    private static AnswerFileReport OneError() =>
+        new([new AnswerFileFinding(AnswerFileRule.CommandEmpty, AnswerFileSeverity.Error, "line 3: settings[specialize]", "Path")]);
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_OnSuccess_ChecksTheMediaCopyAndShowsTheFindings()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OneError());
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(
+            "WIMUtil_AnswerFile_DialogTitle",
+            It.Is<IReadOnlyList<string>>(l => l.Contains("WIMUtil_AnswerFile_Summary") && l.Contains("line 3: settings[specialize]") && l.Contains("Path"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_ReportsTheVerdictWithoutADialog()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_Clean");
+        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_CheckThrows_KeepsTheCardComplete()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+        _sut.GenerateWinhanceXmlCard.HasFailed.Should().BeFalse();
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_PublishesTheReportForTheBanner()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        var report = OneError();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(report);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _checkState.LastReport.Should().BeSameAs(report);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_CheckThrows_LeavesNoStaleReport()
+    {
+        _checkState.LastReport = OneError();
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _checkState.LastReport.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DownloadUnattendedWinstallXmlCommand_OnSuccess_ChecksTheMediaCopy()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockWimCustomizationService
+            .Setup(s => s.DownloadUnattendedWinstallXmlAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("downloaded content");
+        _mockWimCustomizationService
+            .Setup(s => s.AddXmlToImageAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
+
+        _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
+        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_Clean");
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_NotWellFormed_RefusesButStillReportsForTheBanner()
+    {
+        var selected = Path.Combine(Path.GetTempPath(), "winhance-broken-" + Guid.NewGuid().ToString("N") + ".xml");
+        await File.WriteAllTextAsync(selected, "<unattend><settings></unattend>");
+        try
+        {
+            _sut.WorkingDirectory = "C:\\WorkDir";
+            _mockFilePickerService.Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>())).Returns(selected);
+            var report = new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.NotWellFormed, AnswerFileSeverity.Error, "line 1", "mismatched tag")]);
+            _mockAnswerFileValidator
+                .Setup(v => v.ValidateAsync(selected, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(report);
+
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+
+            _sut.SelectXmlCard.HasFailed.Should().BeTrue();
+            _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlInvalid");
+            _checkState.LastReport.Should().BeSameAs(report);
+            _mockDialogService.Verify(d => d.ShowErrorAsync("WIMUtil_Msg_XmlInvalidError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+            _mockWimCustomizationService.Verify(c => c.AddXmlToImageAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+        finally
+        {
+            File.Delete(selected);
+        }
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_OnSuccess_ChecksTheMediaCopyNotTheSelectedFile()
+    {
+        var selected = Path.Combine(Path.GetTempPath(), "winhance-select-" + Guid.NewGuid().ToString("N") + ".xml");
+        await File.WriteAllTextAsync(selected, "<unattend xmlns=\"urn:schemas-microsoft-com:unattend\" />");
+        try
+        {
+            _sut.WorkingDirectory = "C:\\WorkDir";
+            _mockFilePickerService.Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>())).Returns(selected);
+            _mockWimCustomizationService
+                .Setup(s => s.AddXmlToImageAsync(selected, "C:\\WorkDir"))
+                .ReturnsAsync(true);
+
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+
+            _sut.SelectXmlCard.IsComplete.Should().BeTrue();
+            _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
+            _mockAnswerFileValidator.Verify(v => v.ValidateAsync(selected, It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally
+        {
+            File.Delete(selected);
+        }
     }
 }

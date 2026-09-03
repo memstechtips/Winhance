@@ -154,6 +154,8 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
         services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDriverInstallStepWriter,
             Winhance.Infrastructure.Features.AdvancedTools.Services.DriverInstallStepWriter>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAnswerFileValidator,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.AnswerFileValidator>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAutounattendScriptBuilder,

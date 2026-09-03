@@ -366,6 +366,7 @@
                                                FontSize="16"/>
                                     <TextBlock Text="{x:Bind ViewModel.Step2State.StatusText, Mode=OneWay}"
                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                               TextWrapping="Wrap"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                 </StackPanel>
 
@@ -465,6 +466,27 @@
                             <!-- Select XML Card -->
                             <ContentPresenter Content="{x:Bind ViewModel.SelectXmlCard}"
                                               ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+
+                            <!-- Answer-file verdict (open only while findings exist); details collapse
+                                 behind the expander so a long report cannot swallow the page -->
+                            <InfoBar IsOpen="{x:Bind ViewModel.AnswerFileBannerOpen, Mode=OneWay}"
+                                     Severity="{x:Bind ViewModel.AnswerFileBannerSeverity, Mode=OneWay}"
+                                     Title="{x:Bind ViewModel.AnswerFileBannerTitle, Mode=OneWay}"
+                                     IsClosable="False">
+                                <InfoBar.Content>
+                                    <Expander HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch"
+                                              Margin="0,0,12,12">
+                                        <Expander.Header>
+                                            <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerSummary, Mode=OneWay}"
+                                                       TextWrapping="Wrap"/>
+                                        </Expander.Header>
+                                        <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerMessage, Mode=OneWay}"
+                                                   TextWrapping="Wrap"
+                                                   IsTextSelectionEnabled="True"/>
+                                    </Expander>
+                                </InfoBar.Content>
+                            </InfoBar>
 
                             <!-- Schneegans section -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,8,0,0" Spacing="8">

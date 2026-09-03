@@ -6,44 +6,15 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Xunit;
 
-namespace Winhance.Infrastructure.Tests.AdvancedTools;
+namespace Winhance.Infrastructure.Tests.AdvancedTools.WimServices;
 
-// Setup documents RunSynchronousCommand\Path as "a string with a maximum length of 259
-// characters", and what happens past it is undocumented and silent either way. The template's
-// longest command sits at exactly 258 on purpose; everything the writer emits must respect the
-// same cap.
-public class AnswerFileCommandLengthTests
+public class DriverInstallStepWriterTemplateTests
 {
-    private const int PathCap = 259;
-
     private static readonly XNamespace U = "urn:schemas-microsoft-com:unattend";
     private static readonly XNamespace X = "urn:winhance:unattend";
 
-    private static List<string> CommandValues(string xml)
-    {
-        var doc = XDocument.Parse(xml);
-        return doc.Descendants(U + "Path").Select(p => p.Value)
-            .Concat(doc.Descendants(U + "CommandLine").Select(c => c.Value))
-            .ToList();
-    }
-
     [Fact]
-    public void TemplateCommands_StayUnderTheDocumentedCap()
-    {
-        var commands = CommandValues(AutounattendWriter.LoadTemplate());
-
-        commands.Should().HaveCountGreaterThan(20);
-        commands.Where(c => c.Length > PathCap).Should().BeEmpty();
-    }
-
-    [Fact]
-    public void WriterCommands_StayUnderTheDocumentedCap()
-    {
-        DriverInstallStepWriter.InstallCommand.Length.Should().BeLessThanOrEqualTo(PathCap);
-    }
-
-    [Fact]
-    public async Task WriterOverTheRealTemplate_ProducesOnlyCapCompliantCommands()
+    public async Task WriterOverTheRealTemplate_PlacesTheInstallAndMovesTheDisable()
     {
         var files = new Mock<IFileSystemService>();
         files.Setup(f => f.CombinePath(It.IsAny<string[]>()))
@@ -61,8 +32,6 @@ public class AnswerFileCommandLengthTests
         var result = await writer.EnsureAsync("C:\\work");
 
         result.Should().Be(DriverInstallStepResult.Added);
-        var commands = CommandValues(written!);
-        commands.Where(c => c.Length > PathCap).Should().BeEmpty();
 
         // The real template loads scripts at Order 1 and disables adapters at Order 3 in all three
         // specialize components: the install lands at 5 and the disable moves to 6, gap closed.

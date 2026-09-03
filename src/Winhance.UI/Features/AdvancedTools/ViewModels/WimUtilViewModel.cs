@@ -2,6 +2,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
@@ -26,6 +27,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WimStep2XmlViewModel Step2 { get; }
     public WimStep3DriversViewModel Step3 { get; }
     public WimStep4IsoViewModel Step4 { get; }
+
+    public AnswerFileCheckState AnswerFileCheck { get; } = new();
 
     [ObservableProperty]
     public partial WizardStepState Step1State { get; set; }
@@ -101,6 +104,25 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WizardActionCard DownloadXmlCard => Step2.DownloadXmlCard;
     public WizardActionCard SelectXmlCard => Step2.SelectXmlCard;
 
+    public bool AnswerFileBannerOpen => AnswerFileCheck.LastReport is { Findings.Count: > 0 };
+
+    public InfoBarSeverity AnswerFileBannerSeverity =>
+        AnswerFileCheck.LastReport?.Findings.Any(f => f.Severity == AnswerFileSeverity.Error) == true
+            ? InfoBarSeverity.Error
+            : InfoBarSeverity.Warning;
+
+    public string AnswerFileBannerTitle => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? AnswerFileReportDialog.Verdict(report, _localizationService)
+        : string.Empty;
+
+    public string AnswerFileBannerSummary => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? AnswerFileReportDialog.Summary(report, _localizationService)
+        : string.Empty;
+
+    public string AnswerFileBannerMessage => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? string.Join(Environment.NewLine + Environment.NewLine, AnswerFileReportDialog.Items(report, _localizationService))
+        : string.Empty;
+
     public bool AreDriversAdded => Step3.AreDriversAdded;
     public WizardActionCard ExtractSystemDriversCard => Step3.ExtractSystemDriversCard;
     public WizardActionCard SelectCustomDriversCard => Step3.SelectCustomDriversCard;
@@ -157,7 +179,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IProcessExecutor processExecutor,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        IResourceService resourceService)
+        IResourceService resourceService,
+        IAnswerFileValidator answerFileValidator)
     {
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
@@ -174,16 +197,16 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2 = new WimStep2XmlViewModel(
             saves, wimCustomizationService, selections,
             dialogService, localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            resourceService, answerFileValidator, AnswerFileCheck);
 
         Step3 = new WimStep3DriversViewModel(
             wimCustomizationService, taskProgressService, dialogService,
             localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            resourceService, answerFileValidator, AnswerFileCheck);
 
         Step4 = new WimStep4IsoViewModel(
             wimCustomizationService, isoService, usbMediaWriter, taskProgressService, processExecutor,
-            dialogService, localizationService, fileSystemService, filePickerService, logService);
+            dialogService, localizationService, fileSystemService, filePickerService, logService, answerFileValidator, AnswerFileCheck);
 
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
@@ -199,6 +222,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2.PropertyChanged += OnSubViewModelPropertyChanged;
         Step3.PropertyChanged += OnSubViewModelPropertyChanged;
         Step4.PropertyChanged += OnSubViewModelPropertyChanged;
+        AnswerFileCheck.PropertyChanged += OnAnswerFileCheckChanged;
 
         // Propagate Step1's initial WorkingDirectory to sub-VMs.
         // The constructor assignment above fires before subscriptions,
@@ -306,7 +330,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
                 : Step2.IsXmlAdded
-                    ? _localizationService.GetString("WIMUtil_Status_XmlAdded")
+                    ? Step2.XmlStatus
                     : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
 
         Step3State.IsAvailable = extractionComplete && !isConverting;
@@ -373,6 +397,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     Step2.WorkingDirectory = wd;
                     Step3.WorkingDirectory = wd;
                     Step4.WorkingDirectory = wd;
+                    // The old report described a file in the previous working directory.
+                    AnswerFileCheck.LastReport = null;
                     break;
 
                 case nameof(WimStep1ViewModel.IsExtractionComplete):
@@ -450,6 +476,15 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnAnswerFileCheckChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(AnswerFileBannerOpen));
+        OnPropertyChanged(nameof(AnswerFileBannerSeverity));
+        OnPropertyChanged(nameof(AnswerFileBannerTitle));
+        OnPropertyChanged(nameof(AnswerFileBannerSummary));
+        OnPropertyChanged(nameof(AnswerFileBannerMessage));
+    }
+
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         Step1State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select ISO");
@@ -484,6 +519,9 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(DestinationUsbText));
         OnPropertyChanged(nameof(NoUsbSelectedText));
         OnPropertyChanged(nameof(UsbEraseWarningText));
+        OnPropertyChanged(nameof(AnswerFileBannerTitle));
+        OnPropertyChanged(nameof(AnswerFileBannerSummary));
+        OnPropertyChanged(nameof(AnswerFileBannerMessage));
     }
 
     public void Dispose()
@@ -498,6 +536,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step3.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step4.PropertyChanged -= OnSubViewModelPropertyChanged;
+        AnswerFileCheck.PropertyChanged -= OnAnswerFileCheckChanged;
 
         (Step2 as IDisposable)?.Dispose();
         (Step3 as IDisposable)?.Dispose();

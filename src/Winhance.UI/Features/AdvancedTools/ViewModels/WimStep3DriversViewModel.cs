@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.AdvancedTools.Models;
@@ -19,6 +20,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
     private readonly IResourceService _resourceService;
+    private readonly IAnswerFileValidator _answerFileValidator;
+    private readonly AnswerFileCheckState _checkState;
     private bool _disposed;
 
     public string WorkingDirectory { get; set; } = string.Empty;
@@ -37,7 +40,9 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
         ILogService logService,
-        IResourceService resourceService)
+        IResourceService resourceService,
+        IAnswerFileValidator answerFileValidator,
+        AnswerFileCheckState checkState)
     {
         _wimCustomizationService = wimCustomizationService;
         _taskProgressService = taskProgressService;
@@ -47,6 +52,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         _filePickerService = filePickerService;
         _logService = logService;
         _resourceService = resourceService;
+        _answerFileValidator = answerFileValidator;
+        _checkState = checkState;
 
         CreateActionCards();
     }
@@ -77,6 +84,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ExtractAndAddSystemDrivers()
     {
+        var addedDrivers = false;
         try
         {
             ExtractSystemDriversCard.IsComplete = false;
@@ -119,6 +127,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriversSuccess"),
                     _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
+                addedDrivers = true;
             }
             else
             {
@@ -143,11 +152,15 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         {
             _taskProgressService.CompleteTask();
         }
+
+        if (addedDrivers)
+            await CheckAnswerFileAsync();
     }
 
     [RelayCommand]
     private async Task SelectAndAddCustomDrivers()
     {
+        var addedDrivers = false;
         try
         {
             SelectCustomDriversCard.IsComplete = false;
@@ -204,6 +217,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_DriverFilesAdded"),
                     _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
+                addedDrivers = true;
             }
             else
             {
@@ -228,7 +242,44 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         {
             _taskProgressService.CompleteTask();
         }
+
+        if (addedDrivers)
+            await CheckAnswerFileAsync();
     }
+
+    // Adding drivers rewrites autounattend.xml, so the copy on the media is re-checked once the
+    // progress task is over (the task-output dialog would otherwise attach to a running task).
+    // Storage-only drivers stage nothing under $OEM$ and create no XML; then there is nothing to check.
+    // Step 2 already showed these findings; the dialog returns only when adding drivers changed them.
+    private async Task CheckAnswerFileAsync()
+    {
+        try
+        {
+            var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+            if (!_fileSystemService.FileExists(answerFile))
+                return;
+
+            var previous = _checkState.LastReport;
+            var report = await _answerFileValidator.ValidateAsync(answerFile);
+            _checkState.LastReport = report;
+            if (report.Findings.Count > 0 && !SameFindings(report, previous))
+            {
+                await _dialogService.ShowTaskOutputDialogAsync(
+                    _localizationService.GetString("WIMUtil_AnswerFile_DialogTitle"),
+                    AnswerFileReportDialog.Lines(report, _localizationService));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not check autounattend.xml: {ex.Message}");
+        }
+    }
+
+    // The driver step shifts line numbers below its insertion point, so sameness ignores Location.
+    private static bool SameFindings(AnswerFileReport report, AnswerFileReport? previous) =>
+        previous is not null
+        && report.Findings.Select(f => (f.Rule, f.Severity, f.Detail))
+            .SequenceEqual(previous.Findings.Select(f => (f.Rule, f.Severity, f.Detail)));
 
     public void Dispose()
     {

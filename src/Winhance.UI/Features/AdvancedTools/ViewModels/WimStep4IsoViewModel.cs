@@ -24,6 +24,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
+    private readonly IAnswerFileValidator _answerFileValidator;
+    private readonly AnswerFileCheckState _checkState;
 
     public string WorkingDirectory { get; set; } = string.Empty;
 
@@ -61,7 +63,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
         ILocalizationService localizationService,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        ILogService logService)
+        ILogService logService,
+        IAnswerFileValidator answerFileValidator,
+        AnswerFileCheckState checkState)
     {
         _wimCustomizationService = wimCustomizationService;
         _isoService = isoService;
@@ -73,6 +77,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
+        _answerFileValidator = answerFileValidator;
+        _checkState = checkState;
 
         OutputIsoPath = string.Empty;
 
@@ -196,6 +202,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
                 return;
             }
 
+            if (!await AnswerFileAcceptedAsync())
+                return;
+
             SelectOutputCard.IsEnabled = false;
             SelectOutputCard.Opacity = 0.5;
 
@@ -267,6 +276,34 @@ public partial class WimStep4IsoViewModel : ObservableObject
         }
     }
 
+    // The last look at the file Setup will read, once the destination itself is valid. Findings are
+    // shown with Continue anyway / Cancel; a check that cannot run is logged and never stops the media.
+    private async Task<bool> AnswerFileAcceptedAsync()
+    {
+        var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+        if (!_fileSystemService.FileExists(answerFile))
+            return true;
+
+        try
+        {
+            var report = await _answerFileValidator.ValidateAsync(answerFile);
+            _checkState.LastReport = report;
+            if (report.Findings.Count == 0)
+                return true;
+
+            return await _dialogService.ShowTaskOutputConfirmationAsync(
+                _localizationService.GetString("WIMUtil_AnswerFile_DialogTitle"),
+                AnswerFileReportDialog.Lines(report, _localizationService),
+                _localizationService.GetString("WIMUtil_Button_ContinueAnyway"),
+                _localizationService.GetString("Button_Cancel"));
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not check autounattend.xml: {ex.Message}");
+            return true;
+        }
+    }
+
     private async Task WriteUsbMedia()
     {
         var target = SelectedUsbTarget;
@@ -277,6 +314,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
                 _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
             return;
         }
+
+        if (!await AnswerFileAcceptedAsync())
+            return;
 
         // Winhance's one destructive operation. The dialog names the device and its size, because
         // "are you sure" next to a drive picker is how people wipe the wrong stick.
