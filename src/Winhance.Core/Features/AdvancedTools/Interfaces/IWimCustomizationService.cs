@@ -1,3 +1,4 @@
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.AdvancedTools.Interfaces;
@@ -17,5 +18,9 @@ public interface IWimCustomizationService
     Task<string> DownloadUnattendedWinstallXmlAsync(
         string destinationPath,
         IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default);
+
+    Task<DriverInstallStepResult> EnsureDriverInstallStepAsync(
+        string workingDirectory,
         CancellationToken cancellationToken = default);
 }

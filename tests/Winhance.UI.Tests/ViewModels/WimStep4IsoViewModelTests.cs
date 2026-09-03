@@ -13,6 +13,7 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class WimStep4IsoViewModelTests
 {
+    private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<IIsoService> _mockIsoService = new();
     private readonly Mock<IUsbMediaWriter> _mockUsbMediaWriter = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
@@ -48,6 +49,7 @@ public class WimStep4IsoViewModelTests
             .Returns(new Progress<TaskProgressDetail>());
 
         _sut = new WimStep4IsoViewModel(
+            _mockWimCustomizationService.Object,
             _mockIsoService.Object,
             _mockUsbMediaWriter.Object,
             _mockTaskProgressService.Object,
@@ -424,5 +426,65 @@ public class WimStep4IsoViewModelTests
         _sut.IsIsoDestination.Should().BeFalse();
         _sut.UsbTargets.Should().ContainSingle();
         _sut.SelectedUsbTarget.Should().Be(stick);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_IsoDestination_VerifiesTheDriverInstallStepFirst()
+    {
+        _sut.OutputIsoPath = "D:\\Output\\test.iso";
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(
+                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockWimCustomizationService.Verify(
+            s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_UsbDestination_VerifiesTheDriverInstallStepFirst()
+    {
+        var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
+        _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets()).Returns([stick]);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockWimCustomizationService.Verify(
+            s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_SelfHealedDriverStep_StillCreatesTheIso()
+    {
+        _sut.OutputIsoPath = "D:\\Output\\test.iso";
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockWimCustomizationService
+            .Setup(s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DriverInstallStepResult.CreatedXml);
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(
+                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeTrue();
     }
 }

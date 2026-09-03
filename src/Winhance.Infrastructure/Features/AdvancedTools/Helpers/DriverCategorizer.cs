@@ -114,50 +114,93 @@ internal class DriverCategorizer(ILogService logService, IFileSystemService file
 
         logService.LogInformation($"Found {validInfFiles.Length} driver(s) to categorize");
         int copiedCount = 0;
-        var processedFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var infFile in validInfFiles)
+        foreach (var package in PackageRoots(validInfFiles))
         {
             try
             {
-                var sourceDir = fileSystemService.GetDirectoryName(infFile)!;
-
-                if (processedFolders.Contains(sourceDir))
-                    continue;
-
-                processedFolders.Add(sourceDir);
-
-                var isStorage = IsStorageDriver(infFile);
-                var targetBase = isStorage ? winpeDriverPath : oemDriverPath;
-
-                var folderName = fileSystemService.GetFileName(sourceDir);
-                var targetDirectory = fileSystemService.CombinePath(targetBase, folderName);
-
-                int counter = 1;
-                while (fileSystemService.DirectoryExists(targetDirectory) && counter < 100)
-                {
-                    targetDirectory = fileSystemService.CombinePath(targetBase, $"{folderName}_{counter}");
-                    counter++;
-                }
-
-                fileSystemService.CreateDirectory(targetDirectory);
-
-                foreach (var file in fileSystemService.GetFiles(sourceDir))
-                {
-                    var targetFile = fileSystemService.CombinePath(targetDirectory, fileSystemService.GetFileName(file));
-                    fileSystemService.CopyFile(file, targetFile, overwrite: true);
-                }
+                var targetBase = IsStoragePackage(package, validInfFiles) ? winpeDriverPath : oemDriverPath;
+                CopyTree(package, AvailableTarget(targetBase, package));
 
                 copiedCount++;
-                logService.LogInformation($"Copied driver: {folderName}");
+                logService.LogInformation($"Copied driver package: {fileSystemService.GetFileName(package)}");
             }
             catch (Exception ex)
             {
-                logService.LogError($"Failed to copy driver {fileSystemService.GetFileName(infFile)}: {ex.Message}", ex);
+                logService.LogError($"Failed to copy driver package {fileSystemService.GetFileName(package)}: {ex.Message}", ex);
             }
         }
 
         return copiedCount;
     }
 
+    // DISM exported straight into the OEM staging folder; only the boot-critical storage
+    // packages move to the media-root folder Setup scans, so the big set is never written twice.
+    public int MoveStorageDrivers(string oemDriverPath, string winpeDriverPath)
+    {
+        var infFiles = fileSystemService.GetFiles(oemDriverPath, "*.inf", SearchOption.AllDirectories);
+        var packages = PackageRoots(infFiles);
+
+        // A loose INF at the staging root makes the root itself a package; never move that.
+        foreach (var package in packages.Where(package =>
+            !package.Equals(oemDriverPath, StringComparison.OrdinalIgnoreCase) && IsStoragePackage(package, infFiles)))
+        {
+            try
+            {
+                fileSystemService.CreateDirectory(winpeDriverPath);
+                fileSystemService.MoveDirectory(package, AvailableTarget(winpeDriverPath, package));
+                logService.LogInformation($"Moved storage driver package: {fileSystemService.GetFileName(package)}");
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"Failed to move storage driver package {fileSystemService.GetFileName(package)}: {ex.Message}", ex);
+            }
+        }
+
+        return packages.Count;
+    }
+
+    private bool IsStoragePackage(string package, string[] infFiles) =>
+        infFiles.Where(inf => IsUnder(inf, package)).Any(IsStorageDriver);
+
+    private string AvailableTarget(string targetBase, string package)
+    {
+        var folderName = fileSystemService.GetFileName(package);
+        var target = fileSystemService.CombinePath(targetBase, folderName);
+        for (var counter = 1; fileSystemService.DirectoryExists(target) && counter < 100; counter++)
+            target = fileSystemService.CombinePath(targetBase, $"{folderName}_{counter}");
+        return target;
+    }
+
+    // A DISM export nests payload and further INFs inside each package folder, so the unit to
+    // copy is the outermost INF-bearing directory. Flattening it dropped subfolder payload
+    // (pnputil then fails with "The system cannot find the file specified") and staged the inner
+    // INFs again as fragments.
+    private List<string> PackageRoots(string[] infFiles)
+    {
+        var roots = new List<string>();
+        foreach (var dir in infFiles
+            .Select(inf => fileSystemService.GetDirectoryName(inf)!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(d => d.Length))
+        {
+            if (!roots.Any(root => IsUnder(dir, root)))
+                roots.Add(dir);
+        }
+
+        return roots;
+    }
+
+    private static bool IsUnder(string path, string ancestor) =>
+        path.Equals(ancestor, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(ancestor + "\\", StringComparison.OrdinalIgnoreCase);
+
+    private void CopyTree(string sourceDirectory, string targetDirectory)
+    {
+        fileSystemService.CreateDirectory(targetDirectory);
+        foreach (var file in fileSystemService.GetFiles(sourceDirectory))
+            fileSystemService.CopyFile(file, fileSystemService.CombinePath(targetDirectory, fileSystemService.GetFileName(file)), overwrite: true);
+        foreach (var sub in fileSystemService.GetDirectories(sourceDirectory))
+            CopyTree(sub, fileSystemService.CombinePath(targetDirectory, fileSystemService.GetFileName(sub)));
+    }
 }

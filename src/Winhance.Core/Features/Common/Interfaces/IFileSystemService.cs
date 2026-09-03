@@ -13,6 +13,8 @@ public interface IFileSystemService
     void DeleteFile(string path);
     void CopyFile(string source, string destination, bool overwrite = false);
     void MoveFile(string source, string destination);
+
+    void MoveDirectory(string source, string destination);
     string ReadAllText(string path, System.Text.Encoding encoding);
     long GetFileSize(string path);
     void SetFileAttributes(string path, System.IO.FileAttributes attributes);

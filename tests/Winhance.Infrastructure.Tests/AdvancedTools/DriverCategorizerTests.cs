@@ -9,12 +9,19 @@ namespace Winhance.Infrastructure.Tests.AdvancedTools;
 
 public class DriverCategorizerTests
 {
+    private static readonly string[] HeciSubfolders = ["C:\\Source\\Heci\\x64"];
+    private static readonly string[] HeciPayload = ["C:\\Source\\Heci\\x64\\heci.sys"];
+    private static readonly string[] GfxSubfolders = ["C:\\Source\\Gfx\\ext"];
+
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly DriverCategorizer _sut;
 
     public DriverCategorizerTests()
     {
+        _fileSystemService
+            .Setup(f => f.GetDirectories(It.IsAny<string>()))
+            .Returns(Array.Empty<string>());
         _sut = new DriverCategorizer(_logService.Object, _fileSystemService.Object);
     }
 
@@ -248,6 +255,65 @@ public class DriverCategorizerTests
     }
 
     [Fact]
+    public void CategorizeAndCopyDrivers_PayloadInASubfolder_CopiesTheWholeTree()
+    {
+        var infPath = "C:\\Source\\Heci\\heci.inf";
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source", "*.inf", SearchOption.AllDirectories))
+            .Returns(new[] { infPath });
+        _fileSystemService.Setup(f => f.GetFileName(infPath)).Returns("heci.inf");
+        _fileSystemService.Setup(f => f.ReadAllText(infPath, Encoding.Unicode)).Returns("[Version]\nClass=System");
+        _fileSystemService.Setup(f => f.GetDirectoryName(infPath)).Returns("C:\\Source\\Heci");
+        _fileSystemService.Setup(f => f.GetFileName("C:\\Source\\Heci")).Returns("Heci");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM", "Heci")).Returns("C:\\OEM\\Heci");
+        _fileSystemService.Setup(f => f.DirectoryExists("C:\\OEM\\Heci")).Returns(false);
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source\\Heci")).Returns(new[] { infPath });
+        _fileSystemService.Setup(f => f.GetDirectories("C:\\Source\\Heci")).Returns(HeciSubfolders);
+        _fileSystemService.Setup(f => f.GetFileName("C:\\Source\\Heci\\x64")).Returns("x64");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Heci", "heci.inf")).Returns("C:\\OEM\\Heci\\heci.inf");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Heci", "x64")).Returns("C:\\OEM\\Heci\\x64");
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source\\Heci\\x64")).Returns(HeciPayload);
+        _fileSystemService.Setup(f => f.GetFileName("C:\\Source\\Heci\\x64\\heci.sys")).Returns("heci.sys");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Heci\\x64", "heci.sys")).Returns("C:\\OEM\\Heci\\x64\\heci.sys");
+
+        var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM");
+
+        result.Should().Be(1);
+        _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\Heci\\x64"), Times.Once);
+        _fileSystemService.Verify(f => f.CopyFile("C:\\Source\\Heci\\x64\\heci.sys", "C:\\OEM\\Heci\\x64\\heci.sys", true), Times.Once);
+    }
+
+    [Fact]
+    public void CategorizeAndCopyDrivers_InfInsideAPackage_IsNotItsOwnPackage()
+    {
+        var rootInf = "C:\\Source\\Gfx\\iigd_dch.inf";
+        var nestedInf = "C:\\Source\\Gfx\\ext\\iigd_ext.inf";
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source", "*.inf", SearchOption.AllDirectories))
+            .Returns(new[] { rootInf, nestedInf });
+        _fileSystemService.Setup(f => f.GetFileName(rootInf)).Returns("iigd_dch.inf");
+        _fileSystemService.Setup(f => f.GetFileName(nestedInf)).Returns("iigd_ext.inf");
+        _fileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>(), It.IsAny<Encoding>())).Returns("[Version]\nClass=Display");
+        _fileSystemService.Setup(f => f.GetDirectoryName(rootInf)).Returns("C:\\Source\\Gfx");
+        _fileSystemService.Setup(f => f.GetDirectoryName(nestedInf)).Returns("C:\\Source\\Gfx\\ext");
+        _fileSystemService.Setup(f => f.GetFileName("C:\\Source\\Gfx")).Returns("Gfx");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM", "Gfx")).Returns("C:\\OEM\\Gfx");
+        _fileSystemService.Setup(f => f.DirectoryExists("C:\\OEM\\Gfx")).Returns(false);
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source\\Gfx")).Returns(new[] { rootInf });
+        _fileSystemService.Setup(f => f.GetDirectories("C:\\Source\\Gfx")).Returns(GfxSubfolders);
+        _fileSystemService.Setup(f => f.GetFileName("C:\\Source\\Gfx\\ext")).Returns("ext");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Gfx", "iigd_dch.inf")).Returns("C:\\OEM\\Gfx\\iigd_dch.inf");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Gfx", "ext")).Returns("C:\\OEM\\Gfx\\ext");
+        _fileSystemService.Setup(f => f.GetFiles("C:\\Source\\Gfx\\ext")).Returns(new[] { nestedInf });
+        _fileSystemService.Setup(f => f.CombinePath("C:\\OEM\\Gfx\\ext", "iigd_ext.inf")).Returns("C:\\OEM\\Gfx\\ext\\iigd_ext.inf");
+
+        var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM");
+
+        result.Should().Be(1);
+        _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\Gfx"), Times.Once);
+        _fileSystemService.Verify(f => f.CopyFile(nestedInf, "C:\\OEM\\Gfx\\ext\\iigd_ext.inf", true), Times.Once);
+        _fileSystemService.Verify(f => f.CombinePath("C:\\OEM", "ext"), Times.Never);
+    }
+
+    [Fact]
     public void CategorizeAndCopyDrivers_CopyFailure_LogsErrorAndContinues()
     {
         var infPath = "C:\\Source\\DriverFolder\\network.inf";
@@ -269,6 +335,45 @@ public class DriverCategorizerTests
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Failed to copy driver")),
             It.IsAny<Exception>()), Times.Once);
+    }
+
+    [Fact]
+    public void MoveStorageDrivers_MovesOnlyStoragePackagesAndCountsAll()
+    {
+        var storageInf = "C:\\OEM\\RstPkg\\iastor.inf";
+        var netInf = "C:\\OEM\\NetPkg\\network.inf";
+        _fileSystemService.Setup(f => f.GetFiles("C:\\OEM", "*.inf", SearchOption.AllDirectories))
+            .Returns(new[] { storageInf, netInf });
+        _fileSystemService.Setup(f => f.GetFileName(storageInf)).Returns("iastor.inf");
+        _fileSystemService.Setup(f => f.GetFileName(netInf)).Returns("network.inf");
+        _fileSystemService.Setup(f => f.ReadAllText(netInf, Encoding.Unicode)).Returns("[Version]\nClass=Net");
+        _fileSystemService.Setup(f => f.GetDirectoryName(storageInf)).Returns("C:\\OEM\\RstPkg");
+        _fileSystemService.Setup(f => f.GetDirectoryName(netInf)).Returns("C:\\OEM\\NetPkg");
+        _fileSystemService.Setup(f => f.GetFileName("C:\\OEM\\RstPkg")).Returns("RstPkg");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\WinPE", "RstPkg")).Returns("C:\\WinPE\\RstPkg");
+        _fileSystemService.Setup(f => f.DirectoryExists("C:\\WinPE\\RstPkg")).Returns(false);
+
+        var result = _sut.MoveStorageDrivers("C:\\OEM", "C:\\WinPE");
+
+        result.Should().Be(2);
+        _fileSystemService.Verify(f => f.CreateDirectory("C:\\WinPE"), Times.Once);
+        _fileSystemService.Verify(f => f.MoveDirectory("C:\\OEM\\RstPkg", "C:\\WinPE\\RstPkg"), Times.Once);
+        _fileSystemService.Verify(f => f.MoveDirectory("C:\\OEM\\NetPkg", It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void MoveStorageDrivers_LooseInfAtTheStagingRoot_NeverMovesTheRoot()
+    {
+        var looseInf = "C:\\OEM\\iastor.inf";
+        _fileSystemService.Setup(f => f.GetFiles("C:\\OEM", "*.inf", SearchOption.AllDirectories))
+            .Returns(new[] { looseInf });
+        _fileSystemService.Setup(f => f.GetFileName(looseInf)).Returns("iastor.inf");
+        _fileSystemService.Setup(f => f.GetDirectoryName(looseInf)).Returns("C:\\OEM");
+
+        var result = _sut.MoveStorageDrivers("C:\\OEM", "C:\\WinPE");
+
+        result.Should().Be(1);
+        _fileSystemService.Verify(f => f.MoveDirectory(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

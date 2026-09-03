@@ -137,6 +137,15 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
             if (generatedPath == null) return;
 
+            try
+            {
+                await _wimCustomizationService.EnsureDriverInstallStepAsync(WorkingDirectory);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Could not add the driver install step to the generated XML: {ex.Message}");
+            }
+
             SelectedXmlPath = generatedPath;
             IsXmlAdded = true;
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlGenSuccess");

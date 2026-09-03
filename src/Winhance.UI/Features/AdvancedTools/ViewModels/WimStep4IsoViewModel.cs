@@ -14,6 +14,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimStep4IsoViewModel : ObservableObject
 {
+    private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IIsoService _isoService;
     private readonly IUsbMediaWriter _usbMediaWriter;
     private readonly ITaskProgressService _taskProgressService;
@@ -51,6 +52,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
     public WizardActionCard SelectUsbCard { get; private set; } = new();
 
     public WimStep4IsoViewModel(
+        IWimCustomizationService wimCustomizationService,
         IIsoService isoService,
         IUsbMediaWriter usbMediaWriter,
         ITaskProgressService taskProgressService,
@@ -61,6 +63,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         IFilePickerService filePickerService,
         ILogService logService)
     {
+        _wimCustomizationService = wimCustomizationService;
         _isoService = isoService;
         _usbMediaWriter = usbMediaWriter;
         _taskProgressService = taskProgressService;
@@ -163,6 +166,18 @@ public partial class WimStep4IsoViewModel : ObservableObject
                 _localizationService.GetString("WIMUtil_Msg_WorkingDirectoryRequired"),
                 _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
             return;
+        }
+
+        // Steps 2 and 3 already ensured this; here it only self-heals and must never block output.
+        try
+        {
+            var driverStep = await _wimCustomizationService.EnsureDriverInstallStepAsync(WorkingDirectory);
+            if (driverStep is DriverInstallStepResult.Added or DriverInstallStepResult.CreatedXml)
+                _logService.LogWarning($"Driver install step was missing at media-creation time; repaired as {driverStep}");
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not verify the driver install step: {ex.Message}");
         }
 
         if (Destination == WimOutputDestination.Usb)

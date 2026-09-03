@@ -58,7 +58,7 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         return outputPath;
     }
 
-    private static string LoadTemplate()
+    internal static string LoadTemplate()
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(TemplateResourceName)
             ?? throw new FileNotFoundException($"Embedded template not found: {TemplateResourceName}");

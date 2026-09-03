@@ -182,7 +182,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             resourceService);
 
         Step4 = new WimStep4IsoViewModel(
-            isoService, usbMediaWriter, taskProgressService, processExecutor,
+            wimCustomizationService, isoService, usbMediaWriter, taskProgressService, processExecutor,
             dialogService, localizationService, fileSystemService, filePickerService, logService);
 
         Step1State = new WizardStepState();

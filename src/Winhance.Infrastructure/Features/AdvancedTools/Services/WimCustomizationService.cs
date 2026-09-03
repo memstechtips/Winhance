@@ -1,4 +1,5 @@
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -12,6 +13,7 @@ internal class WimCustomizationService : IWimCustomizationService
     private readonly ILocalizationService _localization;
     private readonly IDriverCategorizer _driverCategorizer;
     private readonly IDismProcessRunner _dismProcessRunner;
+    private readonly IDriverInstallStepWriter _driverInstallStep;
 
     private const string UnattendedWinstallXmlUrl = "https://raw.githubusercontent.com/memstechtips/UnattendedWinstall/main/autounattend.xml";
 
@@ -21,7 +23,8 @@ internal class WimCustomizationService : IWimCustomizationService
         HttpClient httpClient,
         ILocalizationService localization,
         IDriverCategorizer driverCategorizer,
-        IDismProcessRunner dismProcessRunner)
+        IDismProcessRunner dismProcessRunner,
+        IDriverInstallStepWriter driverInstallStep)
     {
         _fileSystemService = fileSystemService;
         _logService = logService;
@@ -29,6 +32,7 @@ internal class WimCustomizationService : IWimCustomizationService
         _localization = localization;
         _driverCategorizer = driverCategorizer;
         _dismProcessRunner = dismProcessRunner;
+        _driverInstallStep = driverInstallStep;
     }
 
     public async Task<bool> AddDriversAsync(
@@ -39,7 +43,12 @@ internal class WimCustomizationService : IWimCustomizationService
     {
         try
         {
-            string sourceDirectory;
+            // The media ROOT, not sources\. KB 2686316 publishes the paths Setup actually scans and
+            // every one is a drive root (C:\$WinPEDriver$, D:\, E:\, X:\) - Setup enumerates drive
+            // letters and probes each root. Nothing documents a sources\ variant, so the storage
+            // drivers sat somewhere Setup never looked.
+            var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "$WinpeDriver$");
+            var oemDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
 
             if (string.IsNullOrEmpty(driverSourcePath))
             {
@@ -49,35 +58,17 @@ internal class WimCustomizationService : IWimCustomizationService
                     TerminalOutput = "This may take several minutes"
                 });
 
-                var tempDriverPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"WinhanceDrivers_{Guid.NewGuid()}");
-                _fileSystemService.CreateDirectory(tempDriverPath);
+                _fileSystemService.CreateDirectory(oemDriverPath);
 
-                try
-                {
-                    // dism.exe, not the DISM API: DismGetDrivers only enumerates drivers already
-                    // inside a mounted image, so nothing in the API harvests them from the running
-                    // machine. This shell-out is permanent.
-                    var arguments = $"/Online /Export-Driver /Destination:\"{tempDriverPath}\"";
-
-                    progress?.Report(new TaskProgressDetail
-                    {
-                        TerminalOutput = "Exporting drivers from current system..."
-                    });
-
-                    var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
-                    if (exitCode != 0)
-                    {
-                        throw new Exception($"DISM Export-Driver failed with exit code: {exitCode}");
-                    }
-
-                    sourceDirectory = tempDriverPath;
-                }
-                catch (Exception ex)
-                {
-                    try { _fileSystemService.DeleteDirectory(tempDriverPath, recursive: true); } catch (Exception cleanupEx) { _logService.LogDebug($"Best-effort temp driver directory cleanup failed: {cleanupEx.Message}"); }
-                    _logService.LogError($"Failed to export system drivers: {ex.Message}", ex);
-                    return false;
-                }
+                // dism.exe, not the DISM API: DismGetDrivers only enumerates drivers already
+                // inside a mounted image, so nothing in the API harvests them from the running
+                // machine. This shell-out is permanent. It writes one complete package folder at
+                // a time straight into the OEM staging folder, so the set is written once and a
+                // nonzero exit keeps every package that landed.
+                var arguments = $"/Online /Export-Driver /Destination:\"{oemDriverPath}\"";
+                var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                    _logService.LogWarning($"DISM Export-Driver exited with {exitCode}; keeping the packages that were exported");
             }
             else
             {
@@ -92,8 +83,6 @@ internal class WimCustomizationService : IWimCustomizationService
                     _logService.LogError($"Driver source path does not exist: {driverSourcePath}");
                     return false;
                 }
-
-                sourceDirectory = driverSourcePath;
             }
 
             progress?.Report(new TaskProgressDetail
@@ -102,47 +91,37 @@ internal class WimCustomizationService : IWimCustomizationService
                 TerminalOutput = "Separating storage and post-install drivers"
             });
 
-            // The media ROOT, not sources\. KB 2686316 publishes the paths Setup actually scans and
-            // every one is a drive root (C:\$WinPEDriver$, D:\, E:\, X:\) - Setup enumerates drive
-            // letters and probes each root. Nothing documents a sources\ variant, so the storage
-            // drivers sat somewhere Setup never looked.
-            var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "$WinpeDriver$");
-            var oemDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
-
-            _logService.LogInformation($"Searching for drivers in: {sourceDirectory}");
-
-            int copiedCount = await Task.Run(() => _driverCategorizer.CategorizeAndCopyDrivers(
-                sourceDirectory,
-                winpeDriverPath,
-                oemDriverPath,
-                workingDirectory
-            ), cancellationToken).ConfigureAwait(false);
-
-            if (string.IsNullOrEmpty(driverSourcePath))
-            {
-                try
-                {
-                    _fileSystemService.DeleteDirectory(sourceDirectory, recursive: true);
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogWarning($"Could not delete temp directory: {ex.Message}");
-                }
-            }
+            var copiedCount = string.IsNullOrEmpty(driverSourcePath)
+                ? await Task.Run(() => _driverCategorizer.MoveStorageDrivers(oemDriverPath, winpeDriverPath), cancellationToken).ConfigureAwait(false)
+                : await Task.Run(() => _driverCategorizer.CategorizeAndCopyDrivers(
+                    driverSourcePath,
+                    winpeDriverPath,
+                    oemDriverPath,
+                    workingDirectory
+                ), cancellationToken).ConfigureAwait(false);
 
             if (copiedCount == 0)
             {
-                _logService.LogWarning($"No drivers were found or copied from: {sourceDirectory}");
+                _logService.LogWarning("No driver packages were staged");
                 return false;
             }
 
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_CreatingDriverScript"),
-                TerminalOutput = "Setting up SetupComplete.cmd"
+                TerminalOutput = "Adding driver install step to autounattend.xml"
             });
 
-            CreateSetupCompleteScript(workingDirectory);
+            // Step 4 re-checks this; a locked or odd autounattend.xml must not fail the copy
+            // that already succeeded.
+            try
+            {
+                await _driverInstallStep.EnsureAsync(workingDirectory, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
+            }
 
             _logService.LogInformation($"Successfully added {copiedCount} driver(s) - WinPE: {winpeDriverPath}, OEM: {oemDriverPath}");
             return true;
@@ -181,6 +160,14 @@ internal class WimCustomizationService : IWimCustomizationService
             await _fileSystemService.WriteAllTextAsync(destPath, xmlContent).ConfigureAwait(false);
 
             _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
+            try
+            {
+                await _driverInstallStep.EnsureAsync(workingDirectory).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
+            }
             return true;
         }
         catch (Exception ex)
@@ -231,43 +218,6 @@ internal class WimCustomizationService : IWimCustomizationService
         }
     }
 
-    private void CreateSetupCompleteScript(string workingDirectory)
-    {
-        try
-        {
-            var scriptsPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Setup", "Scripts");
-            _fileSystemService.CreateDirectory(scriptsPath);
-
-            var setupCompleteScript = @"@echo off
-REM Winhance Automatic Driver Installation Script
-REM This script is executed automatically by Windows Setup
-
-set LOGFILE=C:\Windows\Logs\DriverInstall.log
-
-echo ================================================== > %LOGFILE%
-echo Winhance Driver Installation Log >> %LOGFILE%
-echo Date: %DATE% %TIME% >> %LOGFILE%
-echo ================================================== >> %LOGFILE%
-echo. >> %LOGFILE%
-
-echo Installing drivers from C:\Windows\Drivers... >> %LOGFILE%
-pnputil /add-driver C:\Windows\Drivers\*.inf /subdirs /install >> %LOGFILE% 2>&1
-
-echo. >> %LOGFILE%
-echo Driver installation completed >> %LOGFILE%
-echo Exit Code: %ERRORLEVEL% >> %LOGFILE%
-
-exit
-";
-
-            var scriptPath = _fileSystemService.CombinePath(scriptsPath, "SetupComplete.cmd");
-            _fileSystemService.WriteAllText(scriptPath, setupCompleteScript);
-
-            _logService.LogInformation($"Created SetupComplete.cmd at: {scriptPath}");
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Could not create SetupComplete.cmd: {ex.Message}");
-        }
-    }
+    public Task<DriverInstallStepResult> EnsureDriverInstallStepAsync(string workingDirectory, CancellationToken cancellationToken = default) =>
+        _driverInstallStep.EnsureAsync(workingDirectory, cancellationToken);
 }

@@ -123,6 +123,20 @@ public class FileSystemServiceTests : IClassFixture<TempDirectoryFixture>
     }
 
     [Fact]
+    public void MoveDirectory_TreeArrivesWhole()
+    {
+        var source = Path.Combine(_fixture.TempPath, "move_dir_source");
+        var dest = Path.Combine(_fixture.TempPath, "move_dir_dest");
+        Directory.CreateDirectory(Path.Combine(source, "sub"));
+        File.WriteAllText(Path.Combine(source, "sub", "payload.sys"), "bin");
+
+        _service.MoveDirectory(source, dest);
+
+        _service.DirectoryExists(source).Should().BeFalse();
+        File.ReadAllText(Path.Combine(dest, "sub", "payload.sys")).Should().Be("bin");
+    }
+
+    [Fact]
     public void GetFileSize_ReturnsCorrectSize()
     {
         var filePath = TempFile("size_test.txt");

@@ -152,6 +152,8 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.AdvancedTools.Services.StorageApiUsbMediaWriter>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDriverInstallStepWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.DriverInstallStepWriter>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAutounattendScriptBuilder,

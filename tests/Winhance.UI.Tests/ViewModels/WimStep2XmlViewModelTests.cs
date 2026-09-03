@@ -200,6 +200,47 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task GenerateWinhanceXmlCommand_OnSuccess_EnsuresTheDriverInstallStep()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockWimCustomizationService.Verify(
+            s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_EnsureFailure_DoesNotFailTheFlow()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeGenerateConfirmed();
+        _mockWimCustomizationService
+            .Setup(s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.IsXmlAdded.Should().BeTrue();
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotEnsureTheDriverInstallStep()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockWimCustomizationService.Verify(
+            s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenNothingWasSaved_LeavesTheCardIncomplete()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
