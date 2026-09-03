@@ -1401,7 +1401,6 @@
   "WIMUtil_Status_NoIsoSelected": "لم يتم تحديد ISO",
   "WIMUtil_Status_WaitForConversion": "انتظر حتى يكتمل التحويل",
   "WIMUtil_Status_CompleteStep1": "أكمل الخطوة 1",
-  "WIMUtil_Status_XmlAdded": "✓ تم إضافة XML",
   "WIMUtil_Status_NoXmlAdded": "لم تتم إضافة XML (اختياري)",
   "WIMUtil_Status_DriversAdded": "✓ تم إضافة برامج التشغيل",
   "WIMUtil_Status_NoDriversAdded": "لم تتم إضافة برامج تشغيل (اختياري)",

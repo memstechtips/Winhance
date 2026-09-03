@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Không có ISO nào được chọn",
   "WIMUtil_Status_WaitForConversion": "Chờ chuyển đổi hoàn tất",
   "WIMUtil_Status_CompleteStep1": "Hoàn thành bước 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML đã được thêm",
   "WIMUtil_Status_NoXmlAdded": "Không có XML nào được thêm (Tùy chọn)",
   "WIMUtil_Status_DriversAdded": "✓ Trình điều khiển đã được thêm",
   "WIMUtil_Status_NoDriversAdded": "Không có trình điều khiển nào được thêm (Tùy chọn)",

@@ -1477,7 +1477,6 @@
   "WIMUtil_Status_NoIsoSelected": "هیچ ISO ای انتخاب نشده",
   "WIMUtil_Status_WaitForConversion": "صبر کنید تا تبدیل کامل بشود",
   "WIMUtil_Status_CompleteStep1": "مرحله 1 را کامل کنید",
-  "WIMUtil_Status_XmlAdded": "✓ XML اضافه شد",
   "WIMUtil_Status_NoXmlAdded": "هیچ XML اضافه نشد (اختیاری)",
   "WIMUtil_Status_DriversAdded": "✓ درایورها اضافه شدند",
   "WIMUtil_Status_NoDriversAdded": "هیچ درایوری اضافه نشد (اختیاری)",

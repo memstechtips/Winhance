@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Geen ISO Gekies",
   "WIMUtil_Status_WaitForConversion": "Wag vir omskakeling om te voltooi",
   "WIMUtil_Status_CompleteStep1": "Voltooi Stap 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML Bygevoeg",
   "WIMUtil_Status_NoXmlAdded": "Geen XML Bygevoeg (Opsioneel)",
   "WIMUtil_Status_DriversAdded": "✓ Bestuurders Bygevoeg",
   "WIMUtil_Status_NoDriversAdded": "Geen Bestuurders Bygevoeg (Opsioneel)",

@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Keine ISO ausgewählt",
   "WIMUtil_Status_WaitForConversion": "Warten Sie auf den Abschluss der Konvertierung",
   "WIMUtil_Status_CompleteStep1": "Schritt 1 abschließen",
-  "WIMUtil_Status_XmlAdded": "✓ XML hinzugefügt",
   "WIMUtil_Status_NoXmlAdded": "Keine XML hinzugefügt (optional)",
   "WIMUtil_Status_DriversAdded": "✓ Treiber hinzugefügt",
   "WIMUtil_Status_NoDriversAdded": "Keine Treiber hinzugefügt (optional)",

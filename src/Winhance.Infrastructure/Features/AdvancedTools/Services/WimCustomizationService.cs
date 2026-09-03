@@ -123,7 +123,7 @@ internal class WimCustomizationService : IWimCustomizationService
                 _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
             }
 
-            _logService.LogInformation($"Successfully added {copiedCount} driver(s) - WinPE: {winpeDriverPath}, OEM: {oemDriverPath}");
+            _logService.LogInformation($"{copiedCount} driver package(s) staged - WinPE: {winpeDriverPath}, OEM: {oemDriverPath}");
             return true;
         }
         catch (Exception ex)
@@ -156,8 +156,10 @@ internal class WimCustomizationService : IWimCustomizationService
 
             var destPath = _fileSystemService.CombinePath(workingDirectory, "autounattend.xml");
 
-            var xmlContent = await _fileSystemService.ReadAllTextAsync(xmlPath).ConfigureAwait(false);
-            await _fileSystemService.WriteAllTextAsync(destPath, xmlContent).ConfigureAwait(false);
+            // A byte copy, not a read-then-write: the user's file may declare windows-1252 or
+            // utf-16, and writing the decoded string back as UTF-8 leaves that declaration lying
+            // about the bytes underneath it.
+            _fileSystemService.CopyFile(xmlPath, destPath, overwrite: true);
 
             _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
             try

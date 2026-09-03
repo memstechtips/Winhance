@@ -6,8 +6,8 @@ using Xunit;
 
 namespace Winhance.IntegrationTests.Localization;
 
-// AnswerFileReportDialog builds each rule's key from the enum name, which the literal-key gate
-// cannot see, so the one-key-per-rule contract is pinned here.
+// AnswerFileReportDialog builds each rule's key from the enum name and picks the verdict key in a
+// switch, neither of which the literal-key gate can see, so both contracts are pinned here.
 public class AnswerFileRuleKeysTests
 {
     private static readonly string EnglishFile =
@@ -16,14 +16,20 @@ public class AnswerFileRuleKeysTests
     [Fact]
     public void EveryRule_HasAnEnglishKey()
     {
+        MissingKeys("WIMUtil_AnswerFile_Rule_", Enum.GetNames<AnswerFileRule>()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void EveryVerdict_HasAnEnglishKey()
+    {
+        MissingKeys("WIMUtil_AnswerFile_Verdict_", Enum.GetNames<AnswerFileVerdict>()).Should().BeEmpty();
+    }
+
+    private static List<string> MissingKeys(string prefix, string[] names)
+    {
         using var doc = JsonDocument.Parse(File.ReadAllText(EnglishFile));
         var keys = doc.RootElement.EnumerateObject().Select(p => p.Name).ToHashSet();
 
-        var missing = Enum.GetNames<AnswerFileRule>()
-            .Select(rule => "WIMUtil_AnswerFile_Rule_" + rule)
-            .Where(key => !keys.Contains(key))
-            .ToList();
-
-        missing.Should().BeEmpty();
+        return names.Select(name => prefix + name).Where(key => !keys.Contains(key)).ToList();
     }
 }

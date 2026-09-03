@@ -56,8 +56,7 @@ internal class HardwareDetectionService : IHardwareDetectionService
     }
 
     // Split out from the P/Invoke so the whole decision is testable without one: the flag byte is all
-    // there is to it. Unknown must be matched by equality before the bit test, because 255 carries
-    // the NoBattery bit and would otherwise read as a desktop.
+    // there is to it.
     internal static bool? InterpretBatteryFlag(byte batteryFlag) =>
         batteryFlag == BatteryFlagUnknown
             ? null

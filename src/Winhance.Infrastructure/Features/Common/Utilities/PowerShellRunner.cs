@@ -204,37 +204,13 @@ internal class PowerShellRunner : IPowerShellRunner
         string scriptContent,
         CancellationToken ct = default)
     {
-        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
-        try
-        {
-            // Windows PowerShell 5.1 reads a BOM-less file as ANSI, where one UTF-8 em dash decodes to a smart
-            // quote and desyncs the parse. The autounattend extractor writes the script WITH a UTF-8 preamble,
-            // so validate the same bytes Setup will run.
-            var utf8WithPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-            var bytes = utf8WithPreamble.GetPreamble().Concat(utf8WithPreamble.GetBytes(scriptContent)).ToArray();
-            await _fileSystemService.WriteAllBytesAsync(tempFile, bytes, ct).ConfigureAwait(false);
+        const string name = "script";
 
-            var parseScript = @"
-$errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile('" + tempFile.Replace("'", "''") + @"', [ref]$null, [ref]$errors)
-if ($errors.Count -gt 0) {
-    foreach ($e in $errors) { Write-Host ""PARSE_ERROR: $($e.ToString())"" }
-    exit 1
-}
-Write-Host 'Script validation passed - no parse errors found'
-exit 0";
+        var errors = await FindParseErrorsAsync(new Dictionary<string, string> { [name] = scriptContent }, ct).ConfigureAwait(false);
 
-            // The parse script reports through stdout and exits 1 with nothing on stderr, which RunScriptAsync does not
-            // treat as a failure, so the verdict has to be read from the output.
-            var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
-            if (output.Contains("PARSE_ERROR:", StringComparison.Ordinal))
-                throw new InvalidOperationException($"PowerShell script failed to parse:\n{output}");
-        }
-        finally
-        {
-            try { _fileSystemService.DeleteFile(tempFile); }
-            catch { }
-        }
+        // The message keeps the PARSE_ERROR marker the syntax gate matches on.
+        if (errors.Count > 0)
+            throw new InvalidOperationException($"PowerShell script failed to parse:\nPARSE_ERROR: {errors[name]}");
     }
 
     public async Task<IReadOnlyDictionary<string, string>> FindParseErrorsAsync(
@@ -252,6 +228,9 @@ exit 0";
             .ToList();
         try
         {
+            // Windows PowerShell 5.1 reads a BOM-less file as ANSI, where one UTF-8 em dash decodes to a smart
+            // quote and desyncs the parse. The autounattend extractor writes the script WITH a UTF-8 preamble,
+            // so validate the same bytes Setup will run.
             var utf8WithPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
             for (var i = 0; i < names.Count; i++)
             {
@@ -271,6 +250,9 @@ Write-Host 'PARSE_DONE'
 exit 0";
 
             var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
+
+            // The batch script reports through stdout and always exits 0, so a run that stopped partway
+            // still looks like a success; only the sentinel proves every file reached the parser.
             if (!output.Contains("PARSE_DONE", StringComparison.Ordinal))
                 throw new InvalidOperationException($"PowerShell parse batch did not complete:\n{output}");
 

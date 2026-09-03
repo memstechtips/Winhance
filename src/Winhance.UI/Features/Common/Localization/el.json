@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Δεν Επιλέχθηκε ISO",
   "WIMUtil_Status_WaitForConversion": "Αναμονή για ολοκλήρωση μετατροπής",
   "WIMUtil_Status_CompleteStep1": "Ολοκληρώστε το Βήμα 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML Προστέθηκε",
   "WIMUtil_Status_NoXmlAdded": "Δεν Προστέθηκε XML (Προαιρετικό)",
   "WIMUtil_Status_DriversAdded": "✓ Προγράμματα Οδήγησης Προστέθηκαν",
   "WIMUtil_Status_NoDriversAdded": "Δεν Προστέθηκαν Προγράμματα Οδήγησης (Προαιρετικό)",

@@ -301,7 +301,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     {
         try
         {
-            _checkState.LastReport = await _answerFileValidator.ValidateAsync(selectedPath);
+            var report = await _answerFileValidator.ValidateAsync(selectedPath);
+            _checkState.Publish(selectedPath, report);
         }
         catch (Exception ex)
         {
@@ -326,11 +327,12 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         var previousStatus = XmlStatus;
         try
         {
-            _checkState.LastReport = null;
+            _checkState.Publish(null, null);
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlChecking");
-            var report = await _answerFileValidator.ValidateAsync(_fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml"));
-            _checkState.LastReport = report;
-            XmlStatus = AnswerFileReportDialog.Verdict(report, _localizationService);
+            var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+            var report = await _answerFileValidator.ValidateAsync(answerFile);
+            XmlStatus = previousStatus;
+            _checkState.Publish(answerFile, report);
             if (report.Findings.Count > 0)
             {
                 await _dialogService.ShowTaskOutputDialogAsync(

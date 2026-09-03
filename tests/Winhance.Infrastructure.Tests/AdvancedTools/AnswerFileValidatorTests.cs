@@ -216,6 +216,14 @@ public class AnswerFileValidatorTests
     }
 
     [Fact]
+    public async Task RunSynchronousInAuditUser_IsFine()
+    {
+        var report = await ValidateAsync(Doc("<settings pass=\"auditUser\">" + Component("Microsoft-Windows-Deployment", "amd64", "<RunSynchronous>" + Command(1, "cmd.exe /c echo hi") + "</RunSynchronous>") + "</settings>"));
+
+        report.Findings.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task MissingAction_IsNotAFinding()
     {
         var report = await ValidateAsync(Doc(Specialize(Command("1", "cmd.exe /c echo hi", action: false))));
@@ -268,6 +276,17 @@ public class AnswerFileValidatorTests
         var report = await ValidateAsync(xml);
 
         Single(report, AnswerFileRule.CommandTooLong).Detail.Should().Be("1025 characters, limit 1024");
+    }
+
+    [Fact]
+    public async Task LogonCommandLine_HasNoCapToExceed()
+    {
+        var xml = Doc("<settings pass=\"oobeSystem\">" + Component("Microsoft-Windows-Shell-Setup", "amd64",
+            "<LogonCommands>" + Command("1", "cmd.exe /c " + new string('x', 1989), "AsynchronousCommand", "CommandLine") + "</LogonCommands>") + "</settings>");
+
+        var report = await ValidateAsync(xml);
+
+        report.Findings.Should().BeEmpty(because: "LogonCommands has no documented CommandLine limit");
     }
 
     [Fact]
@@ -415,6 +434,22 @@ public class AnswerFileValidatorTests
     }
 
     [Fact]
+    public async Task OutFileInsideAPayload_IsNotReadAsAScriptArgument()
+    {
+        var report = await ValidateAsync(Typical("powershell.exe -NoProfile -Command \"Get-Date | Out-File C:\\ProgramData\\Winhance\\Unattend\\Scripts\\x.log\""));
+
+        report.Findings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FileSwitchInsideAPayload_IsNotReadAsAScriptArgument()
+    {
+        var report = await ValidateAsync(Typical("powershell.exe -NoProfile -Command \"Get-ChildItem C:\\ -File | Where-Object Extension -eq '.inf'\""));
+
+        report.Findings.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task RegistryCommandWithUnknownRoot_IsReported()
     {
         var report = await ValidateAsync(Typical("reg.exe add \"HKLN\\Software\\X\" /v A /t REG_DWORD /d 1 /f"));
@@ -511,6 +546,31 @@ public class AnswerFileValidatorTests
         var report = await ValidateAsync(Doc(Specialize(Command(1, Extract)), WinhanceExtensions(Carried("C:\\Windows\\Setup\\Scripts\\notes.txt", "hello"))));
 
         Single(report, AnswerFileRule.UnknownFileType).Severity.Should().Be(AnswerFileSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CarriedFileWithNoExtension_IsAWarning()
+    {
+        var report = await ValidateAsync(Doc(Specialize(Command(1, Extract)), WinhanceExtensions(Carried("C:\\Windows\\Setup\\Scripts\\README", "hello"))));
+
+        Single(report, AnswerFileRule.UnknownFileType).Severity.Should().Be(AnswerFileSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CarriedJavaScriptFile_IsNotAFinding()
+    {
+        var report = await ValidateAsync(Doc(Specialize(Command(1, Extract)), WinhanceExtensions(Carried("C:\\Windows\\Setup\\Scripts\\Setup.js", "var x = 1;"))));
+
+        report.Findings.Should().BeEmpty();
+    }
+
+    // DtdProcessing.Ignore skips the DOCTYPE rather than throwing on it, which Prohibit would.
+    [Fact]
+    public async Task CarriedXmlWithAnInternalDtd_IsFine()
+    {
+        var report = await ValidateAsync(Doc(Specialize(Command(1, Extract)), WinhanceExtensions(Carried("C:\\Windows\\Setup\\Scripts\\Layout.xml", "<!DOCTYPE x [<!ELEMENT x ANY>]>\n<x />"))));
+
+        report.Findings.Should().BeEmpty();
     }
 
     [Fact]

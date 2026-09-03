@@ -109,6 +109,7 @@ public class SystemBackupServiceTests
         var result = await _sut.CreateRestorePointAsync(name: customName);
 
         result.Success.Should().BeTrue();
+        _restorePointWriter.LastDescription.Should().Be(customName);
         // Not Times.Once: the name legitimately appears in more than one log line across the
         // Creating/Querying/Found sequence - see FindRestorePointAsync above.
         _mockLog.Verify(

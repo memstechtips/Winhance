@@ -22,8 +22,7 @@ internal class SystemBackupService : ISystemBackupService
     // Below this free share of shadow storage, the max size is doubled before creating a restore point.
     private const double MinFreeStoragePercent = 15.0;
 
-    // SystemRestore lives here, not the WMI default namespace.
-    private const string DefaultNamespace = @"root\default";
+    private const string SystemRestoreNamespace = @"root\default";
 
     public SystemBackupService(
         ILogService logService,
@@ -159,7 +158,7 @@ internal class SystemBackupService : ISystemBackupService
 
                 var escapedDescription = description.Replace("'", "\\'");
                 var results = _wmiApi.Query(
-                    DefaultNamespace, "SystemRestore", $"Description = '{escapedDescription}'");
+                    SystemRestoreNamespace, "SystemRestore", $"Description = '{escapedDescription}'");
 
                 if (results.Count > 0)
                 {
@@ -333,7 +332,7 @@ internal class SystemBackupService : ISystemBackupService
             await Task.Run(() =>
             {
                 using var result = _wmiApi.InvokeClassMethod(
-                    DefaultNamespace, "SystemRestore", "Enable",
+                    SystemRestoreNamespace, "SystemRestore", "Enable",
                     new Dictionary<string, object> { ["Drive"] = systemDrive + "\\" });
             }).ConfigureAwait(false);
 

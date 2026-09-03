@@ -4,7 +4,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 // namespace, read a property, follow an association, invoke a method on an instance a query
 // already found, or invoke a method directly on a class (SystemRestore.Enable has no instance to
 // query first). It decides nothing; the decisions stay in the caller, where a fake behind this
-// seam can reach them without a disk, a battery or a live restore point.
+// seam can reach them without a disk or a live restore point.
 internal interface IWmiApi
 {
     IReadOnlyList<IWmiInstance> Query(string scope, string className, string? condition);

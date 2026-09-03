@@ -540,13 +540,16 @@ public class WimStep2XmlViewModelTests : IDisposable
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         ArrangeGenerateConfirmed();
+        var report = OneError();
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(OneError());
+            .ReturnsAsync(report);
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
-        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
+        _checkState.LastReport.Should().BeSameAs(report);
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
         _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(
             "WIMUtil_AnswerFile_DialogTitle",
@@ -554,14 +557,16 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_ReportsTheVerdictWithoutADialog()
+    public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_PublishesTheReportWithoutADialog()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         ArrangeGenerateConfirmed();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
-        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_Clean");
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
+        _checkState.LastReport!.Findings.Should().BeEmpty();
         _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
     }
 
@@ -594,13 +599,14 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport.Should().BeSameAs(report);
     }
 
     [Fact]
     public async Task GenerateWinhanceXmlCommand_CheckThrows_LeavesNoStaleReport()
     {
-        _checkState.LastReport = OneError();
+        _checkState.Publish("C:\\OldDir\\autounattend.xml", OneError());
         _sut.WorkingDirectory = "C:\\WorkDir";
         ArrangeGenerateConfirmed();
         _mockAnswerFileValidator
@@ -609,6 +615,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
+        _checkState.Subject.Should().BeNull();
         _checkState.LastReport.Should().BeNull();
     }
 
@@ -626,7 +633,9 @@ public class WimStep2XmlViewModelTests : IDisposable
         await _sut.DownloadUnattendedWinstallXmlCommand.ExecuteAsync(null);
 
         _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
-        _sut.XmlStatus.Should().Be("WIMUtil_AnswerFile_Verdict_Clean");
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlDownloadSuccess");
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
+        _checkState.LastReport!.Findings.Should().BeEmpty();
     }
 
     [Fact]
@@ -647,6 +656,7 @@ public class WimStep2XmlViewModelTests : IDisposable
 
             _sut.SelectXmlCard.HasFailed.Should().BeTrue();
             _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlInvalid");
+            _checkState.Subject.Should().Be(selected);
             _checkState.LastReport.Should().BeSameAs(report);
             _mockDialogService.Verify(d => d.ShowErrorAsync("WIMUtil_Msg_XmlInvalidError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
             _mockWimCustomizationService.Verify(c => c.AddXmlToImageAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -673,6 +683,8 @@ public class WimStep2XmlViewModelTests : IDisposable
             await _sut.SelectXmlFileCommand.ExecuteAsync(null);
 
             _sut.SelectXmlCard.IsComplete.Should().BeTrue();
+            _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlSelectSuccess");
+            _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
             _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
             _mockAnswerFileValidator.Verify(v => v.ValidateAsync(selected, It.IsAny<CancellationToken>()), Times.Never);
         }

@@ -12,34 +12,19 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 internal class SystemInfoProvider : ISystemInfoProvider
 {
-    // Rows are materialised so nothing WMI-shaped escapes this file.
-    internal delegate IReadOnlyList<IReadOnlyDictionary<string, object?>> WmiQuery(
-        string? scope, string wql);
-
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IWmiApi _wmiApi;
-    private readonly WmiQuery _query;
 
     public SystemInfoProvider(IInteractiveUserService interactiveUserService, IWmiApi wmiApi)
-        : this(interactiveUserService, wmiApi, query: null)
-    {
-    }
-
-    // Test seam: feed constructed WMI rows instead of the live machine - otherwise these tests assert on the
-    // hardware of whoever runs them.
-    internal SystemInfoProvider(IInteractiveUserService interactiveUserService, IWmiApi wmiApi, WmiQuery? query)
     {
         _interactiveUserService = interactiveUserService;
         _wmiApi = wmiApi;
-        _query = query ?? RunWmiQuery;
     }
 
-    // Every WQL literal below is a plain "SELECT a, b FROM Class" - no WHERE, no JOIN. IWmiApi.Query
-    // always does SELECT *, so this pulls out just the class name and the columns Collect* actually
-    // reads. Rows are copied out before the underlying WMI instances are disposed.
-    private IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(string? scope, string wql)
+    // Each row is copied out before its instance is disposed, so no live WMI object escapes this file.
+    private IReadOnlyList<IReadOnlyDictionary<string, object?>> Rows(
+        string? scope, string className, params string[] columns)
     {
-        var (className, columns) = ParseSimpleSelect(wql);
         var instances = _wmiApi.Query(scope ?? WmiScope.Cimv2, className, null);
 
         var rows = new List<IReadOnlyDictionary<string, object?>>();
@@ -58,19 +43,6 @@ internal class SystemInfoProvider : ISystemInfoProvider
         }
 
         return rows;
-    }
-
-    private static (string ClassName, string[] Columns) ParseSimpleSelect(string wql)
-    {
-        const string selectPrefix = "SELECT ";
-        const string fromSeparator = " FROM ";
-
-        var fromIndex = wql.IndexOf(fromSeparator, StringComparison.OrdinalIgnoreCase);
-        var columnList = wql[selectPrefix.Length..fromIndex];
-        var className = wql[(fromIndex + fromSeparator.Length)..].Trim();
-        var columns = columnList.Split(',', StringSplitOptions.TrimEntries);
-
-        return (className, columns);
     }
 
     public SystemInfo Collect()
@@ -185,9 +157,10 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            var rows = _query(
+            var rows = Rows(
                 null,
-                "SELECT PCSystemType, Model, Manufacturer, TotalPhysicalMemory, PartOfDomain, Domain FROM Win32_ComputerSystem");
+                "Win32_ComputerSystem",
+                "PCSystemType", "Model", "Manufacturer", "TotalPhysicalMemory", "PartOfDomain", "Domain");
 
             foreach (var row in rows)
             {
@@ -286,7 +259,7 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            var rows = _query(null, "SELECT ChassisTypes FROM Win32_SystemEnclosure");
+            var rows = Rows(null, "Win32_SystemEnclosure", "ChassisTypes");
 
             foreach (var enclosure in rows)
             {
@@ -312,8 +285,7 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            var rows = _query(
-                null, "SELECT Name, NumberOfLogicalProcessors FROM Win32_Processor");
+            var rows = Rows(null, "Win32_Processor", "Name", "NumberOfLogicalProcessors");
 
             foreach (var row in rows)
             {
@@ -331,8 +303,7 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            var rows = _query(
-                null, "SELECT Name, AdapterDACType FROM Win32_VideoController");
+            var rows = Rows(null, "Win32_VideoController", "Name", "AdapterDACType");
 
             var gpus = new System.Collections.Generic.List<string>();
 
@@ -449,9 +420,8 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            var rows = _query(
-                @"root\cimv2\Security\MicrosoftTpm",
-                "SELECT SpecVersion FROM Win32_Tpm");
+            var rows = Rows(
+                @"root\cimv2\Security\MicrosoftTpm", "Win32_Tpm", "SpecVersion");
 
             foreach (var row in rows)
             {

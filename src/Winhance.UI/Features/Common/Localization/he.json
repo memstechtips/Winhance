@@ -1477,7 +1477,6 @@
   "WIMUtil_Status_NoIsoSelected": "לא נבחר קובץ ISO",
   "WIMUtil_Status_WaitForConversion": "יש להמתין לסיום ההמרה",
   "WIMUtil_Status_CompleteStep1": "יש להשלים את שלב 1",
-  "WIMUtil_Status_XmlAdded": "✓ קובץ XML נוסף",
   "WIMUtil_Status_NoXmlAdded": "לא נוסף קובץ XML (אופציונלי)",
   "WIMUtil_Status_DriversAdded": "✓ מנהלי התקנים נוספו",
   "WIMUtil_Status_NoDriversAdded": "לא נוספו מנהלי התקנים (אופציונלי)",

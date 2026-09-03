@@ -330,7 +330,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
                 : Step2.IsXmlAdded
-                    ? Step2.XmlStatus
+                    ? Step2StatusText()
                     : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
 
         Step3State.IsAvailable = extractionComplete && !isConverting;
@@ -360,6 +360,15 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Step3State));
         OnPropertyChanged(nameof(Step4State));
     }
+
+    // Steps 3 and 4 re-check the same file, so the header reads the shared verdict rather than
+    // step 2's own wording -- but only when the report is about the copy on the media. A refused
+    // file's report describes something Setup will never see; it belongs to the banner alone.
+    private string Step2StatusText() =>
+        AnswerFileCheck.LastReport is { } report
+        && AnswerFileCheck.Subject == _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml")
+            ? AnswerFileReportDialog.Verdict(report, _localizationService)
+            : Step2.XmlStatus;
 
     // Once the ISO is extracted, steps 2-4 expand so the user sees every remaining task; step 1 stays as
     // is. Applied once per completed extraction; restarting extraction resets it.
@@ -398,7 +407,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     Step3.WorkingDirectory = wd;
                     Step4.WorkingDirectory = wd;
                     // The old report described a file in the previous working directory.
-                    AnswerFileCheck.LastReport = null;
+                    AnswerFileCheck.Publish(null, null);
                     break;
 
                 case nameof(WimStep1ViewModel.IsExtractionComplete):
@@ -478,6 +487,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     private void OnAnswerFileCheckChanged(object? sender, PropertyChangedEventArgs e)
     {
+        UpdateStepStates();
         OnPropertyChanged(nameof(AnswerFileBannerOpen));
         OnPropertyChanged(nameof(AnswerFileBannerSeverity));
         OnPropertyChanged(nameof(AnswerFileBannerTitle));

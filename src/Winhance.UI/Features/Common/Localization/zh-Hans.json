@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "未选择 ISO",
   "WIMUtil_Status_WaitForConversion": "等待转换完成",
   "WIMUtil_Status_CompleteStep1": "完成步骤 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML 已添加",
   "WIMUtil_Status_NoXmlAdded": "未添加 XML（可选）",
   "WIMUtil_Status_DriversAdded": "✓ 驱动程序已添加",
   "WIMUtil_Status_NoDriversAdded": "未添加驱动程序（可选）",

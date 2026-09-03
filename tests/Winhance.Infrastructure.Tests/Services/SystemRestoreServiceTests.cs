@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
@@ -49,21 +50,30 @@ public class SystemRestoreServiceTests
     }
 
     [Fact]
-    public void CDeviceId_WmiFallbackAgreesWithTheNativeLookup_WhenWmiCanAnswer()
+    public void QueryCDeviceIdNative_MountPointDoesNotExist_ReturnsNullAndFallsBack()
     {
+        var svc = new SystemRestoreService(_log.Object, _wmiApi);
+
+        svc.QueryCDeviceIdNative(@"Q:\winhance-no-such-mount-2026\").Should().BeNull();
+
+        _log.Verify(
+            l => l.Log(
+                LogLevel.Info,
+                It.Is<string>(m => m.Contains("falling back")),
+                It.IsAny<Exception?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void CDeviceId_WmiFallbackAgreesWithTheNativeLookup()
+    {
+        // The two sources must produce the same string: IsEnabledForC cannot tell which one it is
+        // matching against SPP\Clients.
         var svc = new SystemRestoreService(_log.Object, new WmiManagementApi());
 
         var fromWmi = svc.QueryCDeviceIdFromWmi();
 
-        // Win32_Volume returns nothing under the gate's service account, so this guards rather than
-        // asserts. It is not a privilege rule: probed on a real desktop 2026-09-02, the same query
-        // answers fine to a normal unelevated user, and returns a string identical to the native
-        // one. The path Winhance actually takes is covered unconditionally above. When WMI does
-        // answer, the two must match - IsEnabledForC cannot tell which source produced the string it
-        // matches against SPP\Clients.
-        if (fromWmi is not null)
-        {
-            svc.QueryCDeviceIdNative().Should().Be(fromWmi);
-        }
+        fromWmi.Should().NotBeNull();
+        svc.QueryCDeviceIdNative().Should().Be(fromWmi);
     }
 }

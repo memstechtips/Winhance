@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Ingen ISO vald",
   "WIMUtil_Status_WaitForConversion": "Vänta tills konverteringen är klar",
   "WIMUtil_Status_CompleteStep1": "Slutför steg 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML tillagd",
   "WIMUtil_Status_NoXmlAdded": "Ingen XML tillagd (valfritt)",
   "WIMUtil_Status_DriversAdded": "✓ Drivrutiner tillagda",
   "WIMUtil_Status_NoDriversAdded": "Inga drivrutiner tillagda (valfritt)",

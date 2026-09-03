@@ -251,7 +251,10 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
             }
         }
 
-        var fileArgument = FileArgument.Match(command);
+        // PowerShell takes -File or -Command, never both, so a -File inside the payload is that
+        // payload's own argument, not a script this command runs.
+        var head = inlineIndex >= 0 ? command[..inlineIndex] : command;
+        var fileArgument = FileArgument.Match(head);
         if (fileArgument.Success)
         {
             var path = fileArgument.Groups["path"].Value;
@@ -411,12 +414,7 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
     private static bool IsAbsolute(string path) =>
         path.StartsWith('%') || (path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] == '\\');
 
-    private static string Extension(string path)
-    {
-        var name = path[(path.LastIndexOf('\\') + 1)..];
-        var dot = name.LastIndexOf('.');
-        return dot < 0 ? string.Empty : name[dot..].ToLowerInvariant();
-    }
+    private static string Extension(string path) => Path.GetExtension(path).ToLowerInvariant();
 
     private static string Location(XElement element)
     {

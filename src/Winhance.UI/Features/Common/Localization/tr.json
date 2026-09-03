@@ -1477,7 +1477,6 @@
   "WIMUtil_Status_NoIsoSelected": "ISO Seçilmedi",
   "WIMUtil_Status_WaitForConversion": "Dönüştürmenin tamamlanmasını bekleyin",
   "WIMUtil_Status_CompleteStep1": "Adım 1'i Tamamlayın",
-  "WIMUtil_Status_XmlAdded": "✓ XML Eklendi",
   "WIMUtil_Status_NoXmlAdded": "XML Eklenmedi (İsteğe Bağlı)",
   "WIMUtil_Status_DriversAdded": "✓ Sürücüler Eklendi",
   "WIMUtil_Status_NoDriversAdded": "Sürücü Eklenmedi (İsteğe Bağlı)",

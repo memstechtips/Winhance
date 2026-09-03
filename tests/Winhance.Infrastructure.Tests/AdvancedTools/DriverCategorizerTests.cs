@@ -362,6 +362,35 @@ public class DriverCategorizerTests
     }
 
     [Fact]
+    public void MoveStorageDrivers_OnePackageFailsToMove_LogsItAndMovesTheRest()
+    {
+        var failingInf = "C:\\OEM\\RstPkg\\iastor.inf";
+        var movedInf = "C:\\OEM\\VmdPkg\\vmd.inf";
+        _fileSystemService.Setup(f => f.GetFiles("C:\\OEM", "*.inf", SearchOption.AllDirectories))
+            .Returns(new[] { failingInf, movedInf });
+        _fileSystemService.Setup(f => f.GetFileName(failingInf)).Returns("iastor.inf");
+        _fileSystemService.Setup(f => f.GetFileName(movedInf)).Returns("vmd.inf");
+        _fileSystemService.Setup(f => f.GetDirectoryName(failingInf)).Returns("C:\\OEM\\RstPkg");
+        _fileSystemService.Setup(f => f.GetDirectoryName(movedInf)).Returns("C:\\OEM\\VmdPkg");
+        _fileSystemService.Setup(f => f.GetFileName("C:\\OEM\\RstPkg")).Returns("RstPkg");
+        _fileSystemService.Setup(f => f.GetFileName("C:\\OEM\\VmdPkg")).Returns("VmdPkg");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\WinPE", "RstPkg")).Returns("C:\\WinPE\\RstPkg");
+        _fileSystemService.Setup(f => f.CombinePath("C:\\WinPE", "VmdPkg")).Returns("C:\\WinPE\\VmdPkg");
+        _fileSystemService.Setup(f => f.DirectoryExists("C:\\WinPE\\RstPkg")).Returns(false);
+        _fileSystemService.Setup(f => f.DirectoryExists("C:\\WinPE\\VmdPkg")).Returns(false);
+        _fileSystemService.Setup(f => f.MoveDirectory("C:\\OEM\\RstPkg", "C:\\WinPE\\RstPkg"))
+            .Throws(new IOException("Permission denied"));
+
+        var result = _sut.MoveStorageDrivers("C:\\OEM", "C:\\WinPE");
+
+        result.Should().Be(2);
+        _logService.Verify(l => l.LogError(
+            It.Is<string>(s => s.Contains("Failed to move storage driver package RstPkg")),
+            It.IsAny<Exception>()), Times.Once);
+        _fileSystemService.Verify(f => f.MoveDirectory("C:\\OEM\\VmdPkg", "C:\\WinPE\\VmdPkg"), Times.Once);
+    }
+
+    [Fact]
     public void MoveStorageDrivers_LooseInfAtTheStagingRoot_NeverMovesTheRoot()
     {
         var looseInf = "C:\\OEM\\iastor.inf";

@@ -10,7 +10,7 @@ internal sealed class NativeSystemRestorePointWriter(ILogService logService) : I
 {
     // szDescription is a fixed MAX_DESC_W-char buffer whose setter throws instead of truncating,
     // so a longer name must be trimmed, and the last slot is reserved for the null terminator.
-    private const int MaxDescriptionLength = (int)PInvoke.MAX_DESC_W - 1;
+    internal const int MaxDescriptionLength = (int)PInvoke.MAX_DESC_W - 1;
 
     private const string SystemRestoreKeyPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore";
     private const string FrequencyValueName = "SystemRestorePointCreationFrequency";
@@ -30,7 +30,8 @@ internal sealed class NativeSystemRestorePointWriter(ILogService logService) : I
                 dwEventType = RESTOREPOINTINFO_EVENT_TYPE.BEGIN_SYSTEM_CHANGE,
                 dwRestorePtType = RESTOREPOINTINFO_TYPE.MODIFY_SETTINGS,
                 llSequenceNumber = 0,
-                szDescription = description.AsSpan(0, Math.Min(description.Length, MaxDescriptionLength))
+                // The generated fixed buffer takes a span, not a string.
+                szDescription = TruncateDescription(description).AsSpan()
             };
 
             bool success = PInvoke.SRSetRestorePoint(restorePointInfo, out var status);
@@ -41,6 +42,11 @@ internal sealed class NativeSystemRestorePointWriter(ILogService logService) : I
             RestoreRestorePointFrequencyThrottle(previousValue);
         }
     }
+
+    internal static string TruncateDescription(string description) =>
+        description.Length <= MaxDescriptionLength
+            ? description
+            : description[..MaxDescriptionLength];
 
     private void DisableRestorePointFrequencyThrottle(out int? previousValue)
     {

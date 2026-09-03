@@ -82,12 +82,12 @@ internal sealed class SystemRestoreService : ISystemRestoreService
 
     // Same \\?\Volume{guid}\ string Win32_Volume.DeviceID reports, read in-process instead of over a
     // COM round trip to WmiPrvSE. The function has no answer on ReFS or SMB, so WMI stays behind it.
-    internal unsafe string? QueryCDeviceIdNative()
+    internal unsafe string? QueryCDeviceIdNative(string mountPoint = @"C:\")
     {
         try
         {
             Span<char> buffer = stackalloc char[VolumeNameBufferLength];
-            if (!PInvoke.GetVolumeNameForVolumeMountPoint(@"C:\", buffer))
+            if (!PInvoke.GetVolumeNameForVolumeMountPoint(mountPoint, buffer))
             {
                 _logService.Log(LogLevel.Info,
                     $"[SystemRestoreService] GetVolumeNameForVolumeMountPoint failed (error {Marshal.GetLastWin32Error()}); falling back to WMI");

@@ -13,10 +13,11 @@ public class DriverInstallStepWriterTests
     private const string Work = "C:\\work";
     private const string XmlPath = "C:\\work\\autounattend.xml";
     private const string StagedDir = "C:\\work\\sources\\$OEM$\\$$\\Drivers";
-    private const string LegacyScript = "C:\\work\\sources\\$OEM$\\$$\\Setup\\Scripts\\SetupComplete.cmd";
     private const string ExtractPath = "powershell.exe -NoProfile -Command \"$sb = [scriptblock]::Create( $xml.unattend.Extensions.ExtractScript ); Invoke-Command -ScriptBlock $sb -ArgumentList $xml;\"";
     private const string DisablePath = "powershell.exe -NoProfile -Command \"Get-NetAdapter | Disable-NetAdapter -Confirm:$false\"";
     private const string DisableDescription = "Disable All Network Adapters Temporarily so Windows Doesn't Update During OOBE and to Allow Local Account Creation";
+    private const string DisableAdapterA = "powershell.exe -NoProfile -Command \"Disable-NetAdapter -Name 'A' -Confirm:$false\"";
+    private const string DisableAdapterB = "powershell.exe -NoProfile -Command \"Disable-NetAdapter -Name 'B' -Confirm:$false\"";
 
     private static readonly XNamespace U = "urn:schemas-microsoft-com:unattend";
     private static readonly XNamespace Wcm = "http://schemas.microsoft.com/WMIConfig/2002/State";
@@ -131,7 +132,6 @@ public class DriverInstallStepWriterTests
         result.Should().Be(DriverInstallStepResult.NoDriversStaged);
         _files.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        _files.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -488,25 +488,82 @@ foreach( $file in $Document.unattend.Extensions.File ) {
     }
 
     [Fact]
-    public async Task EnsureAsync_RetiredSetupCompleteScript_IsDeleted()
+    public async Task EnsureAsync_DisableComesFirst_MovesItBehindTheInstall()
     {
         StageDrivers();
-        MediaXml(TemplateShapedXml);
-        _files.Setup(f => f.FileExists(LegacyScript)).Returns(true);
+        MediaXml(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<unattend xmlns=""urn:schemas-microsoft-com:unattend"" xmlns:wcm=""http://schemas.microsoft.com/WMIConfig/2002/State"">
+  <settings pass=""specialize"">
+    <component name=""Microsoft-Windows-Deployment"" processorArchitecture=""amd64"" publicKeyToken=""31bf3856ad364e35"" language=""neutral"" versionScope=""nonSxS"">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action=""add""><Order>1</Order><Description>" + DisableDescription + @"</Description><Path>" + DisablePath + @"</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>2</Order><Description>" + DriverInstallStepWriter.ExtractDescription + @"</Description><Path>" + ExtractPath + @"</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>3</Order><Description>Bypass</Description><Path>reg.exe add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path></RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+</unattend>");
 
-        await Sut().EnsureAsync(Work);
+        var result = await Sut().EnsureAsync(Work);
 
-        _files.Verify(f => f.DeleteFile(LegacyScript), Times.Once);
+        result.Should().Be(DriverInstallStepResult.Added);
+        var amd64 = SpecializeComponent(Written(), "amd64");
+        OrderOf(Described(amd64, DriverInstallStepWriter.ExtractDescription)).Should().Be("1");
+        OrderOf(Described(amd64, "Bypass")).Should().Be("2");
+        OrderOf(MarkerCommand(amd64)).Should().Be("3");
+        OrderOf(Described(amd64, DisableDescription)).Should().Be("4");
+        Commands(amd64).Last().Should().BeSameAs(Described(amd64, DisableDescription));
     }
 
     [Fact]
-    public async Task EnsureAsync_NoRetiredScript_DeletesNothing()
+    public async Task EnsureAsync_TwoDisables_MoveBothBehindTheInstallInOrder()
     {
         StageDrivers();
-        MediaXml(TemplateShapedXml);
+        MediaXml(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<unattend xmlns=""urn:schemas-microsoft-com:unattend"" xmlns:wcm=""http://schemas.microsoft.com/WMIConfig/2002/State"">
+  <settings pass=""specialize"">
+    <component name=""Microsoft-Windows-Deployment"" processorArchitecture=""amd64"" publicKeyToken=""31bf3856ad364e35"" language=""neutral"" versionScope=""nonSxS"">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action=""add""><Order>1</Order><Description>" + DriverInstallStepWriter.ExtractDescription + @"</Description><Path>" + ExtractPath + @"</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>2</Order><Description>Disable adapter A</Description><Path>" + DisableAdapterA + @"</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>3</Order><Description>Bypass</Description><Path>reg.exe add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>4</Order><Description>Disable adapter B</Description><Path>" + DisableAdapterB + @"</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action=""add""><Order>5</Order><Description>Fifth</Description><Path>cmd.exe /c echo five</Path></RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+</unattend>");
 
-        await Sut().EnsureAsync(Work);
+        var result = await Sut().EnsureAsync(Work);
 
-        _files.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Never);
+        result.Should().Be(DriverInstallStepResult.Added);
+        var amd64 = SpecializeComponent(Written(), "amd64");
+        Commands(amd64).Select(OrderOf).Should().Equal("1", "2", "3", "4", "5", "6");
+        OrderOf(Described(amd64, "Bypass")).Should().Be("2");
+        OrderOf(Described(amd64, "Fifth")).Should().Be("3");
+        OrderOf(MarkerCommand(amd64)).Should().Be("4");
+        Commands(amd64).TakeLast(2).Select(PathOf).Should().Equal(DisableAdapterA, DisableAdapterB);
+    }
+
+    [Fact]
+    public async Task EnsureAsync_RootWithNoSettingsAtAll_PutsTheNewSettingsBeforeTheExtensions()
+    {
+        StageDrivers();
+        MediaXml(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<unattend xmlns=""urn:schemas-microsoft-com:unattend"" xmlns:wcm=""http://schemas.microsoft.com/WMIConfig/2002/State"">
+  <Extensions xmlns=""urn:custom:extensions""><Data>kept</Data></Extensions>
+</unattend>");
+
+        var result = await Sut().EnsureAsync(Work);
+
+        result.Should().Be(DriverInstallStepResult.Added);
+        var doc = Written();
+        doc.Root!.Elements().Select(e => e.Name.LocalName).Should().Equal("settings", "Extensions");
+        foreach (var architecture in new[] { "x86", "arm64", "amd64" })
+        {
+            var component = SpecializeComponent(doc, architecture);
+            OrderOf(Described(component, DriverInstallStepWriter.ExtractDescription)).Should().Be("1");
+            OrderOf(MarkerCommand(component)).Should().Be("2");
+        }
     }
 }

@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "कोई आईएसओ नहीं चुना गया",
   "WIMUtil_Status_WaitForConversion": "रूपांतरण पूरा होने तक प्रतीक्षा करें",
   "WIMUtil_Status_CompleteStep1": "चरण 1 पूरा करें",
-  "WIMUtil_Status_XmlAdded": "✓ XML जोड़ा गया",
   "WIMUtil_Status_NoXmlAdded": "कोई XML नहीं जोड़ा गया (वैकल्पिक)",
   "WIMUtil_Status_DriversAdded": "✓ ड्राइवर जोड़े गए",
   "WIMUtil_Status_NoDriversAdded": "कोई ड्राइवर नहीं जोड़ा गया (वैकल्पिक)",

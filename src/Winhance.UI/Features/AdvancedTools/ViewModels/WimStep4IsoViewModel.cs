@@ -287,7 +287,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         try
         {
             var report = await _answerFileValidator.ValidateAsync(answerFile);
-            _checkState.LastReport = report;
+            _checkState.Publish(answerFile, report);
             if (report.Findings.Count == 0)
                 return true;
 

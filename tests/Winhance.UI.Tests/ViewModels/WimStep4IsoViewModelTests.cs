@@ -567,6 +567,7 @@ public class WimStep4IsoViewModelTests
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport.Should().BeSameAs(report);
     }
 

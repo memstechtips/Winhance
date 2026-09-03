@@ -261,7 +261,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
             var previous = _checkState.LastReport;
             var report = await _answerFileValidator.ValidateAsync(answerFile);
-            _checkState.LastReport = report;
+            _checkState.Publish(answerFile, report);
             if (report.Findings.Count > 0 && !SameFindings(report, previous))
             {
                 await _dialogService.ShowTaskOutputDialogAsync(

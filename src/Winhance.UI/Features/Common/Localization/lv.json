@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Nav atlasīts ISO",
   "WIMUtil_Status_WaitForConversion": "Gaidiet konversijas pabeigšanu",
   "WIMUtil_Status_CompleteStep1": "Pabeidziet 1. soli",
-  "WIMUtil_Status_XmlAdded": "✓ XML pievienots",
   "WIMUtil_Status_NoXmlAdded": "Nav pievienots XML (neobligāti)",
   "WIMUtil_Status_DriversAdded": "✓ Draiveri pievienoti",
   "WIMUtil_Status_NoDriversAdded": "Nav pievienoti draiveri (neobligāti)",

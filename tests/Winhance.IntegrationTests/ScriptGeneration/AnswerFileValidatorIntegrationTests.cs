@@ -60,6 +60,28 @@ public class AnswerFileValidatorIntegrationTests
         errors["bad"].Should().StartWith("line ").And.Contain("Missing closing").And.NotContain("winhance_parse_");
     }
 
+    // A batch that dies partway can still exit 0 with an empty stderr, which the runner reports as
+    // success, so the sentinel is the only proof it finished. Dropping the sentinel line on its way
+    // to disk reproduces that without depending on how powershell.exe exits.
+    [Fact]
+    public async Task FindParseErrors_WithoutItsSentinel_IsReportedAsIncomplete()
+    {
+        var files = new Mock<IFileSystemService>();
+        files.Setup(f => f.GetTempPath()).Returns(Path.GetTempPath());
+        files.Setup(f => f.CombinePath(It.IsAny<string[]>())).Returns((string[] parts) => Path.Combine(parts));
+        files.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        files.Setup(f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .Returns((string path, byte[] bytes, CancellationToken ct) => File.WriteAllBytesAsync(path, bytes, ct));
+        files.Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string path, string contents, CancellationToken ct) =>
+                File.WriteAllTextAsync(path, contents.Replace("Write-Host 'PARSE_DONE'", string.Empty, StringComparison.Ordinal), ct));
+        files.Setup(f => f.DeleteFile(It.IsAny<string>())).Callback((string path) => File.Delete(path));
+
+        var act = () => new PowerShellRunner(files.Object).FindParseErrorsAsync(new Dictionary<string, string> { ["only"] = "Write-Host 'fine'" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*did not complete*");
+    }
+
     [Fact]
     public async Task TemplateWithAScript_IsClean()
     {

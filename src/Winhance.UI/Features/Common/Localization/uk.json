@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "ISO не вибрано",
   "WIMUtil_Status_WaitForConversion": "Зачекайте завершення перетворення",
   "WIMUtil_Status_CompleteStep1": "Завершіть крок 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML додано",
   "WIMUtil_Status_NoXmlAdded": "XML не додано (необов'язково)",
   "WIMUtil_Status_DriversAdded": "✓ Драйвери додано",
   "WIMUtil_Status_NoDriversAdded": "Драйвери не додано (необов'язково)",

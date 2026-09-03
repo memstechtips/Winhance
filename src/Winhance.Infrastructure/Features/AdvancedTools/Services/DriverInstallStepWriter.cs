@@ -67,8 +67,6 @@ exit 0
         if (!files.DirectoryExists(files.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers")))
             return DriverInstallStepResult.NoDriversStaged;
 
-        DeleteRetiredSetupCompleteScript(workingDirectory);
-
         var xmlPath = files.CombinePath(workingDirectory, "autounattend.xml");
         var existed = files.FileExists(xmlPath);
         var doc = existed
@@ -94,18 +92,6 @@ exit 0
 
         log.LogInformation($"No autounattend.xml on the media; created a driver-install-only one at {xmlPath}");
         return DriverInstallStepResult.CreatedXml;
-    }
-
-    // Media reused from an older Winhance still carries a SetupComplete.cmd; only one install
-    // mechanism may ship.
-    private void DeleteRetiredSetupCompleteScript(string workingDirectory)
-    {
-        var legacyScript = files.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Setup", "Scripts", "SetupComplete.cmd");
-        if (!files.FileExists(legacyScript))
-            return;
-
-        files.DeleteFile(legacyScript);
-        log.LogInformation($"Deleted the retired SetupComplete.cmd at {legacyScript}");
     }
 
     // A foreign block keeps its own extractor: both known ones walk every File element whatever
@@ -147,8 +133,8 @@ exit 0
 
     // An answer file that disables network adapters in specialize does it to keep OOBE offline
     // for the local-account flow, and only adapters that exist at that moment get disabled. A NIC
-    // driver installed afterwards brings its adapter up enabled, so that command moves behind the
-    // install, and the commands it vacated close up.
+    // driver installed afterwards brings its adapter up enabled, so every such command moves
+    // behind the install in its original order, and the orders they vacate close up.
     private static bool EnsureCommands(XElement component)
     {
         var runSynchronous = component.Element(Unattend + "RunSynchronous");
@@ -162,18 +148,22 @@ exit 0
         if (commands.Any(c => (string?)c.Element(Unattend + "Description") == Marker))
             return false;
 
-        var disable = commands.FirstOrDefault(c => PathOf(c).Contains("Disable-NetAdapter", StringComparison.Ordinal));
-        if (disable is not null)
+        var disables = commands.Where(c => PathOf(c).Contains("Disable-NetAdapter", StringComparison.Ordinal)).ToList();
+        if (disables.Count > 0)
         {
-            disable.Remove();
-            commands.Remove(disable);
-            if (int.TryParse((string?)disable.Element(Unattend + "Order"), out var vacated))
+            var vacated = new List<int>();
+            foreach (var disable in disables)
             {
-                foreach (var order in commands.Elements(Unattend + "Order"))
-                {
-                    if (int.TryParse(order.Value, out var value) && value > vacated)
-                        order.SetValue(value - 1);
-                }
+                disable.Remove();
+                commands.Remove(disable);
+                if (int.TryParse((string?)disable.Element(Unattend + "Order"), out var vacatedOrder))
+                    vacated.Add(vacatedOrder);
+            }
+
+            foreach (var order in commands.Elements(Unattend + "Order"))
+            {
+                if (int.TryParse(order.Value, out var value))
+                    order.SetValue(value - vacated.Count(v => v < value));
             }
         }
 
@@ -181,9 +171,9 @@ exit 0
         if (!commands.Any(c => IsExtractCommand(PathOf(c))))
             runSynchronous.Add(BuildCommand(next++, ExtractDescription, Extractor.Value.Command));
         runSynchronous.Add(BuildCommand(next++, Marker, InstallCommand));
-        if (disable is not null)
+        foreach (var disable in disables)
         {
-            disable.SetElementValue(Unattend + "Order", next);
+            disable.SetElementValue(Unattend + "Order", next++);
             runSynchronous.Add(disable);
         }
 

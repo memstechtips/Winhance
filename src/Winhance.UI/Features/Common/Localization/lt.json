@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Nepasirinktas joks ISO",
   "WIMUtil_Status_WaitForConversion": "Palaukite, kol bus baigtas konvertavimas",
   "WIMUtil_Status_CompleteStep1": "Užbaikite 1 žingsnį",
-  "WIMUtil_Status_XmlAdded": "✓ XML pridėtas",
   "WIMUtil_Status_NoXmlAdded": "XML nepridėtas (pasirinktinai)",
   "WIMUtil_Status_DriversAdded": "✓ Tvarkyklės pridėtos",
   "WIMUtil_Status_NoDriversAdded": "Tvarkyklės nepridėtos (pasirinktinai)",

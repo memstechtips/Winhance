@@ -1477,7 +1477,6 @@
   "WIMUtil_Status_NoIsoSelected": "ISO가 선택되지 않았습니다",
   "WIMUtil_Status_WaitForConversion": "변환이 완료될 때까지 기다리십시오",
   "WIMUtil_Status_CompleteStep1": "1단계를 완료하십시오",
-  "WIMUtil_Status_XmlAdded": "✓ XML 추가 완료",
   "WIMUtil_Status_NoXmlAdded": "XML이 추가되지 않았습니다 (선택 사항)",
   "WIMUtil_Status_DriversAdded": "✓ 드라이버 추가 완료",
   "WIMUtil_Status_NoDriversAdded": "드라이버가 추가되지 않았습니다 (선택 사항)",

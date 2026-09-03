@@ -499,7 +499,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     public async Task ExtractAndAddSystemDriversCommand_SameFindingsAsStepTwo_StaysSilent()
     {
         ArrangeExtractSucceeds();
-        _checkState.LastReport = new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5")]);
+        _checkState.Publish("C:\\WorkDir\\autounattend.xml", new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5")]));
         var rechecked = new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 12", "5")]);
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
@@ -508,6 +508,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
         _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport.Should().BeSameAs(rechecked);
     }
 
@@ -515,7 +516,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     public async Task ExtractAndAddSystemDriversCommand_ChangedFindings_ShowsTheDialog()
     {
         ArrangeExtractSucceeds();
-        _checkState.LastReport = new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5")]);
+        _checkState.Publish("C:\\WorkDir\\autounattend.xml", new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5")]));
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.CommandEmpty, AnswerFileSeverity.Error, "line 20", "Path")]));

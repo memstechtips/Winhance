@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Nebylo vybráno žádné ISO",
   "WIMUtil_Status_WaitForConversion": "Počkejte na dokončení převodu",
   "WIMUtil_Status_CompleteStep1": "Dokončete krok 1",
-  "WIMUtil_Status_XmlAdded": "✓ XML přidáno",
   "WIMUtil_Status_NoXmlAdded": "Nebylo přidáno žádné XML (volitelné)",
   "WIMUtil_Status_DriversAdded": "✓ Ovladače přidány",
   "WIMUtil_Status_NoDriversAdded": "Nebyly přidány žádné ovladače (volitelné)",

@@ -33,6 +33,9 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
     private readonly WimUtilViewModel _sut;
 
+    // Step1 builds its working directory from the mocked temp path, and every VM joins with a backslash.
+    private string MediaCopy => _sut.Step1.WorkingDirectory + "\\autounattend.xml";
+
     public WimUtilViewModelTests()
     {
         _mockLocalizationService
@@ -332,27 +335,67 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void Step2Header_ShowsTheStep2StatusOnceAnXmlIsAdded()
     {
-        _sut.Step1.IsExtractionComplete = true;
-        _sut.Step2.IsXmlAdded = true;
+        ArrangeXmlAdded();
 
-        _sut.Step2.XmlStatus = "WIMUtil_AnswerFile_Verdict_WillFail";
-
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
     }
 
     [Fact]
     public void Step2Header_WithoutAnXml_SaysSo()
     {
         _sut.Step1.IsExtractionComplete = true;
-        _sut.Step2.XmlStatus = "WIMUtil_AnswerFile_Verdict_Clean";
+        _sut.Step2.XmlStatus = "WIMUtil_Status_XmlGenSuccess";
 
         _sut.Step2.IsXmlAdded = false;
 
         _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_NoXmlAdded");
     }
 
+    [Fact]
+    public void Step2Header_ShowsTheVerdictForTheMediaCopy()
+    {
+        ArrangeXmlAdded();
+
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([ErrorFinding()]));
+
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+    }
+
+    [Fact]
+    public void Step2Header_ARejectedFileReport_StaysOnTheStep2StatusWhileTheBannerOpens()
+    {
+        ArrangeXmlAdded();
+
+        _sut.AnswerFileCheck.Publish("C:\\Downloads\\broken.xml", new AnswerFileReport([ErrorFinding()]));
+
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _sut.AnswerFileBannerOpen.Should().BeTrue();
+        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+    }
+
+    [Fact]
+    public void Step2Header_ClearedReport_ReturnsToTheStep2Status()
+    {
+        ArrangeXmlAdded();
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([ErrorFinding()]));
+
+        _sut.AnswerFileCheck.Publish(null, null);
+
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
+    }
+
+    private void ArrangeXmlAdded()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step2.IsXmlAdded = true;
+        _sut.Step2.XmlStatus = "WIMUtil_Status_XmlGenSuccess";
+    }
+
     private static AnswerFileFinding ErrorFinding() =>
         new(AnswerFileRule.CommandEmpty, AnswerFileSeverity.Error, "line 3: settings[specialize]", "Path");
+
+    private static AnswerFileFinding WarningFinding() =>
+        new(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5");
 
     [Fact]
     public void AnswerFileBanner_ClosedUntilAReportWithFindingsArrives()
@@ -368,7 +411,7 @@ public class WimUtilViewModelTests : IDisposable
         var raised = new List<string?>();
         _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
 
-        _sut.AnswerFileCheck.LastReport = new AnswerFileReport([ErrorFinding()]);
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([ErrorFinding()]));
 
         _sut.AnswerFileBannerOpen.Should().BeTrue();
         _sut.AnswerFileBannerSeverity.Should().Be(InfoBarSeverity.Error);
@@ -386,8 +429,7 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void AnswerFileBanner_WarningsOnly_OpensAtWarningSeverity()
     {
-        _sut.AnswerFileCheck.LastReport = new AnswerFileReport(
-            [new AnswerFileFinding(AnswerFileRule.OrderDuplicate, AnswerFileSeverity.Warning, "line 9", "5")]);
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([WarningFinding()]));
 
         _sut.AnswerFileBannerOpen.Should().BeTrue();
         _sut.AnswerFileBannerSeverity.Should().Be(InfoBarSeverity.Warning);
@@ -397,8 +439,8 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void AnswerFileBanner_CleanReport_StaysClosed()
     {
-        _sut.AnswerFileCheck.LastReport = new AnswerFileReport([ErrorFinding()]);
-        _sut.AnswerFileCheck.LastReport = new AnswerFileReport([]);
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([ErrorFinding()]));
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([]));
 
         _sut.AnswerFileBannerOpen.Should().BeFalse();
         _sut.AnswerFileBannerTitle.Should().BeEmpty();
@@ -408,16 +450,47 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void WorkingDirectoryChange_ClearsTheAnswerFileReport()
     {
-        _sut.AnswerFileCheck.LastReport = new AnswerFileReport([ErrorFinding()]);
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([ErrorFinding()]));
 
         _sut.Step1.WorkingDirectory = "C:\\Other";
 
         _sut.AnswerFileCheck.LastReport.Should().BeNull();
+        _sut.AnswerFileCheck.Subject.Should().BeNull();
         _sut.AnswerFileBannerOpen.Should().BeFalse();
     }
 
     [Fact]
     public async Task AStepCheck_LandsOnTheBanner()
+    {
+        ArrangeDriverRun();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([ErrorFinding()]));
+
+        await _sut.Step3.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _sut.AnswerFileBannerOpen.Should().BeTrue();
+        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+    }
+
+    [Fact]
+    public async Task AStepCheck_AlsoMovesTheStep2Header()
+    {
+        ArrangeDriverRun();
+        ArrangeXmlAdded();
+        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([WarningFinding()]));
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_MayFail");
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([ErrorFinding()]));
+
+        await _sut.Step3.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
+    }
+
+    private void ArrangeDriverRun()
     {
         _mockTaskProgressService.Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>())).Returns(new CancellationTokenSource());
         _mockTaskProgressService.Setup(t => t.CurrentTaskCancellationSource).Returns(new CancellationTokenSource());
@@ -427,13 +500,5 @@ public class WimUtilViewModelTests : IDisposable
             .Setup(c => c.AddDriversAsync(It.IsAny<string>(), null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(x => x.EndsWith("autounattend.xml", StringComparison.Ordinal)))).Returns(true);
-        _mockAnswerFileValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AnswerFileReport([ErrorFinding()]));
-
-        await _sut.Step3.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.AnswerFileBannerOpen.Should().BeTrue();
-        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
     }
 }

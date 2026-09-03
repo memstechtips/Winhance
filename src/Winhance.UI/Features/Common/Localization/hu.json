@@ -1433,7 +1433,6 @@
   "WIMUtil_Status_NoIsoSelected": "Nincs ISO kiválasztva",
   "WIMUtil_Status_WaitForConversion": "Várjon, amíg a konvertálás befejeződik",
   "WIMUtil_Status_CompleteStep1": "1. lépés befejezése",
-  "WIMUtil_Status_XmlAdded": "✓ XML hozzáadva",
   "WIMUtil_Status_NoXmlAdded": "Nincs XML hozzáadva (választható)",
   "WIMUtil_Status_DriversAdded": "✓ Illesztőprogramok hozzáadva",
   "WIMUtil_Status_NoDriversAdded": "Nincsenek illesztőprogramok hozzáadva (választható)",
