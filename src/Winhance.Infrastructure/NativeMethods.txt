@@ -21,12 +21,19 @@ POWER_DATA_ACCESSOR
 POWER_INFORMATION_LEVEL
 SYSTEM_POWER_CAPABILITIES
 
+// Battery presence, without a Win32_Battery round trip to WmiPrvSE (kernel32.dll)
+GetSystemPowerStatus
+SYSTEM_POWER_STATUS
+
 // Frees the GUID buffers PowerGetActiveScheme / PowerDuplicateScheme allocate
 LocalFree
 
 // Boot firmware: BIOS vs UEFI (kernel32.dll)
 GetFirmwareType
 FIRMWARE_TYPE
+
+// C:'s volume GUID path, matched against the System Restore client list (kernel32.dll)
+GetVolumeNameForVolumeMountPoint
 
 // Product code of a downloaded MSI, read without touching machine state (msi.dll)
 MsiOpenPackageEx

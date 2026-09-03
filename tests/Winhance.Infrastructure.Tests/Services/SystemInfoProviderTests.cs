@@ -9,6 +9,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class SystemInfoProviderTests
 {
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
+    // These Collect_* facts intentionally hit the real machine's WMI/registry (see below) - a
+    // real IWmiApi, not a fake, keeps that behaviour unchanged.
+    private static readonly IWmiApi RealWmiApi = new WmiManagementApi();
 
     // Asserting the WMI-backed fields against whatever hardware runs the suite fails outright wherever
     // WMI is degraded - and proves almost nothing when it passes.
@@ -16,7 +19,7 @@ public class SystemInfoProviderTests
     // the assertions are about Winhance's parsing.
 
     private SystemInfoProvider Create(SystemInfoProvider.WmiQuery query) =>
-        new(_mockInteractiveUserService.Object, query);
+        new(_mockInteractiveUserService.Object, RealWmiApi, query);
 
     // Keys are matched case-insensitively, as WMI does.
     private static IReadOnlyDictionary<string, object?> Row(
@@ -47,7 +50,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Constructor_ValidService_CreatesInstance()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         provider.Should().NotBeNull();
     }
@@ -55,7 +58,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_DoesNotThrow()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var act = () => provider.Collect();
 
@@ -65,7 +68,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_ReturnsNonNullSystemInfo()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -94,7 +97,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_Architecture_IsRecognizedValue()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -104,7 +107,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_OperatingSystem_ContainsWindows()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -182,7 +185,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_Elevation_IsRecognizedValue()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -192,7 +195,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_DotNetRuntime_ContainsDotNet()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -215,7 +218,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_FirmwareType_IsRecognizedValue()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 
@@ -225,7 +228,7 @@ public class SystemInfoProviderTests
     [Fact]
     public void Collect_SecureBoot_IsRecognizedValue()
     {
-        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object);
+        var provider = new SystemInfoProvider(_mockInteractiveUserService.Object, RealWmiApi);
 
         var info = provider.Collect();
 

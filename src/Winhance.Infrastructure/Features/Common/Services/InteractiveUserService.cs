@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.Principal;
@@ -23,6 +22,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 {
     private readonly ILogService _logService;
     private readonly IProcessExecutor _processExecutor;
+    private readonly IWmiApi _wmiApi;
 
     private readonly bool _isOtsElevation;
     private readonly string? _interactiveUserSid;
@@ -36,10 +36,11 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     public string InteractiveUserName => _interactiveUserName;
     public bool HasInteractiveUserToken => !_interactiveUserToken.IsNull;
 
-    public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor)
+    public InteractiveUserService(ILogService logService, IProcessExecutor processExecutor, IWmiApi wmiApi)
     {
         _logService = logService;
         _processExecutor = processExecutor;
+        _wmiApi = wmiApi;
 
         var currentSid = WindowsIdentity.GetCurrent().User?.Value;
         string? detectedSid = null;
@@ -427,16 +428,16 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
         return null;
     }
 
-    private string? TryGetSidFromWmi()
+    internal string? TryGetSidFromWmi()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher("SELECT UserName FROM Win32_ComputerSystem");
-            foreach (ManagementObject obj in searcher.Get())
+            var systems = _wmiApi.Query(WmiScope.Cimv2, "Win32_ComputerSystem", null);
+            foreach (var obj in systems)
             {
                 using (obj)
                 {
-                    var domainUser = obj["UserName"]?.ToString();
+                    var domainUser = obj.Get("UserName")?.ToString();
                     if (string.IsNullOrEmpty(domainUser))
                         continue;
 

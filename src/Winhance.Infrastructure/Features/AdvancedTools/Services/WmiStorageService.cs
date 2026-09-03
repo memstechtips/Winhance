@@ -1,11 +1,15 @@
 using System.Globalization;
 using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 
-internal sealed class WmiStorageService(IStorageManagementApi api, ILogService logService) : IStorageOperations
+internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) : IStorageOperations
 {
+    // MSFT_Disk / MSFT_Partition / MSFT_Volume live in this namespace, not the WMI default.
+    private const string StorageNamespace = @"root\Microsoft\Windows\Storage";
+
     // MSFT_Disk's PartitionStyle. MBR, not GPT: one MBR + FAT32 + active partition boots both
     // firmware types, which is exactly why Microsoft's instructions specify FAT32. IsActive is
     // documented as "only valid when the disk's PartitionStyle property is MBR".
@@ -25,7 +29,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
     public IReadOnlyList<RemovableDrive> GetDisks()
     {
         var disks = new List<RemovableDrive>();
-        foreach (var disk in api.Query("MSFT_Disk", null))
+        foreach (var disk in wmiApi.Query(StorageNamespace, "MSFT_Disk", null))
         {
             using (disk)
             {
@@ -172,7 +176,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
 
         // The method page types CreatedPartition as a String; the wire carries the embedded
         // MSFT_Partition itself, not a path to one.
-        using var created = result.Output.Get("CreatedPartition") as IStorageInstance
+        using var created = result.Output.Get("CreatedPartition") as IWmiInstance
             ?? throw new InvalidOperationException($"CreatePartition on disk {diskNumber} returned no partition.");
         var partitionNumber = Convert.ToInt32(created.Get("PartitionNumber"), CultureInfo.InvariantCulture);
 
@@ -231,22 +235,22 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
         return Convert.ToUInt64(disk.Get("LargestFreeExtent"), CultureInfo.InvariantCulture);
     }
 
-    private static char ReadDriveLetter(IStorageInstance partition) =>
+    private static char ReadDriveLetter(IWmiInstance partition) =>
         (char)Convert.ToUInt16(partition.Get("DriveLetter"), CultureInfo.InvariantCulture);
 
-    private IReadOnlyList<IStorageInstance> GetPartitions(int diskNumber) =>
-        api.Query("MSFT_Partition", $"DiskNumber = {diskNumber}");
+    private IReadOnlyList<IWmiInstance> GetPartitions(int diskNumber) =>
+        wmiApi.Query(StorageNamespace, "MSFT_Partition", $"DiskNumber = {diskNumber}");
 
-    private IStorageInstance GetDisk(int diskNumber) =>
+    private IWmiInstance GetDisk(int diskNumber) =>
         Single("MSFT_Disk", $"Number = {diskNumber}", $"Disk {diskNumber}");
 
-    private IStorageInstance GetPartition(int diskNumber, int partitionNumber) =>
+    private IWmiInstance GetPartition(int diskNumber, int partitionNumber) =>
         Single("MSFT_Partition", $"DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
             $"Partition {partitionNumber} on disk {diskNumber}");
 
-    private IStorageInstance Single(string className, string condition, string what)
+    private IWmiInstance Single(string className, string condition, string what)
     {
-        var matches = api.Query(className, condition);
+        var matches = wmiApi.Query(StorageNamespace, className, condition);
         if (matches.Count == 0)
         {
             throw new InvalidOperationException($"{what} is no longer present.");
@@ -262,7 +266,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
 
     // MSFT_Volume carries no disk or partition number; the MSFT_PartitionToVolume association is
     // the only way from one to the other, and it is how Get-Partition | Get-Volume gets there too.
-    private IStorageInstance GetVolume(int diskNumber, int partitionNumber)
+    private IWmiInstance GetVolume(int diskNumber, int partitionNumber)
     {
         using var partition = GetPartition(diskNumber, partitionNumber);
         var volumes = partition.GetRelated("MSFT_Volume");
@@ -280,8 +284,8 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
         return volumes[0];
     }
 
-    private static StorageMethodResult Invoke(
-        IStorageInstance target,
+    private static WmiMethodResult Invoke(
+        IWmiInstance target,
         string method,
         IReadOnlyDictionary<string, object>? parameters,
         string description,
@@ -303,7 +307,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
     // The API's own text where it supplies one; its return codes are far more actionable than a
     // generic failure - 41000 tells the user the disk was never initialized, "operation failed"
     // tells them nothing.
-    private static string DescribeFailure(uint returnValue, IStorageInstance output)
+    private static string DescribeFailure(uint returnValue, IWmiInstance output)
     {
         var extended = ReadExtendedStatus(output);
         if (!string.IsNullOrWhiteSpace(extended))
@@ -324,7 +328,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
 
     // The method pages type this as a String; the wire carries an embedded MSFT_StorageExtendedStatus.
     // Read both, or a failure arrives as a bare number.
-    private static string? ReadExtendedStatus(IStorageInstance output)
+    private static string? ReadExtendedStatus(IWmiInstance output)
     {
         var value = output.Get("ExtendedStatus");
         if (value is string text)
@@ -332,7 +336,7 @@ internal sealed class WmiStorageService(IStorageManagementApi api, ILogService l
             return text;
         }
 
-        if (value is IStorageInstance status)
+        if (value is IWmiInstance status)
         {
             using (status)
             {

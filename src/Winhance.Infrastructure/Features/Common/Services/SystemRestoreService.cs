@@ -1,5 +1,6 @@
-using System.Management;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Windows.Win32;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -12,17 +13,22 @@ internal sealed class SystemRestoreService : ISystemRestoreService
     private const string SystemRestorePolicyKeyPath = @"SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore";
     private const string DisableSrValueName = "DisableSR";
 
+    // The documented sizing for a volume GUID path buffer.
+    private const int VolumeNameBufferLength = 50;
+
     private readonly ILogService _logService;
 
-    // C:'s volume GUID cannot change while the process lives, but the enabled state can - so only the WMI
-    // lookup is cached and both registry reads stay live. That removes the per-batch round trip without a
-    // staleness window: the setting toggles through a PowerShell ScriptEffect, so no service owns an
-    // invalidation hook to call.
+    // C:'s volume GUID cannot change while the process lives, but the enabled state can - so only the
+    // volume lookup is cached and both registry reads stay live. That removes the per-batch round trip
+    // without a staleness window: the setting toggles through a PowerShell ScriptEffect, so no service
+    // owns an invalidation hook to call.
     private readonly Lazy<string?> _cDeviceId;
+    private readonly IWmiApi _wmiApi;
 
-    public SystemRestoreService(ILogService logService)
+    public SystemRestoreService(ILogService logService, IWmiApi wmiApi)
     {
         _logService = logService;
+        _wmiApi = wmiApi;
         _cDeviceId = new Lazy<string?>(QueryCDeviceId, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
@@ -72,19 +78,50 @@ internal sealed class SystemRestoreService : ISystemRestoreService
         }
     }
 
-    private string? QueryCDeviceId()
+    private string? QueryCDeviceId() => QueryCDeviceIdNative() ?? QueryCDeviceIdFromWmi();
+
+    // Same \\?\Volume{guid}\ string Win32_Volume.DeviceID reports, read in-process instead of over a
+    // COM round trip to WmiPrvSE. The function has no answer on ReFS or SMB, so WMI stays behind it.
+    internal unsafe string? QueryCDeviceIdNative()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT DeviceID FROM Win32_Volume WHERE DriveLetter='C:'");
-            using var collection = searcher.Get();
-            foreach (ManagementObject mo in collection)
+            Span<char> buffer = stackalloc char[VolumeNameBufferLength];
+            if (!PInvoke.GetVolumeNameForVolumeMountPoint(@"C:\", buffer))
             {
-                using (mo)
-                    return mo["DeviceID"] as string;
+                _logService.Log(LogLevel.Info,
+                    $"[SystemRestoreService] GetVolumeNameForVolumeMountPoint failed (error {Marshal.GetLastWin32Error()}); falling back to WMI");
+                return null;
             }
+
+            var end = buffer.IndexOf('\0');
+            return new string(buffer[..(end < 0 ? buffer.Length : end)]);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"[SystemRestoreService] C: volume native lookup threw {ex.GetType().Name}: {ex.Message}");
             return null;
+        }
+    }
+
+    internal string? QueryCDeviceIdFromWmi()
+    {
+        try
+        {
+            var volumes = _wmiApi.Query(WmiScope.Cimv2, "Win32_Volume", "DriveLetter='C:'");
+            if (volumes.Count == 0)
+            {
+                return null;
+            }
+
+            using var found = volumes[0];
+            foreach (var extra in volumes.Skip(1))
+            {
+                extra.Dispose();
+            }
+
+            return found.Get("DeviceID") as string;
         }
         catch (Exception ex)
         {

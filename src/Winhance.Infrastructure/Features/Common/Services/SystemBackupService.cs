@@ -1,9 +1,6 @@
 using System.Globalization;
 using System.Management;
-using Microsoft.Win32;
-using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.System.Restore;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -16,6 +13,8 @@ internal class SystemBackupService : ISystemBackupService
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
     private readonly ISystemRestoreService _systemRestoreService;
+    private readonly IWmiApi _wmiApi;
+    private readonly ISystemRestorePointWriter _restorePointWriter;
 
     private const int VerificationMaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
@@ -23,16 +22,23 @@ internal class SystemBackupService : ISystemBackupService
     // Below this free share of shadow storage, the max size is doubled before creating a restore point.
     private const double MinFreeStoragePercent = 15.0;
 
+    // SystemRestore lives here, not the WMI default namespace.
+    private const string DefaultNamespace = @"root\default";
+
     public SystemBackupService(
         ILogService logService,
         ILocalizationService localization,
         IProcessExecutor processExecutor,
-        ISystemRestoreService systemRestoreService)
+        ISystemRestoreService systemRestoreService,
+        IWmiApi wmiApi,
+        ISystemRestorePointWriter restorePointWriter)
     {
         _logService = logService;
         _localization = localization;
         _processExecutor = processExecutor;
         _systemRestoreService = systemRestoreService;
+        _wmiApi = wmiApi;
+        _restorePointWriter = restorePointWriter;
     }
 
     public async Task<BackupResult> CreateRestorePointAsync(
@@ -143,7 +149,7 @@ internal class SystemBackupService : ISystemBackupService
         return null;
     }
 
-    private async Task<DateTime?> FindRestorePointAsync(string description)
+    internal async Task<DateTime?> FindRestorePointAsync(string description)
     {
         return await Task.Run(() =>
         {
@@ -152,24 +158,25 @@ internal class SystemBackupService : ISystemBackupService
                 _logService.Log(LogLevel.Info, $"Querying for restore point: '{description}'");
 
                 var escapedDescription = description.Replace("'", "\\'");
-                using var searcher = new ManagementObjectSearcher(
-                    @"root\default",
-                    $"SELECT * FROM SystemRestore WHERE Description = '{escapedDescription}'");
-                using var results = searcher.Get();
+                var results = _wmiApi.Query(
+                    DefaultNamespace, "SystemRestore", $"Description = '{escapedDescription}'");
 
-                foreach (ManagementObject obj in results)
+                if (results.Count > 0)
                 {
-                    using (obj)
+                    using var found = results[0];
+                    foreach (var extra in results.Skip(1))
                     {
-                        _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
-
-                        var creationTimeStr = obj["CreationTime"]?.ToString();
-                        if (creationTimeStr != null)
-                        {
-                            return (DateTime?)ManagementDateTimeConverter.ToDateTime(creationTimeStr);
-                        }
-                        return (DateTime?)DateTime.Now;
+                        extra.Dispose();
                     }
+
+                    _logService.Log(LogLevel.Info, $"Found existing restore point: '{description}'");
+
+                    var creationTimeStr = found.Get("CreationTime")?.ToString();
+                    if (creationTimeStr != null)
+                    {
+                        return (DateTime?)ManagementDateTimeConverter.ToDateTime(creationTimeStr);
+                    }
+                    return (DateTime?)DateTime.Now;
                 }
 
                 _logService.Log(LogLevel.Info, $"No restore point found with description: '{description}'");
@@ -183,44 +190,18 @@ internal class SystemBackupService : ISystemBackupService
         }).ConfigureAwait(false);
     }
 
-    // szDescription is a fixed MAX_DESC_W-char buffer whose setter throws instead of truncating,
-    // so a longer name must be trimmed, and the last slot is reserved for the null terminator.
-    private const int MaxDescriptionLength = (int)PInvoke.MAX_DESC_W - 1;
-
     private async Task<(bool Success, int StatusCode)> CreateRestorePointNativeAsync(string description)
     {
         return await Task.Run(() =>
         {
             try
             {
-                // Windows throttles restore point creation to once per 24 hours by default.
-                // SRSetRestorePointW silently returns success without creating a restore point
-                // if one was already created within the frequency window.
-                // Temporarily set the frequency to 0 (no limit) so our call always creates one.
-                DisableRestorePointFrequencyThrottle(out var previousValue);
-
-                try
+                var (success, statusCode) = _restorePointWriter.CreateRestorePoint(description);
+                if (!success)
                 {
-                    var restorePointInfo = new RESTOREPOINTINFOW
-                    {
-                        dwEventType = RESTOREPOINTINFO_EVENT_TYPE.BEGIN_SYSTEM_CHANGE,
-                        dwRestorePtType = RESTOREPOINTINFO_TYPE.MODIFY_SETTINGS,
-                        llSequenceNumber = 0,
-                        szDescription = description.AsSpan(0, Math.Min(description.Length, MaxDescriptionLength))
-                    };
-
-                    bool success = PInvoke.SRSetRestorePoint(restorePointInfo, out var status);
-                    var statusCode = (int)status.nStatus;
-                    if (!success)
-                    {
-                        _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({GetStatusDescription(statusCode)})");
-                    }
-                    return (success, statusCode);
+                    _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({GetStatusDescription(statusCode)})");
                 }
-                finally
-                {
-                    RestoreRestorePointFrequencyThrottle(previousValue);
-                }
+                return (success, statusCode);
             }
             catch (Exception ex)
             {
@@ -241,55 +222,6 @@ internal class SystemBackupService : ISystemBackupService
             (int)WIN32_ERROR.ERROR_TIMEOUT => "Operation timed out",
             _ => $"Unknown status code ({statusCode})"
         };
-    }
-
-    private const string SystemRestoreKeyPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore";
-    private const string FrequencyValueName = "SystemRestorePointCreationFrequency";
-
-    private void DisableRestorePointFrequencyThrottle(out int? previousValue)
-    {
-        previousValue = null;
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(SystemRestoreKeyPath, writable: true);
-            if (key == null) return;
-
-            var existing = key.GetValue(FrequencyValueName);
-            if (existing is int intVal)
-            {
-                previousValue = intVal;
-                if (intVal == 0) return;
-            }
-
-            key.SetValue(FrequencyValueName, 0, RegistryValueKind.DWord);
-            _logService.Log(LogLevel.Info, "Temporarily disabled restore point creation frequency throttle");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Could not disable restore point frequency throttle: {ex.Message}");
-        }
-    }
-
-    private void RestoreRestorePointFrequencyThrottle(int? previousValue)
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(SystemRestoreKeyPath, writable: true);
-            if (key == null) return;
-
-            if (previousValue.HasValue)
-            {
-                key.SetValue(FrequencyValueName, previousValue.Value, RegistryValueKind.DWord);
-            }
-            else
-            {
-                key.DeleteValue(FrequencyValueName, throwOnMissingValue: false);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Could not restore frequency throttle value: {ex.Message}");
-        }
     }
 
     private async Task EnsureSufficientShadowStorageAsync()
@@ -391,7 +323,7 @@ internal class SystemBackupService : ISystemBackupService
         return (long)(number * multiplier);
     }
 
-    private async Task<bool> EnableSystemRestoreAsync()
+    internal async Task<bool> EnableSystemRestoreAsync()
     {
         try
         {
@@ -400,14 +332,9 @@ internal class SystemBackupService : ISystemBackupService
             // Enable System Restore via WMI (blocking COM call, run on thread pool)
             await Task.Run(() =>
             {
-                using var restoreClass = new ManagementClass(
-                    new ManagementScope(@"\\.\root\default"),
-                    new ManagementPath("SystemRestore"),
-                    new ObjectGetOptions());
-
-                var inParams = restoreClass.GetMethodParameters("Enable");
-                inParams["Drive"] = systemDrive + "\\";
-                restoreClass.InvokeMethod("Enable", inParams, null);
+                using var result = _wmiApi.InvokeClassMethod(
+                    DefaultNamespace, "SystemRestore", "Enable",
+                    new Dictionary<string, object> { ["Drive"] = systemDrive + "\\" });
             }).ConfigureAwait(false);
 
             _logService.Log(LogLevel.Info, "System Restore enabled via WMI");

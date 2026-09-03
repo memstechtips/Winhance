@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
+using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.AdvancedTools.WimServices;
@@ -244,13 +245,13 @@ public class WmiStorageServiceTests
 
     // Answers the three query shapes the service writes: no condition, "Number = n",
     // "DiskNumber = n" and "DiskNumber = n AND PartitionNumber = p".
-    private sealed class FakeStorageApi : IStorageManagementApi
+    private sealed class FakeStorageApi : IWmiApi
     {
         public List<FakeInstance> Disks { get; } = [];
 
         public List<FakeInstance> Partitions { get; } = [];
 
-        public IReadOnlyList<IStorageInstance> Query(string className, string? condition)
+        public IReadOnlyList<IWmiInstance> Query(string scope, string className, string? condition)
         {
             var all = className switch
             {
@@ -270,9 +271,13 @@ public class WmiStorageServiceTests
 
             return all.Where(instance => wanted.All(w => Convert.ToInt32(instance.Get(w.Key)) == w.Value)).ToList();
         }
+
+        public WmiMethodResult InvokeClassMethod(
+            string scope, string className, string method, IReadOnlyDictionary<string, object>? parameters) =>
+            throw new NotSupportedException("WmiStorageService does not call class methods.");
     }
 
-    private sealed class FakeInstance : IStorageInstance
+    private sealed class FakeInstance : IWmiInstance
     {
         private readonly Dictionary<string, object?> _properties = new(StringComparer.Ordinal);
 
@@ -290,14 +295,14 @@ public class WmiStorageServiceTests
 
         public object? Get(string property) => _properties.GetValueOrDefault(property);
 
-        public IReadOnlyList<IStorageInstance> GetRelated(string className) =>
+        public IReadOnlyList<IWmiInstance> GetRelated(string className) =>
             Related.TryGetValue(className, out var related) ? related : [];
 
-        public StorageMethodResult Invoke(string method, IReadOnlyDictionary<string, object>? parameters)
+        public WmiMethodResult Invoke(string method, IReadOnlyDictionary<string, object>? parameters)
         {
             Invocations.Add((method, parameters is null ? [] : new Dictionary<string, object>(parameters)));
             var (returnValue, output) = OnInvoke?.Invoke(method, parameters) ?? (0u, new FakeInstance());
-            return new StorageMethodResult(returnValue, output);
+            return new WmiMethodResult(returnValue, output);
         }
 
         public void Dispose()

@@ -103,6 +103,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ScheduledTaskService>();
         services.AddSingleton<IScheduledTaskService>(sp => sp.GetRequiredService<ScheduledTaskService>());
         services.AddSingleton<IScheduledTaskStateService>(sp => sp.GetRequiredService<ScheduledTaskService>());
+        services.AddSingleton<ISystemRestorePointWriter, NativeSystemRestorePointWriter>();
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
         services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
@@ -144,8 +145,8 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IMediaCopier,
             Winhance.Infrastructure.Features.AdvancedTools.Services.MediaCopier>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageManagementApi,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageManagementApi>();
+        services.AddSingleton<Winhance.Infrastructure.Features.Common.Services.IWmiApi,
+            Winhance.Infrastructure.Features.Common.Services.WmiManagementApi>();
         services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageOperations,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IUsbMediaWriter,

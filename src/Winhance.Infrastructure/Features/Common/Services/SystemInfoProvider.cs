@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -18,39 +17,40 @@ internal class SystemInfoProvider : ISystemInfoProvider
         string? scope, string wql);
 
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IWmiApi _wmiApi;
     private readonly WmiQuery _query;
 
-    public SystemInfoProvider(IInteractiveUserService interactiveUserService)
-        : this(interactiveUserService, query: null)
+    public SystemInfoProvider(IInteractiveUserService interactiveUserService, IWmiApi wmiApi)
+        : this(interactiveUserService, wmiApi, query: null)
     {
     }
 
     // Test seam: feed constructed WMI rows instead of the live machine - otherwise these tests assert on the
     // hardware of whoever runs them.
-    internal SystemInfoProvider(IInteractiveUserService interactiveUserService, WmiQuery? query)
+    internal SystemInfoProvider(IInteractiveUserService interactiveUserService, IWmiApi wmiApi, WmiQuery? query)
     {
         _interactiveUserService = interactiveUserService;
+        _wmiApi = wmiApi;
         _query = query ?? RunWmiQuery;
     }
 
-    // Rows are copied out before the underlying objects are disposed.
-    private static IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(
-        string? scope, string wql)
+    // Every WQL literal below is a plain "SELECT a, b FROM Class" - no WHERE, no JOIN. IWmiApi.Query
+    // always does SELECT *, so this pulls out just the class name and the columns Collect* actually
+    // reads. Rows are copied out before the underlying WMI instances are disposed.
+    private IReadOnlyList<IReadOnlyDictionary<string, object?>> RunWmiQuery(string? scope, string wql)
     {
-        using var searcher = scope is null
-            ? new ManagementObjectSearcher(wql)
-            : new ManagementObjectSearcher(scope, wql);
-        using var collection = searcher.Get();
+        var (className, columns) = ParseSimpleSelect(wql);
+        var instances = _wmiApi.Query(scope ?? WmiScope.Cimv2, className, null);
 
         var rows = new List<IReadOnlyDictionary<string, object?>>();
-        foreach (ManagementObject obj in collection)
+        foreach (var instance in instances)
         {
-            using (obj)
+            using (instance)
             {
                 var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                foreach (PropertyData p in obj.Properties)
+                foreach (var column in columns)
                 {
-                    row[p.Name] = p.Value;
+                    row[column] = instance.Get(column);
                 }
 
                 rows.Add(row);
@@ -58,6 +58,19 @@ internal class SystemInfoProvider : ISystemInfoProvider
         }
 
         return rows;
+    }
+
+    private static (string ClassName, string[] Columns) ParseSimpleSelect(string wql)
+    {
+        const string selectPrefix = "SELECT ";
+        const string fromSeparator = " FROM ";
+
+        var fromIndex = wql.IndexOf(fromSeparator, StringComparison.OrdinalIgnoreCase);
+        var columnList = wql[selectPrefix.Length..fromIndex];
+        var className = wql[(fromIndex + fromSeparator.Length)..].Trim();
+        var columns = columnList.Split(',', StringSplitOptions.TrimEntries);
+
+        return (className, columns);
     }
 
     public SystemInfo Collect()
