@@ -52,6 +52,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IRegImportService))]
     [InlineData(typeof(ISpecialSettingHandlerRegistry))]
     [InlineData(typeof(IAutounattendScriptBuilder))]
+    [InlineData(typeof(IAnswerFileValidator))]
     [InlineData(typeof(ISettingSnapshotSource))]
     [InlineData(typeof(IConfigFileWriter))]
     [InlineData(typeof(IAutounattendWriter))]

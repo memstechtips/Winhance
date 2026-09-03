@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -149,6 +150,53 @@ public class TaskProgressServiceTests
     }
 
     [Fact]
+    public void FailTask_ReportsZeroProgressWhileRunningThenEndsTheTask()
+    {
+        _sut.StartTask("Work");
+        var received = new List<(TaskProgressDetail Detail, bool WasRunning)>();
+        _sut.ProgressUpdated += (_, detail) => received.Add((detail, _sut.IsTaskRunning));
+
+        _sut.FailTask();
+
+        _sut.IsTaskRunning.Should().BeFalse();
+        _sut.CurrentTaskCancellationSource.Should().BeNull();
+        received.Should().HaveCount(2);
+        received[0].WasRunning.Should().BeTrue();
+        received[0].Detail.Progress.Should().Be(0);
+        received[0].Detail.StatusText.Should().Be("Work");
+        received[1].WasRunning.Should().BeFalse();
+        received[1].Detail.DetailedMessage.Should().Be("Task failed");
+    }
+
+    [Fact]
+    public void FailTask_ThenCompleteTask_NeverLogsCompletion()
+    {
+        _sut.StartTask("Work");
+
+        _sut.FailTask();
+        _sut.CompleteTask();
+
+        _mockLog.Verify(l => l.Log(LogLevel.Warning, It.Is<string>(m => m.StartsWith("Task failed")), It.IsAny<Exception>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
+    public void CancelTask_EndsTheTaskAndLogsItAsCancelledNotCompleted()
+    {
+        _sut.StartTask("Work");
+        TaskProgressDetail? received = null;
+        _sut.ProgressUpdated += (_, detail) => received = detail;
+
+        _sut.CancelTask();
+        _sut.CompleteTask();
+
+        _sut.IsTaskRunning.Should().BeFalse();
+        received!.DetailedMessage.Should().Be("Task cancelled");
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task cancelled")), It.IsAny<Exception>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
     public void CancelCurrentTask_WithRunningTask_RequestsCancellation()
     {
         var cts = _sut.StartTask("Cancellable");
@@ -285,16 +333,6 @@ public class TaskProgressServiceTests
         _sut.StartTask("Work");
 
         var progress = _sut.CreateDetailedProgress();
-
-        progress.Should().NotBeNull();
-    }
-
-    [Fact]
-    public void CreatePowerShellProgress_ReturnsNonNullProgressReporter()
-    {
-        _sut.StartTask("Work");
-
-        var progress = _sut.CreatePowerShellProgress();
 
         progress.Should().NotBeNull();
     }

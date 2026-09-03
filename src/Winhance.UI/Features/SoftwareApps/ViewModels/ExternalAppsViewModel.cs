@@ -484,6 +484,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
+            _progressService.FailTask();
             _logService.LogError("Error installing apps", ex);
             StatusText = $"Error: {ex.Message}";
         }
@@ -553,6 +554,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
+            _progressService.FailTask();
             _logService.LogError("Error uninstalling apps", ex);
             StatusText = $"Error: {ex.Message}";
         }

@@ -225,15 +225,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             var result = await _backupService.CreateRestorePointAsync(
                 progress: progress, cancellationToken: cts.Token);
 
-            _taskProgressService.CompleteTask();
-
             if (result.Success && result.RestorePointCreated)
             {
+                _taskProgressService.CompleteTask();
                 var successMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Success", "System Restore point created successfully.");
                 await _dialogService.ShowInformationAsync(successMsg);
             }
             else
             {
+                _taskProgressService.FailTask();
                 var failMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Fail", "Failed to create System Restore point.");
                 if (!string.IsNullOrEmpty(result.ErrorMessage))
                     failMsg += $"\n\n{result.ErrorMessage}";
@@ -242,7 +242,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _taskProgressService.CompleteTask();
+            _taskProgressService.FailTask();
             _logService.LogWarning($"Failed to create restore point from Settings: {ex.Message}");
             await _dialogService.ShowErrorAsync(
                 _localizationService.GetStringOrDefault("Settings_RestorePoint_Fail", "Failed to create System Restore point."));

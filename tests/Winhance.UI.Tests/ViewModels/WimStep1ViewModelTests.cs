@@ -316,7 +316,7 @@ public class WimStep1ViewModelTests
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<Core.Features.Common.Models.TaskProgressDetail>());
 
         _mockIsoService
@@ -345,7 +345,7 @@ public class WimStep1ViewModelTests
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<Core.Features.Common.Models.TaskProgressDetail>());
 
         _mockIsoService
@@ -376,7 +376,7 @@ public class WimStep1ViewModelTests
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<Core.Features.Common.Models.TaskProgressDetail>());
 
         _mockIsoService
@@ -410,7 +410,7 @@ public class WimStep1ViewModelTests
             .Returns(new CancellationTokenSource());
 
         _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
+            .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<Core.Features.Common.Models.TaskProgressDetail>());
 
         _mockIsoService

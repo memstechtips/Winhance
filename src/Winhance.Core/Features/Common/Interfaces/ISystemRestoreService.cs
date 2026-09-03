@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Interfaces;
 
-// Direct registry + ManagementObjectSearcher; no PowerShell hosting.
+// Direct registry + WMI (behind IWmiApi); no PowerShell hosting.
 public interface ISystemRestoreService
 {
     // Source of truth is the REG_MULTI_SZ at HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SPP\Clients under the

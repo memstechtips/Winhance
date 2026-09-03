@@ -11,6 +11,10 @@
         <InternalsVisibleTo Include="Winhance.Infrastructure.Tests" />
         <InternalsVisibleTo Include="Winhance.IntegrationTests" />
         <InternalsVisibleTo Include="Winhance.UI.Tests" />
+        <!-- WimUtil's native seams (IVirtualDiskNative, IFileCopyNative, IFileSystemImageWrapper,
+             IStorageEnumerator) are internal to this assembly and are mocked, so Castle's proxy
+             generator needs to see them too. -->
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
   <ItemGroup>

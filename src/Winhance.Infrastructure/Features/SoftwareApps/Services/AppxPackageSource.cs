@@ -1,13 +1,14 @@
-using System.Management;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 internal class AppxPackageSource(
     ILogService logService,
-    IPowerShellRunner powerShellRunner) : IAppxPackageSource
+    IPowerShellRunner powerShellRunner,
+    IWmiApi wmiApi) : IAppxPackageSource
 {
     public async Task<HashSet<string>> GetInstalledPackageNamesAsync(CancellationToken cancellationToken = default)
     {
@@ -66,7 +67,7 @@ internal class AppxPackageSource(
         return packageNames;
     }
 
-    private async Task<HashSet<string>> GetInstalledAppxPackageNamesViaWmiAsync()
+    internal async Task<HashSet<string>> GetInstalledAppxPackageNamesViaWmiAsync()
     {
         var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -74,14 +75,14 @@ internal class AppxPackageSource(
         {
             await Task.Run(() =>
             {
-                using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_InstalledStoreProgram");
-                foreach (var obj in searcher.Get())
+                var programs = wmiApi.Query(WmiScope.Cimv2, "Win32_InstalledStoreProgram", null);
+                foreach (var obj in programs)
                 {
                     using (obj)
                     {
                         try
                         {
-                            var name = obj["Name"]?.ToString();
+                            var name = obj.Get("Name")?.ToString();
                             if (!string.IsNullOrEmpty(name))
                             {
                                 // Name is the package family name (e.g., "Microsoft.BingSearch_8wekyb3d8bbwe")

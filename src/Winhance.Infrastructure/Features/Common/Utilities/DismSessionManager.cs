@@ -10,6 +10,30 @@ internal static class DismSessionManager
     // Native DISM calls cannot be cancelled via CancellationToken, so Task.WhenAny abandons the blocking thread past this deadline.
     private const int HardTimeoutSeconds = 30;
 
+    // DismGetImageInfo reads an image file directly and takes no session, so opening the online
+    // one would spend seconds of servicing-stack setup to read a WIM header. It still has to hold
+    // the same lock, because DismInitialize is per-process and a second call fails.
+    public static T ExecuteWithoutSession<T>(Func<T> action)
+    {
+        _lock.Wait();
+        try
+        {
+            DismApi.ThrowIfFailed(DismApi.DismInitialize(DismApi.DismLogErrors, null, null), "Initialize");
+            try
+            {
+                return action();
+            }
+            finally
+            {
+                _ = DismApi.DismShutdown();
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public static async Task<T> ExecuteAsync<T>(
         Func<uint, T> action,
         CancellationToken ct = default,

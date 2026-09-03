@@ -273,6 +273,24 @@ public class DialogService : IDialogService
         });
     }
 
+    public async Task<bool> ShowTaskOutputConfirmationAsync(string title, IReadOnlyList<string> logMessages, string confirmButtonText, string cancelButtonText)
+    {
+        return await ExecuteDialogAsync(async () =>
+        {
+            var builder = new Dialogs.TaskOutputDialogBuilder(_localization, _taskProgressService);
+            var dialog = builder.Build(XamlRoot!, title, logMessages);
+            dialog.PrimaryButtonText = string.IsNullOrEmpty(confirmButtonText)
+                ? _localization.GetString("Button_OK")
+                : confirmButtonText;
+            dialog.CloseButtonText = string.IsNullOrEmpty(cancelButtonText)
+                ? _localization.GetString("Button_Cancel")
+                : cancelButtonText;
+            ConfigureDialog(dialog);
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary;
+        }, false);
+    }
+
     public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "")
     {
         await ExecuteDialogAsync(async () =>

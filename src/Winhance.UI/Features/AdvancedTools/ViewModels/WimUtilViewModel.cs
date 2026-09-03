@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.AdvancedTools.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -11,9 +14,7 @@ namespace Winhance.UI.Features.AdvancedTools.ViewModels;
 
 public partial class WimUtilViewModel : ObservableObject, IDisposable
 {
-    private readonly IOscdimgToolManager _oscdimgToolManager;
     private readonly ILocalizationService _localizationService;
-    private readonly IDispatcherService _dispatcherService;
     private readonly IFileSystemService _fileSystemService;
     private bool _disposed;
 
@@ -26,6 +27,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WimStep2XmlViewModel Step2 { get; }
     public WimStep3DriversViewModel Step3 { get; }
     public WimStep4IsoViewModel Step4 { get; }
+
+    public AnswerFileCheckState AnswerFileCheck { get; } = new();
 
     [ObservableProperty]
     public partial WizardStepState Step1State { get; set; }
@@ -58,7 +61,20 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public string GenerateXmlFilesText => _localizationService.GetString("WIMUtil_GenerateXMLFiles");
     public string ButtonSchneegansText => _localizationService.GetString("WIMUtil_ButtonSchneegans");
     public string TooltipSchneegans => _localizationService.GetString("WIMUtil_Tooltip_Schneegans");
-    public string ButtonCreateIsoText => _localizationService.GetString("WIMUtil_ButtonCreateISO");
+    public string ButtonCreateMediaText => _localizationService.GetString(
+        Step4.IsUsbDestination ? "WIMUtil_ButtonWriteUsb" : "WIMUtil_ButtonCreateISO");
+
+    public string DestinationCardTitle => _localizationService.GetString("WIMUtil_Card_Destination_Title");
+
+    public string DestinationCardDescription => _localizationService.GetString("WIMUtil_Card_Destination_Description");
+
+    public string DestinationIsoText => _localizationService.GetString("WIMUtil_Destination_Iso");
+
+    public string DestinationUsbText => _localizationService.GetString("WIMUtil_Destination_Usb");
+
+    public string NoUsbSelectedText => _localizationService.GetString("WIMUtil_Label_NoUsbSelected");
+
+    public string UsbEraseWarningText => _localizationService.GetString("WIMUtil_Msg_UsbEraseWarning");
 
     // Forwarders so existing XAML can keep binding to ViewModel.PropertyName instead of the sub-VMs.
     public string SelectedIsoPath => Step1.SelectedIsoPath;
@@ -88,15 +104,42 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public WizardActionCard DownloadXmlCard => Step2.DownloadXmlCard;
     public WizardActionCard SelectXmlCard => Step2.SelectXmlCard;
 
+    public bool AnswerFileBannerOpen => AnswerFileCheck.LastReport is { Findings.Count: > 0 };
+
+    public InfoBarSeverity AnswerFileBannerSeverity =>
+        AnswerFileCheck.LastReport?.Findings.Any(f => f.Severity == AnswerFileSeverity.Error) == true
+            ? InfoBarSeverity.Error
+            : InfoBarSeverity.Warning;
+
+    public string AnswerFileBannerTitle => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? AnswerFileReportDialog.Verdict(report, _localizationService)
+        : string.Empty;
+
+    public string AnswerFileBannerSummary => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? AnswerFileReportDialog.Summary(report, _localizationService)
+        : string.Empty;
+
+    public string AnswerFileBannerMessage => AnswerFileCheck.LastReport is { Findings.Count: > 0 } report
+        ? string.Join(Environment.NewLine + Environment.NewLine, AnswerFileReportDialog.Items(report, _localizationService))
+        : string.Empty;
+
     public bool AreDriversAdded => Step3.AreDriversAdded;
     public WizardActionCard ExtractSystemDriversCard => Step3.ExtractSystemDriversCard;
     public WizardActionCard SelectCustomDriversCard => Step3.SelectCustomDriversCard;
 
-    public bool IsOscdimgAvailable => Step4.IsOscdimgAvailable;
     public string OutputIsoPath => Step4.OutputIsoPath;
     public bool IsIsoCreated => Step4.IsIsoCreated;
-    public WizardActionCard DownloadOscdimgCard => Step4.DownloadOscdimgCard;
+    public bool IsIsoDestination => Step4.IsIsoDestination;
+    public bool IsUsbDestination => Step4.IsUsbDestination;
     public WizardActionCard SelectOutputCard => Step4.SelectOutputCard;
+    public WizardActionCard SelectUsbCard => Step4.SelectUsbCard;
+    public ObservableCollection<RemovableDrive> UsbTargets => Step4.UsbTargets;
+
+    public RemovableDrive? SelectedUsbTarget
+    {
+        get => Step4.SelectedUsbTarget;
+        set => Step4.SelectedUsbTarget = value;
+    }
 
     public IRelayCommand SelectIsoFileCommand => Step1.SelectIsoFileCommand;
     public IAsyncRelayCommand SelectWorkingDirectoryCommand => Step1.SelectWorkingDirectoryCommand;
@@ -116,13 +159,14 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ExtractAndAddSystemDriversCommand => Step3.ExtractAndAddSystemDriversCommand;
     public IAsyncRelayCommand SelectAndAddCustomDriversCommand => Step3.SelectAndAddCustomDriversCommand;
 
-    public IAsyncRelayCommand DownloadOscdimgCommand => Step4.DownloadOscdimgCommand;
     public IRelayCommand SelectIsoOutputLocationCommand => Step4.SelectIsoOutputLocationCommand;
-    public IAsyncRelayCommand CreateIsoCommand => Step4.CreateIsoCommand;
+    public IAsyncRelayCommand CreateMediaCommand => Step4.CreateMediaCommand;
+    public IRelayCommand SelectIsoDestinationCommand => Step4.SelectIsoDestinationCommand;
+    public IAsyncRelayCommand SelectUsbDestinationCommand => Step4.SelectUsbDestinationCommand;
 
     public WimUtilViewModel(
-        IOscdimgToolManager oscdimgToolManager,
         IIsoService isoService,
+        IUsbMediaWriter usbMediaWriter,
         IWimImageService wimImageService,
         IWimCustomizationService wimCustomizationService,
         ITaskProgressService taskProgressService,
@@ -135,11 +179,10 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IProcessExecutor processExecutor,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        IResourceService resourceService)
+        IResourceService resourceService,
+        IAnswerFileValidator answerFileValidator)
     {
-        _oscdimgToolManager = oscdimgToolManager;
         _localizationService = localizationService;
-        _dispatcherService = dispatcherService;
         _fileSystemService = fileSystemService;
 
         Step1 = new WimStep1ViewModel(
@@ -154,17 +197,16 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2 = new WimStep2XmlViewModel(
             saves, wimCustomizationService, selections,
             dialogService, localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            resourceService, answerFileValidator, AnswerFileCheck);
 
         Step3 = new WimStep3DriversViewModel(
             wimCustomizationService, taskProgressService, dialogService,
             localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            resourceService, answerFileValidator, AnswerFileCheck);
 
         Step4 = new WimStep4IsoViewModel(
-            oscdimgToolManager, isoService, taskProgressService, processExecutor,
-            dialogService, localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            wimCustomizationService, isoService, usbMediaWriter, taskProgressService, processExecutor,
+            dialogService, localizationService, fileSystemService, filePickerService, logService, answerFileValidator, AnswerFileCheck);
 
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
@@ -180,6 +222,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2.PropertyChanged += OnSubViewModelPropertyChanged;
         Step3.PropertyChanged += OnSubViewModelPropertyChanged;
         Step4.PropertyChanged += OnSubViewModelPropertyChanged;
+        AnswerFileCheck.PropertyChanged += OnAnswerFileCheckChanged;
 
         // Propagate Step1's initial WorkingDirectory to sub-VMs.
         // The constructor assignment above fires before subscriptions,
@@ -191,10 +234,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4.WorkingDirectory = initialWorkingDir;
     }
 
-    public async Task OnNavigatedToAsync()
+    public void OnNavigatedTo()
     {
-        Step4.IsOscdimgAvailable = await _oscdimgToolManager.IsOscdimgAvailableAsync();
-        _dispatcherService.RunOnUIThread(Step4.UpdateDownloadOscdimgCardState);
         UpdateStepStates();
         RefreshStepExpansion();
     }
@@ -289,7 +330,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             : !extractionComplete
                 ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
                 : Step2.IsXmlAdded
-                    ? _localizationService.GetString("WIMUtil_Status_XmlAdded")
+                    ? Step2StatusText()
                     : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
 
         Step3State.IsAvailable = extractionComplete && !isConverting;
@@ -320,8 +361,17 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Step4State));
     }
 
-    // Once the ISO is extracted, steps 2-4 expand so the user sees every remaining task (including step 4's oscdimg
-    // download card); step 1 stays as is. Applied once per completed extraction; restarting extraction resets it.
+    // Steps 3 and 4 re-check the same file, so the header reads the shared verdict rather than
+    // step 2's own wording -- but only when the report is about the copy on the media. A refused
+    // file's report describes something Setup will never see; it belongs to the banner alone.
+    private string Step2StatusText() =>
+        AnswerFileCheck.LastReport is { } report
+        && AnswerFileCheck.Subject == _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml")
+            ? AnswerFileReportDialog.Verdict(report, _localizationService)
+            : Step2.XmlStatus;
+
+    // Once the ISO is extracted, steps 2-4 expand so the user sees every remaining task; step 1 stays as
+    // is. Applied once per completed extraction; restarting extraction resets it.
     private void RefreshStepExpansion()
     {
         if (Step1.IsExtractionComplete)
@@ -356,6 +406,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                     Step2.WorkingDirectory = wd;
                     Step3.WorkingDirectory = wd;
                     Step4.WorkingDirectory = wd;
+                    // The old report described a file in the previous working directory.
+                    AnswerFileCheck.Publish(null, null);
                     break;
 
                 case nameof(WimStep1ViewModel.IsExtractionComplete):
@@ -421,11 +473,26 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         {
             switch (e.PropertyName)
             {
-                case nameof(WimStep4IsoViewModel.IsOscdimgAvailable): OnPropertyChanged(nameof(IsOscdimgAvailable)); break;
                 case nameof(WimStep4IsoViewModel.OutputIsoPath): OnPropertyChanged(nameof(OutputIsoPath)); break;
                 case nameof(WimStep4IsoViewModel.IsIsoCreated): OnPropertyChanged(nameof(IsIsoCreated)); break;
+                case nameof(WimStep4IsoViewModel.SelectedUsbTarget): OnPropertyChanged(nameof(SelectedUsbTarget)); break;
+                case nameof(WimStep4IsoViewModel.IsUsbDestination):
+                    OnPropertyChanged(nameof(IsIsoDestination));
+                    OnPropertyChanged(nameof(IsUsbDestination));
+                    OnPropertyChanged(nameof(ButtonCreateMediaText));
+                    break;
             }
         }
+    }
+
+    private void OnAnswerFileCheckChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        UpdateStepStates();
+        OnPropertyChanged(nameof(AnswerFileBannerOpen));
+        OnPropertyChanged(nameof(AnswerFileBannerSeverity));
+        OnPropertyChanged(nameof(AnswerFileBannerTitle));
+        OnPropertyChanged(nameof(AnswerFileBannerSummary));
+        OnPropertyChanged(nameof(AnswerFileBannerMessage));
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -455,7 +522,16 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(GenerateXmlFilesText));
         OnPropertyChanged(nameof(ButtonSchneegansText));
         OnPropertyChanged(nameof(TooltipSchneegans));
-        OnPropertyChanged(nameof(ButtonCreateIsoText));
+        OnPropertyChanged(nameof(ButtonCreateMediaText));
+        OnPropertyChanged(nameof(DestinationCardTitle));
+        OnPropertyChanged(nameof(DestinationCardDescription));
+        OnPropertyChanged(nameof(DestinationIsoText));
+        OnPropertyChanged(nameof(DestinationUsbText));
+        OnPropertyChanged(nameof(NoUsbSelectedText));
+        OnPropertyChanged(nameof(UsbEraseWarningText));
+        OnPropertyChanged(nameof(AnswerFileBannerTitle));
+        OnPropertyChanged(nameof(AnswerFileBannerSummary));
+        OnPropertyChanged(nameof(AnswerFileBannerMessage));
     }
 
     public void Dispose()
@@ -470,6 +546,7 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step3.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step4.PropertyChanged -= OnSubViewModelPropertyChanged;
+        AnswerFileCheck.PropertyChanged -= OnAnswerFileCheckChanged;
 
         (Step2 as IDisposable)?.Dispose();
         (Step3 as IDisposable)?.Dispose();

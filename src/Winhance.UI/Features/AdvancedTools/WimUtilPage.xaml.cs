@@ -40,11 +40,11 @@ public sealed partial class WimUtilPage : Page
         WinhanceXmlCardIcon.Source = new BitmapImage(new Uri(uri));
     }
 
-    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
-        await ViewModel.OnNavigatedToAsync();
+        ViewModel.OnNavigatedTo();
 
         // Live-region announcements when wizard action cards transition state (issue #647).
         SubscribeToActionCards();
@@ -66,7 +66,7 @@ public sealed partial class WimUtilPage : Page
             ViewModel.SelectIsoCard, ViewModel.SelectDirectoryCard, ViewModel.ConvertImageCard,
             ViewModel.GenerateWinhanceXmlCard, ViewModel.DownloadXmlCard, ViewModel.SelectXmlCard,
             ViewModel.ExtractSystemDriversCard, ViewModel.SelectCustomDriversCard,
-            ViewModel.DownloadOscdimgCard, ViewModel.SelectOutputCard,
+            ViewModel.SelectOutputCard, ViewModel.SelectUsbCard,
         };
 
         foreach (var card in cards)
@@ -75,6 +75,16 @@ public sealed partial class WimUtilPage : Page
             card.PropertyChanged += OnCardPropertyChanged;
             _subscribedCards.Add(card);
         }
+    }
+
+    private void DestinationIsoRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SelectIsoDestinationCommand.Execute(null);
+    }
+
+    private void DestinationUsbRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SelectUsbDestinationCommand.Execute(null);
     }
 
     private void UnsubscribeFromActionCards()

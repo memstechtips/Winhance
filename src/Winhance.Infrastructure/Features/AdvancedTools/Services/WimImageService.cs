@@ -9,23 +9,23 @@ namespace Winhance.Infrastructure.Features.AdvancedTools.Services;
 internal class WimImageService : IWimImageService
 {
     private readonly IFileSystemService _fileSystemService;
-    private readonly IProcessExecutor _processExecutor;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
     private readonly IDismProcessRunner _dismProcessRunner;
+    private readonly IDismImageInfoReader _dismImageInfoReader;
 
     public WimImageService(
         IFileSystemService fileSystemService,
-        IProcessExecutor processExecutor,
         ILogService logService,
         ILocalizationService localization,
-        IDismProcessRunner dismProcessRunner)
+        IDismProcessRunner dismProcessRunner,
+        IDismImageInfoReader dismImageInfoReader)
     {
         _fileSystemService = fileSystemService;
-        _processExecutor = processExecutor;
         _logService = logService;
         _localization = localization;
         _dismProcessRunner = dismProcessRunner;
+        _dismImageInfoReader = dismImageInfoReader;
     }
 
     public async Task<ImageFormatInfo?> DetectImageFormatAsync(string workingDirectory)
@@ -121,12 +121,6 @@ internal class WimImageService : IWimImageService
     {
         string targetFile = string.Empty;
 
-        using var cancellationRegistration = cancellationToken.Register(() =>
-        {
-            _logService.LogInformation("Cancellation requested - killing DISM processes");
-            KillDismProcesses();
-        });
-
         try
         {
             var currentInfo = await DetectImageFormatAsync(workingDirectory).ConfigureAwait(false);
@@ -174,6 +168,9 @@ internal class WimImageService : IWimImageService
                         : $"Index {i}"
                 });
 
+                // dism.exe, not the DISM API: DismApi.dll services images, it cannot export one.
+                // There is no DismExportImage, and WIMGAPI ships with the ADK rather than the SDK
+                // and cannot open an ESD at all. This shell-out is permanent.
                 var arguments = $"/Export-Image /SourceImageFile:\"{sourceFile}\" /SourceIndex:{i} /DestinationImageFile:\"{targetFile}\" /Compress:{compressionType} /CheckIntegrity";
 
                 _logService.LogInformation($"Exporting index {i}: dism.exe {arguments}");
@@ -392,76 +389,36 @@ internal class WimImageService : IWimImageService
         }
     }
 
-    private async Task<ImageFormatInfo> GetImageInfoAsync(string imagePath, ImageFormat format)
+    private async Task<ImageFormatInfo?> GetImageInfoAsync(string imagePath, ImageFormat format)
     {
-        long fileSizeBytes = _fileSystemService.GetFileSize(imagePath);
-        int imageCount = 1;
-        IReadOnlyList<string> editionNames = new List<string>();
+        IReadOnlyList<DismImageEntry> entries;
 
         try
         {
-            var arguments = $"/Get-ImageInfo /ImageFile:\"{imagePath}\"";
-            _logService.LogInformation($"Running: dism.exe {arguments}");
-
-            var result = await _processExecutor.ExecuteAsync("dism.exe", arguments).ConfigureAwait(false);
-            var stdout = result.StandardOutput;
-
-            if (result.Succeeded)
-            {
-                int parsedCount = 0;
-                var parsedNames = new List<string>();
-                foreach (var line in stdout.Split('\n'))
-                {
-                    var trimmed = line.Trim();
-                    if (trimmed.StartsWith("Index :", StringComparison.OrdinalIgnoreCase) ||
-                        trimmed.StartsWith("Index:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        parsedCount++;
-                    }
-                    else if (trimmed.StartsWith("Name :", StringComparison.OrdinalIgnoreCase) ||
-                             trimmed.StartsWith("Name:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var name = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
-                        if (!string.IsNullOrEmpty(name))
-                            parsedNames.Add(name);
-                    }
-                }
-
-                editionNames = parsedNames;
-                imageCount = parsedCount > 0 ? parsedCount : 1;
-                _logService.LogInformation($"Image: {format}, {imageCount} editions, {fileSizeBytes:N0} bytes");
-            }
-            else
-            {
-                _logService.LogWarning($"dism.exe /Get-ImageInfo exited with code {result.ExitCode}");
-            }
+            entries = await Task.Run(() => _dismImageInfoReader.GetImageInfo(imagePath)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"Could not get detailed image info: {ex.Message}");
+            _logService.LogError($"Could not read image info for {imagePath}: {ex.Message}", ex);
+            return null;
         }
+
+        if (entries.Count == 0)
+        {
+            _logService.LogWarning($"DISM reported no images inside {imagePath}");
+            return null;
+        }
+
+        long fileSizeBytes = _fileSystemService.GetFileSize(imagePath);
+        _logService.LogInformation($"Image: {format}, {entries.Count} editions, {fileSizeBytes:N0} bytes");
 
         return new ImageFormatInfo
         {
             Format = format,
             FilePath = imagePath,
             FileSizeBytes = fileSizeBytes,
-            ImageCount = imageCount,
-            EditionNames = editionNames
+            ImageCount = entries.Count,
+            EditionNames = entries.Select(e => e.Name).ToList()
         };
-    }
-
-    private void KillDismProcesses()
-    {
-        try
-        {
-            _logService.LogInformation("Killing all DISM processes");
-            _processExecutor.KillProcessesByName("dism");
-            _logService.LogInformation("DISM process kill completed");
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error killing DISM processes: {ex.Message}", ex);
-        }
     }
 }

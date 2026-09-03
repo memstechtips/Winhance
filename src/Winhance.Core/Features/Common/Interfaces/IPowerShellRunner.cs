@@ -12,5 +12,9 @@ public interface IPowerShellRunner
 
     Task<string> RunScriptFileAsync(string scriptPath, string arguments = "", IProgress<TaskProgressDetail>? progress = null, CancellationToken ct = default);
     Task ValidateScriptSyntaxAsync(string scriptContent, CancellationToken ct = default);
+
+    // One powershell.exe over every script. The result maps a script's name to its parse errors and
+    // is empty when all of them parse.
+    Task<IReadOnlyDictionary<string, string>> FindParseErrorsAsync(IReadOnlyDictionary<string, string> scriptsByName, CancellationToken ct = default);
     Task ValidateXmlSyntaxAsync(string xmlContent, CancellationToken ct = default);
 }

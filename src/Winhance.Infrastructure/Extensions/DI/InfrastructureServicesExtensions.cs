@@ -103,6 +103,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ScheduledTaskService>();
         services.AddSingleton<IScheduledTaskService>(sp => sp.GetRequiredService<ScheduledTaskService>());
         services.AddSingleton<IScheduledTaskStateService>(sp => sp.GetRequiredService<ScheduledTaskService>());
+        services.AddSingleton<ISystemRestorePointWriter, NativeSystemRestorePointWriter>();
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
         services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
@@ -127,12 +128,35 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
 
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDismImageInfoReader,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.DismImageInfoReader>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimImageService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WimImageService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IOscdimgToolManager,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.OscdimgToolManager>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IVirtualDiskNative,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IIsoImageReader,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskIsoImageReader>();
+        services.AddSingleton<Func<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileSystemImageWrapper>>(
+            _ => () => new Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2FileSystemImage());
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IIsoImageWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2IsoImageWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileCopyNative,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.FileCopyNative>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IMediaCopier,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.MediaCopier>();
+        services.AddSingleton<Winhance.Infrastructure.Features.Common.Services.IWmiApi,
+            Winhance.Infrastructure.Features.Common.Services.WmiManagementApi>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageOperations,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IUsbMediaWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.StorageApiUsbMediaWriter>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDriverInstallStepWriter,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.DriverInstallStepWriter>();
+        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAnswerFileValidator,
+            Winhance.Infrastructure.Features.AdvancedTools.Services.AnswerFileValidator>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
             Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
         services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAutounattendScriptBuilder,

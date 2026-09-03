@@ -20,11 +20,15 @@ public interface ITaskProgressService
 
     void CompleteTask();
 
+    // Ends the task the way CompleteTask does, but logged and shown as a failure.
+    void FailTask();
+
+    // Ends the task the way CompleteTask does, but logged as cancelled rather than completed.
+    void CancelTask();
+
     void CancelCurrentTask();
 
     IProgress<TaskProgressDetail> CreateDetailedProgress();
-
-    IProgress<TaskProgressDetail> CreatePowerShellProgress();
 
     event EventHandler<TaskProgressDetail>? ProgressUpdated;
 

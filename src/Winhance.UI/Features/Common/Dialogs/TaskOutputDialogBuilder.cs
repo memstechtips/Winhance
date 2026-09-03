@@ -106,9 +106,11 @@ internal class TaskOutputDialogBuilder
             }
         };
 
-        // Copy to Clipboard -- build text dynamically to include live lines
-        dialog.SecondaryButtonClick += (_, _) =>
+        // Copy to Clipboard -- build text dynamically to include live lines. Copying must not
+        // dismiss: on the confirmation variant a dismissal would read as an answer.
+        dialog.SecondaryButtonClick += (_, args) =>
         {
+            args.Cancel = true;
             var dataPackage = new Windows.ApplicationModel.DataTransfer.DataPackage();
             dataPackage.SetText(string.Join("\n", _allLines));
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dataPackage);

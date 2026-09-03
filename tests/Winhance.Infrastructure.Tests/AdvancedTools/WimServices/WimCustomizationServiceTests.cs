@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Xunit;
 
@@ -16,6 +17,7 @@ public class WimCustomizationServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IDriverCategorizer> _mockDriverCategorizer = new();
     private readonly Mock<IDismProcessRunner> _mockDismRunner = new();
+    private readonly Mock<IDriverInstallStepWriter> _mockDriverInstallStep = new();
     private readonly WimCustomizationService _service;
 
     public WimCustomizationServiceTests()
@@ -39,7 +41,8 @@ public class WimCustomizationServiceTests
             _httpClient,
             _mockLocalization.Object,
             _mockDriverCategorizer.Object,
-            _mockDismRunner.Object);
+            _mockDismRunner.Object,
+            _mockDriverInstallStep.Object);
     }
 
     // The DownloadUnattendedWinstallXmlAsync path-validation tests guard issue #506.
@@ -106,33 +109,78 @@ public class WimCustomizationServiceTests
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystem.Setup(fs => fs.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("<xml>content</xml>");
-        _mockFileSystem.Setup(fs => fs.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
         result.Should().BeTrue();
-        _mockFileSystem.Verify(
-            fs => fs.WriteAllTextAsync(
-                It.Is<string>(p => p.Contains("autounattend.xml")),
-                "<xml>content</xml>",
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+        _mockFileSystem.Verify(fs => fs.CopyFile(@"C:\answer.xml", @"C:\work\autounattend.xml", true), Times.Once);
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_WriteThrows_ReturnsFalse()
+    public async Task AddXmlToImageAsync_CopyThrows_ReturnsFalse()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystem.Setup(fs => fs.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new IOException("Disk error"));
+        _mockFileSystem.Setup(fs => fs.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .Throws(new IOException("Disk error"));
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
         result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_Extract_ExportsStraightIntoTheOemFolder()
+    {
+        _mockDismRunner
+            .Setup(d => d.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((0, ""));
+        _mockDriverCategorizer
+            .Setup(d => d.MoveStorageDrivers(@"C:\work\sources\$OEM$\$$\Drivers", @"C:\work\$WinpeDriver$"))
+            .Returns(5);
+
+        var result = await _service.AddDriversAsync(@"C:\work");
+
+        result.Should().BeTrue();
+        _mockFileSystem.Verify(fs => fs.CreateDirectory(@"C:\work\sources\$OEM$\$$\Drivers"), Times.Once);
+        _mockDismRunner.Verify(d => d.RunProcessWithProgressAsync(
+            "dism.exe",
+            It.Is<string>(a => a.Contains("/Export-Driver") && a.Contains(@"C:\work\sources\$OEM$\$$\Drivers")),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDriverCategorizer.Verify(d => d.CategorizeAndCopyDrivers(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_Extract_DismFailure_KeepsWhatLanded()
+    {
+        _mockDismRunner
+            .Setup(d => d.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((87, "error"));
+        _mockDriverCategorizer
+            .Setup(d => d.MoveStorageDrivers(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(3);
+
+        var result = await _service.AddDriversAsync(@"C:\work");
+
+        result.Should().BeTrue();
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("87"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_Extract_NothingExported_ReturnsFalse()
+    {
+        _mockDismRunner
+            .Setup(d => d.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((0, ""));
+        _mockDriverCategorizer
+            .Setup(d => d.MoveStorageDrivers(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(0);
+
+        var result = await _service.AddDriversAsync(@"C:\work");
+
+        result.Should().BeFalse();
+        _mockDriverInstallStep.Verify(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -166,11 +214,94 @@ public class WimCustomizationServiceTests
         _mockDriverCategorizer.Setup(dc => dc.CategorizeAndCopyDrivers(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(5);
-        _mockFileSystem.Setup(fs => fs.CreateDirectory(It.IsAny<string>()));
-        _mockFileSystem.Setup(fs => fs.WriteAllText(It.IsAny<string>(), It.IsAny<string>()));
 
         var result = await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
 
         result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_StorageDriversGoToTheMediaRootNotTheSourcesFolder()
+    {
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverCategorizer
+            .Setup(d => d.CategorizeAndCopyDrivers(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(1);
+
+        await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
+
+        _mockDriverCategorizer.Verify(d => d.CategorizeAndCopyDrivers(
+            It.IsAny<string>(),
+            @"C:\work\$WinpeDriver$",
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_OnSuccess_EnsuresTheDriverInstallStep()
+    {
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverCategorizer
+            .Setup(d => d.CategorizeAndCopyDrivers(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(2);
+
+        await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
+
+        _mockDriverInstallStep.Verify(w => w.EnsureAsync(@"C:\work", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_NothingCopied_DoesNotTouchTheXml()
+    {
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverCategorizer
+            .Setup(d => d.CategorizeAndCopyDrivers(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(0);
+
+        await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
+
+        _mockDriverInstallStep.Verify(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddDriversAsync_EnsureFailure_DoesNotFailTheOperation()
+    {
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverCategorizer
+            .Setup(d => d.CategorizeAndCopyDrivers(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(3);
+        _mockDriverInstallStep
+            .Setup(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("locked"));
+
+        var result = await _service.AddDriversAsync(@"C:\work", @"C:\drivers");
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddXmlToImageAsync_EnsureFailure_StillReturnsTrue()
+    {
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockDriverInstallStep
+            .Setup(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("locked"));
+
+        var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddXmlToImageAsync_EnsuresTheDriverInstallStepAfterTheWrite()
+    {
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+
+        var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
+
+        result.Should().BeTrue();
+        _mockDriverInstallStep.Verify(w => w.EnsureAsync(@"C:\work", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

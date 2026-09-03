@@ -122,7 +122,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName);
 
             _taskProgressService.StartTask(string.Format(_localizationService.GetString("WIMUtil_Status_ConvertingToFormat"), currentFormatName, targetFormatName), true);
-            var progress = _taskProgressService.CreatePowerShellProgress();
+            var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _wimImageService.ConvertImageAsync(WorkingDirectory, targetFormat, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
 
@@ -137,6 +137,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             }
             else
             {
+                _taskProgressService.FailTask();
                 ConvertImageCard.HasFailed = true;
                 ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionFailed");
                 await _dialogService.ShowErrorAsync(
@@ -146,10 +147,12 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            _taskProgressService.CancelTask();
             ConversionStatus = _localizationService.GetString("WIMUtil_Status_ConversionCancelled");
         }
         catch (Exception ex)
         {
+            _taskProgressService.FailTask();
             _logService.LogError($"Error during conversion: {ex.Message}", ex);
             ConvertImageCard.HasFailed = true;
             ConversionStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);

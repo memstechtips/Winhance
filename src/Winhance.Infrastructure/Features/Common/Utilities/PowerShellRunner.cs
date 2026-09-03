@@ -204,36 +204,81 @@ internal class PowerShellRunner : IPowerShellRunner
         string scriptContent,
         CancellationToken ct = default)
     {
-        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.ps1");
+        const string name = "script";
+
+        var errors = await FindParseErrorsAsync(new Dictionary<string, string> { [name] = scriptContent }, ct).ConfigureAwait(false);
+
+        // The message keeps the PARSE_ERROR marker the syntax gate matches on.
+        if (errors.Count > 0)
+            throw new InvalidOperationException($"PowerShell script failed to parse:\nPARSE_ERROR: {errors[name]}");
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> FindParseErrorsAsync(
+        IReadOnlyDictionary<string, string> scriptsByName,
+        CancellationToken ct = default)
+    {
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (scriptsByName.Count == 0)
+            return errors;
+
+        var names = scriptsByName.Keys.ToList();
+        var batch = Guid.NewGuid().ToString("N");
+        var tempFiles = names
+            .Select((_, i) => _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_parse_{batch}_{i}.ps1"))
+            .ToList();
         try
         {
             // Windows PowerShell 5.1 reads a BOM-less file as ANSI, where one UTF-8 em dash decodes to a smart
             // quote and desyncs the parse. The autounattend extractor writes the script WITH a UTF-8 preamble,
             // so validate the same bytes Setup will run.
             var utf8WithPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-            var bytes = utf8WithPreamble.GetPreamble().Concat(utf8WithPreamble.GetBytes(scriptContent)).ToArray();
-            await _fileSystemService.WriteAllBytesAsync(tempFile, bytes, ct).ConfigureAwait(false);
+            for (var i = 0; i < names.Count; i++)
+            {
+                var bytes = utf8WithPreamble.GetPreamble().Concat(utf8WithPreamble.GetBytes(scriptsByName[names[i]])).ToArray();
+                await _fileSystemService.WriteAllBytesAsync(tempFiles[i], bytes, ct).ConfigureAwait(false);
+            }
 
+            var fileList = string.Join(", ", tempFiles.Select(f => "'" + f.Replace("'", "''", StringComparison.Ordinal) + "'"));
             var parseScript = @"
-$errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile('" + tempFile.Replace("'", "''") + @"', [ref]$null, [ref]$errors)
-if ($errors.Count -gt 0) {
-    foreach ($e in $errors) { Write-Host ""PARSE_ERROR: $($e.ToString())"" }
-    exit 1
+$files = @(" + fileList + @")
+for ($i = 0; $i -lt $files.Count; $i++) {
+    $errors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile($files[$i], [ref]$null, [ref]$errors)
+    foreach ($e in $errors) { Write-Host (""PARSE_ERROR`t"" + $i + ""`tline "" + $e.Extent.StartLineNumber + "": "" + ($e.Message -replace '[\r\n]+', ' ')) }
 }
-Write-Host 'Script validation passed - no parse errors found'
+Write-Host 'PARSE_DONE'
 exit 0";
 
-            // The parse script reports through stdout and exits 1 with nothing on stderr, which RunScriptAsync does not
-            // treat as a failure, so the verdict has to be read from the output.
             var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
-            if (output.Contains("PARSE_ERROR:", StringComparison.Ordinal))
-                throw new InvalidOperationException($"PowerShell script failed to parse:\n{output}");
+
+            // The batch script reports through stdout and always exits 0, so a run that stopped partway
+            // still looks like a success; only the sentinel proves every file reached the parser.
+            if (!output.Contains("PARSE_DONE", StringComparison.Ordinal))
+                throw new InvalidOperationException($"PowerShell parse batch did not complete:\n{output}");
+
+            foreach (var rawLine in output.Split('\n'))
+            {
+                var line = rawLine.TrimEnd('\r');
+                if (!line.StartsWith("PARSE_ERROR\t", StringComparison.Ordinal))
+                    continue;
+
+                var parts = line.Split('\t', 3);
+                if (parts.Length < 3 || !int.TryParse(parts[1], out var index) || index < 0 || index >= names.Count)
+                    continue;
+
+                var name = names[index];
+                errors[name] = errors.TryGetValue(name, out var previous) ? previous + Environment.NewLine + parts[2] : parts[2];
+            }
+
+            return errors;
         }
         finally
         {
-            try { _fileSystemService.DeleteFile(tempFile); }
-            catch { }
+            foreach (var tempFile in tempFiles)
+            {
+                try { _fileSystemService.DeleteFile(tempFile); }
+                catch { }
+            }
         }
     }
 

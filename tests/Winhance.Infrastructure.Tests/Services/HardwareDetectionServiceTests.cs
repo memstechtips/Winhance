@@ -10,31 +10,58 @@ public class HardwareDetectionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
 
+    private HardwareDetectionService CreateSut() => new(_mockLogService.Object);
+
     [Fact]
     public void Constructor_ValidLogService_CreatesInstance()
     {
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        var service = CreateSut();
 
         service.Should().NotBeNull();
     }
 
-    [Fact]
-    public void HasBattery_DoesNotThrow_ReturnsBooleanValue()
+    [Theory]
+    [InlineData(128, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(4, true)]
+    [InlineData(8, true)]
+    [InlineData(9, true)]
+    public void InterpretBatteryFlag_MapsEveryDocumentedFlagToAVerdict(int flag, bool expected)
     {
-        var service = new HardwareDetectionService(_mockLogService.Object);
-
-        var act = () => service.HasBattery();
-
-        // Actual value depends on hardware, so only the call is checked
-        act.Should().NotThrow();
+        // 128 is NoBattery (a desktop). 1/2/4 are High/Low/Critical charge, 8 is Charging, 9 is the
+        // usual laptop-on-mains pair, 0 is a battery present with no charge state reported - all of
+        // which mean a battery exists.
+        HardwareDetectionService.InterpretBatteryFlag((byte)flag).Should().Be(expected);
     }
 
     [Fact]
-    public void HasBattery_QueriesWmiOnce_AndServesLaterCallsFromCache()
+    public void InterpretBatteryFlag_Unknown_ReportsCouldNotTell_NotNoBattery()
+    {
+        // The trap this pins: Unknown is 255 = 0xFF, which has the NoBattery bit (128) set inside it.
+        // A plain bit test would call every machine reporting Unknown a desktop, and callers treat
+        // "no battery" and "could not tell" differently.
+        HardwareDetectionService.InterpretBatteryFlag(255).Should().BeNull();
+    }
+
+    [Fact]
+    public void HasBattery_ReachesAVerdict_OnAnySupportedMachine()
+    {
+        // GetSystemPowerStatus answers on every machine Winhance supports, desktop included, so a
+        // null here means the P/Invoke binding is wrong rather than that the hardware is unusual.
+        // The true/false split is a property of the test machine, so it is not asserted.
+        var service = CreateSut();
+
+        service.HasBattery().Should().NotBeNull();
+    }
+
+    [Fact]
+    public void HasBattery_QueriesOnce_AndServesLaterCallsFromCache()
     {
         // The cache is what makes a synchronous HasBattery() safe to call from anywhere: only the
-        // first caller pays for the WMI round trip. Same instance must keep answering the same way.
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        // first caller pays for the lookup. Same instance must keep answering the same way.
+        var service = CreateSut();
 
         var first = service.HasBattery();
         var second = service.HasBattery();
@@ -45,7 +72,7 @@ public class HardwareDetectionServiceTests
     [Fact]
     public void SupportsHybridSleep_DoesNotThrow_ReturnsBooleanValue()
     {
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        var service = CreateSut();
 
         var act = () => service.SupportsHybridSleep();
 

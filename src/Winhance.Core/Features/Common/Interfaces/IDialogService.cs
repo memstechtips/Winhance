@@ -26,5 +26,7 @@ public interface IDialogService
 
     Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
+    Task<bool> ShowTaskOutputConfirmationAsync(string title, IReadOnlyList<string> logMessages, string confirmButtonText, string cancelButtonText);
+
     Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "");
 }
