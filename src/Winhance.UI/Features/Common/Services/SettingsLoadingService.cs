@@ -58,13 +58,13 @@ public class SettingsLoadingService : ISettingsLoadingService
     {
         try
         {
-            _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Starting to load settings for '{featureModuleId}'");
+            _logService.Log(LogLevel.Info, $"Starting to load settings for '{featureModuleId}'");
             _initializationService.StartFeatureInitialization(featureModuleId);
 
             var settingsList = _catalogSettingsRegistry.GetByFeature(featureModuleId, _scopeProvider.Current);
             var settingViewModels = await BuildViewModelsAsync(featureModuleId, settingsList, parentViewModel);
 
-            _logService.Log(LogLevel.Info, $"[SettingsLoadingService] Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
+            _logService.Log(LogLevel.Info, $"Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
             _initializationService.CompleteFeatureInitialization(featureModuleId);
 
             return settingViewModels;

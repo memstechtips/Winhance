@@ -25,7 +25,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to create key '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to create key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -49,7 +49,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -64,7 +64,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
             return null;
         }
     }
@@ -82,7 +82,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get value kind '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to get value kind '{keyPath}\\{valueName}': {ex.Message}");
             return null;
         }
     }
@@ -112,7 +112,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
             if (segments.Length < MinDeleteDepth)
             {
                 logService.Log(LogLevel.Warning,
-                    $"[WindowsRegistryService] Refusing to delete shallow registry key '{keyPath}' (depth {segments.Length} < {MinDeleteDepth})");
+                    $"Refusing to delete shallow registry key '{keyPath}' (depth {segments.Length} < {MinDeleteDepth})");
                 return false;
             }
 
@@ -121,7 +121,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
                 if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
                 {
                     logService.Log(LogLevel.Warning,
-                        $"[WindowsRegistryService] Refusing to delete protected registry key '{keyPath}'");
+                        $"Refusing to delete protected registry key '{keyPath}'");
                     return false;
                 }
             }
@@ -131,7 +131,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to delete key '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to delete key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -150,7 +150,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to delete value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to delete value '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -165,7 +165,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check key existence '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to check key existence '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -183,7 +183,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check value existence '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to check value existence '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -198,7 +198,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get subkey names for '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to get subkey names for '{keyPath}': {ex.Message}");
             return Array.Empty<string>();
         }
     }
@@ -212,7 +212,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         {
             logService.Log(
                 LogLevel.Error,
-                $"[WindowsRegistryService] Refusing to edit '{keyPath}\\{valueName}': expected REG_BINARY but "
+                $"Refusing to edit '{keyPath}\\{valueName}': expected REG_BINARY but "
                     + $"found {currentValue?.GetType().Name ?? "null"}, which has no safe byte representation. "
                     + "The value was left untouched.");
             return null;
@@ -222,7 +222,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         {
             logService.Log(
                 LogLevel.Warning,
-                $"[WindowsRegistryService] '{keyPath}\\{valueName}' is stored as a string but the catalog "
+                $"'{keyPath}\\{valueName}' is stored as a string but the catalog "
                     + "expects REG_BINARY. Recovered its bytes from the UTF-16 content and rewriting the "
                     + "value as REG_BINARY.");
         }
@@ -254,7 +254,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error modifying byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -286,7 +286,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -305,7 +305,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
 
             if (key == null)
             {
-                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot lock key '{keyPath}': key not found");
+                logService.Log(LogLevel.Warning, $"Cannot lock key '{keyPath}': key not found");
                 return false;
             }
 
@@ -338,12 +338,12 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
 
             key.SetAccessControl(security);
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Locked registry key '{keyPath}' to read-only for SYSTEM");
+            logService.Log(LogLevel.Info, $"Locked registry key '{keyPath}' to read-only for SYSTEM");
             return true;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to lock registry key '{keyPath}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Failed to lock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -360,7 +360,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
 
             if (key == null)
             {
-                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot unlock key '{keyPath}': key not found");
+                logService.Log(LogLevel.Warning, $"Cannot unlock key '{keyPath}': key not found");
                 return false;
             }
 
@@ -393,12 +393,12 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
 
             key.SetAccessControl(security);
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Unlocked registry key '{keyPath}' - restored SYSTEM full control");
+            logService.Log(LogLevel.Info, $"Unlocked registry key '{keyPath}' - restored SYSTEM full control");
             return true;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to unlock registry key '{keyPath}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Failed to unlock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -447,12 +447,12 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
             var compositeResult = SetValue(keyPath, valueName, mergedValue, RegistryValueKind.String);
 
             logService.Log(LogLevel.Info,
-                $"[WindowsRegistryService] Updated composite key '{compositeKey}' to '{subValue}' in '{keyPath}\\{valueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
+                $"Updated composite key '{compositeKey}' to '{subValue}' in '{keyPath}\\{valueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
             return compositeResult;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error setting composite key '{compositeKey}' in '{keyPath}\\{valueName}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error setting composite key '{compositeKey}' in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }

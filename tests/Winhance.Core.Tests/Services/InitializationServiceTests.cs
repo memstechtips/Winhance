@@ -31,7 +31,7 @@ public class InitializationServiceTests
         _mockLog.Verify(l => l.Log(
             Winhance.Core.Features.Common.Enums.LogLevel.Info,
             It.Is<string>(s => s.Contains("TestFeature") && s.Contains("Started")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public class InitializationServiceTests
         _mockLog.Verify(l => l.Log(
             Winhance.Core.Features.Common.Enums.LogLevel.Info,
             It.Is<string>(s => s.Contains("TestFeature") && s.Contains("Completed")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 }

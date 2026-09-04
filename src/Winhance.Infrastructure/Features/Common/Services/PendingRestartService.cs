@@ -34,7 +34,7 @@ internal sealed class PendingRestartService(IEventBus eventBus, ILogService logS
         }
 
         logService.Log(LogLevel.Debug,
-            $"[PendingRestartService] '{settingId}' applied; Explorer restart pending");
+            $"'{settingId}' applied; Explorer restart pending");
         eventBus.Publish(new PendingRestartChangedEvent { IsPending = true });
     }
 
@@ -48,7 +48,7 @@ internal sealed class PendingRestartService(IEventBus eventBus, ILogService logS
             _pending.Clear();
         }
 
-        logService.Log(LogLevel.Debug, "[PendingRestartService] Pending Explorer restart cleared");
+        logService.Log(LogLevel.Debug, "Pending Explorer restart cleared");
         eventBus.Publish(new PendingRestartChangedEvent { IsPending = false });
     }
 }

@@ -175,7 +175,7 @@ public class ExternalAppsViewModelTests
 
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Error loading app definitions")),
-            It.IsAny<Exception>()), Times.Once);
+            It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
         sut.IsLoading.Should().BeFalse();
     }
 

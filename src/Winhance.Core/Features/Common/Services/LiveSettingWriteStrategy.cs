@@ -35,7 +35,7 @@ public sealed class LiveSettingWriteStrategy : ISettingWriteStrategy
         var (confirmed, checkboxChecked) = await ConfirmAsync(request);
         if (!confirmed)
         {
-            _logService.LogDebug($"[LiveWrite] {settingId} ({request.Description}) cancelled at the confirmation prompt");
+            _logService.LogDebug($"{settingId} ({request.Description}) cancelled at the confirmation prompt");
             return SettingWriteResult.Rejected;
         }
 

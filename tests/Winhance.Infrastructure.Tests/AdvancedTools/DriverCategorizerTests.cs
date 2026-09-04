@@ -114,7 +114,7 @@ public class DriverCategorizerTests
         var result = _sut.IsStorageDriver(infPath);
 
         result.Should().BeFalse();
-        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Could not categorize driver"))), Times.Once);
+        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Could not categorize driver")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class DriverCategorizerTests
         var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM");
 
         result.Should().Be(0);
-        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("No .inf files"))), Times.Once);
+        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("No .inf files")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class DriverCategorizerTests
         var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM", "C:\\Work");
 
         result.Should().Be(1);
-        _logService.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("Excluded 1 driver"))), Times.Once);
+        _logService.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("Excluded 1 driver")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public class DriverCategorizerTests
         result.Should().Be(0);
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Failed to copy driver")),
-            It.IsAny<Exception>()), Times.Once);
+            It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -386,7 +386,7 @@ public class DriverCategorizerTests
         result.Should().Be(2);
         _logService.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Failed to move storage driver package RstPkg")),
-            It.IsAny<Exception>()), Times.Once);
+            It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
         _fileSystemService.Verify(f => f.MoveDirectory("C:\\OEM\\VmdPkg", "C:\\WinPE\\VmdPkg"), Times.Once);
     }
 
@@ -415,6 +415,6 @@ public class DriverCategorizerTests
         var result = _sut.CategorizeAndCopyDrivers("C:\\Source", "C:\\WinPE", "C:\\OEM", "C:\\Work");
 
         result.Should().Be(0);
-        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("No valid drivers"))), Times.Once);
+        _logService.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("No valid drivers")), It.IsAny<string>()), Times.Once);
     }
 }

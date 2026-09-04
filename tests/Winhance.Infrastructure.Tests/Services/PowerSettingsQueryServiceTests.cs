@@ -173,7 +173,7 @@ public class PowerSettingsQueryServiceTests
         result.acValue.Should().BeNull();
         result.dcValue.Should().BeNull();
         _mockLogService.Verify(
-            l => l.Log(Core.Features.Common.Enums.LogLevel.Error, It.IsAny<string>()),
+            l => l.Log(Core.Features.Common.Enums.LogLevel.Error, It.IsAny<string>(), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 

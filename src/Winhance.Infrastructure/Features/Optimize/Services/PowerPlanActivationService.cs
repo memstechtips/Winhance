@@ -39,7 +39,7 @@ internal class PowerPlanActivationService(
     public async Task<(bool Success, string ActivatedGuid)> EnsureActivatedAsync(string powerPlanGuid, string? planName = null)
     {
         planName ??= powerPlanGuid;
-        logService.Log(LogLevel.Info, $"[PowerService] Applying power plan by GUID: {planName} ({powerPlanGuid})");
+        logService.Log(LogLevel.Info, $"Applying power plan by GUID: {planName} ({powerPlanGuid})");
 
         if (string.IsNullOrEmpty(powerPlanGuid))
         {
@@ -53,19 +53,19 @@ internal class PowerPlanActivationService(
 
         if (!planExists)
         {
-            logService.Log(LogLevel.Warning, $"[PowerService] Plan '{planName}' ({powerPlanGuid}) not found on system");
+            logService.Log(LogLevel.Warning, $"Plan '{planName}' ({powerPlanGuid}) not found on system");
 
             var predefinedPlan = PowerPlanCatalog.BuiltInPowerPlans
                 .FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
 
             if (predefinedPlan != null)
             {
-                logService.Log(LogLevel.Info, $"[PowerService] Importing predefined plan '{predefinedPlan.Name}'");
+                logService.Log(LogLevel.Info, $"Importing predefined plan '{predefinedPlan.Name}'");
                 var importResult = await ImportPowerPlanAsync(predefinedPlan).ConfigureAwait(false);
 
                 if (importResult.Success)
                 {
-                    logService.Log(LogLevel.Info, "[PowerService] Successfully imported, now activating");
+                    logService.Log(LogLevel.Info, "Successfully imported, now activating");
                     await Task.Delay(200).ConfigureAwait(false);
 
                     success = await SetActivePowerPlanAsync(importResult.ImportedGuid).ConfigureAwait(false);
@@ -73,20 +73,20 @@ internal class PowerPlanActivationService(
                 }
                 else
                 {
-                    logService.Log(LogLevel.Error, $"[PowerService] Failed to import plan: {importResult.ErrorMessage}");
+                    logService.Log(LogLevel.Error, $"Failed to import plan: {importResult.ErrorMessage}");
                     return (false, powerPlanGuid);
                 }
             }
             else
             {
-                logService.Log(LogLevel.Info, $"[PowerService] Custom power plan '{planName}' - creating by duplicating Balanced");
+                logService.Log(LogLevel.Info, $"Custom power plan '{planName}' - creating by duplicating Balanced");
 
                 // Clean up any ghost/corrupt plan entry that may block duplication with this GUID
                 var targetGuid = Guid.Parse(powerPlanGuid);
                 var cleanupResult = powerSchemeOperations.DeleteScheme(targetGuid);
                 if (cleanupResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
-                    logService.Log(LogLevel.Info, $"[PowerService] Cleaned up ghost plan entry with GUID {powerPlanGuid}");
+                    logService.Log(LogLevel.Info, $"Cleaned up ghost plan entry with GUID {powerPlanGuid}");
                 }
 
                 var dupRc = powerSchemeOperations.DuplicateScheme(
@@ -98,20 +98,20 @@ internal class PowerPlanActivationService(
                     var actualGuid = createdGuid.ToString("D");
                     if (!string.Equals(actualGuid, powerPlanGuid, StringComparison.OrdinalIgnoreCase))
                     {
-                        logService.Log(LogLevel.Warning, $"[PowerService] Windows assigned GUID {actualGuid} instead of requested {powerPlanGuid}");
+                        logService.Log(LogLevel.Warning, $"Windows assigned GUID {actualGuid} instead of requested {powerPlanGuid}");
                     }
 
                     SetPowerPlanName(Guid.Parse(actualGuid), planName);
 
                     powerSettingsQueryService.InvalidateCache();
-                    logService.Log(LogLevel.Info, $"[PowerService] Successfully created custom plan '{planName}' with GUID {actualGuid}");
+                    logService.Log(LogLevel.Info, $"Successfully created custom plan '{planName}' with GUID {actualGuid}");
 
                     powerPlanGuid = actualGuid;
                     success = await SetActivePowerPlanAsync(powerPlanGuid).ConfigureAwait(false);
                 }
                 else
                 {
-                    logService.Log(LogLevel.Error, $"[PowerService] Failed to create custom plan '{planName}' with GUID {powerPlanGuid} (rc={dupRc})");
+                    logService.Log(LogLevel.Error, $"Failed to create custom plan '{planName}' with GUID {powerPlanGuid} (rc={dupRc})");
                     return (false, powerPlanGuid);
                 }
             }
@@ -269,8 +269,8 @@ internal class PowerPlanActivationService(
             if (cleanupResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
                 logService.Log(LogLevel.Info, existingPlan != null
-                    ? $"[PowerService] Deleted corrupt Winhance plan (name was: '{existingPlan.Name}')"
-                    : "[PowerService] Cleaned up ghost Winhance power plan entry");
+                    ? $"Deleted corrupt Winhance plan (name was: '{existingPlan.Name}')"
+                    : "Cleaned up ghost Winhance power plan entry");
                 powerSettingsQueryService.InvalidateCache();
             }
 
@@ -289,7 +289,7 @@ internal class PowerPlanActivationService(
             var actualGuid = createdGuid.ToString("D");
             if (!string.Equals(actualGuid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase))
             {
-                logService.Log(LogLevel.Warning, $"[PowerService] Windows assigned GUID {actualGuid} instead of requested {predefinedPlan.Guid}");
+                logService.Log(LogLevel.Warning, $"Windows assigned GUID {actualGuid} instead of requested {predefinedPlan.Guid}");
             }
 
             SetPowerPlanNameAndDescription(Guid.Parse(actualGuid), predefinedPlan.Name, predefinedPlan.Description);

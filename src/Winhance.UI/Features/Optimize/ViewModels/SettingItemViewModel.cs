@@ -1783,7 +1783,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public void ApplySelectionValue(object value)
     {
-        _logService.LogDebug($"[SettingItemViewModel] ApplySelectionValue called with value={value}, SettingId={SettingId}");
+        _logService.LogDebug($"ApplySelectionValue called with value={value}, SettingId={SettingId}");
         HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
@@ -1941,24 +1941,24 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
     {
-        _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SelectedValue={SelectedValue}");
+        _logService.LogDebug($"HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SelectedValue={SelectedValue}");
 
         if (_isUpdatingFromEvent || value == null)
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, value={(value == null ? "null" : "not null")}");
+            _logService.LogDebug($"HandleValueChangedAsync early return: _isUpdatingFromEvent={_isUpdatingFromEvent}, value={(value == null ? "null" : "not null")}");
             return;
         }
 
         if (IsApplying)
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: queuing pending value {value} for {SettingId}");
+            _logService.LogDebug($"HandleValueChangedAsync: queuing pending value {value} for {SettingId}");
             _pendingValue = value;
             return;
         }
 
         if (Equals(value, SelectedValue))
         {
-            _logService.LogDebug($"[SettingItemViewModel] HandleValueChangedAsync: value equals SelectedValue, skipping");
+            _logService.LogDebug($"HandleValueChangedAsync: value equals SelectedValue, skipping");
             return;
         }
 
@@ -2042,7 +2042,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
         if (pending != null && !Equals(pending, SelectedValue))
         {
-            _logService.LogDebug($"[SettingItemViewModel] Processing pending value {pending} for {SettingId}");
+            _logService.LogDebug($"Processing pending value {pending} for {SettingId}");
             await HandleValueChangedAsync(pending);
         }
     }

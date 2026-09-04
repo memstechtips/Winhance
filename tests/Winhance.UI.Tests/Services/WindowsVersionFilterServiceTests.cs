@@ -85,7 +85,7 @@ public class WindowsVersionFilterServiceTests
         _mockLogService.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
-                It.Is<string>(s => s.Contains("ON"))),
+                It.Is<string>(s => s.Contains("ON")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -103,7 +103,7 @@ public class WindowsVersionFilterServiceTests
         _mockLogService.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
-                It.Is<string>(s => s.Contains("OFF"))),
+                It.Is<string>(s => s.Contains("OFF")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -121,7 +121,7 @@ public class WindowsVersionFilterServiceTests
         _mockLogService.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Error,
-                It.Is<string>(s => s.Contains("Failed to load filter preference"))),
+                It.Is<string>(s => s.Contains("Failed to load filter preference")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -372,7 +372,7 @@ public class WindowsVersionFilterServiceTests
         _mockLogService.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
-                It.Is<string>(s => s.Contains("OFF"))),
+                It.Is<string>(s => s.Contains("OFF")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -391,7 +391,7 @@ public class WindowsVersionFilterServiceTests
         _mockLogService.Verify(
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Error,
-                It.Is<string>(s => s.Contains("Failed to toggle"))),
+                It.Is<string>(s => s.Contains("Failed to toggle")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 

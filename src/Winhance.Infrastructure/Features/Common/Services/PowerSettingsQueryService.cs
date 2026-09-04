@@ -26,7 +26,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
             {
                 if (DateTime.UtcNow - _cacheTime < _cacheTimeout)
                 {
-                    logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({cached.Count} plans)");
+                    logService.Log(LogLevel.Debug, $"Using cached power plans ({cached.Count} plans)");
                     return cached;
                 }
             }
@@ -34,7 +34,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
 
         try
         {
-            logService.Log(LogLevel.Info, "[PowerSettingsQueryService] Enumerating power plans via Native API");
+            logService.Log(LogLevel.Info, "Enumerating power plans via Native API");
             
             var plans = new List<PowerPlan>();
             var activeGuid = GetActivePowerSchemeGuid();
@@ -88,13 +88,13 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
             }
 
             var activePlan = sortedPlans.FirstOrDefault(p => p.IsActive);
-            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
+            logService.Log(LogLevel.Info, $"Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
 
             return sortedPlans;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[PowerSettingsQueryService] Error getting available power plans: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Error getting available power plans: {ex.Message}");
             return new List<PowerPlan>();
         }
     }

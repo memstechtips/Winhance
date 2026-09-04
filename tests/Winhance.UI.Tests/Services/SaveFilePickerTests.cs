@@ -27,7 +27,7 @@ public class SaveFilePickerTests
         var path = sut.PickSavePath("title", "filter", "*.x", "default.x", "x");
 
         path.Should().BeNull();
-        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("no main window")), null), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("no main window")), null, It.IsAny<string>()), Times.Once);
         _dialogs.Verify(d => d.ShowErrorAsync("Cannot show file dialog.", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 }

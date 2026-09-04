@@ -50,7 +50,7 @@ public class ScriptMigrationServiceTests
         result.Success.Should().BeTrue();
         result.MigrationPerformed.Should().BeFalse();
         _mockFileSystem.Verify(x => x.DirectoryExists(It.IsAny<string>()), Times.Never);
-        _mockLog.Verify(x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("already completed")), null), Times.Once);
+        _mockLog.Verify(x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("already completed")), null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class ScriptMigrationServiceTests
 
         result.Success.Should().BeFalse();
         _mockLog.Verify(
-            x => x.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error during script migration")), null),
+            x => x.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error during script migration")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -266,7 +266,7 @@ public class ScriptMigrationServiceTests
         result.Success.Should().BeTrue();
         result.TasksDeleted.Should().Be(1);
         _mockLog.Verify(
-            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Could not delete task BloatRemoval")), null),
+            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Could not delete task BloatRemoval")), null, It.IsAny<string>()),
             Times.Once);
     }
 }

@@ -101,7 +101,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not found: {ex.Message}");
+                    logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Task '{taskName}' not found: {ex.Message}");
                 }
 
                 return OperationResult.Succeeded();
@@ -129,7 +129,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
             }
             catch (Exception ex)
             {
-                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Task '{taskName}' not registered: {ex.Message}");
+                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Task '{taskName}' not registered: {ex.Message}");
                 return false;
             }
         }).ConfigureAwait(false);
@@ -204,7 +204,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }
         catch (Exception ex)
         {
-            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder doesn't exist, creating: {ex.Message}");
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Winhance folder doesn't exist, creating: {ex.Message}");
             return com.Keep((object)rootFolder.CreateFolder("Winhance"));
         }
     }
@@ -218,7 +218,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }
         catch (Exception ex)
         {
-            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] Winhance folder not found: {ex.Message}");
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Winhance folder not found: {ex.Message}");
             return null;
         }
     }
@@ -239,7 +239,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }
         catch (Exception ex)
         {
-            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"[ScheduledTaskService] No existing task '{taskName}' to remove: {ex.Message}");
+            logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"No existing task '{taskName}' to remove: {ex.Message}");
         }
     }
 

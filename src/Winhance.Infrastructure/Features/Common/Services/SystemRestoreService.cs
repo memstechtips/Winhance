@@ -41,7 +41,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
                 if (policyKey?.GetValue(DisableSrValueName) is int p && p == 1)
                 {
                     _logService.Log(LogLevel.Info,
-                        "[SystemRestoreService] DisableSR group policy is set; reporting Disabled");
+                        "DisableSR group policy is set; reporting Disabled");
                     return false;
                 }
             }
@@ -50,7 +50,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
             if (string.IsNullOrEmpty(cDeviceId))
             {
                 _logService.Log(LogLevel.Warning,
-                    "[SystemRestoreService] Could not resolve C: volume DeviceID; reporting Disabled");
+                    "Could not resolve C: volume DeviceID; reporting Disabled");
                 return false;
             }
 
@@ -58,7 +58,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
             if (sppKey?.GetValue(SystemRestoreClientGuid) is not string[] entries)
             {
                 _logService.Log(LogLevel.Info,
-                    "[SystemRestoreService] SPP\\Clients value missing or not REG_MULTI_SZ; reporting Disabled");
+                    "SPP\\Clients value missing or not REG_MULTI_SZ; reporting Disabled");
                 return false;
             }
 
@@ -67,13 +67,13 @@ internal sealed class SystemRestoreService : ISystemRestoreService
                 e.StartsWith(cDeviceId, StringComparison.OrdinalIgnoreCase));
 
             _logService.Log(LogLevel.Info,
-                $"[SystemRestoreService] IsEnabledForC = {enabled} (cDeviceId={cDeviceId}, entries={entries.Length})");
+                $"IsEnabledForC = {enabled} (cDeviceId={cDeviceId}, entries={entries.Length})");
             return enabled;
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Warning,
-                $"[SystemRestoreService] IsEnabledForC threw {ex.GetType().Name}: {ex.Message}; reporting Disabled");
+                $"IsEnabledForC threw {ex.GetType().Name}: {ex.Message}; reporting Disabled");
             return false;
         }
     }
@@ -90,7 +90,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
             if (!PInvoke.GetVolumeNameForVolumeMountPoint(mountPoint, buffer))
             {
                 _logService.Log(LogLevel.Info,
-                    $"[SystemRestoreService] GetVolumeNameForVolumeMountPoint failed (error {Marshal.GetLastWin32Error()}); falling back to WMI");
+                    $"GetVolumeNameForVolumeMountPoint failed (error {Marshal.GetLastWin32Error()}); falling back to WMI");
                 return null;
             }
 
@@ -100,7 +100,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Warning,
-                $"[SystemRestoreService] C: volume native lookup threw {ex.GetType().Name}: {ex.Message}");
+                $"C: volume native lookup threw {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }
@@ -128,7 +128,7 @@ internal sealed class SystemRestoreService : ISystemRestoreService
             // Caught here rather than left to propagate: ExecutionAndPublication caches a thrown exception
             // and would rethrow it for the life of the process. Null falls through to the Disabled report.
             _logService.Log(LogLevel.Warning,
-                $"[SystemRestoreService] C: volume lookup threw {ex.GetType().Name}: {ex.Message}");
+                $"C: volume lookup threw {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }

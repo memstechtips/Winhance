@@ -164,7 +164,7 @@ public class WimCustomizationServiceTests
         var result = await _service.AddDriversAsync(@"C:\work");
 
         result.Should().BeTrue();
-        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("87"))), Times.Once);
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("87")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

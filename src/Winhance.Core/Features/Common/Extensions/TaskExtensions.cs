@@ -6,7 +6,7 @@ namespace Winhance.Core.Features.Common.Extensions;
 public static class TaskExtensions
 {
     public static async void FireAndForget(this Task task, ILogService logService,
-        [CallerMemberName] string? callerName = null)
+        [CallerMemberName] string? callerName = null, [CallerFilePath] string callerFilePath = "")
     {
         try
         {
@@ -14,7 +14,7 @@ public static class TaskExtensions
         }
         catch (Exception ex)
         {
-            logService.LogWarning($"[FireAndForget] Unobserved exception in {callerName}: {ex.Message}");
+            logService.LogWarning($"Unobserved exception in {callerName}: {ex.Message}", callerFilePath);
         }
     }
 }

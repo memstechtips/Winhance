@@ -473,7 +473,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
         _sut.ExtractSystemDriversCard.HasFailed.Should().BeFalse();
-        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom"))), Times.Once);
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

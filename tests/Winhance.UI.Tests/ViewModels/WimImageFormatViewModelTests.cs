@@ -228,7 +228,7 @@ public class WimImageFormatViewModelTests : IDisposable
 
         await _sut.SafeDetectImageFormatAsync();
 
-        _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Test error")), It.IsAny<Exception>()), Times.AtLeastOnce);
+        _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Test error")), It.IsAny<Exception>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]

@@ -156,7 +156,7 @@ public class EventBusTests
         _mockLog.Verify(l => l.Log(
             LogLevel.Error,
             It.Is<string>(s => s.Contains("test error")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

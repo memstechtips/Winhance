@@ -10,5 +10,5 @@ public interface IAppInstallationService
     // Features and capabilities share this one entry point so they cannot open two servicing windows.
     // It dispatches the whole batch to one PowerShell window and reports DeferredSuccess: the outcome
     // belongs to that window, so the caller must not mark anything installed.
-    Task<OperationResult<bool>> EnableServicingBatchAsync(IReadOnlyList<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true);
+    Task<OperationResult<bool>> EnableServicingBatchAsync(IReadOnlyList<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null);
 }

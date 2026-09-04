@@ -176,8 +176,8 @@ public class TaskProgressServiceTests
         _sut.FailTask();
         _sut.CompleteTask();
 
-        _mockLog.Verify(l => l.Log(LogLevel.Warning, It.Is<string>(m => m.StartsWith("Task failed")), It.IsAny<Exception>()), Times.Once);
-        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>()), Times.Never);
+        _mockLog.Verify(l => l.Log(LogLevel.Warning, It.Is<string>(m => m.StartsWith("Task failed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -192,8 +192,8 @@ public class TaskProgressServiceTests
 
         _sut.IsTaskRunning.Should().BeFalse();
         received!.DetailedMessage.Should().Be("Task cancelled");
-        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task cancelled")), It.IsAny<Exception>()), Times.Once);
-        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>()), Times.Never);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task cancelled")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

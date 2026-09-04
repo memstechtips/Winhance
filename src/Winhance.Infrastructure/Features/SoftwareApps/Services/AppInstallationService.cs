@@ -50,8 +50,7 @@ internal class AppInstallationService(
 
     public async Task<OperationResult<bool>> EnableServicingBatchAsync(
         IReadOnlyList<ItemDefinition> apps,
-        IProgress<TaskProgressDetail>? progress = null,
-        bool shouldRemoveFromBloatScript = true)
+        IProgress<TaskProgressDetail>? progress = null)
     {
         try
         {
@@ -64,14 +63,11 @@ internal class AppInstallationService(
             var cancellationToken = taskProgressService.GetCurrentCancellationToken();
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (shouldRemoveFromBloatScript)
-            {
-                await bloatRemovalService.RemoveItemsFromScriptAsync(batch).ConfigureAwait(false);
+            await bloatRemovalService.RemoveItemsFromScriptAsync(batch).ConfigureAwait(false);
 
-                foreach (var app in batch)
-                {
-                    await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
-                }
+            foreach (var app in batch)
+            {
+                await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
             }
 
             // An item may carry both names; capability wins, so nothing is serviced twice.

@@ -22,26 +22,26 @@ internal class WindowsAppUninstallService(
 
         try
         {
-            logService.LogInformation($"[UninstallApp] START: appId='{appId}'");
+            logService.LogInformation($"START: appId='{appId}'");
             var app = await windowsAppsService.GetAppByIdAsync(appId).ConfigureAwait(false);
             if (app == null)
             {
-                logService.LogInformation($"[UninstallApp] App '{appId}' not found in definitions");
+                logService.LogInformation($"App '{appId}' not found in definitions");
                 return OperationResult<bool>.Failed("App not found");
             }
 
-            logService.LogInformation($"[UninstallApp] Found: '{app.Name}' AppX={( app.AppxPackageName != null ? string.Join(", ", app.AppxPackageName) : "null")} Cap={app.CapabilityName ?? "null"} Feat={app.OptionalFeatureName ?? "null"}");
+            logService.LogInformation($"Found: '{app.Name}' AppX={( app.AppxPackageName != null ? string.Join(", ", app.AppxPackageName) : "null")} Cap={app.CapabilityName ?? "null"} Feat={app.OptionalFeatureName ?? "null"}");
 
             RemovalOutcome outcome;
 
             if (app.RemovalScript != null)
             {
-                logService.LogInformation($"[UninstallApp] Routing to ExecuteDedicatedScriptAsync for '{app.Name}'");
+                logService.LogInformation($"Routing to ExecuteDedicatedScriptAsync for '{app.Name}'");
                 outcome = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                logService.LogInformation($"[UninstallApp] Routing to ExecuteBloatRemovalAsync for '{app.Name}'");
+                logService.LogInformation($"Routing to ExecuteBloatRemovalAsync for '{app.Name}'");
                 outcome = await bloatRemovalService.ExecuteBloatRemovalAsync([app], progress, cancellationToken).ConfigureAwait(false);
             }
 
@@ -76,20 +76,20 @@ internal class WindowsAppUninstallService(
             if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
-            logService.LogInformation($"[UninstallApps] START: {apps.Count} total apps to process");
+            logService.LogInformation($"START: {apps.Count} total apps to process");
 
             var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
 
-            logService.LogInformation($"[UninstallApps] Categorization: ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
+            logService.LogInformation($"Categorization: ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
             foreach (var a in apps)
-                logService.LogInformation($"[UninstallApps]   Item: '{a.Name}' Id={a.Id} AppX={(a.AppxPackageName != null ? string.Join(", ", a.AppxPackageName) : "null")} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
+                logService.LogInformation($"  Item: '{a.Name}' Id={a.Id} AppX={(a.AppxPackageName != null ? string.Join(", ", a.AppxPackageName) : "null")} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
 
             var anyDeferred = false;
 
             if (scriptApps.Count > 0)
             {
-                logService.LogInformation($"[UninstallApps] Step 2: Executing {scriptApps.Count} dedicated scripts...");
+                logService.LogInformation($"Step 2: Executing {scriptApps.Count} dedicated scripts...");
                 foreach (var app in scriptApps)
                 {
                     var outcome = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
@@ -97,39 +97,39 @@ internal class WindowsAppUninstallService(
                         changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
                     if (outcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
                 }
-                logService.LogInformation("[UninstallApps] Step 2 DONE");
+                logService.LogInformation("Step 2 DONE");
             }
 
             if (regularApps.Count > 0)
             {
-                logService.LogInformation($"[UninstallApps] Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
+                logService.LogInformation($"Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
                 var regularOutcome = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken).ConfigureAwait(false);
                 if (regularOutcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
                     foreach (var app in regularApps)
                         changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
                 if (regularOutcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
-                logService.LogInformation("[UninstallApps] Step 3 DONE");
+                logService.LogInformation("Step 3 DONE");
             }
 
             if (saveRemovalScripts)
             {
-                logService.LogInformation("[UninstallApps] Step 4: Persisting removal scripts...");
+                logService.LogInformation("Step 4: Persisting removal scripts...");
                 await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
             }
             else
             {
-                logService.LogInformation("[UninstallApps] Step 4: Cleaning up all removal artifacts...");
+                logService.LogInformation("Step 4: Cleaning up all removal artifacts...");
                 await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
             }
-            logService.LogInformation("[UninstallApps] Step 4 DONE");
+            logService.LogInformation("Step 4 DONE");
 
             if (anyDeferred)
             {
-                logService.LogWarning($"[UninstallApps] DONE: {apps.Count} apps deferred to scheduled task");
+                logService.LogWarning($"DONE: {apps.Count} apps deferred to scheduled task");
                 return OperationResult<int>.DeferredSuccess(apps.Count, "Items will be removed at next startup");
             }
 
-            logService.Log(LogLevel.Success, $"[UninstallApps] DONE: Successfully removed {apps.Count} apps");
+            logService.Log(LogLevel.Success, $"DONE: Successfully removed {apps.Count} apps");
             return OperationResult<int>.Succeeded(apps.Count);
         }
         catch (OperationCanceledException)
@@ -151,12 +151,12 @@ internal class WindowsAppUninstallService(
             if (apps == null || apps.Count == 0)
                 return OperationResult<int>.Failed("No apps provided");
 
-            logService.LogInformation($"[UninstallAppsParallel] START: {apps.Count} total apps to process");
+            logService.LogInformation($"START: {apps.Count} total apps to process");
 
             var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
 
-            logService.LogInformation($"[UninstallAppsParallel] ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
+            logService.LogInformation($"ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
 
             var slotNames = new List<string>();
             foreach (var app in scriptApps)
@@ -221,23 +221,23 @@ internal class WindowsAppUninstallService(
 
                 if (saveRemovalScripts)
                 {
-                    logService.LogInformation("[UninstallAppsParallel] Persisting removal scripts...");
+                    logService.LogInformation("Persisting removal scripts...");
                     await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
                 }
                 else
                 {
-                    logService.LogInformation("[UninstallAppsParallel] Cleaning up all removal artifacts...");
+                    logService.LogInformation("Cleaning up all removal artifacts...");
                     await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
                 }
 
                 var anyDeferred = results.Any(r => r == RemovalOutcome.DeferredToScheduledTask);
                 if (anyDeferred)
                 {
-                    logService.LogWarning($"[UninstallAppsParallel] DONE: {apps.Count} apps deferred to scheduled task");
+                    logService.LogWarning($"DONE: {apps.Count} apps deferred to scheduled task");
                     return OperationResult<int>.DeferredSuccess(apps.Count, "Items will be removed at next startup");
                 }
 
-                logService.Log(LogLevel.Success, $"[UninstallAppsParallel] DONE: Successfully removed {apps.Count} apps");
+                logService.Log(LogLevel.Success, $"DONE: Successfully removed {apps.Count} apps");
                 return OperationResult<int>.Succeeded(apps.Count);
             }
             catch (OperationCanceledException)

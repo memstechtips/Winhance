@@ -318,7 +318,7 @@ public class ApplyOpScriptEmitterTests
 
         result.Warnings.Should().ContainSingle(w => w.Contains("nope"));
         SystemText(result).Should().BeEmpty();
-        _log.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception>()), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

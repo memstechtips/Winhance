@@ -260,7 +260,7 @@ public class RecommendedSettingsApplierTests
         _mockLog.Verify(l => l.Log(
             LogLevel.Warning,
             It.Is<string>(msg => msg.Contains("fail-setting")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -238,7 +238,7 @@ public class SettingWriteStrategyTests
         result.Outcome.Should().Be(SettingWriteOutcome.Recorded,
             because: "the value the user set still has to show on the card");
         _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
-        _logService.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception?>()), Times.Once);
+        _logService.Verify(l => l.Log(LogLevel.Warning, It.IsAny<string>(), It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

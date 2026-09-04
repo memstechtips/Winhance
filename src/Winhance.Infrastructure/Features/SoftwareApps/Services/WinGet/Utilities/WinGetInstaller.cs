@@ -131,7 +131,7 @@ internal class WinGetInstaller
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
                         if (!IsWinGetOutputNoise(line) && displayLine != null)
-                            _logService?.LogInformation($"[bundled-winget] {displayLine}");
+                            _logService?.LogInformation(displayLine);
 
                         var parsed = WinGetProgressParser.ParseLine(line);
                         if (parsed != null)
@@ -179,7 +179,7 @@ internal class WinGetInstaller
                 },
                 onErrorLine: line =>
                 {
-                    _logService?.LogWarning($"[bundled-winget-err] {line}");
+                    _logService?.LogWarning(line);
                     // Surface stderr in the terminal too — winget's actual error text
                     // is useless to users (and to bug reports) if it only hits the log file.
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -188,27 +188,10 @@ internal class WinGetInstaller
                     });
                 },
                 cancellationToken: cancellationToken,
-                // Install can legitimately take >5 min for slow CDNs / large packages.
-                // Disable wall-clock; rely on the 3-min idle-output timer to catch real stalls.
-                timeoutMs: 0,
-                idleTimeoutMs: 180_000,
+                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 exePathOverride: bundledPath,
-                onProgressLine: line =>
-                {
-                    try
-                    {
-                        var displayLine = WinGetProgressParser.TranslateLine(line);
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                        {
-                            TerminalOutput = displayLine ?? line,
-                            IsProgressIndicator = true
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                    }
-                }).ConfigureAwait(false);
+                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
@@ -218,10 +201,12 @@ internal class WinGetInstaller
             }
 
             // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
-            var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs: 0, idleTimeoutMs: 180_000);
+            var terminationNote = WinGetCliRunner.DescribeTermination(
+                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                localization: _localization);
             if (terminationNote != null)
             {
-                _logService?.LogWarning($"[bundled-winget] {terminationNote}");
+                _logService?.LogWarning(terminationNote);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     TerminalOutput = terminationNote

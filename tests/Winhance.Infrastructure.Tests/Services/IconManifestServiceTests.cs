@@ -180,7 +180,7 @@ public class IconManifestServiceTests
 
         await svc.LoadAsync();
 
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("404"))), Times.Once);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("404")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -237,6 +237,6 @@ public class IconManifestServiceTests
 
         await svc.LoadAsync();
 
-        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains('2'))), Times.Once);
+        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains('2')), It.IsAny<string>()), Times.Once);
     }
 }

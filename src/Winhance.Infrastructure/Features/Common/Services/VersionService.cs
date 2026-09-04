@@ -74,7 +74,7 @@ internal class VersionService : IVersionService
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
-                $"[DEV MODE] {LocalInstallerEnvVar} set to {localPath}. Skipping GitHub release lookup and reporting a synthetic update.");
+                $"Dev mode: {LocalInstallerEnvVar} set to {localPath}. Skipping GitHub release lookup and reporting a synthetic update.");
             return new VersionInfo
             {
                 Version = "v99.99.99-localdev",
@@ -155,7 +155,7 @@ internal class VersionService : IVersionService
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
-                $"[DEV MODE] {LocalInstallerEnvVar} set to {localPath}. Skipping HTTP download and using the local file as the staged installer.");
+                $"Dev mode: {LocalInstallerEnvVar} set to {localPath}. Skipping HTTP download and using the local file as the staged installer.");
             _downloadedInstallerPath = localPath;
             // Match the async signature without doing real I/O.
             await Task.CompletedTask.ConfigureAwait(false);
@@ -216,7 +216,7 @@ internal class VersionService : IVersionService
         if (!_fileSystemService.FileExists(path))
         {
             _logService.Log(LogLevel.Warning,
-                $"[DEV MODE] {LocalInstallerEnvVar}={path} but the file does not exist. Falling back to normal update flow.");
+                $"Dev mode: {LocalInstallerEnvVar}={path} but the file does not exist. Falling back to normal update flow.");
             return null;
         }
         return path;

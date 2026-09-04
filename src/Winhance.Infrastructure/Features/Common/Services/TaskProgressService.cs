@@ -63,7 +63,7 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Task started: {taskName}");
+        _logService.Log(LogLevel.Info, $"Task started: {taskName}");
         OnProgressChanged(
             new TaskProgressDetail
             {
@@ -271,7 +271,7 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, $"[TASKPROGRESSSERVICE] Multi-script task started with {scriptNames.Length} slots");
+        _logService.Log(LogLevel.Info, $"Multi-script task started with {scriptNames.Length} slots");
 
         for (int i = 0; i < scriptNames.Length; i++)
         {
@@ -335,7 +335,7 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         _queueNextItemName = null;
         _skipNextRequested = false;
 
-        _logService.Log(LogLevel.Info, "[TASKPROGRESSSERVICE] Multi-script task completed");
+        _logService.Log(LogLevel.Info, "Multi-script task completed");
 
         // Signal completion: ScriptSlotCount=0 tells UI to hide all controls
         ProgressUpdated?.Invoke(this, new TaskProgressDetail

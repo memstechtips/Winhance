@@ -65,7 +65,7 @@ internal class ChocolateyService : IChocolateyService
                 arguments,
                 onOutputLine: line =>
                 {
-                    _logService.LogInformation($"[choco-bootstrap] {line}");
+                    _logService.LogInformation(line);
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                     {
                         Progress = 50,
@@ -164,7 +164,7 @@ internal class ChocolateyService : IChocolateyService
             $"install {chocoPackageId} -y --no-progress --ignore-checksums",
             onOutputLine: line =>
             {
-                _logService.LogInformation($"[choco] {line}");
+                _logService.LogInformation(line);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     Progress = 50,
@@ -200,7 +200,7 @@ internal class ChocolateyService : IChocolateyService
 
             void OnOutput(string line)
             {
-                _logService.LogInformation($"[choco] {line}");
+                _logService.LogInformation(line);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     Progress = 50,
@@ -338,7 +338,7 @@ internal class ChocolateyService : IChocolateyService
 
             void OnOutput(string line)
             {
-                _logService.LogInformation($"[choco-cleanup] {line}");
+                _logService.LogInformation(line);
             }
 
             var (succeeded, failed, _) =

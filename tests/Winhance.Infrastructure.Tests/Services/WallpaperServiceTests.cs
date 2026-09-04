@@ -86,7 +86,7 @@ public class WallpaperServiceTests
 
         result.Should().BeTrue();
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(msg => msg.Contains("Wallpaper set to"))),
+            l => l.Log(LogLevel.Info, It.Is<string>(msg => msg.Contains("Wallpaper set to")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -102,7 +102,7 @@ public class WallpaperServiceTests
 
         result.Should().BeFalse();
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Error, It.Is<string>(msg => msg.Contains("Failed to set wallpaper"))),
+            l => l.Log(LogLevel.Error, It.Is<string>(msg => msg.Contains("Failed to set wallpaper")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 }

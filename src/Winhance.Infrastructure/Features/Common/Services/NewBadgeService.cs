@@ -63,7 +63,7 @@ internal class NewBadgeService : INewBadgeService
             _prefs.SetPreferenceAsync("NewBadgeBaseline", VersionToString(_baseline));
             // Do NOT touch ShowNewBadges — leave whatever the user already has.
             _logService.LogInformation(
-                "[NewBadge] Uninitialized or half-populated state. Baseline set to 0.0.0 (all tagged settings treated as new).");
+                "Uninitialized or half-populated state. Baseline set to 0.0.0 (all tagged settings treated as new).");
             return;
         }
 
@@ -76,7 +76,7 @@ internal class NewBadgeService : INewBadgeService
             _prefs.SetPreferenceAsync("NewBadgeBaseline", VersionToString(storedHighest));
             ShowNewBadges = true;
             _logService.LogInformation(
-                $"[NewBadge] Effective upgrade: registry highest {highestInRegistry} > stored {storedHighest}. " +
+                $"Effective upgrade: registry highest {highestInRegistry} > stored {storedHighest}. " +
                 $"Baseline={storedHighest}; ShowNewBadges reset to true.");
             return;
         }
@@ -85,7 +85,7 @@ internal class NewBadgeService : INewBadgeService
         // app launches until the next upgrade.
         _baseline = storedBaseline;
         _logService.LogDebug(
-            $"[NewBadge] No upgrade. Baseline={_baseline}, ShowNewBadges={ShowNewBadges}.");
+            $"No upgrade. Baseline={_baseline}, ShowNewBadges={ShowNewBadges}.");
     }
 
     public bool IsSettingNew(string? addedInVersion, string settingId)

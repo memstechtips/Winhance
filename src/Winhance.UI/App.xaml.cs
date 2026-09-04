@@ -21,19 +21,19 @@ public partial class App : Application
 
     public App()
     {
-        StartupLogger.Log("App", "App constructor starting");
+        StartupLogger.Log("App constructor starting");
         try
         {
             // Register exception handlers before any UI initialization
             RegisterExceptionHandlers();
-            StartupLogger.Log("App", "Exception handlers registered");
+            StartupLogger.Log("Exception handlers registered");
 
             this.InitializeComponent();
-            StartupLogger.Log("App", "InitializeComponent completed");
+            StartupLogger.Log("InitializeComponent completed");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("App", $"App constructor EXCEPTION: {ex}");
+            StartupLogger.Log($"App constructor EXCEPTION: {ex}");
             throw;
         }
     }
@@ -50,37 +50,37 @@ public partial class App : Application
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
-        StartupLogger.Log("App", $"[FATAL] AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
+        StartupLogger.Log($"AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
     }
 
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
+        StartupLogger.Log($"Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
         e.Handled = true;
     }
 
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
-        StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
+        StartupLogger.Log($"Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
         e.SetObserved();
     }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        StartupLogger.Log("App", "OnLaunched starting");
+        StartupLogger.Log("OnLaunched starting");
         try
         {
-            StartupLogger.Log("App", "Building DI host...");
+            StartupLogger.Log("Building DI host...");
             _host = CompositionRoot.CreateWinhanceHost().Build();
-            StartupLogger.Log("App", "DI host built successfully");
+            StartupLogger.Log("DI host built successfully");
 
             try
             {
                 _logService = Services.GetService<ILogService>();
-                StartupLogger.Log("App", "LogService obtained");
+                StartupLogger.Log("LogService obtained");
 
                 try
                 {
@@ -93,45 +93,45 @@ public partial class App : Application
                         }
                     }
                     _logService?.StartLog();
-                    StartupLogger.Log("App", "LogService.StartLog() called - file logging initialized");
+                    StartupLogger.Log("LogService.StartLog() called - file logging initialized");
                     var logPath = _logService?.GetLogPath();
-                    StartupLogger.Log("App", $"Log file path: {logPath}");
+                    StartupLogger.Log($"Log file path: {logPath}");
                     _logService?.LogInformation("Winhance application starting...");
                 }
                 catch (Exception startLogEx)
                 {
-                    StartupLogger.Log("App", $"StartLog() FAILED: {startLogEx.Message}");
-                    StartupLogger.Log("App", $"StartLog() Stack: {startLogEx.StackTrace}");
+                    StartupLogger.Log($"StartLog() FAILED: {startLogEx.Message}");
+                    StartupLogger.Log($"StartLog() Stack: {startLogEx.StackTrace}");
                 }
             }
             catch (Exception ex)
             {
-                StartupLogger.Log("App", $"LogService unavailable: {ex.Message}");
+                StartupLogger.Log($"LogService unavailable: {ex.Message}");
             }
 
             // Initialize localization before creating any UI
-            StartupLogger.Log("App", "Initializing localization...");
+            StartupLogger.Log("Initializing localization...");
             InitializeLocalization();
-            StartupLogger.Log("App", "Localization initialized");
+            StartupLogger.Log("Localization initialized");
 
-            StartupLogger.Log("App", "Creating MainWindow...");
+            StartupLogger.Log("Creating MainWindow...");
             _mainWindow = new MainWindow();
-            StartupLogger.Log("App", "MainWindow created, activating...");
+            StartupLogger.Log("MainWindow created, activating...");
             _mainWindow.Activate();
-            StartupLogger.Log("App", "MainWindow activated");
+            StartupLogger.Log("MainWindow activated");
 
             // Initialize theme service after window is created
-            StartupLogger.Log("App", "Initializing theme...");
+            StartupLogger.Log("Initializing theme...");
             InitializeTheme();
-            StartupLogger.Log("App", "Theme initialized");
+            StartupLogger.Log("Theme initialized");
 
-            StartupLogger.Log("App", "Starting startup operations...");
+            StartupLogger.Log("Starting startup operations...");
             (_mainWindow as MainWindow)?.StartStartupOperations();
-            StartupLogger.Log("App", "Startup operations kicked off - OnLaunched complete");
+            StartupLogger.Log("Startup operations kicked off - OnLaunched complete");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("App", $"OnLaunched EXCEPTION: {ex}");
+            StartupLogger.Log($"OnLaunched EXCEPTION: {ex}");
             throw;
         }
     }

@@ -89,7 +89,7 @@ public class SystemBackupServiceTests
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
                 It.Is<string>(s => s.Contains("Creating restore point")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -116,7 +116,7 @@ public class SystemBackupServiceTests
             l => l.Log(
                 Core.Features.Common.Enums.LogLevel.Info,
                 It.Is<string>(s => s.Contains(customName)),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.AtLeastOnce);
     }
 

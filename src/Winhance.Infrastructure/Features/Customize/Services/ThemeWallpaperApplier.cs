@@ -23,13 +23,13 @@ internal sealed class ThemeWallpaperApplier(
         if (value is not int selectionIndex) return false;
 
         logService.Log(LogLevel.Info,
-            $"[ThemeWallpaperApplier] Applying theme mode - Index: {selectionIndex}, ApplyWallpaper: {additionalContext}");
+            $"Applying theme mode - Index: {selectionIndex}, ApplyWallpaper: {additionalContext}");
 
         var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.ThemeModeWindows);
         if (catalogSetting is null)
         {
             logService.Log(LogLevel.Warning,
-                "[ThemeWallpaperApplier] theme-mode-windows missing from the catalog - theme registry write skipped");
+                "theme-mode-windows missing from the catalog - theme registry write skipped");
             return true;
         }
 
@@ -47,7 +47,7 @@ internal sealed class ThemeWallpaperApplier(
         if (themeState is null || themeState.IsDetectOnly)
         {
             logService.Log(LogLevel.Info,
-                $"[ThemeWallpaperApplier] Index {selectionIndex} is not an applicable theme state - nothing written");
+                $"Index {selectionIndex} is not an applicable theme state - nothing written");
             return true;
         }
 
@@ -55,13 +55,13 @@ internal sealed class ThemeWallpaperApplier(
         var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
-                $"[ThemeWallpaperApplier] {result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
+                $"{result.Failed}/{result.Total} theme write op(s) failed: {string.Join("; ", result.Failures)}");
 
         // This path is synchronous and cannot await, so a process-launching effect would be dropped.
         // ThemeWallpaperEffectsConformanceTests asserts none exists; this catches it at runtime if one does.
         if (plan.AsyncEffects.Count > 0)
             logService.Log(LogLevel.Error,
-                $"[ThemeWallpaperApplier] {plan.AsyncEffects.Count} async effect(s) NOT run - a theme state gained one but this apply path is synchronous");
+                $"{plan.AsyncEffects.Count} async effect(s) NOT run - a theme state gained one but this apply path is synchronous");
 
         // Import-flow checkbox: also change the wallpaper to match.
         if (additionalContext)
@@ -77,12 +77,12 @@ internal sealed class ThemeWallpaperApplier(
                 if (wallpaperPath != null && fileSystemService.FileExists(wallpaperPath))
                 {
                     await wallpaperService.SetWallpaperAsync(wallpaperPath).ConfigureAwait(false);
-                    logService.Log(LogLevel.Info, $"[ThemeWallpaperApplier] Wallpaper changed to: {wallpaperPath}");
+                    logService.Log(LogLevel.Info, $"Wallpaper changed to: {wallpaperPath}");
                 }
             }
             catch (System.Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ThemeWallpaperApplier] Failed to change wallpaper: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to change wallpaper: {ex.Message}");
             }
         }
 

@@ -102,31 +102,31 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
             {
                 relaunchToken = _interactiveUser.CaptureShellRelaunchToken();
 
-                _logService.Log(LogLevel.Info, "[ExplorerRestartService] Stopping Explorer");
+                _logService.Log(LogLevel.Info, "Stopping Explorer");
 
                 // ASK FIRST. A graceful exit lets Explorer save the desktop icon layout and folder view
                 // preferences; terminating it throws them away. The message behind this is UNDOCUMENTED, so
                 // it is strictly best-effort - hence the terminate fallback below.
                 if (_uiManagement.TryGracefulShellExit(GracefulExitTimeoutMs))
                 {
-                    _logService.Log(LogLevel.Info, "[ExplorerRestartService] Explorer exited gracefully");
+                    _logService.Log(LogLevel.Info, "Explorer exited gracefully");
                 }
                 else
                 {
                     terminated = true;
                     _logService.Log(LogLevel.Info,
-                        "[ExplorerRestartService] Explorer did not exit gracefully in time; terminating it");
+                        "Explorer did not exit gracefully in time; terminating it");
 
                     // KillProcessAndWait, never KillProcess: Process.Kill only requests termination, so
                     // polling straight afterwards sees the dying process and reads it as "already back".
                     if (!_uiManagement.KillProcessAndWait(ExplorerProcessName, KillTimeoutMs))
                         _logService.Log(LogLevel.Warning,
-                            "[ExplorerRestartService] Explorer did not confirm exit within the timeout; continuing");
+                            "Explorer did not confirm exit within the timeout; continuing");
                 }
             }
             else
             {
-                _logService.Log(LogLevel.Info, "[ExplorerRestartService] Explorer was not running; starting it");
+                _logService.Log(LogLevel.Info, "Explorer was not running; starting it");
             }
 
             // Give winlogon's AutoRestartShell its chance first - when it fires, the shell comes back at the
@@ -147,11 +147,11 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
                 if (_uiManagement.IsShellWindowAlive())
                 {
                     _logService.Log(LogLevel.Info,
-                        "[ExplorerRestartService] A shell is already back; not launching a second Explorer");
+                        "A shell is already back; not launching a second Explorer");
                 }
                 else
                 {
-                    _logService.Log(LogLevel.Info, "[ExplorerRestartService] Relaunching Explorer");
+                    _logService.Log(LogLevel.Info, "Relaunching Explorer");
 
                     // Fire-and-forget: neither relaunch path can report failure (the fallback is a
                     // void API), so the poll below is the only real verdict on whether the shell is back.
@@ -172,7 +172,7 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
             // Cleared on SUCCESS ONLY. A pending state that was not actually satisfied has to survive so
             // the bar stays up and the user keeps a way to retry.
             _pendingRestart.Clear();
-            _logService.Log(LogLevel.Info, "[ExplorerRestartService] Explorer restarted");
+            _logService.Log(LogLevel.Info, "Explorer restarted");
             return OperationResult.Succeeded();
         }
         catch (Exception ex)
@@ -195,7 +195,7 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
         if (relaunchToken is null)
         {
             _logService.Log(LogLevel.Warning,
-                "[ExplorerRestartService] No shell token was captured; falling back to the interactive-user launch");
+                "No shell token was captured; falling back to the interactive-user launch");
         }
         else if (relaunchToken.TryLaunch(ExplorerExecutable))
         {
@@ -204,7 +204,7 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
         else
         {
             _logService.Log(LogLevel.Warning,
-                "[ExplorerRestartService] The captured shell token failed to launch Explorer; falling back to the interactive-user launch");
+                "The captured shell token failed to launch Explorer; falling back to the interactive-user launch");
         }
 
         _interactiveUser.LaunchProcessAsInteractiveUser(ExplorerExecutable);
@@ -212,7 +212,7 @@ internal sealed class ExplorerRestartService : IExplorerRestartService
 
     private OperationResult Fail(string message)
     {
-        _logService.Log(LogLevel.Error, $"[ExplorerRestartService] {message}");
+        _logService.Log(LogLevel.Error, message);
         return OperationResult.Failed(message);
     }
 

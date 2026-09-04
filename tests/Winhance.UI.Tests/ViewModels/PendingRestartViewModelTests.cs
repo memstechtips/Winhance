@@ -199,7 +199,7 @@ public class PendingRestartViewModelTests
         Func<Task> execute = async () => await vm.RestartCommand.ExecuteAsync(null);
         await execute.Should().NotThrowAsync();
 
-        _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>()), Times.Once);
+        _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
         vm.IsRestarting.Should().BeFalse("the finally block clears it or the button stays a spinner");
         vm.IsBarVisible.Should().BeTrue("a failed restart must leave the user a way to retry");
     }

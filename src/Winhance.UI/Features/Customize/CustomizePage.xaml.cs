@@ -12,25 +12,23 @@ public sealed partial class CustomizePage : SectionPage
 
     protected override ISectionPageViewModel PageViewModel => ViewModel;
 
-    protected override string LogTag => "CustomizePage";
-
     public CustomizePage()
     {
         try
         {
-            StartupLogger.Log("CustomizePage", "Constructor starting...");
+            StartupLogger.Log("Constructor starting...");
             this.InitializeComponent();
-            StartupLogger.Log("CustomizePage", "InitializeComponent done, getting ViewModel...");
+            StartupLogger.Log("InitializeComponent done, getting ViewModel...");
 
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
 
             InitializeSectionPage(Shell);
 
-            StartupLogger.Log("CustomizePage", "ViewModel obtained, constructor complete");
+            StartupLogger.Log("ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("CustomizePage", $"Constructor EXCEPTION: {ex}");
+            StartupLogger.Log($"Constructor EXCEPTION: {ex}");
             throw;
         }
     }

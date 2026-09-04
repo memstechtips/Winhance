@@ -49,8 +49,8 @@ public class AutounattendWriterTests
         _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
         _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature), Times.Once);
         _ps.Verify(p => p.ValidateXmlSyntaxAsync(It.Is<string>(x => x.Contains("CDATA")), default), Times.Once);
-        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("Generating autounattend.xml")), null), Times.Once);
-        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("generated successfully")), null), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("Generating autounattend.xml")), null, It.IsAny<string>()), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("generated successfully")), null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -70,6 +70,6 @@ public class AutounattendWriterTests
 
         await act.Should().ThrowAsync<InvalidOperationException>();
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
-        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("failed XML well-formedness validation")), null), Times.Once);
+        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("failed XML well-formedness validation")), null, It.IsAny<string>()), Times.Once);
     }
 }

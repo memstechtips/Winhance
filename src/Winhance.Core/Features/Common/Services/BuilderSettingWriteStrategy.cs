@@ -38,7 +38,7 @@ public sealed class BuilderSettingWriteStrategy : ISettingWriteStrategy
         }
 
         _applicationModeService.RecordBuilderEdit(request.AuthoredEdit);
-        _logService.LogDebug($"[BuilderWrite] Recorded {settingId}: {request.Description}");
+        _logService.LogDebug($"Recorded {settingId}: {request.Description}");
         return Task.FromResult(SettingWriteResult.Recorded);
     }
 }

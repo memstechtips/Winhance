@@ -651,6 +651,6 @@ public class WimStep4IsoViewModelTests
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
         _sut.IsIsoCreated.Should().BeTrue();
-        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom"))), Times.Once);
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom")), It.IsAny<string>()), Times.Once);
     }
 }

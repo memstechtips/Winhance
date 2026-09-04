@@ -122,7 +122,7 @@ internal sealed class StartupUiCoordinator
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupUiCoordinator", $"RunStartupAndCompleteAsync EXCEPTION: {ex}");
+            StartupLogger.Log($"RunStartupAndCompleteAsync EXCEPTION: {ex}");
         }
 
         // Always complete startup on the UI thread so the app is usable.
@@ -152,7 +152,7 @@ internal sealed class StartupUiCoordinator
         Func<MainWindowViewModel?> getViewModel,
         Action markStartupComplete)
     {
-        StartupLogger.Log("StartupUiCoordinator", "CompleteStartupAsync starting");
+        StartupLogger.Log("CompleteStartupAsync starting");
 
         try
         {
@@ -169,23 +169,23 @@ internal sealed class StartupUiCoordinator
             var page = contentFrame.Content as SoftwareAppsPage;
             if (page != null)
             {
-                StartupLogger.Log("StartupUiCoordinator", "Awaiting Windows Apps initialization...");
+                StartupLogger.Log("Awaiting Windows Apps initialization...");
                 await page.ViewModel.InitializeWindowsAppsAsync();
-                StartupLogger.Log("StartupUiCoordinator", "Windows Apps initialization complete");
+                StartupLogger.Log("Windows Apps initialization complete");
 
-                StartupLogger.Log("StartupUiCoordinator", "Kicking off External Apps initialization in background");
+                StartupLogger.Log("Kicking off External Apps initialization in background");
                 page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
             }
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupUiCoordinator", $"SoftwareApps initialization failed: {ex.Message}");
+            StartupLogger.Log($"SoftwareApps initialization failed: {ex.Message}");
             _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
         }
 
         markStartupComplete();
         loadingOverlay.Visibility = Visibility.Collapsed;
-        StartupLogger.Log("StartupUiCoordinator", "Startup complete, overlay hidden");
+        StartupLogger.Log("Startup complete, overlay hidden");
 
         try
         {
@@ -197,7 +197,7 @@ internal sealed class StartupUiCoordinator
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupUiCoordinator", $"Startup notification failed: {ex.Message}");
+            StartupLogger.Log($"Startup notification failed: {ex.Message}");
         }
 
         // Pre-warm the sponsors cache so the exit dialog opens instantly even offline.

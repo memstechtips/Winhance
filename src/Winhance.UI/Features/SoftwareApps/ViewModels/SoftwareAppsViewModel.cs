@@ -536,7 +536,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         EnsureSubscriptions();
         if (!WindowsAppsViewModel.IsInitialized)
         {
-            _logService.LogInformation("[SoftwareAppsViewModel] Loading WindowsAppsViewModel");
+            _logService.LogInformation("Loading WindowsAppsViewModel");
             await WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
         }
     }
@@ -548,7 +548,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         EnsureSubscriptions();
         if (!ExternalAppsViewModel.IsInitialized)
         {
-            _logService.LogInformation("[SoftwareAppsViewModel] Loading ExternalAppsViewModel");
+            _logService.LogInformation("Loading ExternalAppsViewModel");
             await ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
         }
     }
@@ -556,17 +556,17 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     [RelayCommand]
     public async Task InitializeAsync()
     {
-        _logService.LogInformation("[SoftwareAppsViewModel] InitializeAsync started");
+        _logService.LogInformation("InitializeAsync started");
 
         try
         {
             await InitializeWindowsAppsAsync();
             await InitializeExternalAppsAsync();
-            _logService.LogInformation("[SoftwareAppsViewModel] InitializeAsync completed");
+            _logService.LogInformation("InitializeAsync completed");
         }
         catch (Exception ex)
         {
-            _logService.LogError($"[SoftwareAppsViewModel] Error in InitializeAsync: {ex.Message}", ex);
+            _logService.LogError($"Error in InitializeAsync: {ex.Message}", ex);
         }
     }
 

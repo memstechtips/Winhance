@@ -123,7 +123,7 @@ public class AppIconResolverTests : IDisposable
 
         await act.Should().NotThrowAsync();
         def.IconPath.Should().BeNull();
-        _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>()), Times.AtLeastOnce);
+        _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class AppIconResolverTests : IDisposable
 
         def1.IconPath.Should().BeNull();
         def2.IconPath.Should().NotBeNull();
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("app1") || s.Contains("App1"))), Times.AtLeastOnce);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("app1") || s.Contains("App1")), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]

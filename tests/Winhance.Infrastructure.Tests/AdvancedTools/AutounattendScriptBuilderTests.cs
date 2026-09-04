@@ -274,7 +274,7 @@ public class AutounattendScriptBuilderTests
         _logService.Verify(l => l.Log(
             LogLevel.Info,
             It.Is<string>(s => s.Contains("passed PowerShell syntax validation")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -292,7 +292,7 @@ public class AutounattendScriptBuilderTests
         _logService.Verify(l => l.Log(
             LogLevel.Error,
             It.Is<string>(s => s.Contains("failed PowerShell syntax validation")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

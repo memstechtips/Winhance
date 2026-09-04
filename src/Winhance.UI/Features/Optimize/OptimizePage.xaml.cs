@@ -12,25 +12,23 @@ public sealed partial class OptimizePage : SectionPage
 
     protected override ISectionPageViewModel PageViewModel => ViewModel;
 
-    protected override string LogTag => "OptimizePage";
-
     public OptimizePage()
     {
         try
         {
-            StartupLogger.Log("OptimizePage", "Constructor starting...");
+            StartupLogger.Log("Constructor starting...");
             this.InitializeComponent();
-            StartupLogger.Log("OptimizePage", "InitializeComponent done, getting ViewModel...");
+            StartupLogger.Log("InitializeComponent done, getting ViewModel...");
 
             ViewModel = App.Services.GetRequiredService<OptimizeViewModel>();
 
             InitializeSectionPage(Shell);
 
-            StartupLogger.Log("OptimizePage", "ViewModel obtained, constructor complete");
+            StartupLogger.Log("ViewModel obtained, constructor complete");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("OptimizePage", $"Constructor EXCEPTION: {ex}");
+            StartupLogger.Log($"Constructor EXCEPTION: {ex}");
             throw;
         }
     }

@@ -60,7 +60,7 @@ public class SystemRestoreServiceTests
             l => l.Log(
                 LogLevel.Info,
                 It.Is<string>(m => m.Contains("falling back")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 

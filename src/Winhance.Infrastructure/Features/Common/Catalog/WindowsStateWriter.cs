@@ -97,7 +97,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         var subKeys = _reg.GetSubKeyNames(parentPath);
         if (subKeys.Length == 0)
         {
-            _log.Log(LogLevel.Warning, $"[WindowsStateWriter] No subkeys under '{parentPath}' for per-subkey write");
+            _log.Log(LogLevel.Warning, $"No subkeys under '{parentPath}' for per-subkey write");
             return false;
         }
 
@@ -117,7 +117,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         var subKeys = _reg.GetSubKeyNames(parentPath);
         if (subKeys.Length == 0)
         {
-            _log.Log(LogLevel.Warning, $"[WindowsStateWriter] No subkeys under '{parentPath}' for per-subkey delete");
+            _log.Log(LogLevel.Warning, $"No subkeys under '{parentPath}' for per-subkey delete");
             return false;
         }
 
@@ -146,7 +146,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         if (effect.IsAsyncIo)
         {
             _log.Log(LogLevel.Error,
-                $"[WindowsStateWriter] {effect.GetType().Name} must be deferred, not run on the synchronous writer");
+                $"{effect.GetType().Name} must be deferred, not run on the synchronous writer");
             return false;
         }
 
@@ -175,7 +175,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         // The guard keeps its empty-GUID throw off the sync-over-async boundary.
         if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out _))
         {
-            _log.Log(LogLevel.Error, $"[WindowsStateWriter] ActivatePowerPlan: invalid GUID '{guid}'");
+            _log.Log(LogLevel.Error, $"ActivatePowerPlan: invalid GUID '{guid}'");
             return false;
         }
 
