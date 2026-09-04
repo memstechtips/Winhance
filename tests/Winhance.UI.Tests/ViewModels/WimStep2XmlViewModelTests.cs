@@ -584,7 +584,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
         _sut.GenerateWinhanceXmlCard.HasFailed.Should().BeFalse();
         _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlGenSuccess");
-        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom"))), Times.Once);
+        _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

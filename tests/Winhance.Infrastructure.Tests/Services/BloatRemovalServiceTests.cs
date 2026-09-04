@@ -121,7 +121,7 @@ public class BloatRemovalServiceTests
         var result = await _service.ExecuteDedicatedScriptAsync(app);
 
         result.Should().Be(RemovalOutcome.DeferredToScheduledTask);
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("deferring to scheduled task"))), Times.Once);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("deferring to scheduled task")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class BloatRemovalServiceTests
 
         // We can verify the log was called; the progress reporting is async via IProgress
         _mockLog.Verify(l => l.LogInformation(
-            It.Is<string>(s => s.Contains("Executing dedicated removal script"))), Times.Once);
+            It.Is<string>(s => s.Contains("Executing dedicated removal script")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class BloatRemovalServiceTests
         var result = await _service.ExecuteBloatRemovalAsync(apps);
 
         result.Should().Be(RemovalOutcome.Success);
-        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("No items to process"))), Times.Once);
+        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("No items to process")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public class BloatRemovalServiceTests
         var result = await _service.ExecuteBloatRemovalAsync(apps);
 
         result.Should().Be(RemovalOutcome.Success);
-        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("No items to process"))), Times.Once);
+        _mockLog.Verify(l => l.LogInformation(It.Is<string>(s => s.Contains("No items to process")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ $specialApps = @()";
         await _service.PersistRemovalScriptsAsync(apps);
 
         _mockScheduledTask.Verify(s => s.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>()), Times.Never);
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Script not found"))), Times.Once);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Script not found")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -557,7 +557,7 @@ $specialApps = @()";
         result.Should().BeFalse();
         _mockLog.Verify(l => l.LogError(
             It.Is<string>(s => s.Contains("Error removing items from script")),
-            It.IsAny<Exception>()), Times.Once);
+            It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

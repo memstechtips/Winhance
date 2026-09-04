@@ -56,7 +56,7 @@ public class WinGetBootstrapperTests
         // will then make it return false. If winget is NOT on this system, GetWinGetExePath
         // returns null, which also results in false.
         result.Should().Be(result); // Validates the method completes without throwing
-        _mockLogService.Verify(l => l.LogInformation(It.IsAny<string>()), Times.AtLeastOnce);
+        _mockLogService.Verify(l => l.LogInformation(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class WinGetBootstrapperTests
         // When OTS is detected and system winget is available,
         // it should skip COM init. But since we can't control the static
         // IsSystemWinGetAvailable check, just verify the method runs to completion.
-        _mockLogService.Verify(l => l.LogInformation(It.IsAny<string>()), Times.AtLeastOnce);
+        _mockLogService.Verify(l => l.LogInformation(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class WinGetBootstrapperTests
         await _sut.EnsureWinGetReadyAsync();
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("Checking WinGet availability"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("Checking WinGet availability")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -98,7 +98,7 @@ public class WinGetBootstrapperTests
         await _sut.EnsureWinGetReadyAsync();
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("System winget available:"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("System winget available:")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -112,7 +112,7 @@ public class WinGetBootstrapperTests
         var result = await _sut.InstallWinGetAsync();
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("Starting AppInstaller installation"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("Starting AppInstaller installation")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -149,7 +149,7 @@ public class WinGetBootstrapperTests
 
         result.Should().BeFalse();
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Error checking WinGet availability")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("Error checking WinGet availability")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.AtMostOnce);
     }
 }

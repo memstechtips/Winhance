@@ -48,25 +48,25 @@ internal sealed class NavigationRouter
 
     public void NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
     {
-        StartupLogger.Log("NavigationRouter", $"NavigateToPage called with tag: {tag}");
+        StartupLogger.Log($"NavigateToPage called with tag: {tag}");
 
         if (tag == null || !TagToPageType.TryGetValue(tag, out var pageType))
         {
-            StartupLogger.Log("NavigationRouter", $"Skipping navigation - unknown tag: {tag}");
+            StartupLogger.Log($"Skipping navigation - unknown tag: {tag}");
             return;
         }
 
-        StartupLogger.Log("NavigationRouter", $"Resolved page type: {pageType.Name}");
+        StartupLogger.Log($"Resolved page type: {pageType.Name}");
 
         if (frame.CurrentSourcePageType != pageType)
         {
             try
             {
-                StartupLogger.Log("NavigationRouter", $"Navigating to {pageType.Name}...");
+                StartupLogger.Log($"Navigating to {pageType.Name}...");
                 var result = parameter != null
                     ? frame.Navigate(pageType, parameter)
                     : frame.Navigate(pageType);
-                StartupLogger.Log("NavigationRouter", $"Navigate result: {result}");
+                StartupLogger.Log($"Navigate result: {result}");
 
                 if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
                 {
@@ -78,12 +78,12 @@ internal sealed class NavigationRouter
             }
             catch (Exception ex)
             {
-                StartupLogger.Log("NavigationRouter", $"Navigation EXCEPTION: {ex}");
+                StartupLogger.Log($"Navigation EXCEPTION: {ex}");
             }
         }
         else
         {
-            StartupLogger.Log("NavigationRouter", $"Skipping navigation - already on page");
+            StartupLogger.Log($"Skipping navigation - already on page");
         }
     }
 

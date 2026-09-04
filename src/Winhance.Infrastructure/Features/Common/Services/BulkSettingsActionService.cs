@@ -63,7 +63,7 @@ internal class BulkSettingsActionService(
                     // build. GetDefault is build-aware.
                     if (CatalogToggleState.GetDefault(setting, currentBuild) is not bool enableValue)
                     {
-                        logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
+                        logService.Log(LogLevel.Debug, $"Skipping '{setting.Id}' - no default toggle state");
                         continue;
                     }
 
@@ -128,11 +128,11 @@ internal class BulkSettingsActionService(
 
                 applied++;
                 appliedForRestart.Add(setting);
-                logService.Log(LogLevel.Debug, $"[BulkSettings] Reset to default for '{setting.Id}'");
+                logService.Log(LogLevel.Debug, $"Reset to default for '{setting.Id}'");
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to reset default for '{setting.Id}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to reset default for '{setting.Id}': {ex.Message}");
             }
         }
         }
@@ -179,7 +179,7 @@ internal class BulkSettingsActionService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Debug, $"[BulkSettings] Error checking affected state for '{setting.Id}': {ex.Message}");
+                logService.Log(LogLevel.Debug, $"Error checking affected state for '{setting.Id}': {ex.Message}");
             }
         }
 
@@ -200,7 +200,7 @@ internal class BulkSettingsActionService(
                 var setting = settingsRegistry.GetById(settingId);
                 if (setting == null)
                 {
-                    logService.Log(LogLevel.Warning, $"[BulkSettings] Setting '{settingId}' not found in registry");
+                    logService.Log(LogLevel.Warning, $"Setting '{settingId}' not found in registry");
                     continue;
                 }
 
@@ -215,7 +215,7 @@ internal class BulkSettingsActionService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to resolve setting '{settingId}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to resolve setting '{settingId}': {ex.Message}");
             }
         }
 

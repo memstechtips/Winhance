@@ -64,7 +64,7 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
                     {
                         _log.Log(
                             LogLevel.Warning,
-                            $"[CatalogDetectionService] '{setting.Id}' has a malformed value: {detection.Detail}");
+                            $"'{setting.Id}' has a malformed value: {detection.Detail}");
                     }
 
                     results[setting.Id] = new CatalogDetectionResult
@@ -84,7 +84,7 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
             }
             catch (Exception ex)
             {
-                _log.Log(LogLevel.Warning, $"[CatalogDetectionService] Detection failed for '{setting.Id}': {ex.Message}", ex);
+                _log.Log(LogLevel.Warning, $"Detection failed for '{setting.Id}': {ex.Message}", ex);
 
                 // Undetermined, NOT Custom. We do not know this setting's value, so the UI must not offer to
                 // apply a state over it - that would write blind over data we failed to read.

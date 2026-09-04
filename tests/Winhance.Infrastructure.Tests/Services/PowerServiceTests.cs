@@ -60,7 +60,7 @@ public class PowerServiceTests
 
         result.Should().BeNull();
         _logService.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting active power plan"))),
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting active power plan")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -93,7 +93,7 @@ public class PowerServiceTests
 
         result.Should().BeEmpty();
         _logService.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting available power plans"))),
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Error getting available power plans")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 

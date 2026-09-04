@@ -103,7 +103,7 @@ public class ApplicationCloseServiceTests
         }
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Error running cleanup tasks")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("Error running cleanup tasks")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -128,7 +128,7 @@ public class ApplicationCloseServiceTests
         }
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Error running cleanup tasks")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("Error running cleanup tasks")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -165,7 +165,7 @@ public class ApplicationCloseServiceTests
         await service.CheckOperationsAndCloseAsync();
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("User cancelled application close"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("User cancelled application close")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -409,7 +409,7 @@ public class ApplicationCloseServiceTests
         }
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Failed to save DontShowSupport preference"))),
+            l => l.LogError(It.Is<string>(s => s.Contains("Failed to save DontShowSupport preference")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 }

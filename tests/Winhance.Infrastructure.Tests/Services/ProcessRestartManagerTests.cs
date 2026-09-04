@@ -210,13 +210,13 @@ public class ProcessRestartManagerTests
             l => l.Log(LogLevel.Debug,
                 It.Is<string>(m => m.Contains("Broadcasting shell refresh")
                     && m.Contains("generic") && m.Contains("cat-task-view")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
         _mockLog.Verify(
             l => l.Log(LogLevel.Debug,
                 It.Is<string>(m => m.Contains("Shell broadcast")
                     && m.Contains("cat-task-view") && m.Contains("ms")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -237,7 +237,7 @@ public class ProcessRestartManagerTests
         _mockLog.Verify(
             l => l.Log(LogLevel.Error,
                 It.Is<string>(m => m.Contains("Shell broadcast") && m.Contains("cat-explodes")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
         _mockPendingRestart.Verify(p => p.Register("cat-explodes"), Times.Once,
             "a failed broadcast must not cost the user the pending-restart bar");
@@ -266,7 +266,7 @@ public class ProcessRestartManagerTests
         _mockLog.Verify(
             l => l.Log(LogLevel.Info,
                 It.Is<string>(s => s.Contains("FakeTestServiceCat") && s.Contains("cat-svc")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -284,7 +284,7 @@ public class ProcessRestartManagerTests
         _mockLog.Verify(
             l => l.Log(LogLevel.Debug,
                 It.Is<string>(s => s.Contains("restarts suppressed")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 }

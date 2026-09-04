@@ -131,13 +131,6 @@ internal static class WinGetCliRunner
     }
 
     // Used in log line prefixes so support transcripts make it obvious which CLI ran.
-    public static string GetLogTag(string? exePath)
-    {
-        var bundled = Path.Combine(AppContext.BaseDirectory, "winget-cli", "winget.exe");
-        return string.Equals(exePath, bundled, StringComparison.OrdinalIgnoreCase)
-            ? "bundled-winget"
-            : "system-winget";
-    }
 
     // timeoutMs: wall-clock kill; 0 or Timeout.Infinite disables it (callers relying on idleTimeoutMs). idleTimeoutMs:
     // kill when no stdout/stderr/progress arrives for this long; the timer resets on every line, so slow-but-progressing

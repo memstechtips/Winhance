@@ -243,7 +243,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
-            _logService.LogError("[ExternalAppsViewModel] Error loading app definitions", ex);
+            _logService.LogError("Error loading app definitions", ex);
             StatusText = $"Error loading apps: {ex.Message}";
         }
 
@@ -254,7 +254,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[ExternalAppsViewModel] Install status check failed, items loaded without status: {ex.Message}");
+            _logService.LogWarning($"Install status check failed, items loaded without status: {ex.Message}");
         }
 
         try
@@ -266,7 +266,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[ExternalAppsViewModel] Error finalizing: {ex.Message}");
+            _logService.LogWarning($"Error finalizing: {ex.Message}");
         }
         finally
         {
@@ -321,7 +321,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[ExternalAppsViewModel] Icon resolution failed: {ex.Message}");
+            _logService.LogWarning($"Icon resolution failed: {ex.Message}");
         }
     }
 

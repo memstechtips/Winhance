@@ -200,7 +200,7 @@ public class AppStatusDiscoveryServiceTests
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("WinGet unavailable"))), Times.AtLeastOnce);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("WinGet unavailable")), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -249,7 +249,7 @@ public class AppStatusDiscoveryServiceTests
 
         var result = await _service.GetExternalAppsInstallationStatusAsync(definitions);
 
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Chocolatey detection failed"))), Times.Once);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Chocolatey detection failed")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -312,7 +312,7 @@ public class AppStatusDiscoveryServiceTests
         result.Should().ContainKey("ext1");
         result["ext1"].Should().BeFalse();
         // The exception is caught at the WinGet readiness level (logged as LogWarning), not at the top level
-        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Critical failure"))), Times.Once);
+        _mockLog.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Critical failure")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -245,7 +245,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Related-card refresh failed: {ex.Message}");
+            _logService.Log(LogLevel.Warning, $"Related-card refresh failed in {GetType().Name}: {ex.Message}");
         }
     }
 
@@ -314,7 +314,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"[{DisplayName}] Error handling language change: {ex.Message}");
+            _logService.LogDebug($"Error handling language change for {DisplayName}: {ex.Message}");
         }
     }
 
@@ -642,7 +642,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Error refreshing setting states: {ex.Message}");
+            _logService.Log(LogLevel.Warning, $"Error refreshing setting states in {GetType().Name}: {ex.Message}");
         }
     }
 

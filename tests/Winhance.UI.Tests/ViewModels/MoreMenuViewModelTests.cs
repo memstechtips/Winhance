@@ -261,7 +261,7 @@ public class MoreMenuViewModelTests
         await vm.OpenLogsCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -289,7 +289,7 @@ public class MoreMenuViewModelTests
         await vm.OpenChangeHistoryCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -346,7 +346,7 @@ public class MoreMenuViewModelTests
         await vm.CloseApplicationCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("application close"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("application close")), It.IsAny<string>()),
             Times.Once);
         _mockCloseService.Verify(
             c => c.CheckOperationsAndCloseAsync(),
@@ -365,7 +365,7 @@ public class MoreMenuViewModelTests
         await vm.CloseApplicationCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("cannot close")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("cannot close")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
 

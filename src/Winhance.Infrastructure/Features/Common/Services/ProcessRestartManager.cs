@@ -103,18 +103,18 @@ internal class ProcessRestartManager(
         if (_suppressCount > 0)
         {
             if (!string.IsNullOrEmpty(restartProcess))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{restartProcess}' (restarts suppressed - parent will restart)");
+                logService.Log(LogLevel.Debug, $"Skipping process restart for '{restartProcess}' (restarts suppressed - parent will restart)");
             if (!string.IsNullOrEmpty(restartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{restartService}' (restarts suppressed - parent will restart)");
+                logService.Log(LogLevel.Debug, $"Skipping service restart for '{restartService}' (restarts suppressed - parent will restart)");
             return Task.CompletedTask;
         }
 
         if (configImportState.IsActive)
         {
             if (!string.IsNullOrEmpty(restartProcess))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{restartProcess}' (config import mode - will restart at end)");
+                logService.Log(LogLevel.Debug, $"Skipping process restart for '{restartProcess}' (config import mode - will restart at end)");
             if (!string.IsNullOrEmpty(restartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{restartService}' (config import mode - will restart at end)");
+                logService.Log(LogLevel.Debug, $"Skipping service restart for '{restartService}' (config import mode - will restart at end)");
             return Task.CompletedTask;
         }
 
@@ -133,7 +133,7 @@ internal class ProcessRestartManager(
         if (configImportState.IsActive)
         {
             logService.Log(LogLevel.Debug,
-                $"[ProcessRestartManager] Broadcast Explorer-refresh for '{settingId}' (config import restarts at the end)");
+                $"Broadcast Explorer-refresh for '{settingId}' (config import restarts at the end)");
             return;
         }
 
@@ -151,7 +151,7 @@ internal class ProcessRestartManager(
     // Separate from RunBroadcast so the per-apply path can log on the caller's thread while the send runs on the pool.
     private void LogBroadcastDispatch(bool themeAffecting, string? settingId) =>
         logService.Log(LogLevel.Debug,
-            $"[ProcessRestartManager] Broadcasting shell refresh ({BroadcastVariant(themeAffecting)}) {BroadcastScope(settingId)}");
+            $"Broadcasting shell refresh ({BroadcastVariant(themeAffecting)}) {BroadcastScope(settingId)}");
 
     // TIMES the broadcast: a user reading their own log used to see a two-second gap with nothing in it. Normal runs
     // stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
@@ -173,7 +173,7 @@ internal class ProcessRestartManager(
         {
             stopwatch.Stop();
             logService.Log(LogLevel.Error,
-                $"[ProcessRestartManager] Shell broadcast ({variant}) {scope} failed after {stopwatch.ElapsedMilliseconds}ms",
+                $"Shell broadcast ({variant}) {scope} failed after {stopwatch.ElapsedMilliseconds}ms",
                 ex);
             return;
         }
@@ -184,8 +184,8 @@ internal class ProcessRestartManager(
         logService.Log(
             slow ? LogLevel.Warning : LogLevel.Debug,
             slow
-                ? $"[ProcessRestartManager] Shell broadcast ({variant}) {scope} took {elapsedMs}ms - other top-level windows are slow to process it"
-                : $"[ProcessRestartManager] Shell broadcast ({variant}) {scope} took {elapsedMs}ms");
+                ? $"Shell broadcast ({variant}) {scope} took {elapsedMs}ms - other top-level windows are slow to process it"
+                : $"Shell broadcast ({variant}) {scope} took {elapsedMs}ms");
     }
 
     public Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings)
@@ -249,7 +249,7 @@ internal class ProcessRestartManager(
         if (processes.Count == 0 && services.Count == 0) return;
 
         logService.Log(LogLevel.Info,
-            $"[ProcessRestartManager] Flushing coalesced restarts: {processes.Count} process(es), {services.Count} service(s)");
+            $"Flushing coalesced restarts: {processes.Count} process(es), {services.Count} service(s)");
 
         foreach (var process in processes)
             RestartProcessByName(process, settingIdForLog: null);
@@ -266,23 +266,23 @@ internal class ProcessRestartManager(
         {
             logService.Log(LogLevel.Info,
                 settingIdForLog != null
-                    ? $"[ProcessRestartManager] Broadcasting regional setting change for '{settingIdForLog}'"
-                    : "[ProcessRestartManager] Broadcasting regional setting change (coalesced)");
+                    ? $"Broadcasting regional setting change for '{settingIdForLog}'"
+                    : "Broadcasting regional setting change (coalesced)");
             uiManagementService.BroadcastRegionalSettingChange();
         }
         else
         {
             logService.Log(LogLevel.Info,
                 settingIdForLog != null
-                    ? $"[ProcessRestartManager] Restarting process '{processName}' for setting '{settingIdForLog}'"
-                    : $"[ProcessRestartManager] Restarting process '{processName}' (coalesced)");
+                    ? $"Restarting process '{processName}' for setting '{settingIdForLog}'"
+                    : $"Restarting process '{processName}' (coalesced)");
             try
             {
                 uiManagementService.KillProcess(processName);
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart process '{processName}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to restart process '{processName}': {ex.Message}");
             }
         }
     }
@@ -291,8 +291,8 @@ internal class ProcessRestartManager(
     {
         logService.Log(LogLevel.Info,
             settingIdForLog != null
-                ? $"[ProcessRestartManager] Restarting service '{serviceName}' for setting '{settingIdForLog}'"
-                : $"[ProcessRestartManager] Restarting service '{serviceName}' (coalesced)");
+                ? $"Restarting service '{serviceName}' for setting '{settingIdForLog}'"
+                : $"Restarting service '{serviceName}' (coalesced)");
         try
         {
             if (serviceName.Contains('*'))
@@ -317,7 +317,7 @@ internal class ProcessRestartManager(
                         }
                         catch (Exception svcEx)
                         {
-                            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
+                            logService.Log(LogLevel.Warning, $"Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
                         }
                     }
                 }
@@ -340,7 +340,7 @@ internal class ProcessRestartManager(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{serviceName}': {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to restart service '{serviceName}': {ex.Message}");
         }
     }
 }

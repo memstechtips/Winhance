@@ -160,7 +160,7 @@ public class WinGetDetectionServiceTests
 
         result.Should().NotBeNull();
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("COM not available, falling back to CLI"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("COM not available, falling back to CLI")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -175,7 +175,7 @@ public class WinGetDetectionServiceTests
 
         result.Should().BeNull();
         _mockLogService.Verify(
-            l => l.LogWarning(It.Is<string>(s => s.Contains("Could not determine installer type"))),
+            l => l.LogWarning(It.Is<string>(s => s.Contains("Could not determine installer type")), It.IsAny<string>()),
             Times.Once);
     }
 }

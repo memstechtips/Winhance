@@ -131,7 +131,7 @@ internal class WinGetInstaller
                         var displayLine = WinGetProgressParser.TranslateLine(line);
 
                         if (!IsWinGetOutputNoise(line) && displayLine != null)
-                            _logService?.LogInformation($"[bundled-winget] {displayLine}");
+                            _logService?.LogInformation(displayLine);
 
                         var parsed = WinGetProgressParser.ParseLine(line);
                         if (parsed != null)
@@ -179,7 +179,7 @@ internal class WinGetInstaller
                 },
                 onErrorLine: line =>
                 {
-                    _logService?.LogWarning($"[bundled-winget-err] {line}");
+                    _logService?.LogWarning(line);
                     // Surface stderr in the terminal too — winget's actual error text
                     // is useless to users (and to bug reports) if it only hits the log file.
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -206,7 +206,7 @@ internal class WinGetInstaller
                 localization: _localization);
             if (terminationNote != null)
             {
-                _logService?.LogWarning($"[bundled-winget] {terminationNote}");
+                _logService?.LogWarning(terminationNote);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     TerminalOutput = terminationNote

@@ -28,7 +28,7 @@ internal class UpdateService(
         if (value is not int selectionIndex)
             throw new ArgumentException("Expected integer selection index");
 
-        logService.Log(LogLevel.Info, $"[UpdateService] Applying updates-policy-mode with index: {selectionIndex}");
+        logService.Log(LogLevel.Info, $"Applying updates-policy-mode with index: {selectionIndex}");
 
         switch (selectionIndex)
         {
@@ -48,7 +48,7 @@ internal class UpdateService(
                 throw new ArgumentException($"Invalid selection index: {selectionIndex}");
         }
 
-        logService.Log(LogLevel.Info, $"[UpdateService] Successfully applied updates-policy-mode index {selectionIndex}");
+        logService.Log(LogLevel.Info, $"Successfully applied updates-policy-mode index {selectionIndex}");
     }
 
     private async Task ApplyNormalModeAsync()
@@ -69,7 +69,7 @@ internal class UpdateService(
     // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
     private async Task ApplyPausedModeAsync(ISettingApplicationService? settingApplicationService)
     {
-        logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
+        logService.Log(LogLevel.Info, "Applying recommended settings before pausing updates");
         try
         {
             if (settingApplicationService == null)
@@ -78,7 +78,7 @@ internal class UpdateService(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to apply some recommended settings: {ex.Message}");
         }
 
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
@@ -89,7 +89,7 @@ internal class UpdateService(
     // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
     private async Task ApplyDisabledModeAsync(ISettingApplicationService? settingApplicationService)
     {
-        logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
+        logService.Log(LogLevel.Info, "Applying recommended settings before disabling updates");
         try
         {
             if (settingApplicationService == null)
@@ -98,7 +98,7 @@ internal class UpdateService(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to apply some recommended settings: {ex.Message}");
         }
 
         await DisableUpdateServicesAsync().ConfigureAwait(false);
@@ -334,7 +334,7 @@ internal class UpdateService(
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
             logService.Log(LogLevel.Warning,
-                $"[UpdateService] updates-policy-mode missing from the catalog or index {index} out of range - registry block skipped");
+                $"updates-policy-mode missing from the catalog or index {index} out of range - registry block skipped");
             return;
         }
 
@@ -342,13 +342,13 @@ internal class UpdateService(
         var result = ApplyExecutor.Execute(plan, stateWriter);
         if (!result.AllSucceeded)
             logService.Log(LogLevel.Warning,
-                $"[UpdateService] {result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
+                $"{result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
 
         // This path is synchronous and cannot await, so a process-launching effect would be dropped.
         // UpdatePolicyDetectorConformanceTests asserts none exists; this catches it at runtime if one does.
         if (plan.AsyncEffects.Count > 0)
             logService.Log(LogLevel.Error,
-                $"[UpdateService] {plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
+                $"{plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
     }
 
     public async Task<int> GetCurrentUpdatePolicyIndexAsync()

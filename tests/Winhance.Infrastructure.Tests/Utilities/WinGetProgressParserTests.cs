@@ -410,6 +410,6 @@ public class WinGetProgressParserTests
         Action act = () => WinGetProgressParser.Forward("50%", progress.Object, log.Object);
 
         act.Should().NotThrow();
-        log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("dispatcher gone"))), Times.Once);
+        log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("dispatcher gone")), It.IsAny<string>()), Times.Once);
     }
 }

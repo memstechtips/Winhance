@@ -79,7 +79,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"[MoreMenuViewModel] Failed to get version info: {ex.Message}");
+            _logService.LogDebug($"Failed to get version info: {ex.Message}");
             VersionInfo = "Winhance";
         }
     }

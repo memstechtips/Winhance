@@ -165,7 +165,7 @@ internal class WinGetDetectionService : IWinGetDetectionService
                     _fileSystemService.DeleteFile(exportPath);
 
                 var arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity";
-                _logService?.LogInformation($"[winget-bundled] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
+                _logService?.LogInformation($"Running: winget {arguments} (attempt {attempt}/{maxRetries})");
 
                 var result = await WinGetCliRunner.RunAsync(
                     arguments,

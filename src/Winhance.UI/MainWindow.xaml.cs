@@ -59,9 +59,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     public MainWindow()
     {
-        StartupLogger.Log("MainWindow", "Constructor starting...");
+        StartupLogger.Log("Constructor starting...");
         this.InitializeComponent();
-        StartupLogger.Log("MainWindow", "InitializeComponent completed");
+        StartupLogger.Log("InitializeComponent completed");
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -90,25 +90,25 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        StartupLogger.Log("MainWindow", "NavSidebar_Loaded");
+        StartupLogger.Log("NavSidebar_Loaded");
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
 
         // Skip auto-navigation during startup -- CompleteStartup() will trigger it
         if (_isStartupLoading)
         {
-            StartupLogger.Log("MainWindow", "Startup loading in progress, deferring navigation");
+            StartupLogger.Log("Startup loading in progress, deferring navigation");
             return;
         }
 
         NavSidebar.SelectedTag = "SoftwareApps";
         _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
-        StartupLogger.Log("MainWindow", "SoftwareApps selected");
+        StartupLogger.Log("SoftwareApps selected");
     }
 
     // Called by App.xaml.cs after Activate + InitializeTheme.
     public void StartStartupOperations()
     {
-        StartupLogger.Log("MainWindow", "StartStartupOperations called");
+        StartupLogger.Log("StartStartupOperations called");
 
         _startupUiCoordinator = new StartupUiCoordinator(this.DispatcherQueue, _logService);
         _startupUiCoordinator.InitializeLoadingOverlay(
@@ -389,7 +389,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
     {
         var tag = e.NavigationTag?.ToString();
-        StartupLogger.Log("MainWindow", $"NavSidebar_ItemClicked - Tag: {tag}");
+        StartupLogger.Log($"NavSidebar_ItemClicked - Tag: {tag}");
 
         if (tag == "More")
         {

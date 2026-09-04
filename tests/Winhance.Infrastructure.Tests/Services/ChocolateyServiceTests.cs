@@ -125,7 +125,7 @@ public class ChocolateyServiceTests
         var result = await _sut.InstallChocolateyAsync();
 
         result.Should().BeFalse();
-        _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Failed to install Chocolatey"))), Times.Once);
+        _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Failed to install Chocolatey")), It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class ChocolateyServiceTests
         var result = await _sut.InstallPackageAsync("notepadplusplus");
 
         result.Should().BeFalse();
-        _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("not found"))), Times.Once);
+        _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("not found")), It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

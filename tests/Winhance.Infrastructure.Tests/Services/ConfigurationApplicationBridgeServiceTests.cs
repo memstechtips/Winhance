@@ -89,7 +89,7 @@ public class ConfigurationApplicationBridgeServiceTests
 
         result.Should().BeFalse();
         _mockLog.Verify(
-            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null),
+            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -105,7 +105,7 @@ public class ConfigurationApplicationBridgeServiceTests
 
         result.Should().BeFalse();
         _mockLog.Verify(
-            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null),
+            x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("empty or null")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -171,7 +171,7 @@ public class ConfigurationApplicationBridgeServiceTests
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == "setting-2")),
             Times.Once);
         _mockLog.Verify(
-            x => x.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Failed to apply")), null),
+            x => x.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Failed to apply")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -235,7 +235,7 @@ public class ConfigurationApplicationBridgeServiceTests
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
         _mockLog.Verify(
-            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("User skipped")), null),
+            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("User skipped")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -503,7 +503,7 @@ public class ConfigurationApplicationBridgeServiceTests
         // mocked synchronous applies would still produce the same order, so ContainInOrder alone is
         // not enough - "2 parallel wave(s)" proves the dependency actually split the waves.
         _mockLog.Verify(
-            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("2 parallel wave(s)")), null),
+            x => x.Log(LogLevel.Info, It.Is<string>(s => s.Contains("2 parallel wave(s)")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -686,7 +686,7 @@ public class ConfigurationApplicationBridgeServiceTests
                 (int)r.Value == 0)),
             Times.Once);
         _mockLog.Verify(
-            x => x.Log(LogLevel.Warning, It.Is<string>(m => m.Contains("defaulting to option index 0")), null),
+            x => x.Log(LogLevel.Warning, It.Is<string>(m => m.Contains("defaulting to option index 0")), null, It.IsAny<string>()),
             Times.Once);
     }
 

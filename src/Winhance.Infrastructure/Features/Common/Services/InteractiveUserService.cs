@@ -690,7 +690,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             uint consoleSessionId = PInvoke.WTSGetActiveConsoleSessionId();
             if (consoleSessionId == 0xFFFFFFFF)
             {
-                _logService.Log(LogLevel.Warning, "[InteractiveUserService] No active console session - cannot capture a shell relaunch token");
+                _logService.Log(LogLevel.Warning, "No active console session - cannot capture a shell relaunch token");
                 return null;
             }
 
@@ -710,12 +710,12 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                         if (TryDuplicatePrimaryToken(tokenHandle, out HANDLE duplicatedToken))
                         {
                             _logService.Log(LogLevel.Debug,
-                                $"[InteractiveUserService] Captured a shell relaunch token from explorer.exe (PID {proc.Id})");
+                                $"Captured a shell relaunch token from explorer.exe (PID {proc.Id})");
                             return new ShellRelaunchToken(duplicatedToken, _logService);
                         }
 
                         _logService.Log(LogLevel.Warning,
-                            $"[InteractiveUserService] Failed to duplicate the shell token (error {Marshal.GetLastWin32Error()})");
+                            $"Failed to duplicate the shell token (error {Marshal.GetLastWin32Error()})");
                     }
                     finally
                     {
@@ -725,7 +725,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 catch (Exception ex)
                 {
                     _logService.Log(LogLevel.Debug,
-                        $"[InteractiveUserService] Could not read explorer.exe PID {proc.Id}: {ex.Message}");
+                        $"Could not read explorer.exe PID {proc.Id}: {ex.Message}");
                 }
                 finally
                 {
@@ -733,7 +733,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 }
             }
 
-            _logService.Log(LogLevel.Warning, "[InteractiveUserService] No usable explorer.exe found to capture a shell relaunch token from");
+            _logService.Log(LogLevel.Warning, "No usable explorer.exe found to capture a shell relaunch token from");
             return null;
         }
         catch (Exception ex)
@@ -771,19 +771,19 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                     out PROCESS_INFORMATION pi))
                 {
                     logService.Log(LogLevel.Warning,
-                        $"[ShellRelaunchToken] CreateProcessWithTokenW failed for '{fileName}' (error {Marshal.GetLastWin32Error()})");
+                        $"CreateProcessWithTokenW failed for '{fileName}' (error {Marshal.GetLastWin32Error()})");
                     return false;
                 }
 
                 logService.Log(LogLevel.Info,
-                    $"[ShellRelaunchToken] Relaunched '{fileName}' as the interactive shell user (PID {pi.dwProcessId})");
+                    $"Relaunched '{fileName}' as the interactive shell user (PID {pi.dwProcessId})");
                 PInvoke.CloseHandle(pi.hThread);
                 PInvoke.CloseHandle(pi.hProcess);
                 return true;
             }
             catch (Exception ex)
             {
-                logService.LogError($"[ShellRelaunchToken] Failed to relaunch '{fileName}'", ex);
+                logService.LogError($"Failed to relaunch '{fileName}'", ex);
                 return false;
             }
             finally

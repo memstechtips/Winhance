@@ -237,7 +237,7 @@ public class StartupNotificationServiceTests
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skipped"))),
+            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skipped")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -285,7 +285,7 @@ public class StartupNotificationServiceTests
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing first launch restore offer"))),
+            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing first launch restore offer")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 }

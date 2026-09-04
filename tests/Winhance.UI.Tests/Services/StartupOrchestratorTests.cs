@@ -70,7 +70,7 @@ public class StartupOrchestratorTests
 
         result.Should().NotBeNull();
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("Failed to initialize catalog settings registry"))), Times.Once);
+            s.Contains("Failed to initialize catalog settings registry")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class StartupOrchestratorTests
 
         result.Should().NotBeNull();
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("User backup config failed"))), Times.Once);
+            s.Contains("User backup config failed")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class StartupOrchestratorTests
 
         result.Should().NotBeNull();
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("Script migration failed"))), Times.Once);
+            s.Contains("Script migration failed")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class StartupOrchestratorTests
 
         result.Should().NotBeNull();
         _logService.Verify(l => l.LogWarning(It.Is<string>(s =>
-            s.Contains("Script update check failed"))), Times.Once);
+            s.Contains("Script update check failed")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -232,7 +232,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogError("[WindowsAppsViewModel] Error loading app definitions", ex);
+            _logService.LogError("Error loading app definitions", ex);
             StatusText = $"Error loading apps: {ex.Message}";
         }
 
@@ -244,7 +244,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         catch (Exception ex)
         {
             _logService.LogWarning(
-                $"[WindowsAppsViewModel] Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
+                $"Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
 
         await ResolveIconsAsync();
@@ -259,7 +259,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         catch (Exception ex)
         {
             _logService.LogWarning(
-                $"[WindowsAppsViewModel] Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
+                $"Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
         finally
         {
@@ -307,7 +307,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogWarning($"[WindowsAppsViewModel] Icon resolution failed: {ex.Message}");
+            _logService.LogWarning($"Icon resolution failed: {ex.Message}");
         }
     }
 
@@ -332,7 +332,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             // DataGrid handles by reading its ItemsSource DependencyProperty —
             // DPs throw WinRT HRESULT off the UI thread.
             _logService.LogDebug(
-                $"[WindowsAppsViewModel] CheckInstallationStatusAsync pre-dispatch HasThreadAccess={_dispatcherService.HasThreadAccess}");
+                $"CheckInstallationStatusAsync pre-dispatch HasThreadAccess={_dispatcherService.HasThreadAccess}");
             await _dispatcherService.RunOnUIThreadAsync(() =>
             {
                 using (ItemsView.DeferRefresh())

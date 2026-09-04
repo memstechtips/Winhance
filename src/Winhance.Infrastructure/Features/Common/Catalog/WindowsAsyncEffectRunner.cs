@@ -29,14 +29,14 @@ internal class WindowsAsyncEffectRunner(
                     // Only IsAsyncIo effects are routed here, so an unrecognised one means the two have
                     // drifted apart - loud, not a silent success.
                     log.Log(LogLevel.Error,
-                        $"[WindowsAsyncEffectRunner] No handler for deferred effect {effect.GetType().Name}");
+                        $"No handler for deferred effect {effect.GetType().Name}");
                     return false;
             }
         }
         catch (Exception ex)
         {
             log.Log(LogLevel.Error,
-                $"[WindowsAsyncEffectRunner] {effect.GetType().Name} threw: {ex.Message}");
+                $"{effect.GetType().Name} threw: {ex.Message}");
             return false;
         }
     }

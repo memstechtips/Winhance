@@ -140,7 +140,7 @@ public class ConfigMigrationServiceTests
 
         _logMock.Verify(
             l => l.Log(LogLevel.Info, It.Is<string>(msg =>
-                msg.Contains("taskbar-transparent") && msg.Contains("Toggle") && msg.Contains("Selection")), null),
+                msg.Contains("taskbar-transparent") && msg.Contains("Toggle") && msg.Contains("Selection")), null, It.IsAny<string>()),
             Times.Once);
     }
 

@@ -35,20 +35,20 @@ internal class RegImportService(
         try
         {
             await fileSystemService.WriteAllTextAsync(tempFile, regContent).ConfigureAwait(false);
-            logService.Log(LogLevel.Debug, $"[RegImportService] Wrote registry content to temp file: {tempFile}");
+            logService.Log(LogLevel.Debug, $"Wrote registry content to temp file: {tempFile}");
 
             // OTS: run reg import as the interactive user so HKCU
             // entries land in the standard user's hive, not the admin's.
             if (interactiveUserService.IsOtsElevation
                 && interactiveUserService.HasInteractiveUserToken)
             {
-                logService.Log(LogLevel.Debug, "[RegImportService] OTS mode - running reg import as interactive user");
+                logService.Log(LogLevel.Debug, "OTS mode - running reg import as interactive user");
                 var result = await interactiveUserService.RunProcessAsInteractiveUserAsync(
                     "reg.exe", $"import \"{tempFile}\"").ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {
-                    logService.Log(LogLevel.Warning, $"[RegImportService] reg import as interactive user failed (exit {result.ExitCode}): {result.StandardError}");
+                    logService.Log(LogLevel.Warning, $"reg import as interactive user failed (exit {result.ExitCode}): {result.StandardError}");
                 }
             }
             else
@@ -56,11 +56,11 @@ internal class RegImportService(
                 await RunCommandAsync($"reg import \"{tempFile}\"").ConfigureAwait(false);
             }
 
-            logService.Log(LogLevel.Info, "[RegImportService] Registry import completed");
+            logService.Log(LogLevel.Info, "Registry import completed");
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[RegImportService] Failed to import registry content: {ex.Message}");
+            logService.Log(LogLevel.Error, $"Failed to import registry content: {ex.Message}");
             throw;
         }
         finally
@@ -80,12 +80,12 @@ internal class RegImportService(
 
             if (result.ExitCode != 0)
             {
-                logService.Log(LogLevel.Warning, $"[RegImportService] Command failed: {command} - {result.StandardError}");
+                logService.Log(LogLevel.Warning, $"Command failed: {command} - {result.StandardError}");
             }
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[RegImportService] Command execution failed: {command} - {ex.Message}");
+            logService.Log(LogLevel.Error, $"Command execution failed: {command} - {ex.Message}");
         }
     }
 }

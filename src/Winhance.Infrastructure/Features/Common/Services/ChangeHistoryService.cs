@@ -49,7 +49,7 @@ internal class ChangeHistoryService(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to write entry: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to write entry: {ex.Message}");
         }
     }
 
@@ -74,7 +74,7 @@ internal class ChangeHistoryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to create history file: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to create history file: {ex.Message}");
             }
         }
         return FilePath;
@@ -104,7 +104,7 @@ internal class ChangeHistoryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to write entry: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to write entry: {ex.Message}");
             }
         }
     }

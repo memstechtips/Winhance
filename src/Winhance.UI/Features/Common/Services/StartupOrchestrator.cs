@@ -43,7 +43,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         bool isFirstLaunch = false;
 
         statusProgress.Report("Loading_InitializingSettings");
-        StartupLogger.Log("StartupOrchestrator", "Phase 1: Initializing settings registry...");
+        StartupLogger.Log("Phase 1: Initializing settings registry...");
         try
         {
             // Isolated try - a catalog-init failure must not abort the rest of startup; the
@@ -52,7 +52,7 @@ public class StartupOrchestrator : IStartupOrchestrator
             try
             {
                 await _catalogSettingsRegistry.InitializeAsync().ConfigureAwait(false);
-                StartupLogger.Log("StartupOrchestrator", "Phase 1: Catalog settings registry initialized");
+                StartupLogger.Log("Phase 1: Catalog settings registry initialized");
             }
             catch (Exception ex)
             {
@@ -77,7 +77,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 1 FAILED: {ex.Message}");
+            StartupLogger.Log($"Phase 1 FAILED: {ex.Message}");
             _logService.LogWarning($"Startup phase 1 failed: {ex.Message}");
         }
 
@@ -88,7 +88,7 @@ public class StartupOrchestrator : IStartupOrchestrator
             if (!backupCompleted)
             {
                 statusProgress.Report("Loading_CreatingConfigBackup");
-                StartupLogger.Log("StartupOrchestrator", "Phase 2: Creating user backup config...");
+                StartupLogger.Log("Phase 2: Creating user backup config...");
 
                 var backupTask = _configurationService.CreateUserBackupConfigAsync();
                 var completed = await Task.WhenAny(
@@ -100,55 +100,54 @@ public class StartupOrchestrator : IStartupOrchestrator
                     await _preferencesService.SetPreferenceAsync(
                         UserPreferenceKeys.InitialConfigBackupCompleted, true);
                     isFirstLaunch = true;
-                    StartupLogger.Log("StartupOrchestrator", "Phase 2: User backup config done");
+                    StartupLogger.Log("Phase 2: User backup config done");
                 }
                 else
                 {
-                    StartupLogger.Log("StartupOrchestrator",
-                        "Phase 2: User backup config TIMED OUT (will retry next launch)");
+                    StartupLogger.Log("Phase 2: User backup config TIMED OUT (will retry next launch)");
                     _logService.LogWarning(
                         "User backup config timed out after 30s — will retry next launch");
                 }
             }
             else
             {
-                StartupLogger.Log("StartupOrchestrator", "Phase 2: User backup config already completed");
+                StartupLogger.Log("Phase 2: User backup config already completed");
             }
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 2: User backup config FAILED: {ex.Message}");
+            StartupLogger.Log($"Phase 2: User backup config FAILED: {ex.Message}");
             _logService.LogWarning($"User backup config failed: {ex.Message}");
         }
 
         try
         {
             statusProgress.Report("Loading_MigratingScripts");
-            StartupLogger.Log("StartupOrchestrator", "Phase 3: Migrating scripts...");
+            StartupLogger.Log("Phase 3: Migrating scripts...");
             await _migrationService.MigrateFromOldPathsAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 3: Script migration done");
+            StartupLogger.Log("Phase 3: Script migration done");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 3: Script migration FAILED: {ex.Message}");
+            StartupLogger.Log($"Phase 3: Script migration FAILED: {ex.Message}");
             _logService.LogWarning($"Script migration failed: {ex.Message}");
         }
 
         try
         {
             statusProgress.Report("Loading_CheckingScripts");
-            StartupLogger.Log("StartupOrchestrator", "Phase 4: Checking for script updates...");
+            StartupLogger.Log("Phase 4: Checking for script updates...");
             await _updateService.CheckAndUpdateScriptsAsync().ConfigureAwait(false);
-            StartupLogger.Log("StartupOrchestrator", "Phase 4: Script update check done");
+            StartupLogger.Log("Phase 4: Script update check done");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("StartupOrchestrator", $"Phase 4: Script update check FAILED: {ex.Message}");
+            StartupLogger.Log($"Phase 4: Script update check FAILED: {ex.Message}");
             _logService.LogWarning($"Script update check failed: {ex.Message}");
         }
 
         statusProgress.Report("Loading_PreparingApp");
-        StartupLogger.Log("StartupOrchestrator", "All phases complete");
+        StartupLogger.Log("All phases complete");
 
         return new StartupResult { IsFirstLaunch = isFirstLaunch };
     }

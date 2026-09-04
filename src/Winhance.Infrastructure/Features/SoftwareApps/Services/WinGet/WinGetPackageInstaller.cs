@@ -78,9 +78,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 arguments += $" --override \"{installerOverride}\"";
 
             var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
-            var logTag = WinGetCliRunner.GetLogTag(wingetExe);
 
-            _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
+            _logService?.LogInformation($"Running: {wingetExe} {arguments}");
 
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -124,7 +123,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                         {
                             lastLoggedPhase = progress.Phase;
                             if (displayLine != null)
-                                _logService?.LogInformation($"[{logTag}] {displayLine}");
+                                _logService?.LogInformation(displayLine);
                         }
 
                         var progressPercent = progress.Phase switch
@@ -175,7 +174,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
             void HandleErrorLine(string line)
             {
-                _logService?.LogWarning($"[{logTag}-err] {line}");
+                _logService?.LogWarning($"winget stderr: {line}");
                 // Surface stderr in the terminal too — winget's actual error text
                 // is useless to users (and to bug reports) if it only hits the log file.
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -207,7 +206,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 localization: _localization);
             if (terminationNote != null)
             {
-                _logService?.LogWarning($"[{logTag}] {terminationNote}");
+                _logService?.LogWarning(terminationNote);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     TerminalOutput = terminationNote
@@ -279,9 +278,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 arguments += $" --source {source}";
 
             var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
-            var logTag = WinGetCliRunner.GetLogTag(wingetExe);
 
-            _logService?.LogInformation($"[{logTag}] Running: winget {arguments}");
+            _logService?.LogInformation($"Running: {wingetExe} {arguments}");
 
             var startTime = DateTime.Now;
             _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
@@ -323,7 +321,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                             {
                                 lastLoggedPhase = progress.Phase;
                                 if (displayLine != null)
-                                    _logService?.LogInformation($"[{logTag}] {displayLine}");
+                                    _logService?.LogInformation(displayLine);
                             }
 
                             var progressPercent = progress.Phase switch
@@ -373,7 +371,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 },
                 onErrorLine: line =>
                 {
-                    _logService?.LogWarning($"[{logTag}-err] {line}");
+                    _logService?.LogWarning($"winget stderr: {line}");
                     _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                     {
                         TerminalOutput = line
@@ -397,7 +395,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 localization: _localization);
             if (terminationNote != null)
             {
-                _logService?.LogWarning($"[{logTag}] {terminationNote}");
+                _logService?.LogWarning(terminationNote);
                 _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
                 {
                     TerminalOutput = terminationNote
@@ -423,7 +421,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
                 if (stillInstalled)
                 {
-                    _logService?.LogInformation($"[{logTag}] {packageId} still detected after uninstall — waiting for interactive uninstaller");
+                    _logService?.LogInformation($"{packageId} still detected after uninstall — waiting for interactive uninstaller");
                     _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_WaitingForUninstaller", displayName));
 
                     const int pollIntervalMs = 3000;
@@ -439,7 +437,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                         if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false))
                         {
                             stillInstalled = false;
-                            _logService?.LogInformation($"[{logTag}] {packageId} confirmed uninstalled after {elapsed / 1000}s");
+                            _logService?.LogInformation($"{packageId} confirmed uninstalled after {elapsed / 1000}s");
                             break;
                         }
                     }
@@ -451,7 +449,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                     return true;
                 }
 
-                _logService?.LogWarning($"[{logTag}] {packageId} still detected after 60s wait — uninstaller may require user interaction");
+                _logService?.LogWarning($"{packageId} still detected after 60s wait — uninstaller may require user interaction");
                 _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
                 return true; // WinGet did report success; don't block the UI
             }
@@ -462,14 +460,14 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
             // Before declaring failure, verify whether the package is actually still installed.
             if (WinGetExitCodes.IsUninstallVerifiable(result.ExitCode))
             {
-                _logService?.LogInformation($"[{logTag}] {packageId} returned 0x{result.ExitCode:X8} — verifying whether package was actually removed");
+                _logService?.LogInformation($"{packageId} returned 0x{result.ExitCode:X8} — verifying whether package was actually removed");
                 _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_VerifyingUninstall", displayName));
 
                 bool stillInstalled = await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false);
 
                 if (stillInstalled)
                 {
-                    _logService?.LogInformation($"[{logTag}] {packageId} still detected after failed uninstall — waiting for interactive uninstaller");
+                    _logService?.LogInformation($"{packageId} still detected after failed uninstall — waiting for interactive uninstaller");
                     _taskProgressService?.UpdateProgress(95, _localization.GetString("Progress_WinGet_WaitingForUninstaller", displayName));
 
                     const int pollIntervalMs = 3000;
@@ -485,7 +483,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                         if (!await IsPackageStillInstalledAsync(packageId, source, cancellationToken).ConfigureAwait(false))
                         {
                             stillInstalled = false;
-                            _logService?.LogInformation($"[{logTag}] {packageId} confirmed uninstalled after {elapsed / 1000}s (despite exit code 0x{result.ExitCode:X8})");
+                            _logService?.LogInformation($"{packageId} confirmed uninstalled after {elapsed / 1000}s (despite exit code 0x{result.ExitCode:X8})");
                             break;
                         }
                     }
@@ -493,12 +491,12 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
                 if (!stillInstalled)
                 {
-                    _logService?.LogInformation($"[{logTag}] {packageId} verified as uninstalled despite WinGet exit code 0x{result.ExitCode:X8}");
+                    _logService?.LogInformation($"{packageId} verified as uninstalled despite WinGet exit code 0x{result.ExitCode:X8}");
                     _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName));
                     return true;
                 }
 
-                _logService?.LogWarning($"[{logTag}] {packageId} is still installed after verification — uninstall truly failed");
+                _logService?.LogWarning($"{packageId} is still installed after verification — uninstall truly failed");
             }
 
             var failureReason = WinGetExitCodes.MapExitCode(result.ExitCode);

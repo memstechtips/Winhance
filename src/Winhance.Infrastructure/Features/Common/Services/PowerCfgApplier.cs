@@ -34,7 +34,7 @@ internal class PowerCfgApplier(
         bool hasBattery = scheme is not null || (hardwareDetectionService.HasBattery() ?? true);
         if (context == PowerContext.DC && !hasBattery)
         {
-            logService.Log(LogLevel.Debug, $"[PowerCfgApplier] Skipping DC write for {target.SettingGuid} - no battery present");
+            logService.Log(LogLevel.Debug, $"Skipping DC write for {target.SettingGuid} - no battery present");
             return true;
         }
 
@@ -83,7 +83,7 @@ internal class PowerCfgApplier(
 
             var applied = rc == (uint)WIN32_ERROR.ERROR_SUCCESS && commitRc == (uint)WIN32_ERROR.ERROR_SUCCESS;
             logService.Log(applied ? LogLevel.Info : LogLevel.Error,
-                $"[PowerCfgApplier] {(applied ? "Wrote" : "Failed to write")} {context} value index {value} for setting {target.SettingGuid} (rc={rc}, commit {commitNote})");
+                $"{(applied ? "Wrote" : "Failed to write")} {context} value index {value} for setting {target.SettingGuid} (rc={rc}, commit {commitNote})");
             return applied;
         }
     }
@@ -93,7 +93,7 @@ internal class PowerCfgApplier(
         schemeGuid = Guid.Empty;
         if (PInvoke.PowerGetActiveScheme(null, out Guid* active) != WIN32_ERROR.ERROR_SUCCESS || active is null)
         {
-            logService.Log(LogLevel.Error, "[PowerCfgApplier] Failed to get active power scheme");
+            logService.Log(LogLevel.Error, "Failed to get active power scheme");
             return false;
         }
 
@@ -115,7 +115,7 @@ internal class PowerCfgApplier(
 
             var rc = PInvoke.PowerSetActiveScheme(null, schemeGuid);
             logService.Log(rc == WIN32_ERROR.ERROR_SUCCESS ? LogLevel.Info : LogLevel.Error,
-                $"[PowerCfgApplier] Committed the batch's writes with one scheme re-activation (rc={rc})");
+                $"Committed the batch's writes with one scheme re-activation (rc={rc})");
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
@@ -26,30 +27,26 @@ public class LogService : ILogService, IDisposable
         _systemInfoProvider = systemInfoProvider;
     }
 
-    public void Log(LogLevel level, string message, Exception? exception = null)
+    public void Log(LogLevel level, string message, Exception? exception = null, [CallerFilePath] string callerFilePath = "")
     {
         switch (level)
         {
-            case LogLevel.Info:
-                LogInformation(message);
-                break;
             case LogLevel.Warning:
-                LogWarning(message);
+                LogWarning(message, callerFilePath);
                 break;
             case LogLevel.Error:
-                LogError(message, exception);
+                LogError(message, exception, callerFilePath);
                 break;
             case LogLevel.Success:
-                LogSuccess(message);
+                WriteLog(message, "SUCCESS", callerFilePath);
                 break;
             case LogLevel.Debug:
-                LogDebug(message);
+                LogDebug(message, callerFilePath);
                 break;
             default:
-                LogInformation(message);
+                LogInformation(message, callerFilePath);
                 break;
         }
-
     }
 
     public void StartLog()
@@ -123,32 +120,36 @@ public class LogService : ILogService, IDisposable
         }
     }
 
-    public void LogInformation(string message)
+    public void LogInformation(string message, [CallerFilePath] string callerFilePath = "")
     {
-        WriteLog(message, "INFO");
+        WriteLog(message, "INFO", callerFilePath);
     }
 
-    public void LogWarning(string message)
+    public void LogWarning(string message, [CallerFilePath] string callerFilePath = "")
     {
-        WriteLog(message, "WARNING");
+        WriteLog(message, "WARNING", callerFilePath);
     }
 
-    public void LogError(string message, Exception? exception = null)
+    public void LogError(string message, Exception? exception = null, [CallerFilePath] string callerFilePath = "")
     {
         string fullMessage = exception != null
             ? $"{message} - Exception: {exception.Message}\n{exception.StackTrace}"
             : message;
-        WriteLog(fullMessage, "ERROR");
+        WriteLog(fullMessage, "ERROR", callerFilePath);
     }
 
-    public void LogDebug(string message)
+    public void LogDebug(string message, [CallerFilePath] string callerFilePath = "")
     {
-        WriteLog(message, "DEBUG");
+        WriteLog(message, "DEBUG", callerFilePath);
     }
 
-    private void LogSuccess(string message)
+    // "App.xaml.cs" is the App type, so everything from the first dot goes, not just the extension.
+    internal static string SourceName(string callerFilePath)
     {
-        WriteLog(message, "SUCCESS");
+        var fileName = Path.GetFileName(callerFilePath);
+        var dot = fileName.IndexOf('.');
+        var name = dot < 0 ? fileName : fileName[..dot];
+        return name.Length == 0 ? "Unknown" : name;
     }
 
     public string GetLogPath()
@@ -192,13 +193,13 @@ public class LogService : ILogService, IDisposable
         }
     }
 
-    private void WriteLog(string message, string level)
+    private void WriteLog(string message, string level, string callerFilePath)
     {
         lock (_lockObject)
         {
             try
             {
-                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
+                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] [{SourceName(callerFilePath)}] {message}";
                 _logWriter?.WriteLine(logEntry);
             }
             catch (IOException)

@@ -65,7 +65,7 @@ public class DialogService : IDialogService
         {
             if (XamlRoot == null)
             {
-                _logService.LogWarning("[DialogService] XamlRoot is null");
+                _logService.LogWarning("XamlRoot is null");
                 return defaultValue;
             }
             return await dialogAction();

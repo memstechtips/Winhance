@@ -157,6 +157,27 @@ public class LogServiceTests
     }
 
     [Fact]
+    public void LogInformation_StampsTheCallingTypeAsTheSource()
+    {
+        var service = new LogService();
+        service.StartLog();
+        service.LogInformation("stamped");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        File.ReadAllText(logPath).Should().Contain("[INFO] [LogServiceTests] stamped");
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\Winhance.UI\App.xaml.cs", "App")]
+    [InlineData("/_/src/Winhance.Core/Services/LogService.cs", "LogService")]
+    [InlineData("", "Unknown")]
+    public void SourceName_IsTheFileNameUpToItsFirstDot(string callerFilePath, string expected)
+    {
+        LogService.SourceName(callerFilePath).Should().Be(expected);
+    }
+
+    [Fact]
     public void StartLog_DoesNotContainUserOrMachineInfo()
     {
         var service = new LogService();

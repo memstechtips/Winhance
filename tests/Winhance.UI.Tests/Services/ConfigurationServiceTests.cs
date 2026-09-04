@@ -343,7 +343,7 @@ public class ConfigurationServiceTests
 
         await CreateService().CreateUserBackupConfigAsync();
 
-        _mockLogService.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("disk full")), null), Times.Once);
+        _mockLogService.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("disk full")), null, It.IsAny<string>()), Times.Once);
         _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 }

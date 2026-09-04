@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Winhance.Core.Features.Common.Services;
 
 // Pre-DI startup diagnostics: C:\ProgramData\Winhance\Logs\WinhanceStartupLog.txt, overwritten on the first
@@ -13,8 +15,9 @@ public static class StartupLogger
     private static readonly object Lock = new object();
     private static bool _firstCall = true;
 
-    public static void Log(string message)
+    public static void Log(string message, [CallerFilePath] string callerFilePath = "")
     {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] [{LogService.SourceName(callerFilePath)}] {message}{Environment.NewLine}";
         lock (Lock)
         {
             try
@@ -23,20 +26,15 @@ public static class StartupLogger
                 {
                     var dir = Path.GetDirectoryName(LogPath);
                     if (dir != null) Directory.CreateDirectory(dir);
-                    File.WriteAllText(LogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+                    File.WriteAllText(LogPath, line);
                     _firstCall = false;
                 }
                 else
                 {
-                    File.AppendAllText(LogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+                    File.AppendAllText(LogPath, line);
                 }
             }
             catch { } // Static pre-DI logger — nowhere to log the failure, and throwing would crash startup
         }
-    }
-
-    public static void Log(string source, string message)
-    {
-        Log($"[{source}] {message}");
     }
 }

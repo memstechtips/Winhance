@@ -45,7 +45,7 @@ internal class SettingApplicationService(
             // Resolve is total for every reachable request shape (ResolveTotalityAuditTests), so a null here is an
             // un-audited/unreachable shape. Fail loudly with a logged result rather than dereferencing a null plan.
             var nullPlanMessage = $"No apply plan resolved for '{setting.Id}' (enable={enable}, resetToDefault={resetToDefault}) - unaudited request shape";
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] {nullPlanMessage}");
+            logService.Log(LogLevel.Warning, nullPlanMessage);
             return OperationResult.Failed(nullPlanMessage);
         }
 
@@ -67,7 +67,7 @@ internal class SettingApplicationService(
             ? result.Failures
             : result.Failures.Concat(deferredFailures).ToList();
         var message = $"{result.Failed + deferredFailures.Count}/{applyPlan.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", allFailures)}";
-        logService.Log(LogLevel.Warning, $"[SettingApplicationService] {message}");
+        logService.Log(LogLevel.Warning, message);
         return OperationResult.Failed(message);
     }
 
@@ -90,7 +90,7 @@ internal class SettingApplicationService(
             ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
             : value?.ToString() ?? "null";
 
-        logService.Log(LogLevel.Info, $"[SettingApplicationService] Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
+        logService.Log(LogLevel.Info, $"Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
 
         // The catalog registry's GetById alias-normalizes the id (a retired "-win10" This PC alias resolves to its
         // canonical merged Setting) and OS-scopes membership, but a merged setting is OS-portable (Availability
@@ -142,7 +142,7 @@ internal class SettingApplicationService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Debug, $"[SettingApplicationService] Change-history before-state read failed for '{settingId}': {ex.Message}");
+                logService.Log(LogLevel.Debug, $"Change-history before-state read failed for '{settingId}': {ex.Message}");
             }
         }
 
@@ -163,7 +163,7 @@ internal class SettingApplicationService(
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
-            logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' via special handler in {applyStopwatch.ElapsedMilliseconds}ms");
+            logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' via special handler in {applyStopwatch.ElapsedMilliseconds}ms");
 
             if (renderSetting != null)
                 LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
@@ -254,17 +254,17 @@ internal class SettingApplicationService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Failed to apply some recommended settings for '{settingId}' after its confirmation checkbox: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to apply some recommended settings for '{settingId}' after its confirmation checkbox: {ex.Message}");
             }
         }
 
         if (!operationResult.Success)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Setting '{settingId}' partially failed: {operationResult.ErrorMessage}");
+            logService.Log(LogLevel.Warning, $"Setting '{settingId}' partially failed: {operationResult.ErrorMessage}");
             return operationResult;
         }
 
-        logService.Log(LogLevel.Info, $"[SettingApplicationService] Successfully applied setting '{settingId}' in {applyStopwatch.ElapsedMilliseconds}ms");
+        logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' in {applyStopwatch.ElapsedMilliseconds}ms");
         if (renderSetting != null)
             LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
         return OperationResult.Succeeded();
@@ -348,7 +348,7 @@ internal class SettingApplicationService(
             // SAY SO: a silent return here would make the scoping (skipping detection for unrelated applies)
             // invisible and unverifiable from a user's log.
             logService.Log(LogLevel.Debug,
-                $"[SettingApplicationService] Relationship scope for '{setting.Id}': 0 related settings - detection skipped");
+                $"Relationship scope for '{setting.Id}': 0 related settings - detection skipped");
             return;
         }
 
@@ -391,14 +391,14 @@ internal class SettingApplicationService(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Catalog relationship detection failed for '{setting.Id}' after {detectStopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Catalog relationship detection failed for '{setting.Id}' after {detectStopwatch.ElapsedMilliseconds}ms: {ex.Message}");
             return;
         }
 
         // The other half of the scope story: how many settings the resolvers can actually reach, and what
         // reading their current state cost.
         logService.Log(LogLevel.Debug,
-            $"[SettingApplicationService] Relationship scope for '{setting.Id}': {scope.Count} related settings, detected in {detectStopwatch.ElapsedMilliseconds}ms");
+            $"Relationship scope for '{setting.Id}': {scope.Count} related settings, detected in {detectStopwatch.ElapsedMilliseconds}ms");
 
         string? currentStateOf(string id) =>
             detected != null && detected.TryGetValue(id, out var r) ? r.StateLabel : null;
@@ -429,7 +429,7 @@ internal class SettingApplicationService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship apply of '{action.SettingId}' (-> {action.StateLabel}) for '{setting.Id}' failed: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Relationship apply of '{action.SettingId}' (-> {action.StateLabel}) for '{setting.Id}' failed: {ex.Message}");
             }
         }
     }
@@ -441,7 +441,7 @@ internal class SettingApplicationService(
         var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
         if (target is null)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship target '{targetId}' is not in the catalog - skipping");
+            logService.Log(LogLevel.Warning, $"Relationship target '{targetId}' is not in the catalog - skipping");
             return null;
         }
 
@@ -465,7 +465,7 @@ internal class SettingApplicationService(
 
         if (index < 0)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Relationship target '{targetId}' has no state labelled '{label}' - skipping");
+            logService.Log(LogLevel.Warning, $"Relationship target '{targetId}' has no state labelled '{label}' - skipping");
             return null;
         }
 
@@ -497,7 +497,7 @@ internal class SettingApplicationService(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[SettingApplicationService] Change-history logging failed for '{settingId}': {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Change-history logging failed for '{settingId}': {ex.Message}");
         }
     }
 

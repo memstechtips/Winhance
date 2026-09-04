@@ -68,10 +68,10 @@ public abstract class SectionPage : Page
     private bool _isNewBadgesVisible = true;
     private bool _showOnlyChanges;
 
-    protected abstract string LogTag { get; }
-
     // x:Bind in the XAML still resolves against each page's concrete property, so bindings are unaffected by this indirection.
     protected abstract ISectionPageViewModel PageViewModel { get; }
+
+    private void LogStartup(string message) => StartupLogger.Log($"{GetType().Name}: {message}");
 
     // Call from the derived constructor after InitializeComponent (which creates the shell) and after the ViewModel
     // has been resolved. The handlers are attached here, once, against the shell's parts, because the shared markup
@@ -118,7 +118,7 @@ public abstract class SectionPage : Page
     {
         try
         {
-            StartupLogger.Log(LogTag, "OnNavigatedTo starting...");
+            LogStartup("OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
             // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
@@ -150,7 +150,7 @@ public abstract class SectionPage : Page
             PageViewModel.CurrentSectionKey = "Overview";
             UpdateContentVisibility();
 
-            StartupLogger.Log(LogTag, "Calling ViewModel.InitializeAsync...");
+            LogStartup("Calling ViewModel.InitializeAsync...");
             await PageViewModel.InitializeAsync();
 
             SetDropdownLabels();
@@ -159,11 +159,11 @@ public abstract class SectionPage : Page
             if (_showOnlyChanges)
                 ApplyShowOnlyChangesFilter();
 
-            StartupLogger.Log(LogTag, "OnNavigatedTo complete");
+            LogStartup("OnNavigatedTo complete");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log(LogTag, $"OnNavigatedTo EXCEPTION: {ex}");
+            LogStartup($"OnNavigatedTo EXCEPTION: {ex}");
         }
     }
 
@@ -439,7 +439,7 @@ public abstract class SectionPage : Page
         }
         catch (Exception ex)
         {
-            StartupLogger.Log(LogTag, $"ApplyRecommended_Click EXCEPTION: {ex}");
+            LogStartup($"ApplyRecommended_Click EXCEPTION: {ex}");
         }
     }
 
@@ -456,7 +456,7 @@ public abstract class SectionPage : Page
         }
         catch (Exception ex)
         {
-            StartupLogger.Log(LogTag, $"ResetDefaults_Click EXCEPTION: {ex}");
+            LogStartup($"ResetDefaults_Click EXCEPTION: {ex}");
         }
     }
 

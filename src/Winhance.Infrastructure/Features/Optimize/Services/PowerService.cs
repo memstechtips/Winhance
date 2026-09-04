@@ -32,7 +32,7 @@ internal class PowerService(
             if (matchingPlan != null &&
                 !string.Equals(matchingPlan.Name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase))
             {
-                logService.Log(LogLevel.Warning, $"[PowerService] Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
+                logService.Log(LogLevel.Warning, $"Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
 
                 if (matchingPlan.IsActive)
                 {
@@ -40,25 +40,25 @@ internal class PowerService(
                     var activateResult = powerSchemeOperations.SetActiveScheme(balancedGuid);
                     if (activateResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                     {
-                        logService.Log(LogLevel.Info, "[PowerService] Switched to Balanced before deleting corrupt Winhance plan");
+                        logService.Log(LogLevel.Info, "Switched to Balanced before deleting corrupt Winhance plan");
                     }
                 }
 
                 var deleteResult = powerSchemeOperations.DeleteScheme(Guid.Parse(winhanceGuid));
                 if (deleteResult == (uint)WIN32_ERROR.ERROR_SUCCESS)
                 {
-                    logService.Log(LogLevel.Info, "[PowerService] Successfully deleted corrupt Winhance plan");
+                    logService.Log(LogLevel.Info, "Successfully deleted corrupt Winhance plan");
                     powerSettingsQueryService.InvalidateCache();
                 }
                 else
                 {
-                    logService.Log(LogLevel.Warning, $"[PowerService] Failed to delete corrupt Winhance plan: error 0x{deleteResult:X8}");
+                    logService.Log(LogLevel.Warning, $"Failed to delete corrupt Winhance plan: error 0x{deleteResult:X8}");
                 }
             }
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[PowerService] Error during Winhance plan cleanup: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Error during Winhance plan cleanup: {ex.Message}");
         }
     }
 

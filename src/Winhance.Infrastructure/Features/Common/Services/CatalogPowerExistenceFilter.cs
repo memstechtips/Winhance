@@ -28,7 +28,7 @@ internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
     {
         var bulk = await _query.GetAllPowerSettingsACDCAsync(Scheme).ConfigureAwait(false);
         if (bulk.Count == 0)
-            _log.Log(LogLevel.Warning, "[CatalogPowerExistenceFilter] Could not get bulk power settings; powercfg existence checks are skipped");
+            _log.Log(LogLevel.Warning, "Could not get bulk power settings; powercfg existence checks are skipped");
 
         // One connection for every task path in the catalog. GetTasksEnabled activates an out-of-process COM
         // server per call, and 17 settings carry task targets, so a per-setting read opened 17 of them.
@@ -62,7 +62,7 @@ internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
 
                 if (t.EnablementKey is { } ek && ek.ValueName is { } valueName)
                 {
-                    _log.Log(LogLevel.Info, $"[CatalogPowerExistenceFilter] Attempting to enable hidden power setting: {t.SettingGuid}");
+                    _log.Log(LogLevel.Info, $"Attempting to enable hidden power setting: {t.SettingGuid}");
                     var wrote = false;
                     foreach (var path in ek.Paths)
                         if (_registry.SetValue(path, valueName, 0, ek.Type)) wrote = true;
@@ -91,7 +91,7 @@ internal sealed class CatalogPowerExistenceFilter : ICatalogPowerExistenceFilter
             {
                 if (await _query.IsSettingHardwareControlledAsync(t.SubgroupGuid, t.SettingGuid).ConfigureAwait(false))
                 {
-                    _log.Log(LogLevel.Info, $"[CatalogPowerExistenceFilter] Filtering out hardware-controlled setting: {setting.Id} ({t.SettingGuid})");
+                    _log.Log(LogLevel.Info, $"Filtering out hardware-controlled setting: {setting.Id} ({t.SettingGuid})");
                     hardwareControlled = true;
                     break;
                 }

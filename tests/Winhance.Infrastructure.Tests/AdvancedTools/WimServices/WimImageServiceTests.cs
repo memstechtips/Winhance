@@ -115,7 +115,7 @@ public class WimImageServiceTests
 
         result.BothExist.Should().BeTrue();
         _mockLogService.Verify(
-            l => l.LogWarning(It.Is<string>(s => s.Contains("Both install.wim and install.esd"))),
+            l => l.LogWarning(It.Is<string>(s => s.Contains("Both install.wim and install.esd")), It.IsAny<string>()),
             Times.Once);
     }
 

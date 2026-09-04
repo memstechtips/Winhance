@@ -53,7 +53,7 @@ internal sealed class TechnicalDetailsManager
             catch (Exception ex)
             {
                 _logService.Log(LogLevel.Error,
-                    $"[TechnicalDetails] Build failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                    $"Build failed for '{_getSettingId()}': {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             }
         });
     }

@@ -184,7 +184,7 @@ public class ChangeHistoryServiceTests
         act4.Should().NotThrow();
         act5.Should().NotThrow();
         _mockLog.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("ChangeHistoryService")), It.IsAny<Exception?>()),
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Failed to")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.AtLeastOnce);
     }
 
@@ -208,7 +208,7 @@ public class ChangeHistoryServiceTests
 
         act.Should().NotThrow();
         _mockLog.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("ChangeHistoryService")), It.IsAny<Exception?>()),
+            l => l.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Failed to")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.AtLeastOnce);
     }
 }

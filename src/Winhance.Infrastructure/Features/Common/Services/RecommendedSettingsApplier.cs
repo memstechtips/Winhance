@@ -91,11 +91,11 @@ internal class RecommendedSettingsApplier(
                     }
 
                     appliedForRestart.Add(setting);
-                    logService.Log(LogLevel.Debug, $"[RecommendedSettingsApplier] Applied recommended for '{setting.Id}'");
+                    logService.Log(LogLevel.Debug, $"Applied recommended for '{setting.Id}'");
                 }
                 catch (Exception ex)
                 {
-                    logService.Log(LogLevel.Warning, $"[RecommendedSettingsApplier] Failed to apply recommended for '{setting.Id}': {ex.Message}");
+                    logService.Log(LogLevel.Warning, $"Failed to apply recommended for '{setting.Id}': {ex.Message}");
                 }
             }
         }
@@ -115,7 +115,7 @@ internal class RecommendedSettingsApplier(
             .Where(s => s.Id != triggerSettingId)
             .ToList();
 
-        logService.Log(LogLevel.Info, $"[RecommendedSettingsApplier] Applying recommended for feature '{featureId}' ({settings.Count} candidate settings)");
+        logService.Log(LogLevel.Info, $"Applying recommended for feature '{featureId}' ({settings.Count} candidate settings)");
         return await ApplyRecommendedToSettingsAsync(settings, apply, null).ConfigureAwait(false);
     }
 

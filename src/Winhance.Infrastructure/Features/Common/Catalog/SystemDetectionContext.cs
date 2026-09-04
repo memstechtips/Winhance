@@ -112,7 +112,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
             return enabled;
 
         _log.Log(LogLevel.Warning,
-            $"[SystemDetectionContext] Scheduled task '{taskPath}' was not pre-fetched; returning null.");
+            $"Scheduled task '{taskPath}' was not pre-fetched; returning null.");
         return null;
     }
 
@@ -121,7 +121,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         if (!_powerPrefetched)
         {
             _log.Log(LogLevel.Warning,
-                $"[SystemDetectionContext] Power setting '{settingGuid}' read before a powercfg pre-fetch; returning null.");
+                $"Power setting '{settingGuid}' read before a powercfg pre-fetch; returning null.");
             return null;
         }
 
@@ -135,7 +135,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     {
         if (!_planPrefetched)
             _log.Log(LogLevel.Warning,
-                "[SystemDetectionContext] Active power plan read before a pre-fetch; returning null.");
+                "Active power plan read before a pre-fetch; returning null.");
         return _activePlanGuid;
     }
 
@@ -143,7 +143,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     {
         if (!_planPrefetched)
             _log.Log(LogLevel.Warning,
-                "[SystemDetectionContext] Active power plan name read before a pre-fetch; returning null.");
+                "Active power plan name read before a pre-fetch; returning null.");
         return _activePlanName;
     }
 
@@ -151,7 +151,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     {
         if (!_planPrefetched)
             _log.Log(LogLevel.Warning,
-                "[SystemDetectionContext] Installed power plans read before a pre-fetch; returning none.");
+                "Installed power plans read before a pre-fetch; returning none.");
         return _installedPlans;
     }
 

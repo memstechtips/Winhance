@@ -24,7 +24,7 @@ internal class PolicyCleanupService : IPolicyCleanupService
     {
         var policyKeyPaths = CollectPolicyKeyPaths();
 
-        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Found {policyKeyPaths.Count} unique policy key paths to clean up");
+        _logService.Log(LogLevel.Info, $"Found {policyKeyPaths.Count} unique policy key paths to clean up");
 
         int deletedCount = 0;
         foreach (var keyPath in policyKeyPaths)
@@ -36,21 +36,21 @@ internal class PolicyCleanupService : IPolicyCleanupService
                     if (_registryService.DeleteKey(keyPath))
                     {
                         deletedCount++;
-                        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Deleted policy key: {keyPath}");
+                        _logService.Log(LogLevel.Info, $"Deleted policy key: {keyPath}");
                     }
                     else
                     {
-                        _logService.Log(LogLevel.Warning, $"[PolicyCleanup] Failed to delete policy key: {keyPath}");
+                        _logService.Log(LogLevel.Warning, $"Failed to delete policy key: {keyPath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Warning, $"[PolicyCleanup] Error deleting policy key '{keyPath}': {ex.Message}");
+                _logService.Log(LogLevel.Warning, $"Error deleting policy key '{keyPath}': {ex.Message}");
             }
         }
 
-        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Cleanup complete: {deletedCount} policy keys deleted");
+        _logService.Log(LogLevel.Info, $"Cleanup complete: {deletedCount} policy keys deleted");
         return deletedCount;
     }
 

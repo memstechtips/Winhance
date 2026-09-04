@@ -66,7 +66,7 @@ public class RemovalScriptUpdateServiceTests
         _mockScheduledTask.Verify(
             x => x.RunScheduledTaskAsync(It.IsAny<string>()), Times.Never);
         _mockLog.Verify(
-            x => x.LogInformation(It.Is<string>(s => s.Contains("is up to date"))),
+            x => x.LogInformation(It.Is<string>(s => s.Contains("is up to date")), It.IsAny<string>()),
             Times.Exactly(3));
     }
 
@@ -118,7 +118,7 @@ public class RemovalScriptUpdateServiceTests
             x => x.RunScheduledTaskAsync("BloatRemoval"), Times.Never);
 
         _mockLog.Verify(
-            x => x.LogInformation(It.Is<string>(s => s.Contains("Updating"))),
+            x => x.LogInformation(It.Is<string>(s => s.Contains("Updating")), It.IsAny<string>()),
             Times.Exactly(3));
     }
 
@@ -166,7 +166,7 @@ public class RemovalScriptUpdateServiceTests
         _mockFileSystem.Verify(
             x => x.WriteAllText(ScriptPath("EdgeRemoval"), It.IsAny<string>()), Times.Once);
         _mockLog.Verify(
-            x => x.LogInformation(It.Is<string>(s => s.Contains("Updating") && s.Contains("unknown"))),
+            x => x.LogInformation(It.Is<string>(s => s.Contains("Updating") && s.Contains("unknown")), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -193,7 +193,7 @@ public class RemovalScriptUpdateServiceTests
         await _service.CheckAndUpdateScriptsAsync();
 
         _mockLog.Verify(
-            x => x.LogError(It.Is<string>(s => s.Contains("Failed to update EdgeRemoval"))),
+            x => x.LogError(It.Is<string>(s => s.Contains("Failed to update EdgeRemoval")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 

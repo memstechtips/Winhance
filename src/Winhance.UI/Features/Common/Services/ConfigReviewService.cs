@@ -110,7 +110,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         _logService.Log(LogLevel.Info,
-            $"[ConfigReviewService] Entered review mode with {TotalConfigItems} total config items, {TotalChanges} actual diffs");
+            $"Entered review mode with {TotalConfigItems} total config items, {TotalChanges} actual diffs");
         // Ordering is load-bearing: ReviewModeChanged must fire before ModeChanged so the
         // orchestration service can still see the pre-review mode when deciding whether to
         // reapply diffs in place (Normal -> Review) or reload stale Builder VMs first.
@@ -137,8 +137,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         CurrentMode = target;
         _logService.Log(LogLevel.Info, target == WinhanceMode.Builder
-            ? $"[ConfigReviewService] Entered Builder mode (target: {builderTarget})"
-            : $"[ConfigReviewService] Entered {target} mode");
+            ? $"Entered Builder mode (target: {builderTarget})"
+            : $"Entered {target} mode");
         ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -226,7 +226,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
 
         CurrentBuilderTarget = target;
-        _logService.Log(LogLevel.Info, $"[ConfigReviewService] Builder target switched to {target}");
+        _logService.Log(LogLevel.Info, $"Builder target switched to {target}");
         ModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -273,7 +273,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _diffs[diff.SettingId] = diff;
         _logService.Log(
             LogLevel.Debug,
-            $"[ConfigReviewService] Registered diff for '{diff.SettingId}': {diff.CurrentValueDisplay} -> {diff.ConfigValueDisplay}");
+            $"Registered diff for '{diff.SettingId}': {diff.CurrentValueDisplay} -> {diff.ConfigValueDisplay}");
         ApprovalCountChanged?.Invoke(this, EventArgs.Empty);
         BadgeStateChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -289,7 +289,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (_visitedFeatures.TryAdd(featureId, 0))
         {
             _logService.Log(LogLevel.Debug,
-                $"[ConfigReviewService] Feature '{featureId}' marked as visited");
+                $"Feature '{featureId}' marked as visited");
             BadgeStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -506,15 +506,15 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     _diffs[configItem.Id] = diff;
 
                     _logService.Log(LogLevel.Debug,
-                        $"[ConfigReviewService] Eager diff for '{configItem.Id}' in '{featureId}': " +
-                        $"{(isActionSetting ? "[Action] " : "")}{currentDisplay} -> {configDisplay}");
+                        $"Eager diff for '{configItem.Id}' in '{featureId}': " +
+                        $"{(isActionSetting ? "" : "")}{currentDisplay} -> {configDisplay}");
                 }
             }
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error,
-                $"[ConfigReviewService] Error computing eager diffs for '{featureId}': {ex.Message}");
+                $"Error computing eager diffs for '{featureId}': {ex.Message}");
         }
     }
 
@@ -579,7 +579,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     string? configPlanName = configItem.PowerPlanName;
 
                     _logService.Log(LogLevel.Debug,
-                        $"[ConfigReviewService] PowerPlan comparison: currentGuid='{currentGuid}', configGuid='{configItem.PowerPlanGuid}', " +
+                        $"PowerPlan comparison: currentGuid='{currentGuid}', configGuid='{configItem.PowerPlanGuid}', " +
                         $"currentName='{currentPlanName}', configName='{configPlanName}'");
 
                     // Normalize GUIDs for comparison (handle format differences like braces, case)
@@ -588,7 +588,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                     if (guidsMatch)
                     {
-                        _logService.Log(LogLevel.Debug, "[ConfigReviewService] PowerPlan: GUIDs match directly");
+                        _logService.Log(LogLevel.Debug, "PowerPlan: GUIDs match directly");
                         return (false, string.Empty, string.Empty, null, null);
                     }
 
@@ -598,13 +598,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     var configPredefined = ResolveToPredefinedPlan(configItem.PowerPlanGuid, configPlanName);
 
                     _logService.Log(LogLevel.Debug,
-                        $"[ConfigReviewService] PowerPlan resolve: current='{currentPredefined?.Name}' ({currentPredefined?.Guid}), " +
+                        $"PowerPlan resolve: current='{currentPredefined?.Name}' ({currentPredefined?.Guid}), " +
                         $"config='{configPredefined?.Name}' ({configPredefined?.Guid})");
 
                     if (currentPredefined != null && configPredefined != null &&
                         NormalizeGuid(currentPredefined.Guid) == NormalizeGuid(configPredefined.Guid))
                     {
-                        _logService.Log(LogLevel.Debug, "[ConfigReviewService] PowerPlan: Both resolve to same predefined plan");
+                        _logService.Log(LogLevel.Debug, "PowerPlan: Both resolve to same predefined plan");
                         return (false, string.Empty, string.Empty, null, null);
                     }
 
@@ -618,7 +618,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         ?? configPlanName ?? "Custom";
 
                     _logService.Log(LogLevel.Debug,
-                        $"[ConfigReviewService] PowerPlan: Diff detected - '{currentDisplayName}' -> '{configDisplayName}'");
+                        $"PowerPlan: Diff detected - '{currentDisplayName}' -> '{configDisplayName}'");
                     return (true, currentDisplayName, configDisplayName, currentRawKey, configRawKey);
                 }
 
@@ -747,7 +747,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Warning,
-                $"[ConfigReviewService] Failed to get combo box display name for '{setting.Id}' index {index}: {ex.Message}");
+                $"Failed to get combo box display name for '{setting.Id}' index {index}: {ex.Message}");
         }
         return index >= 0 ? index.ToString() : "Unknown";
     }
