@@ -1,6 +1,6 @@
 {
   "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. Every surface fetches it live from the `sponsors` branch (the app via SponsorsService.LiveUrl, the store wall via theme JS), and a snapshot ships with every release as the offline fallback. The copy on `main` is docs-only and is NOT what anything reads.",
-  "updated": "2026-09-01",
+  "updated": "2026-09-04",
   "sponsors": [
     {
       "id": "contoso",
@@ -72,6 +72,11 @@
     }
   ],
   "supporters": [
+    {
+      "name": "go winhance! kracken them all",
+      "since": "2026-09",
+      "src": "sebastien rivas"
+    },
     {
       "name": "Kevin M Rowe",
       "since": "2026-08"
