@@ -6,6 +6,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
+using Winhance.Core.Features.Common.Localization;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -33,14 +34,14 @@ public class SettingLocalizationServiceTests
 
     private static Setting CreateTestSetting(
         string id = "test-setting",
-        Dictionary<string, string>? crossGroupChildSettings = null) => new()
+        Dictionary<string, LocKey>? crossGroupChildSettings = null) => new()
     {
         Id = id,
         Display = new Display
         {
-            Name = "Test Setting",
-            Description = "Test Description",
-            GroupName = "TestGroup",
+            Name = TestKeys.Of("Test Setting"),
+            Description = TestKeys.Of("Test Description"),
+            GroupName = TestKeys.Of("TestGroup"),
             CrossGroupChildSettings = crossGroupChildSettings,
         },
     };
@@ -60,7 +61,7 @@ public class SettingLocalizationServiceTests
     public void BuildCrossGroupInfoMessage_WhenNoCrossGroupSettings_ReturnsNull()
     {
         var sut = CreateSut();
-        var setting = CreateTestSetting(crossGroupChildSettings: new Dictionary<string, string>());
+        var setting = CreateTestSetting(crossGroupChildSettings: new Dictionary<string, LocKey>());
 
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
@@ -70,9 +71,9 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenChildSettingsExist_BuildsMessage()
     {
-        var crossGroupSettings = new Dictionary<string, string>
+        var crossGroupSettings = new Dictionary<string, LocKey>
         {
-            ["privacy-child1"] = "Setting_Child1_Name"
+            ["privacy-child1"] = TestKeys.Of("Setting_Child1_Name")
         };
 
         var childSetting = new Setting
@@ -80,9 +81,9 @@ public class SettingLocalizationServiceTests
             Id = "privacy-child1",
             Display = new Display
             {
-                Name = "Child Setting 1",
-                Description = "Child desc",
-                GroupName = "Privacy_Group",
+                Name = TestKeys.Of("Child Setting 1"),
+                Description = TestKeys.Of("Child desc"),
+                GroupName = TestKeys.Of("SettingGroup_PrivacyGroup"),
             },
         };
         _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<CatalogScope>()))
@@ -94,7 +95,7 @@ public class SettingLocalizationServiceTests
             .Returns("Localized Child");
         _localizationService.Setup(l => l.GetString("Feature_Privacy_Name"))
             .Returns("Privacy & Security");
-        _localizationService.Setup(l => l.GetString("SettingGroup_Privacy_Group"))
+        _localizationService.Setup(l => l.GetString("SettingGroup_PrivacyGroup"))
             .Returns("Privacy Group Localized");
 
         var sut = CreateSut();
@@ -114,9 +115,9 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenChildNotResolved_SkipsSetting()
     {
-        var crossGroupSettings = new Dictionary<string, string>
+        var crossGroupSettings = new Dictionary<string, LocKey>
         {
-            ["unknown-child1"] = "Setting_Unknown_Name"
+            ["unknown-child1"] = TestKeys.Of("Setting_Unknown_Name")
         };
 
         // An id outside the mode-scoped catalog membership resolves to null.
@@ -134,9 +135,9 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenFilterOff_QueriesOtherOsScope()
     {
-        var crossGroupSettings = new Dictionary<string, string>
+        var crossGroupSettings = new Dictionary<string, LocKey>
         {
-            ["privacy-child1"] = "Setting_Child1_Name"
+            ["privacy-child1"] = TestKeys.Of("Setting_Child1_Name")
         };
 
         _scopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
@@ -146,9 +147,9 @@ public class SettingLocalizationServiceTests
             Id = "privacy-child1",
             Display = new Display
             {
-                Name = "Child Setting 1",
-                Description = "Child desc",
-                GroupName = "Privacy_Group",
+                Name = TestKeys.Of("Child Setting 1"),
+                Description = TestKeys.Of("Child desc"),
+                GroupName = TestKeys.Of("SettingGroup_PrivacyGroup"),
             },
         };
         // Strict on the scope arg: only the other-OS-versions scope resolves - the current-machine scope

@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -144,6 +145,29 @@ public class LocalizationServiceTests
         _sut.SetLanguage("en");
 
         eventRaised.Should().BeTrue();
+    }
+
+    // DefaultThreadCurrentUICulture is process-global and xUnit runs classes in parallel, so the fact puts it back.
+    [Fact]
+    public void SetLanguage_SetsTheDefaultThreadUICulture()
+    {
+        var previousDefault = CultureInfo.DefaultThreadCurrentUICulture;
+        var previousCurrent = CultureInfo.CurrentUICulture;
+
+        try
+        {
+            _sut.SetLanguage("de").Should().BeTrue();
+
+            var uiCultureOnNewThreads = CultureInfo.DefaultThreadCurrentUICulture?.Name;
+
+            uiCultureOnNewThreads.Should().Be("de",
+                because: "the region and language option lists read their display names on thread-pool threads, which start from this");
+        }
+        finally
+        {
+            CultureInfo.DefaultThreadCurrentUICulture = previousDefault;
+            CultureInfo.CurrentUICulture = previousCurrent;
+        }
     }
 
     [Fact]
