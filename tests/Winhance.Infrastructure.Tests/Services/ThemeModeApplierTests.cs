@@ -1,30 +1,35 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-public class ThemeWallpaperApplierTests
+public class ThemeModeApplierTests
 {
-    private readonly Mock<IWallpaperService> _wallpaper = new();
-    private readonly Mock<IWindowsVersionService> _version = new();
+    private const string DarkPicture = @"C:\Windows\Web\Wallpaper\Windows\img19.jpg";
+
     private readonly Mock<IStateWriter> _stateWriter = new();
     private readonly Mock<ILogService> _log = new();
-    private readonly Mock<IFileSystemService> _fs = new();
-    private readonly ThemeWallpaperApplier _sut;
+    private readonly ThemeModeApplier _sut;
 
-    public ThemeWallpaperApplierTests()
+    public ThemeModeApplierTests()
     {
         _stateWriter
             .Setup(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()))
             .Returns(true);
-        _sut = new ThemeWallpaperApplier(
-            _wallpaper.Object, _version.Object, _stateWriter.Object, _log.Object, _fs.Object);
+        _sut = new ThemeModeApplier(_stateWriter.Object, _log.Object);
+    }
+
+    [Fact]
+    public async Task TryApply_LeavesTheDesktopAlone()
+    {
+        await _sut.TryApplySpecialSettingAsync("theme-mode-windows", 1, additionalContext: true);
+
+        _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), DarkPicture), Times.Never);
+        _stateWriter.Verify(w => w.DeleteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -41,7 +46,7 @@ public class ThemeWallpaperApplierTests
     public async Task TryApply_NonIntValue_ReturnsFalse()
     {
 
-        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, "dark");
+        var result = await _sut.TryApplySpecialSettingAsync("theme-mode-windows", "dark");
 
         result.Should().BeFalse();
     }
@@ -52,7 +57,7 @@ public class ThemeWallpaperApplierTests
         // The handler applies the catalog theme-mode-windows "Dark Mode" state: both
         // AppsUseLightTheme + SystemUsesLightTheme are written 0 via the state writer.
 
-        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1);  // 1 = Dark
+        await _sut.TryApplySpecialSettingAsync("theme-mode-windows", 1);
 
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
             It.Is<object>(v => v.Equals(0))), Times.Exactly(2));
@@ -62,7 +67,7 @@ public class ThemeWallpaperApplierTests
     public async Task TryApply_LightMode_WritesOneToBothThemeKeys()
     {
 
-        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 0);  // 0 = Light
+        await _sut.TryApplySpecialSettingAsync("theme-mode-windows", 0);
 
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
             It.Is<object>(v => v.Equals(1))), Times.Exactly(2));
@@ -75,52 +80,19 @@ public class ThemeWallpaperApplierTests
         // this handler exactly that index when the two theme children disagree.
         // Falling through to Light Mode here would clobber the child the user had just changed.
         // It is still HANDLED (true), it just writes nothing.
-        _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
 
-        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 2, additionalContext: true);
+        var result = await _sut.TryApplySpecialSettingAsync("theme-mode-windows", 2);
 
         result.Should().BeTrue();
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never);
-        _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
     public async Task TryApply_OutOfRangeIndex_WritesNothing()
     {
-        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 99);
+        var result = await _sut.TryApplySpecialSettingAsync("theme-mode-windows", 99);
 
         result.Should().BeTrue();
         _stateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task TryApply_WithAdditionalContext_AppliesWallpaper()
-    {
-        _version.Setup(v => v.IsWindows11()).Returns(true);
-        _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-
-        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: true);
-
-        _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task TryApply_WithoutAdditionalContext_DoesNotApplyWallpaper()
-    {
-
-        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: false);
-
-        _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task TryApply_WallpaperPathMissing_DoesNotCallSetWallpaper()
-    {
-        _version.Setup(v => v.IsWindows11()).Returns(true);
-        _fs.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-
-        await _sut.TryApplySpecialSettingAsync(SettingIds.ThemeModeWindows, 1, additionalContext: true);
-
-        _wallpaper.Verify(w => w.SetWallpaperAsync(It.IsAny<string>()), Times.Never);
     }
 }
