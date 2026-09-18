@@ -22,7 +22,7 @@
         <local:SettingQuickSetButtons
             Setting="{x:Bind Setting, Mode=OneWay}"
             Mode="Single"
-            Kind="Toggle"/>
+            Kind="TwoState"/>
 
         <Grid VerticalAlignment="Center">
             <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this column

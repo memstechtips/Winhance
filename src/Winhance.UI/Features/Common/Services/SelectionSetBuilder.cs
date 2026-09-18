@@ -22,11 +22,12 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
 
     public CatalogScope CurrentScope => _scopeProvider.Current;
 
+    // The scope provider admits answer-file-only settings in Builder alone, and this path runs outside it.
     public async Task<SelectionSet> FromMachineAsync() =>
-        new(await _snapshot.CaptureAsync(CurrentScope), await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync(), AutounattendChoices.None);
+        new(await _snapshot.CaptureAsync(CurrentScope with { IncludeAnswerFileOnly = true }), await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync());
 
     public async Task<SelectionSet> FromMachineForBackupAsync() =>
-        new(await _snapshot.CaptureAsync(CurrentScope), await _apps.InstalledWindowsAppsAsync(), Array.Empty<AppChoice>(), AutounattendChoices.None);
+        new(await _snapshot.CaptureAsync(CurrentScope), await _apps.InstalledWindowsAppsAsync(), Array.Empty<AppChoice>());
 
     // An edit for a setting the snapshot could not read (a power plan with no active scheme, a slider with no
     // value) is still the user's intent, so it is appended rather than dropped; the writers decide what the file can
@@ -38,6 +39,9 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
             .Select(c => edits.Remove(c.SettingId, out var authored) ? c with { Value = authored } : c)
             .ToList();
         settings.AddRange(edits.Select(e => new SettingChoice(e.Key, e.Value)));
-        return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync(), AutounattendChoices.None);
+        // Exclusion is absence. Applied after the append so an appended edit obeys it too, and here rather than in
+        // ConfigFileMapper so both writers see one list and ConfigFileWriter's logged count still describes the file.
+        settings.RemoveAll(c => !_mode.IsIncluded(c.SettingId));
+        return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync());
     }
 }

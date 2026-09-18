@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Localization;
 using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
@@ -92,6 +93,8 @@ public class BaseSettingsFeatureViewModelTests
         _mockSettingsLoadingService
             .Setup(s => s.RefreshScopeDerivedStateAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
             .Returns(Task.CompletedTask);
+
+        _mockApplicationModeService.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(true);
     }
 
     private TestableSettingsFeatureViewModel CreateViewModel()
@@ -122,7 +125,7 @@ public class BaseSettingsFeatureViewModelTests
         // Catalog authoring the presentation gate reads: where the card nests, whether it declares a
         // gate, and the state labels the gate compares against. All null = an ungated, top-level card.
         string? uiParentId = null,
-        EnabledWhen? enabledWhen = null,
+        StateGate? enabledWhen = null,
         string[]? stateLabels = null,
         // Roles on the FIRST state label. A card carries badge data - and so a badge row worth asserting on -
         // only when one of its states declares Recommended or WindowsDefault.
@@ -133,7 +136,7 @@ public class BaseSettingsFeatureViewModelTests
             Setting = new Setting
             {
                 Id = settingId,
-                Display = new() { Name = name, Description = description },
+                Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of(description)},
                 Numeric = numericUnits is null
                     ? null
                     : new Numeric { Min = 0, Max = 100_000, Units = numericUnits },
@@ -142,7 +145,7 @@ public class BaseSettingsFeatureViewModelTests
                 States = (stateLabels ?? Array.Empty<string>())
                     .Select((label, index) => new SettingState
                     {
-                        Label = label,
+                        Label = TestKeys.Of(label),
                         Roles = index == 0 ? firstStateRoles ?? Array.Empty<StateRole>() : Array.Empty<StateRole>(),
                     })
                     .ToArray(),
@@ -180,13 +183,13 @@ public class BaseSettingsFeatureViewModelTests
 
     // Enabled/Disabled - the two labels every catalog toggle has, and what CurrentStateLabel maps
     // IsSelected onto.
-    private static readonly string[] ToggleStates = { "Enabled", "Disabled" };
+    private static readonly string[] ToggleStates = { LocKey.Common.Enabled.Value, LocKey.Common.Disabled.Value };
     private static readonly StateRole[] RecommendedRole = [StateRole.Recommended];
-    private static readonly string[] EnabledOnly = ["Enabled"];
+    private static readonly LocKey[] EnabledOnly = [LocKey.Common.Enabled];
     private static readonly string[] LightDarkModes = ["Light Mode", "Dark Mode"];
-    private static readonly string[] LightModeOnly = ["Light Mode"];
+    private static readonly LocKey[] LightModeOnly = [TestKeys.Of("Light Mode")];
     private static readonly string[] ServiceStartModes = ["Off", "Manual", "Automatic"];
-    private static readonly string[] ServiceRunningModes = ["Manual", "Automatic"];
+    private static readonly LocKey[] ServiceRunningModes = [TestKeys.Of("Manual"), TestKeys.Of("Automatic")];
 
     private void SetupLoad(ObservableCollection<SettingItemViewModel> settings) =>
         _mockSettingsLoadingService
@@ -1520,12 +1523,30 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: parentIsOn, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
+                enabledWhen: new StateGate("parent", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
 
         vm.Settings[1].ParentIsEnabled.Should().Be(expectedGate);
+    }
+
+    [Fact]
+    public async Task A_gate_follows_the_named_card_when_the_user_moves_it_with_no_apply_event()
+    {
+        // Builder mode records an edit and publishes no SettingAppliedEvent.
+        var vm = CreateViewModel();
+        var master = CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: 0,
+            stateLabels: LightDarkModes);
+        var child = CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
+            enabledWhen: new StateGate("master", [TestKeys.Of("Dark Mode")]));
+        SetupLoad(new ObservableCollection<SettingItemViewModel> { master, child });
+        await vm.LoadSettingsAsync();
+        child.ParentIsEnabled.Should().BeFalse();
+
+        master.SelectedValue = 1;
+
+        child.ParentIsEnabled.Should().BeTrue();
     }
 
     [Fact]
@@ -1540,7 +1561,7 @@ public class BaseSettingsFeatureViewModelTests
             CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: 0,
                 stateLabels: LightDarkModes),
             CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("master", LightModeOnly)),
+                enabledWhen: new StateGate("master", LightModeOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1559,7 +1580,7 @@ public class BaseSettingsFeatureViewModelTests
             CreateSettingItem("service", "Service", inputType: InputType.Selection, selectedValue: 1,
                 stateLabels: ServiceStartModes),
             CreateSettingItem("child", "Child", uiParentId: "service", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("service", ServiceRunningModes)),
+                enabledWhen: new StateGate("service", ServiceRunningModes)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1578,7 +1599,7 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
+                enabledWhen: new StateGate("parent", EnabledOnly)),
         });
         _mockSettingsLoadingService
             .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
@@ -1609,7 +1630,7 @@ public class BaseSettingsFeatureViewModelTests
         {
             CreateSettingItem("parent", "Parent", isSelected: true, stateLabels: ToggleStates),
             CreateSettingItem("child", "Child", uiParentId: "parent", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("parent", EnabledOnly)),
+                enabledWhen: new StateGate("parent", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1630,7 +1651,7 @@ public class BaseSettingsFeatureViewModelTests
         SetupLoad(new ObservableCollection<SettingItemViewModel>
         {
             CreateSettingItem("child", "Child", uiParentId: "elsewhere", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("elsewhere", EnabledOnly)),
+                enabledWhen: new StateGate("elsewhere", EnabledOnly)),
         });
 
         await vm.LoadSettingsAsync();
@@ -1649,7 +1670,7 @@ public class BaseSettingsFeatureViewModelTests
             CreateSettingItem("master", "Master", inputType: InputType.Selection, selectedValue: -1,
                 stateLabels: LightDarkModes),
             CreateSettingItem("child", "Child", uiParentId: "master", stateLabels: ToggleStates,
-                enabledWhen: new EnabledWhen("master", LightModeOnly)),
+                enabledWhen: new StateGate("master", LightModeOnly)),
         });
 
         await vm.LoadSettingsAsync();

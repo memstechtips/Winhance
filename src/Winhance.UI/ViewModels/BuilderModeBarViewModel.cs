@@ -137,7 +137,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     private async Task<bool> ConfirmNarrowingAsync()
     {
         int outOfScope = _applicationModeService.GetBuilderEdits()
-            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, CatalogScope.CurrentMachine) is null);
+            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, CatalogScope.CurrentMachine with { IncludeAnswerFileOnly = true }) is null);
         if (outOfScope == 0) return true;
 
         var request = new ConfirmationRequest

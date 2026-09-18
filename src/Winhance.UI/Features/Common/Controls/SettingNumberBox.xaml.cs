@@ -95,7 +95,7 @@ public sealed partial class SettingNumberBox : UserControl, INotifyPropertyChang
             ? Visibility.Visible
             : Visibility.Collapsed;
         OutcomeTooltip = OverlayVisibility == Visibility.Visible
-            ? vm.OverlayTooltipForMode(Mode, toggleLike: false)
+            ? vm.OverlayTooltipForMode(Mode, isTwoState: false)
             : null;
         Notify(nameof(NumericValue), nameof(Minimum), nameof(Maximum),
                nameof(InputAutomationName), nameof(OverlayVisibility), nameof(OutcomeTooltip));

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
@@ -196,12 +197,7 @@ public class PowerOptimizationsViewModelTests
     public async Task DeletePowerPlanAsync_WithActivePlan_ShowsInformationDialog()
     {
         var vm = CreateViewModel();
-        var activePlan = new PowerPlanComboBoxOption
-        {
-            DisplayName = "Active Plan",
-            IsActive = true,
-            ExistsOnSystem = true,
-        };
+        var activePlan = new DynamicOption("Active Plan", "g-active", ExistsOnSystem: true, CanDelete: false);
 
         await vm.DeletePowerPlanAsync(activePlan);
 
@@ -214,19 +210,27 @@ public class PowerOptimizationsViewModelTests
     public async Task DeletePowerPlanAsync_WithPlanNotOnSystem_ShowsInformationDialog()
     {
         var vm = CreateViewModel();
-        var offlinePlan = new PowerPlanComboBoxOption
-        {
-            DisplayName = "Offline Plan",
-            IsActive = false,
-            ExistsOnSystem = false,
-            SystemPlan = null,
-        };
+        var offlinePlan = new DynamicOption("Offline Plan", "g-off", ExistsOnSystem: false);
 
         await vm.DeletePowerPlanAsync(offlinePlan);
 
         _mockDialogService.Verify(
             d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task DeletePowerPlanAsync_WithDeletablePlan_ConfirmsThenDeletesByKey()
+    {
+        var vm = CreateViewModel();
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockPowerService.Setup(p => p.DeletePowerPlanAsync("g-del")).ReturnsAsync(true);
+
+        await vm.DeletePowerPlanAsync(new DynamicOption("Spare Plan", "g-del", ExistsOnSystem: true, CanDelete: true));
+
+        _mockPowerService.Verify(p => p.DeletePowerPlanAsync("g-del"), Times.Once);
     }
 
     [Fact]

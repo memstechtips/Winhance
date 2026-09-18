@@ -20,7 +20,6 @@ public class SettingsLoadingService : ISettingsLoadingService
     private readonly ISettingViewModelFactory _viewModelFactory;
     private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly ILocalizationService _localization;
-    private readonly IApplicationModeService _applicationModeService;
     private readonly ISettingViewModelEnricher _enricher;
 
     public SettingsLoadingService(
@@ -34,7 +33,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         ISettingViewModelFactory viewModelFactory,
         ISettingLocalizationService settingLocalizationService,
         ILocalizationService localization,
-        IApplicationModeService applicationModeService,
         ISettingViewModelEnricher enricher)
     {
         _settingStateProvider = settingStateProvider;
@@ -47,7 +45,6 @@ public class SettingsLoadingService : ISettingsLoadingService
         _viewModelFactory = viewModelFactory;
         _settingLocalizationService = settingLocalizationService;
         _localization = localization;
-        _applicationModeService = applicationModeService;
         _enricher = enricher;
     }
 
@@ -159,17 +156,7 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
-            // Builder mode keeps the index-valued power-plan dropdown; the recorded choice reads the plan GUID
-            // off the option's Tag.
-            // Build it here from the DynamicOptions (the same runtime options the live GUID-valued
-            // dropdown uses), index-valued + the rich PowerPlanComboBoxOption Tag the bespoke control reads.
-            // The factory's builder block localizes the PowerPlan_ DisplayText, so this service passes the raw loc key.
-            ComboBoxSetupResult? builderComboBoxOptions =
-                (_applicationModeService.Capabilities().AuthorsIntent && setting.OptionSource is not null)
-                    ? BuildBuilderPowerPlanOptions(currentState)
-                    : null;
-
-            var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, builderComboBoxOptions, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)), liveBuild);
+            var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)), liveBuild);
             viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
             settingViewModels.Add(viewModel);
         }
@@ -235,53 +222,4 @@ public class SettingsLoadingService : ISettingsLoadingService
     // Read ONCE per load (cached before the VM loop), not per setting.
     private WinBuild LiveBuild() =>
         new(_windowsVersionService.GetWindowsBuildNumber(), _windowsVersionService.GetWindowsBuildRevision());
-
-    // INDEX-valued: the dropdown binds on the list index, but the recorded choice is a ChoiceValue.PowerPlan built
-    // from Tag.Guid, so the index never leaves the UI. The Tag mirrors SettingItemViewModel.TryApplyDynamicPowerPlanOptions
-    // (what the PowerPlanComboBox control reads): ExistsOnSystem/IsActive drive the visuals, SystemPlan.Guid is the
-    // delete target, DisplayName is the raw PowerPlan_ key the delete dialog re-localizes. Empty (non-null) when
-    // there are no runtime options.
-    private static ComboBoxSetupResult BuildBuilderPowerPlanOptions(SettingStateResult state)
-    {
-        var result = new ComboBoxSetupResult { Success = true };
-        if (state.DynamicOptions is not { } dynamicOptions)
-            return result;
-
-        int activeIndex = 0;
-        bool foundActive = false;
-        for (int i = 0; i < dynamicOptions.Count; i++)
-        {
-            var opt = dynamicOptions[i];
-            var isActive = state.DynamicSelection != null
-                && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
-            // FIRST match wins (each option's Tag still carries its own per-option isActive
-            // below).
-            if (isActive && !foundActive)
-            {
-                activeIndex = i;
-                foundActive = true;
-            }
-
-            var tag = new PowerPlanComboBoxOption
-            {
-                DisplayName = opt.Label,
-                Guid = opt.Value,
-                ExistsOnSystem = opt.ExistsOnSystem,
-                IsActive = isActive,
-                SystemPlan = opt.ExistsOnSystem
-                    ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = opt.Label, IsActive = isActive }
-                    : null,
-            };
-
-            // Value = the option index (what the dropdown binds on); DisplayText = the raw PowerPlan_ loc key.
-            result.Options.Add(new ComboBoxDisplayOption(
-                opt.Label,
-                i,
-                opt.ExistsOnSystem ? "Installed on system" : "Not installed",
-                tag));
-        }
-
-        result.SelectedValue = activeIndex;
-        return result;
-    }
 }

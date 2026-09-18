@@ -213,11 +213,11 @@ public class DialogService : IDialogService
 
                 checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
-                    $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}",
+                    $"{checkboxText}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}",
                     "CheckboxStateChange");
                 checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
                     checkBox,
-                    $"{checkboxText}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}",
+                    $"{checkboxText}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}",
                     "CheckboxStateChange");
 
                 contentPanel.Children.Add(checkBox);

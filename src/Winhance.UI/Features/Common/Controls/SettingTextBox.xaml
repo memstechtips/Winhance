@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingTextBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="4" MinWidth="200">
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Read-only beside a picker: the value applies as it is typed, and half a path is a folder of its own. -->
+            <TextBox
+                Text="{x:Bind TextValue, Mode=OneWay}"
+                PlaceholderText="{x:Bind Placeholder, Mode=OneWay}"
+                IsReadOnly="{x:Bind IsPickerOnly, Mode=OneWay}"
+                TextChanged="OnTextChanged"
+                MinWidth="200"
+                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"/>
+
+            <Button
+                Grid.Column="1"
+                MinWidth="140"
+                VerticalAlignment="Center"
+                Content="{x:Bind BrowseLabel, Mode=OneWay}"
+                Click="OnBrowseClick"
+                Visibility="{x:Bind BrowseVisibility, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"/>
+        </Grid>
+
+        <TextBlock
+            Text="{x:Bind TextError, Mode=OneWay}"
+            Visibility="{x:Bind ErrorVisibility, Mode=OneWay}"
+            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+            Style="{StaticResource CaptionTextBlockStyle}"
+            TextWrapping="Wrap"/>
+    </StackPanel>
+</UserControl>

@@ -74,7 +74,10 @@ public sealed partial class SectionPageShell : UserControl
         InfoBadgesToggle: InfoBadgesToggleItem,
         NewBadgesToggle: NewBadgesToggleItem,
         ShowOnlyChangesToggle: ShowOnlyChangesToggleItem,
-        ShowOnlyChangesSeparator: ShowOnlyChangesSeparator);
+        ShowOnlyChangesSeparator: ShowOnlyChangesSeparator,
+        IncludeAllItem: IncludeAllItem,
+        ExcludeAllItem: ExcludeAllItem,
+        IncludeActionsSeparator: IncludeActionsSeparator);
 
     // The three template-scoped handlers. Their instances are created per item as the ItemsControl
     // realizes them, so the base cannot subscribe to them element-by-element the way it does for the

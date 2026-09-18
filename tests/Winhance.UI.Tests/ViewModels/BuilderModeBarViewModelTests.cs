@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -59,13 +60,16 @@ public class BuilderModeBarViewModelTests : IDisposable
             settingIds.Select(id => new SettingChoice(id, new ChoiceValue.Toggle(true))).ToList());
     }
 
+    // An expression tree cannot contain a with-expression, so the scope is built once outside the Moq lambdas.
+    private static readonly CatalogScope BuilderScope = CatalogScope.CurrentMachine with { IncludeAnswerFileOnly = true };
+
     private void InScope(params string[] settingIds)
     {
         foreach (string id in settingIds)
         {
             _mockCatalogSettingsRegistry
-                .Setup(r => r.GetById(id, CatalogScope.CurrentMachine))
-                .Returns(new Setting { Id = id, Display = new Display { Name = id, Description = id } });
+                .Setup(r => r.GetById(id, BuilderScope))
+                .Returns(new Setting { Id = id, Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of(id)} });
         }
     }
 

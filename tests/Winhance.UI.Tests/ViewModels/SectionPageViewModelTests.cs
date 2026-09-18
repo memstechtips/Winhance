@@ -46,8 +46,12 @@ public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo
         ILocalizationService localizationService,
         IEnumerable<ISettingsFeatureViewModel> featureViewModels,
         IConfigReviewBadgeService badgeService,
-        IConfigReviewModeService reviewModeService)
-        : base(logService, localizationService, featureViewModels, badgeService, reviewModeService)
+        IConfigReviewModeService reviewModeService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
+        : base(logService, localizationService, featureViewModels, badgeService, reviewModeService,
+               registry, scope, modeService)
     {
         InitializeSectionMappings();
     }
@@ -59,6 +63,9 @@ public class SectionPageViewModelTests
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IConfigReviewBadgeService> _mockBadgeService = new();
     private readonly Mock<IConfigReviewModeService> _mockReviewModeService = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScope = new();
+    private readonly Mock<IApplicationModeService> _mockModeService = new();
     private readonly List<Mock<ISettingsFeatureViewModel>> _mockFeatureVms;
 
     public SectionPageViewModelTests()
@@ -92,7 +99,10 @@ public class SectionPageViewModelTests
             _mockLocalizationService.Object,
             _mockFeatureVms.Select(m => m.Object),
             _mockBadgeService.Object,
-            _mockReviewModeService.Object);
+            _mockReviewModeService.Object,
+            _mockRegistry.Object,
+            _mockScope.Object,
+            _mockModeService.Object);
     }
 
     [Fact]

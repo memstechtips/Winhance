@@ -6,10 +6,13 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.UI.Tests.Services;
 
 public class ConfigReviewServiceTests : IDisposable
@@ -24,6 +27,8 @@ public class ConfigReviewServiceTests : IDisposable
 
     public ConfigReviewServiceTests()
     {
+        _mockCatalogSettingsRegistry.ResolveIdsFromFeatures();
+
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -39,14 +44,16 @@ public class ConfigReviewServiceTests : IDisposable
             .Returns("Off");
     }
 
-    private ConfigReviewService CreateService()
+    private ConfigReviewService CreateService(ICatalogSettingsRegistry? registry = null)
     {
         _service = new ConfigReviewService(
             _mockLogService.Object,
-            _mockCatalogSettingsRegistry.Object,
+            registry ?? _mockCatalogSettingsRegistry.Object,
             _mockSettingStateProvider.Object,
             _mockLocalizationService.Object,
-            _mockWindowsVersionService.Object);
+            _mockWindowsVersionService.Object,
+            new FakeOptionProviderRegistry(new PowerService(
+                Mock.Of<ILogService>(), Mock.Of<IPowerSettingsQueryService>(), Mock.Of<IPowerSchemeOperations>())));
         return _service;
     }
 
@@ -88,6 +95,19 @@ public class ConfigReviewServiceTests : IDisposable
 
         service.CurrentMode.Should().Be(WinhanceMode.ConfigReview);
         service.IsInReviewMode.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_KeepsTheSetAsideNamesUntilExit()
+    {
+        var service = CreateService();
+        var names = new[] { "Timeline Suggestions (Privacy)" };
+
+        await service.EnterReviewModeAsync(new WinhanceConfigFile(), false, names);
+        service.SetAside.Should().Equal(names);
+
+        service.ExitReviewMode();
+        service.SetAside.Should().BeEmpty();
     }
 
     [Fact]
@@ -198,12 +218,13 @@ public class ConfigReviewServiceTests : IDisposable
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
+        var seeded = service.GetBuilderEdits().Count;
 
         service.MarkBuilderDirty();
 
         // This is the whole point: dirty without any recorded edit.
         service.HasBuilderChanges.Should().BeTrue();
-        service.GetBuilderEdits().Should().BeEmpty();
+        service.GetBuilderEdits().Should().HaveCount(seeded);
     }
 
     [Fact]
@@ -345,11 +366,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "privacy-setting",
-            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Privacy Setting"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -405,11 +426,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "privacy-setting",
-            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Privacy Setting"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -462,11 +483,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "taskbar-clean",
-            Display = new() { Name = "Clean Taskbar", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Clean Taskbar"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -517,46 +538,27 @@ public class ConfigReviewServiceTests : IDisposable
         diff.ActionConfirmationMessage.Should().NotBeEmpty();
     }
 
-    [Theory]
-    [InlineData(0, "Light")]
-    [InlineData(1, "Dark")]
-    public async Task EnterReviewModeAsync_ThemeWallpaperAction_IncludesThemeName(int selectedIndex, string expectedThemeName)
+    private static Setting AlbumSetting() => new()
     {
-        var setting = new Setting
-        {
-            Id = SettingIds.ThemeModeWindows,
-            Display = new() { Name = "Choose your mode", Description = "Test" },
-            States = new[]
-            {
-                new SettingState { Label = "Light" },
-                new SettingState { Label = "Dark" }
-            }
-        };
+        Id = "album-setting",
+        Display = new() { Name = TestKeys.Of("Album"), Description = TestKeys.Of("Test") },
+        TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("Choose a folder."))),
+    };
 
+    private WinhanceConfigFile AlbumConfig(string folder, string seeded)
+    {
         _mockCatalogSettingsRegistry
             .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<CatalogScope>()))
-            .Returns(new[] { setting });
+            .Returns(new[] { AlbumSetting() });
 
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                [SettingIds.ThemeModeWindows] = new SettingStateResult { Success = true, CurrentValue = selectedIndex == 0 ? 1 : 0 }
+                ["album-setting"] = new SettingStateResult { Success = true, CurrentValue = seeded },
             });
 
-        _mockLocalizationService
-            .Setup(l => l.GetString("Review_Mode_Action_ThemeWallpaper"))
-            .Returns("Apply the default {0} wallpaper?");
-
-        _mockLocalizationService
-            .Setup(l => l.GetString("Theme_LightNative"))
-            .Returns("Light");
-
-        _mockLocalizationService
-            .Setup(l => l.GetString("Theme_DarkNative"))
-            .Returns("Dark");
-
-        var config = new WinhanceConfigFile
+        return new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -570,24 +572,43 @@ public class ConfigReviewServiceTests : IDisposable
                         {
                             new ConfigurationItem
                             {
-                                Id = SettingIds.ThemeModeWindows,
-                                Name = "Choose your mode",
-                                SelectedIndex = selectedIndex,
-                                InputType = InputType.Selection
-                            }
-                        }
-                    }
-                }
-            }
+                                Id = "album-setting",
+                                Name = "Album",
+                                Text = folder,
+                                InputType = InputType.TextBox,
+                            },
+                        },
+                    },
+                },
+            },
         };
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_ComputesDiffsForTextBoxSettings()
+    {
+        var config = AlbumConfig(@"D:\Wallpapers", @"C:\Users\Public\Pictures");
 
         var service = CreateService();
         await service.EnterReviewModeAsync(config);
 
-        var diff = service.GetDiffForSetting(SettingIds.ThemeModeWindows);
+        service.TotalChanges.Should().Be(1);
+        var diff = service.GetDiffForSetting("album-setting");
         diff.Should().NotBeNull();
-        diff!.IsActionSetting.Should().BeTrue();
-        diff.ActionConfirmationMessage.Should().Be($"Apply the default {expectedThemeName} wallpaper?");
+        diff!.CurrentValueDisplay.Should().Be(@"C:\Users\Public\Pictures");
+        diff.ConfigValueDisplay.Should().Be(@"D:\Wallpapers");
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_NoDiff_WhenTheBoxAlreadyHoldsTheConfigsText()
+    {
+        var config = AlbumConfig(@"D:\Wallpapers", @"D:\Wallpapers");
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.TotalChanges.Should().Be(0);
+        service.GetDiffForSetting("album-setting").Should().BeNull();
     }
 
     [Fact]
@@ -804,6 +825,20 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public void RegisterDiff_FilesTheDiffUnderTheSettingsOwnFeature()
+    {
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
+            .Returns(new[] { ToggleSetting("s1") });
+        var service = CreateService();
+
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Taskbar" });
+
+        service.GetDiffForSetting("s1")!.FeatureModuleId.Should().Be("Privacy");
+        service.GetFeatureDiffCount("Taskbar").Should().Be(0);
+    }
+
+    [Fact]
     public void ApprovedChanges_ReturnsCorrectCount()
     {
         var service = CreateService();
@@ -996,11 +1031,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "s1",
-            Display = new() { Name = "S1", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("S1"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1059,11 +1094,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "s1",
-            Display = new() { Name = "S1", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("S1"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1120,11 +1155,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "s1",
-            Display = new() { Name = "S1", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("S1"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1198,11 +1233,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "s1",
-            Display = new() { Name = "Setting 1", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Setting 1"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1275,7 +1310,7 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "numeric-setting",
-            Display = new() { Name = "Numeric Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Numeric Setting"), Description = TestKeys.Of("Test") },
             Numeric = new() { Min = 0, Max = 3600 }
         };
 
@@ -1333,11 +1368,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "selection-setting",
-            Display = new() { Name = "Selection Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Selection Setting"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Option A" },
-                new SettingState { Label = "Option B" }
+                new SettingState { Label = TestKeys.Of("Option A") },
+                new SettingState { Label = TestKeys.Of("Option B") }
             }
         };
 
@@ -1385,6 +1420,65 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task EnterReviewModeAsync_ThemeMode_IsAnOrdinarySelectionDiff()
+    {
+        var setting = new Setting
+        {
+            Id = "theme-mode-windows",
+            Display = new() { Name = TestKeys.Of("Theme"), Description = TestKeys.Of("Test") },
+            States = new[]
+            {
+                new SettingState { Label = LocKey.Setting.ThemeModeWindows.Option0 },
+                new SettingState { Label = LocKey.Setting.ThemeModeWindows.Option1 }
+            }
+        };
+
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("WindowsTheme", It.IsAny<CatalogScope>()))
+            .Returns(new[] { setting });
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["theme-mode-windows"] = new SettingStateResult { Success = true, CurrentValue = 0 }
+            });
+
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["WindowsTheme"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "theme-mode-windows",
+                                Name = "Theme",
+                                InputType = InputType.Selection,
+                                SelectedIndex = 1
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        var diff = service.GetDiffForSetting("theme-mode-windows");
+        diff.Should().NotBeNull();
+        diff!.IsActionSetting.Should().BeFalse();
+        diff.ActionConfirmationMessage.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
     public async Task EnterReviewModeAsync_StartMenuClean10_OnWindows11_IsSkipped()
     {
         _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
@@ -1392,11 +1486,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "start-menu-clean-10",
-            Display = new() { Name = "Clean Start Menu (Win10)", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Clean Start Menu (Win10)"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1450,11 +1544,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "start-menu-clean-11",
-            Display = new() { Name = "Clean Start Menu (Win11)", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Clean Start Menu (Win11)"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
 
@@ -1508,7 +1602,7 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "nr-same",
-            Display = new() { Name = "Numeric Same", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Numeric Same"), Description = TestKeys.Of("Test") },
             Numeric = new() { Min = 0, Max = 3600 }
         };
 
@@ -1563,7 +1657,7 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "nr-nopower",
-            Display = new() { Name = "No Power Settings", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("No Power Settings"), Description = TestKeys.Of("Test") },
             Numeric = new() { Min = 0, Max = 3600 }
         };
 
@@ -1615,7 +1709,7 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "nr-dconly",
-            Display = new() { Name = "DC Only NumericRange", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("DC Only NumericRange"), Description = TestKeys.Of("Test") },
             Numeric = new() { Min = 0, Max = 3600 }
         };
 
@@ -1672,11 +1766,11 @@ public class ConfigReviewServiceTests : IDisposable
         var privacySetting = new Setting
         {
             Id = "priv1",
-            Display = new() { Name = "Privacy Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Privacy Setting"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" }
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled }
             }
         };
         _mockCatalogSettingsRegistry
@@ -1686,7 +1780,7 @@ public class ConfigReviewServiceTests : IDisposable
         var powerSetting = new Setting
         {
             Id = "pow1",
-            Display = new() { Name = "Power Setting", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Power Setting"), Description = TestKeys.Of("Test") },
             Numeric = new() { Min = 0, Max = 3600 }
         };
         _mockCatalogSettingsRegistry
@@ -1773,11 +1867,11 @@ public class ConfigReviewServiceTests : IDisposable
         var setting = new Setting
         {
             Id = "sel-null",
-            Display = new() { Name = "Selection Null Index", Description = "Test" },
+            Display = new() { Name = TestKeys.Of("Selection Null Index"), Description = TestKeys.Of("Test") },
             States = new[]
             {
-                new SettingState { Label = "Option A" },
-                new SettingState { Label = "Option B" }
+                new SettingState { Label = TestKeys.Of("Option A") },
+                new SettingState { Label = TestKeys.Of("Option B") }
             }
         };
 
@@ -1823,16 +1917,203 @@ public class ConfigReviewServiceTests : IDisposable
         service.GetDiffForSetting("sel-null").Should().BeNull();
     }
 
-    [Fact]
-    public async Task EnterReviewModeAsync_Selection_WithPowerPlanGuid_DifferentPlan_RegistersDiff()
+    private static Setting ToggleSetting(string id) => new()
     {
-        // The shipped power-plan setting is OptionSource-driven (0 static States -> ControlKind.PowerPlan);
-        // the PowerPlanGuid branch never reads static options, so a mock source suffices.
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Common.Enabled },
+            new SettingState { Label = LocKey.Common.Disabled }
+        }
+    };
+
+    private static ConfigurationItem ToggleItem(string id, bool on) =>
+        new() { Id = id, Name = id, IsSelected = on, InputType = InputType.Toggle };
+
+    private static ConfigSection Included(params ConfigurationItem[] items) => new() { IsIncluded = true, Items = items };
+
+    private void ArrangePrivacyToggleThatIsOff(string id)
+    {
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
+            .Returns(new[] { ToggleSetting(id) });
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                [id] = new SettingStateResult { Success = true, IsEnabled = false }
+            });
+    }
+
+    private async Task<ICatalogSettingsRegistry> ShippedCatalogOnWindows11Async()
+    {
+        _mockWindowsVersionService.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        existence
+            .Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync((IReadOnlyList<Setting> settings) => settings);
+
+        var registry = new CatalogSettingsRegistry(
+            _mockWindowsVersionService.Object, Mock.Of<IHardwareDetectionService>(), existence.Object);
+        await registry.InitializeAsync();
+        return registry;
+    }
+
+    [Theory]
+    [InlineData("explorer-customization-short-date", "Short Date Format")]
+    [InlineData("explorer-customization-first-day-of-week", "First Day of Week")]
+    [InlineData("explorer-customization-number-decimal", "Number Decimal Symbol")]
+    [InlineData("explorer-customization-list-separator", "List Separator")]
+    [InlineData("explorer-customization-measurement-system", "Measurement System")]
+    [InlineData("explorer-customization-currency-decimal", "Currency Decimal Symbol")]
+    public async Task EnterReviewModeAsync_AFileFromTheReleasedApp_DiffsAMovedSettingUnderTheFeatureItLivesInNow(
+        string settingId, string releasedName)
+    {
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                [settingId] = new SettingStateResult { Success = true, CurrentValue = 1 }
+            });
+
+        // Winhance 26.06.12 writes these ids under the Explorer group.
+        var item = new ConfigurationItem { Id = settingId, Name = releasedName, InputType = InputType.Selection, SelectedIndex = 0 };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection> { [FeatureIds.ExplorerCustomization] = Included(item) }
+            }
+        };
+
+        var service = CreateService(await ShippedCatalogOnWindows11Async());
+        await service.EnterReviewModeAsync(config);
+
+        service.GetFeatureDiffCount(FeatureIds.TimeRegionLanguage).Should().Be(1);
+        service.GetFeatureDiffCount(FeatureIds.ExplorerCustomization).Should().Be(0);
+        service.IsFeatureInConfig(FeatureIds.TimeRegionLanguage).Should().BeTrue();
+        service.GetDiffForSetting(settingId)!.FeatureModuleId.Should().Be(FeatureIds.TimeRegionLanguage);
+
+        service.SetSettingApproval(settingId, true);
+
+        service.GetApprovedDiffs().Should().ContainSingle().Which.ConfigItem.Should().BeSameAs(item);
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_ARetiredWin10Id_IsReviewedAsTheSettingItWasMergedInto()
+    {
+        const string mergedId = "explorer-customization-thispc-folder-desktop";
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                [mergedId] = new SettingStateResult { Success = true, IsEnabled = false }
+            });
+        var item = ToggleItem(mergedId + "-win10", on: true);
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection> { [FeatureIds.ExplorerCustomization] = Included(item) }
+            }
+        };
+
+        var service = CreateService(await ShippedCatalogOnWindows11Async());
+        await service.EnterReviewModeAsync(config);
+
+        service.GetDiffForSetting(mergedId)!.ConfigItem.Should().BeSameAs(item);
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_AnIdTheCatalogDoesNotKnow_IsSkippedWithoutDisturbingItsNeighbours()
+    {
+        ArrangePrivacyToggleThatIsOff("s1");
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = Included(ToggleItem("retired-setting", on: true), ToggleItem("s1", on: true))
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.TotalChanges.Should().Be(1);
+        service.GetDiffForSetting("retired-setting").Should().BeNull();
+        service.GetDiffForSetting("s1").Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_ASectionTheUserLeftOut_IsNotReviewed()
+    {
+        ArrangePrivacyToggleThatIsOff("s1");
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new() { IsIncluded = false, Items = new[] { ToggleItem("s1", on: true) } }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.TotalChanges.Should().Be(0);
+        service.GetDiffForSetting("s1").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_AnIdListedInTwoGroups_IsReviewedOnceFromTheFirst()
+    {
+        ArrangePrivacyToggleThatIsOff("s1");
+        var first = ToggleItem("s1", on: true);
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection> { ["Privacy"] = Included(first) }
+            },
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection> { ["Taskbar"] = Included(ToggleItem("s1", on: false)) }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        service.TotalChanges.Should().Be(1);
+        service.GetDiffForSetting("s1")!.ConfigItem.Should().BeSameAs(first);
+        _mockLogService.Verify(
+            l => l.Log(LogLevel.Debug, It.Is<string>(m => m.Contains("'s1' again")), null, It.IsAny<string>()),
+            Times.Once);
+    }
+
+    private const string BalancedGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+    private const string HighPerformanceGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+
+    private void ArrangePowerPlanCard(SettingStateResult state)
+    {
         var setting = new Setting
         {
             Id = "power-plan",
-            Display = new() { Name = "Power Plan", Description = "Test" },
-            OptionSource = new Mock<IDynamicOptionSource>().Object
+            Display = new() { Name = TestKeys.Of("Power Plan"), Description = TestKeys.Of("Test") },
+            Options = new(OptionSource.PowerPlans)
         };
 
         _mockCatalogSettingsRegistry
@@ -1841,49 +2122,194 @@ public class ConfigReviewServiceTests : IDisposable
 
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
-            .ReturnsAsync(new Dictionary<string, SettingStateResult>
-            {
-                ["power-plan"] = new SettingStateResult
-                {
-                    Success = true,
-                    CurrentValue = 0,
-                    // The service reads the active plan from the typed DynamicSelection (scheme GUID) +
-                    // DynamicSelectionName (raw OS name), so drive those.
-                    DynamicSelection = "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
-                    DynamicSelectionName = "Balanced"
-                }
-            });
+            .ReturnsAsync(new Dictionary<string, SettingStateResult> { ["power-plan"] = state });
+    }
 
-        var config = new WinhanceConfigFile
+    private static WinhanceConfigFile PowerPlanConfig(ConfigurationItem item) => new()
+    {
+        Optimize = new FeatureGroupSection
         {
-            Optimize = new FeatureGroupSection
+            IsIncluded = true,
+            Features = new Dictionary<string, ConfigSection>
             {
-                IsIncluded = true,
-                Features = new Dictionary<string, ConfigSection>
+                ["Power"] = new ConfigSection
                 {
-                    ["Power"] = new ConfigSection
-                    {
-                        IsIncluded = true,
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem
-                            {
-                                Id = "power-plan",
-                                Name = "Power Plan",
-                                InputType = InputType.Selection,
-                                PowerPlanGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", // High Performance
-                                PowerPlanName = "High Performance"
-                            }
-                        }
-                    }
+                    IsIncluded = true,
+                    Items = new List<ConfigurationItem> { item }
                 }
             }
-        };
+        }
+    };
+
+    [Fact]
+    public async Task EnterReviewModeAsync_KeyedSelection_LegacyPowerPlanGuid_RegistersDiff()
+    {
+        // A file written before 26.09.10 spells the plan as PowerPlanGuid/PowerPlanName.
+        ArrangePowerPlanCard(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            DynamicOptions =
+            [
+                new DynamicOption("Balanced", BalancedGuid),
+                new DynamicOption("High performance", HighPerformanceGuid),
+            ],
+            DynamicSelection = BalancedGuid,
+        });
 
         var service = CreateService();
-        await service.EnterReviewModeAsync(config);
+        await service.EnterReviewModeAsync(PowerPlanConfig(new ConfigurationItem
+        {
+            Id = "power-plan",
+            Name = "Power Plan",
+            InputType = InputType.Selection,
+            PowerPlanGuid = HighPerformanceGuid,
+            PowerPlanName = "High Performance"
+        }));
 
         var diff = service.GetDiffForSetting("power-plan");
         diff.Should().NotBeNull();
+        diff!.CurrentValueDisplay.Should().Be("Balanced");
+        diff.ConfigValueDisplay.Should().Be("High performance");
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_KeyedSelection_MachineReadsNoKey_RelocalizesTheUnknownText()
+    {
+        // Both sides have to be non-empty or the card counts a change nobody can review.
+        _mockLocalizationService.PresentKey("ConfigReview_UnknownValue", "Unknown");
+        ArrangePowerPlanCard(new SettingStateResult { Success = true, CurrentValue = 0 });
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(PowerPlanConfig(new ConfigurationItem
+        {
+            Id = "power-plan",
+            Name = "Power Plan",
+            InputType = InputType.Selection,
+            SelectedKey = HighPerformanceGuid,
+            SelectedKeyLabel = "High Performance"
+        }));
+
+        var diff = service.GetDiffForSetting("power-plan");
+        diff.Should().NotBeNull();
+        diff!.CurrentValueDisplay.Should().Be("Unknown");
+        diff.ConfigValueDisplay.Should().Be("High Performance");
+
+        _mockLocalizationService.PresentKey("ConfigReview_UnknownValue", "Unbekannt");
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        service.GetDiffForSetting("power-plan")!.CurrentValueDisplay.Should().Be("Unbekannt");
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_KeyedSelection_TheWinhancePlanUnderAGuidWindowsAssigned_IsNotADiff()
+    {
+        const string assignedGuid = "9f3c1a52-7b1e-4c55-8f0a-2d6e4b7a9c11";
+        ArrangePowerPlanCard(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            DynamicOptions =
+            [
+                new DynamicOption("Balanced", BalancedGuid),
+                new DynamicOption("Winhance Power Plan", assignedGuid),
+            ],
+            DynamicSelection = assignedGuid,
+        });
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(PowerPlanConfig(new ConfigurationItem
+        {
+            Id = "power-plan",
+            Name = "Power Plan",
+            InputType = InputType.Selection,
+            SelectedKey = PowerPlanCatalog.WinhancePowerPlanGuid,
+            SelectedKeyLabel = "Winhance Power Plan"
+        }));
+
+        service.GetDiffForSetting("power-plan").Should().BeNull();
+    }
+
+    [Fact]
+    public void An_answer_file_setting_cannot_be_excluded()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Autounattend);
+
+        service.SetIncluded("autounattend-hardware-checks", false);
+
+        service.IsIncluded("autounattend-hardware-checks").Should().BeTrue();
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_setting_nobody_touched_is_in_the_file()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.IsIncluded("privacy-advertising-id").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Excluding_a_setting_takes_it_out_and_marks_the_session_dirty()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.SetIncluded("privacy-advertising-id", false);
+
+        service.IsIncluded("privacy-advertising-id").Should().BeFalse();
+        service.IsIncluded("security-remote-assistance").Should().BeTrue();
+        service.HasBuilderChanges.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Including_a_setting_that_was_never_excluded_leaves_the_session_clean()
+    {
+        // Every card writes its own state back on a rebuild, so an equal write arrives constantly.
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.SetIncluded("privacy-advertising-id", true);
+
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Leaving_Builder_puts_every_excluded_setting_back()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        service.SetIncluded("privacy-advertising-id", false);
+
+        service.EnterNormalMode();
+
+        service.IsIncluded("privacy-advertising-id").Should().BeTrue();
+        service.HasBuilderChanges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_second_Builder_session_starts_with_nothing_excluded()
+    {
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        service.SetIncluded("privacy-advertising-id", false);
+        service.EnterNormalMode();
+
+        service.EnterBuilderMode(BuilderTarget.Config);
+
+        service.IsIncluded("privacy-advertising-id").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Outside_an_authoring_mode_an_exclusion_is_ignored()
+    {
+        var service = CreateService();
+
+        service.SetIncluded("privacy-advertising-id", false);
+
+        service.IsIncluded("privacy-advertising-id").Should().BeTrue();
+        service.HasBuilderChanges.Should().BeFalse();
     }
 }

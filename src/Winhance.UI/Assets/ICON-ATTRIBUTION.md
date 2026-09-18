@@ -24,6 +24,7 @@ Files:
 - `AppIcons/winhance-rocket.png`
 - `AppIcons/winhance-rocket-black-transparent-bg.png`
 - `AppIcons/winhance-rocket-white-transparent-bg.png`
+- `AppIcons/winhance-rocket-card.png` - the same rocket resampled to 48px for setting cards
 - `ModeIcons/winhance-monitor.png` — Normal mode. Original monitor glyph by Marco du Plessis,
   displaying the rocket on its screen. Because it incorporates the OpenMoji-derived rocket, the
   **combined icon is licensed CC BY-SA 4.0**, with attribution to OpenMoji for the rocket element.

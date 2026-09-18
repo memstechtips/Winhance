@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Localization;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -131,8 +130,8 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         if (setting is null)
             return settingId;
 
-        var localized = Localize(SettingLocalizationKeys.Name(setting));
-        return string.IsNullOrEmpty(localized) ? setting.Display.Name : localized;
+        var localized = Localize(setting.Display.Name.Value);
+        return string.IsNullOrEmpty(localized) ? setting.Display.Name.Value : localized;
     }
 
     private string Localize(string key) =>

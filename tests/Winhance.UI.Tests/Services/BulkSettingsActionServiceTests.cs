@@ -116,12 +116,12 @@ public class BulkSettingsActionServiceTests
             var roles = new List<StateRole>();
             if (recommendedIndex == i) roles.Add(StateRole.Recommended);
             if (defaultIndex == i) roles.Add(StateRole.WindowsDefault);
-            states.Add(new SettingState { Label = ((char)('A' + i)).ToString(), Roles = roles });
+            states.Add(new SettingState { Label = TestKeys.Of(((char)('A' + i)).ToString()), Roles = roles });
         }
         return new Setting
         {
             Id = id,
-            Display = new() { Name = "Test", Description = "" },
+            Display = new() { Name = TestKeys.Of("Test"), Description = TestKeys.Of("") },
             States = states,
         };
     }
@@ -250,8 +250,8 @@ public class BulkSettingsActionServiceTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Selection,
             IsSelected = false,
         };

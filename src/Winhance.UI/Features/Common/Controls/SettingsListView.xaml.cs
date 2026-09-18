@@ -35,6 +35,20 @@ public sealed partial class SettingsListView : UserControl
             typeof(SettingsListView),
             new PropertyMetadata(false));
 
+    public static readonly DependencyProperty HeaderProperty =
+        DependencyProperty.Register(
+            nameof(Header),
+            typeof(object),
+            typeof(SettingsListView),
+            new PropertyMetadata(null));
+
+    public static readonly DependencyProperty FooterProperty =
+        DependencyProperty.Register(
+            nameof(Footer),
+            typeof(object),
+            typeof(SettingsListView),
+            new PropertyMetadata(null));
+
     public ICollectionView? GroupedSettingsSource
     {
         get => (ICollectionView?)GetValue(GroupedSettingsSourceProperty);
@@ -53,6 +67,19 @@ public sealed partial class SettingsListView : UserControl
     {
         get => (bool)GetValue(HasNoSearchResultsProperty);
         set => SetValue(HasNoSearchResultsProperty, value);
+    }
+
+    // Inside this control's scroller: a page that wraps its own ScrollView around the list gets two fighting over the wheel.
+    public object? Header
+    {
+        get => GetValue(HeaderProperty);
+        set => SetValue(HeaderProperty, value);
+    }
+
+    public object? Footer
+    {
+        get => GetValue(FooterProperty);
+        set => SetValue(FooterProperty, value);
     }
 
     public SettingsListView()

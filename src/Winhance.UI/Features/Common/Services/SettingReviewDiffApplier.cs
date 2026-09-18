@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -141,9 +142,6 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         ConfigurationItem configItem,
         SettingStateResult currentState)
     {
-        var onText = _localizationService.GetStringOrDefault("Common_On", "On");
-        var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");
-
         switch (viewModel.InputType)
         {
             case InputType.Toggle:
@@ -153,7 +151,9 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 var configBool = configItem.IsSelected ?? false;
                 if (currentBool != configBool)
                 {
-                    return (true, currentBool ? onText : offText, configBool ? onText : offText);
+                    return (true,
+                        currentBool ? viewModel.OnText : viewModel.OffText,
+                        configBool ? viewModel.OnText : viewModel.OffText);
                 }
                 return (false, string.Empty, string.Empty);
             }
@@ -162,18 +162,15 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
             {
                 var currentIndex = viewModel.SelectedValue is int idx ? idx : -1;
 
-                // PowerPlan diffs are computed eagerly in ConfigReviewService.ComputeEagerDiffAsync
-                // using GUID-and-predefined-plan resolution. If eager didn't register a diff for
-                // this setting, respect that result — a naive display-name compare here would
-                // produce a false positive whenever the dropdown shows a localized label while
-                // the config stores the raw English/registry name.
-                if (configItem.PowerPlanGuid != null)
+                // A keyed card's SelectedValue is the key, so currentIndex is -1; ConfigReviewService compared the keys.
+                // Gated on the card, not the item, so a legacy SelectedIndex for a now-keyed setting stops here too.
+                if (viewModel.IsKeyedSelection)
                     return (false, string.Empty, string.Empty);
 
                 if (configItem.CustomStateValues != null)
                 {
                     var currentDisplayName = GetComboBoxDisplayName(viewModel, currentIndex);
-                    var configDisplayName = configItem.PowerPlanName ?? "Custom";
+                    var configDisplayName = _localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName);
                     return (false, string.Empty, string.Empty);
@@ -191,6 +188,22 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                     return (true, currentDisplayName, configDisplayName);
                 }
                 return (false, string.Empty, string.Empty);
+            }
+
+            case InputType.TextBox:
+            {
+                // A missing Text is no answer, an empty one is; the card draws the diff only when both sides are non-empty.
+                if (configItem.Text is not { } configText)
+                    return (false, string.Empty, string.Empty);
+
+                var currentText = currentState.CurrentValue as string ?? viewModel.TextValue;
+                if (string.Equals(currentText, configText, StringComparison.Ordinal))
+                    return (false, string.Empty, string.Empty);
+
+                var unknown = _localizationService.GetStringOrDefault("ConfigReview_UnknownValue", "Unknown");
+                return (true,
+                    currentText.Length > 0 ? currentText : unknown,
+                    configText.Length > 0 ? configText : unknown);
             }
 
             case InputType.NumericRange:

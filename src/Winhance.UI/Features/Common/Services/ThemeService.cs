@@ -1,5 +1,4 @@
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -155,7 +154,7 @@ public class ThemeService : IThemeService
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (evt.SettingId != SettingIds.ThemeModeWindows || _currentTheme != WinhanceTheme.System)
+        if (evt.SettingId != "theme-mode-windows" || _currentTheme != WinhanceTheme.System)
             return;
 
         _mainWindowProvider.MainWindow?.DispatcherQueue.TryEnqueue(() =>

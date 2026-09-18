@@ -92,6 +92,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
             ReapplyToFeature(_customizeVM.StartMenuViewModel);
             ReapplyToFeature(_customizeVM.TaskbarViewModel);
             ReapplyToFeature(_customizeVM.WindowsThemeViewModel);
+            ReapplyToFeature(_customizeVM.TimeRegionLanguageViewModel);
         });
     }
 

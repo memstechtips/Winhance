@@ -25,7 +25,6 @@ public class SettingsLoadingServiceTests
     private readonly Mock<ISettingViewModelFactory> _mockViewModelFactory = new();
     private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
-    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
 
     private readonly SettingsLoadingService _sut;
@@ -55,7 +54,6 @@ public class SettingsLoadingServiceTests
             _mockViewModelFactory.Object,
             _mockSettingLocalizationService.Object,
             _mockLocalization.Object,
-            _mockApplicationModeService.Object,
             _mockEnricher.Object);
     }
 
@@ -93,7 +91,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
-                It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>(),
                 It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm1)
@@ -140,7 +137,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
-                It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>(),
                 It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
@@ -241,7 +237,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
-                It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>(),
                 It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
@@ -268,7 +263,7 @@ public class SettingsLoadingServiceTests
         var win10Only = new Setting
         {
             Id = "legacy-win10-setting",
-            Display = new() { Name = "Legacy", Description = "Windows 10 only" },
+            Display = new() { Name = TestKeys.Of("Legacy"), Description = TestKeys.Of("Windows 10 only") },
             Availability = new Availability { Builds = new[] { BuildRange.Windows10 } }
         };
 
@@ -295,11 +290,10 @@ public class SettingsLoadingServiceTests
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
-                It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>(),
                 It.IsAny<WinBuild>()))
-            .Callback<Setting, SettingStateResult, ISettingsFeatureViewModel?, string?, ComboBoxSetupResult?, string?, WinBuild>(
-                (_, _, _, _, _, compatibilityMessage, _) => receivedCompatibilityMessage = compatibilityMessage)
+            .Callback<Setting, SettingStateResult, ISettingsFeatureViewModel?, string?, string?, WinBuild>(
+                (_, _, _, _, compatibilityMessage, _) => receivedCompatibilityMessage = compatibilityMessage)
             .ReturnsAsync(mockVm);
 
         await _sut.LoadConfiguredSettingsAsync(
@@ -357,7 +351,6 @@ public class SettingsLoadingServiceTests
                 It.IsAny<SettingStateResult>(),
                 It.IsAny<ISettingsFeatureViewModel?>(),
                 It.IsAny<string?>(),
-                It.IsAny<ComboBoxSetupResult?>(),
                 It.IsAny<string?>(),
                 It.IsAny<WinBuild>()))
             .ReturnsAsync(mockVm);
@@ -474,14 +467,14 @@ public class SettingsLoadingServiceTests
 
     private static Setting CreateCatalogSetting(string id)
     {
-        return new Setting { Id = id, Display = new() { Name = id, Description = "Test" } };
+        return new Setting { Id = id, Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") } };
     }
 
     private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null)
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = settingId, Description = "Test" } },
+            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(settingId), Description = TestKeys.Of("Test") } },
             ParentFeatureViewModel = parent,
             SettingId = settingId,
             Name = settingId,

@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -44,7 +45,6 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
-        ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage,
         WinBuild build = default)
     {
@@ -56,16 +56,20 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = LocalizeOrFallback($"Setting_{setting.Id}_Name", setting.Display.Name) ?? setting.Display.Name,
-            Description = LocalizeOrFallback($"Setting_{setting.Id}_Description", setting.Display.Description) ?? setting.Display.Description,
-            GroupName = setting.Display.GroupName != null ? LocalizeGroupName(setting.Display.GroupName) : string.Empty,
+            Name = Localized(setting.Display.Name),
+            Description = Localized(setting.Display.Description),
+            GroupName = setting.Display.GroupName is { } group ? Localized(group) : string.Empty,
             Icon = setting.Display.Icon?.Glyph ?? string.Empty,
-            IconPack = setting.Display.Icon?.Pack == IconPack.Fluent ? "Fluent" : "Material",
+            IconPack = setting.Display.Icon?.Pack.ToString() ?? "Material",
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
             Outcome = currentState.Outcome,
-            OnText = _localizationService.GetStringOrDefault("Common_On", "On"),
-            OffText = _localizationService.GetStringOrDefault("Common_Off", "Off"),
+            OnText = inputType == InputType.CheckBox
+                ? _localizationService.GetStringOrDefault(TechnicalDetailKeys.Checked, "Checked")
+                : _localizationService.GetStringOrDefault("Common_On", "On"),
+            OffText = inputType == InputType.CheckBox
+                ? _localizationService.GetStringOrDefault(TechnicalDetailKeys.Unchecked, "Unchecked")
+                : _localizationService.GetStringOrDefault("Common_Off", "Off"),
             ActionButtonText = _localizationService.GetStringOrDefault("Button_Apply", "Apply"),
             OptionWarnings = BuildCatalogOptionWarnings(setting)
         };
@@ -80,7 +84,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _userPreferencesService,
             _viewModelDeps.RegeditLauncher,
             _newBadgeService,
-            _viewModelDeps.ApplicationModeService);
+            _viewModelDeps.ApplicationModeService,
+            _viewModelDeps.FilePickerService);
 
         viewModel.RecordKnownState(currentState);
         viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
@@ -122,33 +127,26 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             }
         }
 
-        // Bind the runtime power-plan dropdown to the GUID model. Detection threads the runtime-sourced
-        // options + active scheme GUID into the result; the VM builds the dropdown directly off them (Value =
-        // scheme GUID; the custom PowerPlanComboBox reads the per-item Tag). This build lives on the VM
-        // (TryApplyDynamicPowerPlanOptions) so the SAME code runs on initial load (here) and on refresh
-        // (UpdateStateFromSystemState). Returns false in Builder mode, which keeps the index-valued dropdown below.
-        var powerPlanHandled = viewModel.TryApplyDynamicPowerPlanOptions(currentState);
-
-        // Builder mode keeps the index-valued power-plan dropdown. The loading bridge precomputes the options
-        // and passes the result here; translate the PowerPlan_ loc keys, then select + banner off the result.
-        if (inputType == InputType.Selection
-            && setting.OptionSource is not null
-            && _viewModelDeps.ApplicationModeService?.CurrentMode == WinhanceMode.Builder
-            && builderComboBoxOptions is { } cbr)
+        if (inputType == InputType.TextBox)
         {
-            viewModel.ComboBoxOptions.Clear();
-            foreach (var option in cbr.Options)
-            {
-                if (option.DisplayText.StartsWith("PowerPlan_"))
-                    option.DisplayText = _localizationService.GetString(option.DisplayText);
-                viewModel.ComboBoxOptions.Add(option);
-            }
-            viewModel.SelectedValue = cbr.SelectedValue ?? currentState.CurrentValue;
-            viewModel.UpdateStatusBanner(viewModel.SelectedValue);
-            powerPlanHandled = true;
+            viewModel.SeedText(currentState.CurrentValue as string ?? setting.TextBox?.Default ?? string.Empty);
         }
 
-        if (inputType == InputType.Selection && !powerPlanHandled)
+        if (inputType == InputType.List)
+        {
+            viewModel.ListAddLabel = Localized(LocKey.AutounattendAccounts.Add);
+            viewModel.ListRemoveLabel = Localized(LocKey.AutounattendAccounts.Remove);
+            viewModel.SavePasswordsLabel = Localized(LocKey.AutounattendAccounts.SavePasswords);
+            viewModel.SavePasswordsNote = Localized(LocKey.AutounattendAccounts.SavePasswordsNote);
+
+            if (currentState.CurrentValue is ChoiceValue.List seeded)
+                viewModel.SeedList(seeded);
+        }
+
+        viewModel.TryApplyKeyedOptions(currentState);
+
+        // A keyed selection's States are named keys, never indices, so a keyed card with no detected options stays empty.
+        if (inputType == InputType.Selection && setting.Control != ControlKind.KeyedSelection)
         {
             try
             {
@@ -249,14 +247,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             var state = states[i];
             if (state.IsDetectOnly)
                 continue;
-            // When the state Label is itself a shared localization key
-            // (Template_* / ServiceOption_* / Setting_* / PowerPlan_*), look it up AS the key; otherwise
-            // build the per-setting Setting_{id}_Option_{i} key. state.Label is the final raw fallback.
-            var displayKey = SettingLocalizationKeys.IsLocalizationKey(state.Label)
-                ? state.Label
-                : $"Setting_{setting.Id}_Option_{i}";
-            var label = LocalizeOrFallback(displayKey, state.Label) ?? state.Label;
-            var tooltip = LocalizeOrFallback($"Setting_{setting.Id}_OptionTooltip_{i}", null);
+            var label = Localized(state.Label);
+            var tooltip = state.Tooltip is { } tip ? Localized(tip) : null;
             options.Add(new ComboBoxDisplayOption(label, i, tooltip)
             {
                 IsRecommended = state.HasRole(RoleKind.Recommended),
@@ -266,36 +258,20 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
     }
 
-    // Per-option warnings sourced from the catalog Setting's States. Localized via the canonical
-    // Setting_{id}_OptionWarning_{i} key with the raw state.Warning as the fallback. Indexed by STATE index -
-    // one entry per State, including any BuildCatalogSelectionOptions skips - because the status banner looks
-    // it up by the selected VALUE, which is the state index. Null for a stateless setting (the power-plan).
-    private IReadOnlyList<string?>? BuildCatalogOptionWarnings(Setting setting)
+    // One entry per State, detect-only ones included: the status banner indexes it by the selected value, the state index.
+    private IReadOnlyList<OptionWarning?>? BuildCatalogOptionWarnings(Setting setting)
     {
         if (setting.States.Count == 0)
             return null;
 
-        var warnings = new List<string?>(setting.States.Count);
-        for (int i = 0; i < setting.States.Count; i++)
-        {
-            var raw = setting.States[i].Warning;
-            warnings.Add(string.IsNullOrEmpty(raw)
-                ? raw
-                : LocalizeOrFallback($"Setting_{setting.Id}_OptionWarning_{i}", raw));
-        }
-        return warnings;
+        return setting.States
+            .Select(state => state.Warning is { } warning
+                ? new OptionWarning(Localized(warning), state.IsDetectOnly)
+                : null)
+            .ToList();
     }
 
-    private string LocalizeGroupName(string groupName)
-    {
-        var compact = LocalizeOrFallback(SettingLocalizationKeys.GroupCompact(groupName), null);
-        if (compact != null)
-            return compact;
-        return LocalizeOrFallback(SettingLocalizationKeys.GroupSnake(groupName), groupName) ?? groupName;
-    }
-
-    private string? LocalizeOrFallback(string key, string? fallback) =>
-        _localizationService.TryGetString(key, out var value) ? value : fallback;
+    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
 
     // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it, for
     // a separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).

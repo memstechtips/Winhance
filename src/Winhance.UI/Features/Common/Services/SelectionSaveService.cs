@@ -1,9 +1,13 @@
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -12,10 +16,18 @@ public sealed class SelectionSaveService : ISelectionSaveService
     // Windows Setup only picks the answer file up under this exact name.
     private const string AutounattendFileName = "autounattend.xml";
 
+    private static readonly HashSet<string> AlbumPictureExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tif", ".tiff" };
+
     private readonly ISelectionSetBuilder _selections;
     private readonly IConfigFileWriter _configFiles;
     private readonly IAutounattendWriter _autounattend;
     private readonly ISaveFilePicker _picker;
+    private readonly IFileStore _fileStore;
+    private readonly IWindowsThemeService _theme;
+    private readonly IFileSystemService _files;
+    private readonly IWimCustomizationService _wim;
+    private readonly WimUtilSession _session;
     private readonly IDialogService _dialogs;
     private readonly ILocalizationService _loc;
     private readonly ILogService _log;
@@ -25,6 +37,11 @@ public sealed class SelectionSaveService : ISelectionSaveService
         IConfigFileWriter configFiles,
         IAutounattendWriter autounattend,
         ISaveFilePicker picker,
+        IFileStore fileStore,
+        IWindowsThemeService theme,
+        IFileSystemService files,
+        IWimCustomizationService wim,
+        WimUtilSession session,
         IDialogService dialogs,
         ILocalizationService loc,
         ILogService log)
@@ -33,6 +50,11 @@ public sealed class SelectionSaveService : ISelectionSaveService
         _configFiles = configFiles;
         _autounattend = autounattend;
         _picker = picker;
+        _fileStore = fileStore;
+        _theme = theme;
+        _files = files;
+        _wim = wim;
+        _session = session;
         _dialogs = dialogs;
         _loc = loc;
         _log = log;
@@ -70,8 +92,26 @@ public sealed class SelectionSaveService : ISelectionSaveService
             }
         }
 
-        string written = await WriteAsync(target, selections, path);
+        string? media = target == BuilderTarget.Autounattend ? options.MediaFolder ?? _session.WorkingDirectory : null;
+
+        // Staged before the writer reads the set: the file has to name where the album lands, not where it was authored.
+        var toWrite = media is { Length: > 0 } ? StageAlbumOnMedia(selections, media) : selections;
+
+        string written = await WriteAsync(target, toWrite, path);
         _log.Log(LogLevel.Info, $"{target} saved to {written}");
+
+        if (media is { Length: > 0 })
+        {
+            // The save already worked, so a failed driver step is only logged.
+            try
+            {
+                await _wim.EnsureDriverInstallStepAsync(written, media);
+            }
+            catch (Exception ex)
+            {
+                _log.Log(LogLevel.Warning, $"Could not add the driver install step to {written}: {ex.Message}");
+            }
+        }
 
         if (options.ReportSuccessInDialog)
             await ReportSuccessAsync(target, written);
@@ -109,12 +149,55 @@ public sealed class SelectionSaveService : ISelectionSaveService
                 $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}",
                 "winhance");
 
+    // Setup copies sources\$OEM$\$$ into %WINDIR%, so an album staged there lands where AlbumDestinationFor says.
+    // Rewritten on the set being saved, never on the edit store, where it would come back as the user's own choice.
+    private SelectionSet StageAlbumOnMedia(SelectionSet set, string workingDirectory)
+    {
+        List<SettingChoice>? rewritten = null;
+
+        for (int i = 0; i < set.Settings.Count; i++)
+        {
+            var choice = set.Settings[i];
+
+            if (choice.Value is not ChoiceValue.Text { Value.Length: > 0 } typed
+                || SettingCatalog.Find(choice.SettingId) is not { } setting
+                || !setting.Targets.OfType<DesktopSlideshowTarget>().Any())
+                continue;
+
+            if (!_files.DirectoryExists(typed.Value))
+            {
+                // Still a correct choice on a PC that has the folder, so it travels as it was authored.
+                _log.Log(LogLevel.Warning,
+                    $"Slideshow album '{typed.Value}' is not on this PC; it was not copied onto the media.");
+                continue;
+            }
+
+            string landing = _theme.AlbumDestinationFor(typed.Value);
+            string staged = _files.CombinePath(
+                workingDirectory, "sources", "$OEM$", "$$", "Web", "Wallpaper", "Winhance", _files.GetFileName(landing));
+            _files.CreateDirectory(staged);
+
+            foreach (var picture in _files.GetFiles(typed.Value))
+            {
+                if (AlbumPictureExtensions.Contains(_files.GetExtension(picture)))
+                    _files.CopyFile(picture, _files.CombinePath(staged, _files.GetFileName(picture)), overwrite: true);
+            }
+
+            rewritten ??= [.. set.Settings];
+            rewritten[i] = choice with { Value = new ChoiceValue.Text(landing) };
+        }
+
+        return rewritten is null ? set : set with { Settings = rewritten };
+    }
+
     private async Task<string> WriteAsync(BuilderTarget target, SelectionSet selections, string path)
     {
-        if (target == BuilderTarget.Autounattend)
-            return await _autounattend.WriteAsync(selections, _selections.CurrentScope, path);
+        var carried = await _fileStore.LoadAsync(selections);
 
-        await _configFiles.WriteAsync(selections, _selections.CurrentScope, path);
+        if (target == BuilderTarget.Autounattend)
+            return await _autounattend.WriteAsync(carried, _selections.CurrentScope, path);
+
+        await _configFiles.WriteAsync(carried, _selections.CurrentScope, path);
         return path;
     }
 

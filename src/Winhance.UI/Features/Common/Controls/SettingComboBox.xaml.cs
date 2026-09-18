@@ -1,10 +1,17 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.UI;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -12,6 +19,12 @@ namespace Winhance.UI.Features.Common.Controls;
 // (OnComboBoxDropDownClosed / OnAC... / OnDC...) and x:Bind cannot pick one at runtime.
 public sealed partial class SettingComboBox : UserControl, INotifyPropertyChanged
 {
+    // The dot's colour is the status itself, so it does not follow the theme.
+    private static readonly SolidColorBrush ExistsBrush = new(Color.FromArgb(255, 0, 200, 60));
+    private static readonly SolidColorBrush NotExistsBrush = new(Color.FromArgb(255, 200, 40, 0));
+
+    public event EventHandler<DynamicOption>? DeleteRequested;
+
     public SettingComboBox()
     {
         InitializeComponent();
@@ -53,7 +66,11 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
 
     public double PinnedMaxWidth => MaxWidthForPin(PinnedWidth);
 
-    public double PinnedMinWidth => MinWidthForPin(PinnedWidth);
+    // The status dot and the delete button turn on after the popup has measured, so those dropdowns get a floor.
+    private const double OptionStatusMinWidth = 220d;
+
+    public double PinnedMinWidth =>
+        Math.Max(MinWidthForPin(PinnedWidth), Setting is { ShowsOptionStatus: true } ? OptionStatusMinWidth : 0d);
 
     // Width alone accepts NaN as "auto"; MinWidth and MaxWidth reject it with E_INVALIDARG - an unguarded MinWidth
     // threw on every unpinned dropdown. Static so the guards are testable without a XAML application.
@@ -114,7 +131,7 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         InputAutomationName = vm.InputAutomationNameForMode(Mode);
         OutcomeTooltip = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Resolved
             ? null
-            : vm.OverlayTooltipForMode(Mode, toggleLike: false);
+            : vm.OverlayTooltipForMode(Mode, isTwoState: false);
         // PinnedMinWidth/PinnedMaxWidth are derived from the PinnedWidth DP, so they are announced here
         // too - the DP's own change callback routes through Refresh.
         Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip),
@@ -141,6 +158,87 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     {
         // Announce-only (screen-reader notification); the view model ignores programmatic changes.
         Setting?.OnComboBoxSelectionChanged(sender, e);
+    }
+
+    private void OnDropDownOpened(object sender, object e)
+    {
+        // Item containers exist only while the popup is up, so the per-item visuals are applied on every open.
+        if (Setting is { ShowsOptionStatus: true } vm)
+            DispatcherQueue.TryEnqueue(() => UpdateAllItemVisualStates(vm));
+    }
+
+    private void UpdateAllItemVisualStates(SettingItemViewModel vm)
+    {
+        for (int i = 0; i < vm.ComboBoxOptions.Count; i++)
+        {
+            if (Input.ContainerFromIndex(i) is not ComboBoxItem container
+                || vm.ComboBoxOptions[i].Tag is not DynamicOption option
+                || FindChild<Grid>(container, null) is not { } row)
+                continue;
+
+            if (FindChild<Ellipse>(row, "StatusIndicator") is { } status)
+            {
+                status.Visibility = Visibility.Visible;
+                status.Fill = option.ExistsOnSystem ? ExistsBrush : NotExistsBrush;
+                ToolTipService.SetToolTip(status,
+                    option.ExistsOnSystem ? vm.KeyedInstalledTooltipText : vm.KeyedNotInstalledTooltipText);
+            }
+
+            if (FindChild<TextBlock>(row, "ActiveBadge") is { } badge)
+            {
+                badge.Text = vm.KeyedActiveBadgeText;
+                badge.Visibility = string.Equals(option.Value, vm.LiveKeyedSelection, StringComparison.OrdinalIgnoreCase)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+
+            if (FindChild<Button>(row, "DeleteButton") is { } delete)
+            {
+                delete.Visibility = option.CanDelete ? Visibility.Visible : Visibility.Collapsed;
+                ToolTipService.SetToolTip(delete, vm.KeyedDeleteTooltipText);
+                AutomationProperties.SetName(delete, vm.KeyedDeleteTooltipText);
+                delete.Tag = option;
+                delete.Click -= OnDeleteButtonClick;
+                delete.Click += OnDeleteButtonClick;
+            }
+
+            // Tab dismisses an open ComboBox, so Delete on the focused item is the only keyboard route to the button.
+            container.Tag = option;
+            container.KeyDown -= OnItemKeyDown;
+            container.KeyDown += OnItemKeyDown;
+        }
+    }
+
+    private void OnItemKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Delete
+            && sender is ComboBoxItem { Tag: DynamicOption { CanDelete: true } option })
+        {
+            DeleteRequested?.Invoke(this, option);
+            e.Handled = true;
+        }
+    }
+
+    private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: DynamicOption option })
+            DeleteRequested?.Invoke(this, option);
+    }
+
+    private static T? FindChild<T>(DependencyObject parent, string? childName) where T : FrameworkElement
+    {
+        var count = VisualTreeHelper.GetChildrenCount(parent);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+
+            if (child is T typedChild && (childName == null || typedChild.Name == childName))
+                return typedChild;
+
+            if (FindChild<T>(child, childName) is { } result)
+                return result;
+        }
+        return null;
     }
 
     private void OnDropDownClosed(object sender, object e)

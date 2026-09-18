@@ -170,7 +170,7 @@ public class FeatureOutcomeRowBuilderTests
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = id, Display = new() { Name = name, Description = "d" } },
+            Setting = new Setting { Id = id, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of("d") } },
             SettingId = id,
             Name = name,
             Description = "d",

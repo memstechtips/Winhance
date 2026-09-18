@@ -145,18 +145,18 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         try
         {
-            var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
-            if (incompatibleSettings.Count > 0)
+            var setAside = _configLoadService.DetectIncompatibleSettings(config);
+            if (setAside.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
-                _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
+                _logService.Log(LogLevel.Info, $"Set aside {setAside.Count} settings this PC does not show: {string.Join(", ", setAside)}");
             }
 
             // Review-entry filter forcing is carried solely by the async ForceFilterOn chain
             // (MainWindowViewModel forces the filter on when the review bar flips). The brief
             // mid-entry window before that chain lands is accepted and self-healing.
 
-            await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);
+            await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults, setAside);
 
             if (config.WindowsApps.Items.Count > 0)
             {
@@ -207,9 +207,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
                 selectedSections.Add("ExternalApps");
 
-            var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.SettingId));
-            var approvedActionSettingIds = new HashSet<string>(
-                approvedDiffs.Where(d => d.IsActionSetting).Select(d => d.SettingId));
+            // The file's own spelling of the id: a diff carries the catalog's, and the shipped Recommended config
+            // lists the merged This PC settings under both.
+            var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.ConfigItem?.Id ?? d.SettingId));
 
             if (config.Optimize.Features.Any(f => f.Value.Items.Any(i => approvedSettingIds.Contains(i.Id))))
             {
@@ -237,9 +237,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 ProcessWindowsAppsInstallation = hasWindowsApps && windowsAppsInstall,
                 ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
                 ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
-                ApplyThemeWallpaper = approvedDiffs.Any(d => d.SettingId == SettingIds.ThemeModeWindows && d.IsActionApproved),
-                ApplyCleanTaskbar = approvedSettingIds.Contains(SettingIds.TaskbarClean),
-                ApplyCleanStartMenu = approvedSettingIds.Contains(SettingIds.StartMenuCleanWin10) || approvedSettingIds.Contains(SettingIds.StartMenuCleanWin11),
+                ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
+                ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
             };
 
             var actionOnlySubsections = new HashSet<string>();
@@ -254,12 +253,6 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
                 selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
                 actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
-            }
-            if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
             }
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
@@ -300,6 +293,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _configImportState.IsActive = true;
             _configImportState.ImportSuppliesPowerValues = false;
             var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
+            IReadOnlyList<string> notApplied;
 
             try
             {
@@ -319,6 +313,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             }
             finally
             {
+                notApplied = _configImportState.TakeNotApplied();
                 _configImportState.IsActive = false;
                 _configImportState.ImportSuppliesPowerValues = false;
                 changeBatch.Dispose();
@@ -327,8 +322,12 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             _configReviewModeService.ExitReviewMode();
 
+            var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully.");
+            if (notApplied is { Count: > 0 })
+                message += "\n\n" + string.Join("\n", notApplied);
+
             await _dialogService.ShowInformationAsync(
-                _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),
+                message,
                 _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
 
             // Process External Apps installation AFTER success dialog dismissal (needs UI thread)

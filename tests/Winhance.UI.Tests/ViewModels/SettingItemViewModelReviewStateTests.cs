@@ -28,7 +28,7 @@ public class SettingItemViewModelReviewStateTests
         var setting = new Setting
         {
             Id = "review-test",
-            Display = new() { Name = "Review Test", Description = "d" },
+            Display = new() { Name = TestKeys.Of("Review Test"), Description = TestKeys.Of("d") },
         };
 
         return new SettingItemViewModel(
@@ -36,8 +36,8 @@ public class SettingItemViewModelReviewStateTests
             {
                 Setting = setting,
                 SettingId = setting.Id,
-                Name = setting.Display.Name,
-                Description = setting.Display.Description,
+                Name = setting.Display.Name.Value,
+                Description = setting.Display.Description.Value,
                 InputType = InputType.Toggle,
                 IsSelected = false,
             },

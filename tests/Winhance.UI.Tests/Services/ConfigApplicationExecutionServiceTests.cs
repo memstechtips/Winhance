@@ -464,4 +464,161 @@ public class ConfigApplicationExecutionServiceTests
 
         _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_TellsTheUserWhatWasSetAside()
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "test-setting", Name = "Test", IsSelected = true }
+                        }
+                    }
+                }
+            }
+        };
+        var options = new ImportOptions { IsWindowsDefaults = false };
+
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
+            .Returns(new List<string> { "Lid close action (Power)" });
+        _mockConfigLoadService
+            .Setup(s => s.FilterConfigForCurrentSystem(It.IsAny<WinhanceConfigFile>()))
+            .Returns(config);
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, Task<(bool, bool)>>>()))
+            .ReturnsAsync(true);
+        _mockWindowsUIManagementService
+            .Setup(w => w.IsProcessRunning("explorer"))
+            .Returns(true);
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ExecuteConfigImportAsync(config, options);
+
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync(
+                It.Is<string>(m => m.Contains("Lid close action (Power)")),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_TellsTheUserWhatWasNotApplied()
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "test-setting", Name = "Test", IsSelected = true }
+                        }
+                    }
+                }
+            }
+        };
+        var options = new ImportOptions { IsWindowsDefaults = false };
+
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
+            .Returns(new List<string>());
+        _mockConfigImportState
+            .Setup(s => s.TakeNotApplied())
+            .Returns(new List<string> { "Time zone: Mars Standard Time is not available on this PC, so it was not applied." });
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, Task<(bool, bool)>>>()))
+            .ReturnsAsync(false);
+        _mockWindowsUIManagementService
+            .Setup(w => w.IsProcessRunning("explorer"))
+            .Returns(true);
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+        await service.ExecuteConfigImportAsync(config, options);
+
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync(
+                It.Is<string>(m => m.Contains("Mars Standard Time")),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
+            Times.Once);
+    }
+
+    private List<ConfigSection> CaptureAppliedSections()
+    {
+        var captured = new List<ConfigSection>();
+
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, Task<(bool, bool)>>>()))
+            .Callback<ConfigSection, string, Func<string, object?, Task<(bool, bool)>>>(
+                (section, _, _) => captured.Add(section))
+            .ReturnsAsync(true);
+
+        _mockWindowsUIManagementService
+            .Setup(w => w.IsProcessRunning("explorer"))
+            .Returns(true);
+
+        return captured;
+    }
+
+    [Fact]
+    public async Task ApplyConfiguration_UntickedCleanTaskbarBox_DropsTheFilesCleanItem()
+    {
+        var applied = CaptureAppliedSections();
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Taskbar"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "taskbar-clean", Name = "Clean Taskbar", IsSelected = true },
+                        },
+                    },
+                },
+            },
+        };
+
+        await CreateService().ApplyConfigurationWithOptionsAsync(
+            config,
+            ["Customize", "Customize_Taskbar"],
+            new ImportOptions { ApplyCleanTaskbar = false });
+
+        applied.SelectMany(s => s.Items).Should().BeEmpty();
+    }
 }

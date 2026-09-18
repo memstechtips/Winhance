@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
@@ -28,10 +29,25 @@ public class SelectionSetBuilderTests
         _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync(new List<AppChoice>());
 
         _mode.Setup(m => m.GetBuilderEdits()).Returns(new List<SettingChoice>());
+        _mode.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(true);
     }
 
     private SelectionSetBuilder CreateSut() =>
         new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object);
+
+    // Real catalog settings: ConfigFileMapper.ToFile writes through the Setting's own targets and states.
+    private const string RemoteAssistance = "security-remote-assistance";
+
+    private const string AdvertisingId = "privacy-advertising-id";
+
+    private static Dictionary<string, IReadOnlyList<Setting>> PrivacyFeature() => new()
+    {
+        [FeatureIds.Privacy] = new[]
+        {
+            SettingCatalog.Find(RemoteAssistance)!,
+            SettingCatalog.Find(AdvertisingId)!,
+        },
+    };
 
     private static AppChoice Appx(string id) => new(id, id, [$"{id}.Package"], null, null, null);
 
@@ -50,9 +66,9 @@ public class SelectionSetBuilderTests
         set.Settings.Should().Equal(settings);
         set.WindowsApps.Select(a => a.Id).Should().Equal("checked-win");
         set.ExternalApps.Select(a => a.Id).Should().Equal("checked-ext");
-        set.Autounattend.Should().BeSameAs(AutounattendChoices.None);
 
-        _snapshot.Verify(s => s.CaptureAsync(new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: false)), Times.Once);
+        _snapshot.Verify(s => s.CaptureAsync(
+            new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: false, IncludeAnswerFileOnly: true)), Times.Once);
         _apps.Verify(a => a.InstalledWindowsAppsAsync(), Times.Never);
     }
 
@@ -103,14 +119,14 @@ public class SelectionSetBuilderTests
             .Returns(new List<SettingChoice>
             {
                 new("t", new ChoiceValue.Toggle(true)),
-                new("power-plan-selection", new ChoiceValue.PowerPlan("g-bal", "Balanced")),
+                new("power-plan-selection", new ChoiceValue.Keyed("g-bal", "Balanced")),
             });
 
         var set = await CreateSut().FromBuilderSessionAsync();
 
         set.Settings.Should().Equal(
             new SettingChoice("t", new ChoiceValue.Toggle(true)),
-            new SettingChoice("power-plan-selection", new ChoiceValue.PowerPlan("g-bal", "Balanced")));
+            new SettingChoice("power-plan-selection", new ChoiceValue.Keyed("g-bal", "Balanced")));
     }
 
     [Fact]
@@ -126,6 +142,103 @@ public class SelectionSetBuilderTests
 
         await sut.FromMachineAsync();
 
-        _snapshot.Verify(s => s.CaptureAsync(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: true)), Times.Once);
+        _snapshot.Verify(s => s.CaptureAsync(
+            new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: true, IncludeAnswerFileOnly: true)), Times.Once);
+    }
+
+    [Fact]
+    public async Task FromBuilderSession_AnExcludedSetting_IsAbsentFromTheSelectionSet()
+    {
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice>
+            {
+                new("kept", new ChoiceValue.Toggle(true)),
+                new("dropped", new ChoiceValue.Toggle(true)),
+            });
+        _mode.Setup(m => m.IsIncluded("dropped")).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        set.Settings.Select(c => c.SettingId).Should().Equal("kept");
+    }
+
+    [Fact]
+    public async Task FromBuilderSession_AnExcludedSettingTheUserAlsoEdited_IsStillAbsent()
+    {
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice> { new("dropped", new ChoiceValue.Toggle(false)) });
+        _mode.Setup(m => m.GetBuilderEdits())
+            .Returns(new List<SettingChoice> { new("dropped", new ChoiceValue.Toggle(true)) });
+        _mode.Setup(m => m.IsIncluded("dropped")).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        set.Settings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FromBuilderSession_AnEditForAnExcludedSettingNotInTheSnapshot_IsAlsoDropped()
+    {
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice>());
+        _mode.Setup(m => m.GetBuilderEdits())
+            .Returns(new List<SettingChoice>
+            {
+                new("kept", new ChoiceValue.Option(1)),
+                new("dropped", new ChoiceValue.Option(2)),
+            });
+        _mode.Setup(m => m.IsIncluded("dropped")).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        set.Settings.Select(c => c.SettingId).Should().Equal("kept");
+    }
+
+    [Fact]
+    public async Task AnExcludedSetting_HasNoConfigurationItemInTheDotWinhanceFile()
+    {
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice>
+            {
+                new(RemoteAssistance, new ChoiceValue.Toggle(true)),
+                new(AdvertisingId, new ChoiceValue.Toggle(true)),
+            });
+        _mode.Setup(m => m.IsIncluded(AdvertisingId)).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+        var file = ConfigFileMapper.ToFile(set, PrivacyFeature());
+
+        var items = file.Optimize.Features[FeatureIds.Privacy].Items;
+        items.Select(i => i.Id).Should().Equal(RemoteAssistance);
+    }
+
+    [Fact]
+    public async Task AFeatureWithEverythingExcluded_HasNoSectionInTheDotWinhanceFile()
+    {
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice>
+            {
+                new(RemoteAssistance, new ChoiceValue.Toggle(true)),
+                new(AdvertisingId, new ChoiceValue.Toggle(true)),
+            });
+        _mode.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+        var file = ConfigFileMapper.ToFile(set, PrivacyFeature());
+
+        file.Optimize.Features.Should().BeEmpty();
+        file.Optimize.IsIncluded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FromMachine_IgnoresExclusions_SoWimUtilStep2StillSeesEverything()
+    {
+        var settings = new List<SettingChoice> { new("t", new ChoiceValue.Toggle(true)) };
+        _snapshot.Setup(sn => sn.CaptureAsync(It.IsAny<CatalogScope>())).ReturnsAsync(settings);
+        _mode.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(false);
+
+        var set = await CreateSut().FromMachineAsync();
+
+        set.Settings.Should().Equal(settings);
     }
 }

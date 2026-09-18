@@ -25,12 +25,17 @@ public sealed partial class SectionIconConverter : IValueConverter
         if (resourceKey.EndsWith("Symbol", StringComparison.Ordinal))
         {
             return Enum.TryParse<Icon>(iconData, ignoreCase: true, out var symbol)
-                ? new FluentIcon { Icon = symbol, IconVariant = IconVariant.Regular }
+                ? new FluentIcon { Icon = symbol, IconVariant = Variant(parameter) }
                 : null;
         }
 
         return new PathIcon { Data = GeometryHelper.FromPathData(iconData) };
     }
+
+    private static IconVariant Variant(object parameter) =>
+        parameter is string name && Enum.TryParse<IconVariant>(name, ignoreCase: true, out var variant)
+            ? variant
+            : IconVariant.Regular;
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotSupportedException();

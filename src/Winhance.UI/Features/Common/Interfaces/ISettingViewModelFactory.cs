@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -12,7 +11,6 @@ public interface ISettingViewModelFactory
         SettingStateResult currentState,
         ISettingsFeatureViewModel? parentViewModel,
         string? crossGroupInfoMessage,
-        ComboBoxSetupResult? builderComboBoxOptions,
         string? compatibilityMessage,
         WinBuild build = default);
 }

@@ -89,9 +89,9 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
         OffText = vm.OffText;
         SettingName = vm.Name;
 
-        SwitchOpacity = vm.ToggleOpacityFor(vm.Outcome);
-        SwitchInteractive = vm.ToggleInteractiveFor(vm.Outcome);
-        SwitchAccessibilityView = vm.ToggleAccessibilityViewFor(vm.Outcome);
+        SwitchOpacity = vm.TwoStateOpacityFor(vm.Outcome);
+        SwitchInteractive = vm.TwoStateInteractiveFor(vm.Outcome);
+        SwitchAccessibilityView = vm.TwoStateAccessibilityViewFor(vm.Outcome);
 
         OverlayVisibility = vm.OverlayVisibilityFor(vm.Outcome);
         OverlayIcon = vm.OverlayIconFor(vm.Outcome);

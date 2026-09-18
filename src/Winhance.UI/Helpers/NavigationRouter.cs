@@ -2,12 +2,13 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
-using Winhance.UI.Features.AdvancedTools;
+using Winhance.UI.Features.Autounattend;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
+using Winhance.UI.Features.WimUtil;
 using Microsoft.UI.Dispatching;
 
 namespace Winhance.UI.Helpers;
@@ -18,21 +19,23 @@ internal sealed class NavigationRouter
     private readonly INavBadgeService? _navBadgeService;
     private readonly DispatcherQueue _dispatcherQueue;
 
-    private static readonly Dictionary<string, Type> TagToPageType = new()
+    internal static readonly Dictionary<string, Type> TagToPageType = new()
     {
         ["Settings"] = typeof(SettingsPage),
         ["Optimize"] = typeof(OptimizePage),
         ["Customize"] = typeof(CustomizePage),
-        ["AdvancedTools"] = typeof(AdvancedToolsPage),
+        ["WimUtil"] = typeof(WimUtilPage),
+        ["Autounattend"] = typeof(AutounattendPage),
         ["SoftwareApps"] = typeof(SoftwareAppsPage),
     };
 
-    private static readonly Dictionary<string, string> PageTypeNameToTag = new()
+    internal static readonly Dictionary<string, string> PageTypeNameToTag = new()
     {
         [nameof(SettingsPage)] = "Settings",
         [nameof(OptimizePage)] = "Optimize",
         [nameof(CustomizePage)] = "Customize",
-        [nameof(AdvancedToolsPage)] = "AdvancedTools",
+        [nameof(WimUtilPage)] = "WimUtil",
+        [nameof(AutounattendPage)] = "Autounattend",
         [nameof(SoftwareAppsPage)] = "SoftwareApps",
     };
 

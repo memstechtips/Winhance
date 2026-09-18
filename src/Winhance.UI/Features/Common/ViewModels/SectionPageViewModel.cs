@@ -16,6 +16,9 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     private readonly ILocalizationService _localizationService;
     private readonly IConfigReviewBadgeService _badgeService;
     private readonly IConfigReviewModeService _reviewModeService;
+    private readonly ICatalogSettingsRegistry _registry;
+    private readonly ICatalogScopeProvider _scope;
+    private readonly IApplicationModeService _modeService;
     private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
     private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
@@ -80,12 +83,18 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         ILocalizationService localizationService,
         IEnumerable<ISettingsFeatureViewModel> featureViewModels,
         IConfigReviewBadgeService badgeService,
-        IConfigReviewModeService reviewModeService)
+        IConfigReviewModeService reviewModeService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
     {
         _logService = logService;
         _localizationService = localizationService;
         _badgeService = badgeService;
         _reviewModeService = reviewModeService;
+        _registry = registry;
+        _scope = scope;
+        _modeService = modeService;
         _featureViewModels = featureViewModels.ToList();
 
         _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
@@ -130,7 +139,10 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
                 vm,
                 _badgeService,
                 _reviewModeService,
-                _localizationService));
+                _localizationService,
+                _registry,
+                _scope,
+                _modeService));
         }
 
         OverviewItems = overviewItems;

@@ -7,6 +7,13 @@
          Segoe MDL2: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
          Material Design Icons: https://pictogrammers.com/library/mdi/ -->
 
+    <x:String x:Key="SoftwareAppsIconSymbol">Apps</x:String>
+    <x:String x:Key="OptimizeIconSymbol">Gauge</x:String>
+    <x:String x:Key="CustomizeIconSymbol">DesignIdeas</x:String>
+
+    <!-- Has to match the glyph the Unattend nav button draws -->
+    <x:String x:Key="AutounattendIconSymbol">TextBulletListSquareSparkle</x:String>
+
     <!-- Optimize Section Icons -->
     <x:String x:Key="PrivacyIconPath">M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</x:String>
     <x:String x:Key="PowerIconPath">M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13</x:String>
@@ -26,6 +33,8 @@
 
     <!-- FileTableBoxOutline - Used for Start Menu -->
     <x:String x:Key="StartMenuIconPath">M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3M19 19H5V5H19V19M9 18H6V16H9V18M13 18H10V16H13V18M9 15H6V13H9V15M13 15H10V13H13V15M9 12H6V10H9V12M13 12H10V10H13V12Z</x:String>
+
+    <x:String x:Key="TimeRegionLanguageIconSymbol">GlobeSearch</x:String>
 
     <!-- Folder - Used for Explorer -->
     <x:String x:Key="ExplorerIconPath">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</x:String>
@@ -66,10 +75,8 @@
     <!-- DeleteForever - Used for power plan deletion -->
     <x:String x:Key="DeleteForeverIconPath">M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8.46,11.88L9.87,10.47L12,12.59L14.12,10.47L15.53,11.88L13.41,14L15.53,16.12L14.12,17.53L12,15.41L9.88,17.53L8.47,16.12L10.59,14L8.46,11.88M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z</x:String>
 
-    <!-- Advanced Tools Section Icons -->
-    <!-- DiscPlayer - Used for WIM Utility -->
-    <x:String x:Key="WimUtilIconPath">M12,14C10.89,14 10,13.1 10,12C10,10.89 10.89,10 12,10C13.1,10 14,10.89 14,12A2,2 0 0,1 12,14M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z</x:String>
-    <!-- FileXmlBox - Used for Autounattend XML Generator -->
+    <!-- WIMUtil section icons -->
+    <!-- FileXmlBox - Used for the XML card in WIMUtil step 2 -->
     <x:String x:Key="AutounattendXmlIconPath">M13 9H18.5L13 3.5V9M6 2H14L20 8V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V4A2 2 0 0 1 6 2M6.12 15.5L9.86 19.24L11.28 17.83L8.95 15.5L11.28 13.17L9.86 11.76L6.12 15.5M17.28 15.5L13.54 11.76L12.12 13.17L14.45 15.5L12.12 17.83L13.54 19.24L17.28 15.5Z</x:String>
     <!-- FileDownload - Used for XML in WIMUtil Steps -->
     <x:String x:Key="FileDownloadIconPath">M14,2H6C4.89,2 4,2.89 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M12,19L8,15H10.5V12H13.5V15H16L12,19M13,9V3.5L18.5,9H13Z</x:String>

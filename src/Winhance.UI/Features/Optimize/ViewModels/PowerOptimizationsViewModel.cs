@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -20,7 +21,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
     protected override string GetDisplayNameKey() => "Feature_Power_Name";
 
-    public IRelayCommand<PowerPlanComboBoxOption> DeletePowerPlanCommand { get; }
+    public IRelayCommand<DynamicOption> DeletePowerPlanCommand { get; }
 
     public PowerOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
@@ -36,7 +37,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         _dialogService = dialogService;
         _powerService = powerService;
 
-        DeletePowerPlanCommand = new RelayCommand<PowerPlanComboBoxOption>(async plan => await DeletePowerPlanAsync(plan));
+        DeletePowerPlanCommand = new RelayCommand<DynamicOption>(async plan => await DeletePowerPlanAsync(plan));
     }
 
     public override async Task LoadSettingsAsync()
@@ -60,14 +61,14 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
     // dependent-state refresh.
     private async Task HandleSettingAppliedAsync(SettingAppliedEvent evt)
     {
-        if (evt.SettingId != SettingIds.PowerPlanSelection)
+        if (evt.SettingId != "power-plan-selection")
             return;
 
         try
         {
             // Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each setting's
             // UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
-            // DynamicOptions/DynamicSelection (TryApplyDynamicPowerPlanOptions) AND refreshes the dependent power
+            // DynamicOptions/DynamicSelection (TryApplyKeyedOptions) AND refreshes the dependent power
             // states (display/sleep timeouts differ per plan). The delay lets the OS report the newly-active scheme + its powercfg values.
             await Task.Delay(700).ConfigureAwait(false);
             await RefreshSettingStatesAsync();
@@ -78,21 +79,13 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
         }
     }
 
-    public async Task DeletePowerPlanAsync(PowerPlanComboBoxOption? planToDelete)
+    public async Task DeletePowerPlanAsync(DynamicOption? planToDelete)
     {
         try
         {
             if (planToDelete == null) return;
 
-            if (planToDelete.IsActive)
-            {
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("Dialog_CannotDeleteActivePlan_Message"),
-                    _localizationService.GetString("Dialog_CannotDeleteActivePlan_Title"));
-                return;
-            }
-
-            if (!planToDelete.ExistsOnSystem || planToDelete.SystemPlan == null)
+            if (!planToDelete.ExistsOnSystem)
             {
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("Dialog_CannotDeletePlan_Message"),
@@ -100,9 +93,16 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
                 return;
             }
 
-            var displayName = planToDelete.DisplayName;
-            if (displayName.StartsWith("PowerPlan_"))
-                displayName = _localizationService.GetString(displayName);
+            // Installed but undeletable means it is the active scheme, which Windows refuses to remove.
+            if (!planToDelete.CanDelete)
+            {
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetString("Dialog_CannotDeleteActivePlan_Message"),
+                    _localizationService.GetString("Dialog_CannotDeleteActivePlan_Title"));
+                return;
+            }
+
+            var displayName = planToDelete.Label;
 
             var message = string.Format(_localizationService.GetString("Dialog_DeletePowerPlan_Message"), displayName);
             var title = _localizationService.GetString("Dialog_DeletePowerPlan_Title");
@@ -118,7 +118,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
             })).Confirmed;
             if (!confirmed) return;
 
-            var success = await _powerService.DeletePowerPlanAsync(planToDelete.SystemPlan.Guid);
+            var success = await _powerService.DeletePowerPlanAsync(planToDelete.Value);
 
             if (success)
             {

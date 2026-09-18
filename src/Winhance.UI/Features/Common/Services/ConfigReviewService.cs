@@ -3,9 +3,11 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Common.TechnicalDetails;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -19,11 +21,13 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ICatalogSettingStateProvider _settingStateProvider;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
+    private readonly IOptionProviderRegistry _optionProviders;
     private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
     private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
     private readonly ConcurrentDictionary<string, byte> _visitedFeatures = new();
     private readonly Dictionary<string, SettingChoice> _builderEdits = new();
+    private readonly HashSet<string> _excluded = new();
 
     // Includes input types that produce no serializable ChoiceValue; gates the discard prompt.
     private bool _builderDirty;
@@ -31,10 +35,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
     {
-        SettingIds.ThemeModeWindows,
-        SettingIds.TaskbarClean,
-        SettingIds.StartMenuCleanWin10,
-        SettingIds.StartMenuCleanWin11
+        "taskbar-clean",
+        "start-menu-clean-10",
+        "start-menu-clean-11"
     };
 
     public ConfigReviewService(
@@ -42,13 +45,15 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         ICatalogSettingsRegistry catalogSettingsRegistry,
         ICatalogSettingStateProvider settingStateProvider,
         ILocalizationService localizationService,
-        IWindowsVersionService windowsVersionService)
+        IWindowsVersionService windowsVersionService,
+        IOptionProviderRegistry optionProviders)
     {
         _logService = logService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _settingStateProvider = settingStateProvider;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
+        _optionProviders = optionProviders;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
@@ -66,6 +71,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public bool IsInReviewMode => CurrentMode == WinhanceMode.ConfigReview;
     public bool IsWindowsDefaults { get; private set; }
+
+    public IReadOnlyList<string> SetAside { get; private set; } = [];
     public WinhanceConfigFile? ActiveConfig { get; private set; }
     public int TotalChanges => _diffs.Count;
     public int ApprovedChanges => _diffs.Values.Count(static d => d.IsReviewed && d.IsApproved);
@@ -78,7 +85,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     public event EventHandler? BadgeStateChanged;
     public event EventHandler? ModeChanged;
 
-    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false, IReadOnlyList<string>? setAside = null)
     {
         // Fully tear down whatever mode we're leaving (clears Builder edits / prior review
         // state) before seeding review. Review entry is the one async transition, so it
@@ -87,6 +94,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         ActiveConfig = config;
         IsWindowsDefaults = isWindowsDefaults;
+        SetAside = setAside ?? [];
         _diffs.Clear();
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
@@ -152,6 +160,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (ModeCapabilities.For(CurrentMode).AuthorsIntent)
         {
             _builderEdits.Clear();
+            _excluded.Clear();
             _builderDirty = false;
         }
 
@@ -169,6 +178,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private void ClearReviewArtifacts()
     {
         ActiveConfig = null;
+        SetAside = [];
         _diffs.Clear();
         _configItemCounts.Clear();
         _featuresInConfig.Clear();
@@ -204,6 +214,32 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         // second copy, because a card showing one thing while the file holds another is the
         // failure this lookup was added to prevent.
         return _builderEdits.TryGetValue(settingId, out var edit) ? edit : null;
+    }
+
+    public bool IsIncluded(string settingId)
+    {
+        if (string.IsNullOrEmpty(settingId))
+        {
+            return true;
+        }
+
+        return !_excluded.Contains(settingId);
+    }
+
+    // An answer file has no way to leave one of its own settings out, so those are never excluded.
+    public void SetIncluded(string settingId, bool included)
+    {
+        if (string.IsNullOrEmpty(settingId) || !ModeCapabilities.For(CurrentMode).AuthorsIntent
+            || SettingCatalog.Find(settingId)?.IsAnswerFileOnly == true)
+        {
+            return;
+        }
+
+        bool changed = included ? _excluded.Remove(settingId) : _excluded.Add(settingId);
+        if (changed)
+        {
+            _builderDirty = true;
+        }
     }
 
     public void MarkBuilderDirty()
@@ -270,6 +306,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
     public void RegisterDiff(ConfigReviewDiff diff)
     {
+        // A caller that found the item by walking the file knows only the group the file listed it under.
+        if (_catalogSettingsRegistry.GetFeatureIdForSetting(diff.SettingId) is { } ownFeature)
+            diff = diff with { FeatureModuleId = ownFeature };
+
         _diffs[diff.SettingId] = diff;
         _logService.Log(
             LogLevel.Debug,
@@ -414,22 +454,48 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         var onText = _localizationService.GetStringOrDefault("Common_On", "On");
         var offText = _localizationService.GetStringOrDefault("Common_Off", "Off");
 
-        foreach (var feature in config.Optimize.Features)
+        foreach (var (featureId, items) in ItemsByOwnFeature(config))
         {
-            if (!feature.Value.IsIncluded || feature.Value.Items.Count == 0) continue;
-            await ComputeFeatureDiffsAsync(feature.Key, feature.Value.Items, onText, offText);
+            _featuresInConfig.TryAdd(featureId, 0);
+            await ComputeFeatureDiffsAsync(featureId, items, onText, offText);
+        }
+    }
+
+    // The id names the setting. The group a file lists it under is only where its card lived when the file was written.
+    private Dictionary<string, List<(ConfigurationItem Item, Setting Setting)>> ItemsByOwnFeature(WinhanceConfigFile config)
+    {
+        var byFeature = new Dictionary<string, List<(ConfigurationItem Item, Setting Setting)>>();
+        var claimed = new HashSet<string>();
+
+        foreach (var section in config.Optimize.Features.Values.Concat(config.Customize.Features.Values))
+        {
+            if (!section.IsIncluded) continue;
+
+            foreach (var item in section.Items)
+            {
+                if (string.IsNullOrEmpty(item.Id)
+                    || _catalogSettingsRegistry.GetById(item.Id) is not { } setting
+                    || _catalogSettingsRegistry.GetFeatureIdForSetting(item.Id) is not { } featureId)
+                    continue;
+
+                if (!claimed.Add(setting.Id))
+                {
+                    _logService.Log(LogLevel.Debug, $"Config lists '{setting.Id}' again as '{item.Id}'; the first entry is the one reviewed");
+                    continue;
+                }
+
+                if (!byFeature.TryGetValue(featureId, out var items))
+                    byFeature[featureId] = items = new List<(ConfigurationItem Item, Setting Setting)>();
+                items.Add((item, setting));
+            }
         }
 
-        foreach (var feature in config.Customize.Features)
-        {
-            if (!feature.Value.IsIncluded || feature.Value.Items.Count == 0) continue;
-            await ComputeFeatureDiffsAsync(feature.Key, feature.Value.Items, onText, offText);
-        }
+        return byFeature;
     }
 
     private async Task ComputeFeatureDiffsAsync(
         string featureId,
-        IReadOnlyList<ConfigurationItem> configItems,
+        IReadOnlyList<(ConfigurationItem Item, Setting Setting)> items,
         string onText,
         string offText)
     {
@@ -437,7 +503,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         {
             // Review always wants the compatibility filter ON, and GetByFeature's default scope is current-OS.
             var settings = _catalogSettingsRegistry.GetByFeature(featureId);
-            var settingMap = settings.ToDictionary(s => s.Id);
 
             var settingList = settings.ToList();
             // This service reads no RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
@@ -459,23 +524,20 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         && (string.IsNullOrEmpty(s.UiParentId) || detectedIds.Contains(s.UiParentId)))
                     .Select(s => s.Id));
 
-            foreach (var configItem in configItems)
+            foreach (var (configItem, setting) in items)
             {
-                if (!settingMap.TryGetValue(configItem.Id, out var setting))
-                    continue;
-
                 if (!renderedIds.Contains(setting.Id))
                     continue;
 
-                var currentState = batchStates.TryGetValue(configItem.Id, out var state)
+                var currentState = batchStates.TryGetValue(setting.Id, out var state)
                     ? state
                     : new SettingStateResult();
 
                 bool isActionSetting = ActionSettingIds.Contains(configItem.Id);
 
-                if (configItem.Id == SettingIds.StartMenuCleanWin10 && _windowsVersionService.IsWindows11())
+                if (configItem.Id == "start-menu-clean-10" && _windowsVersionService.IsWindows11())
                     continue;
-                if (configItem.Id == SettingIds.StartMenuCleanWin11 && !_windowsVersionService.IsWindows11())
+                if (configItem.Id == "start-menu-clean-11" && !_windowsVersionService.IsWindows11())
                     continue;
 
                 var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
@@ -485,8 +547,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 {
                     var diff = new ConfigReviewDiff
                     {
-                        SettingId = configItem.Id,
-                        SettingName = setting.Display.Name,
+                        SettingId = setting.Id,
+                        SettingName = Localized(setting.Display.Name),
                         FeatureModuleId = featureId,
                         CurrentValueDisplay = currentDisplay,
                         ConfigValueDisplay = configDisplay,
@@ -503,10 +565,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                         diff = diff with { ActionConfirmationMessage = GetActionConfirmationMessage(configItem) };
                     }
 
-                    _diffs[configItem.Id] = diff;
+                    _diffs[setting.Id] = diff;
 
                     _logService.Log(LogLevel.Debug,
-                        $"Eager diff for '{configItem.Id}' in '{featureId}': " +
+                        $"Eager diff for '{setting.Id}' in '{featureId}': " +
                         $"{(isActionSetting ? "" : "")}{currentDisplay} -> {configDisplay}");
                 }
             }
@@ -522,20 +584,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         return configItem.Id switch
         {
-            SettingIds.ThemeModeWindows => GetThemeWallpaperMessage(configItem),
-            SettingIds.TaskbarClean => _localizationService.GetStringOrDefault("Review_Mode_Action_CleanTaskbar", "Clean the taskbar as part of this configuration?"),
-            SettingIds.StartMenuCleanWin10 or SettingIds.StartMenuCleanWin11 =>
+            "taskbar-clean" => _localizationService.GetStringOrDefault("Review_Mode_Action_CleanTaskbar", "Clean the taskbar as part of this configuration?"),
+            "start-menu-clean-10" or "start-menu-clean-11" =>
                 _localizationService.GetStringOrDefault("Review_Mode_Action_CleanStartMenu", "Clean the start menu as part of this configuration?"),
             _ => string.Empty
         };
-    }
-
-    private string GetThemeWallpaperMessage(ConfigurationItem configItem)
-    {
-        var themeNameKey = configItem.SelectedIndex == 0 ? "Theme_LightNative" : "Theme_DarkNative";
-        var themeName = _localizationService.GetStringOrDefault(themeNameKey, configItem.SelectedIndex == 0 ? "Light" : "Dark");
-        var format = _localizationService.GetStringOrDefault("Review_Mode_Action_ThemeWallpaper", "Apply the default {0} wallpaper?");
-        return string.Format(format, themeName);
     }
 
     private async Task<(bool hasDiff, string currentDisplay, string configDisplay, string? currentKey, string? configKey)> ComputeEagerDiffAsync(
@@ -545,92 +598,79 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         string onText,
         string offText)
     {
-        // ControlKind.Toggle covers Toggle + CheckBox (no setting is CheckBox).
         var control = setting.Control;
         switch (control)
         {
             case ControlKind.Toggle:
+            case ControlKind.CheckBox:
             {
                 var currentBool = currentState.IsEnabled;
                 var configBool = configItem.IsSelected ?? false;
                 if (currentBool != configBool)
                 {
-                    var currentKey = currentBool ? "Common_On" : "Common_Off";
-                    var configKey = configBool ? "Common_On" : "Common_Off";
-                    return (true, currentBool ? onText : offText, configBool ? onText : offText, currentKey, configKey);
+                    bool isCheckBox = control == ControlKind.CheckBox;
+                    var onKey = isCheckBox ? TechnicalDetailKeys.Checked : "Common_On";
+                    var offKey = isCheckBox ? TechnicalDetailKeys.Unchecked : "Common_Off";
+                    var on = isCheckBox ? _localizationService.GetStringOrDefault(onKey, "Checked") : onText;
+                    var off = isCheckBox ? _localizationService.GetStringOrDefault(offKey, "Unchecked") : offText;
+                    return (true, currentBool ? on : off, configBool ? on : off,
+                        currentBool ? onKey : offKey, configBool ? onKey : offKey);
                 }
                 return (false, string.Empty, string.Empty, null, null);
             }
 
+            case ControlKind.KeyedSelection:
+            {
+                // Through the mapper: a file written before 26.09.10 spells the power plan as PowerPlanGuid/PowerPlanName.
+                if (ConfigFileMapper.DecodeValue(setting, configItem) is not ChoiceValue.Keyed saved)
+                    return (false, string.Empty, string.Empty, null, null);
+
+                // Empty means unread; taken raw it counts as a diff and then beats the unknown text in the fallback below.
+                var liveKey = currentState.DynamicSelection is { Length: > 0 } read ? read : null;
+                var live = liveKey is null ? null : new DynamicOption(LabelOn(currentState, liveKey) ?? liveKey, liveKey);
+
+                if (live is not null
+                    && _optionProviders.For(setting.Options!.Source).SameOption(setting, new DynamicOption(saved.Label, saved.Key), live))
+                    return (false, string.Empty, string.Empty, null, null);
+
+                // Neither side may be empty: the card's banner and approve control need both, and a blank side leaves
+                // a counted change nobody can approve, with Apply disabled for the whole config.
+                var savedLabel = LabelOn(currentState, saved.Key) ?? saved.Label;
+                return live is null
+                    ? (true, UnknownValueText, savedLabel, UnknownValueKey, null)
+                    : (true, live.Label, savedLabel, null, null);
+            }
+
+            case ControlKind.TextBox:
+            {
+                if (ConfigFileMapper.DecodeValue(setting, configItem) is not ChoiceValue.Text saved)
+                    return (false, string.Empty, string.Empty, null, null);
+
+                var seeded = currentState.CurrentValue as string ?? string.Empty;
+                if (string.Equals(seeded, saved.Value, StringComparison.Ordinal))
+                    return (false, string.Empty, string.Empty, null, null);
+
+                return (true,
+                    seeded.Length > 0 ? seeded : UnknownValueText,
+                    saved.Value.Length > 0 ? saved.Value : UnknownValueText,
+                    seeded.Length > 0 ? null : UnknownValueKey,
+                    saved.Value.Length > 0 ? null : UnknownValueKey);
+            }
+
             case ControlKind.Selection:
-            case ControlKind.PowerPlan:
             {
                 var comboResult = BuildComboBoxOptions(setting, currentState.CurrentValue);
                 var currentIndex = comboResult.SelectedValue is int resolvedIdx ? resolvedIdx
                     : (currentState.CurrentValue is int idx ? idx : -1);
-                // Special handling: PowerPlan - compare by scheme GUID (locale-independent)
-                if (configItem.PowerPlanGuid != null)
-                {
-                    // Read the active scheme GUID from DynamicSelection (the active plan GUID, lowercased).
-                    string? currentGuid = currentState.DynamicSelection;
-
-                    // The current plan NAME reads the typed DynamicSelectionName (the active plan's raw OS name).
-                    string? currentPlanName = currentState.DynamicSelectionName;
-                    string? configPlanName = configItem.PowerPlanName;
-
-                    _logService.Log(LogLevel.Debug,
-                        $"PowerPlan comparison: currentGuid='{currentGuid}', configGuid='{configItem.PowerPlanGuid}', " +
-                        $"currentName='{currentPlanName}', configName='{configPlanName}'");
-
-                    // Normalize GUIDs for comparison (handle format differences like braces, case)
-                    bool guidsMatch = !string.IsNullOrEmpty(currentGuid) &&
-                        NormalizeGuid(currentGuid) == NormalizeGuid(configItem.PowerPlanGuid);
-
-                    if (guidsMatch)
-                    {
-                        _logService.Log(LogLevel.Debug, "PowerPlan: GUIDs match directly");
-                        return (false, string.Empty, string.Empty, null, null);
-                    }
-
-                    // Fallback: check if both plans resolve to the same known predefined plan
-                    // This handles the case where Winhance Power Plan was created with a different GUID
-                    var currentPredefined = ResolveToPredefinedPlan(currentGuid, currentPlanName);
-                    var configPredefined = ResolveToPredefinedPlan(configItem.PowerPlanGuid, configPlanName);
-
-                    _logService.Log(LogLevel.Debug,
-                        $"PowerPlan resolve: current='{currentPredefined?.Name}' ({currentPredefined?.Guid}), " +
-                        $"config='{configPredefined?.Name}' ({configPredefined?.Guid})");
-
-                    if (currentPredefined != null && configPredefined != null &&
-                        NormalizeGuid(currentPredefined.Guid) == NormalizeGuid(configPredefined.Guid))
-                    {
-                        _logService.Log(LogLevel.Debug, "PowerPlan: Both resolve to same predefined plan");
-                        return (false, string.Empty, string.Empty, null, null);
-                    }
-
-                    // Get raw keys for re-localization (localization key for predefined plans, plain name for custom)
-                    var currentRawKey = GetPowerPlanLocalizationKey(currentGuid) ?? currentPlanName ?? "Unknown";
-                    var configRawKey = GetPowerPlanLocalizationKey(configItem.PowerPlanGuid) ?? configPlanName ?? "Custom";
-
-                    var currentDisplayName = LocalizePowerPlanByGuid(currentGuid)
-                        ?? currentPlanName ?? "Unknown";
-                    var configDisplayName = LocalizePowerPlanByGuid(configItem.PowerPlanGuid)
-                        ?? configPlanName ?? "Custom";
-
-                    _logService.Log(LogLevel.Debug,
-                        $"PowerPlan: Diff detected - '{currentDisplayName}' -> '{configDisplayName}'");
-                    return (true, currentDisplayName, configDisplayName, currentRawKey, configRawKey);
-                }
-
                 if (configItem.CustomStateValues != null)
                 {
                     var currentRawKey = DisplayKeyForStateIndex(setting, comboResult, currentIndex);
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)
                         : await GetComboBoxDisplayNameFromCatalogAsync(setting, currentIndex, currentState).ConfigureAwait(false);
-                    var configDisplayName = configItem.PowerPlanName ?? "Custom";
+                    var configDisplayName = _localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
-                        return (true, currentDisplayName, configDisplayName, currentRawKey, configDisplayName);
+                        return (true, currentDisplayName, configDisplayName, currentRawKey, LocKey.Common.CustomState.Value);
                     return (false, string.Empty, string.Empty, null, null);
                 }
 
@@ -670,8 +710,12 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    // Power-plan settings never reach this - they take the PowerPlanGuid branch.
-    private static ComboBoxSetupResult BuildComboBoxOptions(Setting setting, object? currentValue)
+    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
+
+    private static string? LabelOn(SettingStateResult state, string? key) =>
+        state.DynamicOptions?.FirstOrDefault(o => string.Equals(o.Value, key, StringComparison.OrdinalIgnoreCase))?.Label;
+
+    private ComboBoxSetupResult BuildComboBoxOptions(Setting setting, object? currentValue)
     {
         var result = new ComboBoxSetupResult();
 
@@ -679,7 +723,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         // GetComboBoxDisplayNameFromCatalogAsync); Tooltip/IsRecommended/IsDefault/IsSubjectivePreference are
         // populated for the option object but are NOT read in this flow.
         if (setting.States.Count == 0)
-            return result; // e.g. power-plan-selection (dynamic options; handled by the PowerPlanGuid branch)
+            return result;
 
         int currentIndex = currentValue is int idx ? idx : 0;
         var isCustomState = currentIndex == ComboBoxConstants.CustomStateIndex;
@@ -693,7 +737,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             // back through OptionForStateIndex, never by position.
             if (states[i].IsDetectOnly)
                 continue;
-            result.Options.Add(new ComboBoxDisplayOption(states[i].Label, i, states[i].Tooltip)
+            result.Options.Add(new ComboBoxDisplayOption(
+                Localized(states[i].Label),
+                i,
+                states[i].Tooltip is { } tip ? Localized(tip) : null)
             {
                 IsRecommended = states[i].HasRole(RoleKind.Recommended),
                 IsDefault = states[i].HasRole(RoleKind.WindowsDefault),
@@ -721,7 +768,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         if (OptionForStateIndex(result, stateIndex) is { } option)
             return option.DisplayText;
         return stateIndex >= 0 && stateIndex < setting.States.Count && setting.States[stateIndex].IsDetectOnly
-            ? setting.States[stateIndex].Label
+            ? setting.States[stateIndex].Label.Value
             : null;
     }
 
@@ -749,14 +796,19 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             _logService.Log(LogLevel.Warning,
                 $"Failed to get combo box display name for '{setting.Id}' index {index}: {ex.Message}");
         }
-        return index >= 0 ? index.ToString() : "Unknown";
+        return index >= 0 ? index.ToString() : UnknownValueText;
     }
+
+    private const string UnknownValueKey = "ConfigReview_UnknownValue";
+
+    private string UnknownValueText =>
+        _localizationService.GetStringOrDefault(UnknownValueKey, "Unknown");
 
     // A key resolves; plain text (e.g. "Programs") is not a key and passes through unchanged.
     private string LocalizeComboBoxDisplayText(string displayText)
     {
         if (string.IsNullOrEmpty(displayText))
-            return "Unknown";
+            return UnknownValueText;
 
         return _localizationService.TryGetString(displayText, out var localized) && !string.IsNullOrEmpty(localized)
             ? localized
@@ -785,59 +837,5 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                 updated = updated with { ActionConfirmationMessage = GetActionConfirmationMessage(diff.ConfigItem) };
             _diffs[key] = updated;
         }
-    }
-
-    private static string? GetPowerPlanLocalizationKey(string? guid)
-    {
-        if (string.IsNullOrEmpty(guid)) return null;
-        var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
-            p => NormalizeGuid(p.Guid) == normalizedGuid);
-        return predefined?.LocalizationKey;
-    }
-
-    private static PredefinedPowerPlan? ResolveToPredefinedPlan(string? guid, string? name)
-    {
-        var plans = PowerPlanCatalog.BuiltInPowerPlans;
-
-        if (!string.IsNullOrEmpty(guid))
-        {
-            var normalizedGuid = NormalizeGuid(guid);
-            var byGuid = plans.FirstOrDefault(p => NormalizeGuid(p.Guid) == normalizedGuid);
-            if (byGuid != null) return byGuid;
-        }
-
-        // Name matching covers plans with different runtime GUIDs.
-        if (!string.IsNullOrEmpty(name))
-        {
-            // Winhance Power Plan: any plan name containing "Winhance" (language-independent brand name)
-            if (name.Contains("Winhance", StringComparison.OrdinalIgnoreCase))
-            {
-                return plans.FirstOrDefault(p =>
-                    p.Name.Contains("Winhance", StringComparison.OrdinalIgnoreCase));
-            }
-        }
-
-        return null;
-    }
-
-    private string? LocalizePowerPlanByGuid(string? guid)
-    {
-        if (string.IsNullOrEmpty(guid)) return null;
-
-        var normalizedGuid = NormalizeGuid(guid);
-        var predefined = PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(
-            p => NormalizeGuid(p.Guid) == normalizedGuid);
-
-        if (predefined == null) return null;
-
-        var localized = _localizationService.GetString(predefined.LocalizationKey);
-        return !string.IsNullOrEmpty(localized) ? localized : predefined.Name;
-    }
-
-    private static string NormalizeGuid(string? guid)
-    {
-        if (string.IsNullOrEmpty(guid)) return string.Empty;
-        return Guid.TryParse(guid, out var parsed) ? parsed.ToString("D").ToLowerInvariant() : guid.ToLowerInvariant();
     }
 }

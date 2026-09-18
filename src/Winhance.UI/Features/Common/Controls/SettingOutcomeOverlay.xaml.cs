@@ -49,15 +49,14 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         set => SetValue(IsInteractiveProperty, value);
     }
 
-    // Toggle wording ("click the toggle") vs selection wording ("pick an option from the list").
-    public static readonly DependencyProperty IsToggleLikeProperty = DependencyProperty.Register(
-        nameof(IsToggleLike), typeof(bool), typeof(SettingOutcomeOverlay),
+    public static readonly DependencyProperty IsTwoStateProperty = DependencyProperty.Register(
+        nameof(IsTwoState), typeof(bool), typeof(SettingOutcomeOverlay),
         new PropertyMetadata(false, OnAnyChanged));
 
-    public bool IsToggleLike
+    public bool IsTwoState
     {
-        get => (bool)GetValue(IsToggleLikeProperty);
-        set => SetValue(IsToggleLikeProperty, value);
+        get => (bool)GetValue(IsTwoStateProperty);
+        set => SetValue(IsTwoStateProperty, value);
     }
 
     public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
@@ -131,7 +130,7 @@ public sealed partial class SettingOutcomeOverlay : UserControl, INotifyProperty
         OverlayIcon = vm.OverlayIconForMode(Mode);
         OverlayIconVisibility = vm.OverlayShowsIconForMode(Mode) ? Visibility.Visible : Visibility.Collapsed;
         OverlayText = vm.OverlayTextForMode(Mode);
-        OverlayTooltip = vm.OverlayTooltipForMode(Mode, IsToggleLike);
+        OverlayTooltip = vm.OverlayTooltipForMode(Mode, IsTwoState);
         Notify(nameof(OverlayVisibility), nameof(OverlayOpacity), nameof(OverlayHitTestable),
             nameof(OverlayAccessibilityView), nameof(OverlayIcon), nameof(OverlayIconVisibility),
             nameof(OverlayText), nameof(OverlayTooltip));

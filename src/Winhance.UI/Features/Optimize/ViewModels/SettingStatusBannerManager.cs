@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
@@ -25,7 +26,7 @@ internal sealed class SettingStatusBannerManager
     // BannerState.Clear when there is nothing to show; null leaves an existing compatibility banner untouched
     // (value is not an int index).
     public BannerState? ComputeBannerForValue(
-        object? value, IReadOnlyList<string?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage)
+        object? value, IReadOnlyList<OptionWarning?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage)
     {
         if (value is not int selectedIndex)
         {
@@ -38,7 +39,8 @@ internal sealed class SettingStatusBannerManager
             && selectedIndex >= 0 && selectedIndex < w.Count
             && w[selectedIndex] is { } warning)
         {
-            return new BannerState(warning, InfoBarSeverity.Error);
+            // Error is a consequence the user is about to cause; an advisory describes a state they are already in.
+            return new BannerState(warning.Text, warning.Advisory ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
         }
 
         // Cross-group child settings info (promotional banner). The precomputed message already includes the header.
@@ -64,7 +66,7 @@ internal sealed class SettingStatusBannerManager
     // Custom -> Informational (not a fault; the user can simply choose); Malformed -> Warning (a real but
     // self-repairing fault); Undetermined -> Error (WE failed to read it; the message points at the log rather than
     // pretending to offer a remedy). Severity deliberately matches the overlay icon colour so the two never contradict.
-    public BannerState GetDetectionOutcomeBanner(SettingDetectionOutcome outcome, bool isToggleLike)
+    public BannerState GetDetectionOutcomeBanner(SettingDetectionOutcome outcome, bool isTwoState)
     {
         var (prefix, severity) = outcome switch
         {
@@ -74,7 +76,7 @@ internal sealed class SettingStatusBannerManager
         };
 
         return new BannerState(
-            _localizationService.GetString(prefix + (isToggleLike ? "Toggle" : "Selection")),
+            _localizationService.GetString(prefix + (isTwoState ? "Toggle" : "Selection")),
             severity,
             DetectionOutcome: outcome);
     }

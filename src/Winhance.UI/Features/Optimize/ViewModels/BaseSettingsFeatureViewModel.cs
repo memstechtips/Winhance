@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
@@ -36,6 +37,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private ISubscriptionToken? _builderSeededSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
+    private readonly List<SettingItemViewModel> _observedCards = [];
 
     // Related-card refresh coalescing: a burst of relationship applies is drained once by a ~300ms
     // UI-thread debounce timer. The pending set is guarded (mutated off the UI thread in QueueRelatedRefresh,
@@ -61,7 +63,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
-    public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
+    public bool HasVisibleSettings => Settings.Any(s => s.EffectiveIsVisible);
     public bool IsVisibleInSearch => HasVisibleSettings;
     public int SettingsCount => Settings?.Count ?? 0;
 
@@ -249,11 +251,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    // Registry-surface overlap: the applied setting WROTE some (path, valueName) pairs (its ApplyOnly targets
-    // are included - they are written), and the candidate READS an overlapping pair, so the candidate's card is now
-    // stale. The candidate side EXCLUDES its own ApplyOnly targets - written on apply but never read on detect, so
-    // overlap through them cannot stale the card. Every entry of Paths (a mirror list) is compared,
-    // case-insensitive on path and valueName.
+    // The applied setting WROTE some (path, valueName) pairs and the candidate READS an overlapping one, so the
+    // candidate's card is stale. ApplyOnly targets count only on the written side (never read on detect) and
+    // ReadOnly targets only on the read side.
     private static bool SharesRegistrySurface(Setting applied, Setting candidate)
     {
         var appliedPairs = RegistrySurfacePairs(applied, includeApplyOnly: true);
@@ -273,7 +273,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         var pairs = new HashSet<(string, string)>();
         foreach (var reg in setting.Targets.OfType<RegTarget>())
         {
-            if (!includeApplyOnly && reg.ApplyOnly)
+            if (includeApplyOnly ? reg.ReadOnly : reg.ApplyOnly)
                 continue;
             var value = reg.ValueName is null ? KeyExistenceToken : reg.ValueName.ToLowerInvariant();
             foreach (var path in reg.Paths)
@@ -503,13 +503,15 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
                         foreach (var kvp in _childrenByParentId)
                         {
-                            if (kvp.Value.Any(c => c.IsVisible))
+                            if (kvp.Value.Any(c => c.EffectiveIsVisible))
                             {
                                 if (_settingsById.TryGetValue(kvp.Key, out var parent))
                                     parent.IsVisible = true;
                             }
                         }
                     }
+
+                    RefreshLastChild();
 
                     OnPropertyChanged(nameof(HasVisibleSettings));
                     OnPropertyChanged(nameof(IsVisibleInSearch));
@@ -646,7 +648,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    // THE PRESENTATION GATE - one implementation, four callers.
+    // THE PRESENTATION GATE - one implementation for every path.
     //
     // A card is greyed only when its catalog DECLARES an EnabledWhen and the setting that names is
     // currently outside the declared states. Nesting under a UiParentId does not gate anything:
@@ -654,32 +656,44 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // the second one. Do not gate on the parent's selected INDEX being non-zero either - that greyed both
     // Windows-theme sub-toggles on every stock Windows 11 install, because "Light Mode" happens to be state 0.
     //
-    // Every path that can move a card's state in NORMAL mode ends here: the initial load, an apply
-    // event, the navigation refresh (RefreshSettingStatesAsync) and the related-refresh debounce.
-    // Recomputing the whole list costs one pass over a few dozen cards, so there is no reason to work
-    // out which cards could have changed.
-    //
-    // Builder mode is the one gap: it authors un-applied state with no
-    // SettingAppliedEvent, and both refresh paths deliberately skip it so a live re-read cannot clobber
-    // what the user is authoring - so a gate holds its load-time verdict until Builder exit, which
-    // reloads from live state anyway.
+    // In Builder mode the card's own state change (OnSettingStateChanged) is the only signal: an authored edit
+    // raises no SettingAppliedEvent and both refresh paths skip that mode. Recomputing the whole list is one
+    // pass over a few dozen cards, so nothing works out which cards could have changed.
     private void RefreshDeclaredGates()
     {
         if (Settings is null)
             return;
 
         foreach (var setting in Settings)
-            setting.ParentIsEnabled = IsGateSatisfied(setting);
+        {
+            setting.ParentIsEnabled = IsGateSatisfied(setting.Setting?.EnabledWhen);
+            setting.ParentIsVisible = IsGateSatisfied(setting.Setting?.VisibleWhen);
+        }
+
+        RefreshLastChild();
+
+        OnPropertyChanged(nameof(HasVisibleSettings));
+        OnPropertyChanged(nameof(IsVisibleInSearch));
     }
 
-    // TRUE (usable) unless the card declares an EnabledWhen whose named setting is loaded here, has a state we can
-    // name, and that state is NOT one of the declared ones. The two "not gated" answers are deliberate: a setting
-    // this feature has not loaded cannot be read at all, and a card whose own state does not resolve is not
-    // evidence that anything else is meaningless - so neither is grounds for taking a control away. A gate is a
-    // positive claim, only made when it can actually be checked.
-    private bool IsGateSatisfied(SettingItemViewModel item)
+    private void RefreshLastChild()
     {
-        if (item.Setting?.EnabledWhen is not { } gate)
+        foreach (var (parentId, children) in _childrenByParentId)
+        {
+            var last = children.LastOrDefault(child => child.EffectiveIsVisible);
+            foreach (var child in children)
+                child.IsLastChild = ReferenceEquals(child, last);
+
+            if (_settingsById.TryGetValue(parentId, out var parent))
+                parent.HasVisibleChildren = last is not null;
+        }
+    }
+
+    // The two early "open" answers are deliberate: a setting this feature has not loaded, or one whose state
+    // does not resolve, is no evidence for taking a control away.
+    private bool IsGateSatisfied(StateGate? gate)
+    {
+        if (gate is null)
             return true;
 
         if (!_settingsById.TryGetValue(gate.OtherId, out var other))
@@ -688,7 +702,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (other.CurrentStateLabel is not { } label)
             return true;
 
-        return gate.States.Contains(label, StringComparer.Ordinal);
+        return gate.States.Any(k => string.Equals(k.Value, label, StringComparison.Ordinal));
+    }
+
+    private void OnSettingStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected) or nameof(SettingItemViewModel.SelectedValue))
+            RefreshDeclaredGates();
     }
 
     // Every per-card index this feature holds is derived from Settings, and nothing else holds per-card
@@ -697,10 +717,16 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // (OnSettingApplied) sees either the old complete one or the new complete one, never a partial build.
     private void RebuildSettingIndexes()
     {
+        foreach (var observed in _observedCards)
+            observed.PropertyChanged -= OnSettingStateChanged;
+        _observedCards.Clear();
+
         var newSettingsById = new Dictionary<string, SettingItemViewModel>();
         var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
         foreach (var setting in Settings)
         {
+            setting.PropertyChanged += OnSettingStateChanged;
+            _observedCards.Add(setting);
             if (!string.IsNullOrEmpty(setting.SettingId))
                 newSettingsById[setting.SettingId] = setting;
 
@@ -723,8 +749,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
             {
                 var childList = kvp.Value;
-                for (int i = 0; i < childList.Count; i++)
-                    childList[i].IsLastChild = i == childList.Count - 1;
 
                 // Replacing Children rebinds the parent's expander, so only do it when the child set moved.
                 if (parentVm.Children is null || !parentVm.Children.SequenceEqual(childList))

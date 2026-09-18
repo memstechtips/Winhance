@@ -11,7 +11,7 @@ public partial class SettingItemTemplateSelector : DataTemplateSelector
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
-        if (item is SettingItemViewModel vm && vm.IsParentSetting)
+        if (item is SettingItemViewModel { IsParentSetting: true })
             return ExpanderTemplate;
         return RegularTemplate;
     }

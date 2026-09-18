@@ -17,12 +17,12 @@ public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInf
 
     public static readonly IReadOnlyList<OptimizeSectionInfo> Sections = new List<OptimizeSectionInfo>()
     {
-        new("Privacy", "PrivacyIconPath", "Privacy & Security", FeatureIds.Privacy),
-        new("Power", "PowerIconPath", "Power", FeatureIds.Power),
-        new("Gaming", "GamingIconPath", "Gaming and Performance", FeatureIds.GamingPerformance),
-        new("Update", "UpdateIconSymbol", "Updates", FeatureIds.Update),
-        new("Notification", "NotificationIconPath", "Notifications", FeatureIds.Notifications),
-        new("Sound", "SoundIconSymbol", "Sound", FeatureIds.Sound),
+        new("Privacy", "Privacy & Security", FeatureIds.Privacy),
+        new("Power", "Power", FeatureIds.Power),
+        new("Gaming", "Gaming and Performance", FeatureIds.GamingPerformance),
+        new("Update", "Updates", FeatureIds.Update),
+        new("Notification", "Notifications", FeatureIds.Notifications),
+        new("Sound", "Sound", FeatureIds.Sound),
     };
 
     // Named properties for XAML binding (typed as interface, not concrete)
@@ -38,9 +38,12 @@ public partial class OptimizeViewModel : SectionPageViewModel<OptimizeSectionInf
         ILocalizationService localizationService,
         IEnumerable<IOptimizationFeatureViewModel> featureViewModels,
         IConfigReviewBadgeService badgeService,
-        IConfigReviewModeService reviewModeService)
+        IConfigReviewModeService reviewModeService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
         : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>(),
-               badgeService, reviewModeService)
+               badgeService, reviewModeService, registry, scope, modeService)
     {
         InitializeSectionMappings();
 

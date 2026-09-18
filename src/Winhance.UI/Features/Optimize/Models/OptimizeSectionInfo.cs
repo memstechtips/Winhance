@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Constants;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Optimize.Models;
@@ -12,10 +13,10 @@ public class OptimizeSectionInfo : ISectionInfo
 
     public string ModuleId { get; }
 
-    public OptimizeSectionInfo(string key, string iconGlyphKey, string displayName, string moduleId)
+    public OptimizeSectionInfo(string key, string displayName, string moduleId)
     {
         Key = key;
-        IconGlyphKey = iconGlyphKey;
+        IconGlyphKey = (FeatureDefinitions.Get(moduleId) ?? throw new ArgumentOutOfRangeException(nameof(moduleId), moduleId, null)).IconKey;
         DisplayName = displayName;
         ModuleId = moduleId;
     }

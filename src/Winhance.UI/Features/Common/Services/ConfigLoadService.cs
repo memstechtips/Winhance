@@ -16,6 +16,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
@@ -27,6 +28,7 @@ public class ConfigLoadService : IConfigLoadService
         IDialogService dialogService,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IFileSystemService fileSystemService,
@@ -37,6 +39,7 @@ public class ConfigLoadService : IConfigLoadService
         _dialogService = dialogService;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
@@ -262,8 +265,6 @@ public class ConfigLoadService : IConfigLoadService
     public List<string> DetectIncompatibleSettings(WinhanceConfigFile config)
     {
         var incompatible = new List<string>();
-        var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
-        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
 
         var allSections = new Dictionary<string, FeatureGroupSection>
         {
@@ -279,15 +280,15 @@ public class ConfigLoadService : IConfigLoadService
             {
                 foreach (var configItem in feature.Value.Items)
                 {
-                    // Gating reads ONLY the catalog Availability model (the source of truth). The only
-                    // ids with no EXACT catalog match are the 6 merged "-win10" aliases: file/backup loads normalize them
-                    // upstream (ConfigMigrationService), and the embedded Recommended/Win10-defaults configs carry them
-                    // with values byte-identical to their canonical peers, which the import bridge applies via
-                    // its alias-normalizing GetById (an idempotent duplicate). So an id with no catalog peer is skipped silently.
+                    // Only the 6 merged "-win10" aliases have no exact catalog match. File loads normalize them upstream
+                    // and the embedded configs carry them byte-identical to their canonical peers, so an unmatched id
+                    // is skipped silently.
                     var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (newSetting != null && !newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
+                    if (newSetting != null && !IsOnThisMachine(newSetting.Id))
                     {
-                        incompatible.Add($"{newSetting.Display.Name} ({feature.Key})");
+                        var name = _localizationService.GetStringOrDefault(
+                            newSetting.Display.Name.Value, newSetting.Display.Name.Value);
+                        incompatible.Add($"{name} ({feature.Key})");
                     }
                 }
             }
@@ -298,11 +299,8 @@ public class ConfigLoadService : IConfigLoadService
 
     public WinhanceConfigFile FilterConfigForCurrentSystem(WinhanceConfigFile config)
     {
-        var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
-        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
-
-        var filteredOptimize = FilterFeatureGroup(config.Optimize, buildNumber, buildRevision);
-        var filteredCustomize = FilterFeatureGroup(config.Customize, buildNumber, buildRevision);
+        var filteredOptimize = FilterFeatureGroup(config.Optimize);
+        var filteredCustomize = FilterFeatureGroup(config.Customize);
 
         return new WinhanceConfigFile
         {
@@ -314,10 +312,10 @@ public class ConfigLoadService : IConfigLoadService
         };
     }
 
-    private FeatureGroupSection FilterFeatureGroup(
-        FeatureGroupSection section,
-        int buildNumber,
-        int buildRevision)
+    private bool IsOnThisMachine(string settingId) =>
+        _catalogSettingsRegistry.GetById(settingId, CatalogScope.CurrentMachine) is not null;
+
+    private FeatureGroupSection FilterFeatureGroup(FeatureGroupSection section)
     {
         if (section?.Features == null) return section!;
 
@@ -329,13 +327,13 @@ public class ConfigLoadService : IConfigLoadService
 
             foreach (var item in feature.Value.Items)
             {
-                // Known catalog setting -> gate via the Availability model; unknown id -> keep. The raw "-win10"
+                // Known catalog setting -> kept only when this machine shows it; unknown id -> keep. The raw "-win10"
                 // alias ids in the embedded configs flow to the import bridge, whose alias-normalizing GetById
                 // applies them onto the merged setting - see the DetectIncompatibleSettings comment.
                 var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == item.Id);
                 if (newSetting != null)
                 {
-                    if (newSetting.Availability.Allows(new WinBuild(buildNumber, buildRevision)))
+                    if (IsOnThisMachine(newSetting.Id))
                     {
                         filteredItems.Add(item);
                     }

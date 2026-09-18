@@ -72,7 +72,7 @@ public class SettingItemViewModelOverlayOpacityTests
             Setting = new Setting
             {
                 Id = "test-setting",
-                Display = new() { Name = "Test Setting", Description = "d" },
+                Display = new() { Name = TestKeys.Of("Test Setting"), Description = TestKeys.Of("d") },
             },
             SettingId = "test-setting",
             Name = "Test Setting",

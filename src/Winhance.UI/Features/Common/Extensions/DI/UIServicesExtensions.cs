@@ -1,9 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.Autounattend.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -15,6 +14,8 @@ using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
+using Winhance.UI.Features.WimUtil.Models;
+using Winhance.UI.Features.WimUtil.ViewModels;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
@@ -42,6 +43,7 @@ public static class UIServicesExtensions
         services.AddSingleton<ISelectionSetBuilder, SelectionSetBuilder>();
         services.AddSingleton<ISelectionSaveService, SelectionSaveService>();
         services.AddSingleton<IBuilderSaveService, BuilderSaveService>();
+        services.AddSingleton<IBuilderModeEntry, BuilderModeEntry>();
         services.AddSingleton<IInstallConsent, DialogInstallConsent>();
 
         services.AddSingleton<IApplicationCloseService, ApplicationCloseService>();
@@ -126,10 +128,11 @@ public static class UIServicesExtensions
         services.AddSingleton<ICustomizationFeatureViewModel, StartMenuCustomizationsViewModel>();
         services.AddSingleton<ICustomizationFeatureViewModel, TaskbarCustomizationsViewModel>();
         services.AddSingleton<ICustomizationFeatureViewModel, WindowsThemeCustomizationsViewModel>();
+        services.AddSingleton<ICustomizationFeatureViewModel, TimeRegionLanguageViewModel>();
 
-        services.AddSingleton<AdvancedToolsViewModel>();
+        services.AddSingleton<WimUtilSession>();
         services.AddSingleton<WimUtilViewModel>();
-        services.AddTransient<AutounattendGeneratorViewModel>();
+        services.AddSingleton<AutounattendViewModel>();
 
         // Concrete VMs for XAML binding; interface aliases for service-layer decoupling.
         services.AddSingleton<WindowsAppsViewModel>();

@@ -6,7 +6,9 @@
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:commonViewModels="using:Winhance.UI.Features.Common.ViewModels"
     xmlns:converters="using:Winhance.UI.Features.Common.Converters"
+    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:coreModels="using:Winhance.Core.Features.Common.Models"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
@@ -103,20 +105,121 @@
         </Style.Setters>
     </Style>
 
+    <DataTemplate x:Key="ListTextFieldTemplate" x:DataType="commonViewModels:ListFieldViewModel">
+        <StackPanel Spacing="4">
+            <TextBox
+                Header="{x:Bind Label}"
+                Text="{x:Bind Text, Mode=TwoWay}"
+                IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Label}"/>
+            <TextBlock
+                Text="{x:Bind Error}"
+                Visibility="{x:Bind HasError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ListPasswordFieldTemplate" x:DataType="commonViewModels:ListFieldViewModel">
+        <PasswordBox
+            Header="{x:Bind Label}"
+            Password="{x:Bind Text, Mode=TwoWay}"
+            IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind Label}"/>
+    </DataTemplate>
+
+    <!-- SelectedIndex, not SelectedValue: WinUI cannot match a SelectedValue that is an app value
+         (microsoft-ui-xaml #5922), so the closed box would stay blank until the user picks. -->
+    <DataTemplate x:Key="ListSelectionFieldTemplate" x:DataType="commonViewModels:ListFieldViewModel">
+        <ComboBox
+            Header="{x:Bind Label}"
+            HorizontalAlignment="Stretch"
+            ItemsSource="{x:Bind Options}"
+            SelectedIndex="{x:Bind OptionIndex, Mode=TwoWay}"
+            IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind Label}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ListCheckBoxFieldTemplate" x:DataType="commonViewModels:ListFieldViewModel">
+        <CheckBox
+            Content="{x:Bind Label}"
+            IsChecked="{x:Bind Checked, Mode=TwoWay}"
+            IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind Tooltip}"/>
+    </DataTemplate>
+
+    <selectors:ListFieldTemplateSelector
+        x:Key="ListFieldTemplateSelector"
+        TextTemplate="{StaticResource ListTextFieldTemplate}"
+        PasswordTemplate="{StaticResource ListPasswordFieldTemplate}"
+        SelectionTemplate="{StaticResource ListSelectionFieldTemplate}"
+        CheckBoxTemplate="{StaticResource ListCheckBoxFieldTemplate}"/>
+
+    <DataTemplate x:Key="ListRowTemplate" x:DataType="commonViewModels:ListRowViewModel">
+        <controls:SettingsCard
+            IsTabStop="False"
+            ContentAlignment="Vertical"
+            HorizontalContentAlignment="Stretch"
+            MinHeight="0">
+            <!-- A CheckBox's check glyph is an AnimatedIcon that mirrors AnimatedIcon.State from the nearest ancestor
+                 that sets one, and the toolkit card moves its own on hover. The accept animation has no "PointerOver"
+                 frame, so the glyph cut to a drawn check while the pointer crossed the card. -->
+            <StackPanel Spacing="8" AnimatedIcon.State="Normal">
+                <ItemsControl
+                    ItemsSource="{x:Bind Fields}"
+                    ItemTemplateSelector="{StaticResource ListFieldTemplateSelector}"
+                    HorizontalContentAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Button
+                    Content="{x:Bind RemoveLabel}"
+                    Click="{x:Bind Remove}"
+                    IsEnabled="{x:Bind CanRemove, Mode=OneWay}"
+                    HorizontalAlignment="Right"/>
+            </StackPanel>
+        </controls:SettingsCard>
+    </DataTemplate>
+
+    <!-- IsThreeState stays false: a click can only hand back true or false, and a parent with mixed children
+         still renders indeterminate from the IncludeState getter alone. -->
+    <DataTemplate x:Key="IncludeBoxTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+            <CheckBox
+                IsChecked="{x:Bind IncludeState, Mode=TwoWay}"
+                IsThreeState="False"
+                AutomationProperties.Name="{x:Bind IncludeAutomationName, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind IncludeToolTip, Mode=OneWay}"
+                MinWidth="0"
+                Padding="0"
+                VerticalAlignment="Center"/>
+            <Grid Width="16" Height="16" VerticalAlignment="Center"
+                  Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
+                <fluentIcons:FluentIcon Icon="Link" IconVariant="Regular" FontSize="16"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <fluentIcons:FluentIcon Icon="LinkOff" IconVariant="Regular" FontSize="16"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
     <DataTemplate x:Key="SettingItemTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+        <StackPanel Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Margin="0,0,0,2">
-            <!-- Main settings card with overlays -->
+            <!-- IsIncluded is true outside authoring, so the card is disabled only while authoring leaves it out. -->
             <Grid>
-                <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
-                     control) rather than the SettingsCard root. This keeps the card
-                     interactive (click, hover, focus) in Review Mode while still
-                     disabling the toggle/dropdown so the user can't change values. -->
                 <controls:SettingsCard
                     IsTabStop="False"
+                    IsEnabled="{x:Bind IsIncluded, Mode=OneWay}"
                     AutomationProperties.LocalizedControlType="setting"
                     HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
-                    Padding="16,12,16,12">
+                    Padding="{x:Bind CardPadding, Mode=OneWay}">
                     <controls:SettingsCard.Description>
                         <commonControls:SettingDescriptionWithBadges
                             DescriptionText="{x:Bind Description}"
@@ -124,7 +227,7 @@
                             ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
                     </controls:SettingsCard.Description>
                     <controls:SettingsCard.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                             <Border
                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
@@ -179,7 +282,53 @@
                         </StackPanel>
                     </Button>
                 </Grid>
+
+                <!-- A sibling of the card, not a child, so the box stays live while the card is disabled. -->
+                <ContentControl
+                    Content="{x:Bind}"
+                    ContentTemplate="{StaticResource IncludeBoxTemplate}"
+                    Visibility="{x:Bind ShowIncludeCheckbox, Mode=OneWay}"
+                    IsTabStop="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Margin="16,0,0,0"/>
             </Grid>
+
+            <ContentControl
+                Visibility="{x:Bind HasRows, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
+                IsTabStop="False"
+                HorizontalContentAlignment="Stretch">
+                <controls:SettingsCard
+                    IsTabStop="False"
+                    ContentAlignment="Vertical"
+                    HorizontalContentAlignment="Stretch"
+                    BorderThickness="1,0,1,1"
+                    CornerRadius="0,0,4,4"
+                    Margin="0,-1,0,0"
+                    MinHeight="0"
+                    Padding="{x:Bind RowPadding, Mode=OneWay}">
+                    <!-- AnimatedIcon.State: the banner's CheckBox glyph would otherwise mirror this card's hover state. -->
+                    <StackPanel Spacing="8" AnimatedIcon.State="Normal">
+                        <ItemsRepeater ItemsSource="{x:Bind Rows}" ItemTemplate="{StaticResource ListRowTemplate}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="8"/>
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                        <commonControls:QuietInfoBar
+                            Visibility="{x:Bind ShowPasswordBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            IsOpen="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                            Severity="Informational"
+                            Message="{x:Bind SavePasswordsNote, Mode=OneWay}"
+                            IsClosable="False">
+                            <CheckBox
+                                Content="{x:Bind SavePasswordsLabel, Mode=OneWay}"
+                                IsChecked="{x:Bind SavePasswords, Mode=TwoWay}"
+                                Margin="0,0,0,8"/>
+                        </commonControls:QuietInfoBar>
+                    </StackPanel>
+                </controls:SettingsCard>
+            </ContentControl>
 
             <!-- Technical Details panel -->
             <commonControls:TechnicalDetailsPanel
@@ -285,16 +434,16 @@
         </StackPanel>
     </DataTemplate>
 
-    <!-- Template for parent settings that have children - renders as SettingsExpander -->
     <DataTemplate x:Key="SettingExpanderItemTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+        <StackPanel Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Margin="0,0,0,2">
             <!-- Parent setting card with expand/collapse chevron -->
             <Grid>
                 <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
                      control) rather than the SettingsCard root. The card itself stays
                      interactive so its click-to-expand handler keeps working in Review
-                     Mode; only the toggle/dropdown inside dims out.
+                     Mode and while authoring leaves it out, which keeps its children
+                     reachable; only the toggle/dropdown inside dims out.
                      IsTabStop is true so keyboard users can Tab onto the card and press
                      Enter/Space to expand (SettingsCard's IsClickEnabled invokes the Click
                      handler on those keys). AutomationProperties.Name is what Narrator
@@ -305,25 +454,35 @@
                     IsTabStop="True"
                     AutomationProperties.Name="{x:Bind Name}"
                     AutomationProperties.LocalizedControlType="setting"
-                    HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                    CornerRadius="4,4,0,0"
-                    Padding="{StaticResource SettingsCardPadding}">
+                    CornerRadius="{x:Bind ParentCornerRadius, Mode=OneWay}"
+                    Padding="{x:Bind CardPadding, Mode=OneWay}">
                     <!-- Hide the built-in > action icon that appears with IsClickEnabled -->
                     <controls:SettingsCard.Resources>
                         <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
                         <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
                     </controls:SettingsCard.Resources>
 
+                    <!-- This card stays enabled so it can expand, and only the toolkit's disabled state dims a HeaderIcon;
+                         an IconSourceElement can bind Opacity. The 1px lift matches IconConverter's path icon margin. -->
+                    <controls:SettingsCard.HeaderIcon>
+                        <IconSourceElement
+                            IconSource="{x:Bind Converter={StaticResource IconConverter}}"
+                            Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"
+                            Margin="0,0,0,1"/>
+                    </controls:SettingsCard.HeaderIcon>
+
                     <controls:SettingsCard.Description>
                         <commonControls:SettingDescriptionWithBadges
+                            Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"
                             DescriptionText="{x:Bind Description}"
                             BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
                             ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
                     </controls:SettingsCard.Description>
 
                     <controls:SettingsCard.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                    Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
                             <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                             <Border
                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
@@ -391,6 +550,15 @@
                         </StackPanel>
                     </Button>
                 </Grid>
+
+                <ContentControl
+                    Content="{x:Bind}"
+                    ContentTemplate="{StaticResource IncludeBoxTemplate}"
+                    Visibility="{x:Bind ShowIncludeCheckbox, Mode=OneWay}"
+                    IsTabStop="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Margin="16,0,0,0"/>
             </Grid>
 
             <!-- Technical Details panel -->
@@ -502,28 +670,31 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                        <StackPanel Visibility="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid>
-                                <!-- IsEnabled is bound on the inner SettingsCardItem so
-                                     children inside a Review-Mode parent expander stay
-                                     visible and reachable (the toggle/dropdown still
-                                     dims; only the input is disabled, not the card). -->
+                                <!-- MinHeight is a local attribute: the toolkit's 68 comes from a Style setter no
+                                     per-card resource can reach. -->
                                 <controls:SettingsCard
                                     IsTabStop="False"
+                                    IsEnabled="{x:Bind IsIncluded, Mode=OneWay}"
                                     AutomationProperties.LocalizedControlType="setting"
-                                    HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
+                                    HeaderIcon="{x:Bind ChildHeaderIcon, Mode=OneWay}"
                                     CornerRadius="{x:Bind ChildCornerRadius, Mode=OneWay}"
                                     BorderThickness="1,0,1,1"
-                                    Padding="54,12,52,12">
+                                    MinHeight="{x:Bind ChildMinHeight, Mode=OneWay}"
+                                    ContentAlignment="{x:Bind ChildContentAlignment, Mode=OneWay}"
+                                    HorizontalContentAlignment="{x:Bind ChildContentHorizontalAlignment, Mode=OneWay}"
+                                    Padding="{x:Bind ChildCardPadding, Mode=OneWay}">
                                     <controls:SettingsCard.Description>
                                         <commonControls:SettingDescriptionWithBadges
+                                            Visibility="{x:Bind IsCompactRow, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                             DescriptionText="{x:Bind Description}"
                                             BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
                                             ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
                                     </controls:SettingsCard.Description>
                                     <controls:SettingsCard.Header>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{x:Bind ChildHeader}" VerticalAlignment="Center"/>
                                             <Border
                                                 Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
                                                 Style="{StaticResource NewBadgeBorderStyle}">
@@ -545,7 +716,65 @@
                                     CornerRadius="4">
                                     <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
                                 </Border>
+
+                                <ContentControl
+                                    Content="{x:Bind}"
+                                    ContentTemplate="{StaticResource IncludeBoxTemplate}"
+                                    Visibility="{x:Bind ShowIncludeCheckbox, Mode=OneWay}"
+                                    IsTabStop="False"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="54,0,0,0"/>
                             </Grid>
+
+                            <controls:SettingsCard
+                                Visibility="{x:Bind ShowsOptionTiles, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsTabStop="False"
+                                IsEnabled="{x:Bind IsIncluded, Mode=OneWay}"
+                                AutomationProperties.LocalizedControlType="setting"
+                                CornerRadius="{x:Bind BrowseRowCornerRadius, Mode=OneWay}"
+                                BorderThickness="1,0,1,1"
+                                MinHeight="{x:Bind ChildMinHeight, Mode=OneWay}"
+                                Padding="{x:Bind ChildCardPadding, Mode=OneWay}">
+                                <controls:SettingsCard.Header>
+                                    <TextBlock Text="{x:Bind BrowseRowHeader}" VerticalAlignment="Center"/>
+                                </controls:SettingsCard.Header>
+                                <commonControls:SettingTileSelection Setting="{x:Bind}" Part="Browse"
+                                    IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"/>
+                            </controls:SettingsCard>
+
+                            <ContentControl
+                                Visibility="{x:Bind HasRows, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
+                                IsTabStop="False"
+                                HorizontalContentAlignment="Stretch">
+                                <Border
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1,0,1,1"
+                                    CornerRadius="0,0,4,4"
+                                    Margin="0,-1,0,0"
+                                    Padding="54,8,52,12">
+                                    <StackPanel Spacing="8" AnimatedIcon.State="Normal">
+                                        <ItemsRepeater ItemsSource="{x:Bind Rows}" ItemTemplate="{StaticResource ListRowTemplate}">
+                                            <ItemsRepeater.Layout>
+                                                <StackLayout Spacing="8"/>
+                                            </ItemsRepeater.Layout>
+                                        </ItemsRepeater>
+                                        <commonControls:QuietInfoBar
+                                            Visibility="{x:Bind ShowPasswordBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            IsOpen="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                                            Severity="Informational"
+                                            Message="{x:Bind SavePasswordsNote, Mode=OneWay}"
+                                            IsClosable="False">
+                                            <CheckBox
+                                                Content="{x:Bind SavePasswordsLabel, Mode=OneWay}"
+                                                IsChecked="{x:Bind SavePasswords, Mode=TwoWay}"
+                                                Margin="0,0,0,8"/>
+                                        </commonControls:QuietInfoBar>
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
 
                             <!-- Technical Details panel -->
                             <commonControls:TechnicalDetailsPanel

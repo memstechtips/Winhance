@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -365,14 +366,21 @@ public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomation
 
     protected override string GetClassNameCore() => nameof(NavButton);
 
+    // Locked: the base peer offers no Invoke pattern, so UIA reports a button that cannot be pressed.
     protected override object GetPatternCore(PatternInterface patternInterface)
     {
-        if (patternInterface == PatternInterface.Invoke)
+        if (patternInterface == PatternInterface.Invoke
+            && Owner is NavButton navButton
+            && NavLockPolicy.IsInvokableByAutomation(navButton.IsLocked))
         {
             return this;
         }
         return base.GetPatternCore(patternInterface);
     }
+
+    // The element stays enabled in XAML to keep its tab stop and tooltip; only UIA hears it is unavailable.
+    protected override bool IsEnabledCore()
+        => Owner is not NavButton navButton || NavLockPolicy.IsInvokableByAutomation(navButton.IsLocked);
 
     public void Invoke()
     {

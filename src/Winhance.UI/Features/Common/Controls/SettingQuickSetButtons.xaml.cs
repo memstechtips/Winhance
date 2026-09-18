@@ -9,7 +9,7 @@ namespace Winhance.UI.Features.Common.Controls;
 // The commands differ per control type as well as per power mode; both axes are resolved on the view model.
 public enum SettingQuickSetKind
 {
-    Toggle,
+    TwoState,
     Selection,
     Numeric,
 }
@@ -99,12 +99,12 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         bool show;
         switch (Kind)
         {
-            case SettingQuickSetKind.Toggle:
-                show = vm.ShowToggleQuickSetButtons;
-                RecommendedCommand = vm.SetToggleToRecommendedCommand;
-                DefaultCommand = vm.SetToggleToDefaultCommand;
-                RecommendedTooltip = vm.ToggleRecommendedTooltip;
-                DefaultTooltip = vm.ToggleDefaultTooltip;
+            case SettingQuickSetKind.TwoState:
+                show = vm.ShowTwoStateQuickSetButtons;
+                RecommendedCommand = vm.SetTwoStateToRecommendedCommand;
+                DefaultCommand = vm.SetTwoStateToDefaultCommand;
+                RecommendedTooltip = vm.TwoStateRecommendedTooltip;
+                DefaultTooltip = vm.TwoStateDefaultTooltip;
                 break;
 
             case SettingQuickSetKind.Numeric:

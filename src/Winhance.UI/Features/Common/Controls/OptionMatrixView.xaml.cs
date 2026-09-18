@@ -279,9 +279,9 @@ public sealed partial class OptionMatrixView : UserControl
 
             CodeHost.Children.Add(new Border
             {
-                Style = Named(block.Kind == CodeKind.PowerShell
-                    ? "TechDetail.CodeBlock.PowerShell"
-                    : "TechDetail.CodeBlock.RegContent"),
+                Style = Named(block.Kind == CodeKind.RegFile
+                    ? "TechDetail.CodeBlock.RegContent"
+                    : "TechDetail.CodeBlock.PowerShell"),
                 Margin = new Thickness(12, 0, 12, 8),
                 Child = body,
             });
@@ -396,8 +396,10 @@ public sealed partial class OptionMatrixView : UserControl
         foreach (var group in groups)
         {
             var last = runs.Count > 0 ? runs[^1] : null;
+            // Same description too: a run shows its first group's heading, so a read-only group must not join a written one.
             if (last is not null
                 && last[^1].Kind == group.Kind
+                && last[^1].Description == group.Description
                 && last[^1].StartColumn + last[^1].ColumnSpan == group.StartColumn)
             {
                 last.Add(group);

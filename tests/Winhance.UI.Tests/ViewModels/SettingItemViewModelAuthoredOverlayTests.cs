@@ -1,17 +1,20 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Autounattend.Catalogs;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.TestSupport;
 using Xunit;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.UI.Tests.ViewModels;
 
 // A filter toggle or language change during Builder recreates every setting ViewModel from live state while
@@ -41,6 +44,7 @@ public class SettingItemViewModelAuthoredOverlayTests
             .Returns<string>(id => _authored.TryGetValue(id, out var e) ? e : null);
         _modeService.Setup(m => m.GetBuilderEdits())
             .Returns(() => _authored.Values.ToList());
+        _modeService.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(true);
     }
 
     private SettingItemViewModel CreateSut(SettingItemViewModelConfig config) =>
@@ -63,8 +67,8 @@ public class SettingItemViewModelAuthoredOverlayTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = inputType,
             IsSelected = isSelected,
         };
@@ -72,7 +76,7 @@ public class SettingItemViewModelAuthoredOverlayTests
     private static Setting ToggleSetting(string id) => new()
     {
         Id = id,
-        Display = new() { Name = id, Description = "" },
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
     };
 
     // Without a WindowsDefault or Recommended role, HasQuickSetTarget is false and the command silently no-ops, so
@@ -87,19 +91,31 @@ public class SettingItemViewModelAuthoredOverlayTests
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "" },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
             States = new[]
             {
-                new SettingState { Label = "Enabled", Roles = enabled },
-                new SettingState { Label = "Disabled", Roles = disabled },
+                new SettingState { Label = LocKey.Common.Enabled, Roles = enabled },
+                new SettingState { Label = LocKey.Common.Disabled, Roles = disabled },
             },
         };
     }
 
+    // The Checked/Unchecked labels are what derive ControlKind.CheckBox.
+    private static Setting CheckBoxSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Common.Checked, Roles = new[] { StateRole.Recommended } },
+            new SettingState { Label = LocKey.Common.Unchecked, Roles = new[] { StateRole.WindowsDefault } },
+        },
+    };
+
     private static Setting NumericSetting(string id, string? units = null, int recommended = 90) => new()
     {
         Id = id,
-        Display = new() { Name = id, Description = "" },
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
         Numeric = new()
         {
             Min = 0,
@@ -119,20 +135,20 @@ public class SettingItemViewModelAuthoredOverlayTests
     private static Setting AcDcSelectionSetting(string id) => new()
     {
         Id = id,
-        Display = new() { Name = id, Description = "" },
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
         Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
         States = new[]
         {
-            new SettingState { Label = "Never" },
-            new SettingState { Label = "5 minutes", Roles = RecommendedOnDc },
-            new SettingState { Label = "15 minutes", Roles = RecommendedOnAc },
+            new SettingState { Label = LocKey.Setting.TaskbarButtonSize.Option2 },
+            new SettingState { Label = TestKeys.Of("5 minutes"), Roles = RecommendedOnDc },
+            new SettingState { Label = TestKeys.Of("15 minutes"), Roles = RecommendedOnAc },
         },
     };
 
     private static Setting AcDcNumericSetting(string id, string? units = null) => new()
     {
         Id = id,
-        Display = new() { Name = id, Description = "" },
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
         Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
         Numeric = new()
         {
@@ -143,26 +159,34 @@ public class SettingItemViewModelAuthoredOverlayTests
         },
     };
 
-    // IsPowerPlanSetting keys off OptionSource alone, and the recorded choice reads the GUID off the option Tag,
-    // so a stub source is enough here.
     private static Setting PowerPlanSetting(string id) => new()
     {
         Id = id,
-        Display = new() { Name = id, Description = "" },
-        OptionSource = new Mock<IDynamicOptionSource>().Object,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        Options = new(OptionSource.PowerPlans),
     };
 
-    // What SettingsLoadingService.BuildBuilderPowerPlanOptions hands the factory: index-valued options carrying
-    // the plan GUID on the Tag, DisplayName left as the raw loc key. The order is a parameter so a reload can
-    // present the plans in a different order than the one the user authored against.
     private static void AddBuilderPowerPlanOptions(SettingItemViewModel vm, bool balancedFirst = false)
     {
-        var high = new PowerPlanComboBoxOption { DisplayName = "PowerPlan_HighPerformance", Guid = "g-high", ExistsOnSystem = true };
-        var balanced = new PowerPlanComboBoxOption { DisplayName = "PowerPlan_Balanced", Guid = "g-bal", ExistsOnSystem = true };
+        var high = new DynamicOption("PowerPlan_HighPerformance", "g-high");
+        var balanced = new DynamicOption("PowerPlan_Balanced", "g-bal");
         var ordered = balancedFirst ? new[] { balanced, high } : new[] { high, balanced };
-        for (int i = 0; i < ordered.Length; i++)
-            vm.ComboBoxOptions.Add(new ComboBoxDisplayOption(ordered[i].DisplayName, i, "Installed on system", ordered[i] with { Index = i }));
+        vm.TryApplyKeyedOptions(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            Outcome = SettingDetectionOutcome.Resolved,
+            DynamicOptions = ordered,
+            DynamicSelection = "g-high",
+        });
     }
+
+    // The catalog's own settings: the product key's rule upper-cases, so the box and the record hold different strings.
+    private static readonly Setting TextSetting =
+        AutounattendCatalog.All.Single(s => s.Id == "autounattend-product-key");
+
+    private static readonly Setting ListSetting =
+        AutounattendCatalog.All.Single(s => s.Id == "autounattend-accounts");
 
     private static SettingStateResult LiveState(bool isEnabled = false, object? currentValue = null) => new()
     {
@@ -182,6 +206,33 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         sut.IsSelected.Should().BeTrue(
             because: "the card must show what Save will write, not what the machine currently says");
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredCheckBox()
+    {
+        var sut = CreateSut(Config(CheckBoxSetting("authored-check"), InputType.CheckBox));
+        _authored["authored-check"] = new SettingChoice("authored-check", new ChoiceValue.CheckBox(true));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
+
+        sut.IsSelected.Should().BeTrue(
+            because: "the card must show what Save will write, not what the machine currently says");
+    }
+
+    [Fact]
+    public void EachTwoStateKind_RecordsItsOwnChoiceValue()
+    {
+        var checkBox = CreateSut(Config(CheckBoxSetting("rec-check"), InputType.CheckBox));
+        var toggle = CreateSut(Config(
+            ToggleSettingWithRoles("rec-toggle", recommendedEnabled: true, defaultEnabled: false),
+            InputType.Toggle));
+
+        checkBox.TrySetToRecommended().Should().BeTrue();
+        toggle.TrySetToRecommended().Should().BeTrue();
+
+        _authored["rec-check"].Value.Should().BeOfType<ChoiceValue.CheckBox>().Which.Checked.Should().BeTrue();
+        _authored["rec-toggle"].Value.Should().BeOfType<ChoiceValue.Toggle>().Which.On.Should().BeTrue();
     }
 
     [Fact]
@@ -220,6 +271,39 @@ public class SettingItemViewModelAuthoredOverlayTests
         sut.NumericValue.Should().Be(shownBeforeRefresh);
         sut.NumericValue.Should().Be(saved.Value.Should().BeOfType<ChoiceValue.Number>().Which.Value,
             because: "the screen and the file are the same fact read from the same store");
+    }
+
+    [Fact]
+    public void RoundTrip_Text()
+    {
+        var authoring = CreateSut(Config(TextSetting, InputType.TextBox));
+        authoring.OnTextBoxChanged("vk7jg-nphtm-c97jm-9mpgt-3v66t");
+
+        var reloaded = CreateSut(Config(TextSetting, InputType.TextBox));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.TextValue.Should().Be("VK7JG-NPHTM-C97JM-9MPGT-3V66T",
+            because: "the card comes back showing what Save will write, not the casing it was typed in");
+        reloaded.HasTextError.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RoundTrip_List()
+    {
+        var authoring = CreateSut(Config(ListSetting, InputType.List));
+        authoring.AddRow();
+        authoring.Rows[0].FieldFor("name")!.Text = "Marco";
+        authoring.Rows[0].FieldFor("auto-logon")!.Checked = true;
+        authoring.SavePasswords = true;
+
+        var reloaded = CreateSut(Config(ListSetting, InputType.List));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.Rows.Should().ContainSingle();
+        reloaded.Rows[0].FieldFor("name")!.Text.Should().Be("Marco");
+        reloaded.Rows[0].FieldFor("auto-logon")!.Checked.Should().BeTrue();
+        reloaded.SavePasswords.Should().BeTrue(
+            because: "the next row edit rewrites the whole record, so a dropped box would silently drop the choice");
     }
 
     [Fact]
@@ -313,23 +397,21 @@ public class SettingItemViewModelAuthoredOverlayTests
     [Fact]
     public void RoundTrip_PowerPlan()
     {
-        // The Builder dropdown is index-valued, but an index means nothing to the machine the config is applied
-        // to - the recorded choice has to be the plan GUID, read off the option Tag, with the human name beside it.
-        _localizationService.Setup(l => l.GetString("PowerPlan_Balanced")).Returns("Balanced");
         var setting = PowerPlanSetting("rt-power-plan");
 
         var authoring = CreateSut(Config(setting, InputType.Selection));
         AddBuilderPowerPlanOptions(authoring);
-        authoring.ApplySelectionValue(1);
+        authoring.ApplySelectionValue("g-bal");
 
-        _authored["rt-power-plan"].Value.Should().Be(new ChoiceValue.PowerPlan("g-bal", "Balanced"));
+        _authored["rt-power-plan"].Value.Should().Be(new ChoiceValue.Keyed("g-bal", "PowerPlan_Balanced"));
 
-        // Reloaded with the plans in the other order: only a GUID lookup lands on Balanced again.
+        // Reloaded with the plans in the other order: only a key lookup lands on Balanced again.
         var reloaded = CreateSut(Config(setting, InputType.Selection));
         AddBuilderPowerPlanOptions(reloaded, balancedFirst: true);
         reloaded.ApplyAuthoredOverlay();
 
-        reloaded.SelectedValue.Should().Be(0);
+        reloaded.SelectedValue.Should().Be("g-bal");
+        reloaded.ComboIndexForMode(SettingInputMode.Single).Should().Be(0);
         reloaded.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
     }
 
@@ -389,5 +471,16 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         reloaded.CapturedCustomStateValues.Should().Equal(captured);
         reloaded.SelectedValue.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotPutAnExcludedSettingBackInTheFile()
+    {
+        _modeService.Setup(m => m.IsIncluded("excluded")).Returns(false);
+        var sut = CreateSut(Config(ToggleSetting("excluded"), InputType.Toggle));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: true));
+
+        sut.IsIncluded.Should().BeFalse();
     }
 }

@@ -43,7 +43,10 @@ public sealed record SectionPageChrome(
     ToggleMenuFlyoutItem InfoBadgesToggle,
     ToggleMenuFlyoutItem NewBadgesToggle,
     ToggleMenuFlyoutItem ShowOnlyChangesToggle,
-    MenuFlyoutSeparator ShowOnlyChangesSeparator);
+    MenuFlyoutSeparator ShowOnlyChangesSeparator,
+    MenuFlyoutItem IncludeAllItem,
+    MenuFlyoutItem ExcludeAllItem,
+    MenuFlyoutSeparator IncludeActionsSeparator);
 
 // Shared base for the section pages; SectionPageShell holds the markup. Not generic on purpose: WinUI 3 XAML
 // has no x:TypeArguments (WPF-only), and the XAML codegen writes the partial class's base type from the root
@@ -85,6 +88,8 @@ public abstract class SectionPage : Page
         chrome.BreadcrumbRoot.Click += BreadcrumbOverview_Click;
         chrome.ApplyRecommendedItem.Click += ApplyRecommended_Click;
         chrome.ResetDefaultsItem.Click += ResetDefaults_Click;
+        chrome.IncludeAllItem.Click += IncludeAll_Click;
+        chrome.ExcludeAllItem.Click += ExcludeAll_Click;
         chrome.TechnicalDetailsToggle.Click += ViewTechnicalDetails_Click;
         chrome.InfoBadgesToggle.Click += ViewInfoBadges_Click;
         chrome.NewBadgesToggle.Click += ViewNewBadges_Click;
@@ -112,6 +117,10 @@ public abstract class SectionPage : Page
         _localizationService = App.Services.GetService<ILocalizationService>();
         _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
         _applicationModeService = App.Services.GetService<IApplicationModeService>();
+        if (_applicationModeService != null)
+        {
+            _applicationModeService.ModeChanged += OnApplicationModeChanged;
+        }
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -126,6 +135,12 @@ public abstract class SectionPage : Page
             {
                 _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
                 _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+            }
+
+            if (_applicationModeService != null)
+            {
+                _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+                _applicationModeService.ModeChanged += OnApplicationModeChanged;
             }
 
             var eventBus = App.Services.GetService<IEventBus>();
@@ -173,6 +188,10 @@ public abstract class SectionPage : Page
         if (_configReviewService != null)
         {
             _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+        }
+        if (_applicationModeService != null)
+        {
+            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
         }
         _settingsRefreshedSubscription?.Dispose();
         _settingsRefreshedSubscription = null;
@@ -277,6 +296,11 @@ public abstract class SectionPage : Page
         DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
     }
 
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
+    }
+
     // Suggestions carry the section that holds the setting, so this resolves without consulting the ViewModel.
     protected void SearchBox_SuggestionChosen(
         AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
@@ -316,6 +340,9 @@ public abstract class SectionPage : Page
         _chrome.ShowOnlyChangesToggle.Text = Localized("View_ShowOnlyChanges", "Show Only Changes");
         ToolTipService.SetToolTip(_chrome.ShowOnlyChangesToggle,
             Localized("View_ShowOnlyChanges_Tooltip", "Show only settings with pending changes from the imported config"));
+
+        _chrome.IncludeAllItem.Text = Localized("QuickActions_IncludeAll", "Include All Settings");
+        _chrome.ExcludeAllItem.Text = Localized("QuickActions_ExcludeAll", "Exclude All Settings");
 
         UpdateQuickActionsForReviewMode();
     }
@@ -604,6 +631,33 @@ public abstract class SectionPage : Page
                 _showOnlyChanges = false;
                 ApplyShowOnlyChangesFilter();
             }
+        }
+
+        UpdateIncludeActionsForAuthoring();
+    }
+
+    private void UpdateIncludeActionsForAuthoring()
+    {
+        var visibility = _applicationModeService.Capabilities().AuthorsIntent
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        _chrome.IncludeActionsSeparator.Visibility = visibility;
+        _chrome.IncludeAllItem.Visibility = visibility;
+        _chrome.ExcludeAllItem.Visibility = visibility;
+    }
+
+    protected void IncludeAll_Click(object sender, RoutedEventArgs e) => SetIncludedInScope(true);
+
+    protected void ExcludeAll_Click(object sender, RoutedEventArgs e) => SetIncludedInScope(false);
+
+    private void SetIncludedInScope(bool included)
+    {
+        // Feature.Settings is the flat list, children included, so each gets IsIncluded directly; IncludeState
+        // would cascade over children this loop already reaches.
+        foreach (var setting in SettingsInScope())
+        {
+            setting.IsIncluded = included;
         }
     }
 }
