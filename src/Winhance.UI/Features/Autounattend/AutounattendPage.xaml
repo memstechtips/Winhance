@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.Autounattend.AutounattendPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:autounattend="using:Winhance.UI.Features.Autounattend"
+    x:DefaultBindMode="OneWay">
+
+    <Grid Padding="0,0,12,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox Width="64" Height="64" Stretch="Uniform">
+                <fluentIcons:FluentIcon Icon="TextBulletListSquareSparkle" IconVariant="Color" />
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
+                <TextBlock
+                    Text="{x:Bind ViewModel.PageDescription, Mode=OneWay}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <Border
+            Grid.Row="1"
+            Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
+            CornerRadius="8"
+            Margin="0,16,0,12">
+            <autounattend:AutounattendSettingsView/>
+        </Border>
+    </Grid>
+</Page>

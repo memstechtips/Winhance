@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Winhance.Infrastructure.Features.AdvancedTools.Services;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Utilities;
+using Winhance.Infrastructure.Features.WimUtil.Services;
 using Xunit;
 
 namespace Winhance.IntegrationTests.ScriptGeneration;

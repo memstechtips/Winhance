@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Winhance.UI.Features.AdvancedTools.Models;
+using Winhance.UI.Features.WimUtil.Models;
 using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;

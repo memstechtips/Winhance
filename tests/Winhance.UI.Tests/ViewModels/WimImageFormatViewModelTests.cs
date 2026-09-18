@@ -1,11 +1,11 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.ViewModels;
 using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;

@@ -8,6 +8,10 @@ public sealed record SelectionSaveOptions
     // Set by a caller that already owns a destination (WIMUtil's extracted-ISO working directory): no picker opens.
     public string? FixedPath { get; init; }
 
+    // Null from the bar's Save, where the WIMUtil session decides; Generate names it so the album and the
+    // driver step land on the media being built.
+    public string? MediaFolder { get; init; }
+
     // The startup backup runs with nobody watching, so it must not stop on a question.
     public bool ConfirmEmptyAppSelection { get; init; } = true;
 

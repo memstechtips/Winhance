@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Autounattend.AutounattendSettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:viewModels="using:Winhance.UI.Features.Autounattend.ViewModels"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+    x:DefaultBindMode="OneWay">
+
+    <!-- Not in a shared dictionary: x:Bind needs a code-behind class, and the dictionaries App.xaml merges have
+         none. A template named as a StaticResource has to be declared above the template that names it. -->
+    <UserControl.Resources>
+
+        <!-- MinHeight is local because the toolkit sets the card floor from a Style setter. The left padding is the
+             group row's 54 plus one icon column (24 + 16). -->
+        <DataTemplate x:Key="IncludedFeatureRowTemplate" x:DataType="viewModels:IncludedRowViewModel">
+            <controls:SettingsCard
+                IsTabStop="False"
+                AutomationProperties.LocalizedControlType="setting"
+                Header="{x:Bind Name, Mode=OneWay}"
+                HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource SectionIconConverter}}"
+                BorderThickness="1,0,1,1"
+                Padding="94,8,52,8"
+                MinHeight="0"
+                CornerRadius="{x:Bind CornerRadius, Mode=OneWay}">
+                <TextBlock
+                    Text="{x:Bind CountText, Mode=OneWay}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    VerticalAlignment="Center"/>
+            </controls:SettingsCard>
+        </DataTemplate>
+
+        <DataTemplate x:Key="IncludedGroupRowTemplate" x:DataType="viewModels:IncludedRowViewModel">
+            <StackPanel>
+                <controls:SettingsCard
+                    IsClickEnabled="True"
+                    Click="{x:Bind ToggleExpander}"
+                    IsTabStop="True"
+                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                    AutomationProperties.LocalizedControlType="setting"
+                    Header="{x:Bind Name, Mode=OneWay}"
+                    HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource SectionIconConverter}, ConverterParameter=Color}"
+                    BorderThickness="1,0,1,1"
+                    Padding="54,8,52,8"
+                    MinHeight="0"
+                    CornerRadius="{x:Bind CornerRadius, Mode=OneWay}">
+                    <!-- Hide the built-in chevron IsClickEnabled adds; the row draws its own below. -->
+                    <controls:SettingsCard.Resources>
+                        <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                        <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                    </controls:SettingsCard.Resources>
+                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind CountText, Mode=OneWay}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center"/>
+                        <Grid Width="20" Height="20">
+                            <FontIcon
+                                Glyph="&#xE70E;"
+                                FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                Visibility="{x:Bind IsExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            <FontIcon
+                                Glyph="&#xE70D;"
+                                FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                Visibility="{x:Bind IsExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </controls:SettingsCard>
+                <ItemsControl
+                    ItemsSource="{x:Bind Children}"
+                    ItemTemplate="{StaticResource IncludedFeatureRowTemplate}"
+                    Visibility="{x:Bind IsExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+
+    </UserControl.Resources>
+
+    <commonControls:SettingsListView
+        x:Name="SettingsList"
+        IsLoading="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+        Footer="{x:Bind Footer, Mode=OneWay}">
+        <commonControls:SettingsListView.Header>
+            <StackPanel Margin="0,0,0,8">
+                <controls:SettingsCard
+                    IsClickEnabled="True"
+                    Click="{x:Bind ViewModel.ToggleIncludedExpander}"
+                    IsTabStop="True"
+                    AutomationProperties.Name="{x:Bind ViewModel.IncludedTitle, Mode=OneWay}"
+                    AutomationProperties.LocalizedControlType="setting"
+                    Header="{x:Bind ViewModel.IncludedTitle, Mode=OneWay}"
+                    HeaderIcon="{x:Bind ViewModel.IncludedIcon, Converter={StaticResource IconConverter}}"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    CornerRadius="{x:Bind ViewModel.IncludedCornerRadius, Mode=OneWay}"
+                    Padding="{StaticResource SettingsCardPadding}">
+                    <controls:SettingsCard.Resources>
+                        <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                        <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                    </controls:SettingsCard.Resources>
+                    <controls:SettingsCard.Description>
+                        <TextBlock
+                            Text="{x:Bind ViewModel.IncludedDescription, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Style="{StaticResource CaptionTextBlockStyle}"/>
+                    </controls:SettingsCard.Description>
+                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind ViewModel.IncludedCountText, Mode=OneWay}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center"/>
+                        <Grid Width="20" Height="20">
+                            <FontIcon
+                                Glyph="&#xE70E;"
+                                FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                Visibility="{x:Bind ViewModel.IsIncludedExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            <FontIcon
+                                Glyph="&#xE70D;"
+                                FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                Visibility="{x:Bind ViewModel.IsIncludedExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </controls:SettingsCard>
+                <ItemsControl
+                    ItemsSource="{x:Bind ViewModel.IncludedGroups, Mode=OneWay}"
+                    ItemTemplate="{StaticResource IncludedGroupRowTemplate}"
+                    Visibility="{x:Bind ViewModel.IsIncludedExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+        </commonControls:SettingsListView.Header>
+    </commonControls:SettingsListView>
+</UserControl>
