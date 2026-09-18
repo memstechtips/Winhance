@@ -1082,42 +1082,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-number-decimal",
-            "Name": "Number Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-currency-decimal",
-            "Name": "Currency Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-short-date",
-            "Name": "Short Date Format",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-first-day-of-week",
-            "Name": "First Day of Week",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-measurement-system",
-            "Name": "Measurement System",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-list-separator",
-            "Name": "List Separator",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
             "Id": "explorer-autoplay",
             "Name": "Autoplay",
             "IsSelected": true,
@@ -1360,6 +1324,47 @@
             "Name": "Taskbar Auto-Hide Hover Delay",
             "InputType": 1,
             "SelectedIndex": 5
+          }
+        ]
+      },
+      "TimeRegionLanguage": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "explorer-customization-number-decimal",
+            "Name": "Number Decimal Symbol",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-currency-decimal",
+            "Name": "Currency Decimal Symbol",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-short-date",
+            "Name": "Short Date Format",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-first-day-of-week",
+            "Name": "First Day of Week",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-measurement-system",
+            "Name": "Measurement System",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-list-separator",
+            "Name": "List Separator",
+            "InputType": 1,
+            "SelectedIndex": 0
           }
         ]
       },
@@ -2197,8 +2202,8 @@
             "Id": "power-plan-selection",
             "Name": "Power Plan",
             "InputType": 1,
-            "PowerPlanGuid": "57696e68-616e-6365-506f-776572000000",
-            "PowerPlanName": "Winhance Power Plan"
+            "SelectedKey": "57696e68-616e-6365-506f-776572000000",
+            "SelectedKeyLabel": "Winhance Power Plan"
           },
           {
             "Id": "power-display-timeout",

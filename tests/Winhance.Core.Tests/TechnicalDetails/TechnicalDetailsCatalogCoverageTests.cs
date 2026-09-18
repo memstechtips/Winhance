@@ -28,31 +28,19 @@ public class TechnicalDetailsCatalogCoverageTests
     {
         var missing = new List<string>();
         var compared = 0;
-        var skippedPowerPlan = 0;
 
         foreach (var setting in SettingCatalog.All)
         {
-            // The power-plan matrix is built from the live list of installed schemes, which only
-            // exists at runtime - under a synthetic snapshot it has no options and legitimately
-            // returns null. It is the one shape this sweep cannot judge.
-            if (setting.Control == ControlKind.PowerPlan)
-            {
-                skippedPowerPlan++;
-                continue;
-            }
-
             compared++;
             var matrix = TechnicalDetailsBuilder.Build(setting, new SettingStateSnapshot(), FallbackLoc(), Build);
             if (matrix is null)
                 missing.Add($"{setting.Id} (Control={setting.Control}, Targets={setting.Targets.Count}, States={setting.States.Count})");
         }
 
-        _output.WriteLine($"compared: {compared}, skipped power-plan: {skippedPowerPlan}, missing: {missing.Count}");
+        _output.WriteLine($"compared: {compared}, missing: {missing.Count}");
 
-        // Non-vacuity. A sweep that silently compares nothing and passes is worse than no test, and a
-        // skip census makes over-skipping visible rather than invisible.
+        // Non-vacuity. A sweep that silently compares nothing and passes is worse than no test.
         compared.Should().BeGreaterThan(300, "the sweep must actually cover the catalog");
-        skippedPowerPlan.Should().Be(1, "power-plan-selection is the only OptionSource setting; a second one means this exemption needs revisiting");
 
         missing.Should().BeEmpty(
             "a setting with no target still has something to document - its scripts, its fixed registry "

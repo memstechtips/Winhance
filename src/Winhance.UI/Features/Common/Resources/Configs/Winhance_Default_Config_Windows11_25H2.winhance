@@ -446,451 +446,439 @@
         "Items": [
           {
             "Id": "explorer-customization-shortcut-suffix",
-            "Name": "Shortcut Naming",
+            "Name": "Setting_explorer-customization-shortcut-suffix_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-shortcut-arrow",
-            "Name": "Shortcut Arrow Icon",
+            "Name": "Setting_explorer-customization-shortcut-arrow_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-desktop-icon-this-pc",
-            "Name": "Show This PC on desktop",
+            "Name": "Setting_explorer-customization-desktop-icon-this-pc_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-desktop-icon-recycle-bin",
-            "Name": "Show Recycle Bin on desktop",
+            "Name": "Setting_explorer-customization-desktop-icon-recycle-bin_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-desktop-icon-users-files",
-            "Name": "Show User\u0027s Files on desktop",
+            "Name": "Setting_explorer-customization-desktop-icon-users-files_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-desktop-icon-control-panel",
-            "Name": "Show Control Panel on desktop",
+            "Name": "Setting_explorer-customization-desktop-icon-control-panel_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-desktop-icon-network",
-            "Name": "Show Network on desktop",
+            "Name": "Setting_explorer-customization-desktop-icon-network_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-context-menu",
-            "Name": "Use Classic Context Menu",
+            "Name": "Setting_explorer-customization-context-menu_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-take-ownership",
-            "Name": "Add \u0027Take Ownership\u0027 to Context Menu",
+            "Name": "Setting_explorer-take-ownership_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-toggle-extensions",
-            "Name": "Add \u0027Show/Hide Extensions\u0027 to Context Menu",
+            "Name": "Setting_explorer-context-menu-toggle-extensions_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-windows-terminal",
-            "Name": "Show \u0027Open in Windows Terminal\u0027 in Context Menu",
+            "Name": "Setting_explorer-context-menu-windows-terminal_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-sfc",
-            "Name": "Add \u0027SFC /SCANNOW\u0027 to Context Menu",
+            "Name": "Setting_explorer-context-menu-sfc_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-dism",
-            "Name": "Add \u0027Repair Windows Image\u0027 to Context Menu",
+            "Name": "Setting_explorer-context-menu-dism_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-chkdsk",
-            "Name": "Add \u0027CHKDSK\u0027 to Context Menu",
+            "Name": "Setting_explorer-context-menu-chkdsk_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-ps1-edit-run",
-            "Name": "Add \u0027Edit or Run with\u0027 to PS1 Context Menu",
+            "Name": "Setting_explorer-context-menu-ps1-edit-run_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-context-menu-compress-to",
-            "Name": "Add \u0027Compress To\u0027 to Context Menu",
+            "Name": "Setting_explorer-context-menu-compress-to_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "devices-dynamic-lighting-ambient",
-            "Name": "Use Dynamic Lighting on my devices",
+            "Name": "Setting_devices-dynamic-lighting-ambient_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "devices-dynamic-lighting-foreground-app",
-            "Name": "Compatible apps in the foreground always control lighting",
+            "Name": "Setting_devices-dynamic-lighting-foreground-app_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "devices-default-printer-management",
-            "Name": "Automatic Default Printer Management",
+            "Name": "Setting_devices-default-printer-management_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-launch-to",
-            "Name": "Open File Explorer to",
+            "Name": "Setting_explorer-customization-launch-to_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-browse-folders",
-            "Name": "Browse folders",
+            "Name": "Setting_explorer-customization-browse-folders_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-click-items",
-            "Name": "Click items as follows",
+            "Name": "Setting_explorer-customization-click-items_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-show-recent-files",
-            "Name": "Show recently used files",
+            "Name": "Setting_explorer-customization-show-recent-files_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-frequent-folders",
-            "Name": "Show frequently used folders",
+            "Name": "Setting_explorer-customization-show-frequent-folders_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-office-files",
-            "Name": "Show files from Office.com",
+            "Name": "Setting_explorer-customization-show-office-files_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-thumbnails",
-            "Name": "Always show icons, never thumbnails",
+            "Name": "Setting_explorer-customization-show-thumbnails_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-item-space",
-            "Name": "Decrease space between items (compact view)",
+            "Name": "Setting_explorer-customization-item-space_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-icon-thumbnails",
-            "Name": "Display file icon on thumbnails",
+            "Name": "Setting_explorer-customization-icon-thumbnails_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-icon-cache-size",
-            "Name": "Icon cache size",
+            "Name": "Setting_explorer-customization-icon-cache-size_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-thumbnail-cache-cleanup",
-            "Name": "Automatic thumbnail cache cleanup",
+            "Name": "Setting_explorer-customization-thumbnail-cache-cleanup_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-folder-tips",
-            "Name": "Display file size information in folder tips",
+            "Name": "Setting_explorer-customization-folder-tips_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-full-path",
-            "Name": "Display the full path in the title bar",
+            "Name": "Setting_explorer-customization-full-path_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-hidden-files",
-            "Name": "Show hidden files, folders \u0026 drives",
+            "Name": "Setting_explorer-customization-show-hidden-files_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-hide-empty-drives",
-            "Name": "Hide empty drives",
+            "Name": "Setting_explorer-customization-hide-empty-drives_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-file-ext",
-            "Name": "Show file extensions",
+            "Name": "Setting_explorer-customization-show-file-ext_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-lnk-extension",
-            "Name": "Show .lnk file extension",
+            "Name": "Setting_explorer-customization-show-lnk-extension_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-enable-photo-viewer",
-            "Name": "Enable Windows Photo Viewer",
+            "Name": "Setting_explorer-enable-photo-viewer_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-legacy-notepad",
-            "Name": "Use Legacy Notepad for text files",
+            "Name": "Setting_explorer-customization-legacy-notepad_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-hide-merge-conflicts",
-            "Name": "Hide folder merge conflicts",
+            "Name": "Setting_explorer-customization-hide-merge-conflicts_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-hide-protected-files",
-            "Name": "Show protected operating system files",
+            "Name": "Setting_explorer-customization-hide-protected-files_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-separate-process",
-            "Name": "Launch folder windows in a separate process",
+            "Name": "Setting_explorer-customization-separate-process_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-persist-browsers",
-            "Name": "Restore previous folder windows at logon",
+            "Name": "Setting_explorer-customization-persist-browsers_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-drive-letters",
-            "Name": "Show drive letters",
+            "Name": "Setting_explorer-customization-show-drive-letters_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-compressed-color",
-            "Name": "Show encrypted or compressed NTFS files in color",
+            "Name": "Setting_explorer-customization-compressed-color_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-popup-descriptions",
-            "Name": "Show pop-up description for folder and desktop items",
+            "Name": "Setting_explorer-customization-popup-descriptions_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-preview-handlers",
-            "Name": "Show preview handlers in preview pane",
+            "Name": "Setting_explorer-customization-preview-handlers_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-status-bar",
-            "Name": "Show status bar",
+            "Name": "Setting_explorer-customization-status-bar_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-disable-sync-provider-notifications",
-            "Name": "Show sync provider notifications",
+            "Name": "Setting_explorer-customization-disable-sync-provider-notifications_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-checkbox-select",
-            "Name": "Use check boxes to select items",
+            "Name": "Setting_explorer-customization-checkbox-select_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-sharing-wizard",
-            "Name": "Use sharing wizard",
+            "Name": "Setting_explorer-customization-sharing-wizard_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-typing-behavior",
-            "Name": "When typing into list view",
+            "Name": "Setting_explorer-customization-typing-behavior_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-desktop",
-            "Name": "Show Desktop in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-desktop_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-documents",
-            "Name": "Show Documents in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-documents_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-downloads",
-            "Name": "Show Downloads in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-downloads_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-music",
-            "Name": "Show Music in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-music_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-pictures",
-            "Name": "Show Pictures in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-pictures_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-videos",
-            "Name": "Show Videos in This PC",
+            "Name": "Setting_explorer-customization-thispc-folder-videos_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-home-folder",
-            "Name": "Show Home Folder",
+            "Name": "Setting_explorer-customization-home-folder_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-gallery",
-            "Name": "Show Gallery",
+            "Name": "Setting_explorer-customization-gallery_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-show-availability-status",
-            "Name": "Always show availability status",
+            "Name": "Setting_explorer-customization-show-availability-status_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-expand-current",
-            "Name": "Expand to open folder",
+            "Name": "Setting_explorer-customization-nav-expand-current_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-show-all-folders",
-            "Name": "Show all folders",
+            "Name": "Setting_explorer-customization-nav-show-all-folders_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-desktop",
-            "Name": "Show Desktop folder",
+            "Name": "Setting_explorer-customization-nav-saf-desktop_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-documents",
-            "Name": "Show Documents folder",
+            "Name": "Setting_explorer-customization-nav-saf-documents_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-downloads",
-            "Name": "Show Downloads folder",
+            "Name": "Setting_explorer-customization-nav-saf-downloads_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-music",
-            "Name": "Show Music folder",
+            "Name": "Setting_explorer-customization-nav-saf-music_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-pictures",
-            "Name": "Show Pictures folder",
+            "Name": "Setting_explorer-customization-nav-saf-pictures_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-saf-videos",
-            "Name": "Show Videos folder",
+            "Name": "Setting_explorer-customization-nav-saf-videos_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-nav-show-libraries",
-            "Name": "Show Libraries",
+            "Name": "Setting_explorer-customization-nav-show-libraries_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-duplicate-removable-drives",
-            "Name": "Show Duplicate Removable Drives",
+            "Name": "Setting_explorer-customization-duplicate-removable-drives_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "explorer-long-file-paths",
-            "Name": "Enable Long File Paths",
+            "Name": "Setting_explorer-long-file-paths_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "explorer-customization-netplwiz-auto-login",
-            "Name": "Show Auto-Login Option in User Accounts",
+            "Name": "Setting_explorer-customization-netplwiz-auto-login_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-first-day-of-week",
-            "Name": "First Day of Week",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-list-separator",
-            "Name": "List Separator",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
             "Id": "explorer-autoplay",
-            "Name": "Autoplay",
+            "Name": "Setting_explorer-autoplay_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -901,49 +889,49 @@
         "Items": [
           {
             "Id": "start-all-apps-view",
-            "Name": "All apps view",
+            "Name": "Setting_start-all-apps-view_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "start-recommended-section",
-            "Name": "Recommended section",
+            "Name": "Setting_start-recommended-section_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "start-show-recently-added-apps",
-            "Name": "Show recently added apps",
+            "Name": "Setting_start-show-recently-added-apps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-show-frequent-list",
-            "Name": "Show most used apps",
+            "Name": "Setting_start-show-frequent-list_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "start-show-recommended-files",
-            "Name": "Show recommended files and recently opened items",
+            "Name": "Setting_start-show-recommended-files_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-menu-recommendations",
-            "Name": "Show recommendations for tips, shortcuts, new apps, and more",
+            "Name": "Setting_start-menu-recommendations_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-show-account-notifications",
-            "Name": "Show account-related notifications",
+            "Name": "Setting_start-show-account-notifications_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-disable-bing-search-results",
-            "Name": "Bing Search Results in Start Menu",
+            "Name": "Setting_start-disable-bing-search-results_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -954,123 +942,140 @@
         "Items": [
           {
             "Id": "taskbar-search-box-11",
-            "Name": "Search in taskbar",
+            "Name": "Setting_taskbar-search-box-11_Name",
             "InputType": 1,
             "SelectedIndex": 3
           },
           {
             "Id": "taskbar-alignment",
-            "Name": "Taskbar alignment",
+            "Name": "Setting_taskbar-alignment_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "taskbar-auto-hide",
-            "Name": "Automatically hide the taskbar",
+            "Name": "Setting_taskbar-auto-hide_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "taskbar-extended-hover-time",
-            "Name": "Taskbar Auto-Hide Hover Delay",
+            "Name": "Setting_taskbar-extended-hover-time_Name",
             "InputType": 1,
             "SelectedIndex": 5
           },
           {
             "Id": "taskbar-badges",
-            "Name": "Show badges on taskbar apps",
+            "Name": "Setting_taskbar-badges_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-flashing",
-            "Name": "Show flashing on taskbar apps",
+            "Name": "Setting_taskbar-flashing_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-multi-display",
-            "Name": "Show my taskbar on all displays",
+            "Name": "Setting_taskbar-multi-display_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-multi-display-apps",
-            "Name": "Show taskbar apps on",
+            "Name": "Setting_taskbar-multi-display-apps_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "taskbar-share-window",
-            "Name": "Share any window from my taskbar",
+            "Name": "Setting_taskbar-share-window_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-show-desktop",
-            "Name": "Show desktop from taskbar corner",
+            "Name": "Setting_taskbar-show-desktop_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-combine-buttons",
-            "Name": "Combine taskbar buttons and hide labels",
+            "Name": "Setting_taskbar-combine-buttons_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "taskbar-combine-buttons-other",
-            "Name": "Combine taskbar buttons on other taskbars",
+            "Name": "Setting_taskbar-combine-buttons-other_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "taskbar-button-size",
-            "Name": "Show smaller taskbar buttons",
+            "Name": "Setting_taskbar-button-size_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "taskbar-system-tray-icons-11",
-            "Name": "System tray icons",
+            "Name": "Setting_taskbar-system-tray-icons-11_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "taskbar-task-view",
-            "Name": "Show Task View button",
+            "Name": "Setting_taskbar-task-view_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-copilot-companion",
-            "Name": "Copilot Companion Button",
+            "Name": "Setting_taskbar-copilot-companion_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-copilot-pwa-pin",
-            "Name": "Copilot PWA Pin",
+            "Name": "Setting_taskbar-copilot-pwa-pin_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-recall-pin",
-            "Name": "Recall Pin",
+            "Name": "Setting_taskbar-recall-pin_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-widgets",
-            "Name": "Show Widgets",
+            "Name": "Setting_taskbar-widgets_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-end-task",
-            "Name": "Enable \u0027End Task\u0027 in Taskbar",
+            "Name": "Setting_taskbar-end-task_Name",
             "IsSelected": false,
             "InputType": 0
+          }
+        ]
+      },
+      "TimeRegionLanguage": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "explorer-customization-first-day-of-week",
+            "Name": "Setting_explorer-customization-first-day-of-week_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-customization-list-separator",
+            "Name": "Setting_explorer-customization-list-separator_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
           }
         ]
       },
@@ -1079,26 +1084,50 @@
         "Items": [
           {
             "Id": "theme-mode-windows",
-            "Name": "Choose your mode",
+            "Name": "Setting_theme-mode-windows_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "theme-mode-apps",
-            "Name": "Apps Use Light Theme",
+            "Name": "Setting_theme-mode-apps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "theme-mode-system",
-            "Name": "Windows Uses Light Theme",
+            "Name": "Setting_theme-mode-system_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "theme-transparency",
-            "Name": "Transparency effects",
+            "Name": "Setting_theme-transparency_Name",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "theme-wallpaper",
+            "Name": "Setting_theme-wallpaper_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "theme-wallpaper-fit",
+            "Name": "Setting_theme-wallpaper-fit_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "theme-wallpaper-interval",
+            "Name": "Setting_theme-wallpaper-interval_Name",
+            "InputType": 1,
+            "SelectedIndex": 2
+          },
+          {
+            "Id": "theme-wallpaper-shuffle",
+            "Name": "Setting_theme-wallpaper-shuffle_Name",
+            "IsSelected": false,
             "InputType": 0
           }
         ]
@@ -1113,697 +1142,697 @@
         "Items": [
           {
             "Id": "gaming-game-mode",
-            "Name": "Game Mode",
+            "Name": "Setting_gaming-game-mode_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-explorer-mouse-precision",
-            "Name": "Enhance Pointer Precision",
+            "Name": "Setting_gaming-performance-explorer-mouse-precision_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-mouse-hover-time",
-            "Name": "Mouse Hover Time",
+            "Name": "Setting_gaming-performance-mouse-hover-time_Name",
             "InputType": 1,
             "SelectedIndex": 5
           },
           {
             "Id": "gaming-performance-autostart-delay",
-            "Name": "Startup Delay for Apps",
+            "Name": "Setting_gaming-performance-autostart-delay_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-background-apps",
-            "Name": "Background App Permissions",
+            "Name": "Setting_gaming-background-apps_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-storage-sense",
-            "Name": "Storage Sense",
+            "Name": "Setting_gaming-storage-sense_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-explorer-search",
-            "Name": "Search Entire File System",
+            "Name": "Setting_gaming-performance-explorer-search_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-search-webview2",
-            "Name": "WebView2 in Windows Search",
+            "Name": "Setting_gaming-performance-search-webview2_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-wallpaper-compression",
-            "Name": "Allow Desktop Wallpaper Compression",
+            "Name": "Setting_gaming-performance-wallpaper-compression_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-explorer-menu-show-delay",
-            "Name": "Menu Show Delay",
+            "Name": "Setting_gaming-performance-explorer-menu-show-delay_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-explorer-alt-tab-filter",
-            "Name": "Alt\u002BTab Filter",
+            "Name": "Setting_gaming-explorer-alt-tab-filter_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-win32-priority",
-            "Name": "Adjust processor for best performance of",
+            "Name": "Setting_gaming-win32-priority_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-system-responsiveness",
-            "Name": "System Responsiveness for Games",
+            "Name": "Setting_gaming-system-responsiveness_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-cpu-priority",
-            "Name": "CPU Priority for Gaming",
+            "Name": "Setting_gaming-cpu-priority_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-scheduling-category",
-            "Name": "High Scheduling Category for Gaming",
+            "Name": "Setting_gaming-scheduling-category_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-svchost-split-threshold",
-            "Name": "Svchost Split Threshold",
+            "Name": "Setting_gaming-performance-svchost-split-threshold_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-gpu-priority",
-            "Name": "GPU Priority for Gaming",
+            "Name": "Setting_gaming-gpu-priority_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-gpu-scheduling",
-            "Name": "Hardware-Accelerated GPU Scheduling",
+            "Name": "Setting_gaming-gpu-scheduling_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-directx-flip-model",
-            "Name": "Optimizations for windowed games",
+            "Name": "Setting_gaming-directx-flip-model_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-directx-vrr-optimizations",
-            "Name": "Variable Refresh Rate",
+            "Name": "Setting_gaming-directx-vrr-optimizations_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-directx-auto-hdr",
-            "Name": "Auto HDR",
+            "Name": "Setting_gaming-directx-auto-hdr_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-nvidia-sharpening",
-            "Name": "Legacy NVIDIA Sharpening",
+            "Name": "Setting_gaming-nvidia-sharpening_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-fullscreen-optimizations",
-            "Name": "Fullscreen Optimizations",
+            "Name": "Setting_gaming-fullscreen-optimizations_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-desktop-composition",
-            "Name": "Desktop Composition Effects",
+            "Name": "Setting_gaming-performance-desktop-composition_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-auto-color-management",
-            "Name": "Automatically manage color for apps",
+            "Name": "Setting_gaming-auto-color-management_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-disable-mpo",
-            "Name": "Multi-Plane Overlay (MPO)",
+            "Name": "Setting_gaming-disable-mpo_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-disable-all-overlays",
-            "Name": "Hardware Overlays",
+            "Name": "Setting_gaming-disable-all-overlays_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-disable-mpo-min-fps",
-            "Name": "MPO Minimum Frame Rate Requirement",
+            "Name": "Setting_gaming-disable-mpo-min-fps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-network-throttling",
-            "Name": "Network Throttling",
+            "Name": "Setting_gaming-network-throttling_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-nagle-algorithm",
-            "Name": "Nagle\u0027s Algorithm",
+            "Name": "Setting_gaming-nagle-algorithm_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-dns-server",
-            "Name": "DNS Server",
+            "Name": "Setting_gaming-dns-server_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-virtualization-based-security",
-            "Name": "Virtualization Based Security (VBS)",
+            "Name": "Setting_gaming-virtualization-based-security_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-memory-integrity",
-            "Name": "Memory Integrity (HVCI)",
+            "Name": "Setting_gaming-memory-integrity_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-xbox-game-dvr",
-            "Name": "Xbox Game DVR",
+            "Name": "Setting_gaming-xbox-game-dvr_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-game-bar-controller",
-            "Name": "Game Bar Controller Access",
+            "Name": "Setting_gaming-game-bar-controller_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-game-bar-tips",
-            "Name": "Game Bar Tips and Hints",
+            "Name": "Setting_gaming-game-bar-tips_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-performance-background-services",
-            "Name": "Optimize Background Services",
+            "Name": "Setting_gaming-performance-background-services_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-sysmain-service",
-            "Name": "SysMain Service (Superfetch)",
+            "Name": "Setting_gaming-sysmain-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-performance-prefetch",
-            "Name": "Prefetch Feature",
+            "Name": "Setting_gaming-performance-prefetch_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-windows-search-service",
-            "Name": "Windows Search Indexing Service",
+            "Name": "Setting_gaming-windows-search-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-print-spooler-service",
-            "Name": "Print Spooler Service",
+            "Name": "Setting_gaming-print-spooler-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-telemetry-service",
-            "Name": "Connected User Experiences and Telemetry Service",
+            "Name": "Setting_gaming-telemetry-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-connected-devices-platform-service",
-            "Name": "Connected Devices Platform Service",
+            "Name": "Setting_gaming-connected-devices-platform-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-compatibility-assistant-service",
-            "Name": "Program Compatibility Assistant Service",
+            "Name": "Setting_gaming-compatibility-assistant-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-error-reporting-service",
-            "Name": "Windows Error Reporting Service",
+            "Name": "Setting_gaming-error-reporting-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-geolocation-service",
-            "Name": "Geolocation Service",
+            "Name": "Setting_gaming-geolocation-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-retail-demo-service",
-            "Name": "Retail Demo Service",
+            "Name": "Setting_gaming-retail-demo-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-insider-service",
-            "Name": "Windows Insider Service",
+            "Name": "Setting_gaming-insider-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-phone-service",
-            "Name": "Phone Service",
+            "Name": "Setting_gaming-phone-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-wallet-service",
-            "Name": "Wallet Service",
+            "Name": "Setting_gaming-wallet-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-smart-card-services",
-            "Name": "Smart Card Services",
+            "Name": "Setting_gaming-smart-card-services_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-maps-broker-service",
-            "Name": "Downloaded Maps Manager",
+            "Name": "Setting_gaming-maps-broker-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-fax-service",
-            "Name": "Fax Service",
+            "Name": "Setting_gaming-fax-service_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-wmp-network-service",
-            "Name": "Windows Media Player Network Sharing Service",
+            "Name": "Setting_gaming-wmp-network-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-mixed-reality-service",
-            "Name": "Windows Mixed Reality OpenXR Service",
+            "Name": "Setting_gaming-mixed-reality-service_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "gaming-mobile-hotspot-service",
-            "Name": "Windows Mobile Hotspot Service",
+            "Name": "Setting_gaming-mobile-hotspot-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-sms-router-service",
-            "Name": "Microsoft Windows SMS Router Service",
+            "Name": "Setting_gaming-sms-router-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-parental-controls-service",
-            "Name": "Parental Controls Service",
+            "Name": "Setting_gaming-parental-controls-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-payments-nfc-service",
-            "Name": "Payments and NFC/SE Manager",
+            "Name": "Setting_gaming-payments-nfc-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-spot-verifier-service",
-            "Name": "Spot Verifier Service",
+            "Name": "Setting_gaming-spot-verifier-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-remote-access-manager",
-            "Name": "Remote Access Connection Manager",
+            "Name": "Setting_gaming-remote-access-manager_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-remote-access-auto",
-            "Name": "Remote Access Auto Connection Manager",
+            "Name": "Setting_gaming-remote-access-auto_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-remote-desktop-services",
-            "Name": "Remote Desktop Services",
+            "Name": "Setting_gaming-remote-desktop-services_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-remote-desktop-configuration",
-            "Name": "Remote Desktop Configuration",
+            "Name": "Setting_gaming-remote-desktop-configuration_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-remote-desktop-port-redirector",
-            "Name": "Remote Desktop Services UserMode Port Redirector",
+            "Name": "Setting_gaming-remote-desktop-port-redirector_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-xbox-auth-manager",
-            "Name": "Xbox Live Auth Manager",
+            "Name": "Setting_gaming-xbox-auth-manager_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-xbox-game-save",
-            "Name": "Xbox Live Game Save",
+            "Name": "Setting_gaming-xbox-game-save_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-xbox-networking",
-            "Name": "Xbox Live Networking Service",
+            "Name": "Setting_gaming-xbox-networking_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-biometric-service",
-            "Name": "Windows Biometric Service",
+            "Name": "Setting_gaming-biometric-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-touch-keyboard-service",
-            "Name": "Touch Keyboard and Handwriting Panel Service",
+            "Name": "Setting_gaming-touch-keyboard-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-telephony-service",
-            "Name": "Telephony Service",
+            "Name": "Setting_gaming-telephony-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-sensor-monitoring-service",
-            "Name": "Sensor Monitoring Service",
+            "Name": "Setting_gaming-sensor-monitoring-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-sensor-data-service",
-            "Name": "Sensor Data Service",
+            "Name": "Setting_gaming-sensor-data-service_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "gaming-ai-fabric-service",
-            "Name": "Windows AI Fabric Service",
+            "Name": "Setting_gaming-ai-fabric-service_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "gaming-task-compatibility-appraiser",
-            "Name": "Microsoft Compatibility Appraiser Task",
+            "Name": "Setting_gaming-task-compatibility-appraiser_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-program-data-updater",
-            "Name": "Program Data Updater Task",
+            "Name": "Setting_gaming-task-program-data-updater_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-ceip-consolidator",
-            "Name": "Customer Experience Improvement Program Consolidator",
+            "Name": "Setting_gaming-task-ceip-consolidator_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-usb-ceip",
-            "Name": "USB CEIP Task",
+            "Name": "Setting_gaming-task-usb-ceip_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-disk-diagnostic",
-            "Name": "Disk Diagnostic Data Collector Task",
+            "Name": "Setting_gaming-task-disk-diagnostic_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-feedback-dmclient",
-            "Name": "Feedback DmClient Task",
+            "Name": "Setting_gaming-task-feedback-dmclient_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-feedback-dmclient-download",
-            "Name": "Feedback DmClient Scenario Download Task",
+            "Name": "Setting_gaming-task-feedback-dmclient-download_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-error-reporting-queue",
-            "Name": "Windows Error Reporting Queue Task",
+            "Name": "Setting_gaming-task-error-reporting-queue_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-sqm",
-            "Name": "Software Quality Metrics Task",
+            "Name": "Setting_gaming-task-sqm_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-mare-backup",
-            "Name": "MAR (Malicious Software Removal) Backup Task",
+            "Name": "Setting_gaming-task-mare-backup_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-startup-app",
-            "Name": "Startup App Task",
+            "Name": "Setting_gaming-task-startup-app_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-maps-update",
-            "Name": "Maps Update Task",
+            "Name": "Setting_gaming-task-maps-update_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "gaming-task-autochk-proxy",
-            "Name": "AutoChk Proxy Task",
+            "Name": "Setting_gaming-task-autochk-proxy_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-family-safety",
-            "Name": "Family Safety Monitor Task",
+            "Name": "Setting_gaming-task-family-safety_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-power-efficiency",
-            "Name": "Power Efficiency Diagnostics Task",
+            "Name": "Setting_gaming-task-power-efficiency_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-windows-ai",
-            "Name": "Windows AI Tasks",
+            "Name": "Setting_gaming-task-windows-ai_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-task-office-actions-server",
-            "Name": "Office Actions Server Task",
+            "Name": "Setting_gaming-task-office-actions-server_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "visual-effects-mode",
-            "Name": "Visual Effects",
+            "Name": "Setting_visual-effects-mode_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "ui-effects",
-            "Name": "Animate controls and elements inside windows",
+            "Name": "Setting_ui-effects_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "window-animation",
-            "Name": "Animate windows when minimizing and maximizing",
+            "Name": "Setting_window-animation_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-animations",
-            "Name": "Animations in the taskbar",
+            "Name": "Setting_taskbar-animations_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "enable-peek",
-            "Name": "Enable Peek",
+            "Name": "Setting_enable-peek_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "menu-animation",
-            "Name": "Fade or slide menus into view",
+            "Name": "Setting_menu-animation_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "fade-tooltip",
-            "Name": "Fade or slide ToolTips into view",
+            "Name": "Setting_fade-tooltip_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "fade-menu-items",
-            "Name": "Fade out menu items after clicking",
+            "Name": "Setting_fade-menu-items_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "taskbar-thumbnails",
-            "Name": "Save taskbar thumbnail previews",
+            "Name": "Setting_taskbar-thumbnails_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "mouse-shadow",
-            "Name": "Show shadows under mouse pointer",
+            "Name": "Setting_mouse-shadow_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "window-shadows",
-            "Name": "Show shadows under windows",
+            "Name": "Setting_window-shadows_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "show-thumbnails",
-            "Name": "Show thumbnails instead of icons",
+            "Name": "Setting_show-thumbnails_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "translucent-selection",
-            "Name": "Show translucent selection rectangle",
+            "Name": "Setting_translucent-selection_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "drag-full-windows",
-            "Name": "Show window contents while dragging",
+            "Name": "Setting_drag-full-windows_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "combo-box-animation",
-            "Name": "Slide open combo boxes",
+            "Name": "Setting_combo-box-animation_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "font-smoothing",
-            "Name": "Smooth edges of screen fonts",
+            "Name": "Setting_font-smoothing_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "smooth-scroll-listboxes",
-            "Name": "Smooth-scroll list boxes",
+            "Name": "Setting_smooth-scroll-listboxes_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "drop-shadows",
-            "Name": "Use drop shadows for icon labels on the desktop",
+            "Name": "Setting_drop-shadows_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "gaming-narrator-hotkey",
-            "Name": "Narrator Win\u002BCtrl\u002BEnter Hotkey",
+            "Name": "Setting_gaming-narrator-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-stickykeys-hotkey",
-            "Name": "StickyKeys Hotkey (Shift\u00D75)",
+            "Name": "Setting_accessibility-stickykeys-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-filterkeys-hotkey",
-            "Name": "FilterKeys Hotkey (Right Shift 8s)",
+            "Name": "Setting_accessibility-filterkeys-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-togglekeys-hotkey",
-            "Name": "ToggleKeys Hotkey (Num Lock 5s)",
+            "Name": "Setting_accessibility-togglekeys-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-mousekeys-hotkey",
-            "Name": "MouseKeys Hotkey (Alt\u002BShift\u002BNumLock)",
+            "Name": "Setting_accessibility-mousekeys-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "accessibility-highcontrast-hotkey",
-            "Name": "High Contrast Hotkey (Alt\u002BShift\u002BPrtScn)",
+            "Name": "Setting_accessibility-highcontrast-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "system-restore-protection",
-            "Name": "System Protection (Restore Points)",
+            "Name": "Setting_system-restore-protection_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -1814,91 +1843,91 @@
         "Items": [
           {
             "Id": "windows-pushnotifications",
-            "Name": "Show Notifications",
+            "Name": "Setting_windows-pushnotifications_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-sound",
-            "Name": "Allow notifications to play sounds",
+            "Name": "Setting_notifications-sound_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-toast-above-lock",
-            "Name": "Show notifications on the lock screen",
+            "Name": "Setting_notifications-toast-above-lock_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-critical-toast-above-lock",
-            "Name": "Show reminders and incoming VoIP calls on the lock screen",
+            "Name": "Setting_notifications-critical-toast-above-lock_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-show-bell-icon",
-            "Name": "Show notification bell icon",
+            "Name": "Setting_notifications-show-bell-icon_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-welcome-experience",
-            "Name": "Show the Windows welcome experience after updates",
+            "Name": "Setting_notifications-welcome-experience_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-system-setting-engagement",
-            "Name": "Suggest ways to get the most out of Windows and finish setting up this device",
+            "Name": "Setting_notifications-system-setting-engagement_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-tips-suggestions",
-            "Name": "Get tips and suggestions when using Windows",
+            "Name": "Setting_notifications-tips-suggestions_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-system-pane-suggestions",
-            "Name": "Show suggestions in Notification Center",
+            "Name": "Setting_notifications-system-pane-suggestions_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-capability-access",
-            "Name": "Capability Access Notifications",
+            "Name": "Setting_notifications-capability-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-startup-app",
-            "Name": "Startup App Notifications",
+            "Name": "Setting_notifications-startup-app_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "notifications-app-location-request",
-            "Name": "Notify when apps request location",
+            "Name": "Setting_notifications-app-location-request_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-clock-change",
-            "Name": "Clock Change Notifications",
+            "Name": "Setting_notifications-clock-change_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-windows-security",
-            "Name": "Windows Security Notifications",
+            "Name": "Setting_notifications-windows-security_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "notifications-security-maintenance",
-            "Name": "Security and Maintenance Notifications",
+            "Name": "Setting_notifications-security-maintenance_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -1909,7 +1938,7 @@
         "Items": [
           {
             "Id": "power-display-timeout",
-            "Name": "Turn off the display",
+            "Name": "Setting_power-display-timeout_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 5,
@@ -1918,7 +1947,7 @@
           },
           {
             "Id": "power-harddisk-timeout",
-            "Name": "Turn off hard disk after",
+            "Name": "Setting_power-harddisk-timeout_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 1200,
@@ -1927,7 +1956,7 @@
           },
           {
             "Id": "internet-explorer-javascript-timer",
-            "Name": "JavaScript Timer Frequency",
+            "Name": "Setting_internet-explorer-javascript-timer_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -1936,7 +1965,7 @@
           },
           {
             "Id": "desktop-slideshow",
-            "Name": "Desktop Background Slide Show",
+            "Name": "Setting_desktop-slideshow_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -1945,7 +1974,7 @@
           },
           {
             "Id": "wireless-power-mode",
-            "Name": "Power Saving Mode",
+            "Name": "Setting_wireless-power-mode_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -1954,7 +1983,7 @@
           },
           {
             "Id": "power-sleep-timeout",
-            "Name": "Put the computer to sleep",
+            "Name": "Setting_power-sleep-timeout_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 9,
@@ -1963,7 +1992,7 @@
           },
           {
             "Id": "power-wake-timers",
-            "Name": "Allow wake timers",
+            "Name": "Setting_power-wake-timers_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -1972,13 +2001,13 @@
           },
           {
             "Id": "power-hibernation-enable",
-            "Name": "Hibernation",
+            "Name": "Setting_power-hibernation-enable_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "power-hibernate-timeout",
-            "Name": "Hibernate after",
+            "Name": "Setting_power-hibernate-timeout_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -1987,7 +2016,7 @@
           },
           {
             "Id": "power-hybrid-sleep",
-            "Name": "Allow hybrid sleep",
+            "Name": "Setting_power-hybrid-sleep_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -1996,19 +2025,19 @@
           },
           {
             "Id": "power-fast-startup",
-            "Name": "Fast Startup",
+            "Name": "Setting_power-fast-startup_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-power-hibernate-option",
-            "Name": "Show Hibernate Option",
+            "Name": "Setting_start-power-hibernate-option_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "usb-hub-selective-suspend-timeout",
-            "Name": "USB Hub Selective Suspend Timeout",
+            "Name": "Setting_usb-hub-selective-suspend-timeout_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 50,
@@ -2017,7 +2046,7 @@
           },
           {
             "Id": "usb-selective-suspend",
-            "Name": "USB selective suspend setting",
+            "Name": "Setting_usb-selective-suspend_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2026,7 +2055,7 @@
           },
           {
             "Id": "usb3-link-power-management",
-            "Name": "USB 3 Link Power Management",
+            "Name": "Setting_usb3-link-power-management_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 2,
@@ -2035,7 +2064,7 @@
           },
           {
             "Id": "intel-graphics-power-plan",
-            "Name": "Intel(R) Graphics Power Plan",
+            "Name": "Setting_intel-graphics-power-plan_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2044,7 +2073,7 @@
           },
           {
             "Id": "power-button-action",
-            "Name": "Power button action",
+            "Name": "Setting_power-button-action_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 3,
@@ -2053,7 +2082,7 @@
           },
           {
             "Id": "sleep-button-action",
-            "Name": "Sleep button action",
+            "Name": "Setting_sleep-button-action_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2062,7 +2091,7 @@
           },
           {
             "Id": "lid-close-action",
-            "Name": "Lid close action",
+            "Name": "Setting_lid-close-action_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2071,7 +2100,7 @@
           },
           {
             "Id": "pci-link-state-power-management",
-            "Name": "Link State Power Management",
+            "Name": "Setting_pci-link-state-power-management_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2080,7 +2109,7 @@
           },
           {
             "Id": "processor-min-state",
-            "Name": "Minimum processor state",
+            "Name": "Setting_processor-min-state_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 5,
@@ -2089,7 +2118,7 @@
           },
           {
             "Id": "processor-max-state",
-            "Name": "Maximum processor state",
+            "Name": "Setting_processor-max-state_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 100,
@@ -2098,7 +2127,7 @@
           },
           {
             "Id": "system-cooling-policy",
-            "Name": "System cooling policy",
+            "Name": "Setting_system-cooling-policy_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2107,7 +2136,7 @@
           },
           {
             "Id": "processor-performance-boost-mode",
-            "Name": "Processor performance boost mode",
+            "Name": "Setting_processor-performance-boost-mode_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 2,
@@ -2116,7 +2145,7 @@
           },
           {
             "Id": "processor-performance-increase-policy",
-            "Name": "Processor Performance Increase Policy",
+            "Name": "Setting_processor-performance-increase-policy_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -2125,7 +2154,7 @@
           },
           {
             "Id": "processor-performance-decrease-policy",
-            "Name": "Processor Performance Decrease Policy",
+            "Name": "Setting_processor-performance-decrease-policy_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -2134,7 +2163,7 @@
           },
           {
             "Id": "processor-core-parking-min-cores",
-            "Name": "CPU Core Parking Minimum Cores",
+            "Name": "Setting_processor-core-parking-min-cores_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 100,
@@ -2143,7 +2172,7 @@
           },
           {
             "Id": "processor-core-parking-max-cores",
-            "Name": "CPU Core Parking Maximum Cores",
+            "Name": "Setting_processor-core-parking-max-cores_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 100,
@@ -2152,7 +2181,7 @@
           },
           {
             "Id": "processor-energy-performance-preference",
-            "Name": "Processor Energy Performance Preference",
+            "Name": "Setting_processor-energy-performance-preference_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 33,
@@ -2161,7 +2190,7 @@
           },
           {
             "Id": "processor-performance-increase-threshold",
-            "Name": "Processor Performance Increase Threshold",
+            "Name": "Setting_processor-performance-increase-threshold_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 60,
@@ -2170,7 +2199,7 @@
           },
           {
             "Id": "processor-performance-decrease-threshold",
-            "Name": "Processor Performance Decrease Threshold",
+            "Name": "Setting_processor-performance-decrease-threshold_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 20,
@@ -2179,13 +2208,13 @@
           },
           {
             "Id": "power-throttling",
-            "Name": "Power Throttling",
+            "Name": "Setting_power-throttling_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "multimedia-when-sharing-media",
-            "Name": "When Sharing Media",
+            "Name": "Setting_multimedia-when-sharing-media_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2194,7 +2223,7 @@
           },
           {
             "Id": "multimedia-video-playback-quality-bias",
-            "Name": "Video Playback Quality Bias",
+            "Name": "Setting_multimedia-video-playback-quality-bias_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2203,7 +2232,7 @@
           },
           {
             "Id": "multimedia-when-playing-video",
-            "Name": "When Playing Video",
+            "Name": "Setting_multimedia-when-playing-video_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -2212,7 +2241,7 @@
           },
           {
             "Id": "critical-battery-notification",
-            "Name": "Critical battery notification",
+            "Name": "Setting_critical-battery-notification_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2221,7 +2250,7 @@
           },
           {
             "Id": "critical-battery-action",
-            "Name": "Critical battery action",
+            "Name": "Setting_critical-battery-action_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 2,
@@ -2230,7 +2259,7 @@
           },
           {
             "Id": "low-battery-level",
-            "Name": "Low battery level",
+            "Name": "Setting_low-battery-level_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 10,
@@ -2239,7 +2268,7 @@
           },
           {
             "Id": "critical-battery-level",
-            "Name": "Critical battery level",
+            "Name": "Setting_critical-battery-level_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 5,
@@ -2248,7 +2277,7 @@
           },
           {
             "Id": "low-battery-notification",
-            "Name": "Low battery notification",
+            "Name": "Setting_low-battery-notification_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2257,7 +2286,7 @@
           },
           {
             "Id": "low-battery-action",
-            "Name": "Low battery action",
+            "Name": "Setting_low-battery-action_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 0,
@@ -2266,7 +2295,7 @@
           },
           {
             "Id": "reserve-battery-level",
-            "Name": "Reserve battery level",
+            "Name": "Setting_reserve-battery-level_Name",
             "InputType": 2,
             "PowerSettings": {
               "ACValue": 7,
@@ -2275,7 +2304,7 @@
           },
           {
             "Id": "amd-power-slider-overlay",
-            "Name": "Overlay",
+            "Name": "Setting_amd-power-slider-overlay_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 2,
@@ -2284,7 +2313,7 @@
           },
           {
             "Id": "ati-powerplay-setting",
-            "Name": "ATI PowerPlay Setting",
+            "Name": "Setting_ati-powerplay-setting_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2293,7 +2322,7 @@
           },
           {
             "Id": "switchable-graphics-gpu-preference",
-            "Name": "GPU Preference",
+            "Name": "Setting_switchable-graphics-gpu-preference_Name",
             "InputType": 1,
             "PowerSettings": {
               "ACIndex": 1,
@@ -2302,13 +2331,13 @@
           },
           {
             "Id": "start-power-lock-option",
-            "Name": "Show Lock Option",
+            "Name": "Setting_start-power-lock-option_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "start-power-sleep-option",
-            "Name": "Show Sleep Option",
+            "Name": "Setting_start-power-sleep-option_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -2319,523 +2348,523 @@
         "Items": [
           {
             "Id": "security-uac-level",
-            "Name": "User Account Control Level",
+            "Name": "Setting_security-uac-level_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "security-workplace-join-messages",
-            "Name": "Workplace Join Message Prompts",
+            "Name": "Setting_security-workplace-join-messages_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-bitlocker-auto-encryption",
-            "Name": "BitLocker Auto Encryption",
+            "Name": "Setting_security-bitlocker-auto-encryption_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-automatic-maintenance",
-            "Name": "Automatic Maintenance",
+            "Name": "Setting_security-automatic-maintenance_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-error-reporting",
-            "Name": "Windows Error Reporting",
+            "Name": "Setting_security-error-reporting_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-remote-assistance",
-            "Name": "Remote Assistance",
+            "Name": "Setting_security-remote-assistance_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "security-smart-app-control",
-            "Name": "Smart App Control",
+            "Name": "Setting_security-smart-app-control_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "security-developer-mode",
-            "Name": "Developer Mode",
+            "Name": "Setting_security-developer-mode_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "security-powershell-execution-policy",
-            "Name": "PowerShell Execution Policy",
+            "Name": "Setting_security-powershell-execution-policy_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "privacy-ads-promotional-master",
-            "Name": "Ads, Suggestions and Promotional Content",
+            "Name": "Setting_privacy-ads-promotional-master_Name",
             "InputType": 1,
             "SelectedIndex": 2
           },
           {
             "Id": "privacy-content-delivery-allowed",
-            "Name": "Content Delivery",
+            "Name": "Setting_privacy-content-delivery-allowed_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-subscribed-content",
-            "Name": "Subscribed Content",
+            "Name": "Setting_privacy-subscribed-content_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-feature-management",
-            "Name": "Feature Management",
+            "Name": "Setting_privacy-feature-management_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-soft-landing",
-            "Name": "Soft Landing Experiences",
+            "Name": "Setting_privacy-soft-landing_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-oem-preinstalled-apps",
-            "Name": "OEM Pre-installed Apps",
+            "Name": "Setting_privacy-oem-preinstalled-apps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-preinstalled-apps",
-            "Name": "Pre-installed Suggested Apps",
+            "Name": "Setting_privacy-preinstalled-apps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-preinstalled-apps-ever",
-            "Name": "Pre-installed Apps History Tracking",
+            "Name": "Setting_privacy-preinstalled-apps-ever_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-silent-installed-apps",
-            "Name": "Silent App Installation",
+            "Name": "Setting_privacy-silent-installed-apps_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-lock-screen",
-            "Name": "Lock Screen",
+            "Name": "Setting_privacy-lock-screen_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-rotating-lock-screen",
-            "Name": "Windows Spotlight on Lock Screen",
+            "Name": "Setting_privacy-rotating-lock-screen_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-lock-screen-overlay",
-            "Name": "Lock Screen Fun Facts and Tips",
+            "Name": "Setting_privacy-lock-screen-overlay_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-advertising-id",
-            "Name": "Let apps show me personalized ads by using my advertising ID",
+            "Name": "Setting_privacy-advertising-id_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-language-list",
-            "Name": "Let websites show me locally relevant content by accessing my language list",
+            "Name": "Setting_privacy-language-list_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-app-launch-tracking",
-            "Name": "Let Windows improve Start and search results by tracking app launches",
+            "Name": "Setting_privacy-app-launch-tracking_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-settings-content",
-            "Name": "Show me suggested content in the Settings app",
+            "Name": "Setting_privacy-settings-content_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-settings-notifications",
-            "Name": "Settings App Notifications",
+            "Name": "Setting_privacy-settings-notifications_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-speech-recognition",
-            "Name": "Online Speech Recognition",
+            "Name": "Setting_privacy-speech-recognition_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-narrator-online-services",
-            "Name": "Narrator Online Services",
+            "Name": "Setting_privacy-narrator-online-services_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-narrator-scripting",
-            "Name": "Narrator Scripting Support",
+            "Name": "Setting_privacy-narrator-scripting_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-inking-typing-dictionary",
-            "Name": "Custom Inking and Typing Dictionary",
+            "Name": "Setting_privacy-inking-typing-dictionary_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-diagnostics",
-            "Name": "Send Diagnostic Data",
+            "Name": "Setting_privacy-diagnostics_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-improve-inking-typing",
-            "Name": "Improve inking and typing",
+            "Name": "Setting_privacy-improve-inking-typing_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-tailored-experiences",
-            "Name": "Tailored Experiences",
+            "Name": "Setting_privacy-tailored-experiences_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-feedback-frequency",
-            "Name": "Allow Windows to ask you for feedback",
+            "Name": "Setting_privacy-feedback-frequency_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-search-history",
-            "Name": "Search history on this device",
+            "Name": "Setting_privacy-search-history_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-search-highlights",
-            "Name": "Show search highlights",
+            "Name": "Setting_privacy-search-highlights_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-search-msa-cloud",
-            "Name": "Cloud Content Search for Microsoft account",
+            "Name": "Setting_privacy-search-msa-cloud_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-search-aad-cloud",
-            "Name": "Cloud Content Search for Work or School account",
+            "Name": "Setting_privacy-search-aad-cloud_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-allow-cortana",
-            "Name": "Allow Cortana",
+            "Name": "Setting_privacy-allow-cortana_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-location-services",
-            "Name": "Location Services",
+            "Name": "Setting_privacy-location-services_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-camera-access",
-            "Name": "Camera Access",
+            "Name": "Setting_privacy-camera-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-microphone-access",
-            "Name": "Microphone Access",
+            "Name": "Setting_privacy-microphone-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-account-info-access",
-            "Name": "Account Info Access",
+            "Name": "Setting_privacy-account-info-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-app-diagnostic-access",
-            "Name": "App Diagnostic Access",
+            "Name": "Setting_privacy-app-diagnostic-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-onedrive-auto-backup",
-            "Name": "OneDrive Automatic Backups",
+            "Name": "Setting_privacy-onedrive-auto-backup_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-turn-off-copilot",
-            "Name": "Windows Copilot",
+            "Name": "Setting_privacy-turn-off-copilot_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-ai-data-analysis",
-            "Name": "AI Data Analysis",
+            "Name": "Setting_privacy-disable-ai-data-analysis_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-block-recall-enablement",
-            "Name": "Recall Enablement",
+            "Name": "Setting_privacy-block-recall-enablement_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-recall-snapshots",
-            "Name": "Recall Saving Snapshots",
+            "Name": "Setting_privacy-disable-recall-snapshots_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-click-to-do",
-            "Name": "Click to Do",
+            "Name": "Setting_privacy-disable-click-to-do_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-settings-agent",
-            "Name": "AI Settings Agent",
+            "Name": "Setting_privacy-disable-settings-agent_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-agent-connectors",
-            "Name": "AI Agent Connectors",
+            "Name": "Setting_privacy-disable-agent-connectors_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-agent-workspaces",
-            "Name": "AI Agent Workspaces",
+            "Name": "Setting_privacy-disable-agent-workspaces_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-remote-agent-connectors",
-            "Name": "Remote AI Agent Connectors",
+            "Name": "Setting_privacy-disable-remote-agent-connectors_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-copilot-hardware-key",
-            "Name": "Copilot Hardware Key",
+            "Name": "Setting_privacy-disable-copilot-hardware-key_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-copilot-runtime",
-            "Name": "Copilot Runtime",
+            "Name": "Setting_privacy-disable-copilot-runtime_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-copilot-unavailable",
-            "Name": "Copilot Availability",
+            "Name": "Setting_privacy-copilot-unavailable_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-bing-chat",
-            "Name": "Bing Chat Eligibility",
+            "Name": "Setting_privacy-disable-bing-chat_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "privacy-deny-generative-ai-access",
-            "Name": "Generative AI Access",
+            "Name": "Setting_privacy-deny-generative-ai-access_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-deny-system-ai-models",
-            "Name": "System AI Models Access",
+            "Name": "Setting_privacy-deny-system-ai-models_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-deny-copilot-microphone",
-            "Name": "Copilot Microphone Access",
+            "Name": "Setting_privacy-deny-copilot-microphone_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-paint-ai-image-creator",
-            "Name": "Paint AI Image Creator",
+            "Name": "Setting_privacy-disable-paint-ai-image-creator_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-paint-ai-cocreator",
-            "Name": "Paint AI Cocreator",
+            "Name": "Setting_privacy-disable-paint-ai-cocreator_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-paint-generative-fill",
-            "Name": "Paint Generative Fill",
+            "Name": "Setting_privacy-disable-paint-generative-fill_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-paint-generative-erase",
-            "Name": "Paint Generative Erase",
+            "Name": "Setting_privacy-disable-paint-generative-erase_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-paint-remove-background",
-            "Name": "Paint Remove Background",
+            "Name": "Setting_privacy-disable-paint-remove-background_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-input-insights",
-            "Name": "Input Insights",
+            "Name": "Setting_privacy-disable-input-insights_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-copilot-nudges",
-            "Name": "Copilot Nudges",
+            "Name": "Setting_privacy-disable-copilot-nudges_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-disable-consumer-ai-content",
-            "Name": "AI Consumer Content",
+            "Name": "Setting_privacy-disable-consumer-ai-content_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-copilot-cdp-page-context",
-            "Name": "Edge Copilot CDP Page Context",
+            "Name": "Setting_privacy-edge-copilot-cdp-page-context_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-copilot-page-context",
-            "Name": "Edge Copilot Page Context",
+            "Name": "Setting_privacy-edge-copilot-page-context_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-copilot-sidebar",
-            "Name": "Edge Copilot Sidebar",
+            "Name": "Setting_privacy-edge-copilot-sidebar_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-entra-copilot",
-            "Name": "Edge Entra Copilot Page Context",
+            "Name": "Setting_privacy-edge-entra-copilot_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-m365-copilot-icon",
-            "Name": "Edge M365 Copilot Chat Icon",
+            "Name": "Setting_privacy-edge-m365-copilot-icon_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-ai-history-search",
-            "Name": "Edge AI History Search",
+            "Name": "Setting_privacy-edge-ai-history-search_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-inline-compose",
-            "Name": "Edge Inline AI Compose",
+            "Name": "Setting_privacy-edge-inline-compose_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-local-ai-model",
-            "Name": "Edge Local AI Model Settings",
+            "Name": "Setting_privacy-edge-local-ai-model_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-builtin-ai-apis",
-            "Name": "Edge Built-in AI APIs",
+            "Name": "Setting_privacy-edge-builtin-ai-apis_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-ai-themes",
-            "Name": "Edge AI Generated Themes",
+            "Name": "Setting_privacy-edge-ai-themes_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-devtools-ai",
-            "Name": "Edge DevTools AI",
+            "Name": "Setting_privacy-edge-devtools-ai_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-edge-share-history-copilot",
-            "Name": "Edge Share History with Copilot",
+            "Name": "Setting_privacy-edge-share-history-copilot_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-office-ai-training",
-            "Name": "Office AI Training",
+            "Name": "Setting_privacy-office-ai-training_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-office-connected-services",
-            "Name": "Office Connected Services",
+            "Name": "Setting_privacy-office-connected-services_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-word-copilot",
-            "Name": "Word Copilot",
+            "Name": "Setting_privacy-word-copilot_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-excel-copilot",
-            "Name": "Excel Copilot",
+            "Name": "Setting_privacy-excel-copilot_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-onenote-copilot",
-            "Name": "OneNote Copilot",
+            "Name": "Setting_privacy-onenote-copilot_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "privacy-office-content-safety-ai",
-            "Name": "Office AI Content Safety",
+            "Name": "Setting_privacy-office-content-safety-ai_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -2846,43 +2875,43 @@
         "Items": [
           {
             "Id": "sound-startup",
-            "Name": "Startup Sound During Boot",
+            "Name": "Setting_sound-startup_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "sound-communication-ducking",
-            "Name": "Sound Ducking Preference",
+            "Name": "Setting_sound-communication-ducking_Name",
             "InputType": 1,
             "SelectedIndex": 1
           },
           {
             "Id": "sound-narrator-audio-ducking",
-            "Name": "Narrator Audio Ducking",
+            "Name": "Setting_sound-narrator-audio-ducking_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "sound-voice-activation",
-            "Name": "Voice Activation for Apps",
+            "Name": "Setting_sound-voice-activation_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "sound-voice-activation-last-used",
-            "Name": "Last Used Voice Activation Setting",
+            "Name": "Setting_sound-voice-activation-last-used_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "sound-accessibility-activation",
-            "Name": "Accessibility Activation Sounds",
+            "Name": "Setting_sound-accessibility-activation_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "sound-accessibility-warnings",
-            "Name": "Accessibility Warning Sounds",
+            "Name": "Setting_sound-accessibility-warnings_Name",
             "IsSelected": true,
             "InputType": 0
           }
@@ -2893,78 +2922,82 @@
         "Items": [
           {
             "Id": "updates-policy-mode",
-            "Name": "Windows Update Policy",
+            "Name": "Setting_updates-policy-mode_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "updates-delivery-optimization",
-            "Name": "Delivery Optimization",
+            "Name": "Setting_updates-delivery-optimization_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "updates-latest-updates",
-            "Name": "Get the latest updates as soon as they\u0027re available",
+            "Name": "Setting_updates-latest-updates_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "updates-other-products",
-            "Name": "Receive updates for other Microsoft products",
+            "Name": "Setting_updates-other-products_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "updates-restart-asap",
-            "Name": "Get me up to date",
+            "Name": "Setting_updates-restart-asap_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "updates-restart-options",
-            "Name": "Automatic Restart After Updates",
+            "Name": "Setting_updates-restart-options_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "updates-notification-level",
-            "Name": "Update Notifications",
+            "Name": "Setting_updates-notification-level_Name",
             "InputType": 1,
             "SelectedIndex": 0
           },
           {
             "Id": "updates-restart-notification",
-            "Name": "Notify me when a restart is required to finish updating",
+            "Name": "Setting_updates-restart-notification_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "updates-metered-connection",
-            "Name": "Download updates over metered connections",
+            "Name": "Setting_updates-metered-connection_Name",
             "IsSelected": false,
             "InputType": 0
           },
           {
             "Id": "updates-driver-controls",
-            "Name": "Driver Updates via Windows Update",
+            "Name": "Setting_updates-driver-controls_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "updates-driver-coinstallers",
-            "Name": "Driver Co-Installers",
+            "Name": "Setting_updates-driver-coinstallers_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
             "Id": "updates-store-auto-download",
-            "Name": "Auto Update Microsoft Store Apps",
+            "Name": "Setting_updates-store-auto-download_Name",
             "IsSelected": true,
             "InputType": 0
           }
         ]
       }
     }
+  },
+  "Autounattend": {
+    "IsIncluded": false,
+    "Features": {}
   }
 }

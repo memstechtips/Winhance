@@ -9,6 +9,8 @@ public static class TechnicalDetailKeys
     public const string SectionScriptsDescription = "TechnicalDetails_Section_Scripts_Description";
     public const string SectionRegContent = "TechnicalDetails_Section_RegContent";
     public const string SectionRegContentDescription = "TechnicalDetails_Section_RegContent_Description";
+    public const string SectionSetupCommands = "TechnicalDetails_Section_SetupCommands";
+    public const string SectionSetupCommandsDescription = "TechnicalDetails_Section_SetupCommands_Description";
     public const string SectionPowerPlansDescription = "TechnicalDetails_Section_PowerPlans_Description";
 
     public const string ColumnOption = "TechnicalDetails_Column_Option";
@@ -20,11 +22,16 @@ public static class TechnicalDetailKeys
     public const string LabelValueName = "TechnicalDetails_Label_ValueName";
     public const string LabelValueType = "TechnicalDetails_Label_ValueType";
     public const string LabelTask = "TechnicalDetails_Label_Task";
+    public const string LabelPass = "TechnicalDetails_Label_Pass";
+    public const string LabelComponent = "TechnicalDetails_Label_Component";
+    public const string LabelRule = "TechnicalDetails_Label_Rule";
+    public const string NotWritten = "TechnicalDetails_NotWritten";
     public const string ColumnPowerValue = "TechnicalDetails_Column_PowerValue";
 
     // One line per group saying what Winhance does with those locations. Without it "Registry" is a
     // noun with no verb: the reader cannot tell whether the values are read, written, or both.
     public const string DescRegistry = "TechnicalDetails_Desc_Registry";
+    public const string DescRegistryReadOnly = "TechnicalDetails_Desc_RegistryReadOnly";
     public const string DescScheduledTask = "TechnicalDetails_Desc_ScheduledTask";
     public const string DescPower = "TechnicalDetails_Desc_Power";
 
@@ -38,12 +45,20 @@ public static class TechnicalDetailKeys
     // the thing to state. {0} is a bare "min-max units" string, kept language-neutral with a dash.
     public const string ChipNumericRange = "TechnicalDetails_Chip_NumericRange";
     public const string ChipNumericRangeTooltip = "TechnicalDetails_Chip_NumericRange_Tooltip";
+    public const string ChipKeyedOptions = "TechnicalDetails_Chip_KeyedOptions";
+    public const string ChipKeyedOptionsTooltip = "TechnicalDetails_Chip_KeyedOptions_Tooltip";
     public const string GroupScheduledTask = "TechnicalDetails_Group_ScheduledTask";
     public const string GroupAlsoRuns = "TechnicalDetails_Group_AlsoRuns";
+    public const string GroupAnswerFile = "TechnicalDetails_Group_AnswerFile";
+    public const string DescAnswerFile = "TechnicalDetails_Desc_AnswerFile";
+    public const string GroupArchitecture = "TechnicalDetails_Group_Architecture";
+    public const string DescArchitecture = "TechnicalDetails_Desc_Architecture";
     public const string ColumnScript = "TechnicalDetails_Column_Script";
     public const string ColumnRegFile = "TechnicalDetails_Column_RegFile";
     public const string DefaultValueName = "TechnicalDetails_DefaultValueName";
     public const string DefaultValueNameTooltip = "TechnicalDetails_DefaultValueName_Tooltip";
+    public const string KeyItself = "TechnicalDetails_KeyItself";
+    public const string KeyItselfTooltip = "TechnicalDetails_KeyItself_Tooltip";
 
     // The live-readings row, shown only when detection matched no option.
     public const string ReadingCustom = "TechnicalDetails_Reading_Custom";
@@ -69,6 +84,8 @@ public static class TechnicalDetailKeys
     public const string ChipDetectionOnlyTooltip = "TechnicalDetails_Chip_DetectionOnly_Tooltip";
     public const string ChipApplyOnly = "TechnicalDetails_Chip_ApplyOnly";
     public const string ChipApplyOnlyTooltip = "TechnicalDetails_Chip_ApplyOnly_Tooltip";
+    public const string ChipReadOnly = "TechnicalDetails_Chip_ReadOnly";
+    public const string ChipReadOnlyTooltip = "TechnicalDetails_Chip_ReadOnly_Tooltip";
     // No Mirrored chip: the group header lists every path the value is written to, each with its own
     // button, which is a better answer than a chip saying "there is more than one place".
     public const string ChipPerNetworkInterface = "TechnicalDetails_Chip_PerNetworkInterface";
@@ -97,8 +114,9 @@ public static class TechnicalDetailKeys
     public const string OptionLinksHeading = "TechnicalDetails_OptionLinks_Heading";
 
     public const string EffectRegistryWrite = "TechnicalDetails_Effect_RegistryWrite";
-    public const string EffectNativePower = "TechnicalDetails_Effect_NativePower";
-    public const string EffectWallpaper = "TechnicalDetails_Effect_Wallpaper";
+
+    public const string ChipDesktopSlideshow = "TechnicalDetails_Chip_DesktopSlideshow";
+    public const string ChipDesktopSlideshowTooltip = "TechnicalDetails_Chip_DesktopSlideshow_Tooltip";
 
     public const string TaskEnabled = "TechnicalDetails_Task_Enabled";
     public const string TaskDisabled = "TechnicalDetails_Task_Disabled";
@@ -132,4 +150,6 @@ public static class TechnicalDetailKeys
 
     public const string On = "Common_On";
     public const string Off = "Common_Off";
+    public const string Checked = "Common_Checked";
+    public const string Unchecked = "Common_Unchecked";
 }

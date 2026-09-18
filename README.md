@@ -58,7 +58,7 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 - Privacy Settings
 - Gaming and Performance Optimizations
 - Windows Updates
-- Power Settings with Power Plan selection
+- Power Settings with Power Plan selection, including any plan already on the PC
 - Sound Settings
 - Notification Preferences
 
@@ -66,13 +66,22 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 - Searchable interface with quick nav control
 - Toggle switches and selection controls for each setting
 - Windows Theme selector (Dark/Light Mode)
+- Desktop background: a picture (one of Windows' own, this PC's, a recent one, or your own) with its fit, a solid color, or a slideshow of a folder with its interval and shuffle
 - Taskbar Customization
 - Start Menu Customization
 - Explorer Customizations
+- Time, region and language (time zone, regional format, home location, keyboard layout, system locale)
 
-### Advanced Tools 🛠️
+### Unattend ⚙️
+- Build an autounattend.xml answer file from your selections in Builder Mode
+- Choices that only live in the answer file: Windows edition and product key, processor architectures, the hardware check bypass, the accounts Setup creates, which Setup screens appear, the privacy questions, the computer name, .NET Framework 3.5, and the Install Winhance shortcut on the desktop
+- Time zone, regional format, keyboard layout and system locale come from the Customize page's Time, region and language section and ride into the answer file with the rest of your selections
+- Every Optimize and Customize setting you include rides along too: the box on each section card includes or excludes a whole section.
+- Drop the file into WIMUtil for a custom ISO, or onto the root of a bootable USB
+
+### WIMUtil 💿
 - Create Custom Windows ISO's with WIMUtil (Windows Installation Media Utility) including adding drivers from current OS
-- Create autounattend.xml files based on your Winhance selections
+- Set up the answer file from inside WIMUtil: the Generate card opens the Autounattend page's own cards in Builder mode and writes the file
 
 ### Other Settings 
 - Manage Your Winhance (and Windows) Settings with Wihance Configuration Files:

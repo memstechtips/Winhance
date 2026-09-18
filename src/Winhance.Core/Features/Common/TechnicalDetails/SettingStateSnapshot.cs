@@ -12,6 +12,8 @@ public sealed record SettingStateSnapshot
 
     public int? SelectedIndex { get; init; }
 
+    public string? SelectedKey { get; init; }
+
     public int NumericValue { get; init; }
     public int AcValue { get; init; }
     public int DcValue { get; init; }

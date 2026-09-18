@@ -106,8 +106,8 @@ internal static class DocsCatalogExport
 
         return new DocsSetting(
             s.Id,
-            Text(loc, SettingLocalizationKeys.Name(s), s.Display.Name),
-            Text(loc, SettingLocalizationKeys.Description(s), s.Display.Description),
+            Text(loc, s.Display.Name),
+            Text(loc, s.Display.Description),
             GroupName(s, loc),
             s.Display.Icon is { } ic ? new DocsIcon(ic.Pack.ToString(), ic.Glyph) : null,
             s.Control.ToString(),
@@ -120,25 +120,12 @@ internal static class DocsCatalogExport
             sameOnBothBuilds ? null : win10);
     }
 
-    // The builder labels option rows from the ViewModel's combo options (already localized) and only falls back to
-    // the raw catalog label, which for Template_*/ServiceOption_* states is itself a key. Label resolution follows
-    // SettingViewModelFactory; the list is one option PER STATE, positional — the factory skips IsDetectOnly states,
-    // but the builder indexes Snapshot.Options by state index, so skipping would shift every later label.
+    // One option PER STATE, positional: the factory skips IsDetectOnly states, but the builder indexes
+    // Snapshot.Options by state index, so skipping here would shift every later label.
     private static SettingStateSnapshot Snapshot(Setting s, ILocalizationService loc) => new()
     {
-        Options = s.Control == ControlKind.PowerPlan
-            ? PowerPlanOptions(loc)
-            : s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(s, state, i, loc), i)).ToList(),
+        Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(state, loc), i)).ToList(),
     };
-
-    // A power plan setting has no States at all - the dropdown is built at runtime from the schemes on the
-    // machine, so on a doc page there is nothing to enumerate. The predefined plans are the part that IS
-    // build-time true: Winhance always offers these five, creating one that isn't installed. No Tag, so
-    // BuildPowerPlanMatrix leaves off its per-machine Status column.
-    private static List<ComboBoxDisplayOption> PowerPlanOptions(ILocalizationService loc) =>
-        PowerPlanCatalog.BuiltInPowerPlans
-            .Select(p => new ComboBoxDisplayOption(Text(loc, p.LocalizationKey, p.Name), p.Guid))
-            .ToList();
 
     // SettingViewModelFactory.BuildCatalogOptionWarnings, minus the states that carry no warning. The app
     // raises these as an Error banner under the card, and only ever for a selection: the banner is looked up
@@ -150,25 +137,18 @@ internal static class DocsCatalogExport
 
         return s.States
             .Select((state, i) => (state, i))
-            .Where(x => !string.IsNullOrEmpty(x.state.Warning))
+            .Where(x => x.state.Warning is not null)
             .Select(x => new DocsOptionWarning(
-                OptionLabel(s, x.state, x.i, loc),
-                Text(loc, SettingLocalizationKeys.OptionWarning(s, x.i), x.state.Warning!)))
+                OptionLabel(x.state, loc),
+                Text(loc, x.state.Warning!.Value)))
             .ToList();
     }
 
-    private static string OptionLabel(Setting s, SettingState state, int i, ILocalizationService loc)
-    {
-        var key = SettingLocalizationKeys.IsLocalizationKey(state.Label) ? state.Label : SettingLocalizationKeys.OptionDisplay(s, i);
-        return Text(loc, key, state.Label);
-    }
+    private static string OptionLabel(SettingState state, ILocalizationService loc) =>
+        Text(loc, state.Label);
 
-    private static string? GroupName(Setting s, ILocalizationService loc)
-    {
-        var group = s.Display.GroupName;
-        if (group is null) return null;
-        return Text(loc, SettingLocalizationKeys.GroupCompact(group), Text(loc, SettingLocalizationKeys.GroupSnake(group), group));
-    }
+    private static string? GroupName(Setting s, ILocalizationService loc) =>
+        s.Display.GroupName is { } group ? Text(loc, group) : null;
 
     private static DocsAvailability Availability(Setting s, ILocalizationService loc) =>
         new(
@@ -191,6 +171,8 @@ internal static class DocsCatalogExport
             ? string.Format(CultureInfo.InvariantCulture, format, parts.Skip(1).ToArray<object>())
             : format;
     }
+
+    private static string Text(ILocalizationService loc, LocKey key) => Text(loc, key.Value, key.Value);
 
     private static string Text(ILocalizationService loc, string key, string fallback) =>
         loc.TryGetString(key, out var value) ? value : fallback;

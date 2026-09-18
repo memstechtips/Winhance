@@ -17,9 +17,14 @@ public enum MatrixColumnKind
 
     Power,
 
+    // A reference option's own value (a path, a colour), not something it writes.
+    Reference,
+
     Script,
 
     RegFile,
+
+    AnswerFile,
 }
 
 public enum MatrixGroupKind
@@ -28,7 +33,13 @@ public enum MatrixGroupKind
     ScheduledTask,
     Power,
 
+    AnswerFile,
+    Architecture,
+
     PowerPlan,
+
+    // The options every Windows install offers for a keyed selection that is not the power plan.
+    Reference,
 
     AlsoRuns,
 }
@@ -209,6 +220,6 @@ public sealed record OptionMatrix
 }
 
 
-public enum CodeKind { PowerShell, RegFile }
+public enum CodeKind { PowerShell, RegFile, SetupCommand }
 
 
