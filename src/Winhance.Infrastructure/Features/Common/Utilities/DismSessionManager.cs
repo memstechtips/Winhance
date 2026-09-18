@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
@@ -189,14 +189,5 @@ internal static class DismSessionManager
             _lock.Release();
             log?.Invoke($"[DismSession] Semaphore released. Total elapsed={sw.ElapsedMilliseconds}ms");
         }
-    }
-
-    public static (ManualResetEvent Event, CancellationTokenRegistration Registration) CreateCancelEvent(CancellationToken ct)
-    {
-        var cancelEvent = new ManualResetEvent(false);
-        var registration = ct.CanBeCanceled
-            ? ct.Register(() => cancelEvent.Set())
-            : default;
-        return (cancelEvent, registration);
     }
 }

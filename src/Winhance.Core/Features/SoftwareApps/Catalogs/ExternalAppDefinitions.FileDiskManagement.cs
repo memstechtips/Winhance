@@ -1,0 +1,170 @@
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Models;
+
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
+
+public static partial class ExternalAppDefinitions
+{
+    public static class FileDiskManagement
+    {
+        public static ItemGroup GetFileDiskManagement()
+        {
+            return new ItemGroup
+            {
+                Name = "File & Disk Management",
+                FeatureId = FeatureIds.ExternalApps,
+                Items = new List<ItemDefinition>
+                {
+                    new ItemDefinition
+                    {
+                        Id = "external-app-windirstat",
+                        Name = "WinDirStat",
+                        Description = "Disk usage statistics viewer and cleanup tool",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["WinDirStat.WinDirStat"],
+                        ChocoPackageId = "windirstat",
+                        WebsiteUrl = "https://windirstat.net/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-wiztree",
+                        Name = "WizTree",
+                        Description = "Disk space analyzer with extremely fast scanning",
+                        RegistryDisplayName = "WizTree {version}",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["AntibodySoftware.WizTree"],
+                        ChocoPackageId = "wiztree",
+                        WebsiteUrl = "https://www.diskanalyzer.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-treesize-free",
+                        Name = "TreeSize Free",
+                        Description = "Folder size analyzer for finding what's filling up your drive",
+                        RegistryDisplayName = "TreeSize Free {version}",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["JAMSoftware.TreeSize.Free"],
+                        ChocoPackageId = "treesizefree",
+                        MsStoreId = "XPDDXV3SD1SB5K",
+                        WebsiteUrl = "https://www.jam-software.com/treesize_free",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-everything",
+                        Name = "Everything",
+                        Description = "Locate files and folders by name instantly",
+                        RegistryDisplayName = "Everything {version} ({arch})",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["voidtools.Everything"],
+                        ChocoPackageId = "everything",
+                        WebsiteUrl = "https://www.voidtools.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-teracopy",
+                        Name = "TeraCopy",
+                        Description = "Copy files faster and more securely",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["CodeSector.TeraCopy"],
+                        ChocoPackageId = "teracopy",
+                        MsStoreId = "XPDCCPPSK2XPQW",
+                        WebsiteUrl = "https://www.codesector.com/teracopy",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-file-converter",
+                        Name = "File Converter",
+                        Description = "Batch file converter for Windows",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["AdrienAllard.FileConverter"],
+                        ChocoPackageId = "file-converter",
+                        WebsiteUrl = "https://file-converter.io/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-crystal-disk-info",
+                        Name = "Crystal Disk Info",
+                        Description = "Hard drive health monitoring utility",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["WsSolInfor.CrystalDiskInfo"],
+                        ChocoPackageId = "crystaldiskinfo",
+                        MsStoreId = "XP8K4RGX25G3GM",
+                        WebsiteUrl = "https://crystalmark.info/en/software/crystaldiskinfo/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-bulk-rename-utility",
+                        Name = "Bulk Rename Utility",
+                        Description = "Powerful batch file renamer with regex and metadata support",
+                        RegistryDisplayName = "Bulk Rename Utility {version} ({arch})",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["TGRMNSoftware.BulkRenameUtility"],
+                        ChocoPackageId = "bulkrenameutility",
+                        WebsiteUrl = "https://www.bulkrenameutility.co.uk/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-iobit-unlocker",
+                        Name = "IObit Unlocker",
+                        Description = "Tool to unlock files that are in use by other processes",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["IObit.IObitUnlocker"],
+                        ChocoPackageId = "iobit-unlocker",
+                        WebsiteUrl = "https://www.iobit.com/en/iobit-unlocker.php",
+                    },
+                    // HiBit Uninstaller (HiBitSoftware.HiBitUninstaller) is not listed: unavailable for download due to conflict in the region.
+                    new ItemDefinition
+                    {
+                        Id = "external-app-sandisk-dashboard",
+                        Name = "SanDisk Dashboard",
+                        Description = "Drive management tool for SanDisk SSDs and flash drives",
+                        RegistrySubKeyName = "SanDisk Dashboard",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["SanDisk.Dashboard"],
+                        ChocoPackageId = "sandisk-dashboard",
+                        WebsiteUrl = "https://support-en.sandisk.com/app/products/downloads/softwaredownloads",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://sddashboarddownloads.sandisk.com/wdDashboard/DashboardSetup.exe",
+                        },
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-rufus",
+                        Name = "Rufus",
+                        Description = "Utility to create bootable USB flash drives",
+                        RegistryDisplayName = "Rufus",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["Rufus.Rufus"],
+                        ChocoPackageId = "rufus",
+                        MsStoreId = "9PC3H3V7Q9CH",
+                        WebsiteUrl = "https://rufus.ie/en/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-advanced-renamer",
+                        Name = "Advanced Renamer",
+                        Description = "Batch file renaming utility with advanced options",
+                        RegistryDisplayName = "Advanced Renamer",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["HulubuluSoftware.AdvancedRenamer"],
+                        ChocoPackageId = "advanced-renamer",
+                        MsStoreId = "XP9MD3S1KFCPH1",
+                        WebsiteUrl = "https://www.advancedrenamer.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-ventoy",
+                        Name = "Ventoy",
+                        Description = "Open source tool to create bootable USB drive for ISO files",
+                        GroupName = "File & Disk Management",
+                        WinGetPackageId = ["Ventoy.Ventoy"],
+                        ChocoPackageId = "ventoy",
+                        WebsiteUrl = "https://www.ventoy.net/",
+                    }
+                }
+            };
+        }
+    }
+}

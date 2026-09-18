@@ -1,0 +1,171 @@
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.SoftwareApps.Models;
+
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
+
+public static partial class ExternalAppDefinitions
+{
+    public static class Imaging
+    {
+        public static ItemGroup GetImaging()
+        {
+            return new ItemGroup
+            {
+                Name = "Imaging",
+                FeatureId = FeatureIds.ExternalApps,
+                Items = new List<ItemDefinition>
+                {
+                    new ItemDefinition
+                    {
+                        Id = "external-app-irfanview",
+                        Name = "IrfanView64",
+                        Description = "Fast and compact image viewer and converter",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["30067IrfanSkiljanIrfanVie.IrfanView64"],
+                        WinGetPackageId = ["IrfanSkiljan.IrfanView"],
+                        ChocoPackageId = "irfanview",
+                        MsStoreId = "9PJZ3BTL5PV6",
+                        WebsiteUrl = "https://www.irfanview.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-krita",
+                        Name = "Krita",
+                        Description = "Digital painting and illustration software",
+                        RegistryDisplayName = "Krita ({arch}) {version}",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["49800KritaProject.Krita"],
+                        WinGetPackageId = ["KDE.Krita"],
+                        ChocoPackageId = "krita",
+                        MsStoreId = "9N6X57ZGRW96",
+                        WebsiteUrl = "https://krita.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-blender",
+                        Name = "Blender",
+                        Description = "3D modeling, animation, rendering, and video editing suite",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["BlenderFoundation.Blender"],
+                        WinGetPackageId = ["BlenderFoundation.Blender"],
+                        ChocoPackageId = "blender",
+                        MsStoreId = "9PP3C07GTVRH",
+                        WebsiteUrl = "https://www.blender.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-paint-net",
+                        Name = "Paint.NET",
+                        Description = "Image and photo editing software",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["dotPDNLLC.paint.net"],
+                        WinGetPackageId = ["dotPDN.PaintDotNet"],
+                        ChocoPackageId = "paint.net",
+                        MsStoreId = "9NBHCS1LX4R0",
+                        WebsiteUrl = "https://www.getpaint.net/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-gimp",
+                        Name = "GIMP",
+                        Description = "Open-source raster image editor with layers, masks, and plugins",
+                        RegistryDisplayName = "GIMP {version}",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["GIMP.GIMP.3"],
+                        ChocoPackageId = "gimp",
+                        WebsiteUrl = "https://www.gimp.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-xnviewmp",
+                        Name = "XnViewMP",
+                        Description = "Image viewer, browser and converter",
+                        RegistryDisplayName = "XnView MP ({arch})",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["XnSoft.XnViewMP"],
+                        ChocoPackageId = "xnviewmp",
+                        WebsiteUrl = "https://www.xnview.com/en/xnviewmp/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-xnview-classic",
+                        Name = "XnView",
+                        Description = "Image viewer, browser and converter (Classic Version)",
+                        RegistryDisplayName = "XnView",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["XnSoft.XnView.Classic"],
+                        ChocoPackageId = "xnview",
+                        WebsiteUrl = "https://www.xnview.com/en/xnview/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-inkscape",
+                        Name = "Inkscape",
+                        Description = "Open-source SVG vector graphics editor",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["25415Inkscape.Inkscape"],
+                        WinGetPackageId = ["Inkscape.Inkscape"],
+                        ChocoPackageId = "inkscape",
+                        MsStoreId = "9PD9BHGLFC7H",
+                        WebsiteUrl = "https://inkscape.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-greenshot",
+                        Name = "Greenshot",
+                        Description = "Screenshot tool with annotation features",
+                        RegistryDisplayName = "Greenshot {version}",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["Greenshot.Greenshot"],
+                        ChocoPackageId = "greenshot",
+                        WebsiteUrl = "https://getgreenshot.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-sharex",
+                        Name = "ShareX",
+                        Description = "Screen capture, file sharing and productivity tool",
+                        GroupName = "Imaging",
+                        AppxPackageName = ["19568ShareX.ShareX"],
+                        WinGetPackageId = ["ShareX.ShareX"],
+                        ChocoPackageId = "sharex",
+                        MsStoreId = "9NBLGGH4Z1SP",
+                        WebsiteUrl = "https://getsharex.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-flameshot",
+                        Name = "Flameshot",
+                        Description = "Powerful yet simple to use screenshot software",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["Flameshot.Flameshot"],
+                        ChocoPackageId = "flameshot",
+                        WebsiteUrl = "https://flameshot.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-faststone",
+                        Name = "FastStone Image Viewer",
+                        Description = "Image browser, converter and editor",
+                        GroupName = "Imaging",
+                        WinGetPackageId = ["FastStone.Viewer"],
+                        ChocoPackageId = "fsviewer",
+                        WebsiteUrl = "https://www.faststone.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-imageglass",
+                        Name = "ImageGlass",
+                        Description = "Lightweight, versatile image viewer",
+                        GroupName = "Imaging",
+                        RegistryDisplayName = "ImageGlass",
+                        WinGetPackageId = ["DuongDieuPhap.ImageGlass"],
+                        MsStoreId = "9N33VZK3C7TH",
+                        ChocoPackageId = "imageglass",
+                        WebsiteUrl = "https://imageglass.org/",
+                    }
+                }
+            };
+        }
+    }
+}

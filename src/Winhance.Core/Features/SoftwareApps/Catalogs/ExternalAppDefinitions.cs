@@ -1,0 +1,36 @@
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.SoftwareApps.Models;
+
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
+
+public static partial class ExternalAppDefinitions
+{
+    public static ItemGroup GetExternalApps()
+    {
+        var allItems = new List<ItemDefinition>();
+
+        allItems.AddRange(Browsers.GetBrowsers().Items);
+        allItems.AddRange(DocumentViewers.GetDocumentViewers().Items);
+        allItems.AddRange(MessagingEmailCalendar.GetMessagingEmailCalendar().Items);
+        allItems.AddRange(OnlineStorageBackup.GetOnlineStorageBackup().Items);
+        allItems.AddRange(Multimedia.GetMultimedia().Items);
+        allItems.AddRange(Imaging.GetImaging().Items);
+        allItems.AddRange(CustomizationUtilities.GetCustomizationUtilities().Items);
+        allItems.AddRange(Gaming.GetGaming().Items);
+        allItems.AddRange(Compression.GetCompression().Items);
+        allItems.AddRange(FileDiskManagement.GetFileDiskManagement().Items);
+        allItems.AddRange(RemoteAccess.GetRemoteAccess().Items);
+        allItems.AddRange(OpticalDiscTools.GetOpticalDiscTools().Items);
+        allItems.AddRange(OtherUtilities.GetOtherUtilities().Items);
+        allItems.AddRange(PrivacySecurity.GetPrivacySecurity().Items);
+        allItems.AddRange(DevelopmentApps.GetDevelopmentApps().Items);
+        allItems.AddRange(RuntimesAndDependencies.GetRuntimesAndDependencies().Items);
+
+        return new ItemGroup
+        {
+            Name = "External Apps",
+            FeatureId = FeatureIds.ExternalApps,
+            Items = allItems
+        };
+    }
+}
