@@ -1,4 +1,6 @@
-namespace Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Catalog;
+
+namespace Winhance.Core.Features.Common.Interfaces;
 
 // Process-launching effects stay off IStateWriter, which is synchronous because almost everything it does is a blocking OS call.
 public interface IAsyncEffectRunner

@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Constants;
-namespace Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Models;
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
 
 public static partial class ExternalAppDefinitions
 {

@@ -1,4 +1,6 @@
-namespace Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Common.Selections;
+
+namespace Winhance.Core.Features.Common.Interfaces;
 
 // The one apps-to-choices reader: which apps the user has checked, and which Windows apps are installed.
 public interface IAppSelectionSource

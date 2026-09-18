@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.SoftwareApps.Models;
 
-namespace Winhance.Core.Features.SoftwareApps.Models;
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
 
 public static class CapabilityDefinitions
 {

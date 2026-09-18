@@ -1,4 +1,6 @@
-namespace Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Catalog;
+
+namespace Winhance.Core.Features.Common.Interfaces;
 
 // Pre-fetches the async reads for a batch, then serves every read synchronously; the engine and detectors stay synchronous.
 public interface IPrefetchableDetectionContext : IDetectionContext

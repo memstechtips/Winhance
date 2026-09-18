@@ -1,4 +1,6 @@
-namespace Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Catalog;
+
+namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IStateWriter
 {
@@ -20,6 +22,8 @@ public interface IStateWriter
     bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value);
 
     bool ActivatePowerPlan(string guid);
+
+    bool SetSlideshow(DesktopSlideshowTarget target, string folder);
 
     bool RunEffect(Effect effect);
 }
