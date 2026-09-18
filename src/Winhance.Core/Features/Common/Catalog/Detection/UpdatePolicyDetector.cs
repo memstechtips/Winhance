@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Features.Common.Catalog;
 
 // Registry value-matching cannot read this setting: Disabled and Paused both write NoAutoUpdate=1 / AUOptions=1,
@@ -8,12 +10,12 @@ public sealed class UpdatePolicyDetector : IStateDetector
 {
     private const string UxSettings = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
 
-    private readonly string _defaultLabel;
-    private readonly string _deferLabel;
-    private readonly string _pausedLabel;
-    private readonly string _disabledLabel;
+    private readonly LocKey _defaultLabel;
+    private readonly LocKey _deferLabel;
+    private readonly LocKey _pausedLabel;
+    private readonly LocKey _disabledLabel;
 
-    public UpdatePolicyDetector(string defaultLabel, string deferLabel, string pausedLabel, string disabledLabel)
+    public UpdatePolicyDetector(LocKey defaultLabel, LocKey deferLabel, LocKey pausedLabel, LocKey disabledLabel)
     {
         _defaultLabel = defaultLabel;
         _deferLabel = deferLabel;
@@ -23,17 +25,16 @@ public sealed class UpdatePolicyDetector : IStateDetector
 
     public string? Detect(Setting setting, IDetectionContext context)
     {
-        // Precedence mirrors UpdateService.GetCurrentUpdatePolicyIndexAsync exactly (index 3 -> 2 -> 1 -> 0).
         if (context.CriticalUpdateDllsRenamed())
-            return _disabledLabel;
+            return _disabledLabel.Value;
 
         if (IsPaused(context))
-            return _pausedLabel;
+            return _pausedLabel.Value;
 
         if (context.GetValue(UxSettings, "DeferFeatureUpdates") is int defer && defer == 1)
-            return _deferLabel;
+            return _deferLabel.Value;
 
-        return _defaultLabel;
+        return _defaultLabel.Value;
     }
 
     private static bool IsPaused(IDetectionContext context) =>

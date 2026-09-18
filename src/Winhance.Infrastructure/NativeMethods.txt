@@ -16,9 +16,7 @@ PowerDeleteScheme
 PowerRestoreDefaultPowerSchemes
 PowerImportPowerScheme
 GetPwrCapabilities
-CallNtPowerInformation
 POWER_DATA_ACCESSOR
-POWER_INFORMATION_LEVEL
 SYSTEM_POWER_CAPABILITIES
 
 // Battery presence, without a Win32_Battery round trip to WmiPrvSE (kernel32.dll)
@@ -158,3 +156,23 @@ BootOptions
 
 // An IStream over each boot image, the only form IBootOptions.AssignBootImage takes (shlwapi.dll)
 SHCreateStreamOnFileEx
+
+// The slideshow album's folder, out of the shell item list Windows records for it (shell32.dll). MAX_PATH is the
+// buffer size the function documents; a constant has to be listed to be emitted.
+SHGetPathFromIDList
+MAX_PATH
+
+// The desktop background the shell owns (shell32.dll, user32.dll). A slideshow is the one kind the
+// registry cannot carry from another machine, because the folder id embeds the folder as the shell sees
+// it, so IDesktopWallpaper builds it here. COLOR_BACKGROUND comes with SYS_COLOR_INDEX and listing it
+// separately is PInvoke004.
+IDesktopWallpaper
+DesktopWallpaper
+DESKTOP_WALLPAPER_POSITION
+DESKTOP_SLIDESHOW_OPTIONS
+SHCreateItemFromParsingName
+SHCreateShellItemArrayFromShellItem
+IShellItem
+IShellItemArray
+SetSysColors
+SYS_COLOR_INDEX

@@ -3,6 +3,7 @@ using System.ServiceProcess;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -11,6 +12,7 @@ internal class ProcessRestartManager(
     IConfigImportState configImportState,
     IPendingRestartService pendingRestartService,
     IExplorerRestartService explorerRestartService,
+    IWindowsThemeService windowsThemeService,
     ILogService logService) : IProcessRestartManager
 {
     // Explorer is never restarted here; it goes to the pending-restart bar (HandleRestartsAsync).
@@ -51,7 +53,7 @@ internal class ProcessRestartManager(
         // Which broadcast this setting deserves is DECLARED BY THE SETTING (ApplyBehavior.NotifyWindows),
         // next to its confirmation gate and its restart - not inferred from the registry paths it writes.
         return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id,
-            WantsAppearanceNotice(setting));
+            WantsAppearanceNotice(setting), WantsDesktopNotice(setting));
     }
 
     // Explorer is deliberately NOT restarted here. Killing the shell per setting means a user toggling
@@ -60,7 +62,7 @@ internal class ProcessRestartManager(
     // with no shell at all. Instead we broadcast (so anything that CAN take effect live does) and
     // register the setting; the user restarts once, when they choose, from the pending-restart bar.
     private Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId,
-        bool themeAffecting)
+        bool themeAffecting, bool desktopAffecting)
     {
         bool isExplorer = !string.IsNullOrEmpty(restartProcess)
             && restartProcess.Equals(ExplorerTarget, StringComparison.OrdinalIgnoreCase);
@@ -71,7 +73,7 @@ internal class ProcessRestartManager(
         //                   effect live does so before the user gets round to restarting.
         // Gating the broadcast on isExplorer alone is what silently stopped the theme applying the moment
         // its (unnecessary) Explorer restart was removed: the notice was reachable only via the restart.
-        if (themeAffecting || isExplorer)
+        if (themeAffecting || desktopAffecting || isExplorer)
         {
             // The broadcast kills nothing, so it runs even under a suppress scope or during an import -
             // it is what makes live-updatable settings apply immediately.
@@ -88,8 +90,8 @@ internal class ProcessRestartManager(
             // The dispatch line is logged HERE, on the caller's thread, so it lands in the log where
             // the user expects it even though the send itself goes to the thread pool - and so a
             // broadcast that never returns at all still leaves a trace saying it started.
-            LogBroadcastDispatch(themeAffecting, settingId);
-            LastBroadcastTask = Task.Run(() => RunBroadcast(themeAffecting, settingId));
+            LogBroadcastDispatch(themeAffecting, desktopAffecting, settingId);
+            LastBroadcastTask = Task.Run(() => RunBroadcast(themeAffecting, desktopAffecting, settingId));
         }
 
         // Only a restart-carrying setting raises the pending bar. A setting that merely declares a
@@ -142,23 +144,23 @@ internal class ProcessRestartManager(
     }
 
     // Which set of messages went out, so the split is visible in the field rather than only in the source.
-    private static string BroadcastVariant(bool themeAffecting) =>
-        themeAffecting ? "theme+generic" : "generic";
+    private static string BroadcastVariant(bool themeAffecting, bool desktopAffecting) =>
+        (themeAffecting ? "theme+" : string.Empty) + (desktopAffecting ? "desktop+" : string.Empty) + "generic";
 
     private static string BroadcastScope(string? settingId) =>
         string.IsNullOrEmpty(settingId) ? "(coalesced)" : $"for '{settingId}'";
 
     // Separate from RunBroadcast so the per-apply path can log on the caller's thread while the send runs on the pool.
-    private void LogBroadcastDispatch(bool themeAffecting, string? settingId) =>
+    private void LogBroadcastDispatch(bool themeAffecting, bool desktopAffecting, string? settingId) =>
         logService.Log(LogLevel.Debug,
-            $"Broadcasting shell refresh ({BroadcastVariant(themeAffecting)}) {BroadcastScope(settingId)}");
+            $"Broadcasting shell refresh ({BroadcastVariant(themeAffecting, desktopAffecting)}) {BroadcastScope(settingId)}");
 
     // TIMES the broadcast: a user reading their own log used to see a two-second gap with nothing in it. Normal runs
     // stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
     // this runs on a background task nobody awaits, so an escaping exception would vanish into the thread pool.
-    private void RunBroadcast(bool themeAffecting, string? settingId)
+    private void RunBroadcast(bool themeAffecting, bool desktopAffecting, string? settingId)
     {
-        string variant = BroadcastVariant(themeAffecting);
+        string variant = BroadcastVariant(themeAffecting, desktopAffecting);
         string scope = BroadcastScope(settingId);
 
         var stopwatch = Stopwatch.StartNew();
@@ -168,6 +170,10 @@ internal class ProcessRestartManager(
                 explorerRestartService.BroadcastThemeRefresh();
 
             explorerRestartService.BroadcastShellRefresh();
+
+            // Runs last so a shell refresh cannot undo it.
+            if (desktopAffecting)
+                windowsThemeService.RefreshDesktop();
         }
         catch (Exception ex)
         {
@@ -206,8 +212,9 @@ internal class ProcessRestartManager(
             // below kills processes, so unlike the per-apply path this one has an ordering relationship
             // with what follows it.
             bool batchAffectsTheme = settings.Any(WantsAppearanceNotice);
-            LogBroadcastDispatch(batchAffectsTheme, settingId: null);
-            RunBroadcast(batchAffectsTheme, settingId: null);
+            bool batchAffectsDesktop = settings.Any(WantsDesktopNotice);
+            LogBroadcastDispatch(batchAffectsTheme, batchAffectsDesktop, settingId: null);
+            RunBroadcast(batchAffectsTheme, batchAffectsDesktop, settingId: null);
             foreach (var setting in settings.Where(HasExplorerRestart))
                 RegisterExplorerPending(setting.Id);
         }
@@ -220,6 +227,9 @@ internal class ProcessRestartManager(
     // at all - this decides which one.
     private static bool WantsAppearanceNotice(Setting setting) =>
         setting.Apply.NotifyWindows.HasFlag(WindowsChange.Appearance);
+
+    private static bool WantsDesktopNotice(Setting setting) =>
+        setting.Apply.NotifyWindows.HasFlag(WindowsChange.Desktop);
 
     private static bool HasExplorerRestart(Setting setting) =>
         setting.Apply.Restart is RestartProcess rp

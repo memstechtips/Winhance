@@ -1,8 +1,8 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Customize.Models;
-using Winhance.Core.Features.Optimize.Models;
+using Winhance.Core.Features.Customize.Catalogs;
+using Winhance.Core.Features.Optimize.Catalogs;
 using Winhance.Infrastructure.Features.Common.Helpers;
 using Winhance.TestSupport;
 
@@ -11,7 +11,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 // Shared by the generator (writes) and the conformance test (asserts) so they cannot disagree; built on the
 // PRODUCTION default primitives, never a hand-copied rule table. A setting is projected iff AVAILABLE on the
 // target build (maximal machine; import drops non-applicable ones) AND carries a WindowsDefault for that build.
-// Actions and the dynamic power-plan selection are never projected.
+// Actions, the dynamic power-plan selection and answer-file settings are never projected: no live state to restore.
 internal static class DefaultConfigProjection
 {
     internal static readonly (string FileName, WinBuild Build)[] Targets =
@@ -25,6 +25,7 @@ internal static class DefaultConfigProjection
         ExplorerCustomizationsCatalog.FeatureId,
         StartMenuCustomizationsCatalog.FeatureId,
         TaskbarCustomizationsCatalog.FeatureId,
+        TimeRegionLanguageCatalog.FeatureId,
         WindowsThemeCustomizationsCatalog.FeatureId,
     };
 
@@ -40,22 +41,36 @@ internal static class DefaultConfigProjection
 
     internal static ConfigurationItem? Project(Setting setting, WinBuild build)
     {
-        if (!setting.Availability.Allows(build))
+        if (setting.IsAnswerFileOnly || !setting.Availability.Allows(build))
             return null;
 
         switch (setting.Control)
         {
             case ControlKind.Toggle:
             {
-                bool? def = CatalogToggleState.GetDefault(setting, build);
+                bool? def = TwoState.GetDefault(setting, build);
                 if (def is null)
                     return null;
                 return new ConfigurationItem
                 {
                     Id = setting.Id,
-                    Name = setting.Display.Name,
+                    Name = setting.Display.Name.Value,
                     IsSelected = def.Value,
                     InputType = InputType.Toggle,
+                };
+            }
+
+            case ControlKind.CheckBox:
+            {
+                bool? def = TwoState.GetDefault(setting, build);
+                if (def is null)
+                    return null;
+                return new ConfigurationItem
+                {
+                    Id = setting.Id,
+                    Name = setting.Display.Name.Value,
+                    IsSelected = def.Value,
+                    InputType = InputType.CheckBox,
                 };
             }
 
@@ -69,7 +84,7 @@ internal static class DefaultConfigProjection
                     return new ConfigurationItem
                     {
                         Id = setting.Id,
-                        Name = setting.Display.Name,
+                        Name = setting.Display.Name.Value,
                         InputType = InputType.Selection,
                         PowerSettings = new Dictionary<string, object>
                         {
@@ -83,7 +98,7 @@ internal static class DefaultConfigProjection
                     return new ConfigurationItem
                     {
                         Id = setting.Id,
-                        Name = setting.Display.Name,
+                        Name = setting.Display.Name.Value,
                         InputType = InputType.Selection,
                         SelectedIndex = Convert.ToInt32(power),
                     };
@@ -95,7 +110,7 @@ internal static class DefaultConfigProjection
                 return new ConfigurationItem
                 {
                     Id = setting.Id,
-                    Name = setting.Display.Name,
+                    Name = setting.Display.Name.Value,
                     InputType = InputType.Selection,
                     SelectedIndex = idx.Value,
                 };
@@ -117,7 +132,7 @@ internal static class DefaultConfigProjection
                     return new ConfigurationItem
                     {
                         Id = setting.Id,
-                        Name = setting.Display.Name,
+                        Name = setting.Display.Name.Value,
                         InputType = InputType.NumericRange,
                         PowerSettings = new Dictionary<string, object>
                         {
@@ -129,14 +144,14 @@ internal static class DefaultConfigProjection
                 return new ConfigurationItem
                 {
                     Id = setting.Id,
-                    Name = setting.Display.Name,
+                    Name = setting.Display.Name.Value,
                     InputType = InputType.NumericRange,
                     PowerSettings = new Dictionary<string, object> { ["Value"] = ToSystem(power) },
                 };
             }
 
             default:
-                return null; // Action, PowerPlan (and any future control without a restorable default state)
+                return null; // Action, TextBox, List, KeyedSelection: no restorable default state
         }
     }
 

@@ -58,6 +58,7 @@ internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
 
     private bool IsMember(Setting s, CatalogScope scope)
     {
+        if (s.IsAnswerFileOnly && !scope.IncludeAnswerFileOnly) return false;
         bool osOk = scope.IncludeOtherOsVersions || s.Availability.Allows(_build);
         bool hwOk = scope.IncludeOtherHardware || CatalogMembershipFilter.PassesHardware(s.Availability, _caps);
         if (!osOk || !hwOk) return false;

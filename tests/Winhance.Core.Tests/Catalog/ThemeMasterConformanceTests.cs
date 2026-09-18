@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
@@ -36,21 +38,23 @@ public class ThemeMasterConformanceTests
         // saved .winhance config on import, which no test would otherwise catch.
         var states = S(Master).States;
 
-        states.Select(st => st.Label).Should().Equal("Light Mode", "Dark Mode", "Mixed");
+        states.Select(st => st.Label).Should().Equal(
+            LocKey.Setting.ThemeModeWindows.Option0, LocKey.Setting.ThemeModeWindows.Option1, LocKey.Setting.ThemeModeWindows.Option2);
     }
 
     [Theory]
-    [InlineData("Light Mode", "Enabled")]
-    [InlineData("Dark Mode", "Disabled")]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
     public void Each_preset_Controls_both_children_using_the_childrens_OWN_state_labels(
-        string presetLabel, string expectedChildLabel)
+        int presetIndex, bool childrenOn)
     {
+        var expectedChildLabel = childrenOn ? LocKey.Common.Enabled : LocKey.Common.Disabled;
         // The children are Enabled/Disabled toggles ("Enabled" == that surface uses the LIGHT theme), NOT
         // Light/Dark. A Controls value naming a label the child does not have is unsatisfiable forever.
-        var preset = S(Master).States.First(st => st.Label == presetLabel);
+        var preset = S(Master).States[presetIndex];
 
         preset.Controls.Should().NotBeNull();
-        preset.Controls!.Should().BeEquivalentTo(new Dictionary<string, string>
+        preset.Controls!.Should().BeEquivalentTo(new Dictionary<string, LocKey>
         {
             [Apps] = expectedChildLabel,
             [System] = expectedChildLabel,
@@ -65,7 +69,7 @@ public class ThemeMasterConformanceTests
     {
         var neutral = S(Master).States.Single(st => st.IsDetectOnly);
 
-        neutral.Label.Should().Be("Mixed");
+        neutral.Label.Should().Be(LocKey.Setting.ThemeModeWindows.Option2);
         neutral.IsFallback.Should().BeTrue("detection has to land on it instead of reporting Not recognized");
         neutral.Set.Should().BeEmpty("there is no single value that means 'the two facets disagree'");
         neutral.Controls.Should().BeNull("imposing no preset is what makes it the reverse-sync snap target");
@@ -83,13 +87,13 @@ public class ThemeMasterConformanceTests
             ["SystemUsesLightTheme"] = systemValue,
         });
 
-        StateDetectionEngine.Detect(S(Master).States, readings).Should().Be("Mixed");
+        StateDetectionEngine.Detect(S(Master).States, readings).Should().Be(LocKey.Setting.ThemeModeWindows.Option2.Value);
     }
 
     [Theory]
-    [InlineData(1, 1, "Light Mode")]
-    [InlineData(0, 0, "Dark Mode")]
-    public void A_uniform_reading_still_resolves_to_its_preset(int appsValue, int systemValue, string expected)
+    [InlineData(1, 1, 0)]
+    [InlineData(0, 0, 1)]
+    public void A_uniform_reading_still_resolves_to_its_preset(int appsValue, int systemValue, int expectedIndex)
     {
         // Non-vacuity for the test above: the catch-all must not swallow the readings the presets DO explain.
         var readings = new FakeReadings(new()
@@ -98,7 +102,7 @@ public class ThemeMasterConformanceTests
             ["SystemUsesLightTheme"] = systemValue,
         });
 
-        StateDetectionEngine.Detect(S(Master).States, readings).Should().Be(expected);
+        StateDetectionEngine.Detect(S(Master).States, readings).Should().Be(S(Master).States[expectedIndex].Label.Value);
     }
 
     [Fact]
@@ -108,30 +112,31 @@ public class ThemeMasterConformanceTests
         // first state imposing no Controls", which is exactly it.
         var actions = RelationshipResolver.ResolveReverseSync(Apps, SettingCatalog.All, id => id switch
         {
-            Apps => "Disabled",
-            System => "Enabled",
-            Master => "Light Mode",
+            Apps => LocKey.Common.Disabled,
+            System => LocKey.Common.Enabled,
+            Master => LocKey.Setting.ThemeModeWindows.Option0,
             _ => null,
         });
 
-        actions.Should().ContainSingle(a => a.SettingId == Master && a.StateLabel == "Mixed");
+        actions.Should().ContainSingle(a => a.SettingId == Master && a.StateLabel == LocKey.Setting.ThemeModeWindows.Option2);
     }
 
     [Theory]
-    [InlineData("Enabled", "Light Mode")]
-    [InlineData("Disabled", "Dark Mode")]
+    [InlineData(false, 0)]
+    [InlineData(true, 1)]
     public void ResolveReverseSync_snaps_the_master_to_the_preset_the_children_now_satisfy(
-        string childLabel, string expectedPreset)
+        bool childrenOff, int expectedPresetIndex)
     {
+        var childLabel = childrenOff ? LocKey.Common.Disabled : LocKey.Common.Enabled;
         var actions = RelationshipResolver.ResolveReverseSync(Apps, SettingCatalog.All, id => id switch
         {
             Apps => childLabel,
             System => childLabel,
-            Master => "Mixed",
+            Master => LocKey.Setting.ThemeModeWindows.Option2,
             _ => null,
         });
 
-        actions.Should().ContainSingle(a => a.SettingId == Master && a.StateLabel == expectedPreset);
+        actions.Should().ContainSingle(a => a.SettingId == Master && a.StateLabel == S(Master).States[expectedPresetIndex].Label);
     }
 
     [Theory]

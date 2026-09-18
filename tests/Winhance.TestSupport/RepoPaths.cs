@@ -17,5 +17,5 @@ public static class RepoPaths
     }
 
     public static string LocalizationDir([CallerFilePath] string callerPath = "") =>
-        Path.Combine(SolutionDir(callerPath), "src", "Winhance.UI", "Features", "Common", "Localization");
+        Path.Combine(SolutionDir(callerPath), "src", "Winhance.Core", "Features", "Common", "Localization");
 }

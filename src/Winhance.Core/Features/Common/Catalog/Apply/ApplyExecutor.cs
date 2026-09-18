@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 public static class ApplyExecutor
@@ -25,8 +27,8 @@ public static class ApplyExecutor
                     RegistryPerSubkeyDeleteOp p => writer.DeleteRegistryPerSubkey(p.Target, p.ParentPath),
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     PowerCfgSetOp p => writer.WritePowerCfgValue(p.Target, p.Context, p.Value),
+                    SlideshowSetOp s => writer.SetSlideshow(s.Target, s.Folder),
                     EffectOp fx => writer.RunEffect(fx.Effect),
-                    PowerPlanActivateOp pp => writer.ActivatePowerPlan(pp.Guid),
                     _ => true,
                 };
                 if (!ok)

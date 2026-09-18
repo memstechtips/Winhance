@@ -95,14 +95,17 @@ public class RecommendedConfigConformanceTests
             case ControlKind.Action:
                 return (false, null); // Actions are excluded from Apply-Recommended.
 
-            case ControlKind.PowerPlan:
-                // power-plan-selection's recommended plan is owned by PowerPlanActivationService, not a per-setting
-                // role (HasRecommendedValue is false for it), so it is not part of this 1:1 invariant.
+            case ControlKind.KeyedSelection:
+                // A keyed selection's key comes from the machine, not from a state's role, so neither direction of the 1:1
+                // invariant applies. A power plan's key still has to be a scheme GUID: nothing else would activate.
+                if (setting.Options?.Source == OptionSource.PowerPlans && !Guid.TryParse(item.SelectedKey, out _))
+                    return (false, $"power-plan key '{item.SelectedKey ?? "<unset>"}' is not a scheme GUID.");
                 return (false, null);
 
             case ControlKind.Toggle:
+            case ControlKind.CheckBox:
             {
-                var rec = CatalogToggleState.GetRecommended(setting, Build);
+                var rec = TwoState.GetRecommended(setting, Build);
                 if (rec is null)
                     return (false, null);
                 if (item.IsSelected != rec)

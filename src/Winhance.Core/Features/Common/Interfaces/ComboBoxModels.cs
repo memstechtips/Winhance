@@ -3,9 +3,7 @@ using System.ComponentModel;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-// View-model DTOs for combobox option display. Kept in this namespace so the ~11 consumers (the factory, the
-// loading bridge, the bespoke PowerPlanComboBox control, ConfigReviewService, PowerPlanComboBoxService) need
-// no using change.
+// In Core rather than the UI because SettingStateSnapshot carries the option list into TechnicalDetailsBuilder.
 public class ComboBoxSetupResult
 {
     public ObservableCollection<ComboBoxDisplayOption> Options { get; set; } = new();

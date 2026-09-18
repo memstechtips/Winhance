@@ -4,7 +4,9 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
+using Winhance.Infrastructure.Tests.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -14,6 +16,9 @@ public class SystemDetectionContextTests
 
     private static readonly string CurrentVersionKey =
         @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+
+    // An unstubbed mock reports every key missing, so PowerPlanOptions keeps each plan's English name.
+    private static readonly ILocalizationService Localization = new Mock<ILocalizationService>().Object;
 
     private static (SystemDetectionContext ctx,
         Mock<IWindowsRegistryService> reg,
@@ -31,14 +36,14 @@ public class SystemDetectionContextTests
             .Returns((IReadOnlyCollection<string> paths) => paths.ToDictionary(p => p, _ => (bool?)null));
         var power = new Mock<IPowerSettingsQueryService>();
         var log = new Mock<ILogService>();
-        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, log.Object);
+        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, Localization, log.Object);
         return (ctx, reg, restore, tasks, power);
     }
 
     private static Setting SettingWith(params Target[] targets) => new()
     {
         Id = "s",
-        Display = new() { Name = "s", Description = "s" },
+        Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
         Targets = targets,
     };
 
@@ -181,7 +186,7 @@ public class SystemDetectionContextTests
         var setting = new Setting
         {
             Id = "power-plan-selection",
-            Display = new() { Name = "p", Description = "p" },
+            Display = new() { Name = TestKeys.Of("p"), Description = TestKeys.Of("p") },
             Detector = new PowerPlanDetector(),
         };
 
@@ -207,8 +212,8 @@ public class SystemDetectionContextTests
     private static Setting PowerPlanSetting() => new()
     {
         Id = "power-plan-selection",
-        Display = new() { Name = "p", Description = "p" },
-        OptionSource = new PowerPlanOptionSource(),
+        Display = new() { Name = TestKeys.Of("p"), Description = TestKeys.Of("p") },
+        Options = new(OptionSource.PowerPlans),
     };
 
     [Fact]
@@ -224,12 +229,14 @@ public class SystemDetectionContextTests
             .ReturnsAsync(new PowerPlan { Guid = "381b4222-f694-41f0-9685-ff5bb260df2e", Name = "Balanced", IsActive = true });
         power.Setup(p => p.GetAvailablePowerPlansAsync()).ReturnsAsync(systemPlans);
 
-        // An OptionSource (no Detector) must trigger the per-batch plan pre-fetch, which populates the installed
-        // plans via the faithful PowerPlanOptions.Build port (content equivalence is covered by
+        // A power plan option list (no Detector) must trigger the per-batch plan pre-fetch, which populates the
+        // installed plans via the faithful PowerPlanOptions.Build port (content equivalence is covered by
         // PowerPlanOptionsConformanceTests; this asserts the context delegates to it on the prefetched plans).
         await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
 
-        Assert.Equal(PowerPlanOptions.Build(systemPlans), ctx.InstalledPowerPlans());
+        Assert.Equal(
+            PowerPlanOptions.Build(systemPlans, "381b4222-f694-41f0-9685-ff5bb260df2e", Localization),
+            ctx.InstalledPowerPlans());
     }
 
     [Fact]
@@ -241,7 +248,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task PowerPlanOptionSource_enumerates_options_and_reports_the_active_selection()
+    public async Task The_power_service_offers_the_prefetched_plans_and_reports_the_active_one()
     {
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetActivePowerPlanAsync())
@@ -253,9 +260,9 @@ public class SystemDetectionContextTests
         });
         await ctx.PrefetchAsync(new[] { PowerPlanSetting() });
 
-        var source = new PowerPlanOptionSource();
+        var service = OptionProviderFixtures.PowerService();
 
-        Assert.Equal(ctx.InstalledPowerPlans(), source.EnumerateOptions(ctx));
-        Assert.Equal("cccccccc-0000-0000-0000-000000000000", source.CurrentSelection(ctx));
+        Assert.Equal(ctx.InstalledPowerPlans(), service.Options(PowerPlanSetting(), ctx));
+        Assert.Equal("cccccccc-0000-0000-0000-000000000000", service.CurrentKey(PowerPlanSetting(), ctx));
     }
 }

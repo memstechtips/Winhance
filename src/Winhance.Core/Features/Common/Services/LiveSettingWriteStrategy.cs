@@ -1,4 +1,3 @@
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -85,17 +84,18 @@ public sealed class LiveSettingWriteStrategy : ISettingWriteStrategy
         string settingId = request.SystemRequest.SettingId;
         var title = _localizationService.GetString($"Setting_{settingId}_ConfirmTitle");
         var message = _localizationService.GetString($"Setting_{settingId}_ConfirmMessage");
-        var checkboxText = _localizationService.GetString($"Setting_{settingId}_ConfirmCheckbox");
+        // No key means the prompt has no checkbox; GetString would hand back its "[key]" marker and the
+        // dialog would draw a tick box nothing reads.
+        string? checkboxText = _localizationService.TryGetString($"Setting_{settingId}_ConfirmCheckbox", out var box) ? box : null;
 
-        // The theme-mode warning names the mode being switched to, so its two strings carry a
+        // The theme-mode warning names the mode being switched to, so its message carries a
         // placeholder the generic path has no value for.
-        if (settingId == SettingIds.ThemeModeWindows && request.SystemRequest.Value is int comboBoxIndex)
+        if (settingId == "theme-mode-windows" && request.SystemRequest.Value is int comboBoxIndex)
         {
             var themeMode = comboBoxIndex == 1
                 ? _localizationService.GetString("Setting_theme-mode-windows_Option_1")
                 : _localizationService.GetString("Setting_theme-mode-windows_Option_0");
             message = message.Replace("{themeMode}", themeMode);
-            checkboxText = checkboxText.Replace("{themeMode}", themeMode);
         }
 
         var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest

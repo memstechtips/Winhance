@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Features.Common.Catalog;
 
 // Forward relationships fire only when the owner moves to a non-default (active) state.
@@ -6,7 +7,7 @@ public static class RelationshipResolver
     // Requires only when not already met; Enables always (force); the children the target state Controls.
     // Empty when the target state is the WindowsDefault (a deactivation) or unknown.
     public static IReadOnlyList<ApplyAction> ResolveForward(
-        Setting setting, string targetStateLabel, Func<string, string?> currentStateOf)
+        Setting setting, LocKey targetStateLabel, Func<string, LocKey?> currentStateOf)
     {
         var actions = new List<ApplyAction>();
 
@@ -33,8 +34,8 @@ public static class RelationshipResolver
 
     // Only dependents currently away from their default are reset.
     public static IReadOnlyList<ApplyAction> ResolveReverseCascade(
-        string changedSettingId, string newStateLabel,
-        IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf, WinBuild build)
+        string changedSettingId, LocKey newStateLabel,
+        IReadOnlyList<Setting> allSettings, Func<string, LocKey?> currentStateOf, WinBuild build)
     {
         var actions = new List<ApplyAction>();
 
@@ -55,8 +56,8 @@ public static class RelationshipResolver
             if (!broken)
                 continue;
 
-            var defaultState = dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
-            if (defaultState != null && currentStateOf(dependent.Id) != defaultState)
+            if (dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label is { } defaultState
+                && currentStateOf(dependent.Id) != defaultState)
                 actions.Add(new ApplyAction(dependent.Id, defaultState, IsReset: true));
         }
 
@@ -66,7 +67,7 @@ public static class RelationshipResolver
     // Snap the parent to the first state whose Controls are all satisfied, else to its neutral state; a parent already
     // in the resulting state is left alone.
     public static IReadOnlyList<ApplyAction> ResolveReverseSync(
-        string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, string?> currentStateOf)
+        string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, LocKey?> currentStateOf)
     {
         var actions = new List<ApplyAction>();
 
@@ -82,7 +83,7 @@ public static class RelationshipResolver
             // master's "Custom". Identify it by "imposes no Controls", NOT by role: that neutral is WindowsDefault
             // for privacy-ads-promotional-master but Recommended for visual-effects-mode (whose WindowsDefault
             // "Let Windows choose" carries its own preset).
-            string? target = null;
+            LocKey? target = null;
             foreach (var state in parent.States.Where(s => s.Controls is { Count: > 0 }))
             {
                 if (state.Controls!.All(kv => currentStateOf(kv.Key) == kv.Value))
@@ -94,8 +95,8 @@ public static class RelationshipResolver
 
             target ??= parent.States.FirstOrDefault(s => s.Controls is null || s.Controls.Count == 0)?.Label;
 
-            if (target is not null && currentStateOf(parent.Id) != target)
-                actions.Add(new ApplyAction(parent.Id, target));
+            if (target is { } targetLabel && currentStateOf(parent.Id) != targetLabel)
+                actions.Add(new ApplyAction(parent.Id, targetLabel));
         }
 
         return actions;

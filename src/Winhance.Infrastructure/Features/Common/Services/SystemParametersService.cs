@@ -1,4 +1,5 @@
 using Windows.Win32;
+using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -19,4 +20,7 @@ internal class SystemParametersService : ISystemParametersService
                 (SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS)fuWinIni);
         }
     }
+
+    public bool SetSysColors(int index, uint colorRef) =>
+        PInvoke.SetSysColors([index], [(COLORREF)colorRef]);
 }

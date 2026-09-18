@@ -1,4 +1,6 @@
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Localization;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
@@ -7,12 +9,13 @@ namespace Winhance.Core.Features.Common.Catalog;
 public static class ApplyRequestResolver
 {
     public static IReadOnlyList<ApplyOp>? Resolve(
-        string settingId, bool enable, object? value, bool resetToDefault, WinBuild? build = null)
-        => Resolve(settingId, enable, value, resetToDefault, SettingCatalog.All, build);
+        string settingId, bool enable, object? value, bool resetToDefault, WinBuild? build = null,
+        IOptionProviderRegistry? options = null)
+        => Resolve(settingId, enable, value, resetToDefault, SettingCatalog.All, build, options);
 
     public static IReadOnlyList<ApplyOp>? Resolve(
         string settingId, bool enable, object? value, bool resetToDefault,
-        IReadOnlyList<Setting> catalog, WinBuild? build = null)
+        IReadOnlyList<Setting> catalog, WinBuild? build = null, IOptionProviderRegistry? options = null)
     {
         // Alias-normalize so a retired "-win10" This PC id resolves to its canonical MERGED catalog Setting (the 6
         // build-gated merges); Normalize is identity for every other id. Config import already normalizes
@@ -21,15 +24,30 @@ public static class ApplyRequestResolver
         if (setting is null)
             return null; // unpaired (no catalog peer)
 
-        // Dynamic-option settings (power-plan): the selected value is the scheme GUID - a plain string (the live UI
-        // selection) or a {Guid,Name} dictionary (config import, ConfigurationApplicationBridgeService).
-        // Build the activate op directly from that GUID; the setting has no States, so ApplyPlanBuilder/BuildForLabel
-        // cannot be used. A non-GUID value (a legacy int index, which needs an async index->GUID lookup the pure
-        // resolver can't do, or null) is not representable here and returns null (unreachable in production).
-        if (setting.OptionSource is not null)
+        if (setting.IsAnswerFileOnly)
+            return null;
+
+        if (setting.Control == ControlKind.TextBox
+            && setting.Targets.OfType<DesktopSlideshowTarget>().FirstOrDefault() is { } slideshow)
         {
-            var guid = ExtractPowerPlanGuid(value);
-            return guid is null ? null : new ApplyOp[] { new PowerPlanActivateOp(guid) };
+            return value is string folder && folder.Length > 0
+                ? new ApplyOp[] { new SlideshowSetOp(slideshow, folder) }
+                : null;
+        }
+
+        if (setting.Control == ControlKind.KeyedSelection)
+        {
+            return value is string key
+                && options?.For(setting.Options!.Source) is { } provider
+                && KeyedOptions.SetFor(setting, key, provider) is { } keyedSet
+                ? ApplyPlanBuilder.Build(setting, new SettingState
+                {
+                    // A machine option has no label key; Build takes the state directly, so this one is never looked up.
+                    Label = LocKey.Common.CustomState,
+                    Set = keyedSet,
+                    Effects = provider.EffectFor(setting, key) is { } nudge ? new[] { nudge } : System.Array.Empty<Effect>(),
+                }, build)
+                : null;
         }
 
         // A BARE-state custom detector (states carry NO apply effects) has nothing to build, so it returns null
@@ -43,7 +61,7 @@ public static class ApplyRequestResolver
         // StateRoles) resolves to Build(WindowsDefault, reset:true). A detector with no WindowsDefault
         // state hits the null return there.
         // (updates-policy-mode is the one custom detector with a WindowsDefault state AND registry targets, but it is
-        // special-handled - see SettingServicesExtensions - so it never reaches Resolve; if that registration is ever
+        // special-handled - see InfrastructureServicesExtensions - so it never reaches Resolve; if that registration is ever
         // removed, its reset must get its own Build(reset:true) equivalence proof before relying on this path.)
 
         // Reset-to-default. A reset differs from a normal apply ONLY in the per-target ResetSet overrides, which
@@ -65,29 +83,32 @@ public static class ApplyRequestResolver
             var defaultLabel = (build is { } b
                 ? setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, b))
                 : setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault)))?.Label;
-            if (defaultLabel is not null)
-                return ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true);
+            if (defaultLabel is { } resetTo)
+                return ApplyPlanBuilder.Build(setting, resetTo, build, reset: true);
             if (setting.Control == ControlKind.Action)
                 return null; // stateless action: reset not representable
             // else: fall through to the normal apply resolution below (reset:true is threaded via resetToDefault).
         }
 
-        // Render-kind drives the apply shape: the catalog Setting's derived Control. CheckBox folds into Toggle.
         switch (setting.Control)
         {
             case ControlKind.Action:
                 return ApplyPlanBuilder.BuildAction(setting);
 
             case ControlKind.Toggle:
-                return BuildForLabel(setting, enable ? "Enabled" : "Disabled", build, resetToDefault);
+            case ControlKind.CheckBox:
+                return BuildForLabel(setting, TwoState.Label(setting.Control, enable), build, resetToDefault);
 
             case ControlKind.Selection:
                 // The selection index maps to the state at that position (States[i].Label is the option label
-                // at position i).
+                // at position i). A detect-only state resolves to an empty plan: theme-wallpaper's Spotlight
+                // carries a Set to be detected by, and a config file can hold its index.
                 if (value is int index
                     && index >= 0 && index < setting.States.Count)
                 {
-                    return BuildForLabel(setting, setting.States[index].Label, build, resetToDefault);
+                    return setting.States[index].IsDetectOnly
+                        ? System.Array.Empty<ApplyOp>()
+                        : BuildForLabel(setting, setting.States[index].Label, build, resetToDefault);
                 }
                 // Separate AC/DC powercfg selection (config-import (acIndex,dcIndex) tuple / UI {ACValue,DCValue} index
                 // dict): the AC/DC path writes GetValueFromIndex(acIndex) -> AC and GetValueFromIndex(dcIndex)
@@ -191,19 +212,7 @@ public static class ApplyRequestResolver
         catch { return null; }
     }
 
-    // A plain GUID string from the live UI, or a {Guid,Name} dictionary from config import.
-    private static string? ExtractPowerPlanGuid(object? value)
-    {
-        if (value is string s && !string.IsNullOrWhiteSpace(s))
-            return s;
-        if (value is Dictionary<string, object> dict
-            && dict.TryGetValue("Guid", out var g)
-            && g?.ToString() is { Length: > 0 } guid)
-            return guid;
-        return null;
-    }
-
-    private static IReadOnlyList<ApplyOp>? BuildForLabel(Setting setting, string label, WinBuild? build, bool reset = false)
+    private static IReadOnlyList<ApplyOp>? BuildForLabel(Setting setting, LocKey label, WinBuild? build, bool reset = false)
     {
         if (!setting.States.Any(s => s.Label == label))
             return null;

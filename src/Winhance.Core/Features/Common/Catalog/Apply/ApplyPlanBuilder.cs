@@ -1,8 +1,16 @@
+using System.Text.RegularExpressions;
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Features.Common.Catalog;
 
 public static class ApplyPlanBuilder
 {
-    public static IReadOnlyList<ApplyOp> Build(Setting setting, string stateLabel, WinBuild? build = null, bool reset = false)
+    // A custom value is pasted into PowerShell text: inside quotes in one DNS script, a bare netsh argument in the
+    // other. Escaping cannot cover a bare argument, and PowerShell also closes a string on the typographic quotes,
+    // so only what an IP address or an https template is spelled with gets through.
+    private const string ScriptSafeValue = @"\A[A-Za-z0-9.:/-]+\z";
+    private const string Placeholder = @"\{\{(\w+)\}\}";
+
+    public static IReadOnlyList<ApplyOp> Build(Setting setting, LocKey stateLabel, WinBuild? build = null, bool reset = false)
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
             ?? throw new ArgumentException($"No state labelled '{stateLabel}' on setting '{setting.Id}'.", nameof(stateLabel));
@@ -33,6 +41,8 @@ public static class ApplyPlanBuilder
             switch (target)
             {
                 case RegTarget reg:
+                    if (reg.ReadOnly)
+                        break;
                     if (appliesViaRegContent)
                         break; // detect-only: the .reg import (an Effect) is the apply
                     // A state's ResetSet overrides its Set per target (the [1,null] Explorer targets detect
@@ -136,24 +146,25 @@ public static class ApplyPlanBuilder
             if (customValues.TryGetValue(valueName, out var v))
                 set[reg.Key] = v is null ? StateValue.Absent : StateValue.Of(v);
         }
-        return Build(setting, new SettingState { Label = "__custom__", Set = set });
+        return Build(setting, new SettingState { Label = LocKey.Common.CustomState, Set = set });
     }
 
     // A Custom state on a setting with NO registry target to write: the setting's un-baked CustomStateScripts
     // ARE the apply, each {{key}} filled from the captured values. An unmatched placeholder is left standing on
-    // purpose - the DNS DoH script tests for a literal {{ and skips itself when the machine had no template.
+    // purpose - the DNS DoH script tests for a literal {{ and skips itself when the machine had no template - and
+    // so is one whose value is not script-safe.
     public static IReadOnlyList<ApplyOp> BuildCustomStateScripts(
         Setting setting, IReadOnlyDictionary<string, object> customValues)
     {
         var ops = new List<ApplyOp>();
         foreach (var effect in setting.CustomStateScripts)
         {
-            string script = effect.Script;
-            foreach (var (key, value) in customValues)
-            {
-                if (value?.ToString() is { } replacement)
-                    script = script.Replace($"{{{{{key}}}}}", replacement);
-            }
+            string script = Regex.Replace(effect.Script, Placeholder, match =>
+                customValues.TryGetValue(match.Groups[1].Value, out var value)
+                && value?.ToString() is { } text
+                && Regex.IsMatch(text, ScriptSafeValue)
+                    ? text
+                    : match.Value);
 
             ops.Add(new EffectOp(effect with { Script = script }));
         }

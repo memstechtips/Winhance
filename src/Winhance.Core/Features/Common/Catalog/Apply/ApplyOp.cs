@@ -29,7 +29,6 @@ public sealed record TaskSetOp(TaskTarget Target, bool Enabled) : ApplyOp;
 
 public sealed record PowerCfgSetOp(PowerCfgTarget Target, PowerContext Context, int Value) : ApplyOp;
 
-public sealed record EffectOp(Effect Effect) : ApplyOp;
+public sealed record SlideshowSetOp(DesktopSlideshowTarget Target, string Folder) : ApplyOp;
 
-// Importing a predefined-but-not-installed plan first is the activation service's job, not the writer's.
-public sealed record PowerPlanActivateOp(string Guid) : ApplyOp;
+public sealed record EffectOp(Effect Effect) : ApplyOp;

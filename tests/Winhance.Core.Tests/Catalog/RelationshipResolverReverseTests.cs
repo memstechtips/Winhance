@@ -1,12 +1,14 @@
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class RelationshipResolverReverseTests
 {
-    private static SettingState St(string label, bool isDefault = false,
-        IReadOnlyDictionary<string, string>? controls = null) =>
+    private static SettingState St(LocKey label, bool isDefault = false,
+        IReadOnlyDictionary<string, LocKey>? controls = null) =>
         new()
         {
             Label = label,
@@ -18,7 +20,7 @@ public class RelationshipResolverReverseTests
         new()
         {
             Id = id,
-            Display = new() { Name = id, Description = id },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
             // Links live per-state - place them on the active/non-default states (mirrors the converter).
             States = links.Length == 0
                 ? states
@@ -28,32 +30,32 @@ public class RelationshipResolverReverseTests
     [Fact]
     public void Broken_requirement_resets_an_active_dependent()
     {
-        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        var actions = RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a },
-            id => id == "a" ? "On" : "Off", default);
-        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == "Off" && x.IsReset);
+        var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        var actions = RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("Off"), new[] { a },
+            id => id == "a" ? TestKeys.Of("On") : TestKeys.Of("Off"), default);
+        Assert.Contains(actions, x => x.SettingId == "a" && x.StateLabel == TestKeys.Of("Off") && x.IsReset);
     }
 
     [Fact]
     public void Requirement_still_met_resets_nothing()
     {
-        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "On", new[] { a }, id => "On", default));
+        var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("On"), new[] { a }, id => TestKeys.Of("On"), default));
     }
 
     [Fact]
     public void Dependent_already_at_default_is_not_reset()
     {
-        var a = S("a", new[] { St("On"), St("Off", isDefault: true) }, new Link("b", LinkKind.Requires, "On"));
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => "Off", default));
+        var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("Off"), new[] { a }, id => TestKeys.Of("Off"), default));
     }
 
     [Fact]
     public void Reverse_cascade_opt_out_is_respected()
     {
-        var a = S("a", new[] { St("On"), St("Off", isDefault: true) },
-            new Link("b", LinkKind.Requires, "On") { ReverseCascade = false });
-        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", "Off", new[] { a }, id => id == "a" ? "On" : "Off", default));
+        var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
+            new Link("b", LinkKind.Requires, TestKeys.Of("On")) { ReverseCascade = false });
+        Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("Off"), new[] { a }, id => id == "a" ? TestKeys.Of("On") : TestKeys.Of("Off"), default));
     }
 
     [Fact]
@@ -61,12 +63,12 @@ public class RelationshipResolverReverseTests
     {
         var parent = S("p", new[]
         {
-            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
-            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+            St(TestKeys.Of("Deny"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("Off"), ["c2"] = TestKeys.Of("Off") }),
+            St(TestKeys.Of("Allow"), isDefault: true, controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("On"), ["c2"] = TestKeys.Of("On") }),
         });
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
-            id => id == "p" ? "Allow" : "Off");
-        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == "Deny" && !x.IsReset);
+            id => id == "p" ? TestKeys.Of("Allow") : TestKeys.Of("Off"));
+        Assert.Contains(actions, x => x.SettingId == "p" && x.StateLabel == TestKeys.Of("Deny") && !x.IsReset);
     }
 
     [Fact]
@@ -74,11 +76,11 @@ public class RelationshipResolverReverseTests
     {
         var parent = S("p", new[]
         {
-            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
-            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+            St(TestKeys.Of("Deny"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("Off"), ["c2"] = TestKeys.Of("Off") }),
+            St(TestKeys.Of("Allow"), isDefault: true, controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("On"), ["c2"] = TestKeys.Of("On") }),
         });
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
-            id => id switch { "c1" => "Off", "c2" => "On", _ => "Allow" }));
+            id => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("On"), _ => TestKeys.Of("Allow") }));
     }
 
     [Fact]
@@ -86,17 +88,17 @@ public class RelationshipResolverReverseTests
     {
         var parent = S("p", new[]
         {
-            St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
-            St("Allow", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
+            St(TestKeys.Of("Deny"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("Off"), ["c2"] = TestKeys.Of("Off") }),
+            St(TestKeys.Of("Allow"), isDefault: true, controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("On"), ["c2"] = TestKeys.Of("On") }),
         });
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { parent },
-            id => id == "p" ? "Deny" : "Off"));
+            id => id == "p" ? TestKeys.Of("Deny") : TestKeys.Of("Off")));
     }
 
     [Fact]
     public void Setting_not_controlling_the_child_is_ignored()
     {
-        var other = S("o", new[] { St("x"), St("y", isDefault: true) });
-        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, id => "Off"));
+        var other = S("o", new[] { St(TestKeys.Of("x")), St(TestKeys.Of("y"), isDefault: true) });
+        Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, id => TestKeys.Of("Off")));
     }
 }

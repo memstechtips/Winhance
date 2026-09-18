@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -25,7 +26,9 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     // A Setting is already the canonical merged entry, so no alias normalization; dedupes by Id defensively.
     public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings)
     {
+        // An answer-file setting is detected only for its ReadOnly targets, which seed the card from this PC.
         var detectionInput = settings
+            .Where(s => !s.IsAnswerFileOnly || s.Targets.OfType<RegTarget>().Any(t => t.ReadOnly))
             .GroupBy(s => s.Id)
             .Select(g => g.First())
             .ToList();
@@ -47,6 +50,8 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 
     private SettingStateResult Map(Setting catalogSetting, CatalogDetectionResult? r, WinBuild build)
     {
+        if (catalogSetting.IsAnswerFileOnly) return AnswerFileDefault(catalogSetting, build, r);
+
         if (r is null)
         {
             // The engine produced no entry for this setting (it always populates one per input, so this is
@@ -67,22 +72,22 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             DnsServers = r.DnsServers,
         };
 
-        if (catalogSetting.OptionSource is not null)
+        if (catalogSetting.Options is not null)
         {
             return result with
             {
                 CurrentValue = 0,
                 DynamicOptions = r.Options,
                 DynamicSelection = r.StateLabel,
-                DynamicSelectionName = r.DynamicSelectionName,
             };
         }
 
         switch (catalogSetting.Control)
         {
             case ControlKind.Toggle:
-                // IsEnabled (the switch position) is already derived from the resolved "Enabled"/"Disabled" label;
-                // a toggle carries no CurrentValue. The outcome comes from the detection engine rather than being
+            case ControlKind.CheckBox:
+                // IsEnabled (the switch position) is already derived from the resolved on/off label for the kind;
+                // a two-state card carries no CurrentValue. The outcome comes from the detection engine rather than being
                 // re-inferred from "StateLabel is null" - that inference is exactly what conflated an unrecognized
                 // value, a wrong stored type and a detection crash into one indistinguishable "Custom".
                 return result with { Outcome = r.Outcome, OutcomeDetail = r.OutcomeDetail };
@@ -124,17 +129,74 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 // The slider's value IS the raw AC powercfg value index (r.Value).
                 return result with { CurrentValue = r.Value };
 
+            case ControlKind.TextBox:
+                return result with { CurrentValue = SeededText(catalogSetting, r.Readings) };
+
             default:
                 return result;
         }
     }
 
+    private static SettingStateResult AnswerFileDefault(Setting setting, WinBuild build, CatalogDetectionResult? detected)
+    {
+        var result = new SettingStateResult { Success = true };
+        if (TwoState.Is(setting.Control))
+        {
+            bool? fromThisPc = detected?.StateLabel switch
+            {
+                var label when label == TwoState.OnLabel(setting.Control).Value => true,
+                var label when label == TwoState.OffLabel(setting.Control).Value => false,
+                _ => null,
+            };
+            return result with { IsEnabled = fromThisPc ?? TwoState.GetDefault(setting, build) ?? false };
+        }
+        return setting.Control switch
+        {
+            ControlKind.Selection => result with { CurrentValue = RecommendedSettingsResolver.GetDefaultIndex(setting, build) ?? 0 },
+            ControlKind.TextBox => result with { CurrentValue = SeededText(setting, detected?.Readings) },
+            ControlKind.List when setting.List!.Seed is { } seed =>
+                result with { CurrentValue = SeededList(setting, seed, detected?.Readings) },
+            _ => result,
+        };
+    }
+
+    private static ChoiceValue.List SeededList(
+        Setting setting, IReadOnlyDictionary<string, string> seed, IReadOnlyDictionary<string, object?>? readings)
+    {
+        var row = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var field in setting.List!.Fields)
+        {
+            var read = seed.TryGetValue(field.Key, out var targetKey)
+                ? SeedReading(setting, targetKey, readings)
+                : null;
+            if (read is not { Length: > 0 })
+                read = field.Default;
+            if (read is not null)
+                row[field.Key] = read;
+        }
+
+        return new ChoiceValue.List([new ChoiceValue.ListRow(row)]);
+    }
+
+    private static string? SeededText(Setting setting, IReadOnlyDictionary<string, object?>? readings) =>
+        setting.TextBox!.SeedKey is { } key && SeedReading(setting, key, readings) is { Length: > 0 } read
+            ? read
+            : setting.TextBox.Default;
+
+    // Readings are filed by registry value name; a target without one (the slideshow folder) by its own Key.
+    private static string? SeedReading(Setting setting, string targetKey, IReadOnlyDictionary<string, object?>? readings)
+    {
+        if (readings is null)
+            return null;
+
+        var reading = setting.Targets.OfType<RegTarget>().FirstOrDefault(t => t.Key == targetKey) is { } reg
+            ? reg.ValueName ?? "KeyExists"
+            : targetKey;
+        return readings.TryGetValue(reading, out var value) ? value as string : null;
+    }
+
     // IsEnabled = "NOT in the state/value Windows ships", anchored on the OBJECTIVE WindowsDefault role - NOT the
     // subjective Recommended role, which shifts per release and would mis-report a deliberately-changed setting.
-    // Numeric: AC reading (display units) != WindowsDefault AC value; no reading or no anchor -> false. Toggle:
-    // switch position == the literal "Enabled" state. Selection: detected state is not a WindowsDefault-role state
-    // in the resolution context (AC for powercfg, Always for registry); Custom -> true. Dynamic-option / Action /
-    // no-anchor selections -> false.
     internal static bool DeriveIsEnabled(Setting catalogSetting, CatalogDetectionResult r, WinBuild build)
     {
         // Numeric (stateless slider): modified from the Windows-default AC value. r.Value is the raw AC powercfg
@@ -150,12 +212,12 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(rawAc, numeric.Units) != defAc.Value;
         }
 
-        // Toggle: the switch position (a toggle's States are always the literal "Enabled"/"Disabled").
-        if (catalogSetting.Control == ControlKind.Toggle)
-            return r.StateLabel == "Enabled";
+        // The exception: a two-state card's IsEnabled is the switch position.
+        if (TwoState.Is(catalogSetting.Control))
+            return r.StateLabel == TwoState.OnLabel(catalogSetting.Control).Value;
 
-        // No Windows-default anchor to be "modified" from: the power-plan option source and Action settings.
-        if (catalogSetting.OptionSource is not null || catalogSetting.Control == ControlKind.Action)
+        // No Windows-default anchor to be "modified" from: keyed selections and Action settings.
+        if (catalogSetting.Options is not null || catalogSetting.Control == ControlKind.Action)
             return false;
 
         // Selection: NOT in the Windows-default option, in the resolution context, on the LIVE build (an
@@ -175,7 +237,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             return false;
 
         var resolved = r.StateLabel is { } label
-            ? catalogSetting.States.FirstOrDefault(s => string.Equals(s.Label, label, System.StringComparison.Ordinal))
+            ? catalogSetting.States.FirstOrDefault(s => string.Equals(s.Label.Value, label, System.StringComparison.Ordinal))
             : null;
 
         // A Custom/unrecognised read (no matching state and no fallback) is non-default -> enabled.
@@ -190,7 +252,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             var states = setting.States;
             for (int i = 0; i < states.Count; i++)
             {
-                if (string.Equals(states[i].Label, label, System.StringComparison.Ordinal))
+                if (string.Equals(states[i].Label.Value, label, System.StringComparison.Ordinal))
                     return i;
             }
         }

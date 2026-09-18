@@ -28,9 +28,11 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
         foreach (var (featureId, settings) in _registry.GetAll(scope))
         {
             if (settings.Count == 0) continue;
-            if (!FeatureDefinitions.OptimizeFeatures.Contains(featureId) && !FeatureDefinitions.CustomizeFeatures.Contains(featureId))
+            if (!FeatureDefinitions.OptimizeFeatures.Contains(featureId)
+                && !FeatureDefinitions.CustomizeFeatures.Contains(featureId)
+                && !FeatureDefinitions.AutounattendFeatures.Contains(featureId))
             {
-                _log.Log(LogLevel.Warning, $"Feature {featureId} is neither Optimize nor Customize, skipping");
+                _log.Log(LogLevel.Warning, $"Feature {featureId} is not Optimize, Customize or Autounattend, skipping");
                 continue;
             }
 
@@ -65,17 +67,23 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
             case ControlKind.Action:
                 return new ChoiceValue.Toggle(state.IsEnabled);
 
-            case ControlKind.PowerPlan:
-                return string.IsNullOrEmpty(state.DynamicSelection)
-                    ? null
-                    : new ChoiceValue.PowerPlan(state.DynamicSelection, state.DynamicSelectionName ?? "Unknown");
+            case ControlKind.CheckBox:
+                return new ChoiceValue.CheckBox(state.IsEnabled);
+
+            case ControlKind.KeyedSelection:
+                // Saved with the key so a machine that does not offer it can still name it in the review diff.
+                if (string.IsNullOrEmpty(state.DynamicSelection))
+                    return null;
+                var offered = state.DynamicOptions?
+                    .FirstOrDefault(o => string.Equals(o.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase));
+                return new ChoiceValue.Keyed(state.DynamicSelection, offered?.Label ?? state.DynamicSelection);
 
             case ControlKind.Selection:
                 if (separate && (state.AcValue is not null || state.DcValue is not null))
                 {
                     // A desktop reads no DC value. Option 0 is a real option - on a TimeIntervals-backed
                     // setting it is "Never" - so a context that read nothing carries the AC option instead,
-                    // as the slider has always done.
+                    // the way the slider does.
                     return IndexOfPowerValue(setting, powerCfg!, state.AcValue) is { } acIndex
                         ? new ChoiceValue.AcDcOption(acIndex, IndexOfPowerValue(setting, powerCfg!, state.DcValue) ?? acIndex)
                         : null;
@@ -113,12 +121,20 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
                 if (state.CurrentValue is null) return null;
                 if (separate)
                 {
-                    // A desktop reads no DC value; the file has always carried the AC value for both contexts then.
+                    // A desktop reads no DC value; the file carries the AC value for both contexts then.
                     return state.AcValue is { } ac
                         ? new ChoiceValue.AcDcNumber(ac, state.DcValue ?? ac)
                         : null;
                 }
                 return new ChoiceValue.Number(Convert.ToInt32(state.CurrentValue));
+
+            case ControlKind.TextBox:
+                // An empty box is what the user typed; only an unread setting has nothing to record.
+                return state.CurrentValue is string typed ? new ChoiceValue.Text(typed) : null;
+
+            case ControlKind.List:
+                // An empty list means "create no rows"; an unread setting records that rather than dropping out.
+                return state.CurrentValue as ChoiceValue.List ?? new ChoiceValue.List([]);
 
             default:
                 return null;

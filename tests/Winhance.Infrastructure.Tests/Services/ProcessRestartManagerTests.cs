@@ -2,8 +2,10 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
@@ -13,6 +15,7 @@ public class ProcessRestartManagerTests
     private readonly Mock<IConfigImportState> _mockConfigImportState = new();
     private readonly Mock<IPendingRestartService> _mockPendingRestart = new();
     private readonly Mock<IExplorerRestartService> _mockExplorerRestart = new();
+    private readonly Mock<IWindowsThemeService> _mockTheme = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly ProcessRestartManager _sut;
 
@@ -24,6 +27,7 @@ public class ProcessRestartManagerTests
             _mockConfigImportState.Object,
             _mockPendingRestart.Object,
             _mockExplorerRestart.Object,
+            _mockTheme.Object,
             _mockLog.Object);
     }
 
@@ -33,7 +37,7 @@ public class ProcessRestartManagerTests
         string id, RestartTarget? restart = null, WindowsChange notify = WindowsChange.None) => new()
     {
         Id = id,
-        Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+        Display = new Display { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}")},
         Apply = restart is null && notify == WindowsChange.None
             ? ApplyBehavior.None
             : new ApplyBehavior { Restart = restart, NotifyWindows = notify },
@@ -175,6 +179,47 @@ public class ProcessRestartManagerTests
         _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never,
             "a notice is not a restart - it has already taken effect, so no bar may be raised");
         _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_DesktopSetting_RefreshesTheDesktopWithoutARestart()
+    {
+        var setting = CreateCatalogSetting("cat-background", restart: null, notify: WindowsChange.Desktop);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once,
+            "a declared desktop change must be announced even with no restart to hang it off");
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never,
+            "the desktop rows change no theme, so the expensive half must not be paid for");
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NonDesktopSetting_LeavesTheDesktopAlone()
+    {
+        var setting = CreateCatalogSetting("cat-theme", new RestartProcess("Explorer"), WindowsChange.Appearance);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Never);
+    }
+
+    [Fact]
+    public async Task FlushCoalescedRestartsAsync_WithOneDesktopSetting_RefreshesTheDesktopOnce()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("bulk-plain", new RestartProcess("Explorer")),
+            CreateCatalogSetting("bulk-background", new RestartProcess("Explorer"), WindowsChange.Desktop),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once,
+            "one desktop-affecting setting in the batch is enough, and once is enough");
     }
 
     [Fact]

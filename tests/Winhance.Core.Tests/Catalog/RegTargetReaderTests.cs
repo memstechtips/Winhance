@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;

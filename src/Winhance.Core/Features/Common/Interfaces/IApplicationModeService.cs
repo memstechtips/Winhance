@@ -29,6 +29,12 @@ public interface IApplicationModeService
     // filter or language change rebuilds every card), so it MUST answer from the same store Save writes.
     SettingChoice? GetBuilderEdit(string settingId);
 
+    // True unless the user has taken the setting out of the file being authored.
+    bool IsIncluded(string settingId);
+
+    // Both directions mark the session dirty.
+    void SetIncluded(string settingId, bool included);
+
     // Separate from RecordBuilderEdit on purpose: an input shape with no serializable ChoiceValue is still
     // authored work the user would lose on a mode switch.
     void MarkBuilderDirty();

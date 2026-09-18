@@ -1,5 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Infrastructure.Features.AdvancedTools.Helpers;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;

@@ -9,4 +9,9 @@ public interface IConfigImportState
 
     // Tells the power-plan special handler to skip its recommended-settings re-apply: the import's own values are the source of truth.
     bool ImportSuppliesPowerValues { get; set; }
+
+    // Sections apply in parallel, so this is called from several threads at once.
+    void ReportNotApplied(string message);
+
+    IReadOnlyList<string> TakeNotApplied();
 }

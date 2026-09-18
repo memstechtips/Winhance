@@ -1,7 +1,9 @@
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.Catalog;
 
@@ -15,13 +17,13 @@ public class CustomStateValueReconstructorTests
     private static Setting DnsSetting() => new()
     {
         Id = "dns",
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         States = new[]
         {
-            new SettingState { Label = "Automatic" },
-            new SettingState { Label = "Cloudflare" },
+            new SettingState { Label = TestKeys.Of("Automatic") },
+            new SettingState { Label = TestKeys.Of("Cloudflare") },
         },
-        Detector = new DnsServerDetector("Automatic", new Dictionary<string, string> { ["1.1.1.1"] = "Cloudflare" }),
+        Detector = new DnsServerDetector(TestKeys.Of("Automatic"), new Dictionary<string, LocKey> { ["1.1.1.1"] = TestKeys.Of("Cloudflare") }),
     };
 
     [Fact]

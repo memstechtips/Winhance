@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -10,7 +11,6 @@ public class ApplyExecutorTests
     private static readonly string[] HklmA = [@"HKLM\A"];
     private static readonly string[] WriteThenEffectCalls = [@"W HKLM\A=1", "FX"];
     private static readonly string[] BitThenByteCalls = [@"B HKLM\A[4] 0x20=True", @"Y HKLM\A[8]=0x03"];
-    private static readonly string[] PowerPlanActivateCall = ["PP 11111111-1111-1111-1111-111111111111"];
     private static readonly string[] UnlockWriteLockCalls = [@"UNLK HKLM\A", @"W HKLM\A=4", @"LK HKLM\A"];
     private static readonly string[] CompositeSetThenRemoveCalls = [@"C HKCU\Pref[AutoHDREnable]=1", @"C HKCU\Pref[VRROptimizeEnable]=<del>"];
     private static readonly string[] PerSubkeyWriteThenDeleteCalls = [@"PW HKLM\Interfaces=1", @"PD HKLM\Interfaces"];
@@ -35,10 +35,13 @@ public class ApplyExecutorTests
         public bool SetTask(TaskTarget t, bool enabled) { Calls.Add($"T {enabled}"); return true; }
         public bool WritePowerCfgValue(PowerCfgTarget t, PowerContext context, int value) { Calls.Add($"P {context}={value}"); return !FailRegistryWrites; }
         public bool ActivatePowerPlan(string guid) { Calls.Add($"PP {guid}"); return true; }
+        public bool SetSlideshow(DesktopSlideshowTarget t, string folder) { Calls.Add($"S {folder}"); return true; }
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 
     private static RegTarget Reg() => new("K", HklmA, "V", RegistryValueKind.DWord);
+
+    private static PowerPlanEffect SyncEffect() => new("11111111-1111-1111-1111-111111111111");
 
     // Production always partitions before executing, so the tests go the same way.
     private static ApplyResult Execute(IReadOnlyList<ApplyOp> ops, IStateWriter writer) =>
@@ -51,7 +54,7 @@ public class ApplyExecutorTests
         var plan = new ApplyOp[]
         {
             new RegistryWriteOp(Reg(), @"HKLM\A", 1),
-            new EffectOp(new NativePowerEffect(1, 0)),
+            new EffectOp(SyncEffect()),
         };
         var result = Execute(plan, w);
         Assert.Equal(2, result.Total);
@@ -74,13 +77,13 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_power_plan_activate_op_to_the_writer()
+    public void Dispatches_a_power_plan_effect_to_the_writer()
     {
         var w = new RecordingWriter();
-        var plan = new ApplyOp[] { new PowerPlanActivateOp("11111111-1111-1111-1111-111111111111") };
+        var plan = new ApplyOp[] { new EffectOp(new PowerPlanEffect("11111111-1111-1111-1111-111111111111")) };
         var result = Execute(plan, w);
         Assert.True(result.AllSucceeded);
-        Assert.Equal(PowerPlanActivateCall, w.Calls);
+        Assert.Equal(EffectOnlyCall, w.Calls);
     }
 
     [Fact]
@@ -133,7 +136,7 @@ public class ApplyExecutorTests
         var plan = new ApplyOp[]
         {
             new RegistryWriteOp(Reg(), @"HKLM\A", 1),
-            new EffectOp(new NativePowerEffect(1, 0)),
+            new EffectOp(SyncEffect()),
         };
         var result = Execute(plan, w);
         Assert.Equal(1, result.Failed);
@@ -168,7 +171,7 @@ public class ApplyExecutorTests
     public void Blocking_effects_stay_on_the_writer()
     {
         var w = new RecordingWriter();
-        var plan = ApplyPlan.From(new ApplyOp[] { new EffectOp(new NativePowerEffect(1, 0)) });
+        var plan = ApplyPlan.From(new ApplyOp[] { new EffectOp(SyncEffect()) });
 
         var outcome = ApplyExecutor.Execute(plan, w);
 
@@ -197,7 +200,7 @@ public class ApplyExecutorTests
         {
             new EffectOp(first),
             new RegistryWriteOp(Reg(), @"HKLM\A", 1),
-            new EffectOp(new NativePowerEffect(1, 0)),
+            new EffectOp(SyncEffect()),
             new EffectOp(second),
             new RegistryDeleteOp(Reg(), @"HKLM\B"),
         });

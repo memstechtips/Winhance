@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -14,17 +13,20 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
     private readonly IConfigImportState _configImportState;
+    private readonly IFileStore _fileStore;
 
     public ConfigurationApplicationBridgeService(
         ISettingApplicationService settingApplicationService,
         ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService,
-        IConfigImportState configImportState)
+        IConfigImportState configImportState,
+        IFileStore fileStore)
     {
         _settingApplicationService = settingApplicationService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
         _configImportState = configImportState;
+        _fileStore = fileStore;
     }
 
     public async Task<bool> ApplyConfigurationSectionAsync(
@@ -48,7 +50,7 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
         // sections run in parallel).
         if (section.Items.Any(i =>
                 !string.IsNullOrEmpty(i.Id) &&
-                i.Id != SettingIds.PowerPlanSelection &&
+                i.Id != "power-plan-selection" &&
                 i.PowerSettings != null))
         {
             _configImportState.ImportSuppliesPowerValues = true;
@@ -57,13 +59,17 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
         var waves = BuildDependencyWaves(section.Items);
         _logService.Log(LogLevel.Info, $"Organized {section.Items.Count} settings into {waves.Count} parallel wave(s)");
 
+        var materialized = await MaterializeCarriedFilesAsync(waves.SelectMany(wave => wave).ToList())
+            .ConfigureAwait(false);
+
         int appliedCount = 0;
         int skippedOsCount = 0;
         int failCount = 0;
 
         foreach (var wave in waves)
         {
-            var tasks = wave.Select(tuple => ApplySettingItemAsync(tuple.item, tuple.setting, confirmationHandler));
+            var tasks = wave.Select(tuple =>
+                ApplySettingItemAsync(tuple.item, tuple.setting, materialized, confirmationHandler));
             var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             foreach (var result in results)
@@ -99,21 +105,49 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
         return failCount == 0;
     }
 
-    private object ResolveSelectionValue(Setting setting, ConfigurationItem item)
+    private async Task<IReadOnlyDictionary<string, ChoiceValue>> MaterializeCarriedFilesAsync(
+        IReadOnlyList<(ConfigurationItem item, Setting setting)> pairs)
     {
-        switch (ConfigFileMapper.DecodeValue(setting, item))
+        // A config can list one id twice with a file each, which would write the same destination twice and
+        // land two choices under one id.
+        var carrying = pairs
+            .Where(pair => pair.item.File is { Base64.Length: > 0 })
+            .GroupBy(pair => pair.item.Id!, StringComparer.Ordinal)
+            .Select(group => group.Last())
+            .ToList();
+        if (carrying.Count == 0)
+            return new Dictionary<string, ChoiceValue>(StringComparer.Ordinal);
+
+        var choices = new List<SettingChoice>();
+        var files = new List<CarriedFile>();
+        foreach (var (item, setting) in carrying)
         {
-            case ChoiceValue.PowerPlan p:
-                return new Dictionary<string, object> { ["Guid"] = p.Guid, ["Name"] = p.Name };
+            if (ConfigFileMapper.DecodeValue(setting, item) is not { } value)
+                continue;
+            choices.Add(new SettingChoice(item.Id!, value));
+            files.Add(new CarriedFile(item.Id!, item.File!.Destination, item.File.Base64));
+        }
+
+        var landed = await _fileStore
+            .MaterializeAsync(SelectionSet.Empty with { Settings = choices, Files = files })
+            .ConfigureAwait(false);
+
+        return landed.Settings.ToDictionary(choice => choice.SettingId, choice => choice.Value, StringComparer.Ordinal);
+    }
+
+    private object ResolveSelectionValue(
+        Setting setting, ConfigurationItem item, IReadOnlyDictionary<string, ChoiceValue> materialized)
+    {
+        switch (Decoded(setting, item, materialized))
+        {
             case ChoiceValue.CustomValues c:
                 return new Dictionary<string, object>(c.Values);
             case ChoiceValue.AcDcOption a:
                 return (a.AcIndex, a.DcIndex);
             case ChoiceValue.Option o:
                 return o.Index;
-            case null when setting.Id == SettingIds.PowerPlanSelection:
-                _logService.Log(LogLevel.Error, "Config file is missing PowerPlanGuid for power-plan-selection.");
-                throw new InvalidOperationException("Configuration file is invalid or corrupted.");
+            case ChoiceValue.Keyed k:
+                return k.Key;
             default:
                 _logService.Log(LogLevel.Warning,
                     $"Config item '{item.Id}' is a selection but carries no resolvable value " +
@@ -122,6 +156,13 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
                 return 0;
         }
     }
+
+    // Decoding a carried file's item again would hand the apply the authoring PC's path.
+    private static ChoiceValue? Decoded(
+        Setting setting, ConfigurationItem item, IReadOnlyDictionary<string, ChoiceValue> materialized) =>
+        item.Id is { Length: > 0 } id && materialized.TryGetValue(id, out var value)
+            ? value
+            : ConfigFileMapper.DecodeValue(setting, item);
 
     // The file holds powercfg values in SYSTEM units; the apply funnel expects DISPLAY units (it converts back),
     // so convert here exactly as the quick-set path does. Non-powercfg sliders pass through unchanged.
@@ -212,6 +253,7 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
     private async Task<(ApplyStatus status, string itemName)> ApplySettingItemAsync(
         ConfigurationItem item,
         Setting setting,
+        IReadOnlyDictionary<string, ChoiceValue> materialized,
         Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
     {
         try
@@ -228,17 +270,17 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
-            // Control.PowerPlan routes through the Selection value path: the bridge does NOT skip power-plan-selection.
             bool requiresConfirmation = setting.Apply.RequiresConfirmation;
-            bool isSelection = setting.Control is ControlKind.Selection or ControlKind.PowerPlan;
+            bool isSelection = setting.Control is ControlKind.Selection or ControlKind.KeyedSelection;
             bool isNumericRange = setting.Control == ControlKind.Slider;
             bool isAction = setting.Control == ControlKind.Action;
+            bool isText = setting.Control == ControlKind.TextBox;
 
             bool checkboxResult = false;
             if (requiresConfirmation && confirmationHandler != null)
             {
                 var value = isSelection
-                    ? (object)ResolveSelectionValue(setting, item)
+                    ? (object)ResolveSelectionValue(setting, item, materialized)
                     : (object)(item.IsSelected ?? false);
 
                 var (confirmed, checkbox) = await confirmationHandler(item.Id, value).ConfigureAwait(false);
@@ -256,13 +298,19 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
 
             if (isSelection)
             {
-                valueToApply = ResolveSelectionValue(setting, item);
+                valueToApply = ResolveSelectionValue(setting, item, materialized);
             }
             else if (isNumericRange)
             {
                 valueToApply = ResolveNumericRangeValue(setting, item);
             }
+            else if (isText)
+            {
+                // An empty box is an answer (it clears the setting) and travels as ""; only a missing entry is null.
+                valueToApply = (Decoded(setting, item, materialized) as ChoiceValue.Text)?.Value;
+            }
 
+            OperationResult result;
             if (isAction)
             {
                 // Action settings only apply when explicitly selected. An unselected Action has
@@ -275,7 +323,7 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
                 }
 
                 // Enable=true matches the runtime button-click flow (RunActionAsync).
-                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
                     SettingId = item.Id,
                     Enable = true,
@@ -285,7 +333,7 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
             }
             else
             {
-                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
                     SettingId = item.Id,
                     Enable = item.IsSelected ?? false,
@@ -293,6 +341,12 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
                     CheckboxResult = checkboxResult,
                     SkipValuePrerequisites = true
                 }).ConfigureAwait(false);
+            }
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{item.Name}' was not applied: {result.ErrorMessage}");
+                return (ApplyStatus.Failed, item.Name);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");

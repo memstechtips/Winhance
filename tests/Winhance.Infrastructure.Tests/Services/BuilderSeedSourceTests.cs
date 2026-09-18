@@ -8,7 +8,9 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class BuilderSeedSourceTests
@@ -43,24 +45,35 @@ public class BuilderSeedSourceTests
 
     private static Setting Toggle(StateRole[] enabled, StateRole[] disabled) => new()
     {
-        Id = "t", Display = new() { Name = "t", Description = "t" },
+        Id = "t", Display = new() { Name = TestKeys.Of("t"), Description = TestKeys.Of("t") },
         Targets = new Target[] { new RegTarget("V", TogglePath, "V", RegistryValueKind.DWord) },
         States = new[]
         {
-            new SettingState { Label = "Enabled", Roles = enabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
-            new SettingState { Label = "Disabled", Roles = disabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+            new SettingState { Label = LocKey.Common.Enabled, Roles = enabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+            new SettingState { Label = LocKey.Common.Disabled, Roles = disabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+        },
+    };
+
+    private static Setting CheckBox(StateRole[] checkedRoles, StateRole[] uncheckedRoles) => new()
+    {
+        Id = "c", Display = new() { Name = TestKeys.Of("c"), Description = TestKeys.Of("c") },
+        Targets = new Target[] { new RegTarget("V", TogglePath, "V", RegistryValueKind.DWord) },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Common.Checked, Roles = checkedRoles, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+            new SettingState { Label = LocKey.Common.Unchecked, Roles = uncheckedRoles, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
         },
     };
 
     private static Setting Selection(StateRole[] first, StateRole[] second, StateRole[] third) => new()
     {
-        Id = "s", Display = new() { Name = "s", Description = "s" },
+        Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
         Targets = new Target[] { new RegTarget("M", SelectionPath, "Mode", RegistryValueKind.DWord) },
         States = new[]
         {
-            new SettingState { Label = "A", Roles = first, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(0) } },
-            new SettingState { Label = "B", Roles = second, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(1) } },
-            new SettingState { Label = "C", Roles = third, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(2) } },
+            new SettingState { Label = TestKeys.Of("A"), Roles = first, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(0) } },
+            new SettingState { Label = TestKeys.Of("B"), Roles = second, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(1) } },
+            new SettingState { Label = TestKeys.Of("C"), Roles = third, Set = new Dictionary<string, StateValue> { ["M"] = StateValue.Of(2) } },
         },
     };
 
@@ -68,20 +81,44 @@ public class BuilderSeedSourceTests
     // record the option INDEX, and 0/1 would pass whichever of the two it recorded.
     private static Setting PowerCfgSelection(StateRole[] off, StateRole[] on) => new()
     {
-        Id = "p", Display = new() { Name = "p", Description = "p" },
+        Id = "p", Display = new() { Name = TestKeys.Of("p"), Description = TestKeys.Of("p") },
         Targets = new Target[] { new PowerCfgTarget("Power", "sub", "set", PowerModeSupport.Separate) },
         States = new[]
         {
-            new SettingState { Label = "5 minutes", Roles = off, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(300) } },
-            new SettingState { Label = "15 minutes", Roles = on, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(900) } },
+            new SettingState { Label = TestKeys.Of("5 minutes"), Roles = off, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(300) } },
+            new SettingState { Label = TestKeys.Of("15 minutes"), Roles = on, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(900) } },
         },
     };
 
     private static Setting Slider() => new()
     {
-        Id = "n", Display = new() { Name = "n", Description = "n" },
+        Id = "n", Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("n") },
         Targets = new Target[] { new PowerCfgTarget("Power", "sub", "set", PowerModeSupport.Separate) },
         Numeric = new() { Min = 0, Max = 120, Units = "minutes", Recommended = TenAcFiveDc },
+    };
+
+    private static readonly string[] EnvironmentPaths = [@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"];
+
+    private static Setting Architecture() => new()
+    {
+        Id = "arch", Display = new() { Name = TestKeys.Of("arch"), Description = TestKeys.Of("arch") },
+        Targets = new Target[]
+        {
+            new AutounattendArchitecture("arch", "amd64"),
+            new RegTarget("this-pc", EnvironmentPaths, "PROCESSOR_ARCHITECTURE", RegistryValueKind.String) { ReadOnly = true },
+        },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Common.Checked, Roles = Windows11DefaultRole, Set = new Dictionary<string, StateValue> { ["arch"] = StateValue.Of("amd64") } },
+            new SettingState { Label = LocKey.Common.Unchecked, Set = new Dictionary<string, StateValue> { ["arch"] = StateValue.Absent } },
+        },
+    };
+
+    private static Setting TextSetting(string? defaultValue) => new()
+    {
+        Id = "x", Display = new() { Name = TestKeys.Of("x"), Description = TestKeys.Of("x") },
+        Targets = new Target[] { new AutounattendElement("K", "specialize", "Microsoft-Windows-Shell-Setup", "ComputerName") },
+        TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), defaultValue),
     };
 
     [Fact]
@@ -105,6 +142,26 @@ public class BuilderSeedSourceTests
         var choices = await Sut().ChoicesForAsync(BuilderSeed.WindowsDefaults, CatalogScope.CurrentMachine);
 
         choices.Single().Value.Should().Be(new ChoiceValue.Toggle(expected));
+    }
+
+    [Fact]
+    public async Task WindowsDefaults_CheckBox_SeedsItsOwnShape()
+    {
+        Arrange(CheckBox(NoRoles, Windows11DefaultRole));
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.WindowsDefaults, CatalogScope.CurrentMachine);
+
+        choices.Single().Value.Should().Be(new ChoiceValue.CheckBox(false));
+    }
+
+    [Fact]
+    public async Task A_role_seed_leaves_a_card_seeded_from_this_PC_alone()
+    {
+        Arrange(Architecture());
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.WindowsDefaults, CatalogScope.CurrentMachine);
+
+        choices.Should().BeEmpty();
     }
 
     [Fact]
@@ -148,6 +205,26 @@ public class BuilderSeedSourceTests
     }
 
     [Fact]
+    public async Task WindowsDefaults_Text_SeedsTheSettingsOwnDefault()
+    {
+        Arrange(TextSetting("PC-01"));
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.WindowsDefaults, CatalogScope.CurrentMachine);
+
+        choices.Single().Value.Should().Be(new ChoiceValue.Text("PC-01"));
+    }
+
+    [Fact]
+    public async Task Recommended_TextWithoutADefault_IsOmitted()
+    {
+        Arrange(TextSetting(null));
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.Recommended, CatalogScope.CurrentMachine);
+
+        choices.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task SettingWithoutThatRole_IsOmitted()
     {
         Arrange(Toggle(NoRoles, DefaultRole));
@@ -160,7 +237,18 @@ public class BuilderSeedSourceTests
     [Fact]
     public async Task Action_IsOmitted()
     {
-        Arrange(new Setting { Id = "a", Display = new() { Name = "a", Description = "a" } });
+        Arrange(new Setting { Id = "a", Display = new() { Name = TestKeys.Of("a"), Description = TestKeys.Of("a") } });
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.Recommended, CatalogScope.CurrentMachine);
+
+        choices.Should().BeEmpty();
+    }
+
+    // A keyed option is a fact about one machine: seeding it would write this PC's time zone into a Recommended config.
+    [Fact]
+    public async Task KeyedSelection_IsOmitted()
+    {
+        Arrange(SettingCatalog.Find("region-time-zone")!);
 
         var choices = await Sut().ChoicesForAsync(BuilderSeed.Recommended, CatalogScope.CurrentMachine);
 

@@ -1,13 +1,14 @@
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
+using Winhance.TestSupport;
 namespace Winhance.Core.Tests.Catalog;
 
 public class SettingStateTests
 {
     private static SettingState Make(params StateRole[] roles) => new()
     {
-        Label = "Test",
+        Label = TestKeys.Of("Test"),
         Roles = roles,
         Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
         Effects = System.Array.Empty<Effect>(),

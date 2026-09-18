@@ -5,14 +5,13 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
-// The byte logic lives in the proven primitives and is covered elsewhere; the native CallNtPowerInformation
-// branch is review + apply-smoke gated.
 public class WindowsStateWriterTests
 {
     private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";
@@ -23,12 +22,14 @@ public class WindowsStateWriterTests
     private readonly Mock<IScheduledTaskStateService> _tasks = new(MockBehavior.Strict);
     private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
     private readonly Mock<IPowerPlanActivationService> _activation = new();
+    private readonly Mock<IWindowsThemeService> _theme = new();
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
-        _sut = new WindowsStateWriter(_reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _log.Object);
+        _sut = new WindowsStateWriter(
+            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -308,6 +309,29 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.CreateKey(Path), Times.Once);
         _reg.Verify(r => r.SetValue(Path, ValueName, 7, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_PowerPlanEffect_ActivatesThroughTheActivationService()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((true, guid.ToString()));
+
+        _sut.RunEffect(new PowerPlanEffect(guid.ToString())).Should().BeTrue();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public void SetSlideshow_HandsTheFolderToTheThemeService()
+    {
+        _theme.Setup(t => t.SetSlideshow(@"D:\Pictures\Holiday")).Returns(true);
+
+        _sut.SetSlideshow(new DesktopSlideshowTarget("album"), @"D:\Pictures\Holiday").Should().BeTrue();
+
+        _theme.Verify(t => t.SetSlideshow(@"D:\Pictures\Holiday"), Times.Once);
     }
 
     [Fact]

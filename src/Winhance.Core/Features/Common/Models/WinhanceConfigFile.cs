@@ -8,6 +8,7 @@ public class WinhanceConfigFile
     public ConfigSection ExternalApps { get; set; } = new ConfigSection();
     public FeatureGroupSection Customize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
+    public FeatureGroupSection Autounattend { get; set; } = new FeatureGroupSection();
 }
 
 // Mutable by design: IsIncluded is toggled after construction and Features is assigned from deserialized JSON.

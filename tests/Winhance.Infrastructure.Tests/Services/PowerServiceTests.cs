@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Windows.Win32.Foundation;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
@@ -103,7 +102,7 @@ public class PowerServiceTests
         // PowerService is not an apply handler (power-plan apply runs through the catalog engine); the interface
         // method remains only because PowerService is still a discovery handler, and it handles nothing.
 
-        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.PowerPlanSelection, 0);
+        var result = await _sut.TryApplySpecialSettingAsync("power-plan-selection", 0);
 
         result.Should().BeFalse();
     }

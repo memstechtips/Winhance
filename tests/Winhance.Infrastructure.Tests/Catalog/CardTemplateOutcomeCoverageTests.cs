@@ -20,8 +20,9 @@ public class CardTemplateOutcomeCoverageTests
     private static readonly string[] InputControls =
     {
         "ToggleSwitch", "CheckBox", "NumberBox",
-        "local:ComboBoxEx", "local:PowerPlanComboBox",
-        "local:SettingComboBox", "local:SettingNumberBox",
+        "local:ComboBoxEx",
+        "local:SettingComboBox", "local:SettingNumberBox", "local:SettingCheckBox",
+        "local:SettingTextBox", "local:SettingTileSelection",
     };
 
     // Either the overlay control itself, or - for the toggle, whose overlay is an interactive Button - a binding to the outcome.
@@ -31,13 +32,17 @@ public class CardTemplateOutcomeCoverageTests
         "OverlayVisibilityFor(Outcome)",
         "local:SettingComboBox",   // owns its overlay internally
         "local:SettingNumberBox",  // owns its overlay internally
+        "local:SettingCheckBox",   // owns its overlay internally
+        "local:SettingTileSelection", // owns its overlay internally
     };
 
-    // An action button runs a task rather than displaying a detected state. Adding a name here must be a deliberate
-    // decision with the same justification, not a way to quiet the test.
+    // An action button runs a task and an answer-file setting is authored, not read off a machine: neither holds a
+    // value detection could fail to place. A new name here needs the same justification, not a wish to quiet the test.
     private static readonly HashSet<string> Exempt = new(StringComparer.Ordinal)
     {
         "ActionSettingTemplate",
+        "TextBoxSettingTemplate",
+        "ListSettingTemplate",
     };
 
     [Fact]
@@ -100,8 +105,8 @@ public class CardTemplateOutcomeCoverageTests
             + "the thing it excused:\n  " + string.Join("\n  ", stale));
     }
 
-    // Nested DataTemplates would break a naive split, but the card templates do not nest - the count assertion
-    // catches it if that changes.
+    // A nested DataTemplate (the list row) ends its enclosing body at the inner closing tag. That body still holds
+    // the row's controls, which is what is read, and only x:Key'd templates are collected.
     private static List<(string Name, string Body)> SplitTemplates(string xaml)
     {
         var result = new List<(string, string)>();

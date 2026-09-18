@@ -5,10 +5,10 @@ using Xunit;
 namespace Winhance.Core.Tests.Catalog;
 
 // The ONLY enforcement of CustomStateScripts for gaming-touch-keyboard-service (precedence-corrected, so exempt
-// from the structural gate). Pins the durable contract: exactly these 4 settings carry CustomStateScripts (5
+// from the structural gate). Pins the durable contract: exactly these 5 settings carry CustomStateScripts (6
 // entries), each non-empty with its RunContext; gaming-dns-server's keep their placeholders INTACT ({{primary}},
-// {{secondary}}, {{dohtemplate}}) - a baked body would hard-code a preset DNS instead of the user's custom
-// values, silently; and no other setting carries any.
+// {{secondary}}, {{dohtemplate}}) and the album's keeps {{value}} - a baked body would hard-code a preset DNS,
+// or one machine's folder, instead of the user's own, silently; and no other setting carries any.
 public class CatalogCustomStateScriptsConformanceTests
 {
     private static readonly (string Id, int Count, RunContext[] Runs)[] Expected =
@@ -17,6 +17,7 @@ public class CatalogCustomStateScriptsConformanceTests
         ("gaming-dns-server", 2, new[] { RunContext.User, RunContext.User }),
         ("gaming-touch-keyboard-service", 1, new[] { RunContext.System }),
         ("taskbar-system-tray-icons-11", 1, new[] { RunContext.User }),
+        ("theme-wallpaper-album", 1, new[] { RunContext.User }),
     };
 
     [Fact]
@@ -29,7 +30,7 @@ public class CatalogCustomStateScriptsConformanceTests
 
         Assert.Equal(Expected.Select(e => e.Id).OrderBy(x => x, System.StringComparer.Ordinal).ToArray(),
             carriers.Select(s => s.Id).ToArray());
-        Assert.Equal(5, carriers.Sum(s => s.CustomStateScripts.Count));
+        Assert.Equal(6, carriers.Sum(s => s.CustomStateScripts.Count));
 
         foreach (var (id, count, runs) in Expected)
         {
@@ -68,6 +69,24 @@ public class CatalogCustomStateScriptsConformanceTests
         AssertRaw(doh, 1, "{{primary}}");
         AssertRaw(doh, 1, "{{secondary}}");
         AssertRaw(doh, 1, "{{dohtemplate}}");
+    }
+
+    [Fact]
+    public void The_album_script_keeps_its_value_placeholder()
+    {
+        var setting = SettingCatalog.Find("theme-wallpaper-album");
+        Assert.NotNull(setting);
+        Assert.Contains("{{value}}", setting!.CustomStateScripts[0].Script);
+    }
+
+    // PowerShell ends a here-string only on a line whose first character is the terminator.
+    [Fact]
+    public void The_album_script_closes_its_here_string_at_column_zero()
+    {
+        var script = SettingCatalog.Find("theme-wallpaper-album")!.CustomStateScripts[0].Script;
+
+        Assert.Contains("\n'@", script);
+        Assert.DoesNotContain("\n '@", script);
     }
 
     private static void AssertRaw(string body, int index, string placeholder) =>

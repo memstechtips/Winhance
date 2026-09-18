@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 
@@ -95,7 +96,7 @@ internal class WindowsAppsService(
                         {
                             await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                             {
-                                SettingId = SettingIds.UpdatesPolicyMode,
+                                SettingId = "updates-policy-mode",
                                 Enable = true,
                                 Value = 2
                             }).ConfigureAwait(false);
@@ -182,7 +183,7 @@ internal class WindowsAppsService(
     {
         try
         {
-            var policySetting = SettingCatalog.Find(SettingIds.UpdatesPolicyMode);
+            var policySetting = SettingCatalog.Find("updates-policy-mode");
             if (policySetting == null)
                 return false;
 
@@ -190,7 +191,7 @@ internal class WindowsAppsService(
             // precedence where renamed DLLs -> Disabled = index 3, so the DLL-rename signal is preserved,
             // unlike a registry-only read.
             var states = await settingStateProvider.GetStatesAsync(new[] { policySetting }).ConfigureAwait(false);
-            if (states.TryGetValue(SettingIds.UpdatesPolicyMode, out var state) && state.Success)
+            if (states.TryGetValue("updates-policy-mode", out var state) && state.Success)
             {
                 // Always record what was discovered, so support transcripts show why
                 // the "updates disabled" dialog did or didn't appear after a failed install.

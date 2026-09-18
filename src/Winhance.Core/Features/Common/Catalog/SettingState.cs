@@ -1,10 +1,14 @@
+using Winhance.Core.Features.Common.Localization;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 public sealed record SettingState
 {
-    public required string Label { get; init; }                          // localization key
-    public string? Tooltip { get; init; }                                // per-option tooltip (localized at read time via OptionTooltip key); null = none
-    public string? Warning { get; init; }                                // per-option warning (localized at read time via OptionWarning key); null = none
+    // The state's identity inside its setting as well as a Selection's caption. A Toggle or CheckBox never renders it.
+    public required LocKey Label { get; init; }
+
+    public LocKey? Tooltip { get; init; }
+    public LocKey? Warning { get; init; }
     public IReadOnlyList<StateRole> Roles { get; init; } = System.Array.Empty<StateRole>();
     public IReadOnlyDictionary<string, StateValue> Set { get; init; } =
         new Dictionary<string, StateValue>();
@@ -28,7 +32,7 @@ public sealed record SettingState
     // autounattend generator and the review diff.
     public bool IsDetectOnly { get; init; }
 
-    public IReadOnlyDictionary<string, string>? Controls { get; init; }
+    public IReadOnlyDictionary<string, LocKey>? Controls { get; init; }
 
     // Fired by APPLYING this state; a deactivation state simply declares none, so a default-ON owner's WindowsDefault
     // state can still fire its prerequisites.

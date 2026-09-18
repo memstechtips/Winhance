@@ -31,7 +31,12 @@ public class ConfigSchemaValidationTests
         ["PowerSettings"] = new() { JsonValueKind.Object, JsonValueKind.Null },
         ["PowerPlanGuid"] = new() { JsonValueKind.String, JsonValueKind.Null },
         ["PowerPlanName"] = new() { JsonValueKind.String, JsonValueKind.Null },
+        ["SelectedKey"] = new() { JsonValueKind.String, JsonValueKind.Null },
+        ["SelectedKeyLabel"] = new() { JsonValueKind.String, JsonValueKind.Null },
         ["SelectedValue"] = new() { JsonValueKind.String, JsonValueKind.Null },
+        ["Rows"] = new() { JsonValueKind.Array, JsonValueKind.Null },
+        ["SavePasswords"] = new() { JsonValueKind.True, JsonValueKind.False, JsonValueKind.Null },
+        ["File"] = new() { JsonValueKind.Object, JsonValueKind.Null },
         ["CustomProperties"] = new() { JsonValueKind.Object, JsonValueKind.Null },
     };
 

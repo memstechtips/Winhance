@@ -26,7 +26,8 @@ public class CatalogSettingsRegistryCompositionTests
 
         var build = new WinBuild(26100, 0);
         var caps = new HardwareCaps(false, true);
-        bool Available(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
+        // The answer-file gate lives on CatalogScope, not the filter, and no scope queried here opens it.
+        bool Available(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps) && !s.IsAnswerFileOnly;
 
         var expected = SettingCatalog.All.Where(Available).Select(s => s.Id).OrderBy(x => x).ToList();
         var actual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
@@ -81,8 +82,8 @@ public class CatalogSettingsRegistryCompositionTests
 
         var build = new WinBuild(26100, 0);
         var caps = new HardwareCaps(false, true);
-        bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
-        bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps);
+        bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps) && !s.IsAnswerFileOnly;
+        bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps) && !s.IsAnswerFileOnly;
 
         var currentActual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
         var relaxedActual = reg.GetAll(new CatalogScope(true, false)).SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();

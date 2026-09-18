@@ -1,11 +1,13 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Features.Common.Catalog;
 
 public sealed class DnsServerDetector : IStateDetector
 {
-    private readonly string _automaticLabel;
-    private readonly IReadOnlyDictionary<string, string> _primaryIpToLabel;
+    private readonly LocKey _automaticLabel;
+    private readonly IReadOnlyDictionary<string, LocKey> _primaryIpToLabel;
 
-    public DnsServerDetector(string automaticLabel, IReadOnlyDictionary<string, string> primaryIpToLabel)
+    public DnsServerDetector(LocKey automaticLabel, IReadOnlyDictionary<string, LocKey> primaryIpToLabel)
     {
         _automaticLabel = automaticLabel;
         _primaryIpToLabel = primaryIpToLabel;
@@ -15,8 +17,8 @@ public sealed class DnsServerDetector : IStateDetector
     {
         var primary = context.PrimaryDnsV4OfActiveAdapter();
         if (string.IsNullOrEmpty(primary))
-            return _automaticLabel; // DHCP / no active adapter
+            return _automaticLabel.Value; // DHCP / no active adapter
 
-        return _primaryIpToLabel.TryGetValue(primary, out var label) ? label : null; // null = Custom
+        return _primaryIpToLabel.TryGetValue(primary, out var label) ? label.Value : null; // null = Custom
     }
 }

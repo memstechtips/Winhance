@@ -1,9 +1,8 @@
 using System.Runtime.Versioning;
-using Windows.Win32;
-using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
@@ -17,6 +16,7 @@ internal sealed class WindowsStateWriter : IStateWriter
     private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerCfgApplier _powerCfg;
     private readonly IPowerPlanActivationService _activation;
+    private readonly IWindowsThemeService _theme;
     private readonly ILogService _log;
 
     // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
@@ -25,12 +25,14 @@ internal sealed class WindowsStateWriter : IStateWriter
         IScheduledTaskStateService tasks,
         IPowerCfgApplier powerCfg,
         IPowerPlanActivationService activation,
+        IWindowsThemeService theme,
         ILogService log)
     {
         _reg = reg;
         _tasks = tasks;
         _powerCfg = powerCfg;
         _activation = activation;
+        _theme = theme;
         _log = log;
     }
 
@@ -134,12 +136,14 @@ internal sealed class WindowsStateWriter : IStateWriter
     public bool SetTask(TaskTarget target, bool enabled) =>
         _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
 
+    public bool SetSlideshow(DesktopSlideshowTarget target, string folder) => _theme.SetSlideshow(folder);
+
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
         // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the
         // native P/Invoke already lives and is exercised by the powercfg apply-smoke.
         _powerCfg.WriteValueIndex(target, context, value);
 
-    public unsafe bool RunEffect(Effect effect)
+    public bool RunEffect(Effect effect)
     {
         // Routed to IAsyncEffectRunner instead; arriving here is a routing bug, and the permissive
         // default below would hide it as a success.
@@ -152,16 +156,13 @@ internal sealed class WindowsStateWriter : IStateWriter
 
         switch (effect)
         {
-            case NativePowerEffect n:
-                // CallNtPowerInformation (e.g. the hibernate toggle); status 0 is success.
-                byte value = n.Value;
-                return PInvoke.CallNtPowerInformation(
-                    (POWER_INFORMATION_LEVEL)n.InformationLevel, &value, 1, null, 0) == 0;
-
             case RegistryWriteEffect w:
                 if (!_reg.CreateKey(w.Path))
                     return false;
                 return _reg.SetValue(w.Path, w.ValueName, w.Value, w.Kind);
+
+            case PowerPlanEffect p:
+                return ActivatePowerPlan(p.Guid);
 
             default:
                 // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).

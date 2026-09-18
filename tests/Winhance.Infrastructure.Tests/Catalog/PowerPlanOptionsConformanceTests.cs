@@ -1,5 +1,8 @@
+using Moq;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
@@ -16,9 +19,12 @@ public class PowerPlanOptionsConformanceTests
     private const string UltimateGuid = "e9a42b02-d5df-448d-aa00-03f14749eb61";
     private const string WinhanceGuid = "57696e68-616e-6365-506f-776572000000";
 
+    // An unstubbed mock reports every key missing, so each predefined plan keeps its English catalog name.
+    private static ILocalizationService Untranslated() => new Mock<ILocalizationService>().Object;
+
     private static void AssertOptions(List<PowerPlan> systemPlans, params (string Label, string Value, bool Exists)[] expected)
     {
-        var built = PowerPlanOptions.Build(systemPlans);
+        var built = PowerPlanOptions.Build(systemPlans, activeGuid: null, Untranslated());
 
         Assert.Equal(expected.Length, built.Count);
         for (int i = 0; i < expected.Length; i++)
@@ -39,11 +45,11 @@ public class PowerPlanOptionsConformanceTests
             new() { Name = "Ultimate Performance", Guid = UltimateGuid },
             new() { Name = "Winhance Power Plan", Guid = WinhanceGuid },
         },
-        ("PowerPlan_Balanced_Name", BalancedGuid, true),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, true),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, true),
-        ("PowerPlan_UltimatePerformance_Name", UltimateGuid, true),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, true));
+        ("Balanced", BalancedGuid, true),
+        ("High performance", HighPerfGuid, true),
+        ("Power saver", PowerSaverGuid, true),
+        ("Ultimate Performance", UltimateGuid, true),
+        ("Winhance Power Plan", WinhanceGuid, true));
 
     [Fact]
     public void Only_some_predefined_installed_others_appear_not_installed() => AssertOptions(
@@ -52,11 +58,11 @@ public class PowerPlanOptionsConformanceTests
             new() { Name = "Balanced", Guid = BalancedGuid, IsActive = true },
             new() { Name = "High performance", Guid = HighPerfGuid },
         },
-        ("PowerPlan_Balanced_Name", BalancedGuid, true),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, true),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, false),
-        ("PowerPlan_UltimatePerformance_Name", UltimateGuid, false),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, false));
+        ("Balanced", BalancedGuid, true),
+        ("High performance", HighPerfGuid, true),
+        ("Power saver", PowerSaverGuid, false),
+        ("Ultimate Performance", UltimateGuid, false),
+        ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
     public void Custom_plan_appears_as_an_unmatched_system_plan() => AssertOptions(
@@ -66,13 +72,13 @@ public class PowerPlanOptionsConformanceTests
             // UPPERCASE on purpose: pins Build()'s .ToLowerInvariant() (expected value is lowercase).
             new() { Name = "My Custom Gaming Plan", Guid = "AAAAAAAA-1111-2222-3333-444444444444" },
         },
-        // The custom plan sorts before the PowerPlan_* loc keys ('M' < 'P') -- Label order IS dropdown order.
+        // The custom plan sorts among the predefined names ('H' < 'M' < 'P') -- Label order IS dropdown order.
+        ("Balanced", BalancedGuid, true),
+        ("High performance", HighPerfGuid, false),
         ("My Custom Gaming Plan", "aaaaaaaa-1111-2222-3333-444444444444", true),
-        ("PowerPlan_Balanced_Name", BalancedGuid, true),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, false),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, false),
-        ("PowerPlan_UltimatePerformance_Name", UltimateGuid, false),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, false));
+        ("Power saver", PowerSaverGuid, false),
+        ("Ultimate Performance", UltimateGuid, false),
+        ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
     public void Predefined_matched_by_name_when_guid_differs() => AssertOptions(
@@ -82,11 +88,11 @@ public class PowerPlanOptionsConformanceTests
             // and the option then carries the SYSTEM's GUID (not the canonical one).
             new() { Name = "Balanced", Guid = "deadbeef-0000-0000-0000-000000000000", IsActive = true },
         },
-        ("PowerPlan_Balanced_Name", "deadbeef-0000-0000-0000-000000000000", true),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, false),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, false),
-        ("PowerPlan_UltimatePerformance_Name", UltimateGuid, false),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, false));
+        ("Balanced", "deadbeef-0000-0000-0000-000000000000", true),
+        ("High performance", HighPerfGuid, false),
+        ("Power saver", PowerSaverGuid, false),
+        ("Ultimate Performance", UltimateGuid, false),
+        ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
     public void Ultimate_performance_matched_by_heuristic_when_guid_differs() => AssertOptions(
@@ -94,18 +100,47 @@ public class PowerPlanOptionsConformanceTests
         {
             new() { Name = "Ultimate Performance", Guid = "11112222-3333-4444-5555-666677778888", IsActive = true },
         },
-        ("PowerPlan_Balanced_Name", BalancedGuid, false),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, false),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, false),
-        ("PowerPlan_UltimatePerformance_Name", "11112222-3333-4444-5555-666677778888", true),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, false));
+        ("Balanced", BalancedGuid, false),
+        ("High performance", HighPerfGuid, false),
+        ("Power saver", PowerSaverGuid, false),
+        ("Ultimate Performance", "11112222-3333-4444-5555-666677778888", true),
+        ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
     public void No_plans_installed_all_predefined_appear_not_installed() => AssertOptions(
         new List<PowerPlan>(),
-        ("PowerPlan_Balanced_Name", BalancedGuid, false),
-        ("PowerPlan_HighPerformance_Name", HighPerfGuid, false),
-        ("PowerPlan_PowerSaver_Name", PowerSaverGuid, false),
-        ("PowerPlan_UltimatePerformance_Name", UltimateGuid, false),
-        ("PowerPlan_WinhancePowerPlan_Name", WinhanceGuid, false));
+        ("Balanced", BalancedGuid, false),
+        ("High performance", HighPerfGuid, false),
+        ("Power saver", PowerSaverGuid, false),
+        ("Ultimate Performance", UltimateGuid, false),
+        ("Winhance Power Plan", WinhanceGuid, false));
+
+    [Fact]
+    public void A_translated_predefined_plan_carries_the_translation()
+    {
+        var loc = new Mock<ILocalizationService>().PresentKey("PowerPlan_Balanced_Name", "Ausgeglichen").Object;
+
+        var built = PowerPlanOptions.Build(
+            new List<PowerPlan> { new() { Name = "Balanced", Guid = BalancedGuid } }, activeGuid: null, loc);
+
+        Assert.Contains(built, o => o.Label == "Ausgeglichen" && o.Value == BalancedGuid);
+    }
+
+    // Windows refuses to delete the scheme it is running on.
+    [Fact]
+    public void Only_an_installed_plan_that_is_not_active_can_be_deleted()
+    {
+        var built = PowerPlanOptions.Build(
+            new List<PowerPlan>
+            {
+                new() { Name = "Balanced", Guid = BalancedGuid, IsActive = true },
+                new() { Name = "High performance", Guid = HighPerfGuid },
+            },
+            BalancedGuid,
+            Untranslated());
+
+        Assert.False(built.Single(o => o.Value == BalancedGuid).CanDelete);
+        Assert.True(built.Single(o => o.Value == HighPerfGuid).CanDelete);
+        Assert.False(built.Single(o => o.Value == WinhanceGuid).CanDelete);
+    }
 }

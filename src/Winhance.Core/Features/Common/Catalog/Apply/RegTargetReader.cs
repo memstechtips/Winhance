@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 // Mirror paths fold HKLM-first to the first non-null read. A present value of the wrong CLR type reads as
@@ -85,6 +87,10 @@ public static class RegTargetReader
         // PerNetworkInterface / PerMonitor are not handled here yet.
         return TargetReading.Of(raw);
     }
+
+    public static RegTarget Target(Setting setting, string key) => setting.Targets.OfType<RegTarget>().First(t => t.Key == key);
+
+    public static object? Read(Setting setting, string key, IDetectionContext ctx) => Read(Target(setting, key), ctx).Value;
 
     // Internal so CatalogDiscovery can name the same winning path when describing a malformed value.
     internal static IEnumerable<string> OrderHklmFirst(IReadOnlyList<string> paths)

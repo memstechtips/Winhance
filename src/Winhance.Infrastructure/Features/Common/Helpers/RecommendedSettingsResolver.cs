@@ -82,7 +82,7 @@ internal static class RecommendedSettingsResolver
     // powercfg), where such a helper would always return null.
 
     // True when a setting has a recommended value, unioning three signals: a recommended toggle state (the
-    // build-aware CatalogToggleState.GetRecommended), a powercfg slider's recommended (Numeric.Recommended),
+    // build-aware TwoState.GetRecommended), a powercfg slider's recommended (Numeric.Recommended),
     // or a selection's recommended (registry unconditional OR powercfg context-scoped) carried as a
     // Recommended-kind role on some state. The role check is Selection-scoped so a merged toggle's
     // build-scoped role can never be caught build-unaware here (selections are never merged). A powercfg
@@ -90,7 +90,7 @@ internal static class RecommendedSettingsResolver
     // population, where every recommended powercfg value is a selectable option.
     internal static bool HasRecommendedValue(Setting setting, WinBuild build)
     {
-        if (CatalogToggleState.GetRecommended(setting, build) is not null) return true;
+        if (TwoState.GetRecommended(setting, build) is not null) return true;
         if (setting.Numeric is { } numeric && numeric.Recommended.Count > 0) return true;
         if (setting.Control == ControlKind.Selection
             && setting.States.Any(s => s.Roles.Any(r => r.Kind == RoleKind.Recommended)))
@@ -99,11 +99,11 @@ internal static class RecommendedSettingsResolver
     }
 
     // As HasRecommendedValue but the WindowsDefault role / Numeric.WindowsDefault. The toggle part uses the
-    // build-aware CatalogToggleState.GetDefault, so the merged (-win10) toggles - whose Windows default is
+    // build-aware TwoState.GetDefault, so the merged (-win10) toggles - whose Windows default is
     // OS-divergent and build-scoped - agree on either OS with zero divergence.
     internal static bool HasDefaultValue(Setting setting, WinBuild build)
     {
-        if (CatalogToggleState.GetDefault(setting, build) is not null) return true;
+        if (TwoState.GetDefault(setting, build) is not null) return true;
         if (setting.Numeric is { } numeric && numeric.WindowsDefault.Count > 0) return true;
         if (setting.Control == ControlKind.Selection
             && setting.States.Any(s => s.HasRole(RoleKind.WindowsDefault, build)))

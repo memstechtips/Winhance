@@ -1,17 +1,22 @@
+using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.TestSupport;
 using Xunit;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 // Machine-independent: readings/detection results are constructed; covers the Windows-grounded IsEnabled rule
 // and the selection value-match fallback.
 public class CatalogSettingStateProviderConformanceTests
 {
+
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
     // Gate-population predicates. Catalog-side translations of the IsPure* classifiers (IsPureRegistrySelection /
@@ -98,11 +103,30 @@ public class CatalogSettingStateProviderConformanceTests
     [Fact]
     public void IsEnabled_toggle_tracks_the_enabled_label_unchanged()
     {
-        // Toggles keep the proven switch-position rule (StateLabel == "Enabled"); any toggle Setting exercises it.
+        // Toggles keep the proven switch-position rule (the reading names TwoState's on key); any toggle Setting exercises it.
         var toggle = Catalog.Values.First(x => x.Control == ControlKind.Toggle);
-        Assert.True(Derive(toggle, "Enabled"));
-        Assert.False(Derive(toggle, "Disabled"));
+        Assert.True(Derive(toggle, LocKey.Common.Enabled.Value));
+        Assert.False(Derive(toggle, LocKey.Common.Disabled.Value));
         Assert.False(Derive(toggle, null));   // a Custom toggle -> not enabled
+    }
+
+    [Fact]
+    public void IsEnabled_check_box_tracks_the_checked_label()
+    {
+        var checkBox = new Setting
+        {
+            Id = "c",
+            Display = new() { Name = TestKeys.Of("c"), Description = TestKeys.Of("c") },
+            Targets = [new RegTarget("K", ["HKCU\\S"], "V", Microsoft.Win32.RegistryValueKind.DWord)],
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new() { Label = LocKey.Common.Unchecked, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(0) } },
+            ],
+        };
+        Assert.True(Derive(checkBox, LocKey.Common.Checked.Value));
+        Assert.False(Derive(checkBox, LocKey.Common.Unchecked.Value));
+        Assert.False(Derive(checkBox, LocKey.Common.Enabled.Value));
     }
 
     // Selections with NO WindowsDefault anchor on ANY build, BY DESIGN: their shipped value is locale-dependent
@@ -173,11 +197,19 @@ public class CatalogSettingStateProviderConformanceTests
         // theme-mode-windows: Light Mode is the Windows default ONLY on Win11; Win10's true default is the
         // apps-light/system-dark mix (not a representable state), so IsEnabled defers there.
         var s = Catalog["theme-mode-windows"];
-        Assert.False(Derive(s, "Light Mode", Win11));   // at the Win11 default -> not enabled
-        Assert.True(Derive(s, "Dark Mode", Win11));     // non-default -> enabled
+        Assert.False(Derive(s, "Setting_theme-mode-windows_Option_0", Win11));   // at the Win11 default -> not enabled
+        Assert.True(Derive(s, "Setting_theme-mode-windows_Option_1", Win11));     // non-default -> enabled
         Assert.True(Derive(s, null, Win11));            // Custom -> enabled
-        Assert.False(Derive(s, "Light Mode", Win10));   // no Win10 anchor -> deferred
+        Assert.False(Derive(s, "Setting_theme-mode-windows_Option_0", Win10));   // no Win10 anchor -> deferred
         Assert.False(Derive(s, null, Win10));           // no Win10 anchor -> deferred
+    }
+
+    [Fact]
+    public void Keyed_selection_has_no_anchor_so_is_never_reported_enabled()
+    {
+        var s = FakeOptionProvider.SettingFor();
+        Assert.False(Derive(s, "beta"));
+        Assert.False(Derive(s, null));
     }
 
     [Fact]
@@ -246,10 +278,10 @@ public class CatalogSettingStateProviderConformanceTests
         var offenders = new List<string>();
         foreach (var s in selections)
         {
-            if (s.States.Any(st => string.IsNullOrWhiteSpace(st.Label)))
+            if (s.States.Any(st => string.IsNullOrWhiteSpace(st.Label.Value)))
                 offenders.Add($"{s.Id}: has a blank state Label");
 
-            var dupes = s.States.GroupBy(st => st.Label, System.StringComparer.Ordinal)
+            var dupes = s.States.GroupBy(st => st.Label.Value, System.StringComparer.Ordinal)
                 .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             if (dupes.Count > 0)
                 offenders.Add($"{s.Id}: duplicate state Labels [{string.Join(", ", dupes)}]");
@@ -258,6 +290,274 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.True(offenders.Count == 0,
             "ResolveSelectionIndex takes the FIRST state whose Label matches, so a selection's Labels must be "
                 + "distinct and non-empty:" + "\n" + string.Join("\n", offenders));
+    }
+
+    private static Setting AnswerFileOnly(string id, params SettingState[] states) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
+        Targets = new Target[] { new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage") },
+        States = states,
+    };
+
+    private static SettingState Writes(LocKey label, params StateRole[] roles) => new()
+    {
+        Label = label,
+        Roles = roles,
+        Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(label) },
+    };
+
+    private static CatalogSettingStateProvider Provider(Mock<ICatalogDetectionService> detection)
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        return new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+    }
+
+    private static Mock<ICatalogDetectionService> DetectsNothing()
+    {
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+        return detection;
+    }
+
+    [Fact]
+    public async Task An_answer_file_toggle_is_never_detected_and_opens_on_its_windows_default()
+    {
+        var setting = AnswerFileOnly("setup-toggle",
+            Writes(LocKey.Common.Enabled),
+            Writes(LocKey.Common.Disabled, StateRole.WindowsDefault));
+        IReadOnlyCollection<Setting> detectionInput = System.Array.Empty<Setting>();
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Callback<IReadOnlyCollection<Setting>>(input => detectionInput = input)
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+
+        var states = await Provider(detection).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-toggle"].Success);
+        Assert.False(states["setup-toggle"].IsEnabled);
+        Assert.DoesNotContain(detectionInput, s => s.Id == "setup-toggle");
+    }
+
+    [Fact]
+    public async Task An_answer_file_check_box_opens_checked_when_that_is_the_windows_default()
+    {
+        var setting = AnswerFileOnly("setup-check",
+            Writes(LocKey.Common.Checked, StateRole.WindowsDefault),
+            Writes(LocKey.Common.Unchecked));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-check"].Success);
+        Assert.True(states["setup-check"].IsEnabled);
+    }
+
+    [Fact]
+    public async Task An_answer_file_selection_opens_on_its_windows_default_index()
+    {
+        var setting = AnswerFileOnly("setup-selection",
+            Writes(TestKeys.Of("First")),
+            Writes(TestKeys.Of("Second")),
+            Writes(TestKeys.Of("Third"), StateRole.WindowsDefault));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-selection"].Success);
+        Assert.Equal(2, states["setup-selection"].CurrentValue);
+    }
+
+    private static Setting AnswerFileText(string id, string? defaultValue) =>
+        AnswerFileOnly(id) with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), defaultValue) };
+
+    [Fact]
+    public async Task An_answer_file_text_box_opens_on_the_settings_own_default()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", "PC-01") });
+
+        Assert.True(states["setup-name"].Success);
+        Assert.Equal("PC-01", states["setup-name"].CurrentValue);
+    }
+
+    [Fact]
+    public async Task An_answer_file_text_box_without_a_default_opens_empty()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", null) });
+
+        Assert.True(states["setup-name"].Success);
+        Assert.Null(states["setup-name"].CurrentValue);
+    }
+
+    private static readonly Field[] AccountFields =
+    [
+        new("name", FieldKind.Text, TestKeys.Of("name"), new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))),
+        new("display-name", FieldKind.Text, TestKeys.Of("display-name")),
+        new("group", FieldKind.Selection, TestKeys.Of("group"),
+            Options: [TestKeys.Of("Administrators"), TestKeys.Of("Users")], Default: "0"),
+        new("obscure", FieldKind.CheckBox, TestKeys.Of("obscure"), Default: "true"),
+    ];
+
+    private static Setting AnswerFileAccounts(string id) =>
+        AnswerFileOnly(id) with { List = new(AccountFields) };
+
+    [Fact]
+    public async Task An_answer_file_list_without_a_seed_opens_with_nothing_read()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileAccounts("setup-accounts") });
+
+        Assert.True(states["setup-accounts"].Success);
+        Assert.Null(states["setup-accounts"].CurrentValue);
+    }
+
+    private static readonly string[] SeedPaths = [@"HKEY_CURRENT_USER\Volatile Environment"];
+
+    private static Setting AnswerFileCheckBoxSeededFromThisPc(string id) =>
+        AnswerFileOnly(id, Writes(LocKey.Common.Checked, StateRole.WindowsDefault), Writes(LocKey.Common.Unchecked)) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage"),
+                new RegTarget("this-pc", SeedPaths, "PROCESSOR_ARCHITECTURE", RegistryValueKind.String) { ReadOnly = true },
+            ],
+        };
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(null, true)]
+    public async Task An_answer_file_check_box_seeded_from_this_PC_takes_the_detected_state_or_its_default(bool? ticked, bool expected)
+    {
+        var label = ticked is null
+            ? null
+            : (ticked.Value ? LocKey.Common.Checked : LocKey.Common.Unchecked).Value;
+
+        var state = await MapViaProvider(
+            AnswerFileCheckBoxSeededFromThisPc("setup-arch"),
+            new CatalogDetectionResult { StateLabel = label, Detected = label is not null });
+
+        Assert.True(state.Success);
+        Assert.Equal(expected, state.IsEnabled);
+    }
+
+    private static Setting AnswerFileSeededAccounts(string id) =>
+        AnswerFileOnly(id) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "UserAccounts/LocalAccounts"),
+                new RegTarget("name", SeedPaths, "USERNAME", RegistryValueKind.String) { ReadOnly = true },
+                new RegTarget("display-name", SeedPaths, "LastLoggedOnDisplayName", RegistryValueKind.String) { ReadOnly = true },
+            ],
+            List = new(AccountFields, Seed: new Dictionary<string, string>
+            {
+                ["name"] = "name",
+                ["display-name"] = "display-name",
+            }),
+        };
+
+    [Fact]
+    public async Task A_seeded_list_opens_on_one_row_of_what_this_PC_reads()
+    {
+        var setting = AnswerFileSeededAccounts("setup-accounts");
+        var readings = new Dictionary<string, object?> { ["USERNAME"] = "Marco", ["LastLoggedOnDisplayName"] = "Marco du Plessis" };
+
+        var state = await MapViaProvider(setting, new CatalogDetectionResult { Readings = readings });
+
+        var rows = Assert.IsType<ChoiceValue.List>(state.CurrentValue);
+        var row = Assert.Single(rows.Rows);
+        Assert.Equal("Marco", row.Values["name"]);
+        Assert.Equal("Marco du Plessis", row.Values["display-name"]);
+        Assert.False(rows.SavePasswords);
+    }
+
+    // The group default keeps the first row on Administrators: a fresh install's first account has to be one.
+    [Fact]
+    public async Task A_seeded_row_fills_every_unseeded_field_from_its_catalog_default()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededAccounts("setup-accounts"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["USERNAME"] = "Marco" } });
+
+        var row = Assert.Single(Assert.IsType<ChoiceValue.List>(state.CurrentValue).Rows);
+        Assert.Equal("0", row.Values["group"]);
+        Assert.Equal("true", row.Values["obscure"]);
+    }
+
+    [Fact]
+    public async Task A_seed_that_reads_nothing_still_opens_one_row()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileSeededAccounts("setup-accounts") });
+
+        var row = Assert.Single(Assert.IsType<ChoiceValue.List>(states["setup-accounts"].CurrentValue).Rows);
+        Assert.False(row.Values.ContainsKey("name"), "a field with no reading and no default carries nothing");
+        Assert.Equal("0", row.Values["group"]);
+    }
+
+    private static Setting AnswerFileSeededText(string id) =>
+        AnswerFileOnly(id) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "specialize", "Microsoft-Windows-Shell-Setup", "ComputerName"),
+                new RegTarget("this-pc", SeedPaths, "Hostname", RegistryValueKind.String) { ReadOnly = true },
+            ],
+            TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), Default: "PC", SeedKey: "this-pc"),
+        };
+
+    [Fact]
+    public async Task A_seeded_text_box_opens_on_what_this_PC_reads()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededText("setup-name"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["Hostname"] = "Workshop-PC" } });
+
+        Assert.Equal("Workshop-PC", state.CurrentValue);
+    }
+
+    [Fact]
+    public async Task A_text_seed_that_reads_nothing_falls_back_to_the_catalog_default()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededText("setup-name"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["Hostname"] = "" } });
+
+        Assert.Equal("PC", state.CurrentValue);
+    }
+
+    [Fact]
+    public async Task Only_a_seeded_answer_file_setting_is_sent_to_detection_for_its_readings()
+    {
+        var detection = DetectsNothing();
+        var seeded = AnswerFileSeededAccounts("setup-accounts");
+
+        await Provider(detection).GetStatesAsync(new[] { seeded, AnswerFileAccounts("plain-accounts") });
+
+        detection.Verify(d => d.DetectAsync(It.Is<IReadOnlyCollection<Setting>>(c => c.Count == 1 && c.Contains(seeded))), Times.Once);
+    }
+
+    [Fact]
+    public async Task A_live_text_box_seeds_from_its_own_targets_reading()
+    {
+        var setting = new Setting
+        {
+            Id = "album",
+            Display = new() { Name = TestKeys.Of("a"), Description = TestKeys.Of("a") },
+            Targets = new Target[] { new DesktopSlideshowTarget("album") },
+            TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("a")), SeedKey: "album"),
+        };
+
+        var state = await MapViaProvider(setting, new CatalogDetectionResult
+        {
+            Readings = new Dictionary<string, object?> { ["album"] = @"D:\Pictures\Holiday" },
+        });
+
+        Assert.True(state.Success);
+        Assert.Equal(@"D:\Pictures\Holiday", state.CurrentValue);
+        Assert.False(state.IsEnabled, "a box has no Windows-default anchor to be modified from");
     }
 
     private static async Task<Winhance.Core.Features.Common.Models.SettingStateResult> MapViaProvider(
@@ -319,7 +619,7 @@ public class CatalogSettingStateProviderConformanceTests
 
         var enabled = await MapViaProvider(toggle, new CatalogDetectionResult
         {
-            StateLabel = "Enabled",
+            StateLabel = LocKey.Common.Enabled.Value,
             Detected = true,
             Outcome = SettingDetectionOutcome.Resolved,
         });
@@ -358,7 +658,7 @@ public class CatalogSettingStateProviderConformanceTests
         // A resolved label -> that option's index, never Custom.
         var resolved = await MapViaProvider(sysmain!, new CatalogDetectionResult
         {
-            StateLabel = sysmain!.States[0].Label,
+            StateLabel = sysmain!.States[0].Label.Value,
             Detected = true,
             Outcome = SettingDetectionOutcome.Resolved,
         });

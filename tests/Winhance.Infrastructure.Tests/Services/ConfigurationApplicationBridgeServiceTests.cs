@@ -4,9 +4,12 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.TestSupport;
 using Xunit;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class ConfigurationApplicationBridgeServiceTests
@@ -15,6 +18,7 @@ public class ConfigurationApplicationBridgeServiceTests
     private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly ConfigImportState _importState = new();
+    private readonly Mock<IFileStore> _mockFileStore = new();
     private readonly ConfigurationApplicationBridgeService _service;
 
     public ConfigurationApplicationBridgeServiceTests()
@@ -23,28 +27,35 @@ public class ConfigurationApplicationBridgeServiceTests
             _mockSettingApp.Object,
             _mockRegistry.Object,
             _mockLog.Object,
-            _importState);
+            _importState,
+            _mockFileStore.Object);
     }
 
     // Synthetic catalog Settings: the bridge reads the registry-returned Setting directly, so tests
     // construct exactly the shape they exercise - the derived Control comes from the shape (2
-    // Enabled/Disabled states = Toggle, 0 states = Action, other states = Selection, Numeric = Slider).
+    // Enabled/Disabled states = Toggle, 2 Checked/Unchecked = CheckBox, 0 states = Action, other states = Selection,
+    // Numeric = Slider).
     private static Setting CreateSetting(string id, ControlKind kind = ControlKind.Toggle, bool requiresConfirmation = false) => new()
     {
         Id = id,
-        Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+        Display = new Display { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}")},
         States = kind switch
         {
             ControlKind.Toggle => new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" },
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled },
+            },
+            ControlKind.CheckBox => new[]
+            {
+                new SettingState { Label = LocKey.Common.Checked },
+                new SettingState { Label = LocKey.Common.Unchecked },
             },
             ControlKind.Selection => new[]
             {
-                new SettingState { Label = "Option A" },
-                new SettingState { Label = "Option B" },
-                new SettingState { Label = "Option C" },
+                new SettingState { Label = TestKeys.Of("Option A") },
+                new SettingState { Label = TestKeys.Of("Option B") },
+                new SettingState { Label = TestKeys.Of("Option C") },
             },
             _ => System.Array.Empty<SettingState>(),
         },
@@ -55,7 +66,7 @@ public class ConfigurationApplicationBridgeServiceTests
     private static Setting CreatePowerCfgNumericRangeSetting(string id, string units) => new()
     {
         Id = id,
-        Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+        Display = new Display { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}")},
         Numeric = new Numeric { Min = 0, Max = 3600, Units = units },
         Targets = new Target[]
         {
@@ -80,6 +91,90 @@ public class ConfigurationApplicationBridgeServiceTests
         _mockRegistry
             .Setup(x => x.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()))
             .Returns<string, CatalogScope>((id, _) => byId.TryGetValue(id, out var s) ? s : null);
+    }
+
+    private const string CarriedDestination = @"C:\Windows\Web\Wallpaper\Winhance\mine.jpg";
+
+    private static ConfigurationItem CarryingItem(string id)
+    {
+        var item = CreateItem(id);
+        item.SelectedKey = @"D:\mine.jpg";
+        item.SelectedKeyLabel = "mine.jpg";
+        item.File = new CarriedFileItem { Destination = CarriedDestination, Base64 = "QUJD" };
+        return item;
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_ACarriedFile_LandsOnThisPcBeforeTheChoiceIsApplied()
+    {
+        var setting = FakeOptionProvider.SettingFor("theme-wallpaper-picture");
+        SetupRegistryWithSettings(setting);
+        _mockFileStore
+            .Setup(s => s.MaterializeAsync(It.IsAny<SelectionSet>()))
+            .ReturnsAsync((SelectionSet set) => set with
+            {
+                Settings = [new SettingChoice(setting.Id, new ChoiceValue.Keyed(CarriedDestination, "mine.jpg"))],
+            });
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var result = await _service.ApplyConfigurationSectionAsync(
+            new ConfigSection { Items = [CarryingItem(setting.Id)] }, "TestSection");
+
+        result.Should().BeTrue();
+        _mockFileStore.Verify(
+            s => s.MaterializeAsync(It.Is<SelectionSet>(set =>
+                set.Files.Count == 1 && set.Files[0].Destination == CarriedDestination && set.Files[0].Base64 == "QUJD")),
+            Times.Once);
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(
+                r => r.SettingId == setting.Id && Equals(r.Value, CarriedDestination))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_TheSameCarryingItemListedTwice_LandsOneFileAndAppliesIt()
+    {
+        var setting = FakeOptionProvider.SettingFor("theme-wallpaper-picture");
+        SetupRegistryWithSettings(setting);
+        _mockFileStore
+            .Setup(s => s.MaterializeAsync(It.IsAny<SelectionSet>()))
+            .ReturnsAsync((SelectionSet set) => set with
+            {
+                Settings = [.. set.Settings.Select(choice =>
+                    choice with { Value = new ChoiceValue.Keyed(CarriedDestination, "mine.jpg") })],
+            });
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        var result = await _service.ApplyConfigurationSectionAsync(
+            new ConfigSection { Items = [CarryingItem(setting.Id), CarryingItem(setting.Id)] }, "TestSection");
+
+        result.Should().BeTrue();
+        _mockFileStore.Verify(
+            s => s.MaterializeAsync(It.Is<SelectionSet>(set => set.Files.Count == 1)),
+            Times.Once);
+        _mockSettingApp.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(
+                r => r.SettingId == setting.Id && Equals(r.Value, CarriedDestination))),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_ASectionThatCarriesNoFiles_NeverReachesTheFileStore()
+    {
+        var setting = CreateSetting("plain-toggle");
+        SetupRegistryWithSettings(setting);
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.ApplyConfigurationSectionAsync(
+            new ConfigSection { Items = [CreateItem(setting.Id)] }, "TestSection");
+
+        _mockFileStore.Verify(s => s.MaterializeAsync(It.IsAny<SelectionSet>()), Times.Never);
     }
 
     [Fact]
@@ -468,10 +563,10 @@ public class ConfigurationApplicationBridgeServiceTests
             {
                 new SettingState
                 {
-                    Label = "Enabled",
-                    Links = new[] { new Link("setting-1", LinkKind.Requires, "Enabled") },
+                    Label = LocKey.Common.Enabled,
+                    Links = new[] { new Link("setting-1", LinkKind.Requires, LocKey.Common.Enabled) },
                 },
-                new SettingState { Label = "Disabled" },
+                new SettingState { Label = LocKey.Common.Disabled },
             },
         };
         SetupRegistryWithSettings(setting1, setting2);
@@ -721,5 +816,163 @@ public class ConfigurationApplicationBridgeServiceTests
                 ((Dictionary<string, object>)r.Value)["Mode"] is int &&
                 (int)((Dictionary<string, object>)r.Value)["Mode"] == 7)),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_PowerPlanItem_AppliesTheSchemeGuid()
+    {
+        const string guid = "57696e68-616e-6365-506f-776572000000";
+        var plan = new Setting
+        {
+            Id = "power-plan-selection",
+            Display = new Display { Name = TestKeys.Of("Power plan"), Description = TestKeys.Of("Power plan") },
+            Options = new(OptionSource.PowerPlans),
+        };
+        SetupRegistryWithSettings(plan);
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = "power-plan-selection",
+                    Name = "Power Plan",
+                    IsSelected = true,
+                    InputType = InputType.Selection,
+                    SelectedKey = guid,
+                    SelectedKeyLabel = "Winhance Power Plan",
+                },
+            }
+        };
+        ApplySettingRequest? capturedPlan = null;
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .Callback<ApplySettingRequest>(r => capturedPlan = r)
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.ApplyConfigurationSectionAsync(section, "Power");
+
+        capturedPlan.Should().NotBeNull();
+        capturedPlan!.Value.Should().Be(guid);
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_KeyedItem_AppliesTheKeyItself()
+    {
+        SetupRegistryWithSettings(FakeOptionProvider.SettingFor());
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = "fake-keyed",
+                    Name = "Fake keyed",
+                    IsSelected = true,
+                    InputType = InputType.Selection,
+                    SelectedKey = "beta",
+                    SelectedKeyLabel = "Beta zone",
+                },
+            }
+        };
+        ApplySettingRequest? captured = null;
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .Callback<ApplySettingRequest>(r => captured = r)
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.ApplyConfigurationSectionAsync(section, "Region");
+
+        captured.Should().NotBeNull();
+        captured!.Value.Should().Be("beta");
+    }
+
+    [Fact]
+    public async Task ApplyConfigurationSectionAsync_AKeyThisPcRefuses_FailsTheItemAndNamesNothingItself()
+    {
+        var setting = FakeOptionProvider.SettingFor();
+        SetupRegistryWithSettings(setting);
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = setting.Id,
+                    Name = "Fake keyed",
+                    IsSelected = true,
+                    InputType = InputType.Selection,
+                    SelectedKey = "delta",
+                    SelectedKeyLabel = "Delta zone",
+                },
+            }
+        };
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Failed("delta is not offered here"));
+
+        var result = await _service.ApplyConfigurationSectionAsync(section, "Region");
+
+        result.Should().BeFalse();
+        _importState.TakeNotApplied().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ControlKind.Toggle)]
+    [InlineData(ControlKind.Action)]
+    public async Task ApplyConfigurationSectionAsync_AnApplyThatReportsFailure_FailsTheItemButIsNotNamedToTheUser(ControlKind kind)
+    {
+        var setting = CreateSetting("reports-failure", kind);
+        SetupRegistryWithSettings(setting);
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Failed("1/1 apply operation(s) failed"));
+
+        var result = await _service.ApplyConfigurationSectionAsync(
+            new ConfigSection { Items = [CreateItem(setting.Id)] }, "TestSection");
+
+        result.Should().BeFalse();
+        _importState.TakeNotApplied().Should().BeEmpty();
+    }
+
+    private static Setting CreateAlbumSetting() => new()
+    {
+        Id = "theme-wallpaper-album",
+        Display = new Display { Name = TestKeys.Of("Album"), Description = TestKeys.Of("The folder the slideshow plays") },
+        Targets = new Target[] { new DesktopSlideshowTarget("album") },
+        TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("Anything.")), Picker: PickerKind.Folder),
+    };
+
+    // An empty box is an answer too (it clears the setting); a null would reach the apply as a shape nothing audits.
+    [Theory]
+    [InlineData(@"D:\Pictures\Holiday")]
+    [InlineData("")]
+    public async Task ApplyConfigurationSectionAsync_TextBoxItem_AppliesTheTypedText(string typed)
+    {
+        SetupRegistryWithSettings(CreateAlbumSetting());
+        var section = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = "theme-wallpaper-album",
+                    Name = "Album",
+                    IsSelected = true,
+                    InputType = InputType.TextBox,
+                    Text = typed,
+                },
+            }
+        };
+        ApplySettingRequest? captured = null;
+        _mockSettingApp
+            .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .Callback<ApplySettingRequest>(r => captured = r)
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.ApplyConfigurationSectionAsync(section, "WindowsTheme");
+
+        captured.Should().NotBeNull();
+        captured!.Value.Should().Be(typed);
     }
 }

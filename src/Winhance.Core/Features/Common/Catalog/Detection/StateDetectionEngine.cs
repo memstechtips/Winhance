@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 // The label of the first state whose every live Set entry the readings satisfy; null = Custom. Custom detectors
@@ -36,10 +38,10 @@ public static class StateDetectionEngine
                 continue; // no live, declarative Set entry (Action, or every entry build-inactive)
 
             if (allMatch)
-                return state.Label;
+                return state.Label.Value;
         }
 
         // Nothing matched: resolve to the catch-all fallback state if the setting declares one, else Custom.
-        return fallback?.Label;
+        return fallback?.Label.Value;
     }
 }

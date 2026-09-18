@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.Services;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Core.Tests.Services;
@@ -170,6 +171,32 @@ public class SettingWriteStrategyTests
         result.ConfirmationCheckboxChecked.Should().BeTrue();
         _applyService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(
             r => r.CheckboxResult && !r.ApplyRecommended)), Times.Once);
+    }
+
+    // The dialog draws a tick box for any non-empty text, a miss-marker included.
+    [Fact]
+    public async Task Live_OffersNoCheckboxWhenTheSettingHasNoCheckboxText()
+    {
+        ApplySucceeds();
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        await Live().WriteAsync(Request(requiresConfirmation: true), new ProgressSpy());
+
+        _dialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.CheckboxText == null)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Live_OffersTheCheckboxTheSettingNames()
+    {
+        ApplySucceeds();
+        _localizationService.PresentKey("Setting_some-setting_ConfirmCheckbox", "Also do the other thing");
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        await Live().WriteAsync(Request(requiresConfirmation: true), new ProgressSpy());
+
+        _dialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.CheckboxText == "Also do the other thing")), Times.Once);
     }
 
     [Fact]

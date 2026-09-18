@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -7,7 +6,6 @@ namespace Winhance.Infrastructure.Features.Optimize.Services;
 
 internal class UpdateService(
     ILogService logService,
-    IWindowsRegistryService registryService,
     IProcessExecutor processExecutor,
     IPowerShellRunner powerShellRunner,
     IFileSystemService fileSystemService,
@@ -15,7 +13,7 @@ internal class UpdateService(
 {
     public async Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
     {
-        if (settingId == SettingIds.UpdatesPolicyMode && value is int index)
+        if (settingId == "updates-policy-mode" && value is int index)
         {
             await ApplyUpdatesPolicyModeAsync(index, settingApplicationService).ConfigureAwait(false);
             return true;
@@ -74,7 +72,7 @@ internal class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.UpdatesPolicyMode).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync("updates-policy-mode").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -94,7 +92,7 @@ internal class UpdateService(
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(SettingIds.UpdatesPolicyMode).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync("updates-policy-mode").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -330,7 +328,7 @@ internal class UpdateService(
     {
         // The updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
         // the chosen mode; its Set encodes that mode's per-option registry writes.
-        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
+        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == "updates-policy-mode");
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
             logService.Log(LogLevel.Warning,
@@ -349,66 +347,5 @@ internal class UpdateService(
         if (plan.AsyncEffects.Count > 0)
             logService.Log(LogLevel.Error,
                 $"{plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
-    }
-
-    public async Task<int> GetCurrentUpdatePolicyIndexAsync()
-    {
-        if (AreCriticalDllsRenamed())
-            return 3;
-
-        if (IsUpdatesPaused())
-            return 2;
-
-        var deferFeature = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "DeferFeatureUpdates");
-
-        if (deferFeature is int defer && defer == 1)
-            return 1;
-
-        return 0;
-    }
-
-    private bool AreCriticalDllsRenamed()
-    {
-        var dlls = new[] { "WaaSMedicSvc.dll", "wuaueng.dll" };
-
-        foreach (var dll in dlls)
-        {
-            var dllPath = $@"C:\Windows\System32\{dll}";
-            var backupPath = $@"C:\Windows\System32\{fileSystemService.GetFileNameWithoutExtension(dll)}_BAK.dll";
-
-            if (fileSystemService.FileExists(backupPath) && !fileSystemService.FileExists(dllPath))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool IsUpdatesPaused()
-    {
-        var pauseStart = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesStartTime");
-
-        var pauseExpiry = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesExpiryTime");
-
-        if (pauseStart != null || pauseExpiry != null)
-            return true;
-
-        var pausedQuality = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedQualityDate");
-
-        var pausedFeature = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedFeatureDate");
-
-        if (pausedQuality != null || pausedFeature != null)
-            return true;
-
-        return false;
     }
 }

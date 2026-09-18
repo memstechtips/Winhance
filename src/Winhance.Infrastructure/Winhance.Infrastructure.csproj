@@ -46,8 +46,8 @@
     </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Features\AdvancedTools\Resources\autounattend-template.xml">
-      <LogicalName>Winhance.Infrastructure.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
+    <EmbeddedResource Include="Features\Autounattend\Resources\ExtractScript.ps1">
+      <LogicalName>Winhance.Infrastructure.Resources.Autounattend.ExtractScript.ps1</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

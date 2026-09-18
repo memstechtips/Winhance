@@ -1,7 +1,10 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryTests
@@ -44,12 +47,12 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Display = new() { Name = "s", Description = "s" },
+            Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new[] { Reg("Mode", "SearchboxTaskbarMode") },
             States = new[]
             {
-                new SettingState { Label = "Hide", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
-                new SettingState { Label = "Box",  Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(2) } },
+                new SettingState { Label = TestKeys.Of("Hide"), Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("Box"),  Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(2) } },
             },
         };
         var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => 2)).Label;
@@ -61,11 +64,11 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Display = new() { Name = "s", Description = "s" },
+            Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new[] { Reg("Start", "Start") },
             States = new[]
             {
-                new SettingState { Label = "Manual", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } },
+                new SettingState { Label = TestKeys.Of("Manual"), Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } },
             },
         };
         var state = CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => null)).Label;
@@ -77,11 +80,11 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Display = new() { Name = "s", Description = "s" },
+            Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new[] { Reg("K", "V") },
             States = new[]
             {
-                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
             },
         };
         Assert.Null(CatalogDiscovery.Detect(setting, new FakeCtx((p, v) => 99)).Label);
@@ -92,20 +95,20 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Display = new() { Name = "s", Description = "s" },
+            Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new[] { new TaskTarget("Task", @"\MS\Task") },
             States = new[]
             {
-                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) } },
-                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) }, IsFallback = true },
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) }, IsFallback = true },
             },
         };
 
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: true)).Label);
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: false)).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: true)).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: false)).Label);
         // An absent task is not present, so nothing matches and the engine falls back to Disabled. (The
         // harness never reaches this path - it treats an absent task as Unavailable before calling the engine.)
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: null)).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(setting, new FakeCtx(taskEnabled: null)).Label);
     }
 
     [Fact]
@@ -113,7 +116,7 @@ public class CatalogDiscoveryTests
     {
         var setting = new Setting
         {
-            Id = "s", Display = new() { Name = "s", Description = "s" },
+            Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Detector = new FixedDetector("Show all"),
             // targets/states are ignored when a detector is present
         };

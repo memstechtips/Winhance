@@ -1,8 +1,11 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 // A wrongly-typed value must report Malformed - NOT Custom, and never leak as a raw value into the matchers.
@@ -37,18 +40,18 @@ public class MalformedValueDetectionTests
     private static Setting BitSetting() => new()
     {
         Id = "fade-tooltip",
-        Display = new() { Name = "Fade tooltips", Description = "d" },
+        Display = new() { Name = TestKeys.Of("Fade tooltips"), Description = TestKeys.Of("d") },
         Targets = new Target[] { BitTarget() },
         States = new[]
         {
             new SettingState
             {
-                Label = "Enabled",
+                Label = LocKey.Common.Enabled,
                 Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = StateValue.Of(1) },
             },
             new SettingState
             {
-                Label = "Disabled",
+                Label = LocKey.Common.Disabled,
                 IsFallback = true,
                 Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = StateValue.Of(0) },
             },
@@ -173,12 +176,12 @@ public class MalformedValueDetectionTests
         var setting = new Setting
         {
             Id = "plain",
-            Display = new() { Name = "p", Description = "d" },
+            Display = new() { Name = TestKeys.Of("p"), Description = TestKeys.Of("d") },
             Targets = new Target[] { new RegTarget("V", new[] { Path }, "V", RegistryValueKind.DWord) },
             States = new[]
             {
-                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
-                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
             },
         };
 
@@ -191,7 +194,7 @@ public class MalformedValueDetectionTests
     {
         var detection = CatalogDiscovery.Detect(BitSetting(), new Ctx(new byte[] { 0x00, 0x08 }));
         Assert.Equal(SettingDetectionOutcome.Resolved, detection.Outcome);
-        Assert.Equal("Enabled", detection.Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, detection.Label);
     }
 
     [Fact]
@@ -202,7 +205,7 @@ public class MalformedValueDetectionTests
         var setting = new Setting
         {
             Id = "mirrored",
-            Display = new() { Name = "m", Description = "d" },
+            Display = new() { Name = TestKeys.Of("m"), Description = TestKeys.Of("d") },
             Targets = new Target[]
             {
                 new RegTarget("V", new[] { Path }, "V", RegistryValueKind.DWord),
@@ -211,8 +214,8 @@ public class MalformedValueDetectionTests
             },
             States = new[]
             {
-                new SettingState { Label = "Enabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
-                new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(1) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of(0) } },
             },
         };
 
@@ -220,6 +223,6 @@ public class MalformedValueDetectionTests
         // kind mismatch on the ApplyOnly mirror.
         var detection = CatalogDiscovery.Detect(setting, new Ctx(1));
         Assert.Equal(SettingDetectionOutcome.Resolved, detection.Outcome);
-        Assert.Equal("Enabled", detection.Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, detection.Label);
     }
 }

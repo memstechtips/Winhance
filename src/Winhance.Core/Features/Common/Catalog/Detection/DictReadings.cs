@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 public sealed class DictReadings : IStateReadings

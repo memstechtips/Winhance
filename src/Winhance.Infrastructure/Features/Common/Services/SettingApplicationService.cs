@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
@@ -27,8 +27,11 @@ internal class SettingApplicationService(
     ICatalogDetectionService catalogDetection,
     ICatalogSettingStateProvider settingStateProvider,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IConfigImportState configImportState) : ISettingApplicationService
+    IConfigImportState configImportState,
+    IOptionProviderRegistry optionProviders) : ISettingApplicationService
 {
+    private const int SummaryKeyLimit = 120;
+
     private WinBuild CurrentBuild()
         => new(windowsVersionService.GetWindowsBuildNumber(), windowsVersionService.GetWindowsBuildRevision());
 
@@ -39,11 +42,24 @@ internal class SettingApplicationService(
         // This PC folder settings - a Windows-11 HiddenByDefault write AND a Windows-10 key-delete on the SAME
         // key) would apply BOTH per-OS mechanisms. Settings with no build-gated targets (AppliesTo empty) are
         // unaffected: their targets are emitted regardless of build.
-        var plan = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault, CurrentBuild());
+        var plan = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault, CurrentBuild(), optionProviders);
         if (plan is null)
         {
-            // Resolve is total for every reachable request shape (ResolveTotalityAuditTests), so a null here is an
-            // un-audited/unreachable shape. Fail loudly with a logged result rather than dereferencing a null plan.
+            // A keyed selection's null plan is reachable in production: a config from another PC can name a culture,
+            // region or time zone this machine's option list will not write.
+            if (setting.Control == ControlKind.KeyedSelection && value is string keyedOption)
+            {
+                var unavailable = localizationService.GetString("Setting_KeyedOption_NotApplied", ForSummary(keyedOption));
+                logService.Log(LogLevel.Warning, unavailable);
+
+                // Only an import drains that queue, so reporting outside one would surface in the NEXT import's summary.
+                if (configImportState.IsActive)
+                    configImportState.ReportNotApplied($"{localizationService.GetString(setting.Display.Name.Value)}: {unavailable}");
+
+                return OperationResult.Failed(unavailable);
+            }
+
+            // Resolve is total for every other reachable request shape, so a null here is an unaudited one.
             var nullPlanMessage = $"No apply plan resolved for '{setting.Id}' (enable={enable}, resetToDefault={resetToDefault}) - unaudited request shape";
             logService.Log(LogLevel.Warning, nullPlanMessage);
             return OperationResult.Failed(nullPlanMessage);
@@ -69,6 +85,14 @@ internal class SettingApplicationService(
         var message = $"{result.Failed + deferredFailures.Count}/{applyPlan.Total} apply operation(s) failed for '{setting.Id}': {string.Join("; ", allFailures)}";
         logService.Log(LogLevel.Warning, message);
         return OperationResult.Failed(message);
+    }
+
+    // An option key comes from a config file, so it is unbounded and can carry line breaks that would forge extra
+    // lines in the plain-text import summary.
+    private static string ForSummary(string key)
+    {
+        var flat = key.ReplaceLineEndings(" ");
+        return flat.Length <= SummaryKeyLimit ? flat : flat[..SummaryKeyLimit];
     }
 
     public async Task<OperationResult> ApplySettingAsync(ApplySettingRequest request)
@@ -120,6 +144,9 @@ internal class SettingApplicationService(
         // One read for both halves of the receipt, so before/after CANNOT disagree. Unknown battery state
         // renders BOTH AC and DC - more information beats silently hiding the DC half.
         string? beforeDisplay = null;
+
+        // Applying an option does not change what the machine offers, so the before-state's list labels both halves.
+        IReadOnlyList<DynamicOption>? keyedOptions = null;
         if (setting.Control != ControlKind.Action)
         {
             var hasBattery = hardwareDetectionService.HasBattery() ?? true;
@@ -138,6 +165,7 @@ internal class SettingApplicationService(
                 if (renderSetting != null && state is { Success: true })
                 {
                     beforeDisplay = FormatBeforeDisplay(renderSetting, state, hasBattery);
+                    keyedOptions = state.DynamicOptions;
                 }
             }
             catch (Exception ex)
@@ -150,7 +178,7 @@ internal class SettingApplicationService(
         // apply, because the apply is what creates it - afterwards the plan always exists. Switching between
         // existing plans must leave each plan's own stored values alone, the way Windows plans behave.
         bool winhancePlanIsNew = false;
-        if (settingId == SettingIds.PowerPlanSelection && IsWinhancePowerPlanValue(value))
+        if (settingId == "power-plan-selection" && IsWinhancePowerPlanValue(value))
         {
             var existingPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
             winhancePlanIsNew = !existingPlans.Any(p => PowerPlanCatalog.IsWinhancePowerPlan(p.Guid, p.Name));
@@ -166,7 +194,7 @@ internal class SettingApplicationService(
             logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' via special handler in {applyStopwatch.ElapsedMilliseconds}ms");
 
             if (renderSetting != null)
-                LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
+                LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay, keyedOptions);
             return OperationResult.Succeeded();
         }
 
@@ -212,19 +240,19 @@ internal class SettingApplicationService(
         eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
 
         // Stamp the recommended power settings into the Winhance plan the FIRST time it is created (resolver
-        // -> PowerPlanActivateOp -> writer creates it), never on a later switch back to it - re-stamping would
+        // -> PowerPlanEffect -> writer creates it), never on a later switch back to it - re-stamping would
         // silently revert any adjustment the user made while on that plan. Same machinery as the
         // Action-recommended branch; ApplyRecommendedForFeatureAsync excludes the trigger setting, so it cannot
         // loop on power-plan. Skipped during a config import that supplies its own individual power values (the
         // import is the source of truth).
-        if (settingId == SettingIds.PowerPlanSelection
+        if (settingId == "power-plan-selection"
             && operationResult.Success
             && winhancePlanIsNew
             && IsWinhancePowerPlanValue(value)
             && !(configImportState.IsActive && configImportState.ImportSuppliesPowerValues))
         {
             await recommendedSettingsApplier
-                .ApplyRecommendedSettingsForFeatureAsync(SettingIds.PowerPlanSelection, this).ConfigureAwait(false);
+                .ApplyRecommendedSettingsForFeatureAsync("power-plan-selection", this).ConfigureAwait(false);
         }
 
         // The confirmation checkbox on a setting with NO special handler means one thing, and every
@@ -233,9 +261,8 @@ internal class SettingApplicationService(
         // pinned items and left Task View and Search showing, which is not what the prompt offered.
         //
         // The specialHandler-is-null guard is load-bearing. A setting WITH a special handler owns its own
-        // checkbox semantics - theme-mode-windows' box means "also change the wallpaper", which
-        // ThemeWallpaperApplier applies itself - so a generic rule without the guard would apply a whole
-        // feature's recommended settings off a wallpaper opt-in. It holds on both special-handler paths: a
+        // checkbox semantics, so a generic rule without the guard would apply a whole feature's recommended
+        // settings off an opt-in that meant something else. It holds on both special-handler paths: a
         // handler that ACCEPTS returns above, and one that DECLINES falls through to here with a non-null
         // handler, so neither reaches this.
         //
@@ -266,34 +293,26 @@ internal class SettingApplicationService(
 
         logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' in {applyStopwatch.ElapsedMilliseconds}ms");
         if (renderSetting != null)
-            LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay);
+            LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay, keyedOptions);
         return OperationResult.Succeeded();
     }
 
     public Task ApplyRecommendedSettingsForFeatureAsync(string settingId) =>
         recommendedSettingsApplier.ApplyRecommendedSettingsForFeatureAsync(settingId, this);
 
-    // The live UI passes the scheme GUID as a string; config import passes a {Guid,Name} dictionary.
-    private static bool IsWinhancePowerPlanValue(object? value) => value switch
-    {
-        string guid => PowerPlanCatalog.IsWinhancePowerPlan(guid),
-        Dictionary<string, object> dict => PowerPlanCatalog.IsWinhancePowerPlan(
-            dict.TryGetValue("Guid", out var g) ? g?.ToString() : null,
-            dict.TryGetValue("Name", out var n) ? n?.ToString() : null),
-        _ => false,
-    };
+    private static bool IsWinhancePowerPlanValue(object? value) =>
+        value is string guid && PowerPlanCatalog.IsWinhancePowerPlan(guid);
 
     // Null when the label cannot be derived (non-index selection value, no WindowsDefault state), so the caller
     // skips relationship resolution rather than guessing.
-    private static string? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault, WinBuild build)
+    private static LocKey? ResolveTargetLabel(Setting setting, bool enable, object? value, bool resetToDefault, WinBuild build)
     {
         if (resetToDefault)
             // Build-aware so a merged setting's OS-divergent WindowsDefault resolves for the live OS (see ApplyRequestResolver).
             return setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
 
-        bool isToggle = setting.States.Any(s => s.Label == "Enabled") && setting.States.Any(s => s.Label == "Disabled");
-        if (isToggle)
-            return enable ? "Enabled" : "Disabled";
+        if (TwoState.Is(setting.Control))
+            return TwoState.Label(setting.Control, enable);
 
         // Otherwise a selection: it moves to the state at the applied option index (States are authored
         // one-per-option, in option order, so the index IS the state index). A non-index selection value is not
@@ -306,12 +325,14 @@ internal class SettingApplicationService(
 
     // Each follow-on is applied as a LEAF (SkipValuePrerequisites = true) so it triggers no further cascade; a
     // shared visited set + self-skip prevents loops.
-    private async Task ApplyCatalogRelationshipsAsync(Setting setting, string? targetLabel)
+    private async Task ApplyCatalogRelationshipsAsync(Setting setting, LocKey? targetLabel)
     {
         if (targetLabel is null)
             return;
 
-        var targetState = setting.States.FirstOrDefault(st => st.Label == targetLabel);
+        if (targetLabel is not { } target) return;
+
+        var targetState = setting.States.FirstOrDefault(st => st.Label == target);
 
         // WHICH OTHER SETTINGS CAN THIS APPLY REACH? Every gate the three resolvers use to decide
         // CANDIDACY is a PURE CATALOG PREDICATE - none of them reads machine state to decide whether a
@@ -400,15 +421,18 @@ internal class SettingApplicationService(
         logService.Log(LogLevel.Debug,
             $"Relationship scope for '{setting.Id}': {scope.Count} related settings, detected in {detectStopwatch.ElapsedMilliseconds}ms");
 
-        string? currentStateOf(string id) =>
-            detected != null && detected.TryGetValue(id, out var r) ? r.StateLabel : null;
+        // A keyed selection's StateLabel is a machine id and matches no state; it has no relationships to resolve.
+        LocKey? currentStateOf(string id) =>
+            detected != null && detected.TryGetValue(id, out var r) && r.StateLabel is { } label
+                ? SettingCatalog.Find(id)?.States.FirstOrDefault(st => st.Label.Value == label)?.Label
+                : null;
 
         // Each reverse resolver gets the candidate list that passes ITS OWN first gate rather than the whole
         // catalog. Every setting left out would have been dropped by that resolver's very next line, so the
         // actions returned are identical - this narrows the loop, never the behaviour.
-        var fwd = RelationshipResolver.ResolveForward(setting, targetLabel, currentStateOf);
+        var fwd = RelationshipResolver.ResolveForward(setting, target, currentStateOf);
         var sync = RelationshipResolver.ResolveReverseSync(setting.Id, syncParents, currentStateOf);
-        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, targetLabel, cascadeDependents, currentStateOf, CurrentBuild());
+        var cascade = RelationshipResolver.ResolveReverseCascade(setting.Id, target, cascadeDependents, currentStateOf, CurrentBuild());
 
         // Self-skip + visited loop guard. Seed with the setting being applied so a relationship pointing back at
         // it is never re-applied.
@@ -436,7 +460,7 @@ internal class SettingApplicationService(
 
     // A follow-on is always a LEAF. Null (logged) when the target is missing or has no state with that label - a bad
     // relationship is skipped, never thrown. State index == ComboBox option index by construction.
-    private ApplySettingRequest? ToRequest(string targetId, string label, bool isReset)
+    private ApplySettingRequest? ToRequest(string targetId, LocKey label, bool isReset)
     {
         var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
         if (target is null)
@@ -445,10 +469,9 @@ internal class SettingApplicationService(
             return null;
         }
 
-        bool isToggle = target.States.Any(s => s.Label == "Enabled") && target.States.Any(s => s.Label == "Disabled");
-        if (isToggle)
+        if (TwoState.Is(target.Control))
         {
-            return new ApplySettingRequest { SettingId = targetId, Enable = label == "Enabled", Value = null, SkipValuePrerequisites = true, ResetToDefault = isReset };
+            return new ApplySettingRequest { SettingId = targetId, Enable = label == TwoState.OnLabel(target.Control), Value = null, SkipValuePrerequisites = true, ResetToDefault = isReset };
         }
 
         // Selection: the option index is the index of the state whose Label matches (states are authored
@@ -472,11 +495,11 @@ internal class SettingApplicationService(
         return new ApplySettingRequest { SettingId = targetId, Enable = true, Value = index, SkipValuePrerequisites = true, ResetToDefault = isReset };
     }
 
-    private void LogChangeHistory(Setting setting, string settingId, bool enable, object? value, string? beforeDisplay)
+    private void LogChangeHistory(Setting setting, string settingId, bool enable, object? value, string? beforeDisplay, IReadOnlyList<DynamicOption>? keyedOptions)
     {
         try
         {
-            var name = ResolveLocalized(SettingLocalizationKeys.Name(setting)) ?? setting.Display.Name;
+            var name = ResolveLocalized(setting.Display.Name.Value) ?? setting.Display.Name.Value;
             var group = ResolveLocalizedGroup(setting.Display.GroupName);
 
             if (setting.Control == ControlKind.Action)
@@ -488,8 +511,8 @@ internal class SettingApplicationService(
             // Same read as the before-capture block above. The service caches, so before and after
             // cannot disagree; unknown renders both components.
             var hasBattery = hardwareDetectionService.HasBattery() ?? true;
-            var after = FormatStateDisplay(setting, enable, value, hasBattery);
-            var before = beforeDisplay ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
+            var after = FormatStateDisplay(setting, enable, value, hasBattery, keyedOptions);
+            var before = beforeDisplay ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
             if (before == after)
                 return; // not a change — no receipt entry
 
@@ -504,18 +527,13 @@ internal class SettingApplicationService(
     private string? ResolveLocalized(string key) =>
         localizationService.TryGetString(key, out var value) ? value : null;
 
-    // Mirrors SettingLocalizationService: a DisplayName that is itself a key (Template_* / PowerPlan_*) is localized
-    // verbatim; otherwise Setting_{id}_Option_{index}, with the raw DisplayName as the final fallback.
     private string GetOptionLabel(Setting setting, int index)
     {
         if (index < 0 || index >= setting.States.Count)
-            return ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "Custom";
+            return ResolveLocalized(LocKey.Common.CustomState.Value) ?? "Custom";
 
-        var dn = setting.States[index].Label;
-        var key = SettingLocalizationKeys.IsLocalizationKey(dn)
-            ? dn
-            : SettingLocalizationKeys.OptionDisplay(setting, index);
-        return ResolveLocalized(key) ?? dn;
+        var label = setting.States[index].Label;
+        return ResolveLocalized(label.Value) ?? label.Value;
     }
 
     // A JSON-sourced numeric may box as long or double.
@@ -526,14 +544,16 @@ internal class SettingApplicationService(
         catch { return null; }
     }
 
-    private string FormatStateDisplay(Setting setting, bool enable, object? value, bool hasBattery)
+    internal string FormatStateDisplay(Setting setting, bool enable, object? value, bool hasBattery, IReadOnlyList<DynamicOption>? options = null)
     {
         switch (setting.Control)
         {
-            // A power-plan setting's catalog Control (PowerPlan) routes here alongside Selection (same
-            // dict/index shapes).
+            case ControlKind.KeyedSelection:
+                return value is string key
+                    ? options?.FirstOrDefault(option => option.Value == key)?.Label ?? key
+                    : ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
+
             case ControlKind.Selection:
-            case ControlKind.PowerPlan:
                 // UI / recommended path: a single selected option index.
                 if (value is int index)
                     return GetOptionLabel(setting, index);
@@ -544,10 +564,6 @@ internal class SettingApplicationService(
 
                 if (value is Dictionary<string, object?> dict)
                 {
-                    // Power-plan shape: { "Guid": ..., "Name": "..." } — render just the friendly name.
-                    if (dict.TryGetValue("Name", out var nameVal))
-                        return nameVal?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "Custom";
-
                     // Separate AC/DC option indices (UI quick-set path). JSON sources may box these
                     // as long/double, so coerce defensively.
                     if (dict.TryGetValue("ACValue", out var acRaw) && dict.TryGetValue("DCValue", out var dcRaw))
@@ -560,7 +576,7 @@ internal class SettingApplicationService(
 
                     return string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"));
                 }
-                return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
+                return value?.ToString() ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
 
             case ControlKind.Slider:
                 // After-values are display units (the config bridge converts on import; UI/recommended paths already
@@ -577,18 +593,22 @@ internal class SettingApplicationService(
                     && acdcNumPlain.TryGetValue("ACValue", out var acNumPlain)
                     && acdcNumPlain.TryGetValue("DCValue", out var dcNumPlain))
                     return ComposeAcDc(acNumPlain?.ToString() ?? "", dcNumPlain?.ToString() ?? "", hasBattery);
-                return value?.ToString() ?? ResolveLocalized(SettingLocalizationKeys.CommonCustomState) ?? "?";
+                return value?.ToString() ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
 
-            default: // Toggle (Action is handled in LogChangeHistory before this is reached)
+            case ControlKind.CheckBox:
                 return localizationService.GetString(
-                    enable ? "Template_EnabledDisabled_Option_1" : "Template_EnabledDisabled_Option_0");
+                    enable ? TechnicalDetailKeys.Checked : TechnicalDetailKeys.Unchecked);
+
+            default: // Toggle (CheckBox has its own arm; Action is handled in LogChangeHistory before this is reached)
+                return localizationService.GetString(
+                    enable ? LocKey.Common.Enabled.Value : LocKey.Common.Disabled.Value);
         }
     }
 
     // For PowerCfg Separate settings CurrentValue isn't a usable AC/DC pair: the typed AcValue/DcValue are SYSTEM
     // units, converted here to display units so "before" matches the "after" rendering byte-for-byte (which keeps
     // no-op detection working). On battery-less machines the DC component is omitted so before and after agree.
-    private string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
+    internal string FormatBeforeDisplay(Setting setting, SettingStateResult state, bool hasBattery)
     {
         int? acInt = state.AcValue;
         int? dcInt = state.DcValue;
@@ -620,6 +640,10 @@ internal class SettingApplicationService(
             return ComposeAcDc(GetOptionLabel(setting, acIdx), GetOptionLabel(setting, dcIdx), hasBattery);
         }
 
+        // A keyed setting's CurrentValue is an index placeholder; the key it reads arrives as DynamicSelection.
+        if (setting.Control == ControlKind.KeyedSelection)
+            return FormatStateDisplay(setting, state.IsEnabled, state.DynamicSelection, hasBattery, state.DynamicOptions);
+
         return FormatStateDisplay(setting, state.IsEnabled, state.CurrentValue, hasBattery);
     }
 
@@ -648,14 +672,7 @@ internal class SettingApplicationService(
         return key != null ? (ResolveLocalized(key) ?? units) : units;
     }
 
-    private string? ResolveLocalizedGroup(string? groupName)
-    {
-        if (string.IsNullOrEmpty(groupName))
-            return null;
-        // Mirror SettingLocalizationService's group resolution: compact key first, snake fallback, raw name last.
-        return ResolveLocalized(SettingLocalizationKeys.GroupCompact(groupName))
-            ?? ResolveLocalized(SettingLocalizationKeys.GroupSnake(groupName))
-            ?? groupName;
-    }
+    private string? ResolveLocalizedGroup(LocKey? groupName) =>
+        groupName is { } key ? ResolveLocalized(key.Value) ?? key.Value : null;
 
 }

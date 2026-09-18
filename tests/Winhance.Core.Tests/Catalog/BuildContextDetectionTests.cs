@@ -1,7 +1,10 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class BuildContextDetectionTests
@@ -13,7 +16,7 @@ public class BuildContextDetectionTests
     private static Setting TwoMechanismSetting() => new()
     {
         Id = "x",
-        Display = new() { Name = "X", Description = "X" },
+        Display = new() { Name = TestKeys.Of("X"), Description = TestKeys.Of("X") },
         Targets = new Target[]
         {
             new RegTarget("value", HklmK, "HiddenByDefault", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
@@ -21,8 +24,8 @@ public class BuildContextDetectionTests
         },
         States = new[]
         {
-            new SettingState { Label = "Enabled",  Set = new Dictionary<string, StateValue> { ["value"] = StateValue.Of(0), ["exists"] = StateValue.Exists } },
-            new SettingState { Label = "Disabled", IsFallback = true, Set = new Dictionary<string, StateValue> { ["value"] = StateValue.Of(1), ["exists"] = StateValue.Absent } },
+            new SettingState { Label = LocKey.Common.Enabled,  Set = new Dictionary<string, StateValue> { ["value"] = StateValue.Of(0), ["exists"] = StateValue.Exists } },
+            new SettingState { Label = LocKey.Common.Disabled, IsFallback = true, Set = new Dictionary<string, StateValue> { ["value"] = StateValue.Of(1), ["exists"] = StateValue.Absent } },
         },
     };
 
@@ -46,23 +49,23 @@ public class BuildContextDetectionTests
     public void Win11_uses_the_value_target()
     {
         var s = TwoMechanismSetting();
-        Assert.Equal("Enabled",  CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 0, KeyPresent = false }).Label);
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 1, KeyPresent = false }).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 0, KeyPresent = false }).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 1, KeyPresent = false }).Label);
     }
 
     [Fact]
     public void Win10_uses_the_key_existence_target()
     {
         var s = TwoMechanismSetting();
-        Assert.Equal("Enabled",  CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = true }).Label);
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = false }).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = true }).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = false }).Label);
     }
 
     [Fact]
     public void Apply_emits_only_the_build_active_target()
     {
         var s = TwoMechanismSetting();
-        var win11 = ApplyPlanBuilder.Build(s, "Enabled", new WinBuild(22631));
+        var win11 = ApplyPlanBuilder.Build(s, LocKey.Common.Enabled, new WinBuild(22631));
         Assert.Single(win11); // only the value write, not the key-existence op
     }
 }
