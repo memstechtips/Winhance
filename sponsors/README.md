@@ -59,10 +59,9 @@ for discoverability; the branch is authoritative for data.
       "country": "US",
       "contact": "contact@yourit.com", // optional; shown on silver and up
       "url": "https://www.yourit.com", // clickable on gold and up
+      "slogan": "Your IT, sorted",   // optional; shown under the name on gold and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
-      "since": "2026-06",
-      "example": true                // OPTIONAL: renders with an "Example — this could
-                                     // be you" badge; omit for real sponsors
+      "since": "2026-06"
     }
   ],
   "supporters": [
@@ -104,7 +103,7 @@ tier is identifiable by the same color everywhere.
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** **gold + emerald business cards only** (the in-app card is a Gold-and-up perk — bronze/silver stay web-only), same order and tier colors as the wall, in its own scrollable region. Below it, a **"Recent Supporters"** section: the **48** most recent individual supporters as name chips (own scrollable region) with an "and many more — thank you" line, plus the how-to line ("Support with $5 or more and tick the supporters box at checkout to be listed"). Every surface must document HOW to get listed (Marco, 2026-06-11).
 - **Card contents by tier:** bronze cards show logo + name only; city and the
-  contact line render on silver and up; the clickable website link on gold and up.
+  contact line render on silver and up; the clickable website link and the slogan on gold and up.
 
 ### Tier → surface mapping
 
@@ -153,7 +152,7 @@ Individual **supporters** appear on the web supporters wall (capped 150) and the
 1. Drop the square logo into `logos/` named `<id>.png`.
 2. Add the entry to `sponsors.json`, bump `updated`. **Only include the fields the
    tier promises** — bronze: `logo` + `name` only; silver: + `city` + `contact`;
-   gold/emerald: + `url`. (`id`, `tier`, `country`, `since` are always present;
+   gold/emerald: + `url` + `slogan`. (`id`, `tier`, `country`, `since` are always present;
    renderers also gate by tier as defense in depth, but the data itself must not
    carry more than the sponsor paid for.)
 3. Commit and push to the `sponsors` branch (business cards: Marco approves first).
