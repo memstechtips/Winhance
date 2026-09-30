@@ -87,7 +87,6 @@ Except where otherwise stated (see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES
 
 ## Feedback and Community
 
-If you have feedback, suggestions, or need help with Winhance, please join the discussion on GitHub or our Discord community:
+If you have feedback, suggestions, or need help with Winhance, please join the discussion on GitHub:
 
 [![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/memstechtips/Winhance/discussions/183)
-[![Join Discord Community](https://img.shields.io/badge/Join-Discord%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://www.discord.gg/zWGANV8QAX)
