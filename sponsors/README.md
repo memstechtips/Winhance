@@ -57,7 +57,6 @@ for discoverability; the branch is authoritative for data.
       "tier": "gold",                // bronze | silver | gold | emerald
       "city": "Austin, TX",          // shown on the card
       "country": "US",
-      "contact": "contact@yourit.com", // optional; shown on silver and up
       "url": "https://www.yourit.com", // clickable on gold and up
       "slogan": "Your IT, sorted",   // optional; shown under the name on gold and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
@@ -102,16 +101,17 @@ tier is identifiable by the same color everywhere.
 - **winhance.net download page:** the same top-**6** box (or as many as the space
   fits), with a **"View all sponsors"** link to the store wall. No carousel.
 - **In-app sponsors page:** **gold + emerald business cards only** (the in-app card is a Gold-and-up perk — bronze/silver stay web-only), same order and tier colors as the wall, in its own scrollable region. Below it, a **"Recent Supporters"** section: the **48** most recent individual supporters as name chips (own scrollable region) with an "and many more — thank you" line, plus the how-to line ("Support with $5 or more and tick the supporters box at checkout to be listed"). Every surface must document HOW to get listed (Marco, 2026-06-11).
-- **Card contents by tier:** bronze cards show logo + name only; city and the
-  contact line render on silver and up; the clickable website link and the slogan on gold and up.
+- **Card contents by tier:** bronze cards show logo + name only; the city
+  renders on silver and up; the clickable website link and the slogan on gold and up. There is no
+  contact line: the website link is how people reach a sponsor (Marco, 2026-09-30).
 
 ### Tier → surface mapping
 
 | Tier | Store sponsors wall (store.memstechtips.com/winhance/) | winhance.net download-page showcase | In-app sponsors page | Release notes |
 |---|---|---|---|---|
 | bronze | logo + name | — | — | — |
-| silver | full card (logo, name, city, contact) | ✓ | — | — |
-| gold | ✓ + clickable website link | ✓ | full card (logo, city, contact, link) | mention |
+| silver | full card (logo, name, city) | ✓ | — | — |
+| gold | ✓ + clickable website link | ✓ | full card (logo, city, slogan, link) | mention |
 | emerald | first position | first position | first position | mention |
 
 Bronze cards appear on the **store sponsors wall only**; silver and up also get the
@@ -151,7 +151,7 @@ Individual **supporters** appear on the web supporters wall (capped 150) and the
 
 1. Drop the square logo into `logos/` named `<id>.png`.
 2. Add the entry to `sponsors.json`, bump `updated`. **Only include the fields the
-   tier promises** — bronze: `logo` + `name` only; silver: + `city` + `contact`;
+   tier promises** — bronze: `logo` + `name` only; silver: + `city`;
    gold/emerald: + `url` + `slogan`. (`id`, `tier`, `country`, `since` are always present;
    renderers also gate by tier as defense in depth, but the data itself must not
    carry more than the sponsor paid for.)
