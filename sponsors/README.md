@@ -155,4 +155,6 @@ Individual **supporters** appear on the web supporters wall (capped 150) and the
    gold/emerald: + `url` + `slogan`. (`id`, `tier`, `country`, `since` are always present;
    renderers also gate by tier as defense in depth, but the data itself must not
    carry more than the sponsor paid for.)
-3. Commit and push to the `sponsors` branch (business cards: Marco approves first).
+3. **Changing only a logo? Still bump `updated`.** The app caches logos and re-downloads
+   them only when `sponsors.json` changes, so a logo-only commit never reaches it.
+4. Commit and push to the `sponsors` branch (business cards: Marco approves first).
