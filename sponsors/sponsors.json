@@ -11,7 +11,8 @@
       "url": "https://www.imperiumsns.co.za",
       "slogan": "Fortifying Your Digital Future",
       "logo": "logos/imperium-sns.png",
-      "since": "2026-09"
+      "since": "2026-09",
+      "start": "2026-09-30"
     },
     {
       "id": "appcontrol",
@@ -22,7 +23,9 @@
       "url": "https://www.appcontrol.com/?mtm_campaign=Winhance",
       "slogan": "Power Up Your Task Manager",
       "logo": "logos/appcontrol.png",
-      "since": "2026-10"
+      "since": "2026-10",
+      "start": "2026-10-06T08:14:46Z",
+      "ends": "2027-04-06"
     }
   ],
   "supporters": [

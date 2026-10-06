@@ -60,7 +60,10 @@ for discoverability; the branch is authoritative for data.
       "url": "https://www.yourit.com", // clickable on gold and up
       "slogan": "Your IT, sorted",   // optional; shown under the name on gold and up
       "logo": "logos/your-it.png",   // square, ideally 512x512 PNG, transparent or dark-friendly
-      "since": "2026-06"
+      "since": "2026-06",
+      "start": "2026-06-01T09:30:00Z", // when the card went live (UTC); the term counts from here
+      "ends": "2026-12-01",          // last day the card shows; omit for an open-ended listing
+      "until": "2026-12"             // set once the listing has lapsed (see Lifecycle)
     }
   ],
   "supporters": [
@@ -131,8 +134,12 @@ Individual **supporters** appear on the web supporters wall (capped 150) and the
   all paid surfaces and show the sponsor as a **name-only line in a "Past sponsors"
   list on the web sponsors page only** (no logo, no link, not in-app). Gratitude is
   permanent; ad placement is for current sponsors.
-- A 1-year sponsorship is active until 12 months after `since`; give a grace period
-  before setting `until` (renewal conversations happen by email, not by cron).
+- A paid term is recorded as `start` (the moment the card went live) and `ends` (the
+  last day it shows: start + the term bought). Every renderer hides the card itself the
+  day after `ends`, so a term never overruns even if the data is late. The sync job
+  reminds Marco 14 days before `ends`, so he can talk to the sponsor about renewing,
+  and sets `until` the day after `ends`. A renewal moves `ends` forward.
+- A listing with no `ends` (a favour, not a paid term) stays until Marco removes it.
 - Removal on request still overrides everything, including the past-sponsors list.
 
 ## Hard rules
