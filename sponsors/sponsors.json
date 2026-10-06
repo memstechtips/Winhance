@@ -12,6 +12,17 @@
       "slogan": "Fortifying Your Digital Future",
       "logo": "logos/imperium-sns.png",
       "since": "2026-09"
+    },
+    {
+      "id": "appcontrol",
+      "name": "AppControl",
+      "tier": "gold",
+      "city": "Austin, TX",
+      "country": "US",
+      "url": "https://www.appcontrol.com/?mtm_campaign=Winhance",
+      "slogan": "Power Up Your Task Manager",
+      "logo": "logos/appcontrol.png",
+      "since": "2026-10"
     }
   ],
   "supporters": [
