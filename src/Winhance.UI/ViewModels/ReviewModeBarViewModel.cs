@@ -42,7 +42,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public string ReviewModeDescriptionText =>
-        _localizationService.GetStringOrDefault("Review_Mode_Description", "Review the changes below across all sections, then click Apply Config when ready.");
+        _localizationService.GetStringOrDefault("Review_Mode_Description", "Check what this config will change before you apply it.");
 
     public ReviewModeBarViewModel(
         IConfigReviewModeService configReviewModeService,
@@ -200,10 +200,17 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task CancelReviewModeAsync()
     {
-        var title = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation_Title", "Cancel Config Review");
-        var message = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation", "Are you sure you want to cancel? No changes will be applied.");
+        var title = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation_Title", "Leave Config Review");
+        var message = _localizationService.GetStringOrDefault("Review_Mode_Cancel_Confirmation", "Leave Config Review? Nothing from the imported config will be applied.");
 
-        var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest { Message = message, Title = title })).Confirmed;
+        var confirmed = (await _dialogService.ShowConfirmationAsync(
+            new ConfirmationRequest
+            {
+                Message = message,
+                Title = title,
+                ConfirmButtonText = _localizationService.GetString("Button_Leave"),
+                CancelButtonText = _localizationService.GetString("Button_Stay"),
+            })).Confirmed;
         if (confirmed)
         {
             await _configurationService.CancelReviewModeAsync();

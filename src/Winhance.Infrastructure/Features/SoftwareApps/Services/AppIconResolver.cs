@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -10,8 +11,6 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
 internal class AppIconResolver : IAppIconResolver
 {
-    private const string CacheSubDir = @"Winhance\IconCache";
-
     // Cache filenames are <def.Id>.<short-hash>.png. The id makes them readable
     // when poking around %ProgramData%\Winhance\IconCache; the 8-char hash of
     // the layer-specific source key (AppX full-name, expanded local path, or
@@ -107,8 +106,7 @@ internal class AppIconResolver : IAppIconResolver
     // (%CommonApplicationData%) puts the cache alongside Winhance's other
     // shared state (e.g. C:\ProgramData\Winhance\Logs) and means a single
     // download per machine instead of per user.
-    private static string DefaultCacheRoot() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), CacheSubDir);
+    private static string DefaultCacheRoot() => Path.Combine(AppDataPaths.MachineRoot, "IconCache");
 
     public async Task ResolveBatchAsync(
         IEnumerable<ItemDefinition> definitions,

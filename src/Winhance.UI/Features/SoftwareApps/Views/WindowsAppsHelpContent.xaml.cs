@@ -95,7 +95,8 @@ public sealed partial class WindowsAppsHelpContent : UserControl
         }
         else
         {
-            pathIcon.Foreground = (Brush)Application.Current.Resources["TextFillColorDisabledBrush"];
+            pathIcon.ClearValue(IconElement.ForegroundProperty);
+            pathIcon.Style = CodeBuiltStyle.Named("CodeBuilt.DisabledPathIcon");
         }
     }
 

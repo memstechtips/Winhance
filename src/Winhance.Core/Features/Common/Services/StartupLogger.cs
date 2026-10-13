@@ -1,14 +1,14 @@
 using System.Runtime.CompilerServices;
+using Winhance.Core.Features.Common.Helpers;
 
 namespace Winhance.Core.Features.Common.Services;
 
-// Pre-DI startup diagnostics: C:\ProgramData\Winhance\Logs\WinhanceStartupLog.txt, overwritten on the first
+// Pre-DI startup diagnostics: <data root>\Logs\WinhanceStartupLog.txt, overwritten on the first
 // call per run. Thread-safe.
 public static class StartupLogger
 {
     private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Winhance",
+        AppDataPaths.MachineRoot,
         "Logs",
         "WinhanceStartupLog.txt");
 

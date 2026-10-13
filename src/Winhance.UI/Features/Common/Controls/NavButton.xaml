@@ -17,6 +17,22 @@
           PointerPressed="RootGrid_PointerPressed"
           PointerReleased="RootGrid_PointerReleased">
 
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="CommonStates">
+                <VisualState x:Name="Normal"/>
+                <VisualState x:Name="PointerOver">
+                    <VisualState.Setters>
+                        <Setter Target="BackgroundBorder.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Selected">
+                    <VisualState.Setters>
+                        <Setter Target="BackgroundBorder.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
         <!-- Main Button Background -->
         <Border x:Name="BackgroundBorder"
                 Background="Transparent"

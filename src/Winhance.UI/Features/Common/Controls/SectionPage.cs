@@ -25,6 +25,7 @@ namespace Winhance.UI.Features.Common.Controls;
 public sealed record SectionPageChrome(
     ScrollView OverviewScroller,
     UIElement OverviewContent,
+    bool HasSectionContent,
     Frame ContentFrame,
     AutoSuggestBox SearchBox,
     Button BreadcrumbRoot,
@@ -210,6 +211,13 @@ public abstract class SectionPage : Page
 
     protected void NavigateToSection(string sectionKey, string? searchText = null)
     {
+        // The one section is already on screen; opening the detail frame would swap it out for a second copy.
+        if (_chrome.HasSectionContent)
+        {
+            PageViewModel.SearchText = searchText ?? string.Empty;
+            return;
+        }
+
         var item = PageViewModel.OverviewItems.FirstOrDefault(i => i.SectionKey == sectionKey);
         if (item == null)
         {
@@ -506,14 +514,14 @@ public abstract class SectionPage : Page
     private async Task ExecuteBuilderBulkActionAsync(BulkActionType actionType)
     {
         bool recommended = actionType == BulkActionType.ApplyRecommended;
-        var settings = SettingsInScope().ToList();
-
-        int count = settings.Count(s => recommended ? s.HasRecommendedQuickSetTarget : s.HasDefaultQuickSetTarget);
-        if (count == 0) return;
+        var settings = SettingsInScope()
+            .Where(s => PageViewModel.TakesQuickActions(s) && s.WouldQuickSetChange(recommended))
+            .ToList();
+        if (settings.Count == 0) return;
 
         if (!await ConfirmAsync(string.Format(
                 Localized("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
-                count)))
+                settings.Count)))
             return;
 
         foreach (var setting in settings)
@@ -530,7 +538,13 @@ public abstract class SectionPage : Page
     {
         if (_bulkSettingsActionService == null) return;
 
-        var settingIds = SettingIdsInScope();
+        // Cards already at the target are left out, so the count is what changes. The service then drops any
+        // the PC cannot take (another Windows version shown with the version filter off, other hardware).
+        bool recommended = actionType == BulkActionType.ApplyRecommended;
+        var settingIds = SettingsInScope()
+            .Where(s => s.WouldQuickSetChange(recommended))
+            .Select(s => s.SettingId)
+            .ToList();
 
         var count = await _bulkSettingsActionService.GetAffectedCountAsync(settingIds, actionType);
         if (count == 0) return;
@@ -636,9 +650,12 @@ public abstract class SectionPage : Page
         UpdateIncludeActionsForAuthoring();
     }
 
+    // An answer-file setting is always in the file, so a page of them has nothing to include or leave out.
     private void UpdateIncludeActionsForAuthoring()
     {
-        var visibility = _applicationModeService.Capabilities().AuthorsIntent
+        bool hasIncludableSection = PageViewModel.OverviewItems
+            .Any(item => !FeatureDefinitions.AutounattendFeatures.Contains(item.FeatureId));
+        var visibility = _applicationModeService.Capabilities().AuthorsIntent && hasIncludableSection
             ? Visibility.Visible
             : Visibility.Collapsed;
 

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -141,10 +142,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     {
         try
         {
-            string logsFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Winhance",
-                "Logs");
+            string logsFolder = Path.Combine(AppDataPaths.MachineRoot, "Logs");
 
             if (!_fileSystemService.DirectoryExists(logsFolder))
             {

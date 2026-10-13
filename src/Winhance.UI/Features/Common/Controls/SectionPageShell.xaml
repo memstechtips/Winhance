@@ -12,6 +12,24 @@
     x:DefaultBindMode="OneWay">
 
     <Grid Padding="0,0,12,0">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="WindowHeightStates">
+                <VisualState x:Name="TallState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="{StaticResource ShortWindowHeight}"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="ShortState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="NavRow.Margin" Value="0,8,0,8"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Header -->
             <RowDefinition Height="Auto"/>  <!-- NavRow -->
@@ -19,57 +37,41 @@
         </Grid.RowDefinitions>
 
         <!-- Row 0: Page Header with Icon (title left, search right) -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                <Viewbox Width="64" Height="64" Stretch="Uniform">
-                    <fluentIcons:FluentIcon Icon="{x:Bind PageIcon}" IconVariant="Color" />
-                </Viewbox>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock
-                        Text="{x:Bind ViewModel.PageTitle}"
-                        Style="{StaticResource TitleTextBlockStyle}"
-                        FontWeight="Bold"
-                        FontSize="30"
-                        AutomationProperties.HeadingLevel="Level1"/>
-                    <TextBlock
-                        Text="{x:Bind ViewModel.PageDescription}"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                        Margin="0,2,0,0"/>
-                </StackPanel>
-            </StackPanel>
-            <Grid Grid.Column="1" Width="220" VerticalAlignment="Bottom">
-                <AutoSuggestBox
-                    x:Name="SearchBox"
-                    PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
-                    helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
-                    QueryIcon="Find"
-                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    ItemsSource="{x:Bind ViewModel.SearchSuggestions}">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:SearchSuggestionItem">
-                            <Grid Padding="4,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
-                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
-            </Grid>
-        </Grid>
+        <winControls:PageHeader
+            Grid.Row="0"
+            Icon="{x:Bind PageIcon}"
+            Title="{x:Bind ViewModel.PageTitle}"
+            Description="{x:Bind ViewModel.PageDescription}">
+            <winControls:PageHeader.Actions>
+                <Grid Width="220">
+                    <AutoSuggestBox
+                        x:Name="SearchBox"
+                        PlaceholderText="{x:Bind ViewModel.SearchPlaceholder}"
+                        helpers:AutoSuggestBoxExtensions.PlaceholderEllipsis="True"
+                        QueryIcon="Find"
+                        Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        ItemsSource="{x:Bind ViewModel.SearchSuggestions}">
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:SearchSuggestionItem">
+                                <Grid Padding="4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                        <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
+                </Grid>
+            </winControls:PageHeader.Actions>
+        </winControls:PageHeader>
 
         <!-- Row 1: Navigation Bar -->
-        <Grid Grid.Row="1" Margin="0,12,0,16">
+        <Grid x:Name="NavRow" Grid.Row="1" Margin="0,12,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
                 <ColumnDefinition Width="Auto"/>  <!-- Quick Actions -->
@@ -237,12 +239,16 @@
             <Grid>
                 <!-- Overview Content (visible when not on detail page) -->
                 <Grid x:Name="OverviewContent">
+                    <!-- A page with one section sets SectionContent, which is drawn here in place of the cards. -->
+                    <ContentPresenter
+                        Content="{x:Bind SectionContent}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"/>
+
+                    <Grid x:Name="OverviewCards">
                     <!-- Loading State -->
-                    <ProgressRing
+                    <winControls:RocketLoader
                         IsActive="{x:Bind ViewModel.IsLoading}"
-                        Visibility="{x:Bind ViewModel.IsLoading}"
-                        Width="48"
-                        Height="48"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"/>
 
@@ -257,15 +263,15 @@
                                     <DataTemplate x:DataType="vm:SectionOverviewItemViewModel">
                                         <StackPanel Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Stretch">
                                             <Grid>
-                                                <controls:SettingsCard
+                                                <winControls:ClickableSettingsCard
                                                     Description="{x:Bind Feature.GroupDescriptionText, Mode=OneWay}"
                                                     AutomationProperties.Name="{x:Bind Feature.DisplayName, Mode=OneWay}"
+                                                    AutomationProperties.AutomationId="{x:Bind SectionKey}"
                                                     HeaderIcon="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource SectionIconConverter}}"
                                                     Padding="{x:Bind CardPadding, Mode=OneWay}"
-                                                    IsClickEnabled="True"
                                                     Tag="{x:Bind SectionKey, Mode=OneTime}"
-                                                    Click="SectionCard_Click">
-                                                    <controls:SettingsCard.Header>
+                                                    Invoked="SectionCard_Click">
+                                                    <winControls:ClickableSettingsCard.Header>
                                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                                             <TextBlock Text="{x:Bind Feature.DisplayName, Mode=OneWay}" VerticalAlignment="Center"/>
                                                             <Border Style="{StaticResource NewBadgeBorderStyle}"
@@ -273,7 +279,7 @@
                                                                 <TextBlock Text="{x:Bind NewBadgeText, Mode=OneWay}" Style="{StaticResource NewBadgeTextStyle}"/>
                                                             </Border>
                                                         </StackPanel>
-                                                    </controls:SettingsCard.Header>
+                                                    </winControls:ClickableSettingsCard.Header>
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                                         <InfoBadge Style="{StaticResource SuccessIconInfoBadgeStyle}"
                                                                    Visibility="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
@@ -300,7 +306,7 @@
                                                             </Border>
                                                         </StackPanel>
                                                     </StackPanel>
-                                                </controls:SettingsCard>
+                                                </winControls:ClickableSettingsCard>
                                                 <!-- Declared after the card so it sits above it: a click lands on the box, not on
                                                      the card's navigation. -->
                                                 <StackPanel Orientation="Horizontal" Spacing="8"
@@ -335,6 +341,7 @@
                         </StackPanel>
                         </Grid>
                     </ScrollView>
+                    </Grid>
                 </Grid>
 
                 <!-- Detail Page Frame (visible when on detail page) -->

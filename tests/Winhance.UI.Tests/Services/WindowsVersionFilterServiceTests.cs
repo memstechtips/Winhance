@@ -462,7 +462,7 @@ public class WindowsVersionFilterServiceTests
 
         _mockDialogService.Verify(
             d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r =>
-                r.Message.Contains("Windows Version Filter") &&
+                r.Message.Contains("This filter controls which settings are visible") &&
                 r.CheckboxText!.Contains("Don't show this message again") &&
                 r.Title == "Windows Version Filter" &&
                 r.ConfirmButtonText == "Toggle Filter" &&

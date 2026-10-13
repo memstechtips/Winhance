@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Helpers;
 using Winhance.Core.Features.Common.Extensions;
+using static Winhance.UI.Features.Common.Helpers.CodeBuiltStyle;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
@@ -200,7 +201,7 @@ internal class ConfigImportDialogBuilder
 
         var bgBorder = new Border
         {
-            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Style = Named("CodeBuilt.OptionFillRest"),
             BorderBrush = new SolidColorBrush(isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4)
@@ -208,7 +209,7 @@ internal class ConfigImportDialogBuilder
 
         var accentBorder = new Border
         {
-            BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Style = Named("CodeBuilt.OptionFrameRest"),
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(4)
         };
@@ -241,12 +242,12 @@ internal class ConfigImportDialogBuilder
             if (_selectedCardButton == cardButton) return;
 
             if (_selectedBgBorder != null)
-                _selectedBgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                _selectedBgBorder.Style = Named("CodeBuilt.OptionFillRest");
             if (_selectedAccentBorder != null)
-                _selectedAccentBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                _selectedAccentBorder.Style = Named("CodeBuilt.OptionFrameRest");
 
-            bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
-            accentBorder.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+            bgBorder.Style = Named("CodeBuilt.OptionFillSelected");
+            accentBorder.Style = Named("CodeBuilt.OptionFrameSelected");
 
             _selectedCardButton = cardButton;
             _selectedBgBorder = bgBorder;
@@ -263,28 +264,29 @@ internal class ConfigImportDialogBuilder
         cardButton.PointerEntered += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
+                bgBorder.Style = Named("CodeBuilt.OptionFillHover");
         };
 
         cardButton.PointerExited += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                bgBorder.Style = Named("CodeBuilt.OptionFillRest");
         };
 
         cardButton.GotFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
+                bgBorder.Style = Named("CodeBuilt.OptionFillHover");
         };
         cardButton.LostFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                bgBorder.Style = Named("CodeBuilt.OptionFillRest");
         };
 
         return cardButton;
     }
+
 
     private record ImportOptionControls(
         RadioButton WinAppsInstall,
@@ -312,8 +314,8 @@ internal class ConfigImportDialogBuilder
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var winAppsText = _localization.GetStringOrDefault("Config_Import_Options_WindowsApps", "Windows Apps");
-        var extAppsText = _localization.GetStringOrDefault("Config_Import_Options_ExternalApps", "External Apps");
+        var winAppsText = _localization.GetStringOrDefault("Config_Import_Options_WindowsApps", "Windows Apps:");
+        var extAppsText = _localization.GetStringOrDefault("Config_Import_Options_ExternalApps", "External Apps:");
         var installText = _localization.GetStringOrDefault("Config_Import_Options_Install", "Install");
         var uninstallText = _localization.GetStringOrDefault("Config_Import_Options_Uninstall", "Uninstall");
         var selectOnlyText = _localization.GetStringOrDefault("Config_Import_Options_SelectOnly", "Select Only");

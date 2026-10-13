@@ -21,12 +21,28 @@ public sealed partial class AutounattendSettingsView : UserControl
         set => SetValue(FooterProperty, value);
     }
 
+    public static readonly DependencyProperty HasNoSearchResultsProperty =
+        DependencyProperty.Register(
+            nameof(HasNoSearchResults),
+            typeof(bool),
+            typeof(AutounattendSettingsView),
+            new PropertyMetadata(false));
+
+    public bool HasNoSearchResults
+    {
+        get => (bool)GetValue(HasNoSearchResultsProperty);
+        set => SetValue(HasNoSearchResultsProperty, value);
+    }
+
     public AutounattendViewModel ViewModel { get; }
 
     public AutounattendSettingsView()
     {
         ViewModel = App.Services.GetRequiredService<AutounattendViewModel>();
 
+        // Before the first layout, so the loader is built with the page: turned on from Loaded it showed half a
+        // second late, and the page sat blank until then.
+        ViewModel.IsLoading = true;
         this.InitializeComponent();
     }
 
@@ -38,12 +54,21 @@ public sealed partial class AutounattendSettingsView : UserControl
             IsSourceGrouped = true,
         }.View;
 
-        // First: OnUnloaded can run during the reload below, and a subscription opened after it is never released.
-        await ViewModel.LoadIncludedAsync();
+        // Covers both loads, so the loader does not drop out between them.
+        ViewModel.IsLoading = true;
+        try
+        {
+            // First: OnUnloaded can run during the awaits below, and a subscription opened after it is never released.
+            await ViewModel.LoadIncludedAsync();
 
-        // Not the one-shot load: leaving Builder empties this answer-file-only feature, and the base's load
-        // latch would then leave the page blank for the rest of the session.
-        await ViewModel.RefreshSettingsAsync();
+            // Not the one-shot load: leaving Builder empties this answer-file-only feature, and the base's load
+            // latch would then leave the page blank for the rest of the session.
+            await ViewModel.RefreshSettingsAsync();
+        }
+        finally
+        {
+            ViewModel.IsLoading = false;
+        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

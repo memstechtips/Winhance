@@ -10,4 +10,7 @@ public interface IFileStore
 
     // On import: puts the carried files on this PC and points the values that named them at the local copies.
     Task<SelectionSet> MaterializeAsync(SelectionSet set);
+
+    // On review: the save renames what it carries, so only the bytes can say it is the file this PC already has.
+    Task<bool> IsSameFileAsync(string path, string base64);
 }

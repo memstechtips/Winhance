@@ -14,6 +14,7 @@ public class ConfigurationServiceTests
 {
     private const string PickedPath = @"C:\Users\Test\Winhance_Config_20260819.winhance";
     private const string LocalAppData = @"C:\Users\Test\AppData\Local";
+    private const string WinhanceDir = LocalAppData + @"\Winhance";
     private const string BackupDir = @"C:\Users\Test\AppData\Local\Winhance\Backup";
     private const string BackupFile = BackupDir + @"\UserBackup.winhance";
 
@@ -43,7 +44,7 @@ public class ConfigurationServiceTests
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(PickedPath);
+            .ReturnsAsync(new SelectionSaveResult(PickedPath, []));
     }
 
     private ConfigurationService CreateService()
@@ -274,6 +275,39 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
+    public async Task ImportFromFile_AppliesTheFileWithoutAskingOrReviewing()
+    {
+        var config = FileWith(new ConfigurationItem { Id = "taskbar-clean", IsSelected = true });
+        _mockConfigLoadService.Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath)).ReturnsAsync(config);
+
+        await CreateService().ImportConfigurationFromFileAsync(PickedPath);
+
+        _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
+        _mockDialogService.Verify(d => d.ShowConfigImportOptionsDialogAsync(), Times.Never);
+        _mockConfigReviewOrchestrationService.Verify(
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>()), Times.Never);
+        _mockConfigExecutionService.Verify(
+            e => e.ExecuteConfigImportAsync(config, It.Is<ImportOptions>(o =>
+                o.ProcessWindowsAppsRemoval && o.ProcessExternalAppsInstallation
+                && o.ApplyCleanTaskbar && !o.ApplyCleanStartMenu && !o.ReviewBeforeApplying)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportFromFile_WhenTheFileDoesNotLoad_AppliesNothing()
+    {
+        _mockConfigLoadService
+            .Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath))
+            .ReturnsAsync((WinhanceConfigFile?)null);
+
+        await CreateService().ImportConfigurationFromFileAsync(PickedPath);
+
+        _mockConfigExecutionService.Verify(
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Backup_UsesInstalledApps_AndTheBackupFolder()
     {
         var set = SetWith(OneWindowsApp);
@@ -284,7 +318,7 @@ public class ConfigurationServiceTests
             .Returns(LocalAppData);
 
         _mockFileSystemService
-            .Setup(fs => fs.CombinePath(LocalAppData, "Winhance", "Backup"))
+            .Setup(fs => fs.CombinePath(WinhanceDir, "Backup"))
             .Returns(BackupDir);
         _mockFileSystemService
             .Setup(fs => fs.CombinePath(BackupDir, It.IsAny<string>()))
@@ -294,7 +328,7 @@ public class ConfigurationServiceTests
 
         _mockSelections.Verify(s => s.FromMachineForBackupAsync(), Times.Once);
         _mockSelections.Verify(s => s.FromMachineAsync(), Times.Never);
-        _mockFileSystemService.Verify(fs => fs.CombinePath(LocalAppData, "Winhance", "Backup"), Times.Once);
+        _mockFileSystemService.Verify(fs => fs.CombinePath(WinhanceDir, "Backup"), Times.Once);
         _mockFileSystemService.Verify(fs => fs.CreateDirectory(BackupDir), Times.Once);
 
         // The generated file name is the part this service owns; CombinePath is mocked, so assert it here.
@@ -304,7 +338,7 @@ public class ConfigurationServiceTests
             Times.Once);
         _mockSaves.Verify(
             s => s.SaveAsync(BuilderTarget.Config, set, It.Is<SelectionSaveOptions>(o =>
-                o.FixedPath == BackupFile && !o.ConfirmEmptyAppSelection && !o.ReportSuccessInDialog)),
+                o.FixedPath == BackupFile && !o.ReportSuccessInDialog)),
             Times.Once);
     }
 

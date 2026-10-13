@@ -71,4 +71,6 @@ public class SettingsGroup : ObservableCollection<SettingItemViewModel>
     {
         HasVisibleItems = this.Any(item => item.IsVisible);
     }
+
+    public override string ToString() => Key;
 }

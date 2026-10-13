@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Styles for UI built in C#. A brush fetched from Application.Resources in code resolves against the
+     APPLICATION theme, which follows Windows, not the Winhance theme set on the window or a dialog: with
+     Winhance on Dark and Windows on Light it renders light-theme text and fills on a dark surface. A
+     ThemeResource inside a Style setter resolves against the element's own theme and follows a switch. -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
+
+    <ResourceDictionary.ThemeDictionaries>
+        <!-- Tier colours. The dark values are the sponsor wall's own; on white they wash out, so the light
+             theme takes deeper shades that hold about 4.5:1 for the 10px tier label. -->
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Sponsor.GoldBrush" Color="#FFD700"/>
+            <SolidColorBrush x:Key="Sponsor.EmeraldBrush" Color="#50C878"/>
+            <SolidColorBrush x:Key="Sponsor.GoldBorderBrush" Color="#80FFD700"/>
+            <SolidColorBrush x:Key="Sponsor.EmeraldBorderBrush" Color="#9950C878"/>
+            <LinearGradientBrush x:Key="Sponsor.GoldWashBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#30FFD700" Offset="0"/>
+                <GradientStop Color="#00FFD700" Offset="0.6"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="Sponsor.EmeraldWashBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#3050C878" Offset="0"/>
+                <GradientStop Color="#0050C878" Offset="0.6"/>
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="Sponsor.GoldBrush" Color="#946300"/>
+            <SolidColorBrush x:Key="Sponsor.EmeraldBrush" Color="#0E7A45"/>
+            <SolidColorBrush x:Key="Sponsor.GoldBorderBrush" Color="#D9A520"/>
+            <SolidColorBrush x:Key="Sponsor.EmeraldBorderBrush" Color="#3FA36B"/>
+            <LinearGradientBrush x:Key="Sponsor.GoldWashBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#40FFC832" Offset="0"/>
+                <GradientStop Color="#00FFC832" Offset="0.6"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="Sponsor.EmeraldWashBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#3350C878" Offset="0"/>
+                <GradientStop Color="#0050C878" Offset="0.6"/>
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="HighContrast">
+            <StaticResource x:Key="Sponsor.GoldBrush" ResourceKey="SystemColorWindowTextColorBrush"/>
+            <StaticResource x:Key="Sponsor.EmeraldBrush" ResourceKey="SystemColorWindowTextColorBrush"/>
+            <StaticResource x:Key="Sponsor.GoldBorderBrush" ResourceKey="SystemColorWindowTextColorBrush"/>
+            <StaticResource x:Key="Sponsor.EmeraldBorderBrush" ResourceKey="SystemColorWindowTextColorBrush"/>
+            <StaticResource x:Key="Sponsor.GoldWashBrush" ResourceKey="SystemColorWindowColorBrush"/>
+            <StaticResource x:Key="Sponsor.EmeraldWashBrush" ResourceKey="SystemColorWindowColorBrush"/>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <Style x:Key="CodeBuilt.SecondaryText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.TertiaryText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.CaptionSecondaryText" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.SecondaryIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.DisabledPathIcon" TargetType="PathIcon">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorDisabledBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.SuccessIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.CautionIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.CriticalIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.CardSurface" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.LogoTile" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- An option card's fill and accent frame, swapped as it is hovered, focused or chosen. -->
+    <Style x:Key="CodeBuilt.OptionFillRest" TargetType="Border">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.OptionFillHover" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.OptionFillSelected" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.OptionFrameRest" TargetType="Border">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.OptionFrameSelected" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.GoldCard" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource Sponsor.GoldBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style x:Key="Sponsor.EmeraldCard" TargetType="Border" BasedOn="{StaticResource Sponsor.GoldCard}">
+        <Setter Property="BorderBrush" Value="{ThemeResource Sponsor.EmeraldBorderBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.GoldWash" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource Sponsor.GoldWashBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.EmeraldWash" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource Sponsor.EmeraldWashBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.GoldText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource Sponsor.GoldBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.EmeraldText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource Sponsor.EmeraldBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.GoldIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource Sponsor.GoldBrush}"/>
+    </Style>
+
+    <Style x:Key="Sponsor.EmeraldIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource Sponsor.EmeraldBrush}"/>
+    </Style>
+</ResourceDictionary>

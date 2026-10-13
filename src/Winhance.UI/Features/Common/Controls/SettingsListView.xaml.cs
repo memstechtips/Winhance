@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -61,13 +62,21 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(IsLoadingProperty, value);
     }
 
-    public bool IsNotLoading => !IsLoading;
+    // The ListView builds its item containers over several frames after it turns visible, and on a long page
+    // those frames are blank. The loader stays up over the hidden list until the first item has its content.
+    private bool _revealing;
+
+    private ICollectionView? _pendingSource;
+    private int _framesBeforeSource;
 
     public bool HasNoSearchResults
     {
         get => (bool)GetValue(HasNoSearchResultsProperty);
         set => SetValue(HasNoSearchResultsProperty, value);
     }
+
+    public string NoSearchResultsText =>
+        App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Search_NoResults");
 
     // Inside this control's scroller: a page that wraps its own ScrollView around the list gets two fighting over the wheel.
     public object? Header
@@ -209,18 +218,75 @@ public sealed partial class SettingsListView : UserControl
     private static void OnGroupedSettingsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is SettingsListView control)
-        {
-            control.SettingsListViewControl.ItemsSource = e.NewValue as ICollectionView;
-            control.ScheduleFocusFirstSetting();
-        }
+            control.DeferSource(e.NewValue as ICollectionView);
+    }
+
+    // The list is not virtualized, so it builds every card in one pass on the UI thread; handed over at once, the
+    // old page stays frozen on screen until that is done. Held back until the page has drawn with the loader, the
+    // page appears at once and the loader flies through the build.
+    private void DeferSource(ICollectionView? source)
+    {
+        bool waiting = _framesBeforeSource > 0;
+        _pendingSource = source;
+        _framesBeforeSource = 2;
+        _revealing = source is { Count: > 0 };
+        ShowLoadingState();
+
+        if (!waiting)
+            CompositionTarget.Rendering += OnRenderingBeforeSource;
+    }
+
+    // Rendering fires before a frame is drawn, so the second one means the frame with the loader is on screen.
+    private void OnRenderingBeforeSource(object? sender, object e)
+    {
+        if (--_framesBeforeSource > 0)
+            return;
+
+        CompositionTarget.Rendering -= OnRenderingBeforeSource;
+        SettingsListViewControl.ItemsSource = _pendingSource;
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        if (_revealing)
+            SettingsListViewControl.LayoutUpdated += ListView_LayoutUpdated;
+        ScheduleFocusFirstSetting();
     }
 
     private static void OnIsLoadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is SettingsListView control)
         {
-            control.Bindings.Update();
+            // A source still waiting for its frame keeps its own reveal; handing it over hooks the layout check.
+            if (control._framesBeforeSource > 0)
+            {
+                control.ShowLoadingState();
+                return;
+            }
+
+            control._revealing = e.OldValue is true && e.NewValue is false && control.SettingsListViewControl.Items.Count > 0;
+            control.ShowLoadingState();
+            control.SettingsListViewControl.LayoutUpdated -= control.ListView_LayoutUpdated;
+            if (control._revealing)
+                control.SettingsListViewControl.LayoutUpdated += control.ListView_LayoutUpdated;
         }
+    }
+
+    private void ShowLoadingState()
+    {
+        LoadingRocket.IsActive = IsLoading || _revealing;
+        ContentScrollView.Visibility = IsLoading ? Visibility.Collapsed : Visibility.Visible;
+        ContentScrollView.Opacity = _revealing ? 0 : 1;
+    }
+
+    private void ListView_LayoutUpdated(object? sender, object e)
+    {
+        if (IsLoading || SettingsListViewControl.ContainerFromIndex(0) is not ListViewItem { ContentTemplateRoot: not null })
+            return;
+
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            _revealing = false;
+            ShowLoadingState();
+        });
     }
 
     private void ScheduleFocusFirstSetting()

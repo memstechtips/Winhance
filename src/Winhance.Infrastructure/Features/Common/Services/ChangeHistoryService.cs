@@ -1,11 +1,12 @@
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-// C:\ProgramData\Winhance\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
+// <data root>\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
 // Never throws - a failed receipt must never block the operation.
 internal class ChangeHistoryService(
     IFileSystemService fileSystemService,
@@ -18,10 +19,7 @@ internal class ChangeHistoryService(
     private int _batchDepth;
     private string? _pendingBatchHeader;
 
-    private static string FilePath => System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Winhance",
-        "ChangeHistory.txt");
+    private static string FilePath => System.IO.Path.Combine(AppDataPaths.MachineRoot, "ChangeHistory.txt");
 
     public void LogSettingChange(string displayName, string? localizedGroupName, string before, string after)
     {

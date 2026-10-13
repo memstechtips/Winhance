@@ -83,7 +83,7 @@ public class ReviewModeBarViewModelTests : IDisposable
     [Fact]
     public void ReviewModeDescriptionText_ReturnsFallbackWhenLocalizationReturnsNull()
     {
-        _sut.ReviewModeDescriptionText.Should().Contain("Review the changes below");
+        _sut.ReviewModeDescriptionText.Should().Contain("Check what this config will change");
     }
 
     [Fact]
@@ -369,22 +369,28 @@ public class ReviewModeBarViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task CancelReviewModeCommand_UserConfirms_CallsCancelReviewMode()
+    public async Task CancelReviewModeCommand_Leave_CallsCancelReviewMode()
     {
+        ConfirmationRequest? shown = null;
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback<ConfirmationRequest>(request => shown = request)
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockLocalizationService.Setup(l => l.GetString("Button_Leave")).Returns("Leave");
+        _mockLocalizationService.Setup(l => l.GetString("Button_Stay")).Returns("Stay");
         _mockConfigurationService
             .Setup(c => c.CancelReviewModeAsync())
             .Returns(Task.CompletedTask);
 
         await _sut.CancelReviewModeCommand.ExecuteAsync(null);
 
+        shown!.ConfirmButtonText.Should().Be("Leave");
+        shown.CancelButtonText.Should().Be("Stay");
         _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task CancelReviewModeCommand_UserDeclines_DoesNotCallCancelReviewMode()
+    public async Task CancelReviewModeCommand_Stay_DoesNotCallCancelReviewMode()
     {
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))

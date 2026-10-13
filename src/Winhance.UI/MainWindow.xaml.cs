@@ -17,6 +17,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
 using System.ComponentModel;
@@ -29,7 +30,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 {
     private MainWindowViewModel? _viewModel;
     private WindowSizeManager? _windowSizeManager;
+
+    private const double CompactPaneBelowWidth = 1008;
+    private bool _isNarrowWindow;
+    private bool _paneCompactedForWidth;
     private UiZoomManager? _uiZoomManager;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _zoomIndicatorTimer;
     private IConfigReviewService? _configReviewService;
     private IApplicationModeService? _applicationModeService;
     private INavBadgeService? _navBadgeService;
@@ -41,6 +47,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private NavigationRouter? _navigationRouter;
     private StartupUiCoordinator? _startupUiCoordinator;
     private TitleBarManager? _titleBarManager;
+    private TrayController? _trayController;
 
     // Raises PropertyChanged so bindings update when the ViewModel is assigned after construction.
     public MainWindowViewModel? ViewModel
@@ -74,6 +81,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         RootGrid.Loaded += (_, _) => _titleBarManager.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
 
         InitializeWindowSizeManager();
+
+        InitializeTray();
 
         InitializeUiZoom();
 
@@ -113,7 +122,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         _startupUiCoordinator = new StartupUiCoordinator(this.DispatcherQueue, _logService);
         _startupUiCoordinator.InitializeLoadingOverlay(
-            LoadingTitleText, LoadingTaglineText, LoadingStatusText, LoadingLogo, RootGrid);
+            LoadingTitleText, LoadingTaglineText, LoadingStatusText);
+        _startupUiCoordinator.ShowLoadingSponsors(LoadingSponsors, LoadingSponsorsHeading, LoadingSponsorPills);
 
         _ = _startupUiCoordinator.RunStartupAndCompleteAsync(
             LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, () => ViewModel,
@@ -132,6 +142,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
             applicationCloseService.BeforeShutdown = async () =>
             {
+                _trayController?.RemoveIcon();
                 if (_windowSizeManager != null)
                     await _windowSizeManager.SaveWindowSettingsAsync();
             };
@@ -139,6 +150,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             this.AppWindow.Closing += async (sender, args) =>
             {
                 args.Cancel = true;
+                if (_trayController?.TryHideOnClose() == true)
+                    return;
                 await applicationCloseService.CheckOperationsAndCloseAsync();
             };
         }
@@ -147,6 +160,27 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             this.AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
             _logService?.LogDebug($"Failed to initialize WindowSizeManager: {ex.Message}");
         }
+    }
+
+    private void InitializeTray()
+    {
+        try
+        {
+            _trayController = App.Services.GetRequiredService<TrayController>();
+            _trayController.Attach(this, ShowAppUpdates);
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogError("Failed to set up the tray icon", ex);
+        }
+    }
+
+    private void ShowAppUpdates()
+    {
+        NavSidebar.SelectedTag = "SoftwareApps";
+        _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
+        var softwareApps = App.Services.GetRequiredService<SoftwareAppsViewModel>();
+        softwareApps.ShowAppUpdates();
     }
 
     // The OemPlus/OemMinus accelerators XAML can't express, and Ctrl+MouseWheel.
@@ -290,10 +324,31 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         DispatcherQueue.TryEnqueue(() =>
             _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher));
 
-        AppTitleBar.SizeChanged += (_, _) =>
+        FitTitleBar();
+        FitNavPane(AppTitleBar.ActualWidth);
+        AppTitleBar.SizeChanged += (_, args) =>
+        {
+            FitTitleBar();
+            FitNavPane(args.NewSize.Width);
             _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
+        };
         TitleBarButtons.SizeChanged += (_, _) =>
+        {
+            FitTitleBar();
             _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
+        };
+        // A language switch changes the labels' length without resizing the window.
+        ModeSwitcher.SizeChanged += (_, _) => FitTitleBar();
+        // A Grid whose columns overflow reports their width, not the window's, and stops raising SizeChanged as the
+        // window narrows further, so the title bar and the mode bars are fitted to the window content instead.
+        // SizeChanged on a mode bar itself covers it becoming visible.
+        RootGrid.SizeChanged += (_, _) =>
+        {
+            FitTitleBar();
+            FitModeBars();
+        };
+        BuilderModeBarGrid.SizeChanged += (_, _) => FitModeBars();
+        ReviewModeBar.SizeChanged += (_, _) => FitModeBars();
 
         InitializeViewModel();
     }
@@ -386,7 +441,116 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void PaneToggleButton_Click(object sender, RoutedEventArgs e)
     {
+        _paneCompactedForWidth = false;
         NavSidebar.TogglePane();
+    }
+
+    // The mode labels go first, since each mode button keeps its icon and tooltip, then the app title, then the
+    // Support text.
+    private void FitTitleBar()
+    {
+        UIElement[] modeLabels = [ModeLabelText, NormalModeText, BuilderModeText, ConfigReviewModeText];
+        FitToWidth.Apply(
+            RootGrid.ActualWidth,
+            TitleBarContentWidth,
+            reset: () => FitToWidth.SetVisible(true, [.. modeLabels, AppTitleStack, SupportButtonText]),
+            () => FitToWidth.SetVisible(false, modeLabels),
+            () => FitToWidth.SetVisible(false, AppTitleStack),
+            () => FitToWidth.SetVisible(false, SupportButtonText));
+    }
+
+    // Squeezed into the leftover column a description wraps a word per line, so on a narrow window it moves under the
+    // bar's controls, and when even the controls overflow one line, the middle group moves down with it.
+    private const double ModeBarDescriptionMinWidth = 320;
+
+    private void FitModeBars()
+    {
+        FitModeBar(BuilderModeBarGrid, BuilderModeDescriptionText, BuilderTargetPanel, 4, new Thickness(0, 0, 12, 0));
+        FitModeBar(ReviewModeBar, ReviewModeDescriptionText, ReviewModeStatusText, 3, new Thickness(0));
+    }
+
+    private void FitModeBar(Grid bar, FrameworkElement description, FrameworkElement middle, int middleColumn, Thickness middleMargin)
+    {
+        if (bar.Visibility != Visibility.Visible || RootGrid.ActualWidth <= 0)
+            return;
+
+        int columns = bar.ColumnDefinitions.Count;
+        var below = new Thickness(0, 8, 0, 0);
+        FitToWidth.Apply(
+            RootGrid.ActualWidth,
+            () => ModeBarFirstLineWidth(bar, description),
+            reset: () =>
+            {
+                Place(description, 0, 2, 1, new Thickness(0, 0, 16, 0));
+                Place(middle, 0, middleColumn, 1, middleMargin);
+            },
+            () => Place(description, 1, 0, columns, below),
+            () =>
+            {
+                Place(middle, 1, 0, columns, below);
+                Place(description, 2, 0, columns, below);
+            });
+    }
+
+    private static void Place(FrameworkElement element, int row, int column, int columnSpan, Thickness margin)
+    {
+        Grid.SetRow(element, row);
+        Grid.SetColumn(element, column);
+        Grid.SetColumnSpan(element, columnSpan);
+        element.Margin = margin;
+    }
+
+    private static double ModeBarFirstLineWidth(Grid bar, FrameworkElement description)
+    {
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        double width = bar.Padding.Left + bar.Padding.Right;
+        foreach (var child in bar.Children.OfType<FrameworkElement>().Where(c => Grid.GetRow(c) == 0))
+        {
+            if (child == description)
+            {
+                width += ModeBarDescriptionMinWidth;
+                continue;
+            }
+
+            child.Measure(unbounded);
+            width += child.DesiredSize.Width;
+        }
+
+        return width;
+    }
+
+    private double TitleBarContentWidth()
+    {
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        double width = LeftPaddingColumn.ActualWidth + RightPaddingColumn.ActualWidth;
+        foreach (var element in new FrameworkElement[] { PaneToggleButton, AppIcon, AppTitleStack, ModeSwitcher, TitleBarButtons })
+        {
+            element.Measure(unbounded);
+            width += element.DesiredSize.Width;
+        }
+
+        return width;
+    }
+
+    // Below Microsoft's 1008px large-window breakpoint the pane gives its width to the page. It comes back when the
+    // window widens again, unless the user has toggled it in between.
+    private void FitNavPane(double windowWidth)
+    {
+        bool narrow = windowWidth < CompactPaneBelowWidth;
+        if (narrow == _isNarrowWindow)
+            return;
+
+        _isNarrowWindow = narrow;
+        if (narrow && NavSidebar.IsPaneOpen)
+        {
+            NavSidebar.IsPaneOpen = false;
+            _paneCompactedForWidth = true;
+        }
+        else if (!narrow && _paneCompactedForWidth)
+        {
+            NavSidebar.IsPaneOpen = true;
+            _paneCompactedForWidth = false;
+        }
     }
 
     private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
@@ -587,7 +751,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             {
                 Content = uc.RelaunchButtonText,
                 Command = uc.RelaunchCommand,
-                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+                Style = CodeBuiltStyle.Named("AccentButtonStyle"),
             };
             UpdateInfoBar.ActionButton = button;
         }
@@ -597,7 +761,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             {
                 Content = uc.InstallNowButtonText,
                 Command = uc.InstallUpdateCommand,
-                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+                Style = CodeBuiltStyle.Named("AccentButtonStyle"),
             };
             UpdateInfoBar.ActionButton = button;
         }
@@ -710,6 +874,25 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         ViewModel?.BuilderModeBar.SetShowOtherHardwareAsync(BuilderOtherHardwareCheck.IsChecked == true).FireAndForget(_logService!);
     }
 
+    private void BuilderTargetWindowsFlyout_Opening(object sender, object e)
+    {
+        if (ViewModel?.BuilderModeBar is not { } bar || sender is not MenuFlyout flyout)
+            return;
+
+        flyout.Items.Clear();
+        foreach (var release in bar.TargetReleases)
+            flyout.Items.Add(TargetWindowsItem(bar, release.Name, release.Build));
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        flyout.Items.Add(TargetWindowsItem(bar, bar.AllVersionsText, null));
+    }
+
+    private RadioMenuFlyoutItem TargetWindowsItem(BuilderModeBarViewModel bar, string text, int? build)
+    {
+        var item = new RadioMenuFlyoutItem { Text = text, GroupName = "BuilderTargetWindows", IsChecked = bar.TargetBuild == build };
+        item.Click += (_, _) => bar.SetTargetWindowsAsync(build).FireAndForget(_logService!);
+        return item;
+    }
+
     private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         var tag = NavAccelerators.TagFor(sender.Key);
@@ -735,18 +918,21 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.StepUp();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
     private void ZoomOutAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.StepDown();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
     private void ZoomResetAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.Reset();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
@@ -761,7 +947,30 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         else if (delta < 0)
             _uiZoomManager?.StepDown();
 
+        ShowZoomIndicator();
         e.Handled = true;
+    }
+
+    // Shown on every zoom key, even at a limit, so the user sees why nothing changed (#692).
+    private void ShowZoomIndicator()
+    {
+        if (_uiZoomManager is null)
+            return;
+
+        var percent = (int)Math.Round(_uiZoomManager.Factor * 100);
+        ZoomIndicatorText.Text = App.Services.GetRequiredService<ILocalizationService>()
+            .GetString("Zoom_Indicator_Format", percent);
+        ZoomIndicator.Visibility = Visibility.Visible;
+
+        if (_zoomIndicatorTimer is null)
+        {
+            _zoomIndicatorTimer = DispatcherQueue.CreateTimer();
+            _zoomIndicatorTimer.Interval = TimeSpan.FromMilliseconds(1500);
+            _zoomIndicatorTimer.IsRepeating = false;
+            _zoomIndicatorTimer.Tick += (_, _) => ZoomIndicator.Visibility = Visibility.Collapsed;
+        }
+        _zoomIndicatorTimer.Stop();
+        _zoomIndicatorTimer.Start();
     }
 
     private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -774,8 +983,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         var button = sender.Key switch
         {
-            VirtualKey.Number1 => WindowsFilterButton,
-            VirtualKey.Number2 => DonateButton,
+            VirtualKey.Number1 => DonateButton,
+            VirtualKey.Number2 => WindowsFilterButton,
             VirtualKey.Number3 => BugReportButton,
             VirtualKey.Number4 => DocsButton,
             _ => (Button?)null

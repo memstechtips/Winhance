@@ -64,7 +64,7 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
             if (!dontShowAgain)
             {
-                var message = _localizationService.GetStringOrDefault("Filter_Dialog_Message", "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.");
+                var message = _localizationService.GetStringOrDefault("Filter_Dialog_Message", "This filter controls which settings are visible in Winhance and included in export operations:\n\n• Filter ON (Default):\n  - Shows only settings compatible with your Windows version\n  - Exports settings for your Windows version only\n\n• Filter OFF:\n  - Shows ALL settings (Windows 10 + 11)\n  - Exports cross-version settings (for both Windows 10 + 11)\n\nUse this when creating Winhance config or autounattend.xml files that need to work across different Windows versions or if you need to toggle a setting that is related to the other Windows version.\n\nDo you want to toggle the filter?");
                 var checkboxText = _localizationService.GetStringOrDefault("Filter_Dialog_Checkbox", "Don't show this message again");
                 var title = _localizationService.GetStringOrDefault("Filter_Dialog_Title", "Windows Version Filter");
                 var continueText = _localizationService.GetStringOrDefault("Filter_Dialog_Button_Toggle", "Toggle Filter");
