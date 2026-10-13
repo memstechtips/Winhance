@@ -5,16 +5,17 @@ using Xunit;
 namespace Winhance.Core.Tests.Catalog;
 
 // The ONLY enforcement of CustomStateScripts for gaming-touch-keyboard-service (precedence-corrected, so exempt
-// from the structural gate). Pins the durable contract: exactly these 5 settings carry CustomStateScripts (6
-// entries), each non-empty with its RunContext; gaming-dns-server's keep their placeholders INTACT ({{primary}},
-// {{secondary}}, {{dohtemplate}}) and the album's keeps {{value}} - a baked body would hard-code a preset DNS,
-// or one machine's folder, instead of the user's own, silently; and no other setting carries any.
+// from the structural gate). Pins the durable contract: exactly these settings carry CustomStateScripts, each
+// non-empty with its RunContext; the DNS one keeps its {{servers}} placeholder INTACT and the album's keeps {{value}}
+// - a baked body would hard-code a preset DNS, or one machine's folder, instead of the user's own, silently; and no
+// other setting carries any.
 public class CatalogCustomStateScriptsConformanceTests
 {
     private static readonly (string Id, int Count, RunContext[] Runs)[] Expected =
     {
+        ("autounattend-user-folders", 1, new[] { RunContext.User }),
         ("explorer-customization-shortcut-arrow", 1, new[] { RunContext.System }),
-        ("gaming-dns-server", 2, new[] { RunContext.User, RunContext.User }),
+        ("gaming-dns-server", 1, new[] { RunContext.User }),
         ("gaming-touch-keyboard-service", 1, new[] { RunContext.System }),
         ("taskbar-system-tray-icons-11", 1, new[] { RunContext.User }),
         ("theme-wallpaper-album", 1, new[] { RunContext.User }),
@@ -30,7 +31,7 @@ public class CatalogCustomStateScriptsConformanceTests
 
         Assert.Equal(Expected.Select(e => e.Id).OrderBy(x => x, System.StringComparer.Ordinal).ToArray(),
             carriers.Select(s => s.Id).ToArray());
-        Assert.Equal(6, carriers.Sum(s => s.CustomStateScripts.Count));
+        Assert.Equal(Expected.Sum(e => e.Count), carriers.Sum(s => s.CustomStateScripts.Count));
 
         foreach (var (id, count, runs) in Expected)
         {
@@ -46,29 +47,21 @@ public class CatalogCustomStateScriptsConformanceTests
         }
     }
 
-    // Asserted PER ENTRY on purpose: entry[1] (DoH) carries all three placeholders, so baking entry[0] - the script
-    // that actually writes the adapter's servers - would leave a joined blob still containing all three and pass
-    // GREEN. Per-entry also pins the emit ORDER.
+    // The answer file fills the server list on the new install, where the adapters exist.
     [Fact]
-    public void DnsServer_CustomStateScripts_KeepTheirPlaceholders_NeverAnOptionBakedBody()
+    public void The_dns_script_keeps_its_server_list_placeholder()
+        => Assert.Contains("$servers = @({{servers}})", SettingCatalog.Find("gaming-dns-server")!.CustomStateScripts[0].Script);
+
+    // It writes what the live apply writes, never the netsh table that holds Windows' own DoH templates.
+    [Fact]
+    public void The_dns_script_writes_the_adapter_registry_and_nudges_the_dns_client()
     {
-        var setting = SettingCatalog.Find("gaming-dns-server");
-        Assert.NotNull(setting);
-        Assert.Equal(2, setting!.CustomStateScripts.Count);
+        var script = SettingCatalog.Find("gaming-dns-server")!.CustomStateScripts[0].Script;
 
-        var setDns = setting.CustomStateScripts[0].Script;   // Set-DnsClientServerAddress
-        var doh = setting.CustomStateScripts[1].Script;      // netsh dns add encryption
-
-        // entry[0] writes the adapter's servers: it MUST carry primary+secondary, and must NOT carry the DoH
-        // template -- that absence is what pins the two entries' order.
-        AssertRaw(setDns, 0, "{{primary}}");
-        AssertRaw(setDns, 0, "{{secondary}}");
-        Assert.False(setDns.Contains("{{dohtemplate}}"),
-            "gaming-dns-server CustomStateScripts[0] carries the DoH template -- the two scripts look reordered.");
-
-        AssertRaw(doh, 1, "{{primary}}");
-        AssertRaw(doh, 1, "{{secondary}}");
-        AssertRaw(doh, 1, "{{dohtemplate}}");
+        Assert.DoesNotContain("netsh", script);
+        Assert.Contains(@"Tcpip6\Parameters\Interfaces", script);
+        Assert.Contains("DohInterfaceSettings", script);
+        Assert.Contains("sc.exe control dnscache paramchange", script);
     }
 
     [Fact]
@@ -79,18 +72,13 @@ public class CatalogCustomStateScriptsConformanceTests
         Assert.Contains("{{value}}", setting!.CustomStateScripts[0].Script);
     }
 
-    // PowerShell ends a here-string only on a line whose first character is the terminator.
+    // ScriptPreambleSectionTests owns the here-string terminator invariant for Add-WinhanceDesktopType.
     [Fact]
-    public void The_album_script_closes_its_here_string_at_column_zero()
+    public void The_album_script_compiles_the_interop_through_the_shared_helper()
     {
         var script = SettingCatalog.Find("theme-wallpaper-album")!.CustomStateScripts[0].Script;
 
-        Assert.Contains("\n'@", script);
-        Assert.DoesNotContain("\n '@", script);
+        Assert.Contains("Add-WinhanceDesktopType", script);
+        Assert.DoesNotContain("Add-Type", script);
     }
-
-    private static void AssertRaw(string body, int index, string placeholder) =>
-        Assert.True(body.Contains(placeholder),
-            $"gaming-dns-server CustomStateScripts[{index}] lost the {placeholder} placeholder -- it looks OPTION-BAKED. "
-                + "Custom-state generation would then write a preset DNS instead of the user's own values.");
 }

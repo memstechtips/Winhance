@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -17,6 +18,7 @@ internal sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerCfgApplier _powerCfg;
     private readonly IPowerPlanActivationService _activation;
     private readonly IWindowsThemeService _theme;
+    private readonly IDnsSettingsService _dns;
     private readonly ILogService _log;
 
     // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
@@ -26,6 +28,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         IPowerCfgApplier powerCfg,
         IPowerPlanActivationService activation,
         IWindowsThemeService theme,
+        IDnsSettingsService dns,
         ILogService log)
     {
         _reg = reg;
@@ -33,6 +36,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         _powerCfg = powerCfg;
         _activation = activation;
         _theme = theme;
+        _dns = dns;
         _log = log;
     }
 
@@ -137,6 +141,8 @@ internal sealed class WindowsStateWriter : IStateWriter
         _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
 
     public bool SetSlideshow(DesktopSlideshowTarget target, string folder) => _theme.SetSlideshow(folder);
+
+    public bool SetDns(IReadOnlyList<DnsServer> servers) => _dns.SetDns(servers);
 
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
         // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the

@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -11,6 +12,18 @@ internal class ConfigMigrationService : IConfigMigrationService
 
     private readonly Dictionary<string, Action<ConfigurationItem>> _migrations;
 
+    // Taken from the card itself so the two cannot drift; the order IS the old index order.
+    private static readonly IReadOnlyList<string> ShortDateKeys =
+        SettingCatalog.Find("explorer-customization-short-date")?.Options?.Keys ?? [];
+
+    // The three "DoH" DNS options became their plain servers, each encrypted with the template Windows knows for it.
+    private static readonly Dictionary<int, (string Preferred, string Alternate)> DnsDohOptions = new()
+    {
+        [7] = ("1.1.1.1", "1.0.0.1"),
+        [8] = ("8.8.8.8", "8.8.4.4"),
+        [9] = ("9.9.9.9", "149.112.112.112"),
+    };
+
     public ConfigMigrationService(ILogService logService)
     {
         _logService = logService;
@@ -22,12 +35,17 @@ internal class ConfigMigrationService : IConfigMigrationService
             ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
             ["gaming-background-apps"] = MigrateBackgroundApps,
             ["updates-notification-level"] = MigrateUpdateNotificationLevel,
+            ["explorer-customization-short-date"] = MigrateShortDateToKey,
+            ["gaming-dns-server"] = MigrateDnsDohOption,
         };
     }
 
     public void MigrateConfig(WinhanceConfigFile config)
     {
         if (config == null) return;
+
+        RenameRetiredFeatures(config.Customize);
+        RenameRetiredFeatures(config.Optimize);
 
         if (config.Customize?.Features != null)
         {
@@ -48,6 +66,19 @@ internal class ConfigMigrationService : IConfigMigrationService
         MigrateSection(config.WindowsApps, "WindowsApps");
 
         MigrateSection(config.ExternalApps, "ExternalApps");
+    }
+
+    // A feature id is a dictionary KEY, so unlike a setting id it cannot be normalized in place; the group gets a
+    // rebuilt dictionary. Runs before the id-keyed migrations so every downstream consumer sees the current id.
+    private static void RenameRetiredFeatures(FeatureGroupSection? group)
+    {
+        if (group?.Features is not { Count: > 0 } features) return;
+        if (features.Keys.All(id => FeatureIdAliases.Normalize(id) == id)) return;
+
+        var renamed = new Dictionary<string, ConfigSection>(features.Count, StringComparer.Ordinal);
+        foreach (var (id, section) in features)
+            renamed[FeatureIdAliases.Normalize(id)] = section;
+        group.Features = renamed;
     }
 
     private void MigrateSection(ConfigSection? section, string sectionName)
@@ -77,6 +108,38 @@ internal class ConfigMigrationService : IConfigMigrationService
                 }
             }
         }
+    }
+
+    private void MigrateDnsDohOption(ConfigurationItem item)
+    {
+        if (item.SelectedIndex is not { } index || !DnsDohOptions.TryGetValue(index, out var servers))
+            return;
+
+        item.SelectedIndex = null;
+        item.CustomStateValues = new Dictionary<string, object>
+        {
+            ["primary"] = servers.Preferred,
+            ["primaryDoh"] = ((int)DohMode.Automatic).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["secondary"] = servers.Alternate,
+            ["secondaryDoh"] = ((int)DohMode.Automatic).ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+        _logService.Log(LogLevel.Info, $"Migrated config item '{item.Id}' from DoH option {index} to its servers, encrypted");
+    }
+
+    // The card was five fixed states and is now keyed on the pattern itself, because region-format writes
+    // patterns the five never covered. An older file carries the index those five had.
+    private void MigrateShortDateToKey(ConfigurationItem item)
+    {
+        if (item.SelectedKey is { Length: > 0 }) return;
+        if (item.SelectedIndex is not { } index || index < 0 || index >= ShortDateKeys.Count) return;
+
+        item.SelectedKey = ShortDateKeys[index];
+        item.SelectedKeyLabel = ShortDateKeys[index];
+        item.SelectedIndex = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Selection index {index} to key '{item.SelectedKey}'");
     }
 
     // Old: Toggle IsSelected true (applied) / false (default). New: Selection index 0 (default), 1 (applied).

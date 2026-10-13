@@ -31,4 +31,8 @@ public sealed record PowerCfgSetOp(PowerCfgTarget Target, PowerContext Context, 
 
 public sealed record SlideshowSetOp(DesktopSlideshowTarget Target, string Folder) : ApplyOp;
 
+// No servers means Automatic: every adapter goes back to the servers DHCP hands it.
+// The whole server list at once: Windows keeps each family's servers as one value.
+public sealed record DnsSetOp(IReadOnlyList<DnsServer> Servers) : ApplyOp;
+
 public sealed record EffectOp(Effect Effect) : ApplyOp;

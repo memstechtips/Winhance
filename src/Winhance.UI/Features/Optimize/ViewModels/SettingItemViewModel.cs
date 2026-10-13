@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -57,6 +58,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     [ObservableProperty]
     public partial string Name { get; set; }
+
+    // A ListView row with no AutomationProperties.Name is announced by its item's ToString(), which would be
+    // this class's full type name.
+    public override string ToString() => Name;
 
     [ObservableProperty]
     public partial string Description { get; set; }
@@ -145,11 +150,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial bool HasTextError { get; set; }
 
     public string TextError => Setting?.TextBox?.Rule.Message is { } message
-        ? _localizationService.GetStringOrDefault(message.Value, message.Value)
+        ? Localized(message)
         : string.Empty;
 
     public string TextPlaceholder => Setting?.TextBox?.Placeholder is { } placeholder
-        ? _localizationService.GetStringOrDefault(placeholder.Value, placeholder.Value)
+        ? Localized(placeholder)
         : string.Empty;
 
     public PickerKind TextBoxPicker => Setting?.TextBox?.Picker ?? PickerKind.None;
@@ -192,6 +197,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     partial void OnSavePasswordsChanged(bool value) => HandleListAsync().FireAndForget(_logService);
 
     public bool HasRows => Rows.Count > 0;
+
+    public ObservableCollection<CheckListItemViewModel> CheckItems { get; } = [];
+
+    // Null until the user or a reopened file decides, which ticks every entry. Kept apart from CheckItems because a
+    // restore can land before the page hands the card its entries.
+    private IReadOnlyList<string>? _ticked;
 
     public string OnText { get; set; } = "On";
     public string OffText { get; set; } = "Off";
@@ -248,6 +259,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Windows-version compatibility warning text (set by the loading bridge when the
     // version filter is off). Surfaced as a Warning banner.
     public string? CompatibilityMessage { get; set; }
+
+    // Informational when the setting still works on this PC and the label only says which Windows it needs.
+    public InfoBarSeverity CompatibilitySeverity { get; set; } = InfoBarSeverity.Warning;
 
     [ObservableProperty]
     public partial bool IsNew { get; set; }
@@ -504,6 +518,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             if (!IsInfoBadgeGloballyVisible) return false;
             if (InputType != InputType.Toggle && InputType != InputType.CheckBox) return false;
+            if (Setting?.SeedsFromThisPc == true) return false;
             return TwoStateRecommended.HasValue || TwoStateDefault.HasValue;
         }
     }
@@ -697,9 +712,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
 
-    public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
+    // Set by ComputeBadgeState; a card without badge data never matches, so a bulk action still counts it.
+    public bool IsAtRecommended { get; private set; }
 
-    public bool HasDefaultQuickSetTarget => HasQuickSetTarget(recommended: false);
+    public bool IsAtDefault { get; private set; }
+
+    public bool WouldQuickSetChange(bool recommended) =>
+        HasQuickSetTarget(recommended) && !(recommended ? IsAtRecommended : IsAtDefault);
 
     private bool HasQuickSetTarget(bool recommended) => InputType switch
     {
@@ -759,12 +778,57 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowFieldButtons))]
+    [NotifyPropertyChangedFor(nameof(ShowFieldsError))]
     public partial bool IsLocked { get; set; }
 
     public bool RequiresAdvancedUnlock =>
         Setting?.Availability.RequiresAdvancedUnlock ?? false;
-    public string ClickToUnlockText => _localizationService.GetStringOrDefault("Common_ClickToUnlock", "Click to unlock");
+    public string ClickToUnlockText => HasFields
+        ? _localizationService.GetStringOrDefault("Common_Edit", "Edit")
+        : _localizationService.GetStringOrDefault("Common_ClickToUnlock", "Click to unlock");
     public IAsyncRelayCommand UnlockCommand { get; }
+
+    // A Selection's presets spelled out as typed fields (the DNS servers): shown as the machine has them, edited
+    // behind the pencil, and applied together so a half-typed address never reaches Windows.
+    public bool HasFields => Setting?.Fields.Count > 0;
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ListRowViewModel> FieldRows { get; set; } = [];
+
+    public bool ShowFieldButtons => HasFields && !IsLocked;
+
+    // Asks the resolver the apply goes through, so the button never offers a value the apply would refuse.
+    public bool CanApplyFields
+    {
+        get
+        {
+            if (FieldRows.Count == 0 || FieldRows.SelectMany(r => r.Fields).Any(f => f.HasError))
+                return false;
+            var typed = TypedFields();
+            return PresetIndexFor(typed) != ComboBoxConstants.CustomStateIndex
+                || ApplyRequestResolver.Resolve(SettingId, true, CustomValuesOf(typed), false, [Setting!], _build) is not null;
+        }
+    }
+
+    // The resolver also refuses what no single box is wrong about (an alternate server without a preferred one), and
+    // then no box has an error to show.
+    public bool ShowFieldsError =>
+        ShowFieldButtons && FieldRows.Count > 0 && !CanApplyFields && !FieldRows.SelectMany(r => r.Fields).Any(f => f.HasError);
+
+    public string FieldsErrorText => _localizationService.GetString("Setting_gaming-dns-server_ServersError");
+
+    private void OnFieldsChanged()
+    {
+        OnPropertyChanged(nameof(CanApplyFields));
+        OnPropertyChanged(nameof(ShowFieldsError));
+    }
+
+    public string ApplyFieldsText => _localizationService.GetStringOrDefault("Button_Apply", "Apply");
+    public string CancelFieldsText => _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
+
+    public IAsyncRelayCommand ApplyFieldsCommand { get; }
+    public IRelayCommand CancelFieldsCommand { get; }
 
     // Review-mode state.
     // All of it lives behind one nullable reference, so leaving review is a single assignment to
@@ -890,6 +954,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public string ReviewActionGroupName => $"{SettingId}_action";
 
+    public string ReviewApplyLabel => _localizationService.GetStringOrDefault("Button_Apply", "Apply");
+
+    public string ReviewDontApplyLabel => _localizationService.GetStringOrDefault("Review_Mode_DontApply", "Don't apply");
+
     public event EventHandler<bool>? ReviewActionApprovalChanged;
 
     public event EventHandler<bool>? ReviewApprovalChanged;
@@ -973,7 +1041,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Selection on the -1 Custom sentinel). A declared gate compares against this - by LABEL, never index. A toggle
     // answers from IsSelected (its SelectedValue is only written at load and would go stale); a selection from
     // SelectedValue, whose int IS the state index, so a detect-only state still names itself. Deliberately NOT
-    // bindable: its only reader pulls it imperatively straight after writing the state it derives from.
+    // bindable: its readers pull it imperatively, right after the state it derives from changes.
     public string? CurrentStateLabel
     {
         get
@@ -1001,6 +1069,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private bool SettingRequiresConfirmation => Setting?.Apply.RequiresConfirmation ?? false;
 
+    // The state another card's current state DECIDES for this one, set by the feature's gate refresh. It outranks
+    // the user's own edit while it is set, because it is what the answer file will carry.
+    public LocKey? DecidedState { get; set; }
+
     // While a mode is authoring, the authored value - not what the machine says - is what the card must show,
     // because it is what Save will write. Call from every path that writes live state into this ViewModel (a
     // filter toggle or language change rebuilds every card from the machine). No-op outside an authoring mode or
@@ -1017,7 +1089,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         // Before the edit lookup, which returns early for a setting that was excluded without ever being edited.
         SetIncludedFromSession(_applicationModeService?.IsIncluded(SettingId) ?? true);
 
-        if (_applicationModeService?.GetBuilderEdit(SettingId) is not { } edit) return;
+        // Honoured here rather than pushed in afterwards: every live-state writer ends by re-applying this
+        // overlay, so a value set outside it would be wiped by the next detection pass.
+        if ((DecidedChoice() ?? _applicationModeService?.GetBuilderEdit(SettingId)) is not { } edit) return;
 
         // These are programmatic writes standing in for the user's earlier ones - they must not
         // re-enter the input handlers and record themselves a second time. Saved and restored
@@ -1033,6 +1107,20 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             _isUpdatingFromEvent = wasUpdatingFromEvent;
         }
+    }
+
+    private SettingChoice? DecidedChoice()
+    {
+        if (DecidedState is not { } decided || Setting is not { } setting)
+            return null;
+
+        for (int i = 0; i < setting.States.Count; i++)
+        {
+            if (setting.States[i].Label == decided)
+                return new SettingChoice(SettingId, new ChoiceValue.Option(i));
+        }
+
+        return null;
     }
 
     private void ApplyAuthoredValues(SettingChoice edit)
@@ -1058,6 +1146,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             case ChoiceValue.List l:
                 SavePasswords = l.SavePasswords;
                 RebuildRows(l);
+                break;
+
+            case ChoiceValue.Keys k:
+                _ticked = k.Values;
+                SetCheckListEntries([.. CheckItems.Select(item => item.Key)]);
                 break;
 
             case ChoiceValue.Keyed k:
@@ -1122,6 +1215,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         if (state.Success)
             _lastKnownState = state;
+        RefreshFieldRows();
     }
 
     // Every input handler funnels through here on a write that stuck: the discard prompt has to fire for authored
@@ -1194,10 +1288,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // An answer file cannot leave a setting out: an absent choice renders the file's default.
     public bool ShowIncludeCheckbox => AuthorsIntent && Setting?.IsAnswerFileOnly != true;
 
-    // The answer file carries the passwords whatever the box says; the tick rides on the List record to a
-    // later config save.
+    // Authoring decides an Action by its include tick, so the button that RUNS it is not offered there.
+    // Leaving it would read as "clean this PC now" on a card whose tick already means "clean the new one".
+    public bool ShowActionButton => !AuthorsIntent;
+
+    // Config files only: the tick rides on the List record to a later config save, while an answer file
+    // carries every password whatever the box says.
     public bool ShowPasswordBanner =>
-        Setting?.List?.Fields.Any(f => f.Kind == FieldKind.Password) == true && AuthorsIntent;
+        Setting?.List?.Fields.Any(f => f.Kind == FieldKind.Password) == true
+        && AuthorsIntent
+        && _applicationModeService?.CurrentBuilderTarget == BuilderTarget.Config;
 
     public string IncludeToolTip => IsIncluded
         ? _localizationService.GetStringOrDefault("Setting_Include_Tooltip_In", "Included in the file")
@@ -1326,6 +1426,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
 
         OnPropertyChanged(nameof(ShowIncludeCheckbox));
+        OnPropertyChanged(nameof(ShowActionButton));
         OnPropertyChanged(nameof(CardPadding));
         OnPropertyChanged(nameof(ChildCardPadding));
         OnPropertyChanged(nameof(RowPadding));
@@ -1425,8 +1526,21 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         // reassuring tone ("you can leave it as it is"); this label only has to be accurate. "Custom" itself
         // is reserved for states the catalog genuinely offers as a CHOICE (system tray icons, visual effects,
         // ads), so a detected value we cannot place says "Not recognized" instead - one word, one meaning.
-        _ => Localized("Common_CustomState") ?? "Not recognized",
+        // With the value beside it where there is one to show: a regional format leaves date pictures no option
+        // list can cover, and "Not recognized" alone leaves the user with no way to see what is actually set.
+        _ => UnrecognizedValueText ?? Localized("Common_CustomState") ?? "Not recognized",
     };
+
+    // Only a single-target card can name its value without ambiguity; a card reading several keys says the
+    // plain wording and leaves the values to the Technical Details panel, which lists them all.
+    private string? UnrecognizedValueText =>
+        CapturedCustomStateValues is { Count: 1 } captured
+        && captured.Values.First()?.ToString() is { Length: > 0 } value
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                Localized("Common_CustomState_WithValue") ?? "Not recognized: {0}",
+                value)
+            : null;
 
     // A detect-only state has no ComboBox item, so this tells the card which real state name to draw where the
     // item would have been; the outcome stays Resolved - no banner, no icon.
@@ -1443,6 +1557,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         get
         {
+            if (ShowsTypedValues)
+                return Localized("Common_TypedValues") ?? "Custom";
+
             if (Setting is not { } catalogSetting
                 || SelectedValue is not int stateIndex
                 || DetectOnlySelectedState is not { } state)
@@ -1455,9 +1572,18 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     // Only the single-value mode can: the AC/DC modes carry powercfg option indices, and no powercfg selection
-    // authors a detect-only state.
+    // authors a detect-only state. Typed field values are named the same way: the card offers them as a choice.
     private bool IsDetectOnlyForMode(SettingInputMode mode) =>
-        mode is not (SettingInputMode.Ac or SettingInputMode.Dc) && DetectOnlySelectedState is not null;
+        mode is not (SettingInputMode.Ac or SettingInputMode.Dc) && (DetectOnlySelectedState is not null || ShowsTypedValues);
+
+    private bool ShowsTypedValues => HasFields && SelectedValue is ComboBoxConstants.CustomStateIndex;
+
+    // Typing values no preset names is a choice the card offers, not a value Winhance failed to place.
+    partial void OnOutcomeChanged(SettingDetectionOutcome value)
+    {
+        if (value == SettingDetectionOutcome.Custom && HasFields)
+            Outcome = SettingDetectionOutcome.Resolved;
+    }
 
     private string? Localized(string key) =>
         _localizationService.TryGetString(key, out var text) ? text : null;
@@ -1536,7 +1662,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         SettingInputMode.Ac => AcValue,
         SettingInputMode.Dc => DcValue,
         _ => IsKeyedSelection ? KeyedOptionPosition(SelectedValue as string)
-            : DetectOnlySelectedState is not null ? ComboBoxConstants.CustomStateIndex
+            : DetectOnlySelectedState is not null || ShowsTypedValues ? ComboBoxConstants.CustomStateIndex
             : SelectedValue is int index ? index : ComboBoxConstants.CustomStateIndex,
     };
 
@@ -1727,6 +1853,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
         RunActionCommand = new AsyncRelayCommand(RunActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
+        ApplyFieldsCommand = new AsyncRelayCommand(ApplyFieldsAsync);
+        CancelFieldsCommand = new RelayCommand(CancelFields);
 
         IsNew = _newBadgeService?.IsSettingNew(
             config.Setting.Display.AddedInVersion, config.SettingId) == true;
@@ -1895,12 +2023,18 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         foreach (var option in options)
             ComboBoxOptions.Add(new ComboBoxDisplayOption(option.Label, option.Value, tag: option));
 
+        ApplyKeyedListNotices(options.Count);
+
         LiveKeyedSelection = state.DynamicSelection is { Length: > 0 } live ? live : null;
 
         if (LiveKeyedSelection is { } key)
         {
             EnsureKeyedOption(key);
             SelectedValue = key;
+        }
+        else if (Setting?.Options?.NoChoiceLabel is not null)
+        {
+            SelectedValue = string.Empty;
         }
 
         UpdateStatusBanner(SelectedValue);
@@ -1910,6 +2044,26 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(ComboBoxOptions));
         RebuildTiles();
         return true;
+    }
+
+    // A list naming a no-choice label offers it first, carrying the empty key the writers read as "leave this out".
+    // A list with nothing to choose between stays on screen, disabled, with the catalog's reason beside it: hiding
+    // the card would read as a missing feature, and the reason is the whole point.
+    private void ApplyKeyedListNotices(int offered)
+    {
+        if (Setting?.Options is not { } list)
+            return;
+
+        if (list.NoChoiceLabel is { } noChoice)
+            ComboBoxOptions.Insert(0, new ComboBoxDisplayOption(Localized(noChoice), string.Empty));
+
+        if (list.SingleOptionWarning is not { } warning || offered >= 2)
+            return;
+
+        CompatibilityMessage = Localized(warning);
+        CompatibilitySeverity = InfoBarSeverity.Warning;
+        IsEnabled = false;
+        ShowCompatibilityBanner();
     }
 
     // Added rather than dropped: dropping it would show the machine's own value while Save still wrote the authored key.
@@ -2040,9 +2194,19 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public void OnTextBoxChanged(string raw) => HandleTextAsync(raw).FireAndForget(_logService);
 
+    // A row of a list with a File field starts from the picked file; cancelling the picker adds nothing.
     public void AddRow()
     {
-        if (NewListRow(null) is not { } row)
+        ChoiceValue.ListRow? picked = null;
+        if (Setting?.List?.Fields.FirstOrDefault(f => f.Kind == FieldKind.File) is { Filter: { } filter } file)
+        {
+            if (_filePickerService?.PickFile([Localized(filter.Name), filter.Pattern], ListAddLabel) is not { Length: > 0 } path)
+                return;
+
+            picked = new ChoiceValue.ListRow(new Dictionary<string, string>(StringComparer.Ordinal) { [file.Key] = path });
+        }
+
+        if (NewListRow(picked) is not { } row)
             return;
 
         Rows.Add(row);
@@ -2076,7 +2240,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Using DropDownClosed instead of SelectionChanged because SelectionChanged fires during initialization
     public void OnComboBoxDropDownClosed(object sender)
     {
-        if (sender is ComboBox comboBox && comboBox.SelectedValue is { } value)
+        if (sender is not ComboBox comboBox || comboBox.SelectedValue is not { } value)
+            return;
+
+        if (HasFields)
+            FillFieldsFromPreset(value is int index ? index : ComboBoxConstants.CustomStateIndex);
+        else
             HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
@@ -2288,7 +2457,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Not a locale key: no caption exists for a picker filter. IFilePickerService reads the array as a
     // name/pattern PAIR, not as a list of patterns.
     private const string PictureFilterName = "Pictures";
-    private const string PictureFilterPattern = "*.jpg;*.jpeg;*.png;*.bmp";
 
     // Choosing the path the box already shows still applies it: that is how an album is started again.
     public void BrowseForText()
@@ -2299,7 +2467,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         var chosen = TextBoxPicker switch
         {
             PickerKind.Folder => picker.PickFolder(Name),
-            PickerKind.File => picker.PickFile([PictureFilterName, PictureFilterPattern], Name),
+            PickerKind.File => picker.PickFile([PictureFilterName, PictureFileConstants.FilePattern], Name),
             _ => null,
         };
 
@@ -2314,7 +2482,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         OnPropertyChanged(nameof(HasRows));
         foreach (var row in Rows)
-            row.CanRemove = Rows.Count > 1;
+            row.CanRemove = Rows.Count > 1 || Setting?.List?.CanBeEmpty == true;
     }
 
     private ListRowViewModel? NewListRow(ChoiceValue.ListRow? values)
@@ -2325,10 +2493,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return null;
         }
 
-        return new ListRowViewModel(list.Fields, LocalizedField, ListRemoveLabel, values, OnListRowChanged, RemoveRow);
+        return new ListRowViewModel(list.Fields, Localized, ListRemoveLabel, values, OnListRowChanged, RemoveRow);
     }
 
-    private string LocalizedField(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
+    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
 
     private void OnListRowChanged(ListRowViewModel row)
     {
@@ -2386,6 +2554,41 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         ComputeBadgeState();
     }
 
+    internal void SetCheckListEntries(IReadOnlyList<string> keys)
+    {
+        CheckItems.Clear();
+        foreach (var key in keys)
+            CheckItems.Add(new CheckListItemViewModel(key, _ticked?.Contains(key) ?? true, OnCheckListChanged));
+    }
+
+    private void OnCheckListChanged() => HandleCheckListAsync().FireAndForget(_logService);
+
+    private async Task HandleCheckListAsync()
+    {
+        if (_isUpdatingFromEvent)
+            return;
+
+        var ticked = CheckItems.Where(item => item.IsChecked).Select(item => item.Key).ToList();
+        _ticked = ticked;
+
+        var result = await WriteAsync(new SettingWriteRequest
+        {
+            Description = $"checklist {ticked.Count} ticked",
+            SystemRequest = new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.Keys(ticked)),
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+            return;
+
+        MarkChangedThisSession();
+        ComputeBadgeState();
+    }
+
     public bool ShowsOptionTiles =>
         IsKeyedSelection && Setting?.Display.Tiles is { } tiles && tiles != OptionTiles.None;
 
@@ -2424,6 +2627,144 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         foreach (var tile in Tiles)
             tile.IsSelected = value is string key
                 && string.Equals(tile.Value, key, StringComparison.OrdinalIgnoreCase);
+        RefreshFieldRows();
+    }
+
+    // Never while editing: the rows then hold what the user is typing. Fields Windows lacks on this build (DNS over
+    // HTTPS on Windows 10) are left out.
+    private void RefreshFieldRows()
+    {
+        if (!HasFields || !IsLocked)
+            return;
+
+        var source = FieldSource();
+        FieldRows = Setting!.Fields
+            .Select(row => row.Where(f => f.Builds is not { } builds || builds.Any(r => r.Contains(_build))).ToList())
+            .Where(row => row.Count > 0)
+            .Select(row => new ListRowViewModel(
+                row, Localized, string.Empty,
+                new ChoiceValue.ListRow(row.ToDictionary(
+                    f => f.Key, f => source?.GetValueOrDefault(f.Key)?.ToString() ?? string.Empty, StringComparer.Ordinal)),
+                _ => OnFieldsChanged(), _ => { }))
+            .ToList();
+        OnFieldsChanged();
+    }
+
+    // An authored card shows the file's values, a live one what the machine read. A preset spells out only its own
+    // keys (the servers), so the machine's other values (encryption) join it while the machine still has that preset.
+    private IReadOnlyDictionary<string, object?>? FieldSource()
+    {
+        var read = _lastKnownState?.Readings;
+        if (SelectedValue is int index && index >= 0 && index < Setting!.States.Count)
+        {
+            var preset = Setting.States[index].Set.ToDictionary(kv => kv.Key, kv => kv.Value.WritePayload);
+            bool machineHasIt = !AuthorsIntent && read is not null
+                && preset.All(kv => Equals(kv.Value?.ToString() ?? string.Empty, read.GetValueOrDefault(kv.Key)?.ToString() ?? string.Empty));
+            return machineHasIt ? read : preset;
+        }
+
+        var captured = CapturedCustomStateValues?.ToDictionary(kv => kv.Key, kv => (object?)kv.Value);
+        return AuthorsIntent ? captured ?? read : read ?? captured;
+    }
+
+    // Picking a preset while editing fills its keys and empties every other box, the way Windows' Automatic clears the
+    // whole dialog; PresetIndexFor counts a preset as matching only then. Apply writes.
+    internal void FillFieldsFromPreset(int index)
+    {
+        if (index < 0 || index >= Setting!.States.Count)
+            return;
+        var set = Setting.States[index].Set;
+        foreach (var field in FieldRows.SelectMany(r => r.Fields))
+        {
+            if (set.TryGetValue(field.Key, out var value))
+                field.Text = value.WritePayload?.ToString() ?? string.Empty;
+            else if (field.Kind == FieldKind.Selection)
+                field.OptionIndex = 0;
+            else if (field.Kind == FieldKind.CheckBox)
+                field.Checked = false;
+            else
+                field.Text = string.Empty;
+        }
+    }
+
+    private Dictionary<string, (string Value, bool IsEmpty)> TypedFields() =>
+        FieldRows.SelectMany(r => r.Fields).ToDictionary(f => f.Key, f => (f.Value, f.IsEmpty), StringComparer.Ordinal);
+
+    private static Dictionary<string, object> CustomValuesOf(Dictionary<string, (string Value, bool IsEmpty)> typed) =>
+        typed.Where(kv => !kv.Value.IsEmpty).ToDictionary(kv => kv.Key, kv => (object)kv.Value.Value);
+
+    // A preset matches when its keys hold its values and every key it does not set is still empty.
+    private int PresetIndexFor(Dictionary<string, (string Value, bool IsEmpty)> typed)
+    {
+        for (int i = 0; i < Setting!.States.Count; i++)
+        {
+            var state = Setting.States[i];
+            if (!state.IsDetectOnly && typed.All(kv => state.Set.TryGetValue(kv.Key, out var sv)
+                    ? string.Equals(sv.WritePayload?.ToString() ?? string.Empty, kv.Value.IsEmpty ? string.Empty : kv.Value.Value, StringComparison.Ordinal)
+                    : kv.Value.IsEmpty))
+                return i;
+        }
+        return ComboBoxConstants.CustomStateIndex;
+    }
+
+    private async Task ApplyFieldsAsync()
+    {
+        if (!CanApplyFields)
+            return;
+
+        var typed = TypedFields();
+        IsLocked = true;
+
+        int preset = PresetIndexFor(typed);
+        if (preset != ComboBoxConstants.CustomStateIndex)
+        {
+            // Written even when the card is already on this preset: a box the preset does not name (encryption, an
+            // IPv6 server) may be what was cleared.
+            if (await WriteValueAsync(preset))
+                RecordWrittenFields(typed);
+            RefreshFieldRows();
+            return;
+        }
+
+        var custom = CustomValuesOf(typed);
+        var result = await WriteAsync(new SettingWriteRequest
+        {
+            Description = $"custom {string.Join(", ", custom.Values)}",
+            SystemRequest = new ApplySettingRequest { SettingId = SettingId, Enable = true, Value = custom },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.CustomValues(custom)),
+            RequiresConfirmation = SettingRequiresConfirmation,
+        });
+
+        if (result.Outcome != SettingWriteOutcome.Rejected)
+        {
+            CapturedCustomStateValues = custom;
+            RecordWrittenFields(typed);
+            SelectedValue = ComboBoxConstants.CustomStateIndex;
+            MarkChangedThisSession();
+            ComputeBadgeState();
+            UpdateStatusBanner(SelectedValue);
+        }
+        RefreshFieldRows();
+    }
+
+    // A single-setting apply does not re-read, so the relocked fields and the next receipt's "before" half
+    // would otherwise show the servers from before this write.
+    private void RecordWrittenFields(Dictionary<string, (string Value, bool IsEmpty)> typed)
+    {
+        if (_lastKnownState is not { } state)
+            return;
+        var readings = state.Readings?.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal)
+            ?? new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var (key, (value, isEmpty)) in typed)
+            readings[key] = isEmpty ? null : value;
+        _lastKnownState = state with { Readings = readings };
+    }
+
+    private void CancelFields()
+    {
+        IsLocked = true;
+        OnPropertyChanged(nameof(SelectedValue));
+        RefreshFieldRows();
     }
 
     public void BrowseForOption()
@@ -2431,7 +2772,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         if (Setting?.Display.Tiles != OptionTiles.Pictures || _filePickerService is not { } picker)
             return;
 
-        if (picker.PickFile([PictureFilterName, PictureFilterPattern], Name) is not { Length: > 0 } chosen)
+        if (picker.PickFile([PictureFilterName, PictureFileConstants.FilePattern], Name) is not { Length: > 0 } chosen)
             return;
 
         var chosenFormat = _localizationService.GetStringOrDefault(
@@ -2450,7 +2791,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         HandleValueChangedAsync(hex).FireAndForget(_logService);
     }
 
-    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false, string? description = null)
+    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
     {
         _logService.LogDebug($"HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SelectedValue={SelectedValue}");
 
@@ -2473,11 +2814,17 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return;
         }
 
+        await WriteValueAsync(value, resetToDefault);
+    }
+
+    // False when the write was rejected and the card was put back.
+    private async Task<bool> WriteValueAsync(object value, bool resetToDefault = false)
+    {
         try
         {
             var result = await WriteAsync(new SettingWriteRequest
             {
-                Description = description ?? $"value {value}",
+                Description = $"value {value}",
                 SystemRequest = new ApplySettingRequest
                 {
                     SettingId = SettingId,
@@ -2493,7 +2840,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             {
                 OnPropertyChanged(nameof(SelectedValue));
                 OnPropertyChanged(nameof(NumericValue));
-                return;
+                return false;
             }
 
             SelectedValue = value;
@@ -2514,6 +2861,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
             if (result.Outcome == SettingWriteOutcome.Applied)
                 ShowRestartBannerIfNeeded();
+            return true;
         }
         finally
         {
@@ -2674,6 +3022,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         if (!IsLocked) return;
 
+        if (HasFields)
+        {
+            IsLocked = false;
+            return;
+        }
+
         var message = _localizationService.GetString("Dialog_AdvancedPowerWarning_Message");
         var checkboxText = _localizationService.GetString("Dialog_AdvancedPowerWarning_DontShowAgain");
         var title = _localizationService.GetString("Dialog_AdvancedPowerWarning_Title");
@@ -2716,7 +3070,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public void UpdateStatusBanner(object? value)
     {
-        var banner = _statusBannerManager.ComputeBannerForValue(value, OptionWarnings, CrossGroupInfoMessage, ComboBoxOptions.Count, CompatibilityMessage);
+        var banner = _statusBannerManager.ComputeBannerForValue(value, OptionWarnings, CrossGroupInfoMessage, ComboBoxOptions.Count, CompatibilityMessage, CompatibilitySeverity);
         if (banner.HasValue) ApplyBanner(banner.Value);
         UpdateDetectionOutcomeBanner();
     }
@@ -2725,7 +3079,22 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public void ShowCompatibilityBanner()
     {
         if (!string.IsNullOrEmpty(CompatibilityMessage))
-            ApplyBanner(new SettingStatusBannerManager.BannerState(CompatibilityMessage, InfoBarSeverity.Warning));
+            ApplyBanner(new SettingStatusBannerManager.BannerState(CompatibilityMessage, CompatibilitySeverity));
+    }
+
+    public void SetCompatibilityMessage(string? message)
+    {
+        if (message == CompatibilityMessage)
+            return;
+
+        if (!string.IsNullOrEmpty(CompatibilityMessage) && StatusBannerMessage == CompatibilityMessage)
+            ApplyBanner(SettingStatusBannerManager.BannerState.Clear);
+
+        CompatibilityMessage = message;
+        if (InputType == InputType.Selection)
+            UpdateStatusBanner(SelectedValue);
+        else
+            ShowCompatibilityBanner();
     }
 
     private void ShowRestartBannerIfNeeded()
@@ -2891,6 +3260,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             }
         }
 
+        IsAtRecommended = matchesRecommended;
+        IsAtDefault = matchesDefault;
+
         var row = new List<BadgePillState>(capacity: 8);
 
         if (Setting.Display.IsSubjectivePreference)
@@ -3008,13 +3380,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             SettingBadgeKind.Recommended => (
                 _localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended"),
-                _localizationService.GetStringOrDefault("InfoBadge_Recommended_Tooltip", "Winhance's recommended value")),
+                _localizationService.GetStringOrDefault("InfoBadge_Recommended_Tooltip", "Winhance's suggested value for this setting — usually tuned for better performance, privacy, or usability. Highlighted when your current value matches.")),
             SettingBadgeKind.Default => (
                 _localizationService.GetStringOrDefault("InfoBadge_Default", "Default"),
-                _localizationService.GetStringOrDefault("InfoBadge_Default_Tooltip", "Windows factory value")),
+                _localizationService.GetStringOrDefault("InfoBadge_Default_Tooltip", "The Windows factory value — what this setting is out of the box, before any changes. Highlighted when your current value matches.")),
             SettingBadgeKind.Preference => (
                 _localizationService.GetStringOrDefault("InfoBadge_Preference", "Preference"),
-                _localizationService.GetStringOrDefault("InfoBadge_Preference_Tooltip", "Personal preference")),
+                _localizationService.GetStringOrDefault("InfoBadge_Preference_Tooltip", "Personal preference — Winhance may suggest a value, but there's no objectively correct answer. Choose whatever fits you.")),
             _ => ("", ""),
         };
 
@@ -3044,7 +3416,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
 
         bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        bool hasTwoStateData = isTwoState && (TwoStateRecommended.HasValue || TwoStateDefault.HasValue);
+        bool hasTwoStateData = isTwoState && Setting.SeedsFromThisPc != true && (TwoStateRecommended.HasValue || TwoStateDefault.HasValue);
         bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting
             && Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build) || st.HasRole(RoleKind.WindowsDefault, _build));
         bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
@@ -3082,6 +3454,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(DcSelectionDefaultTooltip));
         OnPropertyChanged(nameof(IncludeAutomationName));
         OnPropertyChanged(nameof(IncludeToolTip));
+        OnPropertyChanged(nameof(ReviewApplyLabel));
+        OnPropertyChanged(nameof(ReviewDontApplyLabel));
     }
 
     protected override void Dispose(bool disposing)

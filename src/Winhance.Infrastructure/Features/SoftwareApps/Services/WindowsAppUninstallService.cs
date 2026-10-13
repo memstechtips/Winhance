@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -14,7 +15,8 @@ internal class WindowsAppUninstallService(
     IBloatRemovalService bloatRemovalService,
     ITaskProgressService taskProgressService,
     IMultiScriptProgressService multiScriptProgressService,
-    IChangeHistoryService changeHistory) : IWindowsAppUninstallService
+    IChangeHistoryService changeHistory,
+    ISettingApplicationService settingApplicationService) : IWindowsAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAppAsync(string appId, IProgress<TaskProgressDetail>? progress = null)
     {
@@ -46,7 +48,10 @@ internal class WindowsAppUninstallService(
             }
 
             if (outcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+            {
                 changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                await TurnOffGameDvrIfGameBarRemovedAsync([app]).ConfigureAwait(false);
+            }
 
             return outcome switch
             {
@@ -105,8 +110,11 @@ internal class WindowsAppUninstallService(
                 logService.LogInformation($"Step 3: Executing BloatRemoval for {regularApps.Count} regular apps...");
                 var regularOutcome = await bloatRemovalService.ExecuteBloatRemovalAsync(regularApps, progress, cancellationToken).ConfigureAwait(false);
                 if (regularOutcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                {
                     foreach (var app in regularApps)
                         changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                    await TurnOffGameDvrIfGameBarRemovedAsync(regularApps).ConfigureAwait(false);
+                }
                 if (regularOutcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
                 logService.LogInformation("Step 3 DONE");
             }
@@ -215,8 +223,11 @@ internal class WindowsAppUninstallService(
                 {
                     var regularOutcome = results[scriptApps.Count];
                     if (regularOutcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
+                    {
                         foreach (var app in regularApps)
                             changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                        await TurnOffGameDvrIfGameBarRemovedAsync(regularApps).ConfigureAwait(false);
+                    }
                 }
 
                 if (saveRemovalScripts)
@@ -259,6 +270,29 @@ internal class WindowsAppUninstallService(
         {
             logService.LogError($"Failed to remove apps in parallel: {ex.Message}");
             return OperationResult<int>.Failed(ex.Message);
+        }
+    }
+
+    // A failure here is logged, not returned: the apps are already gone, and the Game DVR card still offers the switch.
+    private async Task TurnOffGameDvrIfGameBarRemovedAsync(IEnumerable<ItemDefinition> removed)
+    {
+        if (!GameBarRemoval.Includes(removed.SelectMany(app => app.AppxPackageName ?? [])))
+            return;
+
+        logService.LogInformation("Game Bar was removed, turning Game DVR off");
+        try
+        {
+            var result = await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+            {
+                SettingId = GameBarRemoval.GameDvrSettingId,
+                Enable = false,
+            }).ConfigureAwait(false);
+            if (!result.Success)
+                logService.LogWarning($"Could not turn Game DVR off after removing Game Bar: {result.ErrorMessage}");
+        }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Could not turn Game DVR off after removing Game Bar: {ex.Message}");
         }
     }
 

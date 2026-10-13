@@ -5,7 +5,10 @@ namespace Winhance.Core.Features.Common.Catalog;
 public sealed record List(
     IReadOnlyList<Field> Fields,
     AutounattendFirstLogonCommand? PasswordCleanup = null,
-    IReadOnlyDictionary<string, string>? Seed = null);
+    IReadOnlyDictionary<string, string>? Seed = null,
+    LocKey? Add = null,
+    LocKey? Remove = null,
+    bool CanBeEmpty = false);
 
 public sealed record Field(
     string Key,
@@ -16,9 +19,21 @@ public sealed record Field(
     LocKey? Tooltip = null,
     string? Default = null,
     bool OneRowOnly = false,
-    FieldCondition? OnlyWhen = null);
+    FieldCondition? OnlyWhen = null,
+    bool MultiLine = false,
+    IReadOnlyList<BuildRange>? Builds = null,
+    FileFilter? Filter = null);
 
-public sealed record FieldCondition(string FieldKey, int OptionIndex);
+// The picker a File field opens with: the filter's caption and its pattern, such as "*.exe;*.msi".
+public sealed record FileFilter(LocKey Name, string Pattern);
+
+public sealed record FieldCondition(string FieldKey, params int[] OptionIndexes)
+{
+    public bool Equals(FieldCondition? other) =>
+        other is not null && FieldKey == other.FieldKey && OptionIndexes.SequenceEqual(other.OptionIndexes);
+
+    public override int GetHashCode() => HashCode.Combine(FieldKey, OptionIndexes.Length);
+}
 
 public enum FieldKind
 {
@@ -26,4 +41,5 @@ public enum FieldKind
     Password,
     Selection,
     CheckBox,
+    File,
 }

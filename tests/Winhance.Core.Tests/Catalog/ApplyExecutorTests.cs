@@ -36,6 +36,7 @@ public class ApplyExecutorTests
         public bool WritePowerCfgValue(PowerCfgTarget t, PowerContext context, int value) { Calls.Add($"P {context}={value}"); return !FailRegistryWrites; }
         public bool ActivatePowerPlan(string guid) { Calls.Add($"PP {guid}"); return true; }
         public bool SetSlideshow(DesktopSlideshowTarget t, string folder) { Calls.Add($"S {folder}"); return true; }
+        public bool SetDns(IReadOnlyList<DnsServer> servers) { Calls.Add($"N {string.Join(",", servers.Select(s => s.Address))}"); return true; }
         public bool RunEffect(Effect e) { Calls.Add("FX"); return true; }
     }
 

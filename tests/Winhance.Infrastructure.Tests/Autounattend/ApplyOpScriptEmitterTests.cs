@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.TestSupport;
 using Xunit;
@@ -19,6 +20,9 @@ public class ApplyOpScriptEmitterTests
     // the per-user loop.
     private const string SystemIndent = "    ";
     private const string UserIndent = "            ";
+
+    // The $alreadyApplied branch of the UserCustomizations task, where Emit puts a sign-in-after-Setup script by default.
+    private const string SignInIndent = "            ";
 
     private const string MixedHiveContent =
         "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\Software\\Parity]\r\n\"A\"=dword:00000001\r\n"
@@ -314,7 +318,7 @@ public class ApplyOpScriptEmitterTests
     // gaming-dns-server's shape: no registry target, so its CustomStateScripts are the only thing the XML can
     // write, and a machine on a non-preset DNS must not ship them with the placeholders still in the text.
     [Fact]
-    public void ScriptOnlyCustomState_RendersTheSubstitutedScript()
+    public void ScriptOnlyCustomState_RendersTheSettingsScript()
     {
         var setting = new Setting
         {
@@ -323,27 +327,75 @@ public class ApplyOpScriptEmitterTests
             Detector = new NullDetector(),
             States = new[]
             {
-                new SettingState { Label = TestKeys.Of("Automatic"), Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
-                new SettingState { Label = TestKeys.Of("Cloudflare"), Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
+                new SettingState { Label = TestKeys.Of("Show"), Effects = new Effect[] { new ScriptEffect("Show-Icons", RunContext.User) } },
+                new SettingState { Label = TestKeys.Of("Hide"), Effects = new Effect[] { new ScriptEffect("Hide-Icons", RunContext.User) } },
             },
-            CustomStateScripts = new[]
-            {
-                new ScriptEffect("Set-Dns @('{{primary}}','{{secondary}}')", RunContext.User),
-                new ScriptEffect("$t = '{{dohtemplate}}'; netsh add {{primary}} {{secondary}}", RunContext.User),
-            },
+            CustomStateScripts = new[] { new ScriptEffect("Promote-Icons", RunContext.User) },
         };
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
-        var custom = new Dictionary<string, object> { ["DetectedIndex"] = -1, ["primary"] = "10.5.0.1", ["secondary"] = "10.5.0.2" };
 
-        var r = Emit(byFeature, new SettingChoice("script-custom", new ChoiceValue.CustomValues(custom)));
+        var r = Emit(byFeature, new SettingChoice("script-custom", new ChoiceValue.CustomValues(new Dictionary<string, object> { ["DetectedIndex"] = -1 })));
 
-        var t = UserText(r);
-        t.Should().Contain("Set-Dns @('10.5.0.1','10.5.0.2')");
-        t.Should().Contain("netsh add 10.5.0.1 10.5.0.2");
-        // The DoH script tests for the literal itself, so an unmatched placeholder is left standing.
-        t.Should().Contain("$t = '{{dohtemplate}}'");
+        UserText(r).Should().Contain("Promote-Icons");
         SystemText(r).Should().BeEmpty();
         r.Warnings.Should().BeEmpty();
+    }
+
+    private static Setting DnsSetting() => new()
+    {
+        Id = "dns",
+        Display = new Display { Name = TestKeys.Of("DNS"), Description = TestKeys.Of("DNS description") },
+        Targets = new Target[]
+        {
+            new DnsTarget("primary", DnsSlot.Preferred),
+            new DnsTarget("primaryDoh", DnsSlot.Preferred, DnsPart.Encryption),
+            new DnsTarget("primaryTemplate", DnsSlot.Preferred, DnsPart.Template),
+            new DnsTarget("secondary", DnsSlot.Alternate),
+        },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Automatic"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent, ["secondary"] = StateValue.Absent } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1"), ["secondary"] = StateValue.Of("1.0.0.1") } },
+        },
+        CustomStateScripts = new[] { new ScriptEffect("Set-Dns @({{servers}})", RunContext.User) },
+    };
+
+    [Fact]
+    public void DnsPreset_FillsTheServersIntoTheSettingsScript()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { DnsSetting() } };
+
+        var r = Emit(byFeature, new SettingChoice("dns", new ChoiceValue.Option(1)));
+
+        UserText(r).Should().Contain("Set-Dns @(@{a='1.1.1.1'; f=0; t=''}, @{a='1.0.0.1'; f=0; t=''})");
+        r.Warnings.Should().BeEmpty();
+    }
+
+    // A template is user text inside a single-quoted literal, so its quote is doubled.
+    [Fact]
+    public void TypedDns_CarriesEncryptionAndAnEscapedTemplate()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { DnsSetting() } };
+        var custom = new Dictionary<string, object>
+        {
+            ["primary"] = "10.5.0.1",
+            ["primaryDoh"] = "2",
+            ["primaryTemplate"] = "https://dns.example/q?x='1'",
+        };
+
+        var r = Emit(byFeature, new SettingChoice("dns", new ChoiceValue.CustomValues(custom)));
+
+        UserText(r).Should().Contain("Set-Dns @(@{a='10.5.0.1'; f=2; t='https://dns.example/q?x=''1'''})");
+    }
+
+    [Fact]
+    public void AutomaticDns_FillsAnEmptyServerList()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { DnsSetting() } };
+
+        var r = Emit(byFeature, new SettingChoice("dns", new ChoiceValue.Option(0)));
+
+        UserText(r).Should().Contain("Set-Dns @()");
     }
 
     [Fact]
@@ -780,6 +832,43 @@ public class ApplyOpScriptEmitterTests
         off.Warnings.Should().BeEmpty();
     }
 
+    private EmitResult EmitAppIdsScript(params AppChoice[] apps)
+    {
+        var setting = new Setting
+        {
+            Id = "answer-file-app-ids",
+            Display = new Display { Name = TestKeys.Of("App ids"), Description = TestKeys.Of("Hands the apps to the new install") },
+            States = new[]
+            {
+                new SettingState { Label = LocKey.Common.Enabled, Effects = new Effect[] { new ScriptEffect("$apps = '{{external-app-ids}}'", RunContext.System) } },
+                new SettingState { Label = LocKey.Common.Disabled },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        return _sut.Emit(new SelectionSet(new[] { new SettingChoice(setting.Id, new ChoiceValue.Toggle(true)) }, NoApps, apps),
+                         byFeature, ParityCatalog.Build, SystemIndent, UserIndent);
+    }
+
+    [Fact]
+    public void AnswerFileScript_GetsTheExternalAppIdsInPlaceOfTheToken()
+    {
+        var result = EmitAppIdsScript(
+            new AppChoice("google-chrome", "Google Chrome", null, null, null, "Google.Chrome"),
+            new AppChoice("vlc", "VLC media player", null, null, null, "VideoLAN.VLC"));
+
+        SystemText(result).Should().Contain("$apps = 'google-chrome,vlc'").And.NotContain("{{external-app-ids}}");
+        result.Warnings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AnswerFileScript_DoublesAnApostropheInAnAppIdForTheLiteral()
+    {
+        var result = EmitAppIdsScript(new AppChoice("o'reilly-reader", "Reader", null, null, null, null));
+
+        SystemText(result).Should().Contain("$apps = 'o''reilly-reader'");
+    }
+
     [Fact]
     public void AnswerFileOnlySetting_WithOnlyElements_EmitsNothingAndWarnsNothing()
     {
@@ -801,7 +890,84 @@ public class ApplyOpScriptEmitterTests
 
         r.SystemPassByFeature.Should().BeEmpty();
         r.UserPassByFeature.Should().BeEmpty();
+        r.SignInAfterSetup.Should().BeEmpty();
         r.Warnings.Should().BeEmpty();
+    }
+
+    private static Setting AppsConditionSetting() => new()
+    {
+        Id = "answer-file-apps",
+        Display = new Display { Name = TestKeys.Of("Apps condition"), Description = TestKeys.Of("Runs for some answer files only") },
+        States = new[]
+        {
+            new SettingState
+            {
+                Label = LocKey.Common.Enabled,
+                Effects = new Effect[]
+                {
+                    new ScriptEffect("Write-Host 'installs apps'", RunContext.System) { When = AppsToInstall.Some },
+                    new ScriptEffect("Write-Host 'installs nothing'", RunContext.System) { When = AppsToInstall.None },
+                    new ScriptEffect("Write-Host 'at sign-in'", RunContext.SignInAfterSetup),
+                },
+            },
+            new SettingState { Label = LocKey.Common.Disabled },
+        },
+    };
+
+    private EmitResult EmitAppsCondition(SelectionSet apps) =>
+        _sut.Emit(
+            apps with { Settings = [.. apps.Settings, new SettingChoice("answer-file-apps", new ChoiceValue.Toggle(true))] },
+            FeatureOf(AppsConditionSetting()),
+            ParityCatalog.Build,
+            SystemIndent,
+            UserIndent);
+
+    [Fact]
+    public void An_apps_only_script_is_left_out_of_a_file_that_installs_nothing()
+    {
+        var result = EmitAppsCondition(SelectionSet.Empty);
+
+        SystemText(result).Should().Contain("Write-Host 'installs nothing'").And.NotContain("Write-Host 'installs apps'");
+        result.Warnings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_no_apps_script_is_left_out_of_a_file_that_installs_an_app()
+    {
+        var result = EmitAppsCondition(SelectionSet.Empty with
+        {
+            ExternalApps = [new AppChoice("vlc", "VLC media player", null, null, null, "VideoLAN.VLC")],
+        });
+
+        SystemText(result).Should().Contain("Write-Host 'installs apps'").And.NotContain("Write-Host 'installs nothing'");
+    }
+
+    [Fact]
+    public void Own_installers_alone_count_as_apps_to_install()
+    {
+        var result = EmitAppsCondition(SelectionSet.Empty with
+        {
+            Settings =
+            [
+                new SettingChoice(OwnInstaller.SettingId, new ChoiceValue.List(
+                [
+                    new ChoiceValue.ListRow(new Dictionary<string, string> { ["file"] = @"D:\Installers\Setup.exe", ["switches"] = "/S" }),
+                ])),
+            ],
+        });
+
+        SystemText(result).Should().Contain("Write-Host 'installs apps'").And.NotContain("Write-Host 'installs nothing'");
+    }
+
+    [Fact]
+    public void A_sign_in_after_setup_script_lands_in_its_own_text_and_in_neither_pass()
+    {
+        var result = EmitAppsCondition(SelectionSet.Empty);
+
+        result.SignInAfterSetup.Should().Contain($"{SignInIndent}    Write-Host 'at sign-in'")
+            .And.Contain($"{SignInIndent}    Write-Log \"Runs for some answer files only\" \"SUCCESS\"");
+        SystemText(result).Should().NotContain("at sign-in");
+        UserText(result).Should().NotContain("at sign-in");
     }
 
     private static readonly string[] HereStringPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityHereString"];

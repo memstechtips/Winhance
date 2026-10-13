@@ -5,8 +5,10 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -756,6 +758,329 @@ public class SettingItemViewModelTests
         sut.RequiresAdvancedUnlock.Should().BeTrue();
     }
 
+    private static Setting FieldsSetting() => new()
+    {
+        Id = "dns",
+        Display = new() { Name = TestKeys.Of("DNS"), Description = TestKeys.Of("d") },
+        Targets = new Target[]
+        {
+            new DnsTarget("primary", DnsSlot.Preferred),
+            new DnsTarget("primaryDoh", DnsSlot.Preferred, DnsPart.Encryption),
+            new DnsTarget("secondary", DnsSlot.Alternate),
+        },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Automatic"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent, ["secondary"] = StateValue.Absent } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1"), ["secondary"] = StateValue.Of("1.0.0.1") } },
+        },
+        Fields = new[]
+        {
+            new[]
+            {
+                new Field("primary", FieldKind.Text, TestKeys.Of("Preferred"), Rule: new TextRule(@"^\d+\.\d+\.\d+\.\d+$", false, TestKeys.Of("Bad"))),
+                new Field("primaryDoh", FieldKind.Selection, TestKeys.Of("DoH"), Options: new[] { TestKeys.Of("Off"), TestKeys.Of("Auto"), TestKeys.Of("Manual") },
+                    Builds: new[] { BuildRange.Windows11 }),
+            },
+            new[]
+            {
+                new Field("secondary", FieldKind.Text, TestKeys.Of("Alternate"), Rule: new TextRule(@"^\d+\.\d+\.\d+\.\d+$", false, TestKeys.Of("Bad"))),
+            },
+        },
+    };
+
+    private static Setting FieldsSettingWithIPv6()
+    {
+        var setting = FieldsSetting();
+        return setting with
+        {
+            Targets = [.. setting.Targets, new DnsTarget("primary6", DnsSlot.Preferred6)],
+            Fields = [.. setting.Fields, [new Field("primary6", FieldKind.Text, TestKeys.Of("Preferred6"))]],
+        };
+    }
+
+    private SettingItemViewModel LockedFieldsSut(int selected, int build = 26100, Setting? setting = null)
+    {
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var sut = CreateSut(SelectionConfig(setting ?? FieldsSetting()) with { Build = new WinBuild(build) });
+        sut.IsLocked = true;
+        sut.SelectedValue = selected;
+        sut.RecordKnownState(new SettingStateResult { Success = true });
+        return sut;
+    }
+
+    private static ListFieldViewModel Box(SettingItemViewModel sut, string key) =>
+        sut.FieldRows.SelectMany(r => r.Fields).Single(f => f.Key == key);
+
+    private static IEnumerable<string> Texts(SettingItemViewModel sut) =>
+        sut.FieldRows.SelectMany(r => r.Fields).Where(f => f.Kind == FieldKind.Text).Select(f => f.Text);
+
+    private static bool CarriesEncryptedPreferred(ApplySettingRequest request, string primary) =>
+        request.Value is Dictionary<string, object> values
+        && Equals(values["primary"], primary) && Equals(values["primaryDoh"], "1");
+
+    private static bool CarriesServers(ApplySettingRequest request, string primary, string secondary) =>
+        request.Value is Dictionary<string, object> values
+        && Equals(values["primary"], primary) && Equals(values["secondary"], secondary);
+
+    [Fact]
+    public void Locked_fields_show_the_selected_presets_servers()
+        => Texts(LockedFieldsSut(1)).Should().Equal("1.1.1.1", "1.0.0.1");
+
+    [Fact]
+    public void Each_row_holds_one_server()
+        => LockedFieldsSut(1).FieldRows.Select(r => r.Fields.Count).Should().Equal(2, 1);
+
+    // Windows 10 has no DNS over HTTPS, so its box is left out there.
+    [Fact]
+    public void A_box_for_a_later_Windows_is_left_out()
+        => LockedFieldsSut(1, build: 19045).FieldRows.Select(r => r.Fields.Count).Should().Equal(1, 1);
+
+    [Fact]
+    public void A_custom_reading_shows_the_machines_own_servers()
+    {
+        var sut = LockedFieldsSut(0);
+
+        sut.RecordKnownState(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = ComboBoxConstants.CustomStateIndex,
+            Readings = new Dictionary<string, object?> { ["primary"] = "10.0.0.1", ["secondary"] = null },
+        });
+        sut.SelectedValue = ComboBoxConstants.CustomStateIndex;
+
+        Texts(sut).Should().Equal("10.0.0.1", "");
+    }
+
+    // Typed servers are a choice the card offers: named, with no fault icon or banner.
+    [Fact]
+    public void Typed_servers_read_as_custom_rather_than_unrecognized()
+    {
+        var sut = LockedFieldsSut(0);
+
+        sut.SelectedValue = ComboBoxConstants.CustomStateIndex;
+        sut.Outcome = SettingDetectionOutcome.Custom;
+
+        sut.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
+        sut.OverlayShowsIconForMode(SettingInputMode.Single).Should().BeFalse();
+        sut.OverlayVisibilityForMode(SettingInputMode.Single).Should().Be(Microsoft.UI.Xaml.Visibility.Visible);
+    }
+
+    // The preset names only the servers, so the encryption shown comes from the machine while it has that preset.
+    [Fact]
+    public void An_encrypted_preset_shows_the_machines_encryption()
+    {
+        var sut = LockedFieldsSut(0);
+
+        sut.RecordKnownState(new SettingStateResult
+        {
+            Success = true,
+            Readings = new Dictionary<string, object?> { ["primary"] = "1.1.1.1", ["primaryDoh"] = 1, ["secondary"] = "1.0.0.1" },
+        });
+        sut.SelectedValue = 1;
+
+        Box(sut, "primaryDoh").OptionIndex.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task The_pencil_opens_the_fields_without_the_advanced_warning()
+    {
+        var sut = LockedFieldsSut(1);
+
+        await sut.UnlockCommand.ExecuteAsync(null);
+
+        sut.IsLocked.Should().BeFalse();
+        sut.ShowFieldButtons.Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Typed_servers_apply_as_custom_values()
+    {
+        var sut = LockedFieldsSut(0);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primary").Text = "10.0.0.1";
+        Box(sut, "secondary").Text = "10.0.0.2";
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => CarriesServers(r, "10.0.0.1", "10.0.0.2"))));
+        sut.IsLocked.Should().BeTrue();
+        sut.SelectedValue.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
+    [Fact]
+    public async Task Typed_servers_stay_in_the_fields_after_apply_over_a_live_reading()
+    {
+        var sut = LockedFieldsSut(1);
+        sut.RecordKnownState(new SettingStateResult
+        {
+            Success = true,
+            Readings = new Dictionary<string, object?> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1" },
+        });
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primary").Text = "10.0.0.1";
+        Box(sut, "secondary").Text = "";
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        Texts(sut).Should().Equal("10.0.0.1", "");
+    }
+
+    [Fact]
+    public async Task A_presets_servers_typed_out_apply_the_preset()
+    {
+        var sut = LockedFieldsSut(0);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primary").Text = "1.1.1.1";
+        Box(sut, "secondary").Text = "1.0.0.1";
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => Equals(r.Value, 1))));
+    }
+
+    // An index carries no encryption, so a preset with encryption on applies as the full set of values.
+    [Fact]
+    public async Task An_encrypted_preset_applies_as_custom_values()
+    {
+        var sut = LockedFieldsSut(1);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primaryDoh").OptionIndex = 1;
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => CarriesEncryptedPreferred(r, "1.1.1.1"))));
+    }
+
+    private static readonly Dictionary<string, object?> EncryptedCloudflare =
+        new() { ["primary"] = "1.1.1.1", ["primaryDoh"] = 1, ["secondary"] = "1.0.0.1" };
+
+    // The card is already on the preset, and the preset's index is the write that removes the encryption.
+    [Fact]
+    public async Task Turning_encryption_off_on_the_machines_preset_writes_the_preset()
+    {
+        var sut = LockedFieldsSut(1);
+        sut.RecordKnownState(new SettingStateResult { Success = true, Readings = EncryptedCloudflare });
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primaryDoh").OptionIndex = 0;
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => Equals(r.Value, 1))), Times.Once);
+        sut.SelectedValue.Should().Be(1);
+        Box(sut, "primaryDoh").OptionIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_rejected_preset_write_leaves_the_machines_values_in_the_fields()
+    {
+        var sut = LockedFieldsSut(1);
+        sut.RecordKnownState(new SettingStateResult { Success = true, Readings = EncryptedCloudflare });
+        _mockSettingApplicationService
+            .Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Failed("refused"));
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primaryDoh").OptionIndex = 0;
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        sut.IsLocked.Should().BeTrue();
+        Box(sut, "primaryDoh").OptionIndex.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Clearing_an_ipv6_server_on_the_machines_preset_writes_the_preset()
+    {
+        var sut = LockedFieldsSut(1, setting: FieldsSettingWithIPv6());
+        sut.RecordKnownState(new SettingStateResult
+        {
+            Success = true,
+            Readings = new Dictionary<string, object?> { ["primary"] = "1.1.1.1", ["secondary"] = "1.0.0.1", ["primary6"] = "2606:4700:4700::1111" },
+        });
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primary6").Text = "";
+
+        await sut.ApplyFieldsCommand.ExecuteAsync(null);
+
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.Is<ApplySettingRequest>(r => Equals(r.Value, 1))), Times.Once);
+        Box(sut, "primary6").Text.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Picking_a_preset_fills_its_servers_and_empties_the_rest()
+    {
+        var sut = LockedFieldsSut(0);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primaryDoh").OptionIndex = 1;
+
+        sut.FillFieldsFromPreset(1);
+
+        Texts(sut).Should().Equal("1.1.1.1", "1.0.0.1");
+        Box(sut, "primaryDoh").OptionIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Picking_Automatic_empties_every_box()
+    {
+        var sut = LockedFieldsSut(1);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primaryDoh").OptionIndex = 1;
+
+        sut.FillFieldsFromPreset(0);
+
+        Texts(sut).Should().Equal("", "");
+        Box(sut, "primaryDoh").OptionIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Cancel_puts_back_what_the_card_showed()
+    {
+        var sut = LockedFieldsSut(1);
+        await sut.UnlockCommand.ExecuteAsync(null);
+        Box(sut, "primary").Text = "10.9.9.9";
+
+        sut.CancelFieldsCommand.Execute(null);
+
+        sut.IsLocked.Should().BeTrue();
+        Texts(sut).Should().Equal("1.1.1.1", "1.0.0.1");
+        _mockSettingApplicationService.Verify(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("", "10.0.0.2", false)]
+    [InlineData("10.0.0", "", false)]
+    [InlineData("", "", true)]
+    [InlineData("10.0.0.1", "", true)]
+    public async Task Apply_needs_valid_servers_and_a_preferred_one_first(string preferred, string alternate, bool canApply)
+    {
+        var sut = LockedFieldsSut(1);
+        await sut.UnlockCommand.ExecuteAsync(null);
+
+        Box(sut, "primary").Text = preferred;
+        Box(sut, "secondary").Text = alternate;
+
+        sut.CanApplyFields.Should().Be(canApply);
+    }
+
+    // A mistyped box says so itself; the line under the fields is for what no single box is wrong about.
+    [Theory]
+    [InlineData("", "10.0.0.2", true)]
+    [InlineData("10.0.0", "", false)]
+    [InlineData("10.0.0.1", "10.0.0.2", false)]
+    public async Task A_refusal_no_box_explains_shows_under_the_fields(string preferred, string alternate, bool shown)
+    {
+        var sut = LockedFieldsSut(1);
+        sut.ShowFieldsError.Should().BeFalse();
+        await sut.UnlockCommand.ExecuteAsync(null);
+
+        Box(sut, "primary").Text = preferred;
+        Box(sut, "secondary").Text = alternate;
+
+        sut.ShowFieldsError.Should().Be(shown);
+    }
+
     [Fact]
     public void RequiresAdvancedUnlock_ReturnsFalseWhenSettingDoesNotRequireIt()
     {
@@ -854,6 +1179,27 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
+    public void ReviewChoiceLabels_ReturnFallbacksWhenLocalizationReturnsNull()
+    {
+        var sut = CreateSut();
+
+        sut.ReviewApplyLabel.Should().Be("Apply");
+        sut.ReviewDontApplyLabel.Should().Be("Don't apply");
+    }
+
+    [Fact]
+    public void LanguageChanged_RaisesTheReviewChoiceLabels()
+    {
+        var sut = CreateSut();
+        var raised = new List<string?>();
+        sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        raised.Should().Contain(nameof(sut.ReviewApplyLabel)).And.Contain(nameof(sut.ReviewDontApplyLabel));
+    }
+
+    [Fact]
     public void BadgeRow_Toggle_NonSubjective_DisabledMatchesBothRecommendedAndDefault_BothLit()
     {
         var config = ToggleConfig(ToggleSetting("toggle-fax-like", recommendedEnabled: false, defaultEnabled: false));
@@ -867,6 +1213,17 @@ public class SettingItemViewModelTests
             (SettingBadgeKind.Recommended, true),
             (SettingBadgeKind.Default,     true),
         }, opts => opts.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void WouldQuickSetChange_ToggleAlreadyAtTarget_IsFalse()
+    {
+        var sut = CreateSut(ToggleConfig(ToggleSetting("toggle-svc", recommendedEnabled: false, defaultEnabled: true)));
+        sut.IsSelected = false;
+        sut.ComputeBadgeState();
+
+        sut.WouldQuickSetChange(recommended: true).Should().BeFalse();
+        sut.WouldQuickSetChange(recommended: false).Should().BeTrue();
     }
 
     [Fact]
@@ -1482,5 +1839,29 @@ public class SettingItemViewModelTests
         sut.IsExpanderExpanded = false;
 
         sut.IsExpanderExpanded.Should().BeFalse();
+    }
+
+    // A regional format writes date pictures no option list can cover, so the card has to say what is actually
+    // there rather than only that it does not know it.
+    [Fact]
+    public void OverlayStateTextFor_OneKeyUnrecognized_NamesTheValue()
+    {
+        var sut = CreateSut();
+        sut.CapturedCustomStateValues = new Dictionary<string, object> { ["sShortDate"] = "dd.MM.yyyy" };
+
+        sut.OverlayStateTextFor(SettingDetectionOutcome.Custom).Should().Contain("dd.MM.yyyy");
+    }
+
+    [Fact]
+    public void OverlayStateTextFor_SeveralKeys_KeepsThePlainWording()
+    {
+        var sut = CreateSut();
+        sut.CapturedCustomStateValues = new Dictionary<string, object>
+        {
+            ["primary"] = "10.0.0.1",
+            ["secondary"] = "10.0.0.2",
+        };
+
+        sut.OverlayStateTextFor(SettingDetectionOutcome.Custom).Should().NotContain("10.0.0.1");
     }
 }

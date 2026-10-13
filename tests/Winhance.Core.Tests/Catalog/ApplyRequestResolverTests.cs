@@ -68,23 +68,31 @@ public class ApplyRequestResolverTests
         },
     };
 
-    // No Targets and a custom detector, like gaming-dns-server: its Custom state has nowhere to write, and
-    // the two scripts stay un-baked so the captured values can fill them.
+    // No Targets and a custom detector, like the system-tray icons: its Custom state has nowhere to write, so the
+    // setting's own scripts are the apply.
     private static Setting ScriptCustomStateSetting(string id = "t") => new()
     {
         Id = id,
         Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         States = new[]
         {
-            new SettingState { Label = TestKeys.Of("Automatic"), Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
-            new SettingState { Label = TestKeys.Of("Cloudflare"), Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Show"), Effects = new Effect[] { new ScriptEffect("Show-Icons", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Hide"), Effects = new Effect[] { new ScriptEffect("Hide-Icons", RunContext.User) } },
         },
-        CustomStateScripts = new[]
-        {
-            new ScriptEffect("Set-Dns @('{{primary}}','{{secondary}}')", RunContext.User),
-            new ScriptEffect("$t = '{{dohtemplate}}'; netsh add {{primary}} {{secondary}}", RunContext.User),
-        },
+        CustomStateScripts = new[] { new ScriptEffect("Promote-Icons", RunContext.User) },
         Detector = new FakeDetector(),
+    };
+
+    private static Setting DnsSetting() => new()
+    {
+        Id = "dns",
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new Target[] { new DnsTarget("primary", DnsSlot.Preferred), new DnsTarget("secondary", DnsSlot.Alternate) },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Automatic"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent, ["secondary"] = StateValue.Absent } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1"), ["secondary"] = StateValue.Of("1.0.0.1") } },
+        },
     };
 
     private static Setting AlbumSetting(string id = "t") => new()
@@ -95,18 +103,6 @@ public class ApplyRequestResolverTests
         Targets = new Target[] { new DesktopSlideshowTarget("album") },
         CustomStateScripts = [new ScriptEffect("Set-Slideshow '{{value}}'", RunContext.User)],
     };
-
-    private static Dictionary<string, object> DnsCustomValues() => new()
-    {
-        ["DetectedIndex"] = -1,
-        ["primary"] = "10.5.0.1",
-        ["secondary"] = "10.5.0.2",
-    };
-
-    private static List<string> ScriptsFor(Setting setting, Dictionary<string, object> customValues) =>
-        ApplyRequestResolver.Resolve(setting.Id, enable: true, value: customValues, resetToDefault: false, new[] { setting })!
-            .Select(op => Assert.IsType<ScriptEffect>(Assert.IsType<EffectOp>(op).Effect).Script)
-            .ToList();
 
     private sealed class FakeDetector : IStateDetector
     {
@@ -667,108 +663,65 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Script_only_custom_state_builds_the_scripts_with_the_captured_values()
+    public void Script_only_custom_state_runs_the_settings_scripts()
     {
-        // gaming-dns-server's shape: a Selection with no RegTarget at all, so the registry custom-state route
-        // cannot serve it and the setting's CustomStateScripts are the whole apply.
-        var setting = ScriptCustomStateSetting();
-        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: DnsCustomValues(),
-            resetToDefault: false, new[] { setting });
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: new Dictionary<string, object> { ["DetectedIndex"] = -1 },
+            resetToDefault: false, new[] { ScriptCustomStateSetting() });
 
-        Assert.NotNull(plan);
-        var scripts = plan!
-            .Select(op => Assert.IsType<ScriptEffect>(Assert.IsType<EffectOp>(op).Effect).Script)
-            .ToList();
-        Assert.Equal(2, scripts.Count);
-        Assert.Equal("Set-Dns @('10.5.0.1','10.5.0.2')", scripts[0]);
-        Assert.Equal("$t = '{{dohtemplate}}'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
+        var op = Assert.IsType<EffectOp>(Assert.Single(plan!));
+        Assert.Equal("Promote-Icons", Assert.IsType<ScriptEffect>(op.Effect).Script);
+    }
+
+    private static readonly string[] CloudflareServers = ["1.1.1.1", "1.0.0.1"];
+
+    [Fact]
+    public void A_dns_preset_writes_its_servers_as_one_list()
+    {
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 1, resetToDefault: false, new[] { DnsSetting() });
+
+        Assert.Equal(CloudflareServers, Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers.Select(s => s.Address));
+    }
+
+    [Fact]
+    public void Automatic_dns_writes_no_servers()
+    {
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 0, resetToDefault: false, new[] { DnsSetting() });
+
+        Assert.Empty(Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers);
     }
 
     [Theory]
-    [InlineData("1.1.1.1'; calc #")]
-    [InlineData("$(calc)")]
-    [InlineData("1.1.1.1\u2019; calc #")]
-    [InlineData("1.1.1.1; calc")]
-    [InlineData("1.1.1.1 | calc")]
-    [InlineData("`calc`")]
-    [InlineData("1.1.1.1\n")]
-    [InlineData("")]
-    public void A_custom_value_that_is_not_script_safe_leaves_its_placeholder_standing(string primary)
+    [InlineData("10.5.0.1", "10.5.0.2", new[] { "10.5.0.1", "10.5.0.2" })]
+    [InlineData(" 10.5.0.1 ", null, new[] { "10.5.0.1" })]
+    public void Typed_dns_servers_apply_as_typed(string primary, string? secondary, string[] expected)
     {
-        var values = DnsCustomValues();
-        values["primary"] = primary;
+        var values = new Dictionary<string, object> { ["primary"] = primary };
+        if (secondary is not null)
+            values["secondary"] = secondary;
 
-        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: values, resetToDefault: false, new[] { DnsSetting() });
 
-        Assert.Equal("Set-Dns @('{{primary}}','10.5.0.2')", scripts[0]);
-        Assert.Equal("$t = '{{dohtemplate}}'; netsh add {{primary}} 10.5.0.2", scripts[1]);
+        Assert.Equal(expected, Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers.Select(s => s.Address));
     }
 
-    [Fact]
-    public void A_hostile_doh_template_leaves_the_placeholder_the_script_tests_for()
-    {
-        var values = DnsCustomValues();
-        values["dohtemplate"] = "https://x/'; calc #";
-
-        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
-
-        Assert.Equal("$t = '{{dohtemplate}}'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
-    }
-
-    [Fact]
-    public void A_config_key_cannot_cut_a_span_out_of_the_script()
-    {
-        var values = new Dictionary<string, object> { ["primary}}','{{secondary"] = "10.5.0.1" };
-
-        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
-
-        Assert.Equal("Set-Dns @('{{primary}}','{{secondary}}')", scripts[0]);
-    }
-
-    [Fact]
-    public void The_real_dns_scripts_never_carry_a_hostile_custom_value()
-    {
-        var setting = SettingCatalog.Find("gaming-dns-server")!;
-        var values = new Dictionary<string, object>
-        {
-            ["primary"] = "1.1.1.1'; calc #",
-            ["secondary"] = "$(calc)",
-            ["dohtemplate"] = "https://x/'; calc #",
-        };
-
-        var scripts = ScriptsFor(setting, values);
-
-        Assert.Equal(setting.CustomStateScripts.Select(s => s.Script).ToList(), scripts);
-    }
-
+    // An empty server list would be Automatic: a mistyped server must not hand the machine back to DHCP.
     [Theory]
-    [InlineData("10.5.0.1", "10.5.0.2")]
-    [InlineData("2606:4700:4700::1111", "2606:4700:4700::1001")]
-    public void An_ipv4_or_ipv6_address_fills_its_placeholder(string primary, string secondary)
+    [InlineData("1.1.1.1'; calc #", "10.5.0.2")]
+    [InlineData("1.1", "10.5.0.2")]
+    [InlineData("2606:4700:4700::1111", "10.5.0.2")]
+    [InlineData("", "10.5.0.2")]
+    [InlineData("10.5.0.1", "not an address")]
+    public void A_server_that_is_not_an_ipv4_address_applies_nothing(string primary, string secondary)
     {
         var values = new Dictionary<string, object> { ["primary"] = primary, ["secondary"] = secondary };
 
-        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
-
-        Assert.Equal($"Set-Dns @('{primary}','{secondary}')", scripts[0]);
-        Assert.Equal("$t = '{{dohtemplate}}'; netsh add " + primary + " " + secondary, scripts[1]);
-    }
-
-    [Fact]
-    public void A_doh_template_fills_its_placeholder()
-    {
-        var values = DnsCustomValues();
-        values["dohtemplate"] = "https://cloudflare-dns.com/dns-query";
-
-        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
-
-        Assert.Equal("$t = 'https://cloudflare-dns.com/dns-query'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
+        Assert.Null(ApplyRequestResolver.Resolve("dns", enable: true, value: values, resetToDefault: false, new[] { DnsSetting() }));
     }
 
     [Fact]
     public void Registry_selection_custom_state_still_wins_over_custom_state_scripts()
     {
-        // Marco's 2026-07-03 decision, pinned: a Custom state on a setting that HAS registry targets writes the
+        // Pinned decision: a Custom state on a setting that HAS registry targets writes the
         // raw registry values ONLY. Carrying CustomStateScripts must not change that - shortcut-arrow and
         // touch-keyboard-service both carry them AND have RegTargets.
         var setting = SelectionSetting() with

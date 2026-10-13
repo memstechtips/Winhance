@@ -363,7 +363,12 @@ public static class WindowsAppDefinitions
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.XboxGamingOverlay"],
                     MsStoreId = "9NZKPSTSNW4P",
-                    CanBeReinstalled = true
+                    CanBeReinstalled = true,
+                    // AMD's chipset driver installs this service on its X3D processors, and reviewers report that it
+                    // finds games through Game Bar to keep them on the V-Cache cores.
+                    MachineWarning = new(
+                        @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\amd3dvcacheSvc",
+                        "Card_Pill_X3DGameBarWarning_Tooltip")
                 },
 
                 new ItemDefinition

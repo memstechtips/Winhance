@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class UpdateOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.Update;
-    public const string FeatureName = "Windows Updates";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -23,7 +22,8 @@ public static class UpdateOptimizationsCatalog
                 LocKey.Setting.UpdatesPolicyMode.Option0,
                 LocKey.Setting.UpdatesPolicyMode.Option1,
                 LocKey.Setting.UpdatesPolicyMode.Option2,
-                LocKey.Setting.UpdatesPolicyMode.Option3),
+                LocKey.Setting.UpdatesPolicyMode.Option3,
+                LocKey.Setting.UpdatesPolicyMode.Option4),
             Display = new()
             {
                 Name = LocKey.Setting.UpdatesPolicyMode.Name,
@@ -179,6 +179,36 @@ public static class UpdateOptimizationsCatalog
                         ["AlwaysAutoRebootAtScheduledTime"] = Absent,
                         ["AutoInstallMinorUpdates"] = Absent,
                         ["UseWUServer"] = Of(0),
+                        ["PausedFeatureStatus"] = Absent,
+                        ["PausedQualityStatus"] = Absent,
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.UpdatesPolicyMode.Option4,
+                    Tooltip = LocKey.Setting.UpdatesPolicyMode.OptionTooltip4,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NoAutoUpdate"] = Absent,
+                        ["AUOptions"] = Of(2),
+                        ["BranchReadinessLevel"] = Absent,
+                        ["DeferFeatureUpdates"] = Absent,
+                        ["DeferFeatureUpdatesPeriodInDays"] = Absent,
+                        ["DeferQualityUpdates"] = Absent,
+                        ["DeferQualityUpdatesPeriodInDays"] = Absent,
+                        ["PauseFeatureUpdatesStartTime"] = Absent,
+                        ["PauseFeatureUpdatesEndTime"] = Absent,
+                        ["PauseQualityUpdatesStartTime"] = Absent,
+                        ["PauseQualityUpdatesEndTime"] = Absent,
+                        ["PauseUpdatesStartTime"] = Absent,
+                        ["PauseUpdatesExpiryTime"] = Absent,
+                        ["PausedQualityDate"] = Absent,
+                        ["PausedFeatureDate"] = Absent,
+                        ["FlightSettingsMaxPauseDays"] = Absent,
+                        ["NoAUShutdownOption"] = Absent,
+                        ["AlwaysAutoRebootAtScheduledTime"] = Absent,
+                        ["AutoInstallMinorUpdates"] = Absent,
+                        ["UseWUServer"] = Absent,
                         ["PausedFeatureStatus"] = Absent,
                         ["PausedQualityStatus"] = Absent,
                     },

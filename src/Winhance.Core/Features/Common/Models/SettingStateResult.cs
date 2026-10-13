@@ -23,6 +23,4 @@ public sealed record SettingStateResult
     public string? DynamicSelection { get; init; }
 
     public IReadOnlyDictionary<string, object?>? Readings { get; init; }
-
-    public IReadOnlyList<string>? DnsServers { get; init; }
 }

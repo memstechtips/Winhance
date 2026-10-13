@@ -16,6 +16,7 @@ public class UpdatePolicyDetectorConformanceTests
     private static readonly LocKey DeferLabel = LocKey.Setting.UpdatesPolicyMode.Option1;
     private static readonly LocKey PausedLabel = LocKey.Setting.UpdatesPolicyMode.Option2;
     private static readonly LocKey DisabledLabel = LocKey.Setting.UpdatesPolicyMode.Option3;
+    private static readonly LocKey NotifyLabel = LocKey.Setting.UpdatesPolicyMode.Option4;
 
     private static readonly Setting UpdatePolicy =
         SettingCatalog.All.First(s => s.Id == "updates-policy-mode");
@@ -34,8 +35,7 @@ public class UpdatePolicyDetectorConformanceTests
             => _vals.TryGetValue((keyPath, valueName), out var v) ? v : null;
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
         public bool KeyExists(string keyPath) => false;
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
@@ -67,6 +67,20 @@ public class UpdatePolicyDetectorConformanceTests
     [InlineData("PausedFeatureDate")]
     public void Any_pause_marker_reads_paused(string valueName)
         => Assert.Equal(PausedLabel.Value, Detect(WithValues(false, (valueName, "2025-01-01T00:00:00Z"))));
+
+    [Theory]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")]
+    [InlineData(@"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")]
+    public void AUOptions_two_without_deferral_reads_notify_only(string auKey)
+        => Assert.Equal(NotifyLabel.Value, Detect(new Ctx(vals: new() { [(auKey, "AUOptions")] = 2 })));
+
+    [Fact]
+    public void Deferral_outranks_notify_only()
+        => Assert.Equal(DeferLabel.Value, Detect(new Ctx(vals: new()
+        {
+            [(Ux, "DeferFeatureUpdates")] = 1,
+            [(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU", "AUOptions")] = 2,
+        })));
 
     [Fact]
     public void Renamed_dlls_read_disabled()

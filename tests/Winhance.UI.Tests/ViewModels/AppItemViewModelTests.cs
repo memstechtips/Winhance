@@ -504,6 +504,21 @@ public class AppItemViewModelTests
         vm.HasInstabilityWarning.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(null, "Card_Pill_InstabilityWarning_Tooltip")]
+    [InlineData("Card_Pill_X3DGameBarWarning_Tooltip", "Card_Pill_X3DGameBarWarning_Tooltip")]
+    public void The_warning_tooltip_is_the_machine_warning_text_when_the_app_has_one(string? machineKey, string shownKey)
+    {
+        var def = new ItemDefinition
+        {
+            Id = "a", Name = "A", Description = "", HasInstabilityWarning = true,
+            MachineWarning = machineKey is null ? null : new(@"HKEY_LOCAL_MACHINE\SOFTWARE\X", machineKey),
+        };
+        _mockLocalization.Setup(l => l.GetString(shownKey)).Returns("shown");
+
+        CreateViewModel(def).InstabilityWarningTooltip.Should().Be("shown");
+    }
+
     [Fact]
     public void HasInstabilityWarning_IsFalse_WhenUnset()
     {

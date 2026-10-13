@@ -15,7 +15,7 @@ internal class ComboBoxResolver : IComboBoxResolver
 
     public int ResolveRawValuesToIndex(Setting setting, Dictionary<string, object?> rawValues)
     {
-        // DetectedIndex from a custom detector (e.g. DnsServer) - catalog-agnostic.
+        // DetectedIndex from a custom detector (SystemTrayDetector) - catalog-agnostic.
         if (rawValues.TryGetValue("DetectedIndex", out var detectedIndex) && detectedIndex is int di)
             return di;
 

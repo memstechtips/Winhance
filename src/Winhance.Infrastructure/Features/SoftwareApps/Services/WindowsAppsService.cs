@@ -18,7 +18,8 @@ internal class WindowsAppsService(
     IInstallConsent installConsent,
     ITaskProgressService taskProgressService,
     ISettingApplicationService settingApplicationService,
-    ICatalogSettingStateProvider settingStateProvider) : IWindowsAppsService
+    ICatalogSettingStateProvider settingStateProvider,
+    IWindowsRegistryService registry) : IWindowsAppsService
 {
     public string DomainName => FeatureIds.WindowsApps;
 
@@ -36,7 +37,10 @@ internal class WindowsAppsService(
         allItems.AddRange(WindowsAppDefinitions.GetWindowsApps().Items);
         allItems.AddRange(CapabilityDefinitions.GetWindowsCapabilities().Items);
         allItems.AddRange(OptionalFeatureDefinitions.GetWindowsOptionalFeatures().Items);
-        return Task.FromResult<IEnumerable<ItemDefinition>>(allItems);
+        return Task.FromResult<IEnumerable<ItemDefinition>>(allItems.Select(item =>
+            item.MachineWarning is { } warning && registry.KeyExists(warning.RegistryKey)
+                ? item with { HasInstabilityWarning = true }
+                : item).ToList());
     }
 
     public async Task<ItemDefinition?> GetAppByIdAsync(string appId)
@@ -62,12 +66,12 @@ internal class WindowsAppsService(
                 if (!string.IsNullOrEmpty(item.MsStoreId))
                 {
                     packageId = item.MsStoreId;
-                    source = "msstore";
+                    source = WinGetSources.MsStore;
                 }
                 else if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
                 {
                     packageId = item.WinGetPackageId.FirstOrDefault();
-                    source = "winget";
+                    source = WinGetSources.WinGet;
                 }
                 else
                 {

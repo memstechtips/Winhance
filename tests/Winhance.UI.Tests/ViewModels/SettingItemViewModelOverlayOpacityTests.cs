@@ -58,7 +58,7 @@ public class SettingItemViewModelOverlayOpacityTests
 
         vm.IsApplying = true;
 
-        // Hiding the marker is presentation only. The banner keys off Outcome, and Marco wants it to
+        // Hiding the marker is presentation only. The banner keys off Outcome, and it has to
         // stay until the write actually lands.
         vm.Outcome.Should().Be(SettingDetectionOutcome.Custom);
         vm.OverlayVisibilityFor(vm.Outcome).Should().Be(Microsoft.UI.Xaml.Visibility.Visible);

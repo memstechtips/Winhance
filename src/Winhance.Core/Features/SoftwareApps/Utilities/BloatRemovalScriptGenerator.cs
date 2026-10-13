@@ -57,8 +57,7 @@ public static class BloatRemovalScriptGenerator
         var optionalFeatures = ExtractArrayFromScript(existingContent, "optionalFeatures");
         var specialApps = ExtractArrayFromScript(existingContent, "specialApps");
 
-        var xboxPackages = new[] { "Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay" };
-        var includeXboxRegistryFix = packages.Any(p => xboxPackages.Contains(p, StringComparer.OrdinalIgnoreCase));
+        var includeXboxRegistryFix = GameBarRemoval.Includes(packages);
         var includeTeamsProcessKill = packages.Any(p => p.Equals("MSTeams", StringComparison.OrdinalIgnoreCase));
 
         return GenerateScript(packages, capabilities, optionalFeatures, specialApps, includeXboxRegistryFix, includeTeamsProcessKill);
@@ -248,47 +247,6 @@ if ($hasXboxPackages) {
         Write-Log ""Game Bar protocol redirects applied successfully""
     } catch {
         Write-Log ""Warning: Could not apply Game Bar protocol redirects: $($_.Exception.Message)""
-    }
-
-    try {
-        $runningAsSystem = ($env:USERNAME -eq ""SYSTEM"" -or $env:USERPROFILE -like ""*\system32\config\systemprofile"")
-
-        if ($runningAsSystem) {
-            Write-Log ""Running as SYSTEM - detecting logged-in user...""
-            $loggedInUser = (Get-WmiObject -Class Win32_ComputerSystem -ErrorAction SilentlyContinue).UserName
-
-            if ($loggedInUser -and $loggedInUser -ne ""NT AUTHORITY\SYSTEM"") {
-                $username = $loggedInUser.Split('\\')[1]
-                $sid = $null
-                $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
-                foreach ($profKey in Get-ChildItem $profListPath -ErrorAction SilentlyContinue) {
-                    $profPath = (Get-ItemProperty $profKey.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
-                    if ($profPath -and $profPath.EndsWith(""\$username"")) {
-                        $sid = $profKey.PSChildName
-                        break
-                    }
-                }
-                if ($sid) {
-                    Write-Log ""Applying settings for user: $username (SID: $sid)""
-                    reg add ""HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
-                    reg add ""HKU\$sid\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
-                    reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
-                    Write-Log ""Xbox Game DVR registry settings applied successfully""
-                } else {
-                    Write-Log ""Warning: Could not resolve SID for user: $username""
-                }
-            } else {
-                Write-Log ""Warning: Could not detect logged-in user for registry settings""
-            }
-        } else {
-            Write-Log ""Running as user - applying settings directly to HKCU""
-            reg add ""HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"" /f /t REG_DWORD /v ""AppCaptureEnabled"" /d 0 2>$null | Out-Null
-            reg add ""HKCU\System\GameConfigStore"" /f /t REG_DWORD /v ""GameDVR_Enabled"" /d 0 2>$null | Out-Null
-            reg add ""HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR"" /f /t REG_DWORD /v ""AllowGameDVR"" /d 0 2>$null | Out-Null
-            Write-Log ""Xbox Game DVR registry settings applied successfully""
-        }
-    } catch {
-        Write-Log ""Warning: Could not apply Xbox Game DVR registry settings: $($_.Exception.Message)""
     }
 }
 

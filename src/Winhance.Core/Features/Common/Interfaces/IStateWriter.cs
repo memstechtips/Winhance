@@ -25,5 +25,7 @@ public interface IStateWriter
 
     bool SetSlideshow(DesktopSlideshowTarget target, string folder);
 
+    bool SetDns(IReadOnlyList<DnsServer> servers);
+
     bool RunEffect(Effect effect);
 }

@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
@@ -52,6 +53,27 @@ public sealed record TaskTarget(string Key, string TaskPath) : Target(Key);
 // slideshow stops, so it counts only while BackgroundType is 2. Applied through IDesktopWallpaper.
 public sealed record DesktopSlideshowTarget(string Key) : Target(Key);
 
+// One box of Windows Settings' DNS dialog: a server slot's address, or that server's DNS-over-HTTPS mode, template or
+// plaintext fallback. Windows keeps the addresses in each adapter's NameServer value (Tcpip, Tcpip6) and the
+// encryption per adapter and server under Dnscache.
+public sealed record DnsTarget(string Key, DnsSlot Slot, DnsPart Part = DnsPart.Address) : Target(Key);
+
+public enum DnsSlot
+{
+    Preferred,
+    Alternate,
+    Preferred6,
+    Alternate6,
+}
+
+public enum DnsPart
+{
+    Address,
+    Encryption,
+    Template,
+    Fallback,
+}
+
 public abstract record AutounattendTarget(string Key) : Target(Key);
 
 // Path is slash-separated below the component.
@@ -59,3 +81,9 @@ public sealed record AutounattendElement(string Key, string Pass, string Compone
 
 // The processorArchitecture attribute every component carries.
 public sealed record AutounattendArchitecture(string Key, string Architecture) : AutounattendTarget(Key);
+
+// Scripts the user wrote, each carried as its own file and run by Winhancements.ps1 in the section Run names.
+public sealed record AutounattendScript(string Key, RunContext Run) : AutounattendTarget(Key);
+
+// A choice WIMUtil applies to the installation media when it generates the file; nothing is written into the XML.
+public sealed record AutounattendMedia(string Key) : AutounattendTarget(Key);

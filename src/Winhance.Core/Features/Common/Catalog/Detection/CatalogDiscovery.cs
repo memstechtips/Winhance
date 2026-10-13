@@ -50,6 +50,12 @@ public static class CatalogDiscovery
                 readings.Set(power.Key, value, present: value.HasValue);
                 allRegistry = false;
             }
+            else if (target is DnsTarget dns)
+            {
+                var (value, present) = ReadDns(dns, context);
+                readings.Set(dns.Key, value, present);
+                allRegistry = false;
+            }
         }
 
         // Registry-only settings resolve the way Windows does: the highest-precedence target that is present
@@ -63,6 +69,25 @@ public static class CatalogDiscovery
             return SettingDetection.FromLabel(DetectByPrecedence(setting.States, readings, regReadTargets));
 
         return SettingDetection.FromLabel(StateDetectionEngine.Detect(setting.States, readings, activeKeys));
+    }
+
+    // A server's encryption parts read as absent while it is Off, so only a choice the user made shows up in a saved
+    // config's custom values.
+    public static (object? Value, bool Present) ReadDns(DnsTarget target, IDetectionContext context)
+    {
+        bool ipv6 = target.Slot is DnsSlot.Preferred6 or DnsSlot.Alternate6;
+        int index = target.Slot is DnsSlot.Preferred or DnsSlot.Preferred6 ? 0 : 1;
+        if (context.DnsServersOfActiveAdapter().Where(s => s.IsIPv6 == ipv6).ElementAtOrDefault(index) is not { } server)
+            return (null, false);
+
+        return target.Part switch
+        {
+            DnsPart.Address => (server.Address, true),
+            _ when server.Doh == DohMode.Off => (null, false),
+            DnsPart.Encryption => ((int)server.Doh, true),
+            DnsPart.Template => (server.Template, server.Template is not null),
+            _ => (server.Fallback, true),
+        };
     }
 
     // Only runs on the malformed path, so the extra re-read costs nothing in the normal case.

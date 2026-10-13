@@ -1,15 +1,8 @@
-using System.Text.RegularExpressions;
 using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Features.Common.Catalog;
 
 public static class ApplyPlanBuilder
 {
-    // A custom value is pasted into PowerShell text: inside quotes in one DNS script, a bare netsh argument in the
-    // other. Escaping cannot cover a bare argument, and PowerShell also closes a string on the typographic quotes,
-    // so only what an IP address or an https template is spelled with gets through.
-    private const string ScriptSafeValue = @"\A[A-Za-z0-9.:/-]+\z";
-    private const string Placeholder = @"\{\{(\w+)\}\}";
-
     public static IReadOnlyList<ApplyOp> Build(Setting setting, LocKey stateLabel, WinBuild? build = null, bool reset = false)
     {
         var state = setting.States.FirstOrDefault(s => s.Label == stateLabel)
@@ -128,6 +121,11 @@ public static class ApplyPlanBuilder
             }
         }
 
+        // Windows keeps each family's servers as one list, so all the DNS targets become one write.
+        if (setting.Targets.OfType<DnsTarget>().Any(t => state.Set.ContainsKey(t.Key))
+            && DnsServers(setting, key => state.Set.GetValueOrDefault(key)?.WritePayload) is { } servers)
+            ops.Add(new DnsSetOp(servers));
+
         // Effects run after the registry/task state is in place.
         foreach (var effect in state.Effects)
             ops.Add(new EffectOp(effect));
@@ -149,27 +147,47 @@ public static class ApplyPlanBuilder
         return Build(setting, new SettingState { Label = LocKey.Common.CustomState, Set = set });
     }
 
-    // A Custom state on a setting with NO registry target to write: the setting's un-baked CustomStateScripts
-    // ARE the apply, each {{key}} filled from the captured values. An unmatched placeholder is left standing on
-    // purpose - the DNS DoH script tests for a literal {{ and skips itself when the machine had no template - and
-    // so is one whose value is not script-safe.
-    public static IReadOnlyList<ApplyOp> BuildCustomStateScripts(
-        Setting setting, IReadOnlyDictionary<string, object> customValues)
-    {
-        var ops = new List<ApplyOp>();
-        foreach (var effect in setting.CustomStateScripts)
-        {
-            string script = Regex.Replace(effect.Script, Placeholder, match =>
-                customValues.TryGetValue(match.Groups[1].Value, out var value)
-                && value?.ToString() is { } text
-                && Regex.IsMatch(text, ScriptSafeValue)
-                    ? text
-                    : match.Value);
+    // Null when no server is typed: an empty list would mean Automatic, and a mistyped value must not quietly hand
+    // the machine back to DHCP.
+    public static IReadOnlyList<ApplyOp>? BuildDnsCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues) =>
+        DnsServers(setting, customValues.GetValueOrDefault) is { Count: > 0 } servers ? [new DnsSetOp(servers)] : null;
 
-            ops.Add(new EffectOp(effect with { Script = script }));
+    // Slot by slot in Windows' order. Null when a box holds something Windows would refuse: an address of the wrong
+    // family, an alternate without a preferred, or a manual template that is not https.
+    internal static IReadOnlyList<DnsServer>? DnsServers(Setting setting, Func<string, object?> valueOf)
+    {
+        var targets = setting.Targets.OfType<DnsTarget>().ToList();
+        string? Text(DnsSlot slot, DnsPart part) =>
+            targets.FirstOrDefault(t => t.Slot == slot && t.Part == part) is { } t
+                && valueOf(t.Key)?.ToString()?.Trim() is { Length: > 0 } text ? text : null;
+
+        var servers = new List<DnsServer>();
+        foreach (var (preferred, alternate, ipv6) in new[] { (DnsSlot.Preferred, DnsSlot.Alternate, false), (DnsSlot.Preferred6, DnsSlot.Alternate6, true) })
+        {
+            if (Text(alternate, DnsPart.Address) is not null && Text(preferred, DnsPart.Address) is null)
+                return null;
+
+            foreach (var slot in new[] { preferred, alternate })
+            {
+                if (Text(slot, DnsPart.Address) is not { } address)
+                    continue;
+                if (!(ipv6 ? DnsAddress.IsIPv6(address) : DnsAddress.IsIPv4(address)))
+                    return null;
+
+                var doh = int.TryParse(Text(slot, DnsPart.Encryption), out var mode) && Enum.IsDefined((DohMode)mode) ? (DohMode)mode : DohMode.Off;
+                var template = doh == DohMode.Manual ? Text(slot, DnsPart.Template) : null;
+                if (doh == DohMode.Manual && (template is null || !DnsAddress.IsTemplate(template)))
+                    return null;
+
+                servers.Add(new DnsServer(address, doh, template, doh != DohMode.Off && bool.TryParse(Text(slot, DnsPart.Fallback), out var fb) && fb));
+            }
         }
-        return ops;
+        return servers;
     }
+
+    // A Custom state on a setting with NO registry target to write: the setting's CustomStateScripts ARE the apply.
+    public static IReadOnlyList<ApplyOp> BuildCustomStateScripts(Setting setting) =>
+        setting.CustomStateScripts.Select(effect => (ApplyOp)new EffectOp(effect)).ToList();
 
     // A RegistryWriteEffect becomes the same RegistryWriteOp a toggle's value write emits (via a synthesized single-path
     // target) so the harness renders both sides identically; every other effect becomes an EffectOp, in authored order.

@@ -15,11 +15,9 @@ public interface IDetectionContext
 
     bool KeyExists(string keyPath);
 
-    string? PrimaryDnsV4OfActiveAdapter();
-
-    // In adapter order, so a caller can read the secondary as well as the primary. Same DHCP rule as
-    // PrimaryDnsV4OfActiveAdapter: an adapter that leased its servers reports none.
-    IReadOnlyList<string> DnsV4ServersOfActiveAdapter();
+    // The servers set on the active adapter, IPv4 then IPv6, each in order; an adapter that leased its servers from
+    // DHCP reports none.
+    IReadOnlyList<DnsServer> DnsServersOfActiveAdapter();
 
     bool IsSystemRestoreEnabled();
 

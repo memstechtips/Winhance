@@ -34,6 +34,13 @@ public class EnabledWhenConformanceTests
         ["taskbar-multi-display-apps"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
         ["taskbar-combine-buttons-other"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
 
+        // Windows Settings greys every snap option while Snap windows is off.
+        ["explorer-snap-suggestions"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-layouts-maximize-button"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-layouts-top-of-screen"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-groups-in-switchers"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-without-edge"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+
         // Toast sounds and lock-screen toasts are properties OF a toast; no toasts, nothing to shape.
         ["notifications-sound"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
         ["notifications-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
@@ -43,6 +50,23 @@ public class EnabledWhenConformanceTests
         // accounts only when the user chose that over signing in.
         ["autounattend-product-key"] = ("autounattend-edition", new[] { "Setting_autounattend-edition_Option_14" }),
         ["autounattend-accounts"] = ("autounattend-account", new[] { "Setting_autounattend-account_Option_2" }),
+
+        // Whether Setup runs offline is the user's only when this file creates the accounts: a local account
+        // cannot be made online and a Microsoft account cannot be made offline. OobeNetworkWriter forces those
+        // two, so the card is greyed rather than obeyed.
+        ["autounattend-oobe-network"] = ("autounattend-account", new[] { "Setting_autounattend-account_Option_2" }),
+
+        // Winhance deletes the installers on the new PC, so the choice means nothing when Winhance is not put there.
+        ["autounattend-delete-installers"] = ("autounattend-desktop-shortcut",
+            new[] { "Setting_autounattend-desktop-shortcut_Option_1", "Setting_autounattend-desktop-shortcut_Option_2" }),
+
+        // The three boxes describe a layout, and there is no layout while Setup is the one asking.
+        ["autounattend-disk-number"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+        ["autounattend-disk-system-size"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+        ["autounattend-disk-recovery-size"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
     };
 
     // Not drawn at all rather than greyed: the background kind decides which of these mean anything.
@@ -54,6 +78,7 @@ public class EnabledWhenConformanceTests
         ["theme-wallpaper-album"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
         ["theme-wallpaper-interval"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
         ["theme-wallpaper-shuffle"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["autounattend-media-editions-list"] = ("autounattend-media-editions", new[] { "Setting_autounattend-media-editions_Option_2" }),
     };
 
     // The other half of the authoring, and the half a "children of an off parent are dead" instinct keeps re-adding.
@@ -79,6 +104,9 @@ public class EnabledWhenConformanceTests
 
         // A tray-icon preference Explorer honours whether or not toasts are on.
         "notifications-show-bell-icon",
+
+        // Which editions stay on the media matters whatever edition Setup is told to install.
+        "autounattend-media-editions",
     };
 
     [Fact]

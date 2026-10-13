@@ -20,6 +20,7 @@ public class WindowsAppsServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
     private readonly Mock<ICatalogSettingStateProvider> _settingStateProvider = new();
+    private readonly Mock<IWindowsRegistryService> _registry = new();
 
     private WindowsAppsService CreateSut() => new(
         _logService.Object,
@@ -30,7 +31,22 @@ public class WindowsAppsServiceTests
         _installConsent.Object,
         _taskProgressService.Object,
         _settingApplicationService.Object,
-        _settingStateProvider.Object);
+        _settingStateProvider.Object,
+        _registry.Object);
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Game_Bar_carries_its_warning_only_where_the_AMD_X3D_service_is_installed(bool installed)
+    {
+        _registry.Setup(r => r.KeyExists(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\amd3dvcacheSvc"))
+            .Returns(installed);
+
+        var gameBar = (await CreateSut().GetAppsAsync()).Single(app => app.Id == "windows-app-xbox-game-bar");
+
+        gameBar.HasInstabilityWarning.Should().Be(installed);
+        gameBar.MachineWarning!.TooltipKey.Should().Be("Card_Pill_X3DGameBarWarning_Tooltip");
+    }
 
     [Fact]
     public void DomainName_ReturnsWindowsApps()

@@ -28,6 +28,7 @@ public static class ApplyExecutor
                     TaskSetOp t => writer.SetTask(t.Target, t.Enabled),
                     PowerCfgSetOp p => writer.WritePowerCfgValue(p.Target, p.Context, p.Value),
                     SlideshowSetOp s => writer.SetSlideshow(s.Target, s.Folder),
+                    DnsSetOp d => writer.SetDns(d.Servers),
                     EffectOp fx => writer.RunEffect(fx.Effect),
                     _ => true,
                 };

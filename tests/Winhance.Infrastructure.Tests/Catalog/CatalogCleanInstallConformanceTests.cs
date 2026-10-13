@@ -349,9 +349,7 @@ public class CatalogCleanInstallConformanceTests
 
         public bool KeyExists(string keyPath) => _keyExists.GetValueOrDefault(keyPath);
 
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
 
         public bool IsSystemRestoreEnabled() => false;
 

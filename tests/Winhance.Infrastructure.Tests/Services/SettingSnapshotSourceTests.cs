@@ -1,4 +1,3 @@
-using Winhance.Core.Features.Common.Localization;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -25,7 +24,7 @@ public class SettingSnapshotSourceTests
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
-            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } });
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Explorer] = new[] { setting } });
         _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult> { [setting.Id] = state });
     }
@@ -166,16 +165,41 @@ public class SettingSnapshotSourceTests
     // gaming-dns-server has no RegTarget, so the ValueName pass finds nothing. Without the reconstructor
     // fallback the machine's own DNS servers never reach the saved file.
     [Fact]
-    public async Task Selection_AtCustom_ScriptOnlySetting_CarriesTheMachinesOwnValues()
+    public async Task Selection_AtCustom_DnsSetting_CarriesTheMachinesOwnServers()
     {
-        Arrange(ScriptOnlyDnsSelection("dns"), new SettingStateResult
+        Arrange(DnsSelection("dns"), new SettingStateResult
         {
             Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex,
-            DnsServers = TwoDnsServers,
+            Readings = new Dictionary<string, object?> { ["primary"] = "10.0.0.5", ["secondary"] = "10.0.0.6" },
         });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value
             .Should().BeOfType<ChoiceValue.CustomValues>().Which.Values
             .Should().Equal(new Dictionary<string, object> { ["primary"] = "10.0.0.5", ["secondary"] = "10.0.0.6" });
+    }
+
+    // A preset names only its servers, so an encrypted Cloudflare saved as a bare index would lose the encryption.
+    [Fact]
+    public async Task Selection_AtAPreset_WithFieldValuesThePresetLacks_CarriesTheReadings()
+    {
+        Arrange(DnsSelection("dns"), new SettingStateResult
+        {
+            Success = true, CurrentValue = 1,
+            Readings = new Dictionary<string, object?> { ["primary"] = "1.1.1.1", ["primaryDoh"] = 1, ["secondary"] = null },
+        });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value
+            .Should().BeOfType<ChoiceValue.CustomValues>().Which.Values
+            .Should().Equal(new Dictionary<string, object> { ["primary"] = "1.1.1.1", ["primaryDoh"] = 1 });
+    }
+
+    [Fact]
+    public async Task Selection_AtAPreset_WithOnlyThePresetsValues_StaysAnIndex()
+    {
+        Arrange(DnsSelection("dns"), new SettingStateResult
+        {
+            Success = true, CurrentValue = 1,
+            Readings = new Dictionary<string, object?> { ["primary"] = "1.1.1.1", ["primaryDoh"] = null },
+        });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.Option(1));
     }
 
     // DetectedIndex says only "this matched no option". Carrying it would give the system-tray setting a
@@ -183,25 +207,40 @@ public class SettingSnapshotSourceTests
     [Fact]
     public async Task Selection_AtCustom_WithOnlyADetectionArtifact_IsOmitted()
     {
-        Arrange(ScriptOnlyDnsSelection("dns"), new SettingStateResult
+        Arrange(SystemTraySelection("tray"), new SettingStateResult
         {
             Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex,
         });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
     }
 
-    private static readonly string[] TwoDnsServers = ["10.0.0.5", "10.0.0.6"];
+    private static Setting DnsSelection(string id) => new()
+    {
+        Id = id, Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
+        Targets = new Target[]
+        {
+            new DnsTarget("primary", DnsSlot.Preferred),
+            new DnsTarget("primaryDoh", DnsSlot.Preferred, DnsPart.Encryption),
+            new DnsTarget("secondary", DnsSlot.Alternate),
+        },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Automatic"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1") } },
+        },
+        Fields = [[new Field("primary", FieldKind.Text, TestKeys.Of("Preferred")), new Field("primaryDoh", FieldKind.Selection, TestKeys.Of("DoH"))]],
+    };
 
-    private static Setting ScriptOnlyDnsSelection(string id) => new()
+    private static Setting SystemTraySelection(string id) => new()
     {
         Id = id, Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
         States = new[]
         {
-            new SettingState { Label = TestKeys.Of("Automatic") },
-            new SettingState { Label = TestKeys.Of("Cloudflare") },
+            new SettingState { Label = TestKeys.Of("Show"), Effects = new Effect[] { new ScriptEffect("show", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Hide"), Effects = new Effect[] { new ScriptEffect("hide", RunContext.User) } },
         },
-        CustomStateScripts = new[] { new ScriptEffect("Set-DnsClientServerAddress -ServerAddresses @('{{primary}}','{{secondary}}')", RunContext.System) },
-        Detector = new DnsServerDetector(TestKeys.Of("Automatic"), new Dictionary<string, LocKey> { ["1.1.1.1"] = TestKeys.Of("Cloudflare") }),
+        CustomStateScripts = new[] { new ScriptEffect("promote", RunContext.User) },
+        Detector = new SystemTrayDetector(TestKeys.Of("Show"), TestKeys.Of("Hide")),
     };
 
     [Fact]
@@ -289,7 +328,7 @@ public class SettingSnapshotSourceTests
             DynamicSelection = guid,
             DynamicOptions = [new DynamicOption("MSI Gaming Mode", guid)],
         });
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Explorer] = new[] { setting } };
 
         var captured = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
         var set = new SelectionSet(captured, Array.Empty<AppChoice>(), Array.Empty<AppChoice>());
@@ -304,7 +343,7 @@ public class SettingSnapshotSourceTests
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
-            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { ParityFixtures.Toggle("t") } });
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Explorer] = new[] { ParityFixtures.Toggle("t") } });
         _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>())).ReturnsAsync(new Dictionary<string, SettingStateResult>());
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
     }

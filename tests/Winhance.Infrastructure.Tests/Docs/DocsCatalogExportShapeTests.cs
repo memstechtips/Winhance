@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.TechnicalDetails;
@@ -119,6 +119,22 @@ public class DocsCatalogExportShapeTests
         Assert.Equal("*", s.Availability.Builds[0].Max);
     }
 
+    // The docs draw the DNS boxes the way the card does: one row per server, labels and options as the app shows
+    // them, the encryption boxes marked for the Windows that has them.
+    [Fact]
+    public void Fields_are_exported_in_the_cards_rows()
+    {
+        var rows = Find("gaming-dns-server").Fields!;
+
+        Assert.Equal(4, rows.Count);
+        Assert.Equal(Loc.GetString("Setting_gaming-dns-server_Preferred"), rows[0][0].Label);
+        Assert.Equal("Selection", rows[0][1].Kind);
+        Assert.Equal(Loc.GetString("Setting_gaming-dns-server_DohManual"), rows[0][1].Options[2]);
+        Assert.Empty(rows[0][0].Builds);
+        Assert.Equal("22000.0", rows[0][1].Builds[0].Min);
+        Assert.Null(Find("sound-startup").Fields);
+    }
+
     [Fact]
     public void Ui_parents_resolve_to_exported_settings()
     {
@@ -191,12 +207,16 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void The_new_feature_carries_its_five_keyed_settings_and_the_six_moved_ones()
+    public void The_feature_carries_its_keyed_settings_ahead_of_the_moved_format_ones()
     {
         var feature = Export.Features.Single(f => f.Id == "TimeRegionLanguage");
 
-        feature.Settings.Should().HaveCount(11);
-        feature.Settings.Take(5).Select(s => s.Control).Should().AllBe("KeyedSelection");
+        feature.Settings.Should().HaveCount(12);
+        // The region cards lead the page and are all keyed; the moved format ones follow. Counting keyed settings
+        // across the whole feature would not say that, since the short date is keyed too.
+        var region = feature.Settings.TakeWhile(s => s.Id.StartsWith("region-", StringComparison.Ordinal)).ToList();
+        region.Should().HaveCount(6);
+        region.Select(s => s.Control).Should().AllBe("KeyedSelection");
         feature.Settings.Should().Contain(s => s.Id == "explorer-customization-short-date"
             && s.Group == Loc.GetString("SettingGroup_Formats"));
     }

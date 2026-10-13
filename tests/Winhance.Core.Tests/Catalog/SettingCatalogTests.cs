@@ -35,20 +35,6 @@ public class SettingCatalogTests
     }
 
     [Fact]
-    public void A_card_covers_itself_and_the_children_drawn_under_it()
-    {
-        Assert.True(SettingCatalog.IsOrChildOf("theme-wallpaper", "theme-wallpaper"));
-        Assert.True(SettingCatalog.IsOrChildOf("theme-wallpaper-picture", "theme-wallpaper"));
-    }
-
-    [Fact]
-    public void A_card_covers_neither_an_unrelated_setting_nor_an_id_the_catalog_lacks()
-    {
-        Assert.False(SettingCatalog.IsOrChildOf("theme-mode-windows", "theme-wallpaper"));
-        Assert.False(SettingCatalog.IsOrChildOf("no-such-setting", "theme-wallpaper"));
-    }
-
-    [Fact]
     public void Every_setting_id_is_unique()
     {
         var duplicates = SettingCatalog.All

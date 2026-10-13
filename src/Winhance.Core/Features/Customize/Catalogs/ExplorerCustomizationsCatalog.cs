@@ -9,8 +9,7 @@ namespace Winhance.Core.Features.Customize.Catalogs;
 
 public static class ExplorerCustomizationsCatalog
 {
-    public const string FeatureId = FeatureIds.ExplorerCustomization;
-    public const string FeatureName = "ExplorerCustomizations";
+    public const string FeatureId = FeatureIds.Explorer;
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -307,7 +306,7 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("", new[] { @"HKEY_CLASSES_ROOT\*\shell\TakeOwnership" }, "", RegistryValueKind.String),
+                new RegTarget("", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership" }, "", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -323,21 +322,21 @@ if (-not (Test-Path $icoPath)) {
 ; Updated on: February 25, 2024
 ; Tutorial: https://www.tenforums.com/tutorials/3841-add-take-ownership-context-menu-windows-10-a.html
 
-[-HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
-[-HKEY_CLASSES_ROOT\*\shell\runas]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\runas]
 
-[HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
 @=""Take Ownership""
 ""Extended""=-
 ""HasLUAShield""=""""
 ""NoWorkingDirectory""=""""
 ""NeverDefault""=""""
 
-[HKEY_CLASSES_ROOT\*\shell\TakeOwnership\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership\command]
 @=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
 ""IsolatedCommand""=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
 
-[HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership]
 @=""Take Ownership""
 ""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\Users\"" OR System.ItemPathDisplay:=\""C:\\ProgramData\"" OR System.ItemPathDisplay:=\""C:\\Windows\"" OR System.ItemPathDisplay:=\""C:\\Windows\\System32\"" OR System.ItemPathDisplay:=\""C:\\Program Files\"" OR System.ItemPathDisplay:=\""C:\\Program Files (x86)\"")""
 ""Extended""=-
@@ -345,11 +344,11 @@ if (-not (Test-Path $icoPath)) {
 ""NoWorkingDirectory""=""""
 ""Position""=""middle""
 
-[HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership\command]
 @=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
 ""IsolatedCommand""=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
 
-[HKEY_CLASSES_ROOT\Drive\shell\runas]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas]
 @=""Take Ownership""
 ""Extended""=-
 ""HasLUAShield""=""""
@@ -357,7 +356,7 @@ if (-not (Test-Path $icoPath)) {
 ""Position""=""middle""
 ""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\\"")""
 
-[HKEY_CLASSES_ROOT\Drive\shell\runas\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas\command]
 @=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
 ""IsolatedCommand""=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
 ") },
@@ -370,10 +369,10 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { [""] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\*\shell\TakeOwnership]
-[-HKEY_CLASSES_ROOT\*\shell\runas]
-[-HKEY_CLASSES_ROOT\Directory\shell\TakeOwnership]
-[-HKEY_CLASSES_ROOT\Drive\shell\runas]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\runas]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas]
 ") },
                 },
             },
@@ -391,7 +390,7 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions" }, "ExplorerCommandHandler", RegistryValueKind.String),
+                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions" }, "ExplorerCommandHandler", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -402,13 +401,13 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{4ac6c205-2853-4bf5-b47c-919a42a48a16}") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
 ""CommandStateSync""=""""
 ""Description""=""@shell32.dll,-37571""
 ""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
 ""MUIVerb""=""@shell32.dll,-37570""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\Windows.ShowFileExtensions]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\Windows.ShowFileExtensions]
 ""CommandStateSync""=""""
 ""Description""=""@shell32.dll,-37571""
 ""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
@@ -423,8 +422,8 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
-[-HKEY_CLASSES_ROOT\Directory\Background\shell\Windows.ShowFileExtensions]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\Windows.ShowFileExtensions]
 ") },
                 },
             },
@@ -463,6 +462,40 @@ if (-not (Test-Path $icoPath)) {
         },
         new()
         {
+            Id = "explorer-context-menu-ask-copilot",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerContextMenuAskCopilot.Name,
+                Description = LocKey.Setting.ExplorerContextMenuAskCopilot.Description,
+                GroupName = LocKey.SettingGroup.ContextMenu,
+                Icon = FluentIcons.BotSparkle,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.09.30",
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" }, "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}", RegistryValueKind.String),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}"] = Of("") },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-context-menu-sfc",
             Display = new()
             {
@@ -475,7 +508,7 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\SFC" }, "MUIVerb", RegistryValueKind.String),
+                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC" }, "MUIVerb", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -490,24 +523,24 @@ if (-not (Test-Path $icoPath)) {
 ; Created on: March 12, 2020
 ; Tutorial: https://www.tenforums.com/tutorials/152128-how-add-sfc-scannow-context-menu-windows-10-a.html
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC]
 ""Icon""=""WmiPrvSE.exe""
 ""MUIVerb""=""SFC /SCANNOW""
 ""Position""=""Bottom""
 ""Extended""=-
 ""SubCommands""=""""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\001menu]
 ""HasLUAShield""=""""
 ""MUIVerb""=""Run SFC /SCANNOW""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\001menu\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\001menu\command]
 @=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/s,/k, sfc /scannow' -Verb runAs\""""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\002menu]
 ""MUIVerb""=""SFC scan details log""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\SFC\shell\002menu\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\002menu\command]
 @=""PowerShell -ExecutionPolicy Bypass (sls [SR] $env:windir\\Logs\\CBS\\CBS.log -s).Line >\""$env:userprofile\\Desktop\\sfcdetails.txt\""""
 ") },
                 },
@@ -519,7 +552,7 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\Directory\Background\shell\SFC]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC]
 ") },
                 },
             },
@@ -538,11 +571,11 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, "MUIVerb", RegistryValueKind.String),
-                new RegTarget("Icon", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, "Icon", RegistryValueKind.String),
-                new RegTarget("HasLUAShield", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, "HasLUAShield", RegistryValueKind.String),
-                new RegTarget("", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage\command" }, "", RegistryValueKind.String),
-                new RegTarget("KeyExists", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\RepairWindowsImage" }, null, RegistryValueKind.String),
+                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "MUIVerb", RegistryValueKind.String),
+                new RegTarget("Icon", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "Icon", RegistryValueKind.String),
+                new RegTarget("HasLUAShield", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "HasLUAShield", RegistryValueKind.String),
+                new RegTarget("", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage\command" }, "", RegistryValueKind.String),
+                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, null, RegistryValueKind.String),
             },
             States = new[]
             {
@@ -589,7 +622,7 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK" }, "MUIVerb", RegistryValueKind.String),
+                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK" }, "MUIVerb", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -600,31 +633,31 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("CHKDSK") },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK]
 ""Icon""=""imageres.dll,-36""
 ""MUIVerb""=""CHKDSK""
 ""Position""=""Bottom""
 ""SubCommands""=""""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\001menu]
 ""HasLUAShield""=""""
 ""MUIVerb""=""Run CHKDSK (scan only)""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\001menu\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\001menu\command]
 @=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!:' -Verb runAs\""""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\002menu]
 ""HasLUAShield""=""""
 ""MUIVerb""=""Run CHKDSK /F (fix errors)""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\002menu\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\002menu\command]
 @=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /f' -Verb runAs\""""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\003menu]
 ""HasLUAShield""=""""
 ""MUIVerb""=""Run CHKDSK /R (locate bad sectors)""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK\shell\003menu\command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\003menu\command]
 @=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /r' -Verb runAs\""""
 ") },
                 },
@@ -636,7 +669,7 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\Directory\Background\shell\CHKDSK]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK]
 ") },
                 },
             },
@@ -655,7 +688,7 @@ if (-not (Test-Path $icoPath)) {
             },
             Targets = new Target[]
             {
-                new RegTarget("MUIVerb", new[] { @"HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with" }, "MUIVerb", RegistryValueKind.String),
+                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with" }, "MUIVerb", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -670,87 +703,87 @@ if (-not (Test-Path $icoPath)) {
 ; Created on: December 4, 2023
 ; Tutorial: https://www.elevenforum.com/t/add-edit-or-run-with-to-ps1-file-context-menu-in-windows-11.20366/
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
 ""MUIVerb""=""Edit or Run with""
 ""SubCommands""=""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout]
 ""MUIVerb""=""Run with PowerShell""
 ""Icon""=""powershell.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout\Command]
 @=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout]
 ""MUIVerb""=""Run with PowerShell as administrator""
 ""HasLUAShield""=""""
 ""Icon""=""powershell.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
 @=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
 ""MUIVerb""=""Run with PowerShell 7""
 ""Icon""=""pwsh.exe""
 ""CommandFlags""=dword:00000020
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout\Command]
 @=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout]
 ""MUIVerb""=""Run with PowerShell 7 as administrator""
 ""HasLUAShield""=""""
 ""Icon""=""pwsh.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
 @=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
 ""MUIVerb""=""Edit with PowerShell ISE""
 ""Icon""=""powershell_ise.exe""
 ""CommandFlags""=dword:00000020
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout\Command]
 @=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout]
 ""MUIVerb""=""Edit with PowerShell ISE as administrator""
 ""HasLUAShield""=""""
 ""Icon""=""powershell_ise.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
 @=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \""\""%1\""\""'  -Verb RunAs\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
 ""MUIVerb""=""Edit with PowerShell ISE (x86)""
 ""Icon""=""powershell_ise.exe""
 ""CommandFlags""=dword:00000020
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout\Command]
 @=""\""C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout]
 ""MUIVerb""=""Edit with PowerShell ISE (x86) as administrator""
 ""HasLUAShield""=""""
 ""Icon""=""powershell_ise.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
 @=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \""\""%1\""\""'  -Verb RunAs\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
 ""MUIVerb""=""Edit with Notepad""
 ""Icon""=""notepad.exe""
 ""CommandFlags""=dword:00000020
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout\Command]
 @=""\""C:\\Windows\\System32\\notepad.exe\"" \""%1\""""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout]
 ""MUIVerb""=""Edit with Notepad as administrator""
 ""HasLUAShield""=""""
 ""Icon""=""notepad.exe""
 
-[HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
 @=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \""\""%1\""\""'  -Verb RunAs\""""
 ") },
                 },
@@ -762,7 +795,7 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
 ") },
                 },
             },
@@ -782,7 +815,7 @@ if (-not (Test-Path $icoPath)) {
             Availability = new() { Builds = new[] { BuildRange.Between(26100, int.MaxValue) } },
             Targets = new Target[]
             {
-                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu" }, "ExplorerCommandHandler", RegistryValueKind.String),
+                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu" }, "ExplorerCommandHandler", RegistryValueKind.String),
             },
             States = new[]
             {
@@ -796,13 +829,13 @@ if (-not (Test-Path $icoPath)) {
 ; Credit: ThioJoe - https://github.com/ThioJoe/
 ; Source: https://gist.github.com/ThioJoe/f4b0799e2f0d95466f4c2bd4e46d1e67
 
-[HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu]
 ""CommandStateSync""=""""
 ""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
 ""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
 ""Note""=""Copied from original Command Store command: Windows.CompressTo""
 
-[HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\CompressToFullMenu_ForOldContextMenu]
 ""CommandStateSync""=""""
 ""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
 ""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
@@ -817,9 +850,9 @@ if (-not (Test-Path $icoPath)) {
                     Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Absent },
                     Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
 
-[-HKEY_CLASSES_ROOT\*\shell\CompressToFullMenu_ForOldContextMenu]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu]
 
-[-HKEY_CLASSES_ROOT\Folder\shell\CompressToFullMenu_ForOldContextMenu]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\CompressToFullMenu_ForOldContextMenu]
 ") },
                 },
             },
@@ -919,6 +952,218 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["LegacyDefaultPrinterMode"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-windows",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapWindows.Name,
+                Description = LocKey.Setting.ExplorerSnapWindows.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.DockWindow,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { RequiresReboot = true },
+            Targets = new Target[]
+            {
+                new RegTarget("WindowArrangementActive", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "WindowArrangementActive", RegistryValueKind.String),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["WindowArrangementActive"] = Of("1").OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["WindowArrangementActive"] = Of("0") },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-suggestions",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapSuggestions.Name,
+                Description = LocKey.Setting.ExplorerSnapSuggestions.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.ViewDashboard,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-snap-windows",
+            EnabledWhen = new("explorer-snap-windows", [LocKey.Common.Enabled]),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("SnapAssist", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "SnapAssist", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["SnapAssist"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["SnapAssist"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-layouts-maximize-button",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapLayoutsMaximizeButton.Name,
+                Description = LocKey.Setting.ExplorerSnapLayoutsMaximizeButton.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.WindowRestore,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-snap-windows",
+            EnabledWhen = new("explorer-snap-windows", [LocKey.Common.Enabled]),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("EnableSnapAssistFlyout", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "EnableSnapAssistFlyout", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["EnableSnapAssistFlyout"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnableSnapAssistFlyout"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-layouts-top-of-screen",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapLayoutsTopOfScreen.Name,
+                Description = LocKey.Setting.ExplorerSnapLayoutsTopOfScreen.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.DockBottom,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-snap-windows",
+            EnabledWhen = new("explorer-snap-windows", [LocKey.Common.Enabled]),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("EnableSnapBar", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "EnableSnapBar", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["EnableSnapBar"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnableSnapBar"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-groups-in-switchers",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapGroupsInSwitchers.Name,
+                Description = LocKey.Setting.ExplorerSnapGroupsInSwitchers.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.Tab,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-snap-windows",
+            EnabledWhen = new("explorer-snap-windows", [LocKey.Common.Enabled]),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("EnableTaskGroups", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "EnableTaskGroups", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["EnableTaskGroups"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnableTaskGroups"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-snap-without-edge",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerSnapWithoutEdge.Name,
+                Description = LocKey.Setting.ExplorerSnapWithoutEdge.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = MaterialIcons.DockRight,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-snap-windows",
+            EnabledWhen = new("explorer-snap-windows", [LocKey.Common.Enabled]),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("DITest", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "DITest", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["DITest"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DITest"] = Of(0) },
                 },
             },
         },
@@ -1344,6 +1589,40 @@ if (-not (Test-Path $icoPath)) {
         },
         new()
         {
+            Id = "explorer-customization-folder-type-discovery",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationFolderTypeDiscovery.Name,
+                Description = LocKey.Setting.ExplorerCustomizationFolderTypeDiscovery.Description,
+                GroupName = LocKey.SettingGroup.FilesAndFolders,
+                Icon = MaterialIcons.FolderTable,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.10.02",
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                // NotSpecified makes every folder without a saved view open as General items. Measured in the 26H2
+                // VM: a fresh folder of pictures opened as Large icons before, Details after an Explorer restart.
+                new RegTarget("FolderType", new[] { @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell" }, "FolderType", RegistryValueKind.String),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified") },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-customization-folder-tips",
             Display = new()
             {
@@ -1518,7 +1797,7 @@ if (-not (Test-Path $icoPath)) {
             Apply = new() { Restart = new RestartProcess("Explorer") },
             Targets = new Target[]
             {
-                new RegTarget("NeverShowExt", new[] { @"HKEY_CLASSES_ROOT\lnkfile" }, "NeverShowExt", RegistryValueKind.String),
+                new RegTarget("NeverShowExt", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\lnkfile" }, "NeverShowExt", RegistryValueKind.String),
             },
             States = new[]
             {

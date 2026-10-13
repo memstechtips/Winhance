@@ -10,7 +10,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class GamingAndPerformanceOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.GamingPerformance;
-    public const string FeatureName = "Gaming and Performance";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -650,13 +649,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("1").OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = Of("0") },
                 },
@@ -991,114 +989,125 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
+            Targets = new Target[]
+            {
+                new DnsTarget("primary", DnsSlot.Preferred),
+                new DnsTarget("primaryDoh", DnsSlot.Preferred, DnsPart.Encryption),
+                new DnsTarget("primaryTemplate", DnsSlot.Preferred, DnsPart.Template),
+                new DnsTarget("primaryFallback", DnsSlot.Preferred, DnsPart.Fallback),
+                new DnsTarget("secondary", DnsSlot.Alternate),
+                new DnsTarget("secondaryDoh", DnsSlot.Alternate, DnsPart.Encryption),
+                new DnsTarget("secondaryTemplate", DnsSlot.Alternate, DnsPart.Template),
+                new DnsTarget("secondaryFallback", DnsSlot.Alternate, DnsPart.Fallback),
+                new DnsTarget("primary6", DnsSlot.Preferred6),
+                new DnsTarget("primary6Doh", DnsSlot.Preferred6, DnsPart.Encryption),
+                new DnsTarget("primary6Template", DnsSlot.Preferred6, DnsPart.Template),
+                new DnsTarget("primary6Fallback", DnsSlot.Preferred6, DnsPart.Fallback),
+                new DnsTarget("secondary6", DnsSlot.Alternate6),
+                new DnsTarget("secondary6Doh", DnsSlot.Alternate6, DnsPart.Encryption),
+                new DnsTarget("secondary6Template", DnsSlot.Alternate6, DnsPart.Template),
+                new DnsTarget("secondary6Fallback", DnsSlot.Alternate6, DnsPart.Fallback),
+            },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option0,
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent, ["secondary"] = StateValue.Absent, ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option1,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1"), ["secondary"] = StateValue.Of("1.0.0.1"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option2,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.2','1.0.0.2') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.2 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.2"), ["secondary"] = StateValue.Of("1.0.0.2"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option3,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.3','1.0.0.3') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.3 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.3"), ["secondary"] = StateValue.Of("1.0.0.3"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option4,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("8.8.8.8"), ["secondary"] = StateValue.Of("8.8.4.4"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option5,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("9.9.9.9"), ["secondary"] = StateValue.Of("149.112.112.112"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingDnsServer.Option6,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('208.67.222.222','208.67.220.220') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=208.67.222.222 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=208.67.220.220 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.GamingDnsServer.Option7,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('1.1.1.1','1.0.0.1') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://cloudflare-dns.com/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=1.1.1.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=1.0.0.1 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.GamingDnsServer.Option8,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('8.8.8.8','8.8.4.4') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.google/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=8.8.8.8 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=8.8.4.4 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.GamingDnsServer.Option9,
-                    Effects = new Effect[]
-                    {
-                        new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('9.9.9.9','149.112.112.112') }", RunContext.User),
-                        new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = 'https://dns.quad9.net/dns-query'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server=9.9.9.9 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server=149.112.112.112 dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("208.67.222.222"), ["secondary"] = StateValue.Of("208.67.220.220"), ["primary6"] = StateValue.Absent, ["secondary6"] = StateValue.Absent },
                 },
             },
+            Fields = new[]
+            {
+                new Field[]
+                {
+                    new Field("primary", FieldKind.Text, LocKey.Setting.GamingDnsServer.Preferred,
+                        Rule: new TextRule(@"^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$", UpperCase: false, LocKey.Setting.GamingDnsServer.Error)),
+                    new Field("primaryDoh", FieldKind.Selection, LocKey.Setting.GamingDnsServer.Doh,
+                        Options: new[] { LocKey.Common.Off, LocKey.Setting.GamingDnsServer.DohAutomatic, LocKey.Setting.GamingDnsServer.DohManual },
+                        Builds: new[] { BuildRange.Windows11 }),
+                    new Field("primaryTemplate", FieldKind.Text, LocKey.Setting.GamingDnsServer.Template,
+                        Rule: new TextRule(@"^https://\S+$", UpperCase: false, LocKey.Setting.GamingDnsServer.TemplateError),
+                        OnlyWhen: new FieldCondition("primaryDoh", 2), Builds: new[] { BuildRange.Windows11 }),
+                    new Field("primaryFallback", FieldKind.CheckBox, LocKey.Setting.GamingDnsServer.Fallback,
+                        OnlyWhen: new FieldCondition("primaryDoh", 1, 2), Builds: new[] { BuildRange.Windows11 }),
+                },
+                new Field[]
+                {
+                    new Field("secondary", FieldKind.Text, LocKey.Setting.GamingDnsServer.Alternate,
+                        Rule: new TextRule(@"^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$", UpperCase: false, LocKey.Setting.GamingDnsServer.Error)),
+                    new Field("secondaryDoh", FieldKind.Selection, LocKey.Setting.GamingDnsServer.Doh,
+                        Options: new[] { LocKey.Common.Off, LocKey.Setting.GamingDnsServer.DohAutomatic, LocKey.Setting.GamingDnsServer.DohManual },
+                        Builds: new[] { BuildRange.Windows11 }),
+                    new Field("secondaryTemplate", FieldKind.Text, LocKey.Setting.GamingDnsServer.Template,
+                        Rule: new TextRule(@"^https://\S+$", UpperCase: false, LocKey.Setting.GamingDnsServer.TemplateError),
+                        OnlyWhen: new FieldCondition("secondaryDoh", 2), Builds: new[] { BuildRange.Windows11 }),
+                    new Field("secondaryFallback", FieldKind.CheckBox, LocKey.Setting.GamingDnsServer.Fallback,
+                        OnlyWhen: new FieldCondition("secondaryDoh", 1, 2), Builds: new[] { BuildRange.Windows11 }),
+                },
+                new Field[]
+                {
+                    new Field("primary6", FieldKind.Text, LocKey.Setting.GamingDnsServer.Preferred6,
+                        Rule: new TextRule(@"^(?=.*:)[0-9A-Fa-f:.]{2,45}$", UpperCase: false, LocKey.Setting.GamingDnsServer.Error6)),
+                    new Field("primary6Doh", FieldKind.Selection, LocKey.Setting.GamingDnsServer.Doh,
+                        Options: new[] { LocKey.Common.Off, LocKey.Setting.GamingDnsServer.DohAutomatic, LocKey.Setting.GamingDnsServer.DohManual },
+                        Builds: new[] { BuildRange.Windows11 }),
+                    new Field("primary6Template", FieldKind.Text, LocKey.Setting.GamingDnsServer.Template,
+                        Rule: new TextRule(@"^https://\S+$", UpperCase: false, LocKey.Setting.GamingDnsServer.TemplateError),
+                        OnlyWhen: new FieldCondition("primary6Doh", 2), Builds: new[] { BuildRange.Windows11 }),
+                    new Field("primary6Fallback", FieldKind.CheckBox, LocKey.Setting.GamingDnsServer.Fallback,
+                        OnlyWhen: new FieldCondition("primary6Doh", 1, 2), Builds: new[] { BuildRange.Windows11 }),
+                },
+                new Field[]
+                {
+                    new Field("secondary6", FieldKind.Text, LocKey.Setting.GamingDnsServer.Alternate6,
+                        Rule: new TextRule(@"^(?=.*:)[0-9A-Fa-f:.]{2,45}$", UpperCase: false, LocKey.Setting.GamingDnsServer.Error6)),
+                    new Field("secondary6Doh", FieldKind.Selection, LocKey.Setting.GamingDnsServer.Doh,
+                        Options: new[] { LocKey.Common.Off, LocKey.Setting.GamingDnsServer.DohAutomatic, LocKey.Setting.GamingDnsServer.DohManual },
+                        Builds: new[] { BuildRange.Windows11 }),
+                    new Field("secondary6Template", FieldKind.Text, LocKey.Setting.GamingDnsServer.Template,
+                        Rule: new TextRule(@"^https://\S+$", UpperCase: false, LocKey.Setting.GamingDnsServer.TemplateError),
+                        OnlyWhen: new FieldCondition("secondary6Doh", 2), Builds: new[] { BuildRange.Windows11 }),
+                    new Field("secondary6Fallback", FieldKind.CheckBox, LocKey.Setting.GamingDnsServer.Fallback,
+                        OnlyWhen: new FieldCondition("secondary6Doh", 1, 2), Builds: new[] { BuildRange.Windows11 }),
+                },
+            },
+            // Placeholders hold checked values by the time the answer file fills them; {{servers}} is a PowerShell list
+            // of @{a=address; f=DohFlags; t=template}, empty for Automatic.
             CustomStateScripts = new[]
             {
-                new ScriptEffect(@"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }", RunContext.User),
-                new ScriptEffect(@"$known = @('1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112'); foreach ($s in $known) { netsh dns delete encryption server=$s 2>$null | Out-Null }; $t = '{{dohtemplate}}'; if ($t -and $t -notmatch '^\{\{') { netsh dns add encryption server={{primary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null; netsh dns add encryption server={{secondary}} dohtemplate=$t autoupgrade=yes udpfallback=no | Out-Null }", RunContext.User),
+                new ScriptEffect(@"$servers = @({{servers}}); $doh = 'HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache'; Get-NetAdapter | ForEach-Object { $g = $_.InterfaceGuid; Set-ItemProperty ""HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$g"" -Name NameServer -Value (($servers | Where-Object { $_.a -notmatch ':' }).a -join ','); Set-ItemProperty ""HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\$g"" -Name NameServer -Value (($servers | Where-Object { $_.a -match ':' }).a -join ',') -ErrorAction SilentlyContinue; foreach ($family in 'Doh', 'Doh6') { Remove-Item ""$doh\InterfaceSpecificParameters\$g\DohInterfaceSettings\$family"" -Recurse -Force -ErrorAction SilentlyContinue }; foreach ($s in $servers | Where-Object { $_.f -gt 0 }) { $key = ""$doh\InterfaceSpecificParameters\$g\DohInterfaceSettings\$(if ($s.a -match ':') { 'Doh6' } else { 'Doh' })\$($s.a)""; $t = if ($s.t) { $s.t } else { (Get-ItemProperty ""$doh\Parameters\DohWellKnownServers\$($s.a)"" -ErrorAction SilentlyContinue).Template }; New-Item $key -Force | Out-Null; New-ItemProperty $key -Name DohFlags -Value $s.f -PropertyType QWord -Force | Out-Null; if ($t) { New-ItemProperty $key -Name DohTemplate -Value $t -Force | Out-Null } } }; sc.exe control dnscache paramchange | Out-Null", RunContext.User),
             },
-            Detector = new DnsServerDetector(LocKey.Setting.GamingDnsServer.Option0, new Dictionary<string, LocKey>
-            {
-                ["1.1.1.1"] = LocKey.Setting.GamingDnsServer.Option1,
-                ["1.1.1.2"] = LocKey.Setting.GamingDnsServer.Option2,
-                ["1.1.1.3"] = LocKey.Setting.GamingDnsServer.Option3,
-                ["8.8.8.8"] = LocKey.Setting.GamingDnsServer.Option4,
-                ["9.9.9.9"] = LocKey.Setting.GamingDnsServer.Option5,
-                ["208.67.222.222"] = LocKey.Setting.GamingDnsServer.Option6,
-            }),
         },
         new()
         {

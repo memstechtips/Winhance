@@ -14,6 +14,7 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     public DataTemplate? ActionTemplate { get; set; }
     public DataTemplate? TextBoxTemplate { get; set; }
     public DataTemplate? ListTemplate { get; set; }
+    public DataTemplate? CheckListTemplate { get; set; }
     public DataTemplate? TileSelectionTemplate { get; set; }
     // ONE template each: the on-battery column is bound to HasBattery inside the template rather than split into
     // Dual/SingleAC variants, which is what let the two halves drift apart.
@@ -45,6 +46,7 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                 InputType.Action => ActionTemplate,
                 InputType.TextBox => TextBoxTemplate,
                 InputType.List => ListTemplate,
+                InputType.CheckList => CheckListTemplate,
                 _ => throw new InvalidOperationException(
                     $"Setting '{vm.SettingId}' is a {vm.InputType}, which the settings list has no card for."),
             };

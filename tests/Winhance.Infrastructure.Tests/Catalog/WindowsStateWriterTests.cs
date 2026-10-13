@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
+using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
@@ -23,13 +24,14 @@ public class WindowsStateWriterTests
     private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
     private readonly Mock<IPowerPlanActivationService> _activation = new();
     private readonly Mock<IWindowsThemeService> _theme = new();
+    private readonly Mock<IDnsSettingsService> _dns = new();
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
         _sut = new WindowsStateWriter(
-            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _log.Object);
+            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _dns.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>

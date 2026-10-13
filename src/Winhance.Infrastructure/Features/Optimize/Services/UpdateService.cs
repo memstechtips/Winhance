@@ -42,6 +42,9 @@ internal class UpdateService(
             case 3:
                 await ApplyDisabledModeAsync(settingApplicationService).ConfigureAwait(false);
                 break;
+            case 4:
+                await ApplyNotifyOnlyModeAsync().ConfigureAwait(false);
+                break;
             default:
                 throw new ArgumentException($"Invalid selection index: {selectionIndex}");
         }
@@ -62,6 +65,14 @@ internal class UpdateService(
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
         ApplyRegistrySettingsForIndex(1);
+    }
+
+    private async Task ApplyNotifyOnlyModeAsync()
+    {
+        await RestoreCriticalDllsAsync().ConfigureAwait(false);
+        await EnableUpdateServicesAsync().ConfigureAwait(false);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        ApplyRegistrySettingsForIndex(4);
     }
 
     // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
