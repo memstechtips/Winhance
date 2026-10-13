@@ -1,5 +1,5 @@
 {
-  "count": 253,
+  "count": 268,
   "description": "Icon manifest for memstechtips/package-icons. Keys are paths under icons/. external/ keyed by package-manager id (winget|choco); windows/ keyed by AppX package identity, DISM CapabilityName, or OptionalFeatureName. Commit-pin via jsDelivr; re-download an icon when its sha256 changes.",
   "icons": {
     "external/7zip.7zip.png": {
@@ -177,6 +177,14 @@
         "ch.LosslessCut"
       ]
     },
+    "external/clsid2.mpc-hc.png": {
+      "choco": "mpc-hc-clsid2",
+      "name": "MPC-HC",
+      "sha256": "215cfb97755b052756f2d4f9ddad5e907b8aea2d18282d902dba2ff7a58c8cea",
+      "winget": [
+        "clsid2.mpc-hc"
+      ]
+    },
     "external/codecguide.k-litecodecpack.mega.png": {
       "choco": "k-litecodecpackmega",
       "name": "K-Lite Codec Pack (Mega)",
@@ -192,6 +200,15 @@
       "sha256": "b1cf9fee1589500a7fd43940f1222c82a8eb91471fd180238d76be1096cac739",
       "winget": [
         "CodeSector.TeraCopy"
+      ]
+    },
+    "external/crystaldewworld.crystaldiskinfo.png": {
+      "choco": "crystaldiskinfo",
+      "msstore": "XP8K4RGX25G3GM",
+      "name": "Crystal Disk Info",
+      "sha256": "97ec6d5d0b19eae3d5985926ac475ab53d6be35b638552bd3ccd8aa73f347c08",
+      "winget": [
+        "CrystalDewWorld.CrystalDiskInfo"
       ]
     },
     "external/cyanfish.naps2.png": {
@@ -218,6 +235,15 @@
       "sha256": "8a044f27d141de33f7d2008d10863731be537122cafcfc755db2130a8f9115af",
       "winget": [
         "Deskflow.Deskflow"
+      ]
+    },
+    "external/devolutions.unigetui.png": {
+      "choco": "unigetui",
+      "msstore": "XPFFTQ032PTPHF",
+      "name": "UniGetUI",
+      "sha256": "a996266c0b6dc53a9ebdfb3f58bc402b3b0246fa21810fb508553d16a42e1006",
+      "winget": [
+        "Devolutions.UniGetUI"
       ]
     },
     "external/discord.discord.png": {
@@ -280,6 +306,14 @@
         "EclipseFoundation.Eclipse.Java"
       ]
     },
+    "external/edde746.plezy.png": {
+      "choco": "plezy",
+      "name": "Plezy",
+      "sha256": "ef24985123cd0c50ab8d5cf79d758c022fbf88d38ba849e5ad08c18b59c9c556",
+      "winget": [
+        "edde746.Plezy"
+      ]
+    },
     "external/electronicarts.eadesktop.png": {
       "choco": "ea-app",
       "name": "EA app",
@@ -337,6 +371,15 @@
       "sha256": "22493c3672cf00c6b7d78cacc2d29f9ff12bb2fdda7c59857bdf15bce9cb6262",
       "winget": [
         "FastStone.Viewer"
+      ]
+    },
+    "external/file-new-project.eartrumpet.png": {
+      "choco": "eartrumpet",
+      "msstore": "9NBLGGH516XP",
+      "name": "EarTrumpet",
+      "sha256": "e6b952cf7ea3d55dec7c08ec6042b3387f60ef23975b549da1476a9d22834da5",
+      "winget": [
+        "File-New-Project.EarTrumpet"
       ]
     },
     "external/flameshot.flameshot.png": {
@@ -487,6 +530,13 @@
       "sha256": "ad968eca0c789ba8e288d14c843a04d0b8d7d1a3bed5b8544b498d27fc63eb49",
       "winget": [
         "GuinpinSoft.MakeMKV"
+      ]
+    },
+    "external/guru3d.afterburner.png": {
+      "name": "MSI Afterburner",
+      "sha256": "29770e31e026db9f485d3d86262d1f09c474d0613f443e89fb0ff7fb533f6363",
+      "winget": [
+        "Guru3D.Afterburner"
       ]
     },
     "external/handbrake.handbrake.png": {
@@ -988,6 +1038,11 @@
         "Notepad++.Notepad++"
       ]
     },
+    "external/nvidia-control-panel.png": {
+      "msstore": "9NF8H0H7WMLT",
+      "name": "NVIDIA Control Panel",
+      "sha256": "67a8fb738ac666d53022c37c3120ac7af1f0fe969c1beb17cc86e7c6eb4d639e"
+    },
     "external/obsproject.obsstudio.png": {
       "choco": "obs-studio",
       "name": "OBS Studio",
@@ -1144,6 +1199,22 @@
         "Playnite.Playnite"
       ]
     },
+    "external/plex.plex.png": {
+      "choco": "plex",
+      "name": "Plex",
+      "sha256": "16b1d5c0d818fe72516e5fbdade49226fcf31a054269b7099b635c4777fe1029",
+      "winget": [
+        "Plex.Plex"
+      ]
+    },
+    "external/plex.plexmediaserver.png": {
+      "choco": "plexmediaserver",
+      "name": "Plex Media Server",
+      "sha256": "f09327c01683890efde22c7020bfea14745e2652ebad1772350cc0ee5d0c0999",
+      "winget": [
+        "Plex.PlexMediaServer"
+      ]
+    },
     "external/powersoftware.anyburn.png": {
       "name": "AnyBurn",
       "sha256": "17503d96bd4015bc9305d73b7266b239880c37e887d0b666f2bc13e91bcf29a4",
@@ -1167,6 +1238,14 @@
         "Proton.ProtonMail"
       ]
     },
+    "external/proton.protonvpn.png": {
+      "choco": "protonvpn",
+      "name": "Proton VPN",
+      "sha256": "b2dadbb195e54dc21a44561195b66f330fcac4c5895aec678489b67cc652fb1d",
+      "winget": [
+        "Proton.ProtonVPN"
+      ]
+    },
     "external/putty.putty.png": {
       "choco": "putty",
       "msstore": "XPFNZKSKLBP7RJ",
@@ -1183,6 +1262,14 @@
       "sha256": "4d9303b71249cb4dafa7f6e58c5d783fb60a549a3f39afca3107c774679f4ca0",
       "winget": [
         "Python.Python.3.13"
+      ]
+    },
+    "external/qbittorrent.qbittorrent.png": {
+      "choco": "qbittorrent",
+      "name": "qBittorrent",
+      "sha256": "36af88cbd93a5fda66d0a353b5cc2a8c143a917790e6147fc5b8a3ee810ac592",
+      "winget": [
+        "qBittorrent.qBittorrent"
       ]
     },
     "external/rainmeter.rainmeter.png": {
@@ -1227,6 +1314,14 @@
         "RealVNC.VNCViewer"
       ]
     },
+    "external/rem0o.fancontrol.png": {
+      "choco": "fancontrol",
+      "name": "FanControl",
+      "sha256": "bbab3df51ad01017684109cb32b2d4efcfff6b0217861099d5ddf6c97f15fae5",
+      "winget": [
+        "Rem0o.FanControl"
+      ]
+    },
     "external/revouninstaller.revouninstaller.png": {
       "choco": "revo-uninstaller",
       "msstore": "XPFFVD4CMXN8VN",
@@ -1262,6 +1357,11 @@
         "Rufus.Rufus"
       ]
     },
+    "external/rustdesk.png": {
+      "choco": "rustdesk",
+      "name": "RustDesk",
+      "sha256": "9dc3ea42b25890c70a1b31d37e89c39a02a4f2bbc1a7d80cbbf6859a40bb4973"
+    },
     "external/rustdesk.rustdesk.png": {
       "choco": "rustdesk",
       "name": "RustDesk",
@@ -1269,6 +1369,12 @@
       "winget": [
         "RustDesk.RustDesk"
       ]
+    },
+    "external/samsung-magician.png": {
+      "choco": "samsung-magician",
+      "msstore": "XPDDT99J9GKB5C",
+      "name": "Samsung Magician",
+      "sha256": "821e93172d88ba8e6b917c0abd3816b5bb1ff5555b30bb5d0237719c8266fc6c"
     },
     "external/sandisk.dashboard.png": {
       "choco": "sandisk-dashboard",
@@ -1392,6 +1498,14 @@
       "sha256": "ec6db866230846de2de6df65165f624c5e3e51ee0a7007b0fa986b97e7b44b4a",
       "winget": [
         "TheDocumentFoundation.LibreOffice"
+      ]
+    },
+    "external/tonec.internetdownloadmanager.png": {
+      "choco": "internet-download-manager",
+      "name": "Internet Download Manager",
+      "sha256": "19f3ede9006b4fe90b50b31abb2943183c5623f8c8ec8b8642ae0e77cb63ecf8",
+      "winget": [
+        "Tonec.InternetDownloadManager"
       ]
     },
     "external/torproject.torbrowser.png": {

@@ -25,6 +25,9 @@ internal static class WinGetExitCodes
     public const int ExecUninstallCommandFailed = unchecked((int)0x8A150030);
     public const int NoUninstallInfoFound = unchecked((int)0x8A15002F);
 
+    // winget will not remove a user-scope package from an elevated session; the same command run unelevated works.
+    public const int NoAdminUninstallForUserScope = unchecked((int)0x8A15007D);
+
     public static bool IsSuccess(int exitCode)
         => exitCode == Ok || exitCode == RestartRequired
         || exitCode == AlreadyInstalled || exitCode == UpdateNotApplicable;

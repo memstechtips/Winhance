@@ -113,6 +113,36 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-plex-media-server",
+                        Name = "Plex Media Server",
+                        Description = "Organizes your media library and streams it to your devices",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["Plex.PlexMediaServer"],
+                        ChocoPackageId = "plexmediaserver",
+                        WebsiteUrl = "https://www.plex.tv/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-plex",
+                        Name = "Plex",
+                        Description = "Plex desktop app for watching your server's media and Plex content",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["Plex.Plex"],
+                        ChocoPackageId = "plex",
+                        WebsiteUrl = "https://www.plex.tv/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-plezy",
+                        Name = "Plezy",
+                        Description = "Third-party Plex and Jellyfin client",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["edde746.Plezy"],
+                        ChocoPackageId = "plezy",
+                        WebsiteUrl = "https://plezy.app/",
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-mediamonkey",
                         Name = "MediaMonkey",
                         Description = "Media manager and player",
@@ -144,16 +174,6 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
-                        Id = "external-app-streamlabs-obs",
-                        Name = "Streamlabs OBS",
-                        Description = "Streaming software built on OBS with additional features for streamers",
-                        RegistryDisplayName = "Streamlabs Desktop {version}",
-                        GroupName = "Multimedia (Audio & Video)",
-                        ChocoPackageId = "streamlabs-obs",
-                        WebsiteUrl = "https://streamlabs.com/",
-                    },
-                    new ItemDefinition
-                    {
                         Id = "external-app-mpc-be",
                         Name = "MPC-BE",
                         Description = "Lightweight Media Player Classic fork for video and audio playback",
@@ -164,6 +184,16 @@ public static partial class ExternalAppDefinitions
                         ChocoPackageId = "mpc-be",
                         MsStoreId = "9PD88QB3BGKN",
                         WebsiteUrl = "https://sourceforge.net/projects/mpcbe/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-mpc-hc",
+                        Name = "MPC-HC",
+                        Description = "Lightweight classic media player, the actively maintained clsid2 fork",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["clsid2.mpc-hc"],
+                        ChocoPackageId = "mpc-hc-clsid2",
+                        WebsiteUrl = "https://github.com/clsid2/mpc-hc",
                     },
                     new ItemDefinition
                     {
@@ -297,6 +327,17 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["irzyxa.Volume2Portable"],
                         ChocoPackageId = "volume2",
                         WebsiteUrl = "https://github.com/irzyxa/Volume2",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-eartrumpet",
+                        Name = "EarTrumpet",
+                        Description = "Tray volume mixer with per-app volume and output device control",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["File-New-Project.EarTrumpet"],
+                        ChocoPackageId = "eartrumpet",
+                        MsStoreId = "9NBLGGH516XP",
+                        WebsiteUrl = "https://eartrumpet.app/",
                     }
                 }
             };

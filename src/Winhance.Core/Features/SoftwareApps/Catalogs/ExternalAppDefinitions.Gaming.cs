@@ -119,6 +119,18 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["Playnite.Playnite"],
                         ChocoPackageId = "playnite",
                         WebsiteUrl = "https://playnite.link/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-msi-afterburner",
+                        Name = "MSI Afterburner",
+                        Description = "GPU overclocking, fan control and hardware monitoring",
+                        GroupName = "Gaming",
+                        WinGetPackageId = ["Guru3D.Afterburner"],
+                        // winget's installed list reports it as a local ARP entry, so detection falls back to the uninstall key.
+                        RegistrySubKeyName = "Afterburner",
+                        RegistryDisplayName = "MSI Afterburner {version}",
+                        WebsiteUrl = "https://www.msi.com/Landing/afterburner/graphics-cards",
                     }
                 }
             };

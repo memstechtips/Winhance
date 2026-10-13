@@ -62,6 +62,16 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-protonvpn",
+                        Name = "Proton VPN",
+                        Description = "VPN client from Proton, with a free plan",
+                        GroupName = "Privacy & Security",
+                        WinGetPackageId = ["Proton.ProtonVPN"],
+                        ChocoPackageId = "protonvpn",
+                        WebsiteUrl = "https://protonvpn.com/",
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-sniffnet",
                         Name = "Sniffnet",
                         Description = "Network monitoring tool to analyze your internet traffic",

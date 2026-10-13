@@ -39,6 +39,16 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-nvidia-control-panel",
+                        Name = "NVIDIA Control Panel",
+                        Description = "NVIDIA display, 3D and per-app graphics settings",
+                        GroupName = "Other Utilities",
+                        MsStoreId = "9NF8H0H7WMLT",
+                        AppxPackageName = ["NVIDIACorp.NVIDIAControlPanel"],
+                        WebsiteUrl = "https://www.nvidia.com/",
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-wise-disk-cleaner",
                         Name = "Wise Disk Cleaner",
                         Description = "Free disk cleanup and defragmentation utility",
@@ -65,10 +75,32 @@ public static partial class ExternalAppDefinitions
                         Name = "UniGetUI",
                         Description = "Universal package manager interface supporting WinGet, Chocolatey, and more",
                         GroupName = "Other Utilities",
-                        WinGetPackageId = ["MartiCliment.UniGetUI"],
-                        ChocoPackageId = "wingetui",
+                        // Devolutions took the project over in 2026 and winget dropped the MartiCliment id; the old
+                        // id stays so an existing install still reads as installed.
+                        WinGetPackageId = ["Devolutions.UniGetUI", "MartiCliment.UniGetUI"],
+                        ChocoPackageId = "unigetui",
                         MsStoreId = "XPFFTQ032PTPHF",
-                        WebsiteUrl = "https://www.marticliment.com/unigetui/",
+                        WebsiteUrl = "https://devolutions.net/unigetui/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-qbittorrent",
+                        Name = "qBittorrent",
+                        Description = "Free open-source BitTorrent client",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["qBittorrent.qBittorrent"],
+                        ChocoPackageId = "qbittorrent",
+                        WebsiteUrl = "https://www.qbittorrent.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-internet-download-manager",
+                        Name = "Internet Download Manager",
+                        Description = "Paid download manager with segmented downloads, resume and scheduling",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["Tonec.InternetDownloadManager"],
+                        ChocoPackageId = "internet-download-manager",
+                        WebsiteUrl = "https://www.internetdownloadmanager.com/",
                     },
                     new ItemDefinition
                     {
@@ -79,6 +111,16 @@ public static partial class ExternalAppDefinitions
                         WinGetPackageId = ["OpenRGB.OpenRGB"],
                         ChocoPackageId = "openrgb",
                         WebsiteUrl = "https://openrgb.org/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-fancontrol",
+                        Name = "FanControl",
+                        Description = "Controls fan speeds from temperature sensors with custom curves",
+                        GroupName = "Other Utilities",
+                        WinGetPackageId = ["Rem0o.FanControl"],
+                        ChocoPackageId = "fancontrol",
+                        WebsiteUrl = "https://getfancontrol.com/",
                     },
                     new ItemDefinition
                     {

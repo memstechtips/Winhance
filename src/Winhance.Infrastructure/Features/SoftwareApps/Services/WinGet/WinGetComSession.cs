@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using WindowsPackageManager.Interop;
@@ -27,6 +28,9 @@ internal class WinGetComSession
         get => _comInitTimedOut;
         set => _comInitTimedOut = value;
     }
+
+    [MemberNotNullWhen(true, nameof(PackageManager), nameof(Factory))]
+    public bool IsReady() => EnsureComInitialized() && PackageManager != null && Factory != null;
 
     public bool EnsureComInitialized()
     {
@@ -69,6 +73,16 @@ internal class WinGetComSession
                 return false;
             }
         }
+    }
+
+    // The COM server belongs to App Installer and keeps its package in use while any reference lives, so Windows can only
+    // stage an App Installer update for later. Collecting the runtime wrappers drops the last references and lets it exit.
+    public void Release()
+    {
+        ResetFactory();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
     }
 
     public void ResetFactory()

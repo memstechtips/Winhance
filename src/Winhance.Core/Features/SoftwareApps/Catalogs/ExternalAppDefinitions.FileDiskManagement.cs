@@ -87,7 +87,7 @@ public static partial class ExternalAppDefinitions
                         Name = "Crystal Disk Info",
                         Description = "Hard drive health monitoring utility",
                         GroupName = "File & Disk Management",
-                        WinGetPackageId = ["WsSolInfor.CrystalDiskInfo"],
+                        WinGetPackageId = ["CrystalDewWorld.CrystalDiskInfo"],
                         ChocoPackageId = "crystaldiskinfo",
                         MsStoreId = "XP8K4RGX25G3GM",
                         WebsiteUrl = "https://crystalmark.info/en/software/crystaldiskinfo/",
@@ -128,6 +128,16 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://sddashboarddownloads.sandisk.com/wdDashboard/DashboardSetup.exe",
                         },
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-samsung-magician",
+                        Name = "Samsung Magician",
+                        Description = "Health, firmware updates and benchmarks for Samsung SSDs",
+                        GroupName = "File & Disk Management",
+                        ChocoPackageId = "samsung-magician",
+                        MsStoreId = "XPDDT99J9GKB5C",
+                        WebsiteUrl = "https://semiconductor.samsung.com/consumer-storage/magician/",
                     },
                     new ItemDefinition
                     {

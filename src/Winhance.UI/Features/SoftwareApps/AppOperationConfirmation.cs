@@ -3,29 +3,25 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.SoftwareApps;
 
+public enum AppOperation
+{
+    Install,
+    Remove,
+}
+
 public static class AppOperationConfirmation
 {
     public static ConfirmationRequest Build(
-        string operationType,
+        AppOperation operation,
         IEnumerable<string> itemNames,
         string? checkboxText,
         ILocalizationService localization)
     {
-        bool isInstall = operationType.Equals("install", StringComparison.OrdinalIgnoreCase);
-        bool isRemove = operationType.Equals("remove", StringComparison.OrdinalIgnoreCase);
-
-        string title = isInstall ? localization.GetString("Dialog_ConfirmInstallation") :
-                       isRemove ? localization.GetString("Dialog_ConfirmRemoval") :
-                       localization.GetString("Dialog_ConfirmOperation", operationType);
-
-        string header = isInstall ? localization.GetString("Dialog_ItemsWillBeInstalled") :
-                        isRemove ? localization.GetString("Dialog_ItemsWillBeRemoved") :
-                        localization.GetString("Dialog_ItemsWillBeProcessed", operationType.ToLower());
-
+        bool isInstall = operation == AppOperation.Install;
         return new ConfirmationRequest
         {
-            Title = title,
-            Message = header,
+            Title = localization.GetString(isInstall ? "Dialog_ConfirmInstallation" : "Dialog_ConfirmRemoval"),
+            Message = localization.GetString(isInstall ? "Dialog_ItemsWillBeInstalled" : "Dialog_ItemsWillBeRemoved"),
             Items = itemNames.ToList(),
             CheckboxText = checkboxText,
             CheckboxInitiallyChecked = true,
