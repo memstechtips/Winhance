@@ -19,9 +19,6 @@ public sealed record SponsorEntry
     [JsonPropertyName("country")]
     public string? Country { get; init; }
 
-    [JsonPropertyName("contact")]
-    public string? Contact { get; init; }
-
     [JsonPropertyName("url")]
     public string? Url { get; init; }
 
@@ -31,11 +28,14 @@ public sealed record SponsorEntry
     [JsonPropertyName("since")]
     public string? Since { get; init; }
 
-    [JsonPropertyName("example")]
-    public bool Example { get; init; }
+    [JsonPropertyName("slogan")]
+    public string? Slogan { get; init; }
 
     [JsonPropertyName("until")]
     public string? Until { get; init; }
+
+    [JsonPropertyName("ends")]
+    public string? Ends { get; init; }
 }
 
 public sealed record SupporterEntry

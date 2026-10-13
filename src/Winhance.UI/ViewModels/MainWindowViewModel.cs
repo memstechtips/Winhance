@@ -145,6 +145,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(WindowsFilterTooltip));
         OnPropertyChanged(nameof(ToggleNavigationTooltip));
         OnPropertyChanged(nameof(DonateTooltip));
+        OnPropertyChanged(nameof(SupportButtonText));
         OnPropertyChanged(nameof(BugReportTooltip));
         OnPropertyChanged(nameof(DocsTooltip));
 
@@ -207,9 +208,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string ModeNormalLabel => _localizationService.GetStringOrDefault("Mode_Normal", "Normal");
     public string ModeBuilderLabel => _localizationService.GetStringOrDefault("Mode_Builder", "Builder");
     public string ModeConfigReviewLabel => _localizationService.GetStringOrDefault("Mode_ConfigReview", "Config Review");
-    public string ModeNormalTooltip => _localizationService.GetStringOrDefault("Mode_Normal_Tooltip", "Normal mode");
-    public string ModeBuilderTooltip => _localizationService.GetStringOrDefault("Mode_Builder_Tooltip", "Builder mode");
-    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Review");
+    public string ModeNormalTooltip => _localizationService.GetStringOrDefault("Mode_Normal_Tooltip", "Normal mode — changes apply to this PC immediately.");
+    public string ModeBuilderTooltip => _localizationService.GetStringOrDefault("Mode_Builder_Tooltip", "Builder mode — create a config or autounattend file without changing this PC.");
+    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Review — review an imported config before applying it.");
 
     public string WindowsFilterTooltip
     {
@@ -245,6 +246,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string DonateTooltip =>
         _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
 
+    public string SupportButtonText =>
+        _localizationService.GetStringOrDefault("Support_TitleBarLabel", "Support");
+
     public string BugReportTooltip =>
         _localizationService.GetStringOrDefault("Tooltip_ReportBug", "Report a Bug");
 
@@ -272,7 +276,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string NavMoreText =>
         _localizationService.GetStringOrDefault("Nav_More", "More");
 
-    public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode;
+    // Builder picks the Windows a file is for in its own bar, so this PC's filter has nothing to say there.
+    public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode && !IsBuilderModeActive;
 
     // Confirms first if the current mode has unsaved progress (Builder edits, or a pending Config Review).
     public async Task RequestSwitchModeAsync(WinhanceMode target)
@@ -291,7 +296,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (leavingBuilderWithEdits || leavingReview)
         {
-            var message = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation", "Switch mode? Your current unsaved progress will be discarded. Nothing was applied to this PC.");
+            var message = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation", "Switch mode? Your unsaved progress in this mode will be discarded. Nothing was applied to your system.");
             var title = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation_Title", "Switch Mode");
             var confirmed = (await _dialogService.ShowConfirmationAsync(
                 new ConfirmationRequest { Message = message, Title = title })).Confirmed;
@@ -376,6 +381,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsNormalMode));
         OnPropertyChanged(nameof(IsBuilderModeActive));
         OnPropertyChanged(nameof(IsConfigReviewModeActive));
+        OnPropertyChanged(nameof(IsWindowsFilterButtonEnabled));
     }
 
     [RelayCommand]

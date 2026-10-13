@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.Common.Enums;
 
-// Exit mode's countdown-gated close exists so the supporter list is actually read.
+// Exit mode holds No behind a short countdown so the ask is read before it is declined.
 public enum SponsorsDialogMode
 {
     Normal,

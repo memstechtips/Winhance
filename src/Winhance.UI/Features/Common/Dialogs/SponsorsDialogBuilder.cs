@@ -1,62 +1,65 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Controls;
+using static Winhance.UI.Features.Common.Helpers.CodeBuiltStyle;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-// The caller (DialogService) owns ConfigureDialog, the semaphore and ShowAsync; read ExtractResult after ShowAsync returns.
+// The caller (DialogService) owns ConfigureDialog, the semaphore and ShowAsync.
 internal class SponsorsDialogBuilder
 {
-    private const string SupportUrl = "https://store.memstechtips.com/winhance/";
+    // The ref tag tells app-driven store visits apart from the website's in the store's logs.
+    private const string SupportUrl = "https://store.memstechtips.com/winhance/?ref=";
+    private const string BusinessSponsorUrl = SupportUrl + "app-sponsor#business";
 
-    // Sponsor cards layout. The grid is locked to exactly CardColumns columns
-    // that fill the usable content width, so cards never leave dead space on the
-    // right. The chip packer assumes ~760px of usable
-    // width (ContentDialogMaxWidth 860 minus dialog chrome/padding); the card
-    // width budget is set 12px BELOW that on purpose — UniformWrapPanel derives
-    // its column count from the real measured width, and sizing cards to exactly
-    // 760 would make 4 columns a knife-edge (759px real width → 3 columns + a
-    // ragged ghost row). The slack guarantees 4 columns with a few px of gutter.
-    // ItemWidth is derived: (budget − (cols−1)×spacing) / cols
-    //   = (748 − 3×12) / 4 = 178.
-    private const int CardColumns = 4;
-    private const double UsableContentWidth = 748d;
+    // One row of sponsor cards. The card budget sits below the dialog's usable width (max width minus
+    // ~90px of chrome and padding) on purpose: UniformWrapPanel derives its column count from the real
+    // measured width, and sizing cards to exactly that width makes the third column a knife-edge.
+    private const double DialogMaxWidth = 620d;
+    private const int CardColumns = 3;
+    private const double CardBudgetWidth = 510d;
     private const double CardColumnSpacing = 12d;
-    private const double CardRowSpacing = 14d;
-    private const double CardWidth =
-        (UsableContentWidth - (CardColumns - 1) * CardColumnSpacing) / CardColumns;
-    private const double CardHeight = 225d;
+    private const double CardRowSpacing = 12d;
+    private const double CardWidth = (CardBudgetWidth - (CardColumns - 1) * CardColumnSpacing) / CardColumns;
+    private const double CardHeight = 191d;
+    private const double CardCornerRadius = 12d;
+    private const double CardLogoSize = 56d;
+    // One row, plus half of the next when there is one, so more sponsors read as scrollable rather than cut off.
+    private const double SponsorWallMaxHeight = CardHeight * 1.5 + CardRowSpacing;
 
-    // Supporter chips are content-sized (measure-and-pack), not uniform cells.
-    // ChipRowAvailableWidth is the usable inner width for packing chips into
-    // rows: ContentDialogMaxWidth (860) minus dialog chrome/padding (~90) gives
-    // ~770px of content width to flow chips across before wrapping to a new row.
-    // We measure chips off the visual tree (before theme/text-scaling applies),
-    // so this is deliberately a touch conservative — the supporters ScrollViewer
-    // disables horizontal scrolling, so a slightly-early wrap is preferable to a
-    // chip clipping off the right edge under "Make text bigger".
-    private const double ChipRowAvailableWidth = 760d;
-    private const double ChipColumnSpacing = 8d;
-    private const double ChipRowSpacing = 8d;
+    // The supporters array is newest first, so the wall reads as who chipped in lately. The sponsors branch
+    // README forbids a computed total on any surface (count x the minimum = a revenue floor), hence the
+    // "and many more" chip rather than a number.
+    private const int MaxSupporterChips = 30;
+    // Three chip rows plus a sliver of the fourth, so the wall visibly continues below the fold.
+    private const double SupporterWallMaxHeight = 100d;
+    private const double ChipSpacing = 6d;
+    // Softly rounded, not a full pill: about the corner ratio of a sponsor logo tile.
+    private const double ChipCornerRadius = 6d;
+    private const double MonogramSize = 20d;
+    private const int CountdownSeconds = 5;
 
-    private const double SponsorScrollMaxHeight = 300d;
-    private const double SupportersScrollMaxHeight = 120d;
+    private static readonly Windows.UI.Color HeartColor = Windows.UI.Color.FromArgb(0xFF, 0xE7, 0x4C, 0x3C);
 
-    private const int MaxSupporters = 48;
-    private const int CountdownSeconds = 3;
-
-    private static readonly Windows.UI.Color EmeraldColor = Windows.UI.Color.FromArgb(0xFF, 0x50, 0xC8, 0x78);
-    private static readonly Windows.UI.Color GoldColor = Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xD7, 0x00);
-    private static readonly Windows.UI.Color BadgeForeground = Windows.UI.Color.FromArgb(0xFF, 0x16, 0x13, 0x00);
+    // Solid discs under a white initial, deep enough to hold white text on either theme; a name hashes to
+    // one so a supporter keeps their colour between launches.
+    private static readonly Windows.UI.Color[] MonogramPalette =
+    [
+        Windows.UI.Color.FromArgb(0xFF, 0xB0, 0x74, 0x10),
+        Windows.UI.Color.FromArgb(0xFF, 0x2F, 0x85, 0x5A),
+        Windows.UI.Color.FromArgb(0xFF, 0x2B, 0x6C, 0xB0),
+        Windows.UI.Color.FromArgb(0xFF, 0x6B, 0x46, 0xC1),
+        Windows.UI.Color.FromArgb(0xFF, 0xC0, 0x56, 0x21),
+        Windows.UI.Color.FromArgb(0xFF, 0xB8, 0x32, 0x80)
+    ];
 
     private readonly ILocalizationService _localization;
     private readonly ISponsorsService _sponsorsService;
 
-    private CheckBox? _dontShowAgainCheckbox;
     private bool _supportClicked;
 
     private SponsorsDialogMode _mode;
@@ -71,147 +74,148 @@ internal class SponsorsDialogBuilder
         _sponsorsService = sponsorsService;
     }
 
-    public ContentDialog Build(SponsorsDocument? data, SponsorsDialogMode mode, XamlRoot xamlRoot)
+    public ContentDialog Build(SponsorsDocument? data, SponsorsDialogMode mode)
     {
         _mode = mode;
-        bool isDark = (xamlRoot.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
 
         _dialog = new ContentDialog
         {
-            DefaultButton = ContentDialogButton.Close
+            PrimaryButtonText = _localization.GetString("Button_Yes"),
+            SecondaryButtonText = _localization.GetString("Button_No"),
+            DefaultButton = ContentDialogButton.Primary
         };
+        _dialog.Resources["ContentDialogMaxWidth"] = DialogMaxWidth;
+        _dialog.PrimaryButtonClick += (_, _) => OnSupportClicked();
 
-        // ContentDialog default MaxWidth is 548px -- override so the wide
-        // card grid has room to lay out.
-        _dialog.Resources["ContentDialogMaxWidth"] = 860d;
-        _dialog.Resources["ContentDialogMaxHeight"] = 720d;
+        var root = new StackPanel { Spacing = 14 };
+        root.Children.Add(BuildHeader());
 
-        // Fixed-structure modal: the dialog itself does not scroll. Instead the
-        // two unbounded regions (sponsor cards, supporter chips) each live in
-        // their own height-capped ScrollViewer, so the header, section labels,
-        // CTA, and disclaimer stay pinned while only those regions scroll.
-        var root = new Grid
+        var cards = SponsorRow.Pick(data?.Sponsors);
+        if (cards.Count > 0)
+            root.Children.Add(BuildSponsorsSection(cards));
+
+        root.Children.Add(BuildSupportersCard(data));
+
+        root.Children.Add(new TextBlock
         {
-            Padding = new Thickness(8),
-            RowSpacing = 16
-        };
-        // 0: header, 1: sponsor cards (scroll), 2: supporters header + how-to,
-        // 3: supporter chips (scroll), 4: CTA, 5: disclaimer, 6: checkbox (exit).
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Text = _localization.GetString("Support_Question"),
+            FontSize = 15,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap
+        });
 
-        // Build methods return UIElement; Grid.SetRow needs a FrameworkElement,
-        // so type these locals as FrameworkElement (every concrete element
-        // returned -- Grid, StackPanel, ScrollViewer, TextBlock -- is one).
-        var header = (FrameworkElement)BuildHeader(isDark);
-        Grid.SetRow(header, 0);
-        root.Children.Add(header);
-
-        var sponsorScroll = new ScrollViewer
-        {
-            Content = BuildSponsorCards(data),
-            MaxHeight = SponsorScrollMaxHeight,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-        };
-        Grid.SetRow(sponsorScroll, 1);
-        root.Children.Add(sponsorScroll);
-
-        var supportersHeader = (FrameworkElement)BuildSupportersHeader(data);
-        Grid.SetRow(supportersHeader, 2);
-        root.Children.Add(supportersHeader);
-
-        var supportersScroll = new ScrollViewer
-        {
-            Content = BuildSupportersChips(data),
-            MaxHeight = SupportersScrollMaxHeight,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-        };
-        Grid.SetRow(supportersScroll, 3);
-        root.Children.Add(supportersScroll);
-
-        var cta = (FrameworkElement)BuildCtaRow();
-        Grid.SetRow(cta, 4);
-        root.Children.Add(cta);
-
-        var disclaimer = (FrameworkElement)BuildDisclaimer();
-        Grid.SetRow(disclaimer, 5);
-        root.Children.Add(disclaimer);
-
-        ConfigureButtonsAndMode(root);
+        ConfigureMode();
 
         _dialog.Content = root;
-
         return _dialog;
     }
 
-    // DontShowAgain is always false in Normal mode.
-    public (bool SupportClicked, bool DontShowAgain) ExtractResult()
+    private Grid BuildHeader()
     {
-        bool dontShowAgain = _mode == SponsorsDialogMode.Exit && _dontShowAgainCheckbox?.IsChecked == true;
-        return (_supportClicked, dontShowAgain);
-    }
-
-    private UIElement BuildHeader(bool isDark)
-    {
-        var logoUri = isDark
-            ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
-            : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
-
-        var logo = new Image
+        var heart = new Border
         {
-            Source = new BitmapImage(new Uri(logoUri)),
-            Width = 40,
-            Height = 40,
-            VerticalAlignment = VerticalAlignment.Top
+            Width = 52,
+            Height = 52,
+            CornerRadius = new CornerRadius(26),
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x26, HeartColor.R, HeartColor.G, HeartColor.B)),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new FluentIcons.WinUI.FluentIcon
+            {
+                Icon = FluentIcons.Common.Icon.Heart,
+                IconVariant = FluentIcons.Common.IconVariant.Filled,
+                FontSize = 26,
+                Foreground = new SolidColorBrush(HeartColor),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
         };
 
-        var title = new TextBlock
+        var textPanel = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        textPanel.Children.Add(new TextBlock
         {
-            Text = _localization.GetString("Sponsors_Title"),
-            FontSize = 22,
+            Text = _localization.GetString("Support_Title"),
+            FontSize = 20,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = GetBrush("TextFillColorPrimaryBrush"),
             TextWrapping = TextWrapping.Wrap
-        };
-
-        var subtitle = new TextBlock
+        });
+        textPanel.Children.Add(new TextBlock
         {
-            Text = _localization.GetString("Sponsors_Subtitle"),
-            FontSize = 13,
-            Foreground = GetBrush("TextFillColorSecondaryBrush"),
+            Text = _localization.GetString("Support_Message"),
+            FontSize = 14,
+            Style = Named("CodeBuilt.SecondaryText"),
             TextWrapping = TextWrapping.Wrap
-        };
+        });
 
-        var textPanel = new StackPanel
-        {
-            Spacing = 4,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        textPanel.Children.Add(title);
-        textPanel.Children.Add(subtitle);
-
-        // Grid (not horizontal StackPanel) so the subtitle wraps in the
-        // remaining width rather than running off the edge.
+        // Grid (not horizontal StackPanel) so the text wraps in the remaining width.
         var header = new Grid { ColumnSpacing = 14 };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        Grid.SetColumn(logo, 0);
+        Grid.SetColumn(heart, 0);
         Grid.SetColumn(textPanel, 1);
-        header.Children.Add(logo);
+        header.Children.Add(heart);
         header.Children.Add(textPanel);
         return header;
     }
 
-    private UIElement BuildSponsorCards(SponsorsDocument? data)
+    // Both walls open with the same header shape so the business/individual split reads at a glance.
+    private Grid BuildSectionHeader(FluentIcons.Common.Icon icon, string titleKey, string subtitleKey, FrameworkElement? trailing)
     {
-        var wrap = new Controls.UniformWrapPanel
+        var glyph = new FluentIcons.WinUI.FluentIcon
+        {
+            Icon = icon,
+            FontSize = 18,
+            Style = Named("CodeBuilt.SecondaryIcon"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = _localization.GetString(titleKey),
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = _localization.GetString(subtitleKey),
+            FontSize = 12,
+            Style = Named("CodeBuilt.SecondaryText"),
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        var header = new Grid { ColumnSpacing = 10 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(glyph, 0);
+        Grid.SetColumn(text, 1);
+        header.Children.Add(glyph);
+        header.Children.Add(text);
+
+        if (trailing != null)
+        {
+            trailing.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(trailing, 2);
+            header.Children.Add(trailing);
+        }
+
+        return header;
+    }
+
+    private StackPanel BuildSponsorsSection(List<SponsorEntry> cards)
+    {
+        var section = new StackPanel { Spacing = 8 };
+
+        var becomeSponsor = new HyperlinkButton
+        {
+            Content = _localization.GetString("Support_BecomeSponsor"),
+            NavigateUri = new Uri(BusinessSponsorUrl),
+            FontSize = 12,
+            Padding = new Thickness(6, 2, 6, 2)
+        };
+        section.Children.Add(BuildSectionHeader(FluentIcons.Common.Icon.Building, "Support_Sponsors", "Support_SponsorsSub", becomeSponsor));
+
+        var wrap = new UniformWrapPanel
         {
             ItemWidth = CardWidth,
             ItemHeight = CardHeight,
@@ -219,214 +223,135 @@ internal class SponsorsDialogBuilder
             RowSpacing = CardRowSpacing,
             HorizontalAlignment = HorizontalAlignment.Left
         };
-
-        int cardCount = 0;
-        foreach (var sponsor in QualifyingSponsors(data))
-        {
+        foreach (var sponsor in cards)
             wrap.Children.Add(BuildSponsorCard(sponsor));
-            cardCount++;
-        }
+        section.Children.Add(new ScrollViewer
+        {
+            Content = wrap,
+            MaxHeight = SponsorWallMaxHeight,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollMode = ScrollMode.Disabled
+        });
 
-        // Ghost "Your company here" slots keep the grid a clean rectangle and
-        // always show at least one full row of invitations. Fill the current partial
-        // row; if the real cards already fill complete rows, add a whole ghost row.
-        int remainder = cardCount % CardColumns;
-        int ghostCount = remainder == 0 ? CardColumns : CardColumns - remainder;
-        for (int i = 0; i < ghostCount; i++)
-            wrap.Children.Add(BuildGhostCard());
+        section.Children.Add(new TextBlock
+        {
+            Text = _localization.GetString("Support_Disclaimer"),
+            FontSize = 11,
+            Style = Named("CodeBuilt.TertiaryText"),
+            TextWrapping = TextWrapping.Wrap
+        });
 
-        return wrap;
+        return section;
     }
 
-    // Tier "gold" or "emerald" (case-insensitive) with no Until date; emerald first, then gold, stable within tier.
-    private static IEnumerable<SponsorEntry> QualifyingSponsors(SponsorsDocument? data)
-    {
-        if (data?.Sponsors is not { Count: > 0 } sponsors)
-            return Enumerable.Empty<SponsorEntry>();
-
-        return sponsors
-            .Where(s => s.Until == null && (IsEmerald(s) || IsGold(s)))
-            .OrderBy(s => IsEmerald(s) ? 0 : 1); // OrderBy is stable in .NET
-    }
-
-    private static bool IsEmerald(SponsorEntry s) =>
-        string.Equals(s.Tier, "emerald", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsGold(SponsorEntry s) =>
-        string.Equals(s.Tier, "gold", StringComparison.OrdinalIgnoreCase);
-
+    // Layers: the card fill, a tier-coloured wash fading down from the top, then the content.
     private Border BuildSponsorCard(SponsorEntry sponsor)
     {
-        bool isEmerald = IsEmerald(sponsor);
-        var tierColor = isEmerald ? EmeraldColor : GoldColor;
-
-        // Border alpha: emerald ~60%, gold ~50%.
-        byte borderAlpha = isEmerald ? (byte)0x99 : (byte)0x80;
-        var borderColor = Windows.UI.Color.FromArgb(borderAlpha, tierColor.R, tierColor.G, tierColor.B);
-
-        var cardContent = new StackPanel
+        var content = new StackPanel
         {
-            Spacing = 4,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            Spacing = 3,
+            Margin = new Thickness(8, 5, 8, 8),
+            VerticalAlignment = VerticalAlignment.Top
         };
 
-        // Optional example badge (first in the card so it reads as a pill on top).
-        if (sponsor.Example)
-            cardContent.Children.Add(BuildExampleBadge(tierColor));
+        content.Children.Add(BuildTierLabel(sponsor));
+        content.Children.Add(SponsorLogo.Build(_sponsorsService, sponsor, CardLogoSize));
 
-        cardContent.Children.Add(new TextBlock
+        content.Children.Add(new TextBlock
+        {
+            Text = sponsor.Name,
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 3, 0, 0)
+        });
+
+        if (!string.IsNullOrEmpty(sponsor.Slogan))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = sponsor.Slogan,
+                FontSize = 11,
+                FontStyle = Windows.UI.Text.FontStyle.Italic,
+                Style = Named("CodeBuilt.SecondaryText"),
+                TextWrapping = TextWrapping.Wrap,
+                MaxLines = 2,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+        }
+
+        if (!string.IsNullOrEmpty(sponsor.City))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = sponsor.City,
+                FontSize = 11,
+                Style = Named("CodeBuilt.SecondaryText"),
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+        }
+
+        var urlLink = BuildUrlLink(sponsor.Url);
+        if (urlLink != null)
+            content.Children.Add(urlLink);
+
+        double innerRadius = CardCornerRadius - 1;
+        var layers = new Grid();
+        layers.Children.Add(new Border
+        {
+            CornerRadius = new CornerRadius(innerRadius),
+            Style = Named(SponsorLogo.TierStyle(sponsor, "Wash"))
+        });
+        layers.Children.Add(content);
+
+        return new Border
+        {
+            Style = Named(SponsorLogo.TierStyle(sponsor, "Card")),
+            Child = layers,
+            CornerRadius = new CornerRadius(CardCornerRadius)
+        };
+    }
+
+    private static StackPanel BuildTierLabel(SponsorEntry sponsor)
+    {
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        row.Children.Add(new FluentIcons.WinUI.FluentIcon
+        {
+            Icon = SponsorRow.IsEmerald(sponsor) ? FluentIcons.Common.Icon.Diamond : FluentIcons.Common.Icon.Star,
+            IconVariant = FluentIcons.Common.IconVariant.Filled,
+            FontSize = 11,
+            Style = Named(SponsorLogo.TierStyle(sponsor, "Icon")),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        row.Children.Add(new TextBlock
         {
             Text = (sponsor.Tier ?? string.Empty).ToUpperInvariant(),
             FontSize = 10,
             FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            Foreground = new SolidColorBrush(tierColor),
-            HorizontalAlignment = HorizontalAlignment.Center
+            CharacterSpacing = 120,
+            Style = Named(SponsorLogo.TierStyle(sponsor, "Text")),
+            VerticalAlignment = VerticalAlignment.Center
         });
-
-        cardContent.Children.Add(BuildLogo(sponsor, tierColor));
-
-        cardContent.Children.Add(new TextBlock
-        {
-            Text = sponsor.Name,
-            FontSize = 15,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = GetBrush("TextFillColorPrimaryBrush"),
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        });
-
-        if (!string.IsNullOrEmpty(sponsor.City))
-            cardContent.Children.Add(BuildSecondaryLine(sponsor.City));
-
-        if (!string.IsNullOrEmpty(sponsor.Contact))
-            cardContent.Children.Add(BuildSecondaryLine(sponsor.Contact));
-
-        var urlLink = BuildUrlLink(sponsor.Url);
-        if (urlLink != null)
-            cardContent.Children.Add(urlLink);
-
-        return new Border
-        {
-            Child = cardContent,
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(10),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(borderColor),
-            Background = GetBrush("CardBackgroundFillColorDefaultBrush")
-        };
-    }
-
-    private Border BuildExampleBadge(Windows.UI.Color tierColor)
-    {
-        // Content-sized pill: explicit Center so the Border hugs its text rather
-        // than inheriting the parent StackPanel's default horizontal stretch
-        // (which rendered the pill stretched edge-to-edge across the card).
-        // Pill geometry matches the Software Apps card badges. Not CornerRadius 999: at the rendered pill
-        // height it produces subpixel/clipping artefacts.
-        return new Border
-        {
-            Background = new SolidColorBrush(tierColor),
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(8, 2, 8, 2),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = _localization.GetString("Sponsors_ExampleBadge").ToUpperInvariant(),
-                FontSize = 10,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = new SolidColorBrush(BadgeForeground)
-            }
-        };
-    }
-
-    private FrameworkElement BuildLogo(SponsorEntry sponsor, Windows.UI.Color tierColor)
-    {
-        var image = new Image
-        {
-            Width = 48,
-            Height = 48,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        var monogram = BuildMonogram(sponsor, tierColor);
-        monogram.Visibility = Visibility.Collapsed;
-
-        // Try the live logo first; on failure swap to the bundled snapshot, and
-        // if that's also unavailable fall back to the monogram.
-        var bitmap = new BitmapImage(new Uri(_sponsorsService.GetLogoUri(sponsor)));
-        image.Source = bitmap;
-
-        bool triedBundled = false;
-        image.ImageFailed += (_, _) =>
-        {
-            string? bundled = _sponsorsService.GetBundledLogoPath(sponsor);
-            if (!triedBundled && bundled != null)
-            {
-                triedBundled = true;
-                image.Source = new BitmapImage(new Uri(bundled));
-                return;
-            }
-
-            image.Visibility = Visibility.Collapsed;
-            monogram.Visibility = Visibility.Visible;
-        };
-
-        var container = new Grid { HorizontalAlignment = HorizontalAlignment.Center };
-        container.Children.Add(image);
-        container.Children.Add(monogram);
-        return container;
-    }
-
-    private Border BuildMonogram(SponsorEntry sponsor, Windows.UI.Color tierColor)
-    {
-        string initial = string.IsNullOrEmpty(sponsor.Name)
-            ? "?"
-            : sponsor.Name.Substring(0, 1).ToUpperInvariant();
-
-        return new Border
-        {
-            Width = 48,
-            Height = 48,
-            CornerRadius = new CornerRadius(10),
-            Background = GetBrush("SubtleFillColorSecondaryBrush"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = initial,
-                FontSize = 20,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                Foreground = new SolidColorBrush(tierColor),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-    }
-
-    private TextBlock BuildSecondaryLine(string text)
-    {
-        return new TextBlock
-        {
-            Text = text,
-            FontSize = 12,
-            Foreground = GetBrush("TextFillColorSecondaryBrush"),
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
+        return row;
     }
 
     // Only for a non-empty absolute https URI; content is the host without a leading "www.".
-    private HyperlinkButton? BuildUrlLink(string? url)
+    private static HyperlinkButton? BuildUrlLink(string? url)
     {
-        if (string.IsNullOrWhiteSpace(url))
-            return null;
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return null;
-
-        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             return null;
 
         string host = uri.Host;
@@ -437,211 +362,132 @@ internal class SponsorsDialogBuilder
         {
             Content = host,
             NavigateUri = uri,
-            FontSize = 12,
+            FontSize = 11,
             HorizontalAlignment = HorizontalAlignment.Center,
             Padding = new Thickness(0)
         };
     }
 
-    private Border BuildGhostCard()
+    private Border BuildSupportersCard(SponsorsDocument? data)
     {
+        var supporters = data?.Supporters ?? new List<SupporterEntry>();
+        var content = new StackPanel { Spacing = 10 };
+
+        content.Children.Add(BuildSectionHeader(FluentIcons.Common.Icon.People, "Support_Supporters", "Support_SupportersSub", null));
+
+        if (supporters.Count > 0)
+        {
+            var wall = new CommunityToolkit.WinUI.Controls.WrapPanel
+            {
+                HorizontalSpacing = ChipSpacing,
+                VerticalSpacing = ChipSpacing
+            };
+            foreach (var supporter in supporters.Take(MaxSupporterChips))
+                wall.Children.Add(BuildSupporterChip(supporter.Name));
+
+            if (supporters.Count > MaxSupporterChips)
+                wall.Children.Add(BuildChip(null, _localization.GetString("Support_ManyMore"), Named("CodeBuilt.TertiaryText")));
+
+            content.Children.Add(new ScrollViewer
+            {
+                Content = wall,
+                MaxHeight = SupporterWallMaxHeight,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                HorizontalScrollMode = ScrollMode.Disabled
+            });
+        }
+
+        content.Children.Add(new TextBlock
+        {
+            Text = _localization.GetString("Support_HowToJoin"),
+            FontSize = 12,
+            Style = Named("CodeBuilt.SecondaryText"),
+            TextWrapping = TextWrapping.Wrap
+        });
+
         return new Border
         {
+            Child = content,
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(16),
-            BorderThickness = new Thickness(1),
-            BorderBrush = GetBrush("ControlStrokeColorDefaultBrush"),
-            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Padding = new Thickness(14, 12, 14, 12),
+            Style = Named("CodeBuilt.CardSurface")
+        };
+    }
+
+    private static Border BuildSupporterChip(string name)
+    {
+        var color = MonogramPalette[StableHash(name) % MonogramPalette.Length];
+        var monogram = new Border
+        {
+            Width = MonogramSize,
+            Height = MonogramSize,
+            CornerRadius = new CornerRadius(MonogramSize / 2),
+            Background = new SolidColorBrush(color),
+            VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
-                Text = _localization.GetString("Sponsors_GhostCompany"),
-                FontSize = 13,
-                Foreground = GetBrush("TextFillColorSecondaryBrush"),
-                TextWrapping = TextWrapping.Wrap,
-                TextAlignment = TextAlignment.Center,
+                Text = SponsorLogo.Initial(name),
+                FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }
         };
+
+        return BuildChip(monogram, name, null);
     }
 
-    private UIElement BuildSupportersHeader(SponsorsDocument? data)
+    // A null textStyle leaves the text on the dialog's own foreground.
+    private static Border BuildChip(FrameworkElement? leading, string text, Style? textStyle)
     {
-        var section = new StackPanel { Spacing = 2 };
-
-        section.Children.Add(new TextBlock
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        if (leading != null)
+            row.Children.Add(leading);
+        row.Children.Add(new TextBlock
         {
-            Text = _localization.GetString("Sponsors_SectionSupporters"),
-            FontSize = 16,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = GetBrush("TextFillColorPrimaryBrush")
-        });
-
-        section.Children.Add(new TextBlock
-        {
-            Text = _localization.GetString("Sponsors_HowToJoin"),
+            Text = text,
             FontSize = 12,
-            Foreground = GetBrush("TextFillColorSecondaryBrush"),
-            TextWrapping = TextWrapping.Wrap
+            Style = textStyle,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.NoWrap
         });
 
-        int supporterCount = data?.Supporters?.Count ?? 0;
-        if (supporterCount > 0)
-        {
-            int shownCount = Math.Min(MaxSupporters, supporterCount);
-            section.Children.Add(new TextBlock
-            {
-                Text = _localization.GetString("Sponsors_RecentCount", shownCount),
-                FontSize = 12,
-                Foreground = GetBrush("TextFillColorTertiaryBrush"),
-                TextWrapping = TextWrapping.Wrap
-            });
-        }
-
-        return section;
-    }
-
-    // Chips are measured individually and packed greedily so each hugs its name - no dead space after short names.
-    private UIElement BuildSupportersChips(SponsorsDocument? data)
-    {
-        var section = new StackPanel { Spacing = 8 };
-
-        var supporters = data?.Supporters ?? new List<SupporterEntry>();
-
-        // Supporters array is newest-first; take the first MaxSupporters.
-        var shown = supporters.Take(MaxSupporters).ToList();
-
-        var chipBorders = new List<Border>();
-        if (shown.Count == 0)
-            chipBorders.Add(BuildSupporterChip(_localization.GetString("Sponsors_GhostName"), faint: true));
-        else
-            foreach (var supporter in shown)
-                chipBorders.Add(BuildSupporterChip(supporter.Name));
-
-        section.Children.Add(PackChips(chipBorders));
-
-        return section;
-    }
-
-    private StackPanel PackChips(List<Border> chips)
-    {
-        var rows = new StackPanel
-        {
-            Spacing = ChipRowSpacing,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
-
-        StackPanel? currentRow = null;
-        double currentRowWidth = 0;
-
-        foreach (var chip in chips)
-        {
-            chip.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
-            double chipWidth = chip.DesiredSize.Width;
-
-            double added = currentRow == null ? chipWidth : ChipColumnSpacing + chipWidth;
-
-            if (currentRow == null || currentRowWidth + added > ChipRowAvailableWidth)
-            {
-                currentRow = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = ChipColumnSpacing
-                };
-                rows.Children.Add(currentRow);
-                currentRowWidth = chipWidth;
-            }
-            else
-            {
-                currentRowWidth += added;
-            }
-
-            currentRow.Children.Add(chip);
-        }
-
-        return rows;
-    }
-
-    private Border BuildSupporterChip(string name, bool faint = false)
-    {
         return new Border
         {
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(10, 5, 10, 5),
-            Background = GetBrush("CardBackgroundFillColorDefaultBrush"),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
-            Child = new TextBlock
-            {
-                Text = name,
-                FontSize = 12,
-                Foreground = GetBrush(faint ? "TextFillColorTertiaryBrush" : "TextFillColorSecondaryBrush"),
-                TextWrapping = TextWrapping.NoWrap
-            }
+            Style = Named("TechDetail.Chip"),
+            CornerRadius = new CornerRadius(ChipCornerRadius),
+            Padding = new Thickness(leading == null ? 10 : 3, 3, 10, 3),
+            Child = row
         };
     }
 
-    private UIElement BuildCtaRow()
+    // string.GetHashCode is randomised per process; this one is not, so the colour survives a restart.
+    private static int StableHash(string text)
     {
-        // Single CTA on purpose: a separate "For business" button sent users to a page that
-        // confused the primary ask.
-        var supportButton = new Button
-        {
-            Content = _localization.GetString("Sponsors_SupportButton"),
-            Style = (Style)Application.Current.Resources["AccentButtonStyle"]
-        };
-        supportButton.Click += (_, _) => OnSupportClicked(SupportUrl);
-
-        var row = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10
-        };
-        row.Children.Add(supportButton);
-        return row;
+        int hash = 0;
+        foreach (char c in text)
+            hash = (hash * 31 + c) & 0x7FFFFFFF;
+        return hash;
     }
 
-    private void OnSupportClicked(string url)
+    private void OnSupportClicked()
     {
         _supportClicked = true;
-        _ = Windows.System.Launcher.LaunchUriAsync(new Uri(url));
-
-        // In exit mode, clicking a support button should dismiss the dialog
-        // (the countdown-gated close is bypassed for an intentional support action).
-        if (_mode == SponsorsDialogMode.Exit)
-            _dialog.Hide();
+        string source = _mode == SponsorsDialogMode.Exit ? "app-exit" : "app";
+        _ = Windows.System.Launcher.LaunchUriAsync(new Uri(SupportUrl + source));
     }
 
-    private UIElement BuildDisclaimer()
-    {
-        return new TextBlock
-        {
-            Text = _localization.GetString("Sponsors_Disclaimer"),
-            FontSize = 11,
-            Foreground = GetBrush("TextFillColorTertiaryBrush"),
-            TextWrapping = TextWrapping.Wrap
-        };
-    }
-
-    private void ConfigureButtonsAndMode(Grid root)
+    private void ConfigureMode()
     {
         if (_mode == SponsorsDialogMode.Normal)
-        {
-            _dialog.CloseButtonText = _localization.GetString("Sponsors_Close");
             return;
-        }
 
-        _dontShowAgainCheckbox = new CheckBox
-        {
-            Content = _localization.GetString("Sponsors_DontShowAgain")
-        };
-        Grid.SetRow(_dontShowAgainCheckbox, 6);
-        root.Children.Add(_dontShowAgainCheckbox);
-
-        _dialog.CloseButtonText = _localization.GetString("Sponsors_ExitCountdown", CountdownSeconds);
-
-        // Block the close button until the countdown elapses. A support-click
-        // Hide() is allowed through because _supportClicked is set first.
+        // No is held back until the countdown elapses, so the ask is read before it is declined.
+        // Yes closes straight away because _supportClicked is set before Closing runs.
+        _dialog.IsSecondaryButtonEnabled = false;
+        _dialog.SecondaryButtonText = _localization.GetString("Support_NoCountdown", CountdownSeconds);
         _dialog.Closing += (_, e) =>
         {
             if (!_countdownDone && !_supportClicked)
@@ -663,12 +509,13 @@ internal class SponsorsDialogBuilder
             _countdownRemaining--;
             if (_countdownRemaining > 0)
             {
-                _dialog.CloseButtonText = _localization.GetString("Sponsors_ExitCountdown", _countdownRemaining);
+                _dialog.SecondaryButtonText = _localization.GetString("Support_NoCountdown", _countdownRemaining);
             }
             else
             {
                 _countdownDone = true;
-                _dialog.CloseButtonText = _localization.GetString("Sponsors_Exit");
+                _dialog.SecondaryButtonText = _localization.GetString("Button_No");
+                _dialog.IsSecondaryButtonEnabled = true;
                 StopCountdown();
             }
         };
@@ -684,7 +531,4 @@ internal class SponsorsDialogBuilder
         }
     }
 
-    // The dialog's RequestedTheme (set by DialogService.ConfigureDialog) drives which theme variant these
-    // ThemeResource-backed brushes render.
-    private static Brush GetBrush(string key) => (Brush)Application.Current.Resources[key];
 }
