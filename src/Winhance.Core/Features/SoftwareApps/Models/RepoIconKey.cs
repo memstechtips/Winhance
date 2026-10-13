@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
-// external-app-* -> external/<winget|choco|stripped-id>; windows-app-* -> windows/<appx-identity>;
+// external-app-* -> external/<winget|choco|stripped-id>; winget-* -> external/<winget>; windows-app-* -> windows/<appx-identity>;
 // capability-* / feature-* -> windows/<name>. All lowercased.
 public static class RepoIconKey
 {
@@ -15,6 +15,9 @@ public static class RepoIconKey
                     : def.Id["external-app-".Length..];
             return $"icons/external/{key.ToLowerInvariant()}.png";
         }
+
+        if (WinGetPackageItem.Is(def.Id))
+            return def.WinGetPackageId is [var packageId, ..] ? $"icons/external/{packageId.ToLowerInvariant()}.png" : null;
 
         if (def.Id.StartsWith("windows-app-", System.StringComparison.Ordinal))
         {

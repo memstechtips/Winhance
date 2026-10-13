@@ -1,8 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Principal;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -170,6 +173,106 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }).ConfigureAwait(false);
     }
 
+    public async Task<OperationResult> RegisterSignInTaskAsync(string taskName, string command, string arguments)
+    {
+        return await Task.Run(async () =>
+        {
+            using var com = new ComScope();
+            try
+            {
+                dynamic taskService = Connect(com);
+                dynamic folder = GetOrCreateWinhanceFolder(com, taskService);
+                await RemoveExistingTask(com, folder, taskName).ConfigureAwait(false);
+
+                var user = WindowsIdentity.GetCurrent().Name;
+                folder.RegisterTask(
+                    taskName,
+                    SignInTaskXml(user, command, arguments),
+                    6,      // TASK_CREATE_OR_UPDATE
+                    null,
+                    null,
+                    3,      // TASK_LOGON_INTERACTIVE_TOKEN
+                    null);
+
+                logService.LogInformation($"Registered sign-in task: {taskName} for {user}");
+                return OperationResult.Succeeded();
+            }
+            catch (Exception ex)
+            {
+                logService.LogError($"Error registering sign-in task: {taskName}", ex);
+                return OperationResult.Failed(ex.Message, ex);
+            }
+        }).ConfigureAwait(false);
+    }
+
+    public async Task<bool> IsSignInTaskRegisteredForAsync(string taskName, string? userSid)
+    {
+        return await Task.Run(() =>
+        {
+            using var com = new ComScope();
+            try
+            {
+                object? found = GetWinhanceFolder(com, Connect(com));
+                if (found is null) return false;
+                dynamic folder = found;
+
+                dynamic task = com.Keep((object)folder.GetTask(taskName));
+                dynamic definition = com.Keep((object)task.Definition);
+                dynamic principal = com.Keep((object)definition.Principal);
+                return IsAccount((string)principal.UserId, userSid ?? WindowsIdentity.GetCurrent().User?.Value);
+            }
+            catch (Exception ex)
+            {
+                logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Task '{taskName}' not registered for this user: {ex.Message}");
+                return false;
+            }
+        }).ConfigureAwait(false);
+    }
+
+    // Accepts both forms an account can be written in: a name and a SID string.
+    internal static bool IsAccount(string taskUserId, string? sid)
+    {
+        var taskSid = taskUserId.StartsWith("S-1-", StringComparison.OrdinalIgnoreCase)
+            ? taskUserId
+            : new NTAccount(taskUserId).Translate(typeof(SecurityIdentifier)).Value;
+        return string.Equals(taskSid, sid, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // HighestAvailable with an interactive token is what lets a requireAdministrator app start at sign-in without UAC.
+    // The delay keeps it out of the crowd of apps starting with the desktop.
+    internal static string SignInTaskXml(string user, string command, string arguments) => $"""
+        <?xml version="1.0" encoding="UTF-16"?>
+        <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+          <Triggers>
+            <LogonTrigger>
+              <Enabled>true</Enabled>
+              <UserId>{SecurityElement.Escape(user)}</UserId>
+              <Delay>PT30S</Delay>
+            </LogonTrigger>
+          </Triggers>
+          <Principals>
+            <Principal id="Author">
+              <UserId>{SecurityElement.Escape(user)}</UserId>
+              <LogonType>InteractiveToken</LogonType>
+              <RunLevel>HighestAvailable</RunLevel>
+            </Principal>
+          </Principals>
+          <Settings>
+            <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+            <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+            <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+            <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+            <Enabled>true</Enabled>
+          </Settings>
+          <Actions Context="Author">
+            <Exec>
+              <Command>{SecurityElement.Escape(command)}</Command>
+              <Arguments>{SecurityElement.Escape(arguments)}</Arguments>
+            </Exec>
+          </Actions>
+        </Task>
+        """;
+
     private async Task<OperationResult> RegisterTaskInternal(string taskName, string scriptPath, TaskTriggerType triggerType)
     {
         using var com = new ComScope();
@@ -260,7 +363,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         dynamic actions = com.Keep((object)taskDefinition.Actions);
         dynamic action = com.Keep((object)actions.Create(0));   // TASK_ACTION_EXEC
         action.Path = "powershell.exe";
-        action.Arguments = $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{scriptPath.Replace("'", "''")}'))\"";
+        action.Arguments = $"-ExecutionPolicy Bypass -NoProfile -Command \"iex([IO.File]::ReadAllText('{PowerShellScriptUtilities.EscapePowerShellString(scriptPath)}'))\"";
 
         dynamic principal = com.Keep((object)taskDefinition.Principal);
         principal.UserId = "SYSTEM";

@@ -22,6 +22,14 @@ public class RepoIconKeyTests
     }
 
     [Fact]
+    public void For_WinGetSearchPick_UsesItsPackageId()
+    {
+        var def = WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player");
+
+        RepoIconKey.For(def).Should().Be("icons/external/videolan.vlc.png");
+    }
+
+    [Fact]
     public void For_ExternalApp_OnlyChocoPackageId_UsesChoco()
     {
         var def = new ItemDefinition

@@ -164,6 +164,26 @@ public class AppSelectionSourceTests
         result.Should().BeEmpty();
     }
 
+    private AppItemViewModel OtherInstalled(InstalledApp app) => new(
+        OtherInstalledItem.Create(app),
+        _localizationService.Object,
+        _dispatcherService.Object,
+        _themeService.Object) { Installed = app, IsSelected = true };
+
+    [Fact]
+    public async Task CheckedExternalApps_SavesAnInstalledAppByItsPackageIdAndLeavesOutOneWithNone()
+    {
+        var catalog = CreateAppItemViewModel("catalog", "Catalog", isSelected: true, winGetPackageId: TwoWinGetIds);
+        var withId = OtherInstalled(new InstalledApp("reg:machine:tool", "Tool", InstalledAppKind.Program) { WinGetId = "Contoso.Tool" });
+        var withNone = OtherInstalled(new InstalledApp("reg:machine:own", "Own Tool", InstalledAppKind.Program));
+
+        _externalApps.Setup(p => p.Items).Returns(new ObservableCollection<AppItemViewModel> { catalog, withId, withNone });
+
+        var result = await CreateSut().CheckedExternalAppsAsync();
+
+        result.Select(a => a.Id).Should().Equal("catalog", "winget-Contoso.Tool");
+    }
+
     [Fact]
     public async Task LoadsItemsWhenNotInitialized()
     {

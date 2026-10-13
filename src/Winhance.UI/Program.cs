@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
 using Winhance.Core.Features.Common.Services;
+using Winhance.UI.Features.Common.Services;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -108,9 +110,10 @@ public static class Program
         }
     }
 
+    // Runs on the main instance when another one redirects to it. A window hidden in the tray has no MainWindowHandle
+    // for the other instance to bring forward, so it is shown from here.
     private static void OnActivated(object? sender, AppActivationArguments args)
     {
-        // This runs on the main instance when another instance redirects
-        // The window is already being brought to foreground by the other instance
+        App.MainWindow?.DispatcherQueue.TryEnqueue(() => App.Services.GetService<TrayController>()?.ShowWindow());
     }
 }

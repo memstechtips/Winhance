@@ -6,7 +6,8 @@
     xmlns:local="using:Winhance.UI.Features.Settings"
     xmlns:viewModels="using:Winhance.UI.Features.Settings.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:fluentIcons="using:FluentIcons.WinUI">
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls">
 
 
     <Grid Padding="0,0,12,0">
@@ -16,22 +17,11 @@
         </Grid.RowDefinitions>
 
         <!-- Row 0: Page Header with Icon -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16">
-            <fluentIcons:FluentIcon Icon="Settings" IconVariant="Color" FontSize="64"/>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
-                    Style="{StaticResource TitleTextBlockStyle}"
-                    FontWeight="Bold"
-                    FontSize="30"
-                    AutomationProperties.HeadingLevel="Level1"/>
-                <TextBlock
-                    Text="{x:Bind ViewModel.PageDescription, Mode=OneWay}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    Margin="0,2,0,0"/>
-            </StackPanel>
-        </StackPanel>
+        <commonControls:PageHeader
+            Grid.Row="0"
+            Icon="Settings"
+            Title="{x:Bind ViewModel.PageTitle, Mode=OneWay}"
+            Description="{x:Bind ViewModel.PageDescription, Mode=OneWay}"/>
 
         <!-- Row 1: Content Container with rounded corners -->
         <Border
@@ -90,6 +80,89 @@
                                 ItemsSource="{x:Bind ViewModel.Themes, Mode=OneWay}"
                                 SelectedItem="{x:Bind ViewModel.SelectedThemeOption, Mode=TwoWay}"
                                 DisplayMemberPath="DisplayText"/>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.InstallScopeHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.InstallScopeDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="PeopleTeam" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                IsOn="{x:Bind ViewModel.InstallAppsForAllUsers, Mode=TwoWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.InstallScopeHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <!-- Background and updates Group -->
+                        <TextBlock
+                            Text="{x:Bind ViewModel.BackgroundLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.CloseToTrayDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="CloseToTraySwitch"
+                                IsOn="{x:Bind ViewModel.CloseToTray, Mode=TwoWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.MinimizeToTrayDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowMinimize" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="MinimizeToTraySwitch"
+                                IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.StartInTrayDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="Power" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="StartInTraySwitch"
+                                IsOn="{x:Bind ViewModel.StartInTrayAtSignIn, Mode=TwoWay}"
+                                IsEnabled="{x:Bind ViewModel.CanStartInTrayAtSignIn, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.UpdateCheckHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.UpdateCheckDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="UpdateCheckComboBox"
+                                MinWidth="200"
+                                ItemsSource="{x:Bind ViewModel.UpdateCheckOptions}"
+                                SelectedItem="{x:Bind ViewModel.SelectedUpdateCheckOption, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayText"
+                                AutomationProperties.Name="{x:Bind ViewModel.UpdateCheckHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.UpdateActionHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.UpdateActionDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="Alert" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="UpdateActionComboBox"
+                                MinWidth="200"
+                                ItemsSource="{x:Bind ViewModel.UpdateActionOptions}"
+                                SelectedItem="{x:Bind ViewModel.SelectedUpdateActionOption, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayText"
+                                AutomationProperties.Name="{x:Bind ViewModel.UpdateActionHeader, Mode=OneWay}"/>
                         </controls:SettingsCard>
 
                         <!-- Configuration Group -->

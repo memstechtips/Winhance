@@ -23,6 +23,7 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
@@ -85,7 +86,9 @@ public class ReviewModeViewModelCoordinatorTests
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        new Mock<IInstalledAppsService>().Object,
         _appInstallationService.Object,
+        _stagedAppInstaller.Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,

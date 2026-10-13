@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -10,6 +11,8 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
 public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposable
 {
+    private static readonly string[] SizeUnits = ["B", "KB", "MB", "GB", "TB"];
+
     private readonly ItemDefinition _definition;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
@@ -51,6 +54,9 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
         OnPropertyChanged(nameof(InstalledStatusTooltip));
         OnPropertyChanged(nameof(ReinstallableStatusTooltip));
         OnPropertyChanged(nameof(CategoryDisplayName));
+        OnPropertyChanged(nameof(UpdateAvailableLabel));
+        OnPropertyChanged(nameof(UpdateAvailableTooltip));
+        OnPropertyChanged(nameof(NoPackageTooltip));
     }
 
     private void OnThemeChanged(object? sender, WinhanceTheme theme)
@@ -62,6 +68,12 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
+
+    partial void OnIsSelectedChanged(bool value)
+    {
+        if (value && !IsSelectable)
+            IsSelected = false;
+    }
 
     public string Name => Definition.Name;
 
@@ -82,12 +94,78 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(InstalledStatusText));
                     OnPropertyChanged(nameof(InstalledStatusTooltip));
+                    OnPropertyChanged(nameof(HasUpdate));
                 });
             }
         }
     }
 
     public bool CanBeReinstalled => Definition.CanBeReinstalled;
+
+    public bool IsOtherInstalled => GroupName == OtherInstalledItem.GroupName;
+
+    // What the installed-apps scan found for this app; null until it runs, and for apps it did not find.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate), nameof(Version), nameof(VersionSortKey), nameof(AvailableVersion),
+        nameof(InstalledOn), nameof(InstalledOnText), nameof(SizeBytes), nameof(SizeText), nameof(UpdateAvailableTooltip),
+        nameof(PackageId), nameof(IsSelectable), nameof(NoPackageTooltip))]
+    public partial InstalledApp? Installed { get; set; }
+
+    partial void OnInstalledChanged(InstalledApp? value) => DropSelectionIfLocked();
+
+    // Builder writes a file for another PC, which can only install an app a package manager offers.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSelectable), nameof(NoPackageTooltip))]
+    public partial bool AuthorsIntent { get; set; }
+
+    partial void OnAuthorsIntentChanged(bool value) => DropSelectionIfLocked();
+
+    private void DropSelectionIfLocked()
+    {
+        if (!IsSelectable)
+            IsSelected = false;
+    }
+
+    public string? PackageId => IsOtherInstalled && Installed is { } app ? OtherInstalledItem.PackageId(app) : null;
+
+    public bool IsSelectable => !(AuthorsIntent && IsOtherInstalled && PackageId is null);
+
+    public string? NoPackageTooltip => IsSelectable ? null : _localizationService.GetString("ExternalApps_NoPackageSource_Tooltip",
+        _localizationService.GetString("Setting_autounattend-own-installers_Name"), _localizationService.GetString("Nav_Autounattend"));
+
+    public bool HasUpdate => IsInstalled && Installed?.HasUpdate == true;
+
+    public string Version => Installed?.Version ?? string.Empty;
+
+    public System.Version? VersionSortKey => System.Version.TryParse(Version, out var version) ? version : null;
+
+    public string AvailableVersion => Installed?.AvailableVersion ?? string.Empty;
+
+    public DateTime? InstalledOn => Installed?.InstalledOn;
+
+    public string InstalledOnText => InstalledOn?.ToString("d", CultureInfo.CurrentCulture) ?? string.Empty;
+
+    public long? SizeBytes => Installed?.SizeBytes;
+
+    public string SizeText => SizeBytes is { } bytes ? FormatSize(bytes) : string.Empty;
+
+    public string UpdateAvailableLabel => _localizationService.GetString("Card_Pill_UpdateAvailable");
+
+    public string UpdateAvailableTooltip => _localizationService.GetString("Card_Pill_UpdateAvailable_Tooltip", Version, AvailableVersion);
+
+    // Three significant figures, the way File Explorer shows sizes.
+    internal static string FormatSize(long bytes)
+    {
+        double value = bytes;
+        int unit = 0;
+        while (value >= 1024 && unit < SizeUnits.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+        var format = unit == 0 || value >= 100 ? "0" : value >= 10 ? "0.#" : "0.##";
+        return $"{value.ToString(format, CultureInfo.CurrentCulture)} {SizeUnits[unit]}";
+    }
 
     public string InstalledStatusText => _localizationService.GetString(
         IsInstalled ? "Status_Installed" : "Status_NotInstalled");
@@ -211,7 +289,8 @@ public partial class AppItemViewModel : ObservableObject, ISelectable, IDisposab
 
     public string InstabilityWarningLabel => _localizationService.GetString("Card_Pill_Warning");
 
-    public string InstabilityWarningTooltip => _localizationService.GetString("Card_Pill_InstabilityWarning_Tooltip");
+    public string InstabilityWarningTooltip =>
+        _localizationService.GetString(Definition.MachineWarning?.TooltipKey ?? "Card_Pill_InstabilityWarning_Tooltip");
 
     public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;
 

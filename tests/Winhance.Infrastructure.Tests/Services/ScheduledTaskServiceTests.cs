@@ -1,4 +1,6 @@
 using FluentAssertions;
+using System.Security.Principal;
+using System.Xml.Linq;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -281,5 +283,30 @@ public class ScheduledTaskServiceTests
         var result = _service.SetTaskEnabled("TaskName", enabled: true);
 
         result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void The_sign_in_task_runs_elevated_at_the_users_sign_in_and_escapes_its_values()
+    {
+        var xml = XDocument.Parse(ScheduledTaskService.SignInTaskXml(@"PC\Tom & Jerry", @"C:\Program Files\Winhance\Winhance.exe", "--tray"));
+        XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+
+        xml.Descendants(ns + "LogonTrigger").Single().Element(ns + "UserId")!.Value.Should().Be(@"PC\Tom & Jerry");
+        xml.Descendants(ns + "RunLevel").Single().Value.Should().Be("HighestAvailable");
+        xml.Descendants(ns + "LogonType").Single().Value.Should().Be("InteractiveToken");
+        xml.Descendants(ns + "Command").Single().Value.Should().Be(@"C:\Program Files\Winhance\Winhance.exe");
+        xml.Descendants(ns + "Arguments").Single().Value.Should().Be("--tray");
+    }
+
+    [Fact]
+    public void A_sign_in_task_belongs_to_the_account_it_names_whether_by_name_or_by_sid()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var sid = identity.User!.Value;
+
+        ScheduledTaskService.IsAccount(identity.Name, sid).Should().BeTrue();
+        ScheduledTaskService.IsAccount(sid, sid).Should().BeTrue();
+        ScheduledTaskService.IsAccount("S-1-5-18", sid).Should().BeFalse();
+        ScheduledTaskService.IsAccount(@"NT AUTHORITY\SYSTEM", sid).Should().BeFalse();
     }
 }

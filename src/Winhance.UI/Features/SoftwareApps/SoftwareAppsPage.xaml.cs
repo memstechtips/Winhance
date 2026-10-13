@@ -5,8 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
@@ -16,12 +18,18 @@ namespace Winhance.UI.Features.SoftwareApps;
 
 public sealed partial class SoftwareAppsPage : Page
 {
+    private readonly HashSet<CheckBox> _wiredHeaderBoxes = [];
+
     public SoftwareAppsViewModel ViewModel { get; }
 
     public SoftwareAppsPage()
     {
         this.InitializeComponent();
         ApplyTextScaling();
+        SizeChanged += (_, _) => FitActionBar();
+        // Review mode swaps the buttons for toggles, and a language switch or a new selection changes the labels, all
+        // without a resize.
+        ActionBar.SizeChanged += (_, _) => FitActionBar();
         ViewModel = App.Services.GetRequiredService<SoftwareAppsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateTabBadges();
@@ -111,6 +119,10 @@ public sealed partial class SoftwareAppsPage : Page
                 "IsInstalled" => ViewModel.ColumnHeaderStatus,
                 "CanBeReinstalled" => ViewModel.ColumnHeaderInstallable,
                 "CategoryDisplayName" => ViewModel.ColumnHeaderGroup,
+                "VersionSortKey" => ViewModel.ColumnHeaderVersion,
+                "HasUpdate" => ViewModel.ColumnHeaderUpdate,
+                "InstalledOn" => ViewModel.ColumnHeaderInstalledOn,
+                "SizeBytes" => ViewModel.ColumnHeaderSize,
                 _ => null
             };
 
@@ -141,31 +153,85 @@ public sealed partial class SoftwareAppsPage : Page
 
     private void WindowsAppsDataGrid_Loaded(object sender, RoutedEventArgs e)
     {
-        var checkBox = FindSelectAllCheckBox(WindowsAppsDataGrid);
-        if (checkBox != null)
-        {
-            checkBox.Checked += (s, _) => SetAllItemsSelected(ViewModel.WindowsAppsViewModel.ItemsView, true);
-            checkBox.Unchecked += (s, _) => SetAllItemsSelected(ViewModel.WindowsAppsViewModel.ItemsView, false);
-        }
+        var viewModel = ViewModel.WindowsAppsViewModel;
+        WireSelectAllHeaderWhenReady(WindowsAppsDataGrid, checkBox => SyncSelectAllHeader(checkBox, viewModel, viewModel.ItemsView));
     }
 
     private void ExternalAppsDataGrid_Loaded(object sender, RoutedEventArgs e)
     {
-        var checkBox = FindSelectAllCheckBox(ExternalAppsDataGrid);
-        if (checkBox != null)
+        var viewModel = ViewModel.ExternalAppsViewModel;
+        WireSelectAllHeaderWhenReady(ExternalAppsDataGrid, checkBox => SyncSelectAllHeader(checkBox, viewModel, viewModel.ItemsView));
+    }
+
+    // The header box acts on the rows the search leaves visible, unlike the Select All box above the grid, which acts
+    // on every app. It sits in a column-header template x:Bind cannot reach, so its state is kept by hand.
+    private static void SyncSelectAllHeader(CheckBox checkBox, INotifyPropertyChanged viewModel, AdvancedCollectionView itemsView)
+    {
+        List<ISelectable> VisibleRows() => itemsView.OfType<ISelectable>().Where(r => r.IsSelectable).ToList();
+        void Refresh()
         {
-            checkBox.Checked += (s, _) => SetAllItemsSelected(ViewModel.ExternalAppsViewModel.ItemsView, true);
-            checkBox.Unchecked += (s, _) => SetAllItemsSelected(ViewModel.ExternalAppsViewModel.ItemsView, false);
+            var rows = VisibleRows();
+            checkBox.IsChecked = rows.Count > 0 && rows.TrueForAll(r => r.IsSelected);
+        }
+
+        Refresh();
+        itemsView.VectorChanged += (_, _) => Refresh();
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WindowsAppsViewModel.IsAllSelected))
+                Refresh();
+        };
+        checkBox.Click += (_, _) =>
+        {
+            var rows = VisibleRows();
+            var select = !rows.TrueForAll(r => r.IsSelected);
+            foreach (var row in rows)
+                row.IsSelected = select;
+            Refresh();
+        };
+    }
+
+    // A grid on a tab that has not been shown yet loads before its header template exists, so the box is looked for
+    // again on each layout pass until it does.
+    private void WireSelectAllHeaderWhenReady(DataGrid grid, Action<CheckBox> wire)
+    {
+        if (TryWire())
+            return;
+
+        EventHandler<object>? retry = null;
+        retry = (_, _) =>
+        {
+            if (TryWire())
+                grid.LayoutUpdated -= retry;
+        };
+        grid.LayoutUpdated += retry;
+
+        bool TryWire()
+        {
+            var checkBox = FindSelectAllCheckBox(grid);
+            if (checkBox == null)
+                return false;
+
+            if (_wiredHeaderBoxes.Add(checkBox))
+                wire(checkBox);
+            return true;
         }
     }
 
-    private void SetAllItemsSelected(AdvancedCollectionView itemsView, bool isSelected)
+    // Arrow keys focus the row, not its check box, so Space ticks the selected rows the way a click on the box does.
+    private void AppsDataGrid_PreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        foreach (var item in itemsView)
-        {
-            if (item is AppItemViewModel appItem)
-                appItem.IsSelected = isSelected;
-        }
+        if (e.Key != Windows.System.VirtualKey.Space || e.OriginalSource is CheckBox || sender is not DataGrid grid)
+            return;
+
+        var rows = grid.SelectedItems.OfType<ISelectable>().Where(r => r.IsSelectable).ToList();
+        if (rows.Count == 0)
+            return;
+
+        var select = !rows.TrueForAll(r => r.IsSelected);
+        foreach (var row in rows)
+            row.IsSelected = select;
+        e.Handled = true;
     }
 
     private static CheckBox? FindSelectAllCheckBox(DependencyObject parent)
@@ -183,35 +249,42 @@ public sealed partial class SoftwareAppsPage : Page
         return null;
     }
 
-    private void CardViewToggle_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel.IsCardView)
-        {
-            // Already in this mode — keep the toggle visually pressed.
-            CardViewToggle.IsChecked = true;
-            return;
-        }
-        ViewModel.ViewMode = SoftwareAppsViewMode.Card;
-    }
+    private void ViewCard_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ViewMode = SoftwareAppsViewMode.Card;
 
-    private void TableViewToggle_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel.IsTableView)
-        {
-            TableViewToggle.IsChecked = true;
-            return;
-        }
-        ViewModel.ViewMode = SoftwareAppsViewMode.Table;
-    }
+    private void ViewTable_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ViewMode = SoftwareAppsViewMode.Table;
 
-    private void CompactViewToggle_Click(object sender, RoutedEventArgs e)
+    private void ViewCompact_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
+
+    private void FilterAll_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SetFilter(AppFilter.All);
+
+    private void FilterInstalled_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SetFilter(AppFilter.Installed);
+
+    private void FilterUpdates_Click(object sender, RoutedEventArgs e)
+        => ViewModel.SetFilter(AppFilter.UpdatesAvailable);
+
+    // Refresh, Help and View give up their labels first; Install and Remove keep theirs longest.
+    private void FitActionBar()
     {
-        if (ViewModel.IsCompactView)
-        {
-            CompactViewToggle.IsChecked = true;
+        if (ActionBar.Parent is not FrameworkElement row || row.ActualWidth <= 0)
             return;
-        }
-        ViewModel.ViewMode = SoftwareAppsViewMode.Compact;
+
+        UIElement[] secondary = [RefreshLabel, HelpLabel, ViewMenuLabel];
+        UIElement[] primary = [InstallLabel, RemoveLabel, InstallToggleLabel, RemoveToggleLabel];
+        FitToWidth.Apply(
+            row.ActualWidth,
+            () =>
+            {
+                ActionBar.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+                return ActionBar.DesiredSize.Width;
+            },
+            reset: () => FitToWidth.SetVisible(true, [.. secondary, .. primary]),
+            () => FitToWidth.SetVisible(false, secondary),
+            () => FitToWidth.SetVisible(false, primary));
     }
 
     private void SortInstalledFirst_Click(object sender, RoutedEventArgs e)
@@ -223,8 +296,8 @@ public sealed partial class SoftwareAppsPage : Page
     private void SortNameDesc_Click(object sender, RoutedEventArgs e)
         => ViewModel.SortMode = AppSortMode.NameDesc;
 
-    // MaxWidth = cols x CardItemWidth + (cols-1) x ColumnSpacing, so header, Select-all checkboxes and grid share
-    // the same extents; extra space becomes symmetric outer margin (the Store / Settings pattern).
+    // MaxWidth = cols x cell + (cols-1) x ColumnSpacing, so header, Select-all checkboxes and grid share the same
+    // extents; extra space becomes symmetric outer margin (the Store / Settings pattern).
     private void WindowsAppsCardScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
         => UpdateCardContentMaxWidth(WindowsAppsCardScrollViewer, WindowsAppsCardContentStack);
 
@@ -236,16 +309,15 @@ public sealed partial class SoftwareAppsPage : Page
         // Resource keys live in SoftwareAppsPage.xaml's Page.Resources; fall back to
         // the same defaults if anything's renamed so the page still lays out.
         double cardWidth = Resources["CardItemWidth"] is double cw ? cw : 420.0;
+        double minCardWidth = Resources["CardMinItemWidth"] is double mw ? mw : 320.0;
         double spacing = 16.0; // matches ColumnSpacing/RowSpacing on UniformWrapPanel
 
         double available = scrollViewer.ViewportWidth;
         if (available <= 0)
             return;
 
-        int cols = System.Math.Max(1,
-            (int)System.Math.Floor((available + spacing) / (cardWidth + spacing)));
-        double contentWidth = cols * cardWidth + System.Math.Max(0, cols - 1) * spacing;
-        contentStack.MaxWidth = contentWidth;
+        var (cols, cellWidth) = UniformWrapPanel.Fit(available, cardWidth, minCardWidth, spacing, int.MaxValue);
+        contentStack.MaxWidth = cols * cellWidth + System.Math.Max(0, cols - 1) * spacing;
     }
 
     // External Apps nests each category's grid inside an Expander, so the grid only gets the clamp width minus the
@@ -285,6 +357,13 @@ public sealed partial class SoftwareAppsPage : Page
         if (string.IsNullOrEmpty(sortProperty))
             return;
 
+        var newDirection = e.Column.SortDirection switch
+        {
+            null => DataGridSortDirection.Ascending,
+            DataGridSortDirection.Ascending => DataGridSortDirection.Descending,
+            _ => DataGridSortDirection.Ascending
+        };
+
         AdvancedCollectionView? collectionView = null;
         if (dataGrid == WindowsAppsDataGrid)
             collectionView = ViewModel.WindowsAppsViewModel.ItemsView;
@@ -293,13 +372,6 @@ public sealed partial class SoftwareAppsPage : Page
 
         if (collectionView == null)
             return;
-
-        var newDirection = e.Column.SortDirection switch
-        {
-            null => DataGridSortDirection.Ascending,
-            DataGridSortDirection.Ascending => DataGridSortDirection.Descending,
-            _ => DataGridSortDirection.Ascending
-        };
 
         foreach (var column in dataGrid.Columns)
         {

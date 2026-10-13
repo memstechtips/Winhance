@@ -325,4 +325,52 @@ public class ChocolateyServiceTests
         result.Contains("Git").Should().BeTrue();
         result.Contains("GIT").Should().BeTrue();
     }
+
+    [Fact]
+    public void Search_reads_one_id_per_line_and_drops_duplicates()
+    {
+        ChocolateyService.ParseIds("vlc|3.0.21\r\nvlc.portable|3.0.21\r\nVLC|3.0.20\r\n\r\nnot a package line\r\n")
+            .Should().Equal("vlc", "vlc.portable");
+    }
+
+    [Fact]
+    public async Task GetOutdatedPackagesAsync_WithoutChocolatey_HasNothingOutdated()
+    {
+        var outdated = await _sut.GetOutdatedPackagesAsync();
+
+        outdated.Should().NotBeNull().And.BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetOutdatedPackagesAsync_WhenTheCheckFails_ReturnsNull()
+    {
+        _mockFileSystem
+            .Setup(f => f.FileExists(@"C:\ProgramData\chocolatey\bin\choco.exe"))
+            .Returns(true);
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("choco is broken"));
+
+        var outdated = await _sut.GetOutdatedPackagesAsync();
+
+        outdated.Should().BeNull();
+    }
+
+    [Fact]
+    public void Outdated_reads_the_newer_version_and_skips_pinned_packages()
+    {
+        var outdated = ChocolateyService.ParseOutdated(
+            "vlc|3.0.20|3.0.21|false\r\ngit|2.44.0|2.46.0|true\r\nChocolatey detected noise\r\n7zip|23.1|24.9|false\r\n");
+
+        outdated.Should().HaveCount(2);
+        outdated["VLC"].Should().Be("3.0.21");
+        outdated["7zip"].Should().Be("24.9");
+    }
+
+    [Theory]
+    [InlineData("notepad++", "notepad++")]
+    [InlineData("vlc\" & del C:\\", "vlc  del C")]
+    [InlineData("  7-zip  ", "7-zip")]
+    public void The_search_term_keeps_only_characters_a_package_name_can_hold(string query, string expected) =>
+        ChocolateyService.SearchTerm(query).Should().Be(expected);
 }

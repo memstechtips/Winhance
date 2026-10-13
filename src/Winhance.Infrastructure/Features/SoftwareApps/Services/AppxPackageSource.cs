@@ -1,6 +1,7 @@
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
@@ -65,6 +66,54 @@ internal class AppxPackageSource(
         }
 
         return packageNames;
+    }
+
+    public async Task<IReadOnlyList<StorePackage>> GetStorePackagesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await Task.Run(() =>
+            {
+                var packages = new List<StorePackage>();
+                foreach (var package in new PackageManager().FindPackagesForUser(""))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        packages.Add(Describe(package));
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.LogWarning($"PackageManager enumeration skipped an entry: {ex.Message}");
+                    }
+                }
+                return packages;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logService.LogWarning($"Store package enumeration failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    // DisplayName comes back empty, or as the raw ms-resource string, when the package's resources cannot be loaded.
+    private static StorePackage Describe(Windows.ApplicationModel.Package package)
+    {
+        var id = package.Id;
+        var version = $"{id.Version.Major}.{id.Version.Minor}.{id.Version.Build}.{id.Version.Revision}";
+        var displayName = package.DisplayName;
+        if (string.IsNullOrWhiteSpace(displayName) || displayName.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase))
+            displayName = id.Name;
+
+        return new StorePackage(id.Name, id.FamilyName, displayName, version)
+        {
+            Publisher = package.PublisherDisplayName,
+            InstalledOn = package.InstalledDate.Year > 1601 ? package.InstalledDate.LocalDateTime : null,
+            IsFramework = package.IsFramework,
+            IsResource = package.IsResourcePackage || package.IsBundle,
+            IsSystem = package.SignatureKind == Windows.ApplicationModel.PackageSignatureKind.System,
+        };
     }
 
     internal async Task<HashSet<string>> GetInstalledAppxPackageNamesViaWmiAsync()

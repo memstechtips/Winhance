@@ -6,6 +6,9 @@ FindWindow
 GetWindowThreadProcessId
 AllowSetForegroundWindow
 
+// Window sizing: AppWindow sizes in screen pixels, the layout in effective pixels
+GetDpiForWindow
+
 // File dialogs (WinRT pickers fail with admin elevation)
 IFileDialog
 IFileOpenDialog
@@ -16,3 +19,31 @@ COMDLG_FILTERSPEC
 SHCreateItemFromParsingName
 SIGDN
 FILEOPENDIALOGOPTIONS
+
+// The notification-area icon and its menu, on a subclassed main window (shell32.dll, comctl32.dll, user32.dll).
+// NIN_BALLOONUSERCLICK arrives as the callback's lParam when the user clicks the notification.
+Shell_NotifyIcon
+NOTIFYICONDATAW
+NOTIFY_ICON_MESSAGE
+NOTIFY_ICON_DATA_FLAGS
+NOTIFY_ICON_INFOTIP_FLAGS
+NIN_BALLOONUSERCLICK
+RegisterWindowMessage
+SetWindowSubclass
+RemoveWindowSubclass
+DefSubclassProc
+ExtractIconEx
+DestroyIcon
+CreatePopupMenu
+AppendMenu
+TrackPopupMenuEx
+DestroyMenu
+GetCursorPos
+MENU_ITEM_FLAGS
+TRACK_POPUP_MENU_FLAGS
+WM_APP
+NOTIFYICON_VERSION_4
+NIN_SELECT
+WM_CONTEXTMENU
+WM_NULL
+PostMessage

@@ -71,6 +71,7 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
 
         if (externalAppsSection?.Items != null)
         {
+            _externalAppsVM.AddSearchItems(externalAppsSection.Items.Select(configItem => configItem.Id));
             foreach (var configItem in externalAppsSection.Items)
             {
                 var vmItem = FindMatchingExternalApp(_externalAppsVM.Items, configItem);
@@ -93,6 +94,7 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
 
         if (externalAppsSection?.Items != null)
         {
+            _externalAppsVM.AddSearchItems(externalAppsSection.Items.Select(configItem => configItem.Id));
             foreach (var configItem in externalAppsSection.Items)
             {
                 var vmItem = FindMatchingExternalApp(_externalAppsVM.Items, configItem);
@@ -119,6 +121,7 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
 
         if (externalAppsSection?.Items != null)
         {
+            _externalAppsVM.AddSearchItems(externalAppsSection.Items.Select(configItem => configItem.Id));
             foreach (var configItem in externalAppsSection.Items)
             {
                 var vmItem = FindMatchingExternalApp(_externalAppsVM.Items, configItem);
@@ -135,16 +138,25 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
         }
     }
 
-    public async Task ProcessExternalAppsFromUserSelectionAsync(List<string> selectedAppIds)
+    public async Task ProcessExternalAppsFromUserSelectionAsync(List<string> selectedAppIds, bool remove)
     {
         if (!_externalAppsVM.IsInitialized)
             await _externalAppsVM.LoadItemsAsync();
 
+        _externalAppsVM.AddSearchItems(selectedAppIds);
         foreach (var vmItem in _externalAppsVM.Items)
-            vmItem.IsSelected = selectedAppIds.Contains(vmItem.Id ?? vmItem.Name);
+            vmItem.IsSelected = selectedAppIds.Contains(vmItem.Id) || (vmItem.PackageId is { } packageId && selectedAppIds.Contains(packageId));
 
         var selectedCount = _externalAppsVM.Items.Count(i => i.IsSelected);
-        if (selectedCount > 0)
+        if (selectedCount == 0)
+            return;
+
+        if (remove)
+        {
+            _logService.Log(LogLevel.Info, $"Starting external apps uninstallation for {selectedCount} user-selected apps");
+            await _externalAppsVM.UninstallAppsAsync();
+        }
+        else
         {
             _logService.Log(LogLevel.Info, $"Starting external apps installation for {selectedCount} user-selected apps");
             await _externalAppsVM.InstallApps(skipConfirmation: true);
@@ -166,6 +178,6 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
             (!string.IsNullOrEmpty(configItem.WinGetPackageId) &&
              i.Definition?.WinGetPackageId != null &&
              i.Definition.WinGetPackageId.Contains(configItem.WinGetPackageId)) ||
-            i.Id == configItem.Id);
+            i.Id == configItem.Id || i.PackageId == configItem.Id);
     }
 }
